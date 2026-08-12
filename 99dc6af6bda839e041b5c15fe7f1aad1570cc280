@@ -1,0 +1,51 @@
+packages/desktop/assets/icon.svg
+  db26196a999da47a 13
+packages/webview/src/styles/LoadingLogo.css
+  db26196a999da47a 2,36-37,40-41
+packages/webview/src/components/LoadingLogo.tsx
+  db26196a999da47a 2,8,10-12,15-16,18,25,28
+packages/webview/esbuild.config.mjs
+  db26196a999da47a 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "99dc6af6bda839e041b5c15fe7f1aad1570cc280",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 42,
+      "total_deletions": 38,
+      "accepted_lines": 18,
+      "overriden_lines": 7,
+      "per_file_stats": {
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/LoadingLogo.tsx": {
+          "additions": 11,
+          "deletions": 22,
+          "accepted_lines": 11
+        },
+        "packages/desktop/assets/icon.svg": {
+          "additions": 25,
+          "deletions": 10,
+          "accepted_lines": 1,
+          "overriden_lines": 7
+        },
+        "packages/webview/src/styles/LoadingLogo.css": {
+          "additions": 5,
+          "deletions": 6,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
