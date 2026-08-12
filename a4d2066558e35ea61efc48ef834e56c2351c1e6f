@@ -1,0 +1,42 @@
+packages/desktop/src/main/serverProcess.ts
+  923a8e4b62ea815c 68-70,105-106
+packages/desktop/tests/fixtures/crash-restart-server.mjs
+  923a8e4b62ea815c 1-27
+packages/desktop/tests/serverProcess.test.ts
+  923a8e4b62ea815c 2-3,28-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a4d2066558e35ea61efc48ef834e56c2351c1e6f",
+  "prompts": {
+    "923a8e4b62ea815c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "57bf44b3-725c-4db1-b6ef-9ff03f870ddb",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 61,
+      "total_deletions": 3,
+      "accepted_lines": 61,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/tests/serverProcess.test.ts": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/desktop/tests/fixtures/crash-restart-server.mjs": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/desktop/src/main/serverProcess.ts": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
