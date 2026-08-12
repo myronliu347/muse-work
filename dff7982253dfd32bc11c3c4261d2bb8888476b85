@@ -1,0 +1,30 @@
+packages/webview/esbuild.config.mjs
+  db26196a999da47a 37-39,41-43,47,52-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "dff7982253dfd32bc11c3c4261d2bb8888476b85",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 4,
+      "accepted_lines": 13,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 13,
+          "deletions": 4,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
