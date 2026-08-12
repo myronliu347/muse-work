@@ -121,6 +121,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let pinned: TreeSession[] = [];
   let recent: TreeSession[] = [];
   const titledSessions = new Set<string>();
+  /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
+  const pendingPermissions = new Map<
+    string,
+    { permissionId: string; toolName: string; description: string }
+  >();
 
   const treeById = (): Map<string, TreeSession> => {
     const map = new Map<string, TreeSession>();
@@ -156,6 +161,26 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const clearUnread = (id: string) => {
     patchTreeSession(id, { unreadDone: false });
+  };
+
+  const showPermissionConfirmation = (pending: {
+    permissionId: string;
+    toolName: string;
+    description: string;
+  }) => {
+    postToWebview({
+      command: "showConfirmation",
+      confirmationId: pending.permissionId,
+      toolName: pending.toolName,
+      confirmationType: "tool",
+      toolInput: pending.description,
+    });
+  };
+
+  const clearPendingPermission = (id: string) => {
+    if (!pendingPermissions.has(id)) return;
+    pendingPermissions.delete(id);
+    patchTreeSession(id, { waitingConfirmation: false });
   };
 
   const emitCurrentSession = (session: MuseSession) => {
@@ -273,6 +298,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     emitCurrentSession(session);
     await loadMessages(session.id);
     await refreshTree();
+    const pending = pendingPermissions.get(session.id);
+    if (pending) {
+      showPermissionConfirmation(pending);
+    }
     return session;
   };
 
@@ -290,6 +319,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const handleDeleteSession = async (id: string): Promise<void> => {
     const wasActive = sessionId === id;
+    clearPendingPermission(id);
     await api.deleteSession(id);
     if (!wasActive) {
       await refreshTree();
@@ -404,17 +434,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
-    if (event.type === "permission:request") {
-      postToWebview({
-        command: "showConfirmation",
-        confirmationId: event.permissionId,
-        toolName: event.toolName,
-        confirmationType: "tool",
-        toolInput: event.description,
-      });
-      return;
-    }
-
     if (event.type === "session:status" && event.status === "error") {
       postToWebview({
         command: "updateErrorBlock",
@@ -513,12 +532,32 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "permission:request") {
+      const pending = {
+        permissionId: event.permissionId,
+        toolName: event.toolName,
+        description: event.description,
+      };
+      pendingPermissions.set(event.sessionId, pending);
+      // Sidebar must show waiting even when this session is not focused.
+      patchTreeSession(event.sessionId, {
+        waitingConfirmation: true,
+        running: true,
+      });
+      if (event.sessionId === sessionId) {
+        showPermissionConfirmation(pending);
+      }
+      return;
+    }
+
     if (event.type === "session:status") {
-      const running = event.status === "running";
+      const hasPending = pendingPermissions.has(event.sessionId);
+      const running = event.status === "running" || hasPending;
       patchTreeSession(event.sessionId, {
         status: event.status,
         running,
-        waitingConfirmation: false,
+        // Do not wipe waitingConfirmation while a permission is still pending.
+        ...(hasPending ? {} : { waitingConfirmation: false }),
       });
       if (event.sessionId === sessionId && event.status === "error") {
         emitChatWs(event);
@@ -681,8 +720,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (!sessionId || !msg.confirmationId) return;
     const decision =
       msg.decision === "deny" || msg.decision === "reject" ? "deny" : "allow";
+    const sid = sessionId;
     try {
-      await api.respondPermission(sessionId, msg.confirmationId, decision);
+      await api.respondPermission(sid, msg.confirmationId, decision);
+      clearPendingPermission(sid);
     } catch (err) {
       postToWebview({
         command: "updateErrorBlock",

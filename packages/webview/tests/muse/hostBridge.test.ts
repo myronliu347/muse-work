@@ -42,6 +42,7 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
     })),
     deleteSession: vi.fn(async () => ({ ok: true as const })),
     sendMessage: vi.fn(async () => ({ accepted: true as const })),
+    respondPermission: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
   } as unknown as MuseApiClient;
 }
@@ -386,6 +387,124 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       ?.flatMap((g) => g.sessions)
       .find((s) => s.sessionId === "sess-other");
     expect(entry?.running).toBe(true);
+  });
+
+  it("non-focus permission:request sets waitingConfirmation; select shows confirmation", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const other: MuseSession = {
+      ...baseSession,
+      id: "sess-other",
+      title: "Other",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [baseSession, other],
+        activeSessionId: "sess-active",
+      })),
+      respondPermission: vi.fn(async () => ({ ok: true as const })),
+    });
+
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "permission:request",
+      sessionId: "sess-other",
+      permissionId: "perm-bg",
+      toolName: "Bash",
+      description: "ls -la",
+    });
+    await flush();
+
+    // Must not drop: sidebar waiting flag, but no confirmation UI yet (non-focus).
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "showConfirmation" }),
+    );
+    const treeAfterPerm = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{
+              sessionId: string;
+              waitingConfirmation?: boolean;
+              running?: boolean;
+            }>;
+          }>;
+        }
+      | undefined;
+    const otherEntry = treeAfterPerm?.groups
+      ?.flatMap((g) => g.sessions)
+      .find((s) => s.sessionId === "sess-other");
+    expect(otherEntry?.waitingConfirmation).toBe(true);
+    expect(otherEntry?.running).toBe(true);
+
+    // session:status idle must not wipe waiting while permission still pending
+    messages.length = 0;
+    handler!({
+      type: "session:status",
+      sessionId: "sess-other",
+      status: "idle",
+    });
+    await flush();
+    const treeAfterStatus = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{
+              sessionId: string;
+              waitingConfirmation?: boolean;
+            }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      treeAfterStatus?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-other")?.waitingConfirmation,
+    ).toBe(true);
+
+    messages.length = 0;
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-other",
+      workdir: "/tmp",
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "showConfirmation",
+      confirmationId: "perm-bg",
+      toolName: "Bash",
+      confirmationType: "tool",
+      toolInput: "ls -la",
+    });
   });
 
   it("forwards loading / tool / reasoning WS events only for active session", async () => {

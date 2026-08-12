@@ -288,6 +288,42 @@ describe("sessionRunner lifecycle", () => {
     ).toBe(true);
   });
 
+  it("getMessages re-arms idle TTL after clear; agent destroyed, waveSessionId kept", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    store.setWaveSessionId(session.id, "wave-rearm");
+
+    let disposeCount = 0;
+    const restoreIds: Array<string | undefined> = [];
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 40,
+      createAgent: async (opts) => {
+        restoreIds.push(opts.restoreSessionId);
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {
+            disposeCount += 1;
+          },
+          getMessages: () => [{ id: "m" }],
+          sessionId: "wave-rearm",
+        };
+      },
+    });
+
+    // ensureAgent/getMessages clearIdleTimer then must re-arm.
+    await runner.getMessages(session.id);
+    expect(restoreIds).toEqual(["wave-rearm"]);
+    expect(store.get(session.id)?.status).toBe("idle");
+
+    await expect.poll(() => disposeCount).toBe(1);
+    expect(store.get(session.id)?.waveSessionId).toBe("wave-rearm");
+    expect(store.get(session.id)).toBeDefined();
+  });
+
   it("idle TTL does not destroy while status is running", async () => {
     const { store, hub, registry } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });

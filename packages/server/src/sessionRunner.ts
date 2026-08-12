@@ -425,6 +425,12 @@ export function createSessionRunner(
     return agent;
   }
 
+  function rearmIdleIfNeeded(sessionId: string): void {
+    if (canIdleDestroy(sessionId)) {
+      scheduleIdleDestroy(sessionId);
+    }
+  }
+
   async function ensureAgent(sessionId: string): Promise<SessionAgent> {
     clearIdleTimer(sessionId);
     const session = store.get(sessionId);
@@ -444,6 +450,8 @@ export function createSessionRunner(
     const existing = agents.get(sessionId);
     if (existing) {
       if (agentIdentities.get(sessionId) === identity) {
+        // getMessages / idle ensureAgent cleared the timer — re-arm if still idle.
+        rearmIdleIfNeeded(sessionId);
         return existing;
       }
       agents.delete(sessionId);
@@ -488,6 +496,7 @@ export function createSessionRunner(
     rememberWaveSessionId(sessionId, agent.sessionId);
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
+    rearmIdleIfNeeded(sessionId);
     return agent;
   }
 
@@ -656,6 +665,8 @@ export function createSessionRunner(
         });
       }
       const agent = await ensureAgent(sessionId);
+      // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
+      rearmIdleIfNeeded(sessionId);
       return mapSdkMessages(agent.getMessages?.() ?? []);
     },
   };
