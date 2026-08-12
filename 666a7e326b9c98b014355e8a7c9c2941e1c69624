@@ -1,0 +1,29 @@
+docs/superpowers/plans/2026-08-12-muse-work-mvp.md
+  db26196a999da47a 1-998
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "666a7e326b9c98b014355e8a7c9c2941e1c69624",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 998,
+      "total_deletions": 0,
+      "accepted_lines": 998,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-12-muse-work-mvp.md": {
+          "additions": 998,
+          "accepted_lines": 998
+        }
+      }
+    }
+  }
+}
