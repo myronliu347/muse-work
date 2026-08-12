@@ -38,7 +38,13 @@ export type WsEvent =
       toolName: string;
       description: string;
     }
-  | { type: "session:status"; status: SessionStatus | string; error?: string }
+  | {
+      type: "session:status";
+      status: SessionStatus | string;
+      error?: string;
+      unreadDone?: boolean;
+    }
+  | { type: "session:unread"; sessionId: string; unreadDone: boolean }
   | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus }
   | { type: "compaction:state"; isCompacting: boolean }
   | { type: "messages:replace"; messages: unknown[] }

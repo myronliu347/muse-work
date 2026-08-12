@@ -6,12 +6,19 @@ import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
 } from "./museSystemPrompt.js";
+import { mapSdkMessages } from "./messageMapper.js";
+
+export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_TITLE = "新对话";
+const TITLE_MAX_LEN = 40;
 
 export interface SessionAgent {
   sendMessage(content: string): Promise<void>;
   dispose(): Promise<void>;
   /** Optional SDK message snapshot (used after compaction). */
   getMessages?: () => unknown[];
+  /** Wave session id when available (SDK agent or test stub). */
+  sessionId?: string;
 }
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
@@ -37,6 +44,8 @@ export interface CreateSessionRunnerOptions {
   hub: WsHub;
   registry: ProviderRegistry;
   createAgent?: CreateAgent;
+  /** Idle TTL before destroying runtime (keeps store record). Default 10min. */
+  idleTtlMs?: number;
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
@@ -50,6 +59,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
       getMessages: () => agent.messages,
+      sessionId: agent.sessionId,
     };
   });
 }
@@ -59,6 +69,7 @@ export function createSessionRunner(
 ): SessionRunner {
   const { store, hub, registry } = options;
   const createAgent = options.createAgent ?? defaultCreateAgent;
+  const idleTtlMs = options.idleTtlMs ?? AGENT_IDLE_TTL_MS;
   const agents = new Map<string, SessionAgent>();
   /** Gateway identity used when the session agent was created (model switch → recreate). */
   const agentIdentities = new Map<string, string>();
@@ -69,6 +80,7 @@ export function createSessionRunner(
   const messageQueues = new Map<string, string[]>();
   /** Per-session flag: current turn already received assistant stage "end". */
   const turnEnded = new Map<string, boolean>();
+  const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   function gatewayIdentity(gateway: GatewayResolution): string {
     const credential =
@@ -81,6 +93,67 @@ export function createSessionRunner(
     ].join("\0");
   }
 
+  function clearIdleTimer(sessionId: string): void {
+    const timer = idleTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      idleTimers.delete(sessionId);
+    }
+  }
+
+  function hasPendingPermission(sessionId: string): boolean {
+    for (const entry of pending.values()) {
+      if (entry.sessionId === sessionId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function canIdleDestroy(sessionId: string): boolean {
+    if (disposed.has(sessionId) || !store.get(sessionId)) {
+      return false;
+    }
+    const session = store.get(sessionId);
+    if (session?.status === "running") {
+      return false;
+    }
+    if (hasPendingPermission(sessionId)) {
+      return false;
+    }
+    const queue = messageQueues.get(sessionId);
+    if (queue && queue.length > 0) {
+      return false;
+    }
+    return true;
+  }
+
+  /** Destroy runtime only — keep sessions.json / waveSessionId. */
+  async function destroyRuntime(sessionId: string): Promise<void> {
+    clearIdleTimer(sessionId);
+    const agent = agents.get(sessionId);
+    agents.delete(sessionId);
+    agentIdentities.delete(sessionId);
+    if (agent) {
+      await agent.dispose();
+    }
+  }
+
+  function scheduleIdleDestroy(sessionId: string): void {
+    clearIdleTimer(sessionId);
+    if (!canIdleDestroy(sessionId)) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      idleTimers.delete(sessionId);
+      if (!canIdleDestroy(sessionId)) {
+        return;
+      }
+      void destroyRuntime(sessionId);
+    }, idleTtlMs);
+    idleTimers.set(sessionId, timer);
+  }
+
   function markIdle(sessionId: string): void {
     if (disposed.has(sessionId) || !store.get(sessionId)) {
       return;
@@ -89,6 +162,17 @@ export function createSessionRunner(
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
     }
+
+    if (store.getActiveSessionId() !== sessionId) {
+      store.setUnreadDone(sessionId, true);
+      hub.broadcast(sessionId, {
+        type: "session:unread",
+        sessionId,
+        unreadDone: true,
+      });
+    }
+
+    scheduleIdleDestroy(sessionId);
   }
 
   function finishTurnError(sessionId: string, err: unknown): void {
@@ -105,6 +189,7 @@ export function createSessionRunner(
     // Allow the next queued message after a failed turn.
     store.updateStatus(sessionId, "idle");
     hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+    scheduleIdleDestroy(sessionId);
   }
 
   async function drainQueue(sessionId: string): Promise<void> {
@@ -127,28 +212,37 @@ export function createSessionRunner(
     await runTurn(sessionId, next);
   }
 
-  async function ensureAgent(
+  function rememberWaveSessionId(
+    sessionId: string,
+    waveSessionId: string | undefined,
+  ): void {
+    if (!waveSessionId || disposed.has(sessionId) || !store.get(sessionId)) {
+      return;
+    }
+    store.setWaveSessionId(sessionId, waveSessionId);
+  }
+
+  async function resolveSessionGateway(
+    sessionId: string,
+    model: string,
+  ): Promise<GatewayResolution> {
+    const active = registry.getActive();
+    const provider = registry.get(active.providerId);
+    if (!provider) {
+      throw new Error(`active provider not found: ${active.providerId}`);
+    }
+    if (!model) {
+      throw new Error(`session ${sessionId} has no model`);
+    }
+    return provider.resolveGateway(model);
+  }
+
+  async function createAgentWithRestore(
     sessionId: string,
     workdir: string,
     gateway: GatewayResolution,
+    restoreSessionId: string | undefined,
   ): Promise<SessionAgent> {
-    const identity = gatewayIdentity(gateway);
-    const existing = agents.get(sessionId);
-    if (existing) {
-      if (agentIdentities.get(sessionId) === identity) {
-        return existing;
-      }
-      agents.delete(sessionId);
-      agentIdentities.delete(sessionId);
-      await existing.dispose();
-    }
-    if (disposed.has(sessionId)) {
-      throw Object.assign(new Error(`session disposed: ${sessionId}`), {
-        statusCode: 404,
-      });
-    }
-
-    // Filled after createAgent resolves; compact/subagent callbacks may run later.
     const agentBox: { current: SessionAgent | null } = { current: null };
 
     const agent = await createAgent({
@@ -163,8 +257,12 @@ export function createSessionRunner(
       stream: true,
       // MVP: auto-accept file edits; UI selector is hidden for now.
       permissionMode: "acceptEdits",
+      restoreSessionId,
       // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
+        onSessionIdChange: (id) => {
+          rememberWaveSessionId(sessionId, id);
+        },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
           hub.broadcast(sessionId, { type: "loading", loading });
@@ -228,7 +326,10 @@ export function createSessionRunner(
             agentBox.current?.getMessages?.() ??
             agents.get(sessionId)?.getMessages?.();
           if (!messages) return;
-          hub.broadcast(sessionId, { type: "messages:replace", messages });
+          hub.broadcast(sessionId, {
+            type: "messages:replace",
+            messages: mapSdkMessages(messages),
+          });
         },
         onSubagentAssistantMessageAdded: (subagentId, messageId) => {
           if (disposed.has(sessionId)) return;
@@ -278,6 +379,7 @@ export function createSessionRunner(
         },
       },
       canUseTool: async (context) => {
+        clearIdleTimer(sessionId);
         const permissionId = crypto.randomUUID();
         const description =
           context.toolInput !== undefined
@@ -300,6 +402,61 @@ export function createSessionRunner(
     });
 
     agentBox.current = agent;
+    return agent;
+  }
+
+  async function ensureAgent(sessionId: string): Promise<SessionAgent> {
+    const session = store.get(sessionId);
+    if (!session) {
+      throw Object.assign(new Error(`session not found: ${sessionId}`), {
+        statusCode: 404,
+      });
+    }
+    if (disposed.has(sessionId)) {
+      throw Object.assign(new Error(`session disposed: ${sessionId}`), {
+        statusCode: 404,
+      });
+    }
+
+    const gateway = await resolveSessionGateway(sessionId, session.model);
+    const identity = gatewayIdentity(gateway);
+    const existing = agents.get(sessionId);
+    if (existing) {
+      if (agentIdentities.get(sessionId) === identity) {
+        return existing;
+      }
+      agents.delete(sessionId);
+      agentIdentities.delete(sessionId);
+      await existing.dispose();
+    }
+    if (disposed.has(sessionId)) {
+      throw Object.assign(new Error(`session disposed: ${sessionId}`), {
+        statusCode: 404,
+      });
+    }
+
+    const restoreId = store.get(sessionId)?.waveSessionId;
+    let agent: SessionAgent;
+    try {
+      agent = await createAgentWithRestore(
+        sessionId,
+        session.workdir,
+        gateway,
+        restoreId,
+      );
+    } catch (err) {
+      if (!restoreId) {
+        throw err;
+      }
+      // Restore failed (missing/corrupt jsonl etc.) → create fresh agent.
+      agent = await createAgentWithRestore(
+        sessionId,
+        session.workdir,
+        gateway,
+        undefined,
+      );
+    }
+
     if (disposed.has(sessionId)) {
       await agent.dispose();
       throw Object.assign(new Error(`session disposed: ${sessionId}`), {
@@ -307,6 +464,7 @@ export function createSessionRunner(
       });
     }
 
+    rememberWaveSessionId(sessionId, agent.sessionId);
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
     return agent;
@@ -339,7 +497,24 @@ export function createSessionRunner(
     if (store.get(sessionId)) {
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+      scheduleIdleDestroy(sessionId);
     }
+  }
+
+  function maybeUpdateTitle(sessionId: string, content: string): void {
+    const session = store.get(sessionId);
+    if (!session || session.title !== DEFAULT_TITLE) {
+      return;
+    }
+    const trimmed = content.trim().replace(/\s+/g, " ");
+    if (!trimmed) {
+      return;
+    }
+    const title =
+      trimmed.length > TITLE_MAX_LEN
+        ? `${trimmed.slice(0, TITLE_MAX_LEN)}…`
+        : trimmed;
+    store.update(sessionId, { title });
   }
 
   async function runTurn(sessionId: string, content: string): Promise<void> {
@@ -355,32 +530,15 @@ export function createSessionRunner(
       return;
     }
 
+    clearIdleTimer(sessionId);
+    store.update(sessionId, { lastActiveAt: Date.now() });
+    maybeUpdateTitle(sessionId, content);
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
 
     try {
-      const active = registry.getActive();
-      const provider = registry.get(active.providerId);
-      if (!provider) {
-        throw new Error(`active provider not found: ${active.providerId}`);
-      }
-      if (!active.modelId) {
-        throw new Error("no active model selected");
-      }
-
-      let gateway: GatewayResolution;
-      try {
-        gateway = await provider.resolveGateway(active.modelId);
-      } catch (err) {
-        if (isUnauthorized(err)) {
-          await handleUnauthorized(sessionId);
-          return;
-        }
-        throw err;
-      }
-
-      const agent = await ensureAgent(sessionId, session.workdir, gateway);
+      const agent = await ensureAgent(sessionId);
       await agent.sendMessage(content);
       // SDK may swallow errors / return without stage "end". Release busy either way.
       if (
@@ -419,6 +577,7 @@ export function createSessionRunner(
         const queue = messageQueues.get(sessionId) ?? [];
         queue.push(content);
         messageQueues.set(sessionId, queue);
+        clearIdleTimer(sessionId);
         return { accepted: true };
       }
 
@@ -445,6 +604,7 @@ export function createSessionRunner(
 
     async disposeSession(sessionId) {
       disposed.add(sessionId);
+      clearIdleTimer(sessionId);
       messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
       for (const [id, entry] of pending) {
@@ -472,8 +632,8 @@ export function createSessionRunner(
           statusCode: 404,
         });
       }
-      const agent = agents.get(sessionId);
-      return agent?.getMessages?.() ?? [];
+      const agent = await ensureAgent(sessionId);
+      return mapSdkMessages(agent.getMessages?.() ?? []);
     },
   };
 }

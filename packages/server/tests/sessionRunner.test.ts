@@ -110,7 +110,7 @@ describe("sessionRunner concurrency / dispose", () => {
     });
   });
 
-  it("recreates agent when active model changes", async () => {
+  it("recreates agent when session model changes", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-model-"));
     saveProvidersConfig(
       {
@@ -168,8 +168,7 @@ describe("sessionRunner concurrency / dispose", () => {
         createdModels.push(model);
         return {
           sendMessage: async () => {
-            // Drive idle via callback path is optional; mark idle for next send.
-            store.updateStatus(session.id, "idle");
+            // Leave running so runTurn marks idle after send settles.
           },
           dispose: async () => {
             disposedModels.push(model);
@@ -185,7 +184,7 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
     expect(createdModels).toEqual(["gpt-4.1"]);
 
-    registry.setActive("openai-compatible", "gpt-4.1-mini");
+    store.update(session.id, { model: "gpt-4.1-mini" });
     await runner.sendMessage(session.id, "again");
     await expect.poll(() => createdModels.length).toBe(2);
     expect(createdModels).toEqual(["gpt-4.1", "gpt-4.1-mini"]);
@@ -248,7 +247,7 @@ describe("sessionRunner concurrency / dispose", () => {
         createCount += 1;
         return {
           sendMessage: async () => {
-            store.updateStatus(session.id, "idle");
+            // Leave running so runTurn marks idle after send settles.
           },
           dispose: async () => {
             disposeCount += 1;

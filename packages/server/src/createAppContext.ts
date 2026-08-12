@@ -30,12 +30,15 @@ export interface CreateAppContextOptions {
   home?: string;
   /** Injectable Agent factory for tests. */
   createAgent?: CreateAgent;
+  /** Idle TTL before destroying session runtime (default 10min). */
+  idleTtlMs?: number;
 }
 
 export interface CreateSessionServicesOptions {
   home: string;
   registry: ProviderRegistry;
   createAgent?: CreateAgent;
+  idleTtlMs?: number;
 }
 
 export function createSessionServices(
@@ -48,6 +51,7 @@ export function createSessionServices(
     hub,
     registry: options.registry,
     createAgent: options.createAgent,
+    idleTtlMs: options.idleTtlMs,
   });
   return { store, hub, runner };
 }
@@ -90,6 +94,7 @@ export function createAppContext(
     home,
     registry,
     createAgent: options?.createAgent,
+    idleTtlMs: options?.idleTtlMs,
   });
 
   return { home, registry, ...sessions };
