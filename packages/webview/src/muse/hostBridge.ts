@@ -39,6 +39,21 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let streamingMessageId: string | null = null;
   let state: unknown = null;
   let bootstrapped = false;
+  let loading = false;
+
+  const ensureAssistantMessage = (messageId: string): void => {
+    if (streamingMessageId === messageId) return;
+    streamingMessageId = messageId;
+    postToWebview({
+      command: "appendMessage",
+      message: {
+        id: messageId,
+        role: "assistant",
+        timestamp: new Date().toISOString(),
+        blocks: [],
+      },
+    });
+  };
 
   const emitWorkdirState = (patch?: {
     workdir?: string;
@@ -76,40 +91,86 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   });
 
   const emitWs = (event: MuseWsEvent) => {
-    if (event.type === "message:delta") {
-      if (!streamingMessageId) {
-        streamingMessageId = newId("asst");
+    if (event.type === "loading") {
+      loading = event.loading;
+      postToWebview({
+        command: event.loading ? "startStreaming" : "endStreaming",
+      });
+      if (!event.loading) {
+        streamingMessageId = null;
+      }
+      return;
+    }
+
+    if (event.type === "assistant:message") {
+      ensureAssistantMessage(event.messageId);
+      if (!loading) {
         postToWebview({ command: "startStreaming" });
-        postToWebview({
-          command: "appendMessage",
-          message: {
-            id: streamingMessageId,
-            role: "assistant",
-            timestamp: new Date().toISOString(),
-            blocks: [{ type: "text", content: "", stage: "streaming" }],
-          },
-        });
+      }
+      return;
+    }
+
+    if (event.type === "message:delta") {
+      const messageId = event.messageId || streamingMessageId || newId("asst");
+      ensureAssistantMessage(messageId);
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
       }
       postToWebview({
         command: "updateStreamingContent",
-        messageId: streamingMessageId,
+        messageId,
         chunk: event.text,
-        stage: "streaming",
+        stage: event.stage ?? "streaming",
+      });
+      return;
+    }
+
+    if (event.type === "reasoning:delta") {
+      ensureAssistantMessage(event.messageId);
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      postToWebview({
+        command: "updateStreamingReasoning",
+        messageId: event.messageId,
+        chunk: event.text,
+        stage: event.stage,
+      });
+      return;
+    }
+
+    if (event.type === "tool:update") {
+      const params = event.params;
+      const messageId =
+        typeof params.messageId === "string"
+          ? params.messageId
+          : streamingMessageId || newId("asst");
+      ensureAssistantMessage(messageId);
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      postToWebview({
+        command: "updateToolBlock",
+        params: { ...params, messageId },
       });
       return;
     }
 
     if (event.type === "message:completed") {
-      if (streamingMessageId) {
+      const messageId = event.messageId || streamingMessageId;
+      if (messageId) {
         postToWebview({
           command: "updateStreamingContent",
-          messageId: streamingMessageId,
+          messageId,
           chunk: "",
           stage: "end",
         });
       }
-      streamingMessageId = null;
-      postToWebview({ command: "endStreaming" });
+      // Prefer onLoadingChange(false) for endStreaming; keep fallback.
+      if (!loading) {
+        streamingMessageId = null;
+        postToWebview({ command: "endStreaming" });
+      }
       return;
     }
 
@@ -136,10 +197,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (event.type === "session:status" && event.status === "error") {
       postToWebview({
         command: "updateErrorBlock",
-        error: "Session error",
+        error: event.error?.trim() || "Session error",
       });
       postToWebview({ command: "endStreaming" });
       streamingMessageId = null;
+      loading = false;
     }
   };
 
@@ -230,6 +292,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const sid = await ensureSession();
       streamingMessageId = null;
+      loading = false;
+      // Show loading immediately while waiting for first SDK callback.
+      postToWebview({ command: "startStreaming" });
       await api.sendMessage(sid, text);
     } catch (err) {
       postToWebview({
@@ -237,6 +302,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         error: err instanceof Error ? err.message : String(err),
       });
       postToWebview({ command: "endStreaming" });
+      loading = false;
+      streamingMessageId = null;
     }
   }
 

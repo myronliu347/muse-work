@@ -1,19 +1,8 @@
 import type { IncomingMessage, Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { AuthStatus } from "@muse-work/provider";
-import type { SessionStatus } from "./sessionStore.js";
+import type { WsEvent } from "./wsEvents.js";
 
-export type WsEvent =
-  | { type: "message:delta"; text: string }
-  | { type: "message:completed" }
-  | {
-      type: "permission:request";
-      permissionId: string;
-      toolName: string;
-      description: string;
-    }
-  | { type: "session:status"; status: SessionStatus }
-  | { type: "auth:changed"; status: AuthStatus };
+export type { WsEvent } from "./wsEvents.js";
 
 export interface WsHub {
   attach(server: HttpServer): void;

@@ -56,16 +56,34 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
   return win;
 }
 
+export type DesktopPathsOpts = {
+  /** When true, resolve muse-server from Electron resources (packaged app). */
+  isPackaged?: boolean;
+  /** `process.resourcesPath` in the packaged app. */
+  resourcesPath?: string;
+};
+
 /** Resolve package-root-relative paths from dist/main. */
-export function desktopPaths(dirname = __dirname): {
+export function desktopPaths(
+  dirname = __dirname,
+  opts: DesktopPathsOpts = {},
+): {
   preloadPath: string;
   webviewHtmlPath: string;
   serverEntry: string;
 } {
   const packageRoot = path.join(dirname, "..", "..");
+  const serverEntry = opts.isPackaged
+    ? path.join(
+        opts.resourcesPath ?? process.resourcesPath,
+        "muse-server",
+        "dist",
+        "index.js",
+      )
+    : path.join(packageRoot, "..", "server", "dist", "index.js");
   return {
     preloadPath: path.join(dirname, "preload.cjs"),
     webviewHtmlPath: path.join(packageRoot, "webview", "index.html"),
-    serverEntry: path.join(packageRoot, "..", "server", "dist", "index.js"),
+    serverEntry,
   };
 }

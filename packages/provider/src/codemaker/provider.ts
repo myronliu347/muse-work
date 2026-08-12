@@ -129,6 +129,7 @@ export function createCodeMakerProvider(
         baseURL: `${CODEMAKER_BASE_URL}/openai/v1`,
         credentialFingerprint: tokenHashPrefix(creds.accessToken),
         model: modelId,
+        fastModel: modelId,
         fetch: createCodeMakerFetch(creds),
       };
     },

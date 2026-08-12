@@ -33,6 +33,7 @@ describe("openaiCompatible provider", () => {
     expect(g.baseURL).toBe("https://api.example.com/v1");
     expect(g.apiKey).toBe("sk-test");
     expect(g.model).toBe("gpt-4.1");
+    expect(g.fastModel).toBe("gpt-4.1");
   });
 
   it("needs_config when api key missing", async () => {

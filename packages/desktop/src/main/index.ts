@@ -46,9 +46,16 @@ let stopServer: (() => Promise<void>) | null = null;
 let serverBaseUrl: string | null = null;
 let workdirHost: WorkdirHost | null = null;
 
+function resolveDesktopPaths() {
+  return desktopPaths(__dirname, {
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+  });
+}
+
 function openMainWindow(): void {
   if (!serverBaseUrl) return;
-  const paths = desktopPaths(__dirname);
+  const paths = resolveDesktopPaths();
   mainWindow = createMainWindow({
     serverBaseUrl,
     preloadPath: paths.preloadPath,
@@ -86,7 +93,7 @@ if (!gotLock) {
       defaultWorkdir: process.cwd(),
     });
 
-    const paths = desktopPaths(__dirname);
+    const paths = resolveDesktopPaths();
 
     try {
       const server = await startMuseServer({ entry: paths.serverEntry });

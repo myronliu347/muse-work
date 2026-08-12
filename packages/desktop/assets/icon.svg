@@ -1,12 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <circle cx="256" cy="256" r="240" fill="#FFFFFF"/>
-  <g fill="#C1292E" fill-rule="evenodd">
-    <!-- Single continuous double-stroke M approximated as thick strokes with white gaps via mask -->
+  <rect width="512" height="512" rx="112" ry="112" fill="#0A0A0A"/>
+  <g fill="#C1292E" fill-rule="evenodd" transform="translate(256 256) scale(0.92) translate(-256 -256)">
     <path d="
       M110 150 L110 360 L150 390 L150 210 L240 300 L240 360 L280 390 L280 300
       L370 210 L370 360 L410 390 L410 150 L370 120 L280 210 L240 170 L150 120 Z
     "/>
-    <path fill="#FFFFFF" d="
+    <path fill="#0A0A0A" d="
       M145 165 L145 340 L165 355 L165 225 L245 305 L245 340 L265 355 L265 305
       L345 225 L345 340 L365 355 L365 165 L345 150 L265 230 L245 210 L165 150 Z
     "/>

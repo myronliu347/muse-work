@@ -45,6 +45,7 @@ describe("createCodeMakerProvider", () => {
     const g = await p.resolveGateway("deepseek-v4-pro");
     expect(g.baseURL).toBe(`${CODEMAKER_BASE_URL}/openai/v1`);
     expect(g.model).toBe("deepseek-v4-pro");
+    expect(g.fastModel).toBe("deepseek-v4-pro");
     expect(typeof g.fetch).toBe("function");
   });
 

@@ -1,13 +1,27 @@
 export type MuseWsEvent =
-  | { type: "message:delta"; text: string }
-  | { type: "message:completed" }
+  | {
+      type: "message:delta";
+      messageId?: string;
+      text: string;
+      stage?: "streaming" | "end";
+    }
+  | { type: "message:completed"; messageId?: string }
+  | { type: "assistant:message"; messageId: string }
+  | {
+      type: "reasoning:delta";
+      messageId: string;
+      text: string;
+      stage: "streaming" | "end";
+    }
+  | { type: "tool:update"; params: Record<string, unknown> }
+  | { type: "loading"; loading: boolean }
   | {
       type: "permission:request";
       permissionId: string;
       toolName: string;
       description: string;
     }
-  | { type: "session:status"; status: string }
+  | { type: "session:status"; status: string; error?: string }
   | { type: "auth:changed"; status: unknown };
 
 export type MuseWsEventHandler = (event: MuseWsEvent) => void;

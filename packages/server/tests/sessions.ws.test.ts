@@ -40,6 +40,8 @@ describe("sessions + websocket streaming", () => {
     const createAgent: CreateAgent = async (opts) => {
       const agent: SessionAgent = {
         sendMessage: async () => {
+          opts.callbacks?.onLoadingChange?.(true);
+          opts.callbacks?.onAssistantMessageAdded?.("m1");
           opts.callbacks?.onAssistantContentUpdated?.({
             messageId: "m1",
             chunk: "hi",
@@ -50,6 +52,7 @@ describe("sessions + websocket streaming", () => {
             chunk: "",
             stage: "end",
           });
+          opts.callbacks?.onLoadingChange?.(false);
         },
         dispose: async () => {},
       };
@@ -85,8 +88,19 @@ describe("sessions + websocket streaming", () => {
 
     const received = await events;
     expect(received).toEqual([
-      { type: "message:delta", text: "hi" },
-      { type: "message:completed" },
+      {
+        type: "message:delta",
+        messageId: "m1",
+        text: "hi",
+        stage: "streaming",
+      },
+      {
+        type: "message:delta",
+        messageId: "m1",
+        text: "",
+        stage: "end",
+      },
+      { type: "message:completed", messageId: "m1" },
     ]);
   });
 
@@ -172,15 +186,19 @@ describe("sessions + websocket streaming", () => {
     expect(settled).toBe(true);
   });
 
-  it("second POST message while running returns 409", async () => {
+  it("second POST message while running is queued then processed", async () => {
     let releaseSend!: () => void;
     const sendGate = new Promise<void>((resolve) => {
       releaseSend = resolve;
     });
+    const seen: string[] = [];
 
     const createAgent: CreateAgent = async (opts) => ({
-      sendMessage: async () => {
-        await sendGate;
+      sendMessage: async (content: string) => {
+        seen.push(content);
+        if (content === "first") {
+          await sendGate;
+        }
         opts.callbacks?.onAssistantContentUpdated?.({
           messageId: "m1",
           chunk: "",
@@ -218,12 +236,53 @@ describe("sessions + websocket streaming", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: "second" }),
     });
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual({ accepted: true });
+    expect(seen).toEqual(["first"]);
 
     releaseSend();
     await expect
       .poll(() => app.ctx.store.get(session.id)?.status)
       .toBe("idle");
+    await expect.poll(() => seen.slice()).toEqual(["first", "second"]);
+  });
+
+  it("sendMessage that returns without stage end still releases busy", async () => {
+    const createAgent: CreateAgent = async () => ({
+      sendMessage: async () => {
+        // Simulate SDK swallowing an error / early return with no end callback.
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const first = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+    expect(first.status).toBe(200);
+
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+
+    const second = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "again" }),
+    });
+    expect(second.status).toBe(200);
   });
 
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {

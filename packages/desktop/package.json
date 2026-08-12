@@ -8,9 +8,38 @@
   "build": {
     "appId": "com.muse.work",
     "productName": "Muse Work",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/main/**/*",
+      "webview/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/muse-server/dist",
+        "to": "muse-server/dist"
+      },
+      {
+        "from": "dist/muse-server/package.json",
+        "to": "muse-server/package.json"
+      },
+      {
+        "from": "dist/muse-server/node_modules",
+        "to": "muse-server/node_modules"
+      }
+    ],
     "mac": {
-      "icon": "assets/icon.png"
-    }
+      "icon": "assets/icon.png",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dir"
+      ],
+      "identity": null
+    },
+    "asar": true
   },
   "type": "module",
   "main": "./dist/main/index.cjs",
@@ -21,7 +50,9 @@
     "build": "pnpm run compile",
     "compile": "pnpm run sync:webview && tsup",
     "sync:webview": "node scripts/syncWebview.mjs",
+    "prepare:server": "node scripts/prepareServer.mjs",
     "dev": "pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
+    "dist:mac": "pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && electron-builder --mac dir -c.mac.identity=null",
     "clean": "node -e \"import('fs').then(fs => ['dist', 'release', 'webview'].forEach(d => {try{fs.rmSync(d, {recursive:true, force:true})}catch(e){}}))\"",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -30,6 +61,8 @@
   "devDependencies": {
     "@types/node": "^25.0.1",
     "electron": "^43.2.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"

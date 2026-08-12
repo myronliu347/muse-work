@@ -7,7 +7,8 @@
     "test": "pnpm -r test",
     "type-check": "pnpm -r type-check",
     "dev:server": "pnpm -F @muse-work/server dev",
-    "dev:desktop": "pnpm -F @muse-work/desktop dev"
+    "dev:desktop": "pnpm -F @muse-work/desktop dev",
+    "dist:mac": "pnpm -F @muse-work/desktop dist:mac"
   },
   "engines": {
     "node": ">=20"

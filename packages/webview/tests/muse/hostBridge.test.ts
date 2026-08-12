@@ -72,4 +72,67 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       command: "desktopSelectWorkdir",
     });
   });
+
+  it("forwards loading / tool / reasoning WS events to webview commands", () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    expect(handler).toBeTypeOf("function");
+
+    handler!({ type: "loading", loading: true });
+    expect(messages).toContainEqual({ command: "startStreaming" });
+
+    handler!({ type: "assistant:message", messageId: "asst_1" });
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "appendMessage",
+        message: expect.objectContaining({ id: "asst_1", role: "assistant" }),
+      }),
+    );
+
+    handler!({
+      type: "tool:update",
+      params: {
+        messageId: "asst_1",
+        id: "tool_1",
+        name: "Read",
+        stage: "end",
+        success: true,
+      },
+    });
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateToolBlock",
+        params: expect.objectContaining({ id: "tool_1", name: "Read" }),
+      }),
+    );
+
+    handler!({
+      type: "message:delta",
+      messageId: "asst_1",
+      text: "hello",
+      stage: "streaming",
+    });
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateStreamingContent",
+        messageId: "asst_1",
+        chunk: "hello",
+      }),
+    );
+
+    handler!({ type: "loading", loading: false });
+    expect(messages).toContainEqual({ command: "endStreaming" });
+  });
 });

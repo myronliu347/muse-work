@@ -41,6 +41,7 @@ export function createOpenAiCompatibleProvider(options: {
         baseURL: config.baseURL!,
         apiKey: options.getApiKey(),
         model: modelId,
+        fastModel: modelId,
       };
     },
   };

@@ -2,6 +2,10 @@ import { Agent, type AgentOptions, type PermissionDecision } from "wave-agent-sd
 import type { GatewayResolution, ProviderRegistry } from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsHub } from "./wsHub.js";
+import {
+  patchAgentSystemPrompt,
+  MUSE_BASE_SYSTEM_PROMPT,
+} from "./museSystemPrompt.js";
 
 export interface SessionAgent {
   sendMessage(content: string): Promise<void>;
@@ -33,11 +37,17 @@ export interface CreateSessionRunnerOptions {
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
-  return Agent.create(options).then((agent) => ({
-    sendMessage: (content: string) => agent.sendMessage(content),
-    // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
-    dispose: () => agent.destroy(),
-  }));
+  return Agent.create({
+    ...options,
+    systemPrompt: options.systemPrompt ?? MUSE_BASE_SYSTEM_PROMPT,
+  }).then((agent) => {
+    patchAgentSystemPrompt(agent as unknown as Parameters<typeof patchAgentSystemPrompt>[0]);
+    return {
+      sendMessage: (content: string) => agent.sendMessage(content),
+      // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
+      dispose: () => agent.destroy(),
+    };
+  });
 }
 
 export function createSessionRunner(
@@ -51,6 +61,10 @@ export function createSessionRunner(
   const pending = new Map<string, PendingPermission>();
   /** Session IDs that were disposed; late createAgent completions must not revive them. */
   const disposed = new Set<string>();
+  /** Messages accepted while a turn is in flight (avoid HTTP 409). */
+  const messageQueues = new Map<string, string[]>();
+  /** Per-session flag: current turn already received assistant stage "end". */
+  const turnEnded = new Map<string, boolean>();
 
   function gatewayIdentity(gateway: GatewayResolution): string {
     const credential =
@@ -61,6 +75,52 @@ export function createSessionRunner(
       credential,
       gateway.fastModel ?? "",
     ].join("\0");
+  }
+
+  function markIdle(sessionId: string): void {
+    if (disposed.has(sessionId) || !store.get(sessionId)) {
+      return;
+    }
+    if (store.get(sessionId)?.status === "running") {
+      store.updateStatus(sessionId, "idle");
+      hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+    }
+  }
+
+  function finishTurnError(sessionId: string, err: unknown): void {
+    if (disposed.has(sessionId) || !store.get(sessionId)) {
+      return;
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    store.updateStatus(sessionId, "error");
+    hub.broadcast(sessionId, {
+      type: "session:status",
+      status: "error",
+      error: message,
+    });
+    // Allow the next queued message after a failed turn.
+    store.updateStatus(sessionId, "idle");
+    hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+  }
+
+  async function drainQueue(sessionId: string): Promise<void> {
+    if (disposed.has(sessionId)) {
+      messageQueues.delete(sessionId);
+      return;
+    }
+    const session = store.get(sessionId);
+    if (!session || session.status === "running") {
+      return;
+    }
+    const queue = messageQueues.get(sessionId);
+    if (!queue || queue.length === 0) {
+      return;
+    }
+    const next = queue.shift()!;
+    if (queue.length === 0) {
+      messageQueues.delete(sessionId);
+    }
+    await runTurn(sessionId, next);
   }
 
   async function ensureAgent(
@@ -90,29 +150,60 @@ export function createSessionRunner(
       defaultHeaders: gateway.defaultHeaders,
       fetch: gateway.fetch,
       model: gateway.model,
+      // SDK requires fastModel (used for lightweight sub-tasks). Fall back to main model.
+      fastModel: gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
       // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
-        onAssistantContentUpdated: ({ chunk, stage }) => {
+        onLoadingChange: (loading) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, { type: "loading", loading });
+        },
+        onAssistantMessageAdded: (messageId) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, { type: "assistant:message", messageId });
+        },
+        onAssistantContentUpdated: ({ messageId, chunk, stage }) => {
           if (disposed.has(sessionId)) {
             return;
           }
-          if (stage === "streaming") {
-            if (chunk) {
-              hub.broadcast(sessionId, { type: "message:delta", text: chunk });
-            }
-          } else if (stage === "end") {
-            if (chunk) {
-              hub.broadcast(sessionId, { type: "message:delta", text: chunk });
-            }
-            hub.broadcast(sessionId, { type: "message:completed" });
-            // Drive idle from stream end — do not treat await sendMessage as turn-complete.
-            if (store.get(sessionId)?.status === "running") {
-              store.updateStatus(sessionId, "idle");
-              hub.broadcast(sessionId, { type: "session:status", status: "idle" });
-            }
+          hub.broadcast(sessionId, {
+            type: "message:delta",
+            messageId,
+            text: chunk ?? "",
+            stage,
+          });
+          if (stage === "end") {
+            turnEnded.set(sessionId, true);
+            hub.broadcast(sessionId, {
+              type: "message:completed",
+              messageId,
+            });
+            // Mark idle here so UI unlocks; queue drain waits until sendMessage settles.
+            markIdle(sessionId);
           }
+        },
+        onAssistantReasoningUpdated: ({ messageId, chunk, stage }) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "reasoning:delta",
+            messageId,
+            text: chunk ?? "",
+            stage,
+          });
+        },
+        onToolBlockUpdated: (params) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, { type: "tool:update", params });
+        },
+        onErrorBlockAdded: (error) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "session:status",
+            status: "error",
+            error,
+          });
         },
       },
       canUseTool: async (context) => {
@@ -151,7 +242,11 @@ export function createSessionRunner(
 
   async function handleUnauthorized(sessionId: string): Promise<void> {
     store.updateStatus(sessionId, "error");
-    hub.broadcast(sessionId, { type: "session:status", status: "error" });
+    hub.broadcast(sessionId, {
+      type: "session:status",
+      status: "error",
+      error: "Unauthorized",
+    });
 
     const active = registry.getActive();
     const provider = registry.get(active.providerId);
@@ -167,6 +262,76 @@ export function createSessionRunner(
         },
       });
     }
+
+    // Auth failures should not permanently block the session.
+    if (store.get(sessionId)) {
+      store.updateStatus(sessionId, "idle");
+      hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+    }
+  }
+
+  async function runTurn(sessionId: string, content: string): Promise<void> {
+    const session = store.get(sessionId);
+    if (!session || disposed.has(sessionId)) {
+      return;
+    }
+    if (session.status === "running") {
+      // Should not happen; queue instead of overlapping turns.
+      const queue = messageQueues.get(sessionId) ?? [];
+      queue.push(content);
+      messageQueues.set(sessionId, queue);
+      return;
+    }
+
+    store.updateStatus(sessionId, "running");
+    hub.broadcast(sessionId, { type: "session:status", status: "running" });
+    turnEnded.set(sessionId, false);
+
+    try {
+      const active = registry.getActive();
+      const provider = registry.get(active.providerId);
+      if (!provider) {
+        throw new Error(`active provider not found: ${active.providerId}`);
+      }
+      if (!active.modelId) {
+        throw new Error("no active model selected");
+      }
+
+      let gateway: GatewayResolution;
+      try {
+        gateway = await provider.resolveGateway(active.modelId);
+      } catch (err) {
+        if (isUnauthorized(err)) {
+          await handleUnauthorized(sessionId);
+          return;
+        }
+        throw err;
+      }
+
+      const agent = await ensureAgent(sessionId, session.workdir, gateway);
+      await agent.sendMessage(content);
+      // SDK may swallow errors / return without stage "end". Release busy either way.
+      if (
+        !disposed.has(sessionId) &&
+        store.get(sessionId)?.status === "running" &&
+        !turnEnded.get(sessionId)
+      ) {
+        hub.broadcast(sessionId, { type: "message:completed" });
+        markIdle(sessionId);
+      }
+    } catch (err) {
+      if (disposed.has(sessionId) || !store.get(sessionId)) {
+        return;
+      }
+      if (isUnauthorized(err)) {
+        await handleUnauthorized(sessionId);
+        return;
+      }
+      finishTurnError(sessionId, err);
+    } finally {
+      // Drain only after this turn's sendMessage has settled (avoids overlapping turns).
+      void drainQueue(sessionId);
+    }
   }
 
   return {
@@ -177,54 +342,16 @@ export function createSessionRunner(
           statusCode: 404,
         });
       }
+
       if (session.status === "running") {
-        throw Object.assign(new Error(`session is busy: ${sessionId}`), {
-          statusCode: 409,
-        });
+        const queue = messageQueues.get(sessionId) ?? [];
+        queue.push(content);
+        messageQueues.set(sessionId, queue);
+        return { accepted: true };
       }
 
-      store.updateStatus(sessionId, "running");
-      hub.broadcast(sessionId, { type: "session:status", status: "running" });
-
-      // Fire-and-forget agent work so HTTP can return { accepted: true } promptly.
-      void (async () => {
-        try {
-          const active = registry.getActive();
-          const provider = registry.get(active.providerId);
-          if (!provider) {
-            throw new Error(`active provider not found: ${active.providerId}`);
-          }
-          if (!active.modelId) {
-            throw new Error("no active model selected");
-          }
-
-          let gateway: GatewayResolution;
-          try {
-            gateway = await provider.resolveGateway(active.modelId);
-          } catch (err) {
-            if (isUnauthorized(err)) {
-              await handleUnauthorized(sessionId);
-              return;
-            }
-            throw err;
-          }
-
-          const agent = await ensureAgent(sessionId, session.workdir, gateway);
-          await agent.sendMessage(content);
-          // Status idle is driven by onAssistantContentUpdated stage "end",
-          // not by this await (SDK may return while still streaming).
-        } catch (err) {
-          if (disposed.has(sessionId) || !store.get(sessionId)) {
-            return;
-          }
-          if (isUnauthorized(err)) {
-            await handleUnauthorized(sessionId);
-            return;
-          }
-          store.updateStatus(sessionId, "error");
-          hub.broadcast(sessionId, { type: "session:status", status: "error" });
-        }
-      })();
+      // Fire-and-forget so HTTP can return { accepted: true } promptly.
+      void runTurn(sessionId, content);
 
       return { accepted: true };
     },
@@ -246,6 +373,8 @@ export function createSessionRunner(
 
     async disposeSession(sessionId) {
       disposed.add(sessionId);
+      messageQueues.delete(sessionId);
+      turnEnded.delete(sessionId);
       for (const [id, entry] of pending) {
         if (entry.sessionId === sessionId) {
           pending.delete(id);
