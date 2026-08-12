@@ -1,0 +1,61 @@
+packages/provider/tests/provider.codemaker.test.ts
+  2eac42dc807f94a7 1-79
+packages/provider/scripts/probe-sign.mjs
+  2eac42dc807f94a7 1-164
+packages/provider/src/codemaker/sign.ts
+  2eac42dc807f94a7 1-103
+packages/provider/src/codemaker/provider.ts
+  2eac42dc807f94a7 1-78
+packages/provider/src/index.ts
+  2eac42dc807f94a7 36-49
+packages/provider/tests/sign.test.ts
+  2eac42dc807f94a7 1-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8ff157c5cd7a08f2210ca64233530536255e7241",
+  "prompts": {
+    "2eac42dc807f94a7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69eb4207-fade-4e95-a41e-b79ae1b7b537",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 566,
+      "total_deletions": 20,
+      "accepted_lines": 546,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/tests/sign.test.ts": {
+          "additions": 109,
+          "deletions": 1,
+          "accepted_lines": 108
+        },
+        "packages/provider/src/codemaker/sign.ts": {
+          "additions": 103,
+          "accepted_lines": 103
+        },
+        "packages/provider/scripts/probe-sign.mjs": {
+          "additions": 183,
+          "deletions": 19,
+          "accepted_lines": 164
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 78,
+          "accepted_lines": 78
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/provider/tests/provider.codemaker.test.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        }
+      }
+    }
+  }
+}
