@@ -17,6 +17,7 @@ const frontendConfig = {
     ".ttf": "dataurl",
     ".woff": "dataurl",
     ".woff2": "dataurl",
+    ".png": "dataurl",
   },
   define: {
     "process.env.NODE_ENV": production ? '"production"' : '"development"',

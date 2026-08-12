@@ -1,5 +1,5 @@
 /* Loading logo with light-sweep animation.
-   Two stacked copies of the standalone W mark; the top copy has a
+   Two stacked copies of the Muse M mark; the top copy has a
    clip-path light band that sweeps across, using brightness + screen blend. */
 
 .loading-logo-container {
@@ -33,13 +33,12 @@
   inset: 0;
 }
 
-.loading-logo-base path {
-  fill: var(--vscode-foreground, #cccccc);
-  opacity: 0.25;
+.loading-logo-base img {
+  opacity: 0.35;
 }
 
-.loading-logo-light path {
-  fill: var(--vscode-foreground, #cccccc);
+.loading-logo-light img {
+  opacity: 1;
 }
 
 .loading-logo-light {
