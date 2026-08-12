@@ -24,6 +24,7 @@ export interface SessionRunner {
     decision: "allow" | "deny",
   ): Promise<{ ok: true }>;
   disposeSession(sessionId: string): Promise<void>;
+  getMessages(sessionId: string): Promise<unknown[]>;
 }
 
 interface PendingPermission {
@@ -462,6 +463,17 @@ export function createSessionRunner(
         await agent.dispose();
       }
       store.delete(sessionId);
+    },
+
+    async getMessages(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = agents.get(sessionId);
+      return agent?.getMessages?.() ?? [];
     },
   };
 }

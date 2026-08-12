@@ -15,9 +15,12 @@ import {
 import {
   handleCreateSession,
   handleDeleteSession,
+  handleGetMessages,
   handleGetSession,
   handleListSessions,
+  handlePatchSession,
   handleRespondPermission,
+  handleSelectSession,
   handleSendMessage,
 } from "./routes/sessions.js";
 
@@ -98,21 +101,38 @@ async function routeRequest(
       await handleGetSession(req, res, ctx, sessionId);
       return;
     }
+    if (method === "PATCH") {
+      await handlePatchSession(req, res, ctx, sessionId);
+      return;
+    }
     if (method === "DELETE") {
       await handleDeleteSession(req, res, ctx, sessionId);
       return;
     }
   }
 
-  const messageMatch = pathname.match(/^\/sessions\/([^/]+)\/messages$/);
-  if (method === "POST" && messageMatch) {
-    await handleSendMessage(
+  const selectMatch = pathname.match(/^\/sessions\/([^/]+)\/select$/);
+  if (method === "POST" && selectMatch) {
+    await handleSelectSession(
       req,
       res,
       ctx,
-      decodeURIComponent(messageMatch[1]!),
+      decodeURIComponent(selectMatch[1]!),
     );
     return;
+  }
+
+  const messageMatch = pathname.match(/^\/sessions\/([^/]+)\/messages$/);
+  if (messageMatch) {
+    const sessionId = decodeURIComponent(messageMatch[1]!);
+    if (method === "GET") {
+      await handleGetMessages(req, res, ctx, sessionId);
+      return;
+    }
+    if (method === "POST") {
+      await handleSendMessage(req, res, ctx, sessionId);
+      return;
+    }
   }
 
   const permissionMatch = pathname.match(

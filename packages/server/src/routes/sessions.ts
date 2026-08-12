@@ -7,24 +7,120 @@ export async function handleCreateSession(
   res: ServerResponse,
   ctx: AppContext,
 ): Promise<void> {
-  const body = (await readJsonBody(req)) as { workdir?: string } | undefined;
+  const body = (await readJsonBody(req)) as
+    | { workdir?: string; model?: string; permissionMode?: string }
+    | undefined;
   if (!body?.workdir || typeof body.workdir !== "string") {
     sendError(res, 400, "workdir is required");
     return;
   }
+  const active = ctx.registry.getActive();
+  const model =
+    typeof body.model === "string" && body.model.length > 0
+      ? body.model
+      : active.modelId;
+  if (!model) {
+    sendError(res, 400, "no active model selected");
+    return;
+  }
   const session = ctx.store.create({
     workdir: body.workdir,
-    model: "deepseek-v4-flash",
+    model,
   });
   sendJson(res, 200, session);
 }
 
 export async function handleListSessions(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
   ctx: AppContext,
 ): Promise<void> {
-  sendJson(res, 200, { sessions: ctx.store.list() });
+  const url = new URL(req.url ?? "/", "http://127.0.0.1");
+  if (url.searchParams.get("grouped") === "1") {
+    sendJson(res, 200, ctx.store.listGrouped());
+    return;
+  }
+  sendJson(res, 200, {
+    sessions: ctx.store.list(),
+    activeSessionId: ctx.store.getActiveSessionId(),
+  });
+}
+
+export async function handlePatchSession(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  const body = (await readJsonBody(req)) as
+    | {
+        title?: string;
+        pinned?: boolean;
+        model?: string;
+        lastActiveAt?: number;
+      }
+    | undefined;
+  if (!body || typeof body !== "object") {
+    sendError(res, 400, "request body is required");
+    return;
+  }
+
+  const patch: {
+    title?: string;
+    pinned?: boolean;
+    model?: string;
+    lastActiveAt?: number;
+  } = {};
+  if (typeof body.title === "string") {
+    patch.title = body.title;
+  }
+  if (typeof body.pinned === "boolean") {
+    patch.pinned = body.pinned;
+  }
+  if (typeof body.model === "string") {
+    patch.model = body.model;
+  }
+  if (typeof body.lastActiveAt === "number") {
+    patch.lastActiveAt = body.lastActiveAt;
+  }
+
+  const session = ctx.store.update(sessionId, patch);
+  if (!session) {
+    sendError(res, 404, `session not found: ${sessionId}`);
+    return;
+  }
+  sendJson(res, 200, session);
+}
+
+export async function handleSelectSession(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  const session = ctx.store.get(sessionId);
+  if (!session) {
+    sendError(res, 404, `session not found: ${sessionId}`);
+    return;
+  }
+  ctx.store.select(sessionId);
+  ctx.store.setUnreadDone(sessionId, false);
+  sendJson(res, 200, { session, clearedUnread: true });
+}
+
+export async function handleGetMessages(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  const session = ctx.store.get(sessionId);
+  if (!session) {
+    sendError(res, 404, `session not found: ${sessionId}`);
+    return;
+  }
+  const messages = await ctx.runner.getMessages(sessionId);
+  sendJson(res, 200, { messages });
 }
 
 export async function handleGetSession(
