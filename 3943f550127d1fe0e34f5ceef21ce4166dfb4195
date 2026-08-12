@@ -1,0 +1,180 @@
+packages/desktop/src/main/fileSearch.ts
+  db26196a999da47a 1-134
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 23-26,44,49-59,114,186,219,221-291,382
+packages/server/tests/sessions.ws.test.ts
+  db26196a999da47a 107-209
+packages/server/src/wsEvents.ts
+  db26196a999da47a 21,23,33,41-62,64-68
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 138-226
+packages/desktop/tests/fileSearch.test.ts
+  db26196a999da47a 1-32
+packages/desktop/src/main/workdirHost.ts
+  db26196a999da47a 9-10,167-168,209-234,267-268,280-286
+packages/desktop/tests/workdirHost.test.ts
+  db26196a999da47a 193-338
+packages/webview/src/muse/wsClient.ts
+  db26196a999da47a 25-51
+packages/desktop/src/main/gitBranches.ts
+  db26196a999da47a 1-45
+packages/webview/src/components/DiffPane.tsx
+  db26196a999da47a 162,165
+packages/desktop/tests/gitHelpers.test.ts
+  db26196a999da47a 1-52
+packages/webview/src/reducers/chatReducer.ts
+  db26196a999da47a 37
+docs/superpowers/specs/2026-08-12-session-management-design.md
+  db26196a999da47a 1-151
+packages/provider/src/configStore.ts
+  db26196a999da47a 10,15-18,20-32
+packages/webview/src/components/MessageInput.tsx
+  205e1a8c4c03eece 91-92,435,763,968
+  db26196a999da47a 20
+packages/provider/providers.json.example
+  db26196a999da47a 3,8-14,16-25
+packages/desktop/scripts/afterPack.cjs
+  db26196a999da47a 1-16
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 13-14,51,150-152,163-164,216-277,301
+packages/desktop/package.json
+  db26196a999da47a 26-30,33,37,56,62-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3943f550127d1fe0e34f5ceef21ce4166dfb4195",
+  "prompts": {
+    "205e1a8c4c03eece": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9d5f35a5-61a4-421c-9788-7542580cb1c4",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 565,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 5,
+          "deletions": 565,
+          "accepted_lines": 5
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1099,
+      "total_deletions": 258,
+      "accepted_lines": 1089,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 103,
+          "accepted_lines": 103
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "additions": 134,
+          "accepted_lines": 134
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 54,
+          "deletions": 2,
+          "accepted_lines": 52
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 18,
+          "deletions": 2,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/components/DiffPane.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 87
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 95,
+          "deletions": 7,
+          "accepted_lines": 91
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 27
+        },
+        "packages/desktop/package.json": {
+          "additions": 17,
+          "deletions": 20,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 1,
+          "deletions": 126,
+          "accepted_lines": 1
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 31,
+          "deletions": 5,
+          "accepted_lines": 31
+        },
+        "docs/superpowers/specs/2026-08-12-session-management-design.md": {
+          "additions": 151,
+          "accepted_lines": 151
+        },
+        "packages/desktop/tests/fileSearch.test.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/desktop/scripts/afterPack.cjs": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/gitBranches.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/provider/providers.json.example": {
+          "additions": 18,
+          "deletions": 2,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 89,
+          "accepted_lines": 89
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 148,
+          "deletions": 2,
+          "accepted_lines": 146
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 45,
+          "deletions": 1,
+          "accepted_lines": 45
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 72,
+          "deletions": 1,
+          "accepted_lines": 71
+        }
+      }
+    }
+  }
+}
