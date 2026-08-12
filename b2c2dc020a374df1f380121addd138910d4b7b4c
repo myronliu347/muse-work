@@ -1,0 +1,99 @@
+packages/server/tests/sessionStore.persist.test.ts
+  638f44398af06345 1-39
+packages/provider/src/paths.ts
+  638f44398af06345 12-15
+packages/provider/src/index.ts
+  638f44398af06345 16
+packages/server/src/routes/sessions.ts
+  638f44398af06345 15-18
+packages/server/tests/sessionRunner.test.ts
+  638f44398af06345 71,86,159,181,239,242
+packages/server/src/createAppContext.ts
+  638f44398af06345 36,44,90
+packages/server/tests/sessions.ws.test.ts
+  638f44398af06345 542
+packages/server/src/sessionStore.ts
+  638f44398af06345 1-5,10-11,13-15,17-18,22-26,29,32-43,46-71,74-83,85-105,108-109,112,114-118,122-123,128,132-196,205,214-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b2c2dc020a374df1f380121addd138910d4b7b4c",
+  "prompts": {
+    "638f44398af06345": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2d5a9eda-05cc-48f6-869a-3dde5917b3e7",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 233,
+      "total_deletions": 17,
+      "accepted_lines": 233,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "additions": 39,
+          "accepted_lines": 39
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/provider/src/paths.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/sessionStore.ts": {
+          "additions": 175,
+          "deletions": 9,
+          "accepted_lines": 175
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 751,
+      "total_deletions": 31,
+      "accepted_lines": 741,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-12-session-management-design.md": {
+          "additions": 92,
+          "deletions": 31,
+          "accepted_lines": 82
+        },
+        "docs/superpowers/plans/2026-08-12-session-management.md": {
+          "additions": 659,
+          "accepted_lines": 659
+        }
+      }
+    }
+  }
+}
