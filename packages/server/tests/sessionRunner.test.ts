@@ -109,4 +109,86 @@ describe("sessionRunner concurrency / dispose", () => {
       statusCode: 404,
     });
   });
+
+  it("recreates agent when active model changes", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-model-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const createdModels: string[] = [];
+    const disposedModels: string[] = [];
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [
+          { id: "gpt-4.1", label: "GPT-4.1" },
+          { id: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+        ];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const store = createSessionStore();
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      createAgent: async (options) => {
+        const model = options.model ?? "unknown";
+        createdModels.push(model);
+        return {
+          sendMessage: async () => {
+            // Drive idle via callback path is optional; mark idle for next send.
+            store.updateStatus(session.id, "idle");
+          },
+          dispose: async () => {
+            disposedModels.push(model);
+          },
+        };
+      },
+    });
+
+    const session = store.create(home);
+
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => createdModels.length).toBe(1);
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+    expect(createdModels).toEqual(["gpt-4.1"]);
+
+    registry.setActive("openai-compatible", "gpt-4.1-mini");
+    await runner.sendMessage(session.id, "again");
+    await expect.poll(() => createdModels.length).toBe(2);
+    expect(createdModels).toEqual(["gpt-4.1", "gpt-4.1-mini"]);
+    expect(disposedModels).toEqual(["gpt-4.1"]);
+  });
 });

@@ -1,9 +1,8 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
 /**
- * Minimal preload: expose Muse server base URL + desktop host marker.
- * Wave's acquireVsCodeApi IPC bridge is not required for Muse HTTP/WS MVP —
- * the webview hostBridge talks to the local server directly.
+ * Minimal preload: expose Muse server base URL + desktop host marker,
+ * and bridge webview postMessage ↔ main process for workdir folder pick.
  */
 
 function readMuseServerUrl(): string {
@@ -21,12 +20,17 @@ contextBridge.exposeInMainWorld("__MUSE_SERVER_URL__", serverBaseUrl);
 contextBridge.exposeInMainWorld("waveHostType", "desktop");
 contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
 
-// Stub VS Code API so DesktopApp / ChatApp do not throw if something still
-// calls acquireVsCodeApi before hostBridge wraps it.
+const FROM_WEBVIEW = "muse:from-webview";
+const TO_WEBVIEW = "muse:to-webview";
+
 contextBridge.exposeInMainWorld("acquireVsCodeApi", () => ({
-  postMessage: (_message: unknown) => {
-    // Muse MVP: UI → Muse HTTP/WS via hostBridge; outer postMessage is unused.
+  postMessage: (message: unknown) => {
+    ipcRenderer.send(FROM_WEBVIEW, message);
   },
   getState: () => undefined,
   setState: () => undefined,
 }));
+
+ipcRenderer.on(TO_WEBVIEW, (_event, data: unknown) => {
+  window.dispatchEvent(new MessageEvent("message", { data }));
+});

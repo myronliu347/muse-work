@@ -41,8 +41,16 @@ export async function handleAuthLogin(
   const wait = Boolean(body?.wait || body?.complete);
 
   // Desktop/UI opens the browser; server only returns authUrl.
-  const start = await provider.beginLogin({ openBrowser: () => {} });
+  // wait:true must await the *existing* login session from a prior
+  // beginLogin — do not mint a second uuid via another beginLogin.
   if (wait) {
+    try {
+      sendJson(res, 200, await provider.completeLogin({}));
+      return;
+    } catch {
+      // Single-shot wait:true (no prior authUrl call): begin then complete.
+    }
+    const start = await provider.beginLogin({ openBrowser: () => {} });
     if ("reused" in start && start.reused) {
       sendJson(res, 200, await provider.getAuthStatus());
       return;
@@ -50,6 +58,8 @@ export async function handleAuthLogin(
     sendJson(res, 200, await provider.completeLogin({}));
     return;
   }
+
+  const start = await provider.beginLogin({ openBrowser: () => {} });
   sendJson(res, 200, start);
 }
 

@@ -10,6 +10,7 @@ import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { createMainWindow, desktopPaths } from "./window";
+import { installWorkdirHost, type WorkdirHost } from "./workdirHost";
 
 function adoptLoginShellPath(): void {
   if (process.platform === "win32") return;
@@ -43,6 +44,7 @@ if (!app.isPackaged) {
 let mainWindow: BrowserWindow | null = null;
 let stopServer: (() => Promise<void>) | null = null;
 let serverBaseUrl: string | null = null;
+let workdirHost: WorkdirHost | null = null;
 
 function openMainWindow(): void {
   if (!serverBaseUrl) return;
@@ -78,6 +80,12 @@ if (!gotLock) {
       );
     }
 
+    workdirHost = installWorkdirHost({
+      userDataPath: app.getPath("userData"),
+      getWindow: () => mainWindow,
+      defaultWorkdir: process.cwd(),
+    });
+
     const paths = desktopPaths(__dirname);
 
     try {
@@ -106,6 +114,8 @@ if (!gotLock) {
   });
 
   app.on("before-quit", () => {
+    workdirHost?.dispose();
+    workdirHost = null;
     void stopServer?.();
   });
 }

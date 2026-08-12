@@ -48,6 +48,11 @@ export {
 } from "./codemaker/login.js";
 
 export {
+  CODEMAKER_RENEW_TOKEN_PATH,
+  renewCodeMakerCredentials,
+} from "./codemaker/refresh.js";
+
+export {
   buildCanonicalString,
   buildCodeMakerHeaders,
   createCodeMakerFetch,

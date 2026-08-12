@@ -8,6 +8,7 @@ import {
   beginCodeMakerLogin,
   type CodeMakerLoginStart,
 } from "./login.js";
+import { renewCodeMakerCredentials } from "./refresh.js";
 import { createCodeMakerFetch } from "./sign.js";
 import type { CodeMakerCreds } from "./types.js";
 
@@ -19,6 +20,9 @@ export interface CodeMakerProviderDeps {
   home?: string;
   openBrowser?: (url: string) => void;
   fetch?: typeof fetch;
+  createUuid?: () => string;
+  /** Test hook: override renew implementation. */
+  renewCredentials?: typeof renewCodeMakerCredentials;
 }
 
 export function createCodeMakerProvider(
@@ -27,24 +31,48 @@ export function createCodeMakerProvider(
   const loadCredentials =
     deps.loadCredentials ??
     (() => loadCodeMakerCredentials(deps.home));
+  const renew = deps.renewCredentials ?? renewCodeMakerCredentials;
 
   let activeLogin: CodeMakerLoginStart | null = null;
+  /** In-memory override after a successful refresh within this process. */
+  let refreshedCreds: CodeMakerCreds | null = null;
+
+  function readCreds(): CodeMakerCreds | null {
+    return refreshedCreds ?? loadCredentials();
+  }
+
+  async function ensureFreshCreds(): Promise<CodeMakerCreds | null> {
+    const creds = readCreds();
+    if (!creds) return null;
+    if (!isExpired(creds)) return creds;
+    if (!creds.refreshKey) {
+      clearCodeMakerCredentials(deps.home);
+      refreshedCreds = null;
+      return null;
+    }
+    try {
+      const next = await renew({
+        creds,
+        home: deps.home,
+        fetch: deps.fetch,
+      });
+      refreshedCreds = next;
+      return next;
+    } catch {
+      clearCodeMakerCredentials(deps.home);
+      refreshedCreds = null;
+      return null;
+    }
+  }
 
   return {
     id: "codemaker",
     displayName: "CodeMaker",
 
     async getAuthStatus() {
-      const creds = loadCredentials();
+      const creds = await ensureFreshCreds();
       if (!creds) {
         return { state: "unauthenticated", providerId: "codemaker" };
-      }
-      if (isExpired(creds)) {
-        return {
-          state: "expired",
-          user: creds.accessUser,
-          providerId: "codemaker",
-        };
       }
       return {
         state: "authenticated",
@@ -54,11 +82,16 @@ export function createCodeMakerProvider(
     },
 
     async beginLogin(opts?: { openBrowser?: (url: string) => void }) {
+      // Reuse an in-progress login so a later wait:true does not mint a new uuid.
+      if (activeLogin && "authUrl" in activeLogin && activeLogin.authUrl) {
+        return { authUrl: activeLogin.authUrl };
+      }
       const start = await beginCodeMakerLogin({
         home: deps.home,
-        loadCredentials,
+        loadCredentials: readCreds,
         openBrowser: opts?.openBrowser ?? deps.openBrowser,
         fetch: deps.fetch,
+        createUuid: deps.createUuid,
       });
       activeLogin = start;
       if ("reused" in start && start.reused) {
@@ -73,12 +106,14 @@ export function createCodeMakerProvider(
       }
       const status = await activeLogin.waitUntilComplete();
       activeLogin = null;
+      refreshedCreds = null;
       return status;
     },
 
     async logout() {
       clearCodeMakerCredentials(deps.home);
       activeLogin = null;
+      refreshedCreds = null;
     },
 
     async listModels() {
@@ -86,8 +121,8 @@ export function createCodeMakerProvider(
     },
 
     async resolveGateway(modelId: string) {
-      const creds = loadCredentials();
-      if (!creds || isExpired(creds)) {
+      const creds = await ensureFreshCreds();
+      if (!creds) {
         throw new Error("CodeMaker credentials missing or expired");
       }
       return {

@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     reporter: "dot",
     environment: "node",
-    include: ["tests/serverProcess.test.ts"],
+    include: ["tests/**/*.test.ts"],
     exclude: ["node_modules"],
   },
 });

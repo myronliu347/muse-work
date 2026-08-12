@@ -46,18 +46,35 @@ export function createSessionRunner(
   const { store, hub, registry } = options;
   const createAgent = options.createAgent ?? defaultCreateAgent;
   const agents = new Map<string, SessionAgent>();
+  /** Gateway identity used when the session agent was created (model switch → recreate). */
+  const agentIdentities = new Map<string, string>();
   const pending = new Map<string, PendingPermission>();
   /** Session IDs that were disposed; late createAgent completions must not revive them. */
   const disposed = new Set<string>();
+
+  function gatewayIdentity(gateway: GatewayResolution): string {
+    return [
+      gateway.baseURL,
+      gateway.model,
+      gateway.apiKey ?? "",
+      gateway.fastModel ?? "",
+    ].join("\0");
+  }
 
   async function ensureAgent(
     sessionId: string,
     workdir: string,
     gateway: GatewayResolution,
   ): Promise<SessionAgent> {
+    const identity = gatewayIdentity(gateway);
     const existing = agents.get(sessionId);
     if (existing) {
-      return existing;
+      if (agentIdentities.get(sessionId) === identity) {
+        return existing;
+      }
+      agents.delete(sessionId);
+      agentIdentities.delete(sessionId);
+      await existing.dispose();
     }
     if (disposed.has(sessionId)) {
       throw Object.assign(new Error(`session disposed: ${sessionId}`), {
@@ -126,6 +143,7 @@ export function createSessionRunner(
     }
 
     agents.set(sessionId, agent);
+    agentIdentities.set(sessionId, identity);
     return agent;
   }
 
@@ -237,6 +255,7 @@ export function createSessionRunner(
       }
       const agent = agents.get(sessionId);
       agents.delete(sessionId);
+      agentIdentities.delete(sessionId);
       if (agent) {
         await agent.dispose();
       }

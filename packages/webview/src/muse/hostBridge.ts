@@ -23,10 +23,12 @@ function newId(prefix: string): string {
 /**
  * Minimal host bridge: maps legacy webview postMessage commands onto Muse HTTP/WS.
  * Compatible subset: login / logout / sendMessage / confirmationResponse (+ auth bootstrap).
+ * Also bootstraps desktop workdir state so DesktopApp is not stuck on loading.
  */
 export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const { api, ws } = opts;
-  const workdir = opts.workdir ?? "/";
+  let currentWorkdir = opts.workdir ?? "/";
+  let recentWorkdirs: string[] = [];
   const openExternal =
     opts.openExternal ??
     ((url: string) => {
@@ -37,6 +39,41 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let streamingMessageId: string | null = null;
   let state: unknown = null;
   let bootstrapped = false;
+
+  const emitWorkdirState = (patch?: {
+    workdir?: string;
+    recentWorkdirs?: string[];
+  }) => {
+    if (typeof patch?.workdir === "string" && patch.workdir) {
+      currentWorkdir = patch.workdir;
+      sessionId = null;
+    }
+    if (patch?.recentWorkdirs) {
+      recentWorkdirs = patch.recentWorkdirs;
+    }
+    postToWebview({
+      command: "desktopWorkdirState",
+      workdir: currentWorkdir || undefined,
+      recentWorkdirs,
+      host: "local",
+      hosts: [],
+    });
+  };
+
+  // Keep createSession workdir in sync when Electron main (or tests) push state.
+  window.addEventListener("message", (event: MessageEvent) => {
+    const message = event.data as { command?: string; workdir?: string; recentWorkdirs?: string[] };
+    if (message?.command !== "desktopWorkdirState") return;
+    if (typeof message.workdir === "string" && message.workdir) {
+      if (message.workdir !== currentWorkdir) {
+        sessionId = null;
+      }
+      currentWorkdir = message.workdir;
+    }
+    if (Array.isArray(message.recentWorkdirs)) {
+      recentWorkdirs = message.recentWorkdirs;
+    }
+  });
 
   const emitWs = (event: MuseWsEvent) => {
     if (event.type === "message:delta") {
@@ -110,7 +147,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   async function ensureSession(): Promise<string> {
     if (sessionId) return sessionId;
-    const session = await api.createSession(workdir);
+    const session = await api.createSession(currentWorkdir || "/");
     sessionId = session.id;
     await ws.connect(sessionId);
     postToWebview({
@@ -230,6 +267,23 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       }
 
       switch (command) {
+        case "desktopReady":
+          // Unblock DesktopApp loading; Electron main may refine state later.
+          emitWorkdirState();
+          opts.outer?.postMessage(raw);
+          return;
+        case "desktopSelectRecentWorkdir": {
+          const path = typeof msg.path === "string" ? msg.path : undefined;
+          if (path) {
+            const nextRecent = [
+              path,
+              ...recentWorkdirs.filter((p) => p !== path),
+            ].slice(0, 10);
+            emitWorkdirState({ workdir: path, recentWorkdirs: nextRecent });
+          }
+          opts.outer?.postMessage(raw);
+          return;
+        }
         case "login":
           void handleLogin();
           return;
@@ -252,6 +306,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           if (typeof msg.url === "string") openExternal(msg.url);
           return;
         default:
+          // desktopSelectWorkdir / folder pick → Electron main via outer IPC.
           opts.outer?.postMessage(raw);
       }
     },

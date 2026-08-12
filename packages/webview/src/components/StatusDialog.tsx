@@ -12,9 +12,9 @@ import "../styles/ConfigurationDialog.css";
 const StatusDialog: React.FC<
   StatusDialogProps & {
     vscode: { postMessage: (msg: unknown) => void };
-    isDesktop: boolean;
+    isDesktop?: boolean;
   }
-> = ({ onClose, vscode, isDesktop }) => {
+> = ({ onClose, vscode }) => {
   const [version, setVersion] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [workdir, setWorkdir] = useState("");
@@ -112,21 +112,6 @@ const StatusDialog: React.FC<
                 }}
               >
                 <span>{version || "—"}</span>
-                {/* Extension updates are handled by the official marketplace
-                    (spec: plugin-updates.md); only the desktop app keeps its own
-                    update check (electron-updater). */}
-                {isDesktop && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      vscode?.postMessage({ command: "checkForUpdates" })
-                    }
-                    className="configuration-cancel-btn"
-                    style={{ padding: "2px 8px" }}
-                  >
-                    检查更新
-                  </button>
-                )}
               </div>
             </div>
             <StatusRow label="Session ID" value={sessionId} />

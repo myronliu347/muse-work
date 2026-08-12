@@ -236,6 +236,88 @@ describe("providers + auth routes", () => {
     });
   });
 
+  it("POST /auth/login wait reuses prior beginLogin (no second begin)", async () => {
+    let beginCalls = 0;
+    let completeCalls = 0;
+    let active = false;
+    const stub: AiProvider = {
+      id: "codemaker",
+      displayName: "CodeMaker",
+      async getAuthStatus() {
+        return { state: "unauthenticated", providerId: "codemaker" };
+      },
+      async beginLogin() {
+        beginCalls += 1;
+        active = true;
+        return { authUrl: `https://example.test/login?n=${beginCalls}` };
+      },
+      async completeLogin() {
+        if (!active) {
+          throw new Error("No login in progress; call beginLogin first");
+        }
+        completeCalls += 1;
+        active = false;
+        return {
+          state: "authenticated",
+          user: "carol",
+          providerId: "codemaker",
+        };
+      },
+      async logout() {},
+      async listModels() {
+        return [{ id: "m1", label: "M1" }];
+      },
+      async resolveGateway() {
+        return { baseURL: "https://example.test", model: "m1" };
+      },
+    };
+
+    const openaiStub: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus() {
+        return { state: "needs_config", providerId: "openai-compatible" };
+      },
+      async beginLogin() {
+        throw new Error("no sso");
+      },
+      async completeLogin() {
+        throw new Error("no sso");
+      },
+      async logout() {},
+      async listModels() {
+        return [];
+      },
+      async resolveGateway(modelId: string) {
+        return { baseURL: "https://api.example.com/v1", model: modelId };
+      },
+    };
+
+    const app = await listenWithStubs([stub, openaiStub]);
+    server = app.server;
+    home = app.home;
+
+    const startRes = await fetch(`${app.baseUrl}/auth/login`, { method: "POST" });
+    expect(startRes.status).toBe(200);
+    expect(await startRes.json()).toEqual({
+      authUrl: "https://example.test/login?n=1",
+    });
+
+    const waitRes = await fetch(`${app.baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ wait: true }),
+    });
+    expect(waitRes.status).toBe(200);
+    expect(await waitRes.json()).toEqual({
+      state: "authenticated",
+      user: "carol",
+      providerId: "codemaker",
+    });
+    expect(beginCalls).toBe(1);
+    expect(completeCalls).toBe(1);
+  });
+
   it("POST /auth/logout clears session", async () => {
     let loggedOut = false;
     const stub: AiProvider = {
