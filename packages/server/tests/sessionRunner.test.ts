@@ -68,7 +68,7 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     };
 
-    const store = createSessionStore();
+    const store = createSessionStore({ home });
     const hub = createWsHub();
     const registry = createProviderRegistry([provider], home);
     const runner = createSessionRunner({
@@ -83,7 +83,7 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     });
 
-    const session = store.create(home);
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
 
     const accepted = await runner.sendMessage(session.id, "hello");
     expect(accepted).toEqual({ accepted: true });
@@ -156,7 +156,7 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     };
 
-    const store = createSessionStore();
+    const store = createSessionStore({ home });
     const hub = createWsHub();
     const registry = createProviderRegistry([provider], home);
     const runner = createSessionRunner({
@@ -178,7 +178,7 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     });
 
-    const session = store.create(home);
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
 
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => createdModels.length).toBe(1);
@@ -236,10 +236,10 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     };
 
-    const store = createSessionStore();
+    const store = createSessionStore({ home });
     const hub = createWsHub();
     const registry = createProviderRegistry([provider], home);
-    const session = store.create(home);
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
     const runner = createSessionRunner({
       store,
       hub,

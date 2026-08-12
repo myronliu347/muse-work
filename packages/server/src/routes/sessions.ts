@@ -12,7 +12,10 @@ export async function handleCreateSession(
     sendError(res, 400, "workdir is required");
     return;
   }
-  const session = ctx.store.create(body.workdir);
+  const session = ctx.store.create({
+    workdir: body.workdir,
+    model: "deepseek-v4-flash",
+  });
   sendJson(res, 200, session);
 }
 

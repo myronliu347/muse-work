@@ -1,42 +1,199 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { getSessionsConfigPath } from "@muse-work/provider";
+
 export type SessionStatus = "idle" | "running" | "error";
 
 export interface Session {
   id: string;
+  waveSessionId?: string;
+  title: string;
   workdir: string;
+  permissionMode: "acceptEdits";
+  model: string;
+  pinned: boolean;
   createdAt: number;
+  lastActiveAt: number;
+  /** runtime only — not required in file */
   status: SessionStatus;
 }
 
+export type SessionsFile = {
+  version: 1;
+  activeSessionId?: string;
+  sessions: Array<Omit<Session, "status">>;
+};
+
 export interface SessionStore {
-  create(workdir: string): Session;
+  create(options: { workdir: string; model: string }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
+  listGrouped(): {
+    pinned: Session[];
+    recent: Session[];
+    activeSessionId?: string;
+  };
+  update(
+    id: string,
+    patch: Partial<Omit<Session, "id" | "status">>,
+  ): Session | undefined;
+  select(id: string): void;
+  setWaveSessionId(id: string, waveSessionId: string): Session | undefined;
+  setUnreadDone(id: string, unreadDone: boolean): Session | undefined;
   updateStatus(id: string, status: SessionStatus): Session | undefined;
   delete(id: string): Session | undefined;
+  getActiveSessionId(): string | undefined;
 }
 
-export function createSessionStore(): SessionStore {
+export interface CreateSessionStoreOptions {
+  home?: string;
+}
+
+function defaultSessionsFile(): SessionsFile {
+  return { version: 1, sessions: [] };
+}
+
+function loadSessionsFile(home: string): SessionsFile {
+  const configPath = getSessionsConfigPath(home);
+  if (!fs.existsSync(configPath)) {
+    return defaultSessionsFile();
+  }
+  const raw = fs.readFileSync(configPath, "utf-8");
+  return JSON.parse(raw) as SessionsFile;
+}
+
+function saveSessionsFile(file: SessionsFile, home: string): void {
+  const configPath = getSessionsConfigPath(home);
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  const tmpPath = `${configPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(file, null, 2) + "\n", "utf-8");
+  fs.renameSync(tmpPath, configPath);
+}
+
+function toPersistedSession(session: Session): Omit<Session, "status"> {
+  const { status: _status, ...rest } = session;
+  return rest;
+}
+
+export function createSessionStore(
+  options: CreateSessionStoreOptions = {},
+): SessionStore {
+  const home = options.home ?? process.env.MUSE_HOME ?? os.homedir();
+  const file = loadSessionsFile(home);
   const sessions = new Map<string, Session>();
+  const unreadDone = new Map<string, boolean>();
+  let activeSessionId = file.activeSessionId;
+
+  for (const record of file.sessions) {
+    sessions.set(record.id, { ...record, status: "idle" });
+  }
+
+  function persist(): void {
+    saveSessionsFile(
+      {
+        version: 1,
+        activeSessionId,
+        sessions: [...sessions.values()].map(toPersistedSession),
+      },
+      home,
+    );
+  }
+
+  function toSession(session: Session): Session {
+    return { ...session };
+  }
 
   return {
-    create(workdir: string): Session {
+    create({ workdir, model }): Session {
+      const now = Date.now();
       const session: Session = {
         id: crypto.randomUUID(),
+        title: "新对话",
         workdir,
-        createdAt: Date.now(),
+        permissionMode: "acceptEdits",
+        model,
+        pinned: false,
+        createdAt: now,
+        lastActiveAt: now,
         status: "idle",
       };
       sessions.set(session.id, session);
-      return { ...session };
+      persist();
+      return toSession(session);
     },
 
     get(id: string): Session | undefined {
       const session = sessions.get(id);
-      return session ? { ...session } : undefined;
+      return session ? toSession(session) : undefined;
     },
 
     list(): Session[] {
-      return [...sessions.values()].map((s) => ({ ...s }));
+      return [...sessions.values()].map(toSession);
+    },
+
+    listGrouped(): {
+      pinned: Session[];
+      recent: Session[];
+      activeSessionId?: string;
+    } {
+      const all = this.list();
+      const pinned = all
+        .filter((s) => s.pinned)
+        .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
+      const recent = all
+        .filter((s) => !s.pinned)
+        .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
+        .slice(0, 50);
+      return { pinned, recent, activeSessionId };
+    },
+
+    update(
+      id: string,
+      patch: Partial<Omit<Session, "id" | "status">>,
+    ): Session | undefined {
+      const session = sessions.get(id);
+      if (!session) {
+        return undefined;
+      }
+      Object.assign(session, patch);
+      persist();
+      return toSession(session);
+    },
+
+    select(id: string): void {
+      if (!sessions.has(id)) {
+        return;
+      }
+      activeSessionId = id;
+      unreadDone.delete(id);
+      persist();
+    },
+
+    setWaveSessionId(
+      id: string,
+      waveSessionId: string,
+    ): Session | undefined {
+      const session = sessions.get(id);
+      if (!session) {
+        return undefined;
+      }
+      session.waveSessionId = waveSessionId;
+      persist();
+      return toSession(session);
+    },
+
+    setUnreadDone(id: string, value: boolean): Session | undefined {
+      const session = sessions.get(id);
+      if (!session) {
+        return undefined;
+      }
+      if (value) {
+        unreadDone.set(id, true);
+      } else {
+        unreadDone.delete(id);
+      }
+      return toSession(session);
     },
 
     updateStatus(id: string, status: SessionStatus): Session | undefined {
@@ -45,7 +202,7 @@ export function createSessionStore(): SessionStore {
         return undefined;
       }
       session.status = status;
-      return { ...session };
+      return toSession(session);
     },
 
     delete(id: string): Session | undefined {
@@ -54,7 +211,16 @@ export function createSessionStore(): SessionStore {
         return undefined;
       }
       sessions.delete(id);
-      return { ...session };
+      unreadDone.delete(id);
+      if (activeSessionId === id) {
+        activeSessionId = undefined;
+      }
+      persist();
+      return toSession(session);
+    },
+
+    getActiveSessionId(): string | undefined {
+      return activeSessionId;
     },
   };
 }

@@ -9,6 +9,10 @@ export function getProvidersConfigPath(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), "providers.json");
 }
 
+export function getSessionsConfigPath(home = os.homedir()): string {
+  return path.join(getMuseHomeDir(home), "sessions.json");
+}
+
 export function getCodeMakerAuthPath(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), "auth", "codemaker.json");
 }

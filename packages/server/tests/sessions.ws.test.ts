@@ -539,6 +539,7 @@ async function listenSessionsApp(options: {
 
   const registry = createProviderRegistry([provider], home);
   const sessions = createSessionServices({
+    home,
     registry,
     createAgent: options.createAgent,
   });

@@ -33,6 +33,7 @@ export interface CreateAppContextOptions {
 }
 
 export interface CreateSessionServicesOptions {
+  home: string;
   registry: ProviderRegistry;
   createAgent?: CreateAgent;
 }
@@ -40,7 +41,7 @@ export interface CreateSessionServicesOptions {
 export function createSessionServices(
   options: CreateSessionServicesOptions,
 ): Pick<AppContext, "store" | "hub" | "runner"> {
-  const store = createSessionStore();
+  const store = createSessionStore({ home: options.home });
   const hub = createWsHub();
   const runner = createSessionRunner({
     store,
@@ -86,6 +87,7 @@ export function createAppContext(
 
   const registry = createProviderRegistry([codemaker, openai], home);
   const sessions = createSessionServices({
+    home,
     registry,
     createAgent: options?.createAgent,
   });

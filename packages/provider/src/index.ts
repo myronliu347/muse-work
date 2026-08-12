@@ -13,6 +13,7 @@ export {
   getCodeMakerAuthPath,
   getMuseHomeDir,
   getProvidersConfigPath,
+  getSessionsConfigPath,
   getSharedCodeMakerAuthPath,
 } from "./paths.js";
 
