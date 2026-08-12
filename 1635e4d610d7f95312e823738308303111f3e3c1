@@ -1,0 +1,113 @@
+packages/provider/tsconfig.json
+  acb156b280b2d1a2 1-8
+packages/server/src/index.ts
+  acb156b280b2d1a2 1
+packages/webview/tsconfig.json
+  acb156b280b2d1a2 1-4
+packages/desktop/package.json
+  acb156b280b2d1a2 1-12
+package.json
+  acb156b280b2d1a2 1-19
+pnpm-workspace.yaml
+  acb156b280b2d1a2 1-2
+packages/server/package.json
+  acb156b280b2d1a2 1-26
+.gitignore
+  acb156b280b2d1a2 1-8
+packages/desktop/tsconfig.json
+  acb156b280b2d1a2 1-4
+packages/provider/package.json
+  acb156b280b2d1a2 1-24
+packages/server/tsconfig.json
+  acb156b280b2d1a2 1-8
+tsconfig.base.json
+  acb156b280b2d1a2 1-14
+packages/webview/package.json
+  acb156b280b2d1a2 1-11
+packages/provider/src/index.ts
+  acb156b280b2d1a2 1
+README.md
+  acb156b280b2d1a2 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1635e4d610d7f95312e823738308303111f3e3c1",
+  "prompts": {
+    "acb156b280b2d1a2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "01d5c7a6-c349-4d74-b1fe-ce63eaca4442",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 168,
+      "total_deletions": 0,
+      "accepted_lines": 168,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/tsconfig.json": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/src/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "package.json": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/provider/package.json": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/tsconfig.json": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/package.json": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/desktop/tsconfig.json": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "tsconfig.base.json": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "README.md": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/tsconfig.json": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/package.json": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "pnpm-workspace.yaml": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        ".gitignore": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/package.json": {
+          "additions": 11,
+          "accepted_lines": 11
+        }
+      }
+    }
+  }
+}
