@@ -1,0 +1,44 @@
+tsconfig.base.json
+  6bbd3df5546e1224 10
+packages/server/package.json
+  6bbd3df5546e1224 13
+packages/provider/package.json
+  6bbd3df5546e1224 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1bf4404223673668e71377fa8736300dce3a0a10",
+  "prompts": {
+    "6bbd3df5546e1224": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40b5b9d9-3167-4803-8541-c9cd2e347be1",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 5,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tsconfig.base.json": {
+          "additions": 1,
+          "deletions": 3,
+          "accepted_lines": 1
+        },
+        "packages/server/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/provider/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
