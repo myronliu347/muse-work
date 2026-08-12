@@ -1,0 +1,81 @@
+packages/desktop/tsup.config.ts
+  db26196a999da47a 11
+packages/webview/esbuild.config.mjs
+  db26196a999da47a 38-39,56
+packages/desktop/src/main/workdirHost.ts
+  db26196a999da47a 2,5,8-10,33,94,96-100,110,114-115,118-123,130-145,151-165,202-299,309
+packages/desktop/src/main/gitDiff.ts
+  db26196a999da47a 1-198
+packages/desktop/package.json
+  db26196a999da47a 18-22
+packages/desktop/tests/filePanel.test.ts
+  db26196a999da47a 1-23
+packages/desktop/src/main/terminal.ts
+  db26196a999da47a 1-160
+packages/desktop/src/main/filePanel.ts
+  db26196a999da47a 1-110
+packages/desktop/tests/workdirHost.test.ts
+  db26196a999da47a 143-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "36f2679704c1df31aa594eca7f15a3cbb6471636",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 703,
+      "total_deletions": 16,
+      "accepted_lines": 702,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 198,
+          "accepted_lines": 198
+        },
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/filePanel.ts": {
+          "additions": 110,
+          "accepted_lines": 110
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 153,
+          "deletions": 10,
+          "accepted_lines": 152
+        },
+        "packages/desktop/package.json": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/desktop/src/main/terminal.ts": {
+          "additions": 160,
+          "accepted_lines": 160
+        },
+        "packages/desktop/tests/filePanel.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/desktop/tsup.config.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
