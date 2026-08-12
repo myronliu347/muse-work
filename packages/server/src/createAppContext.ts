@@ -6,15 +6,49 @@ import {
   loadProvidersConfig,
   type ProviderRegistry,
 } from "@muse-work/provider";
+import {
+  createSessionRunner,
+  type CreateAgent,
+  type SessionAgent,
+  type SessionRunner,
+} from "./sessionRunner.js";
+import { createSessionStore, type SessionStore } from "./sessionStore.js";
+import { createWsHub, type WsHub } from "./wsHub.js";
+
+export type { CreateAgent, SessionAgent };
 
 export interface AppContext {
   home: string;
   registry: ProviderRegistry;
+  store: SessionStore;
+  hub: WsHub;
+  runner: SessionRunner;
 }
 
 export interface CreateAppContextOptions {
   /** User home used for `~/.muse-work` paths. Overrides `MUSE_HOME`. */
   home?: string;
+  /** Injectable Agent factory for tests. */
+  createAgent?: CreateAgent;
+}
+
+export interface CreateSessionServicesOptions {
+  registry: ProviderRegistry;
+  createAgent?: CreateAgent;
+}
+
+export function createSessionServices(
+  options: CreateSessionServicesOptions,
+): Pick<AppContext, "store" | "hub" | "runner"> {
+  const store = createSessionStore();
+  const hub = createWsHub();
+  const runner = createSessionRunner({
+    store,
+    hub,
+    registry: options.registry,
+    createAgent: options.createAgent,
+  });
+  return { store, hub, runner };
 }
 
 /**
@@ -51,6 +85,10 @@ export function createAppContext(
   });
 
   const registry = createProviderRegistry([codemaker, openai], home);
+  const sessions = createSessionServices({
+    registry,
+    createAgent: options?.createAgent,
+  });
 
-  return { home, registry };
+  return { home, registry, ...sessions };
 }

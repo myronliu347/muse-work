@@ -11,7 +11,10 @@ import {
 } from "@muse-work/provider";
 import { createApp } from "../src/app.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
-import type { AppContext } from "../src/createAppContext.js";
+import {
+  createSessionServices,
+  type AppContext,
+} from "../src/createAppContext.js";
 
 describe("providers + auth routes", () => {
   let server: Server | undefined;
@@ -314,7 +317,8 @@ async function listenWithStubs(providers: AiProvider[]) {
     home,
   );
   const registry = createProviderRegistry(providers, home);
-  const ctx: AppContext = { home, registry };
+  const sessions = createSessionServices({ registry });
+  const ctx: AppContext = { home, registry, ...sessions };
   const server = createApp(ctx);
   await new Promise<void>((resolve, reject) => {
     server.listen(0, "127.0.0.1", () => resolve());

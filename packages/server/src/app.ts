@@ -12,9 +12,17 @@ import {
   handleListProviders,
   handleSetActive,
 } from "./routes/providers.js";
+import {
+  handleCreateSession,
+  handleDeleteSession,
+  handleGetSession,
+  handleListSessions,
+  handleRespondPermission,
+  handleSendMessage,
+} from "./routes/sessions.js";
 
 export function createApp(ctx: AppContext): http.Server {
-  return http.createServer((req, res) => {
+  const server = http.createServer((req, res) => {
     void routeRequest(req, res, ctx).catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
       if (!res.headersSent) {
@@ -24,6 +32,8 @@ export function createApp(ctx: AppContext): http.Server {
       }
     });
   });
+  ctx.hub.attach(server);
+  return server;
 }
 
 async function routeRequest(
@@ -68,6 +78,54 @@ async function routeRequest(
 
   if (method === "POST" && pathname === "/auth/logout") {
     await handleAuthLogout(req, res, ctx);
+    return;
+  }
+
+  if (method === "GET" && pathname === "/sessions") {
+    await handleListSessions(req, res, ctx);
+    return;
+  }
+
+  if (method === "POST" && pathname === "/sessions") {
+    await handleCreateSession(req, res, ctx);
+    return;
+  }
+
+  const sessionMatch = pathname.match(/^\/sessions\/([^/]+)$/);
+  if (sessionMatch) {
+    const sessionId = decodeURIComponent(sessionMatch[1]!);
+    if (method === "GET") {
+      await handleGetSession(req, res, ctx, sessionId);
+      return;
+    }
+    if (method === "DELETE") {
+      await handleDeleteSession(req, res, ctx, sessionId);
+      return;
+    }
+  }
+
+  const messageMatch = pathname.match(/^\/sessions\/([^/]+)\/messages$/);
+  if (method === "POST" && messageMatch) {
+    await handleSendMessage(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(messageMatch[1]!),
+    );
+    return;
+  }
+
+  const permissionMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/permissions\/([^/]+)$/,
+  );
+  if (method === "POST" && permissionMatch) {
+    await handleRespondPermission(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(permissionMatch[1]!),
+      decodeURIComponent(permissionMatch[2]!),
+    );
     return;
   }
 
