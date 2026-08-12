@@ -15,6 +15,7 @@ export interface ProviderRegistry {
 
 export function createProviderRegistry(
   providers: AiProvider[],
+  home?: string,
 ): ProviderRegistry {
   const byId = new Map(providers.map((p) => [p.id, p]));
 
@@ -26,17 +27,17 @@ export function createProviderRegistry(
       return [...providers];
     },
     getActive() {
-      const cfg = loadProvidersConfig();
+      const cfg = loadProvidersConfig(home);
       return {
         providerId: cfg.activeProviderId,
         modelId: cfg.activeModelId,
       };
     },
     setActive(providerId, modelId) {
-      const cfg = loadProvidersConfig();
+      const cfg = loadProvidersConfig(home);
       cfg.activeProviderId = providerId;
       cfg.activeModelId = modelId;
-      saveProvidersConfig(cfg);
+      saveProvidersConfig(cfg, home);
     },
   };
 }
