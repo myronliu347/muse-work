@@ -1,0 +1,149 @@
+packages/server/src/wsHub.ts
+  db26196a999da47a 3,5
+packages/desktop/assets/icon.svg
+  db26196a999da47a 2-3,8,13
+packages/desktop/package.json
+  db26196a999da47a 11-33,35-42,53,55
+packages/webview/src/muse/wsClient.ts
+  db26196a999da47a 2-17,24
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 5-8,40-50,64-67,80-125,153-154,159-167,171-184,187-206,245-249,265-283,285-334,345,347-350,353-354,376-377
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 42,44-56,94-112,114-116,121,123,128-135,137-154,160-161,164,169-173,200,204,295-297,305-306
+packages/provider/src/openaiCompatible.ts
+  db26196a999da47a 44
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 75-137
+packages/provider/src/codemaker/provider.ts
+  db26196a999da47a 132
+packages/desktop/src/main/window.ts
+  db26196a999da47a 59-65,67-70,76-83,87
+packages/desktop/src/main/index.ts
+  db26196a999da47a 49-55,58,96
+package.json
+  db26196a999da47a 10-11
+packages/server/src/museSystemPrompt.ts
+  db26196a999da47a 1-46
+packages/server/src/wsEvents.ts
+  db26196a999da47a 1-44
+packages/server/tests/museSystemPrompt.test.ts
+  db26196a999da47a 1-31
+packages/provider/tests/openaiCompatible.test.ts
+  db26196a999da47a 36
+packages/desktop/scripts/prepareServer.mjs
+  db26196a999da47a 1-66
+packages/provider/tests/provider.codemaker.test.ts
+  db26196a999da47a 48
+packages/server/tests/sessions.ws.test.ts
+  db26196a999da47a 43-44,55,91-103,189,194,197-201,239-241,247-275,279-285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b532f7896ff47c00169508fa5d89ca0e1417fba4",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 733,
+      "total_deletions": 165,
+      "accepted_lines": 686,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 63,
+          "accepted_lines": 63
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 65,
+          "deletions": 6,
+          "accepted_lines": 65
+        },
+        "package.json": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/provider/src/openaiCompatible.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/assets/icon.svg": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/desktop/scripts/prepareServer.mjs": {
+          "additions": 66,
+          "accepted_lines": 66
+        },
+        "packages/server/src/wsHub.ts": {
+          "additions": 3,
+          "deletions": 14,
+          "accepted_lines": 2
+        },
+        "packages/provider/tests/provider.codemaker.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 17,
+          "deletions": 3,
+          "accepted_lines": 17
+        },
+        "packages/provider/tests/openaiCompatible.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/package.json": {
+          "additions": 38,
+          "deletions": 7,
+          "accepted_lines": 33
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 205,
+          "deletions": 76,
+          "accepted_lines": 195
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 85,
+          "deletions": 18,
+          "accepted_lines": 85
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/server/src/museSystemPrompt.ts": {
+          "additions": 68,
+          "deletions": 22,
+          "accepted_lines": 46
+        },
+        "packages/server/tests/museSystemPrompt.test.ts": {
+          "additions": 40,
+          "deletions": 9,
+          "accepted_lines": 31
+        }
+      }
+    }
+  }
+}
