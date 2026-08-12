@@ -1,0 +1,91 @@
+packages/webview/tests/muse/apiClient.sessions.test.ts
+  6ea3fadf6c48c73a 82-99
+packages/webview/src/muse/hostBridge.ts
+  6ea3fadf6c48c73a 169,315-321,744-748
+packages/webview/tests/muse/hostBridge.test.ts
+  6ea3fadf6c48c73a 569-600
+packages/server/tests/sessions.routes.test.ts
+  6ea3fadf6c48c73a 44-78
+packages/webview/src/components/MuseModelSelect.tsx
+  6ea3fadf6c48c73a 10-14,18-20,22-27,64,80-86
+packages/webview/src/types/index.ts
+  6ea3fadf6c48c73a 444-449
+packages/webview/tests/components/museModelSelect.session.test.tsx
+  6ea3fadf6c48c73a 1-122
+packages/webview/src/components/MessageInput.tsx
+  6ea3fadf6c48c73a 21,58-60,977-988
+packages/webview/src/components/ChatApp.tsx
+  6ea3fadf6c48c73a 1314-1321,1843-1846
+packages/webview/src/styles/MessageInput.css
+  6ea3fadf6c48c73a 187-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "815977e6bb2499339a2dfff0035593c1c46a30b6",
+  "prompts": {
+    "6ea3fadf6c48c73a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7729602-3b29-46d2-b8bf-b181d39dc1ca",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 403,
+      "total_deletions": 9,
+      "accepted_lines": 283,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 22,
+          "deletions": 6,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 33,
+          "deletions": 1,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/ChatHeader.tsx": {
+          "deletions": 2
+        },
+        "packages/webview/tests/muse/apiClient.sessions.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/components/museModelSelect.session.test.tsx": {
+          "additions": 122,
+          "accepted_lines": 122
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/webview/museModelSelect.session.test.tsx": {
+          "additions": 119
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
