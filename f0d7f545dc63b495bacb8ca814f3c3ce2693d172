@@ -1,0 +1,47 @@
+packages/provider/src/codemaker/types.ts
+  c261ee301849e469 1-6
+packages/provider/tests/credentials.test.ts
+  c261ee301849e469 1-153
+packages/provider/src/index.ts
+  c261ee301849e469 28-35
+packages/provider/src/codemaker/credentials.ts
+  c261ee301849e469 1-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f0d7f545dc63b495bacb8ca814f3c3ce2693d172",
+  "prompts": {
+    "c261ee301849e469": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "af45c0b8-401f-4cc9-85e3-7fdf53dec3b4",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 261,
+      "total_deletions": 0,
+      "accepted_lines": 261,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/codemaker/credentials.ts": {
+          "additions": 94,
+          "accepted_lines": 94
+        },
+        "packages/provider/tests/credentials.test.ts": {
+          "additions": 153,
+          "accepted_lines": 153
+        },
+        "packages/provider/src/codemaker/types.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
