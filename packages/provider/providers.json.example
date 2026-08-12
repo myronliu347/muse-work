@@ -1,0 +1,22 @@
+{
+  "activeProviderId": "codemaker",
+  "activeModelId": "deepseek-v4-pro",
+  "providers": {
+    "codemaker": {
+      "enabled": true,
+      "models": [
+        { "id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro" },
+        { "id": "claude-sonnet-4-6", "label": "Claude Sonnet 4.6" }
+      ]
+    },
+    "openai-compatible": {
+      "enabled": true,
+      "baseURL": "https://api.example.com/v1",
+      "apiKeyEnv": "MUSE_OPENAI_API_KEY",
+      "models": [
+        { "id": "gpt-4.1", "label": "GPT-4.1" },
+        { "id": "gpt-4.1-mini", "label": "GPT-4.1 Mini" }
+      ]
+    }
+  }
+}

@@ -189,7 +189,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
       <div className="desktop-sidebar-header">
-        <span className="desktop-sidebar-title">Wave 代码智聊</span>
+        <span className="desktop-sidebar-title">Muse Work</span>
         <Tooltip text="更多" position="bottom">
           <button
             className="desktop-sidebar-more-btn"

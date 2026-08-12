@@ -3,6 +3,8 @@
   "private": true,
   "description": "Muse Work desktop app (Electron)",
   "version": "0.1.0",
+  "productName": "Muse Work",
+  "appId": "com.muse.work",
   "type": "module",
   "main": "./dist/main/index.cjs",
   "engines": {

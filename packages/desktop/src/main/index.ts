@@ -31,6 +31,8 @@ function adoptLoginShellPath(): void {
 
 adoptLoginShellPath();
 
+app.setName("Muse Work");
+
 if (!app.isPackaged) {
   app.setPath(
     "userData",
