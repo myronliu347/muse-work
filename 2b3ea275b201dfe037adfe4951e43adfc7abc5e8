@@ -1,0 +1,41 @@
+packages/provider/src/openaiCompatible.ts
+  b0d253c182e9bd47 1-47
+packages/provider/src/index.ts
+  b0d253c182e9bd47 26-27
+packages/provider/tests/openaiCompatible.test.ts
+  b0d253c182e9bd47 1-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2b3ea275b201dfe037adfe4951e43adfc7abc5e8",
+  "prompts": {
+    "b0d253c182e9bd47": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11eafada-6634-46b5-99df-ab4462469de7",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 0,
+      "accepted_lines": 99,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/openaiCompatible.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "packages/provider/tests/openaiCompatible.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
