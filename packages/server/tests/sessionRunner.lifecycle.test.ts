@@ -235,4 +235,90 @@ describe("sessionRunner lifecycle", () => {
       ),
     ).toBe(true);
   });
+
+  it("sets unreadDone on turn error for non-active session", async () => {
+    const { store, hub, registry } = setup();
+    const active = store.create({ workdir: "/tmp", model: "m1" });
+    const background = store.create({ workdir: "/tmp", model: "m1" });
+    store.select(active.id);
+
+    const unreadCalls: Array<{ id: string; value: boolean }> = [];
+    const originalSetUnread = store.setUnreadDone.bind(store);
+    store.setUnreadDone = (id, value) => {
+      unreadCalls.push({ id, value });
+      return originalSetUnread(id, value);
+    };
+
+    const events: Array<{ sessionId: string; event: WsEvent }> = [];
+    const originalBroadcast = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      events.push({ sessionId, event });
+      return originalBroadcast(sessionId, event);
+    };
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      createAgent: async () => ({
+        sendMessage: async () => {
+          throw new Error("boom");
+        },
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-err",
+      }),
+    });
+
+    await runner.sendMessage(background.id, "fail please");
+    await expect.poll(() => store.get(background.id)?.status).toBe("idle");
+
+    expect(unreadCalls).toContainEqual({
+      id: background.id,
+      value: true,
+    });
+    expect(
+      events.some(
+        (e) =>
+          e.sessionId === background.id &&
+          e.event.type === "session:unread" &&
+          (e.event as { unreadDone?: boolean }).unreadDone === true,
+      ),
+    ).toBe(true);
+  });
+
+  it("idle TTL does not destroy while status is running", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+
+    let disposeCount = 0;
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 200,
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        dispose: async () => {
+          disposeCount += 1;
+        },
+        getMessages: () => [],
+        sessionId: "wave-run",
+      }),
+    });
+
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+
+    // Force running before the armed TTL fires so callback sees !canIdleDestroy.
+    store.updateStatus(session.id, "running");
+    await new Promise((r) => setTimeout(r, 280));
+    expect(disposeCount).toBe(0);
+
+    store.updateStatus(session.id, "idle");
+    // Retry arm from skipped TTL should destroy once idle again.
+    await expect.poll(() => disposeCount).toBe(1);
+  });
 });

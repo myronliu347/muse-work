@@ -130,6 +130,10 @@ export function createSessionRunner(
 
   /** Destroy runtime only — keep sessions.json / waveSessionId. */
   async function destroyRuntime(sessionId: string): Promise<void> {
+    // Re-check immediately before dispose (TOCTOU vs runTurn / ensureAgent).
+    if (!canIdleDestroy(sessionId)) {
+      return;
+    }
     clearIdleTimer(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);
@@ -147,11 +151,34 @@ export function createSessionRunner(
     const timer = setTimeout(() => {
       idleTimers.delete(sessionId);
       if (!canIdleDestroy(sessionId)) {
+        // Still busy — re-arm so cleanup can recover once conditions clear.
+        if (!disposed.has(sessionId) && store.get(sessionId)) {
+          const retry = setTimeout(() => {
+            idleTimers.delete(sessionId);
+            scheduleIdleDestroy(sessionId);
+          }, idleTtlMs);
+          idleTimers.set(sessionId, retry);
+        }
         return;
       }
       void destroyRuntime(sessionId);
     }, idleTtlMs);
     idleTimers.set(sessionId, timer);
+  }
+
+  function markUnreadDoneIfInactive(sessionId: string): void {
+    if (store.getActiveSessionId() === sessionId) {
+      return;
+    }
+    if (disposed.has(sessionId) || !store.get(sessionId)) {
+      return;
+    }
+    store.setUnreadDone(sessionId, true);
+    hub.broadcast(sessionId, {
+      type: "session:unread",
+      sessionId,
+      unreadDone: true,
+    });
   }
 
   function markIdle(sessionId: string): void {
@@ -163,15 +190,7 @@ export function createSessionRunner(
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
     }
 
-    if (store.getActiveSessionId() !== sessionId) {
-      store.setUnreadDone(sessionId, true);
-      hub.broadcast(sessionId, {
-        type: "session:unread",
-        sessionId,
-        unreadDone: true,
-      });
-    }
-
+    markUnreadDoneIfInactive(sessionId);
     scheduleIdleDestroy(sessionId);
   }
 
@@ -189,6 +208,7 @@ export function createSessionRunner(
     // Allow the next queued message after a failed turn.
     store.updateStatus(sessionId, "idle");
     hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+    markUnreadDoneIfInactive(sessionId);
     scheduleIdleDestroy(sessionId);
   }
 
@@ -406,6 +426,7 @@ export function createSessionRunner(
   }
 
   async function ensureAgent(sessionId: string): Promise<SessionAgent> {
+    clearIdleTimer(sessionId);
     const session = store.get(sessionId);
     if (!session) {
       throw Object.assign(new Error(`session not found: ${sessionId}`), {
@@ -497,6 +518,7 @@ export function createSessionRunner(
     if (store.get(sessionId)) {
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+      markUnreadDoneIfInactive(sessionId);
       scheduleIdleDestroy(sessionId);
     }
   }
@@ -626,6 +648,7 @@ export function createSessionRunner(
     },
 
     async getMessages(sessionId) {
+      clearIdleTimer(sessionId);
       const session = store.get(sessionId);
       if (!session) {
         throw Object.assign(new Error(`session not found: ${sessionId}`), {
