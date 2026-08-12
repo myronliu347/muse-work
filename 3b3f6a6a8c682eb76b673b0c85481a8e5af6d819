@@ -1,0 +1,50 @@
+packages/webview/src/muse/wsClient.ts
+  cf49e62ea13342bf 1,51-52,54,90
+packages/server/tests/sessions.ws.test.ts
+  cf49e62ea13342bf 96,103,105,109-159,235-237,242,250,262
+packages/server/src/wsEvents.ts
+  cf49e62ea13342bf 76-77
+packages/server/src/wsHub.ts
+  cf49e62ea13342bf 3,5,50,61-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3b3f6a6a8c682eb76b673b0c85481a8e5af6d819",
+  "prompts": {
+    "cf49e62ea13342bf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "415603d5-43fe-4a17-adde-995ffb97529a",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 89,
+      "total_deletions": 23,
+      "accepted_lines": 89,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/wsHub.ts": {
+          "additions": 18,
+          "deletions": 15,
+          "accepted_lines": 18
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 62,
+          "deletions": 4,
+          "accepted_lines": 62
+        }
+      }
+    }
+  }
+}
