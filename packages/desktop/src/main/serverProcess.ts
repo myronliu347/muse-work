@@ -65,8 +65,9 @@ function wait(ms: number): Promise<void> {
 }
 
 /**
- * Spawn Muse HTTP server (`node entry --port 0`), parse the ready JSON line
- * from stdout, and optionally restart on unexpected crash with backoff.
+ * Spawn Muse HTTP server (`node entry --port 0` on first start), parse the
+ * ready JSON line from stdout, and optionally restart on unexpected crash
+ * with backoff. Restarts reuse the first ready port so the webview URL stays valid.
  */
 export async function startMuseServer(
   opts: StartMuseServerOpts,
@@ -101,7 +102,8 @@ export async function startMuseServer(
   const spawnOnce = (): Promise<{ port: number; host: string }> =>
     new Promise((resolve, reject) => {
       stdoutBuf = "";
-      const args = [opts.entry, "--port", "0"];
+      const portArg = currentPort > 0 ? String(currentPort) : "0";
+      const args = [opts.entry, "--port", portArg];
       const c = spawn(nodeBinary, args, {
         env: spawnEnv(opts.env),
         stdio: ["ignore", "pipe", "pipe"],
