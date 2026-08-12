@@ -1,5 +1,9 @@
-import type { VsCodeApi } from "../types";
-import { MuseApiClient } from "./apiClient.js";
+import type { DesktopSessionEntry, DesktopSessionGroup, VsCodeApi } from "../types";
+import {
+  MuseApiClient,
+  type MuseSession,
+  type MuseSessionsGrouped,
+} from "./apiClient.js";
 import { MuseWsClient, type MuseWsEvent } from "./wsClient.js";
 
 export interface HostBridgeOptions {
@@ -12,6 +16,15 @@ export interface HostBridgeOptions {
   openExternal?: (url: string) => void;
 }
 
+const DEFAULT_TITLE = "新对话";
+const TITLE_MAX_LEN = 40;
+
+type TreeSession = MuseSession & {
+  unreadDone?: boolean;
+  running?: boolean;
+  waitingConfirmation?: boolean;
+};
+
 function postToWebview(data: Record<string, unknown>): void {
   window.dispatchEvent(new MessageEvent("message", { data }));
 }
@@ -22,6 +35,64 @@ function newId(prefix: string): string {
 
 function subagentMessageId(subagentId: string, messageId: string): string {
   return `sa_${subagentId}_${messageId}`;
+}
+
+function truncateTitle(content: string): string {
+  const trimmed = content.trim().replace(/\s+/g, " ");
+  if (!trimmed) return DEFAULT_TITLE;
+  return trimmed.length > TITLE_MAX_LEN
+    ? `${trimmed.slice(0, TITLE_MAX_LEN)}…`
+    : trimmed;
+}
+
+function toEntry(session: TreeSession): DesktopSessionEntry {
+  return {
+    sessionId: session.id,
+    title: session.title || DEFAULT_TITLE,
+    lastActiveAt: session.lastActiveAt ?? session.createdAt,
+    workdir: session.workdir,
+    hasWorktree: false,
+    running: session.running ?? session.status === "running",
+    waitingConfirmation: session.waitingConfirmation,
+    pinned: session.pinned,
+    unreadDone: session.unreadDone,
+  };
+}
+
+/**
+ * Assemble temporary DesktopSessionGroup[] for pin/recent until Task 6 redesigns Sidebar props.
+ */
+export function buildSidebarModel(grouped: {
+  pinned: TreeSession[];
+  recent: TreeSession[];
+}): DesktopSessionGroup[] {
+  return [
+    {
+      host: "local",
+      workdir: "pin",
+      sessions: grouped.pinned.map(toEntry),
+    },
+    {
+      host: "local",
+      workdir: "recent",
+      sessions: grouped.recent.map(toEntry),
+    },
+  ];
+}
+
+function mergeRuntimeFields(
+  sessions: MuseSession[],
+  prevById: Map<string, TreeSession>,
+): TreeSession[] {
+  return sessions.map((s) => {
+    const prev = prevById.get(s.id);
+    return {
+      ...s,
+      unreadDone: prev?.unreadDone ?? s.unreadDone,
+      running: prev?.running ?? s.status === "running",
+      waitingConfirmation: prev?.waitingConfirmation,
+    };
+  });
 }
 
 /**
@@ -45,6 +116,65 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let state: unknown = null;
   let bootstrapped = false;
   let loading = false;
+  let wsConnected = false;
+  let pinned: TreeSession[] = [];
+  let recent: TreeSession[] = [];
+  const titledSessions = new Set<string>();
+
+  const treeById = (): Map<string, TreeSession> => {
+    const map = new Map<string, TreeSession>();
+    for (const s of pinned) map.set(s.id, s);
+    for (const s of recent) map.set(s.id, s);
+    return map;
+  };
+
+  const emitSessionTree = () => {
+    postToWebview({
+      command: "desktopSessionTree",
+      groups: buildSidebarModel({ pinned, recent }),
+    });
+  };
+
+  const applyGrouped = (grouped: MuseSessionsGrouped) => {
+    const prev = treeById();
+    pinned = mergeRuntimeFields(grouped.pinned, prev);
+    recent = mergeRuntimeFields(grouped.recent, prev);
+    emitSessionTree();
+  };
+
+  const patchTreeSession = (
+    id: string,
+    patch: Partial<TreeSession>,
+  ): void => {
+    const apply = (list: TreeSession[]) =>
+      list.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    pinned = apply(pinned);
+    recent = apply(recent);
+    emitSessionTree();
+  };
+
+  const clearUnread = (id: string) => {
+    patchTreeSession(id, { unreadDone: false });
+  };
+
+  const emitCurrentSession = (session: MuseSession) => {
+    postToWebview({
+      command: "updateCurrentSession",
+      session: {
+        id: session.id,
+        title: session.title || DEFAULT_TITLE,
+        createdAt: session.createdAt,
+        updatedAt: session.lastActiveAt ?? session.createdAt,
+      },
+    });
+  };
+
+  const resetChatStreaming = () => {
+    streamingMessageId = null;
+    knownAssistantIds.clear();
+    loading = false;
+    postToWebview({ command: "endStreaming" });
+  };
 
   const ensureAssistantMessage = (
     messageId: string,
@@ -71,10 +201,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const emitWorkdirState = (patch?: {
     workdir?: string;
     recentWorkdirs?: string[];
+    clearSession?: boolean;
   }) => {
     if (typeof patch?.workdir === "string" && patch.workdir) {
       currentWorkdir = patch.workdir;
-      sessionId = null;
+      if (patch.clearSession) sessionId = null;
     }
     if (patch?.recentWorkdirs) {
       recentWorkdirs = patch.recentWorkdirs;
@@ -90,7 +221,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   // Keep createSession workdir in sync when Electron main (or tests) push state.
   window.addEventListener("message", (event: MessageEvent) => {
-    const message = event.data as { command?: string; workdir?: string; recentWorkdirs?: string[] };
+    const message = event.data as {
+      command?: string;
+      workdir?: string;
+      recentWorkdirs?: string[];
+    };
     if (message?.command !== "desktopWorkdirState") return;
     if (typeof message.workdir === "string" && message.workdir) {
       if (message.workdir !== currentWorkdir) {
@@ -103,7 +238,79 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   });
 
-  const emitWs = (event: MuseWsEvent) => {
+  const ensureWs = async (): Promise<void> => {
+    if (wsConnected) {
+      await ws.connect("*");
+      return;
+    }
+    await ws.connect("*");
+    wsConnected = true;
+  };
+
+  const refreshTree = async (): Promise<MuseSessionsGrouped> => {
+    const grouped = await api.listSessionsGrouped();
+    applyGrouped(grouped);
+    return grouped;
+  };
+
+  const loadMessages = async (id: string): Promise<void> => {
+    const { messages } = await api.getMessages(id);
+    postToWebview({ command: "updateMessages", messages });
+  };
+
+  const activateSession = async (id: string): Promise<MuseSession> => {
+    const { session } = await api.selectSession(id);
+    sessionId = session.id;
+    clearUnread(session.id);
+    if (session.workdir && session.workdir !== currentWorkdir) {
+      emitWorkdirState({ workdir: session.workdir });
+    } else if (session.workdir) {
+      currentWorkdir = session.workdir;
+    }
+    resetChatStreaming();
+    emitCurrentSession(session);
+    await loadMessages(session.id);
+    await refreshTree();
+    return session;
+  };
+
+  const handleNewSession = async (): Promise<void> => {
+    await ensureWs();
+    const session = await api.createSession(currentWorkdir || "/");
+    await api.selectSession(session.id);
+    sessionId = session.id;
+    resetChatStreaming();
+    postToWebview({ command: "updateMessages", messages: [] });
+    emitCurrentSession(session);
+    await loadMessages(session.id);
+    await refreshTree();
+  };
+
+  const handleDeleteSession = async (id: string): Promise<void> => {
+    const wasActive = sessionId === id;
+    await api.deleteSession(id);
+    if (!wasActive) {
+      await refreshTree();
+      return;
+    }
+    const grouped = await refreshTree();
+    const next = grouped.recent[0] ?? grouped.pinned[0];
+    if (next) {
+      await activateSession(next.id);
+    } else {
+      await handleNewSession();
+    }
+  };
+
+  const handleTogglePin = async (
+    id: string,
+    pinnedNext: boolean,
+  ): Promise<void> => {
+    await api.patchSession(id, { pinned: pinnedNext });
+    await refreshTree();
+  };
+
+  const emitChatWs = (event: MuseWsEvent) => {
     if (event.type === "loading") {
       loading = event.loading;
       postToWebview({
@@ -180,7 +387,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           stage: "end",
         });
       }
-      // Prefer onLoadingChange(false) for endStreaming; keep fallback.
       if (!loading) {
         streamingMessageId = null;
         knownAssistantIds.clear();
@@ -196,15 +402,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         toolName: event.toolName,
         confirmationType: "tool",
         toolInput: event.description,
-      });
-      return;
-    }
-
-    if (event.type === "auth:changed") {
-      const status = event.status as { state?: string } | undefined;
-      postToWebview({
-        command: "authStatusResponse",
-        isAuthenticated: status?.state === "authenticated",
       });
       return;
     }
@@ -292,22 +489,59 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   };
 
+  const emitWs = (event: MuseWsEvent) => {
+    if (event.type === "auth:changed") {
+      const status = event.status as { state?: string } | undefined;
+      postToWebview({
+        command: "authStatusResponse",
+        isAuthenticated: status?.state === "authenticated",
+      });
+      return;
+    }
+
+    if (event.type === "session:unread") {
+      patchTreeSession(event.sessionId, { unreadDone: event.unreadDone });
+      return;
+    }
+
+    if (event.type === "session:status") {
+      const running = event.status === "running";
+      patchTreeSession(event.sessionId, {
+        status: event.status,
+        running,
+        waitingConfirmation: false,
+      });
+      if (event.sessionId === sessionId && event.status === "error") {
+        emitChatWs(event);
+      }
+      return;
+    }
+
+    // Chat / streaming events only drive ChatApp for the active session.
+    if (event.sessionId !== sessionId) return;
+    emitChatWs(event);
+  };
+
   ws.onEvent(emitWs);
 
   async function ensureSession(): Promise<string> {
+    await ensureWs();
     if (sessionId) return sessionId;
+
+    const grouped = await api.listSessionsGrouped();
+    applyGrouped(grouped);
+    if (grouped.activeSessionId) {
+      const { session } = await api.selectSession(grouped.activeSessionId);
+      sessionId = session.id;
+      emitCurrentSession(session);
+      return sessionId;
+    }
+
     const session = await api.createSession(currentWorkdir || "/");
+    await api.selectSession(session.id);
     sessionId = session.id;
-    await ws.connect(sessionId);
-    postToWebview({
-      command: "updateCurrentSession",
-      session: {
-        id: session.id,
-        title: "Muse",
-        createdAt: session.createdAt,
-        updatedAt: session.createdAt,
-      },
-    });
+    emitCurrentSession(session);
+    await refreshTree();
     return sessionId;
   }
 
@@ -358,6 +592,35 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  async function maybePatchTitle(sid: string, text: string): Promise<void> {
+    if (titledSessions.has(sid)) return;
+    const existing = treeById().get(sid);
+    if (existing && existing.title && existing.title !== DEFAULT_TITLE) {
+      titledSessions.add(sid);
+      return;
+    }
+    const title = truncateTitle(text);
+    try {
+      await api.patchSession(sid, { title });
+      titledSessions.add(sid);
+      patchTreeSession(sid, { title });
+      emitCurrentSession({
+        ...(existing ?? {
+          id: sid,
+          workdir: currentWorkdir,
+          createdAt: Date.now(),
+          lastActiveAt: Date.now(),
+          status: "idle",
+          model: "",
+          pinned: false,
+        }),
+        title,
+      });
+    } catch {
+      // Title is best-effort; server also auto-titles.
+    }
+  }
+
   async function handleSendMessage(msg: {
     text?: string;
     images?: unknown;
@@ -381,9 +644,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       streamingMessageId = null;
       knownAssistantIds.clear();
       loading = false;
-      // Show loading immediately while waiting for first SDK callback.
       postToWebview({ command: "startStreaming" });
       await api.sendMessage(sid, text);
+      await maybePatchTitle(sid, text);
     } catch (err) {
       postToWebview({
         command: "updateErrorBlock",
@@ -412,6 +675,19 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  async function handleDesktopReady(): Promise<void> {
+    emitWorkdirState();
+    try {
+      await ensureWs();
+      const grouped = await refreshTree();
+      if (grouped.activeSessionId) {
+        await activateSession(grouped.activeSessionId);
+      }
+    } catch {
+      // Keep workdir bootstrap even if session APIs fail.
+    }
+  }
+
   const bridge: VsCodeApi = {
     postMessage(raw: unknown) {
       const msg = raw as { command?: string; [k: string]: unknown };
@@ -423,10 +699,32 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
       switch (command) {
         case "desktopReady":
-          // Unblock DesktopApp loading; Electron main may refine state later.
-          emitWorkdirState();
+          void handleDesktopReady();
           opts.outer?.postMessage(raw);
           return;
+        case "newSession":
+          void handleNewSession();
+          return;
+        case "desktopSelectSession": {
+          const id =
+            typeof msg.sessionId === "string" ? msg.sessionId : undefined;
+          if (id) void activateSession(id);
+          return;
+        }
+        case "desktopDeleteSession": {
+          const id =
+            typeof msg.sessionId === "string" ? msg.sessionId : undefined;
+          if (id) void handleDeleteSession(id);
+          return;
+        }
+        case "desktopTogglePinSession": {
+          const id =
+            typeof msg.sessionId === "string" ? msg.sessionId : undefined;
+          if (id && typeof msg.pinned === "boolean") {
+            void handleTogglePin(id, msg.pinned);
+          }
+          return;
+        }
         case "desktopSelectRecentWorkdir": {
           const path = typeof msg.path === "string" ? msg.path : undefined;
           if (path) {
@@ -434,7 +732,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
               path,
               ...recentWorkdirs.filter((p) => p !== path),
             ].slice(0, 10);
-            emitWorkdirState({ workdir: path, recentWorkdirs: nextRecent });
+            emitWorkdirState({
+              workdir: path,
+              recentWorkdirs: nextRecent,
+              clearSession: true,
+            });
           }
           opts.outer?.postMessage(raw);
           return;

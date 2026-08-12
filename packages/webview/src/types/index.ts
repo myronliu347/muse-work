@@ -311,12 +311,18 @@ export interface DesktopSessionEntry {
   sessionId: string;
   title: string;
   lastActiveAt: number;
+  /** Absolute workdir shown as subtitle in the pin/recent sidebar. */
+  workdir?: string;
   /** True when this session lives in a worktree (delete also cleans up branch+dir). */
   hasWorktree: boolean;
   /** True while this session is generating — drives the per-session running dot (FR-031). */
   running?: boolean;
   /** True while a confirmation request (tool/plan/question) awaits the user — drives the waiting dot. */
   waitingConfirmation?: boolean;
+  /** Whether the session is in the pin group. */
+  pinned?: boolean;
+  /** Non-focus session finished a turn — drives the unread-done dot. */
+  unreadDone?: boolean;
 }
 
 /**

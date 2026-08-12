@@ -41,7 +41,21 @@ export interface MuseSession {
   id: string;
   workdir: string;
   createdAt: number;
+  lastActiveAt: number;
   status: string;
+  title: string;
+  model: string;
+  pinned: boolean;
+  permissionMode?: string;
+  waveSessionId?: string;
+  /** Runtime-only unread-done flag; may be absent from list payloads. */
+  unreadDone?: boolean;
+}
+
+export interface MuseSessionsGrouped {
+  pinned: MuseSession[];
+  recent: MuseSession[];
+  activeSessionId?: string;
 }
 
 function joinUrl(baseUrl: string, path: string): string {
@@ -116,12 +130,56 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async createSession(workdir: string): Promise<MuseSession> {
+  async createSession(
+    workdir: string,
+    opts?: { model?: string },
+  ): Promise<MuseSession> {
+    const body: { workdir: string; model?: string } = { workdir };
+    if (opts?.model) body.model = opts.model;
     const res = await this.request("/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ workdir }),
+      body: JSON.stringify(body),
     });
+    return parseJson(res);
+  }
+
+  async listSessionsGrouped(): Promise<MuseSessionsGrouped> {
+    const res = await this.request("/sessions?grouped=1");
+    return parseJson(res);
+  }
+
+  async selectSession(id: string): Promise<{ session: MuseSession }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(id)}/select`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async patchSession(
+    id: string,
+    patch: Partial<Pick<MuseSession, "title" | "pinned" | "model">>,
+  ): Promise<MuseSession> {
+    const res = await this.request(`/sessions/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return parseJson(res);
+  }
+
+  async deleteSession(id: string): Promise<{ ok: true }> {
+    const res = await this.request(`/sessions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return parseJson(res);
+  }
+
+  async getMessages(id: string): Promise<{ messages: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(id)}/messages`,
+    );
     return parseJson(res);
   }
 
