@@ -566,4 +566,36 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       }),
     );
   });
+
+  it("setSessionModel patches session model and emits current session", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "setSessionModel",
+      model: "m2",
+    });
+    await flush();
+
+    expect(api.patchSession).toHaveBeenCalledWith("sess-active", {
+      model: "m2",
+    });
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateCurrentSession",
+        session: expect.objectContaining({
+          id: "sess-active",
+          model: "m2",
+        }),
+      }),
+    );
+  });
 });

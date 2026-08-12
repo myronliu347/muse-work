@@ -79,6 +79,24 @@ describe("MuseApiClient session APIs", () => {
     expect(session.pinned).toBe(true);
   });
 
+  it("patchSession model does not call providers/active", async () => {
+    const fetches: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push(`${init?.method ?? "GET"} ${url}`);
+        return new Response(
+          JSON.stringify({ ...sampleSession, model: "m2" }),
+          { status: 200 },
+        );
+      },
+    });
+
+    await client.patchSession("sess-1", { model: "m2" });
+    expect(fetches).toEqual(["PATCH http://127.0.0.1:9/sessions/sess-1"]);
+    expect(fetches.some((f) => f.includes("/providers/active"))).toBe(false);
+  });
+
   it("deleteSession DELETEs /sessions/:id", async () => {
     const fetches: string[] = [];
     const client = new MuseApiClient({

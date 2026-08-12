@@ -441,6 +441,12 @@ export interface MessageInputProps {
   btwPopup?: React.ReactNode;
   /** Disable the whole input area (e.g. desktop host without a workdir). */
   disabled?: boolean;
+  /** Per-session model id shown in the sender toolbar. */
+  modelId?: string;
+  /** Called when the user picks a model in the sender toolbar. */
+  onModelChange?: (modelId: string) => void;
+  /** Optional MuseApiClient for the embedded model select (tests / injection). */
+  modelSelectApi?: import("../muse/apiClient").MuseApiClient;
 }
 
 /**

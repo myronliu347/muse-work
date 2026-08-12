@@ -1311,6 +1311,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     [postToHost],
   );
 
+  // Per-session model in sender toolbar → PATCH /sessions/:id { model }.
+  const handleSessionModelChange = useCallback(
+    (model: string) => {
+      postToHost({ command: "setSessionModel", model });
+    },
+    [postToHost],
+  );
+
   const handleModelPopupClose = useCallback(() => {
     setModelPopupOpen(false);
     messageInputRef.current?.focus();
@@ -1832,6 +1840,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             permissionMode={state.permissionMode}
             initialAttachedImages={state.attachedImages}
             disabled={host?.type === "desktop" && !effectiveWorkdir}
+            modelId={
+              (state.currentSession as { model?: string } | undefined)?.model
+            }
+            onModelChange={handleSessionModelChange}
             workdirSelector={
               host?.type === "desktop" && !hasVisibleMessages ? (
                 <>

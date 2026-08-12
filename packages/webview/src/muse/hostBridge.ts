@@ -166,6 +166,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         title: session.title || DEFAULT_TITLE,
         createdAt: session.createdAt,
         updatedAt: session.lastActiveAt ?? session.createdAt,
+        model: session.model,
       },
     });
   };
@@ -309,6 +310,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   ): Promise<void> => {
     await api.patchSession(id, { pinned: pinnedNext });
     await refreshTree();
+  };
+
+  const handleSetSessionModel = async (model: string): Promise<void> => {
+    if (!sessionId || !model) return;
+    const session = await api.patchSession(sessionId, { model });
+    patchTreeSession(sessionId, { model: session.model });
+    emitCurrentSession(session);
   };
 
   const emitChatWs = (event: MuseWsEvent) => {
@@ -731,6 +739,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           if (id && typeof msg.pinned === "boolean") {
             void handleTogglePin(id, msg.pinned);
           }
+          return;
+        }
+        case "setSessionModel": {
+          const model = typeof msg.model === "string" ? msg.model : undefined;
+          if (model) void handleSetSessionModel(model);
           return;
         }
         case "desktopSelectRecentWorkdir": {

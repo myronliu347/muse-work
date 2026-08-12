@@ -4,7 +4,6 @@ import { NewSessionIcon, HistoryIcon, MoreIcon } from "./HeaderIcons";
 import { SessionListPopup } from "./SessionListPopup";
 import { MoreMenu } from "./MoreMenu";
 import { PanelToggleMenu } from "./PanelToggleMenu";
-import { MuseModelSelect } from "./MuseModelSelect";
 import { getSessionTitle } from "../utils/session";
 import type { ChatHeaderProps } from "../types";
 import "../styles/ChatHeader.css";
@@ -35,7 +34,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     <div className="chat-header" data-testid="chat-header">
       <div className="header-title">{title}</div>
       <div className="header-buttons">
-        <MuseModelSelect />
         {!hideSessionButtons && (
           <>
             <Tooltip text="新建对话" position="bottom">

@@ -18,6 +18,7 @@ import type {
 } from "../types";
 import { FileSuggestionDropdown } from "./FileSuggestionDropdown";
 import { QueueSendIcon } from "./HeaderIcons";
+import { MuseModelSelect } from "./MuseModelSelect";
 import "../styles/MessageInput.css";
 
 interface AtMentionState {
@@ -54,6 +55,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modelPopup,
       btwPopup,
       disabled,
+      modelId,
+      onModelChange,
+      modelSelectApi,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -970,6 +974,18 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
             {/* Buttons row */}
             <div className="input-buttons-row">
+              {onModelChange && (
+                <div
+                  className="input-model-select"
+                  data-testid="input-model-select"
+                >
+                  <MuseModelSelect
+                    api={modelSelectApi}
+                    modelId={modelId}
+                    onModelChange={onModelChange}
+                  />
+                </div>
+              )}
               <div className="button-spacer" />
 
               {isStreaming ? (

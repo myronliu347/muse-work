@@ -184,6 +184,13 @@
   flex: 1;
 }
 
+.input-model-select {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
 .context-actions {
   display: flex;
   align-items: center;

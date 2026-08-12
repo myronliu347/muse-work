@@ -41,4 +41,39 @@ describe("sessions HTTP routes", () => {
     expect(grouped.pinned[0].title).toBe("t1");
     expect(grouped.recent).toEqual([]);
   });
+
+  it("two sessions keep independent models after PATCH", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const a = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", model: "m1" }),
+    }).then((r) => r.json());
+    const b = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/b", model: "m2" }),
+    }).then((r) => r.json());
+
+    expect(a.model).toBe("m1");
+    expect(b.model).toBe("m2");
+
+    await fetch(`${app.baseUrl}/sessions/${a.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: "m1-updated" }),
+    });
+
+    const aGet = await fetch(`${app.baseUrl}/sessions/${a.id}`).then((r) =>
+      r.json(),
+    );
+    const bGet = await fetch(`${app.baseUrl}/sessions/${b.id}`).then((r) =>
+      r.json(),
+    );
+    expect(aGet.model).toBe("m1-updated");
+    expect(bGet.model).toBe("m2");
+  });
 });

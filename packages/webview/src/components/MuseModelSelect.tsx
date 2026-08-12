@@ -7,13 +7,24 @@ import { resolveMuseServerUrl } from "../muse/hostBridge";
 
 export interface MuseModelSelectProps {
   api?: MuseApiClient;
+  /** Controlled session model id (sender / per-session). */
+  modelId?: string;
+  onModelChange?: (modelId: string) => void;
+  /** default false — when true, also POST /providers/active (settings only) */
+  syncGlobalActive?: boolean;
 }
 
 /**
- * Header model selector for the *active* provider only.
- * Provider switching lives in Settings → AI 供应商.
+ * Model selector for the *active* provider's model list.
+ * Session path: pass modelId + onModelChange (no global setActive).
+ * Settings path: set syncGlobalActive to also update providers/active.
  */
-export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
+export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
+  api,
+  modelId,
+  onModelChange,
+  syncGlobalActive = false,
+}) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const client = useMemo(
@@ -50,7 +61,7 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
     (p) => p.id === data.active.providerId,
   );
   const models = activeProvider?.models ?? [];
-  const value = data?.active.modelId ?? "";
+  const value = modelId ?? data?.active.modelId ?? "";
 
   return (
     <select
@@ -66,8 +77,13 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
       }
       onChange={(e) => {
         if (!data?.active.providerId) return;
-        const modelId = e.target.value;
-        void client.setActive(data.active.providerId, modelId).then(refresh);
+        const nextModelId = e.target.value;
+        onModelChange?.(nextModelId);
+        if (syncGlobalActive || !onModelChange) {
+          void client
+            .setActive(data.active.providerId, nextModelId)
+            .then(refresh);
+        }
       }}
       style={{
         maxWidth: 220,
