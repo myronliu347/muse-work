@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> building @muse-work/server"
+echo "==> building @muse-work/provider && @muse-work/server"
+pnpm -F @muse-work/provider build >/dev/null
 pnpm -F @muse-work/server build >/dev/null
 
 SERVER_LOG="$(mktemp)"
