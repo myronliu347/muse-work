@@ -1,0 +1,118 @@
+packages/webview/src/index.tsx
+  521b2692a64fa310 5-7,11-17,19-38
+packages/webview/src/components/ChatHeader.tsx
+  521b2692a64fa310 7,38
+packages/webview/src/muse/hostBridge.ts
+  521b2692a64fa310 1-288
+packages/webview/scripts/syncTargets.mjs
+  521b2692a64fa310 5-6,10,17,19
+packages/webview/src/components/DesktopSidebar.tsx
+  521b2692a64fa310 19
+packages/webview/src/components/MuseModelSelect.tsx
+  521b2692a64fa310 1-90
+packages/webview/package.json
+  521b2692a64fa310 4-5,8,20,23,39,50-51
+packages/webview/src/muse/wsClient.ts
+  521b2692a64fa310 1-84
+packages/webview/src/muse/apiClient.ts
+  521b2692a64fa310 1-158
+packages/webview/src/components/WelcomeView.tsx
+  521b2692a64fa310 108
+packages/webview/vitest.config.ts
+  521b2692a64fa310 7-10,15-16
+packages/webview/tests/apiClient.test.ts
+  521b2692a64fa310 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0c039bea6f07a9b077baee22920df18936d24dfb",
+  "prompts": {
+    "521b2692a64fa310": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "99bbf081-8908-4ccd-9698-3659f3766198",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 762,
+      "total_deletions": 184,
+      "accepted_lines": 756,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 288,
+          "accepted_lines": 288
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 158,
+          "accepted_lines": 158
+        },
+        "packages/webview/src/components/WelcomeView.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/setup.ts": {
+          "deletions": 68
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/MoreMenu.tsx": {
+          "deletions": 17
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "additions": 82,
+          "accepted_lines": 82
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 10
+        },
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 96,
+          "deletions": 6,
+          "accepted_lines": 90
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 6,
+          "deletions": 9,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/ChatHeader.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/scripts/syncTargets.mjs": {
+          "additions": 5,
+          "deletions": 48,
+          "accepted_lines": 5
+        },
+        "packages/webview/package.json": {
+          "additions": 9,
+          "deletions": 12,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 30,
+          "deletions": 3,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "deletions": 3
+        }
+      }
+    }
+  }
+}
