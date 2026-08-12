@@ -1,0 +1,62 @@
+packages/server/src/sessionRunner.ts
+  b34fc32641e2d0f0 9,11-13,20-21,47-48,62,72,83,96-154,165-175,192,215,217-220,222-232,234-235,237-238,240-245,260,263-265,329-332,382,405-459,467,500-507,509-511,513-517,533-535,541,580,607,635-636
+packages/server/src/wsEvents.ts
+  b34fc32641e2d0f0 41-47
+packages/server/src/createAppContext.ts
+  b34fc32641e2d0f0 33-34,41,54,97
+packages/server/tests/sessionRunner.test.ts
+  b34fc32641e2d0f0 113,171,187,250
+packages/server/src/messageMapper.ts
+  b34fc32641e2d0f0 1-24
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  b34fc32641e2d0f0 1-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "29b0852eedd0ddde056d243c9ff661c6228b5d5d",
+  "prompts": {
+    "b34fc32641e2d0f0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "20559335-878a-4f93-b6fa-2631217e963a",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 483,
+      "total_deletions": 51,
+      "accepted_lines": 480,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 238,
+          "accepted_lines": 238
+        },
+        "packages/server/src/messageMapper.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 205,
+          "deletions": 45,
+          "accepted_lines": 202
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
