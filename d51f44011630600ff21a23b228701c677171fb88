@@ -1,0 +1,56 @@
+packages/webview/tests/muse/apiClient.sessions.test.ts
+  fe6ca29c2149abcf 1-133
+packages/webview/src/types/index.ts
+  fe6ca29c2149abcf 314-315,322-325
+packages/webview/src/muse/hostBridge.ts
+  fe6ca29c2149abcf 1-6,19-27,40-95,119-170,172-177,204,208,224-228,241-313,492-497,499-517,519-522,528,530-539,541,543-544,595-617,619-620,649,678-687,702,705-725,727,735-739
+packages/webview/tests/muse/hostBridge.test.ts
+  fe6ca29c2149abcf 3-7,10-21,28-45,56-59,61-79,98-103,112,125-129,142-204,214-239,241-253,256,266,271-273,276,279-283,293,311,324,326-329,332,342,347-349,351-355,369-373,381,397,413
+packages/webview/src/muse/apiClient.ts
+  fe6ca29c2149abcf 44,46-58,133-138,142,144-174,179-182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d51f44011630600ff21a23b228701c677171fb88",
+  "prompts": {
+    "fe6ca29c2149abcf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "958b79b3-c99a-45ee-8fc8-dd6cadaed225",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 752,
+      "total_deletions": 46,
+      "accepted_lines": 752,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 331,
+          "deletions": 29,
+          "accepted_lines": 331
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 222,
+          "deletions": 15,
+          "accepted_lines": 222
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/muse/apiClient.sessions.test.ts": {
+          "additions": 133,
+          "accepted_lines": 133
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 60,
+          "deletions": 2,
+          "accepted_lines": 60
+        }
+      }
+    }
+  }
+}
