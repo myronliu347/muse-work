@@ -1,0 +1,49 @@
+packages/server/tests/sessions.routes.test.ts
+  248cd23fb57102ac 1-44
+packages/server/src/routes/sessions.ts
+  248cd23fb57102ac 10-12,17-25,28,34-111,115,117-123
+packages/server/src/app.ts
+  248cd23fb57102ac 18,21,23,104-107,114-116,120,125-135
+packages/server/src/sessionRunner.ts
+  248cd23fb57102ac 27,467-477
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "63641777a414a82a79682b0ddc9b0651760436e6",
+  "prompts": {
+    "248cd23fb57102ac": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2030df1d-24e2-4743-a028-818989d079c2",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 179,
+      "total_deletions": 7,
+      "accepted_lines": 179,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/src/app.ts": {
+          "additions": 24,
+          "deletions": 4,
+          "accepted_lines": 24
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 99,
+          "deletions": 3,
+          "accepted_lines": 99
+        }
+      }
+    }
+  }
+}
