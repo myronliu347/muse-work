@@ -399,7 +399,7 @@ async function listenWithStubs(providers: AiProvider[]) {
     home,
   );
   const registry = createProviderRegistry(providers, home);
-  const sessions = createSessionServices({ registry });
+  const sessions = createSessionServices({ home, registry });
   const ctx: AppContext = { home, registry, ...sessions };
   const server = createApp(ctx);
   await new Promise<void>((resolve, reject) => {
