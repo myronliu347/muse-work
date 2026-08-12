@@ -190,4 +190,150 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+  it("requestFileSuggestions replies with matching workspace files", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-sug-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sug-"));
+    fs.mkdirSync(path.join(dir, "src"));
+    fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "requestFileSuggestions",
+        filterText: "hello",
+        requestId: "req-1",
+      },
+    );
+
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "fileSuggestionsResponse",
+        requestId: "req-1",
+        filterText: "hello",
+        suggestions: expect.arrayContaining([
+          expect.objectContaining({
+            name: "hello.ts",
+            relativePath: "src/hello.ts",
+            isDirectory: false,
+          }),
+        ]),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("desktopGetWorkspaceDiff and desktopListGitBranches reply", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-diff-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-diff-host-"));
+    const { execFileSync } = await import("node:child_process");
+    execFileSync("git", ["-c", "init.templateDir=", "init"], { cwd: dir });
+    execFileSync("git", ["config", "user.email", "t@e.com"], { cwd: dir });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "x.txt"), "1\n");
+    execFileSync("git", ["add", "x.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "i"], {
+      cwd: dir,
+    });
+    fs.writeFileSync(path.join(dir, "x.txt"), "1\n2\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "desktopGetWorkspaceDiff",
+        paneId: "p1",
+        workdir: dir,
+      },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopWorkspaceDiff",
+        paneId: "p1",
+        result: expect.objectContaining({ kind: "ok" }),
+      }),
+    );
+
+    sent.length = 0;
+    await handler!(
+      { sender: {} },
+      {
+        command: "desktopListGitBranches",
+        paneId: "p1",
+        workdir: dir,
+      },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopGitBranches",
+        paneId: "p1",
+        result: expect.objectContaining({
+          branches: expect.any(Array),
+          current: expect.any(String),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 });

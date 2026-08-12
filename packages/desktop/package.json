@@ -23,21 +23,18 @@
     ],
     "extraResources": [
       {
-        "from": "dist/muse-server/dist",
-        "to": "muse-server/dist"
-      },
-      {
-        "from": "dist/muse-server/package.json",
-        "to": "muse-server/package.json"
-      },
-      {
-        "from": "dist/muse-server/node_modules",
-        "to": "muse-server/node_modules"
+        "from": "dist/muse-server",
+        "to": "muse-server",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
+    "afterPack": "./scripts/afterPack.cjs",
     "mac": {
       "icon": "assets/icon.png",
       "category": "public.app-category.developer-tools",
+      "executableName": "MuseWork",
       "target": [
         "dir"
       ],
@@ -56,11 +53,14 @@
     "sync:webview": "node scripts/syncWebview.mjs",
     "prepare:server": "node scripts/prepareServer.mjs",
     "dev": "pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
-    "dist:mac": "pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && electron-builder --mac dir -c.mac.identity=null",
+    "dist:mac": "pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && electron-builder --mac dir",
     "clean": "node -e \"import('fs').then(fs => ['dist', 'release', 'webview'].forEach(d => {try{fs.rmSync(d, {recursive:true, force:true})}catch(e){}}))\"",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "node-pty": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.1",
@@ -70,8 +70,5 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "node-pty": "1.0.0"
   }
 }

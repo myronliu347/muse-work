@@ -22,7 +22,33 @@ export type MuseWsEvent =
       description: string;
     }
   | { type: "session:status"; status: string; error?: string }
-  | { type: "auth:changed"; status: unknown };
+  | { type: "auth:changed"; status: unknown }
+  | { type: "compaction:state"; isCompacting: boolean }
+  | { type: "messages:replace"; messages: unknown[] }
+  | {
+      type: "subagent:assistant:message";
+      subagentId: string;
+      messageId: string;
+    }
+  | {
+      type: "subagent:message:delta";
+      subagentId: string;
+      messageId: string;
+      text: string;
+      stage: "streaming" | "end";
+    }
+  | {
+      type: "subagent:reasoning:delta";
+      subagentId: string;
+      messageId: string;
+      text: string;
+      stage: "streaming" | "end";
+    }
+  | {
+      type: "subagent:tool:update";
+      subagentId: string;
+      params: Record<string, unknown>;
+    };
 
 export type MuseWsEventHandler = (event: MuseWsEvent) => void;
 

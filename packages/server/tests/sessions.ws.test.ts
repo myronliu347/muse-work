@@ -104,6 +104,109 @@ describe("sessions + websocket streaming", () => {
     ]);
   });
 
+  it("forwards compaction and subagent callbacks over WS", async () => {
+    const compacted = [
+      {
+        id: "c1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [{ type: "compact", content: "summary" }],
+      },
+    ];
+
+    const createAgent: CreateAgent = async (opts) => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {
+          opts.callbacks?.onCompactionStateChange?.(true);
+          opts.callbacks?.onCompactBlockAdded?.("summary");
+          opts.callbacks?.onCompactionStateChange?.(false);
+          opts.callbacks?.onSubagentAssistantMessageAdded?.("sa1", "sm1");
+          opts.callbacks?.onSubagentAssistantContentUpdated?.({
+            subagentId: "sa1",
+            messageId: "sm1",
+            chunk: "from-sub",
+            stage: "streaming",
+          });
+          opts.callbacks?.onSubagentToolBlockUpdated?.("sa1", {
+            messageId: "sm1",
+            id: "t1",
+            name: "Read",
+            stage: "end",
+            success: true,
+          });
+          opts.callbacks?.onAssistantContentUpdated?.({
+            messageId: "m1",
+            chunk: "",
+            stage: "end",
+          });
+        },
+        dispose: async () => {},
+        getMessages: () => compacted,
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 5,
+      filter: (e) =>
+        e.type === "compaction:state" ||
+        e.type === "messages:replace" ||
+        e.type === "subagent:assistant:message" ||
+        e.type === "subagent:message:delta" ||
+        e.type === "subagent:tool:update",
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "compact please" }),
+    });
+
+    const received = await events;
+    expect(received).toEqual(
+      expect.arrayContaining([
+        { type: "compaction:state", isCompacting: true },
+        { type: "messages:replace", messages: compacted },
+        { type: "compaction:state", isCompacting: false },
+        {
+          type: "subagent:assistant:message",
+          subagentId: "sa1",
+          messageId: "sm1",
+        },
+        {
+          type: "subagent:message:delta",
+          subagentId: "sa1",
+          messageId: "sm1",
+          text: "from-sub",
+          stage: "streaming",
+        },
+        {
+          type: "subagent:tool:update",
+          subagentId: "sa1",
+          params: {
+            messageId: "sm1",
+            id: "t1",
+            name: "Read",
+            stage: "end",
+            success: true,
+          },
+        },
+      ]),
+    );
+  });
+
   it("canUseTool hangs until POST permission allow resolves", async () => {
     let permissionPromise: Promise<{ behavior: string }> | undefined;
     let resolveSend: (() => void) | undefined;

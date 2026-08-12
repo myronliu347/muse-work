@@ -34,7 +34,7 @@ export const initialState: ChatState = {
   configurationError: undefined,
   projectSettings: undefined,
   // Permission mode state
-  permissionMode: "default",
+  permissionMode: "acceptEdits",
   // Attached images state
   attachedImages: [],
   // Auth state

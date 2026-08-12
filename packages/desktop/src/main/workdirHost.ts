@@ -6,6 +6,8 @@ import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
+import { searchWorkspaceFiles } from "./fileSearch.js";
+import { listGitBranches } from "./gitBranches.js";
 import { getWorkspaceDiff } from "./gitDiff.js";
 import { TerminalManager } from "./terminal.js";
 
@@ -162,6 +164,8 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       rows?: number;
       startLine?: number;
       endLine?: number;
+      filterText?: string;
+      workdir?: string;
     };
     const command = msg?.command;
     if (!command) return;
@@ -202,6 +206,32 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       return;
     }
 
+    if (command === "requestFileSuggestions") {
+      const requestId =
+        typeof msg.requestId === "string" ? msg.requestId : undefined;
+      const filterText =
+        typeof msg.filterText === "string" ? msg.filterText : "";
+      const cwd = state.workdir;
+      try {
+        const suggestions = cwd
+          ? searchWorkspaceFiles(cwd, { query: filterText, maxResults: 20 })
+          : [];
+        pushToWebview(win, {
+          command: "fileSuggestionsResponse",
+          suggestions,
+          filterText,
+          requestId,
+        });
+      } catch (err) {
+        pushToWebview(win, {
+          command: "fileSuggestionsError",
+          error: err instanceof Error ? err.message : String(err),
+          requestId,
+        });
+      }
+      return;
+    }
+
     if (command === "openFile" || command === "previewImage") {
       const filePath = typeof msg.path === "string" ? msg.path : "";
       if (!filePath) return;
@@ -234,12 +264,26 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     }
 
     if (command === "desktopGetWorkspaceDiff") {
-      const cwd = state.workdir;
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       const result = cwd
         ? await getWorkspaceDiff(cwd)
         : ({ kind: "not-a-repo" } as const);
       pushToWebview(win, {
         command: "desktopWorkspaceDiff",
+        paneId: msg.paneId,
+        result,
+      });
+      return;
+    }
+
+    if (command === "desktopListGitBranches") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const result = cwd ? await listGitBranches(cwd) : null;
+      pushToWebview(win, {
+        command: "desktopGitBranches",
+        workdir: cwd,
         paneId: msg.paneId,
         result,
       });

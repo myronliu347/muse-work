@@ -159,9 +159,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       vscode.postMessage({
         command: "desktopGetWorkspaceDiff",
         ...(paneId ? { paneId } : {}),
+        ...(workdir ? { workdir } : {}),
       });
     },
-    [vscode, paneId],
+    [vscode, paneId, workdir],
   );
 
   useEffect(() => {

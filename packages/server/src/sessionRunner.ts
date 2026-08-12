@@ -10,6 +10,8 @@ import {
 export interface SessionAgent {
   sendMessage(content: string): Promise<void>;
   dispose(): Promise<void>;
+  /** Optional SDK message snapshot (used after compaction). */
+  getMessages?: () => unknown[];
 }
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
@@ -46,6 +48,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       sendMessage: (content: string) => agent.sendMessage(content),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
+      getMessages: () => agent.messages,
     };
   });
 }
@@ -144,6 +147,9 @@ export function createSessionRunner(
       });
     }
 
+    // Filled after createAgent resolves; compact/subagent callbacks may run later.
+    const agentBox: { current: SessionAgent | null } = { current: null };
+
     const agent = await createAgent({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
@@ -154,6 +160,8 @@ export function createSessionRunner(
       fastModel: gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
+      // MVP: auto-accept file edits; UI selector is hidden for now.
+      permissionMode: "acceptEdits",
       // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
         onLoadingChange: (loading) => {
@@ -205,6 +213,68 @@ export function createSessionRunner(
             error,
           });
         },
+        onCompactionStateChange: (isCompacting) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "compaction:state",
+            isCompacting,
+          });
+        },
+        onCompactBlockAdded: () => {
+          if (disposed.has(sessionId)) return;
+          // Compaction truncates the SDK transcript; push the post-compact list.
+          const messages =
+            agentBox.current?.getMessages?.() ??
+            agents.get(sessionId)?.getMessages?.();
+          if (!messages) return;
+          hub.broadcast(sessionId, { type: "messages:replace", messages });
+        },
+        onSubagentAssistantMessageAdded: (subagentId, messageId) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "subagent:assistant:message",
+            subagentId,
+            messageId,
+          });
+        },
+        onSubagentAssistantContentUpdated: ({
+          subagentId,
+          messageId,
+          chunk,
+          stage,
+        }) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "subagent:message:delta",
+            subagentId,
+            messageId,
+            text: chunk ?? "",
+            stage,
+          });
+        },
+        onSubagentAssistantReasoningUpdated: ({
+          subagentId,
+          messageId,
+          chunk,
+          stage,
+        }) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "subagent:reasoning:delta",
+            subagentId,
+            messageId,
+            text: chunk ?? "",
+            stage,
+          });
+        },
+        onSubagentToolBlockUpdated: (subagentId, params) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, {
+            type: "subagent:tool:update",
+            subagentId,
+            params,
+          });
+        },
       },
       canUseTool: async (context) => {
         const permissionId = crypto.randomUUID();
@@ -228,6 +298,7 @@ export function createSessionRunner(
       },
     });
 
+    agentBox.current = agent;
     if (disposed.has(sessionId)) {
       await agent.dispose();
       throw Object.assign(new Error(`session disposed: ${sessionId}`), {

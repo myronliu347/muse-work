@@ -18,9 +18,9 @@ export type ToolUpdateParams = {
 export type WsEvent =
   | {
       type: "message:delta";
-      messageId: string;
+      messageId?: string;
       text: string;
-      stage: "streaming" | "end";
+      stage?: "streaming" | "end";
     }
   | { type: "message:completed"; messageId?: string }
   | { type: "assistant:message"; messageId: string }
@@ -30,7 +30,7 @@ export type WsEvent =
       text: string;
       stage: "streaming" | "end";
     }
-  | { type: "tool:update"; params: ToolUpdateParams }
+  | { type: "tool:update"; params: ToolUpdateParams | Record<string, unknown> }
   | { type: "loading"; loading: boolean }
   | {
       type: "permission:request";
@@ -38,7 +38,33 @@ export type WsEvent =
       toolName: string;
       description: string;
     }
-  | { type: "session:status"; status: SessionStatus; error?: string }
-  | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus };
+  | { type: "session:status"; status: SessionStatus | string; error?: string }
+  | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus }
+  | { type: "compaction:state"; isCompacting: boolean }
+  | { type: "messages:replace"; messages: unknown[] }
+  | {
+      type: "subagent:assistant:message";
+      subagentId: string;
+      messageId: string;
+    }
+  | {
+      type: "subagent:message:delta";
+      subagentId: string;
+      messageId: string;
+      text: string;
+      stage: "streaming" | "end";
+    }
+  | {
+      type: "subagent:reasoning:delta";
+      subagentId: string;
+      messageId: string;
+      text: string;
+      stage: "streaming" | "end";
+    }
+  | {
+      type: "subagent:tool:update";
+      subagentId: string;
+      params: ToolUpdateParams | Record<string, unknown>;
+    };
 
 export type { SessionStatus };

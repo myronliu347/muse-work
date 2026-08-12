@@ -20,6 +20,10 @@ function newId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function subagentMessageId(subagentId: string, messageId: string): string {
+  return `sa_${subagentId}_${messageId}`;
+}
+
 /**
  * Minimal host bridge: maps legacy webview postMessage commands onto Muse HTTP/WS.
  * Compatible subset: login / logout / sendMessage / confirmationResponse (+ auth bootstrap).
@@ -37,13 +41,22 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   let sessionId: string | null = null;
   let streamingMessageId: string | null = null;
+  const knownAssistantIds = new Set<string>();
   let state: unknown = null;
   let bootstrapped = false;
   let loading = false;
 
-  const ensureAssistantMessage = (messageId: string): void => {
-    if (streamingMessageId === messageId) return;
-    streamingMessageId = messageId;
+  const ensureAssistantMessage = (
+    messageId: string,
+    opts?: { trackMain?: boolean },
+  ): void => {
+    const trackMain = opts?.trackMain !== false;
+    if (knownAssistantIds.has(messageId)) {
+      if (trackMain) streamingMessageId = messageId;
+      return;
+    }
+    knownAssistantIds.add(messageId);
+    if (trackMain) streamingMessageId = messageId;
     postToWebview({
       command: "appendMessage",
       message: {
@@ -98,6 +111,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       });
       if (!event.loading) {
         streamingMessageId = null;
+        knownAssistantIds.clear();
       }
       return;
     }
@@ -169,6 +183,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       // Prefer onLoadingChange(false) for endStreaming; keep fallback.
       if (!loading) {
         streamingMessageId = null;
+        knownAssistantIds.clear();
         postToWebview({ command: "endStreaming" });
       }
       return;
@@ -201,7 +216,79 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       });
       postToWebview({ command: "endStreaming" });
       streamingMessageId = null;
+      knownAssistantIds.clear();
       loading = false;
+      return;
+    }
+
+    if (event.type === "compaction:state") {
+      postToWebview({
+        command: "compactionStateChange",
+        isCompacting: event.isCompacting,
+      });
+      return;
+    }
+
+    if (event.type === "messages:replace") {
+      postToWebview({
+        command: "updateMessages",
+        messages: event.messages,
+      });
+      return;
+    }
+
+    if (event.type === "subagent:assistant:message") {
+      const messageId = subagentMessageId(event.subagentId, event.messageId);
+      ensureAssistantMessage(messageId, { trackMain: false });
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      return;
+    }
+
+    if (event.type === "subagent:message:delta") {
+      const messageId = subagentMessageId(event.subagentId, event.messageId);
+      ensureAssistantMessage(messageId, { trackMain: false });
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      postToWebview({
+        command: "updateStreamingContent",
+        messageId,
+        chunk: event.text,
+        stage: event.stage,
+      });
+      return;
+    }
+
+    if (event.type === "subagent:reasoning:delta") {
+      const messageId = subagentMessageId(event.subagentId, event.messageId);
+      ensureAssistantMessage(messageId, { trackMain: false });
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      postToWebview({
+        command: "updateStreamingReasoning",
+        messageId,
+        chunk: event.text,
+        stage: event.stage,
+      });
+      return;
+    }
+
+    if (event.type === "subagent:tool:update") {
+      const params = event.params;
+      const rawMessageId =
+        typeof params.messageId === "string" ? params.messageId : event.subagentId;
+      const messageId = subagentMessageId(event.subagentId, rawMessageId);
+      ensureAssistantMessage(messageId, { trackMain: false });
+      if (!loading) {
+        postToWebview({ command: "startStreaming" });
+      }
+      postToWebview({
+        command: "updateToolBlock",
+        params: { ...params, messageId },
+      });
     }
   };
 
@@ -292,6 +379,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const sid = await ensureSession();
       streamingMessageId = null;
+      knownAssistantIds.clear();
       loading = false;
       // Show loading immediately while waiting for first SDK callback.
       postToWebview({ command: "startStreaming" });
