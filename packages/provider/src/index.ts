@@ -23,3 +23,5 @@ export {
   type ActiveSelection,
   type ProviderRegistry,
 } from "./registry.js";
+
+export { createOpenAiCompatibleProvider } from "./openaiCompatible.js";
