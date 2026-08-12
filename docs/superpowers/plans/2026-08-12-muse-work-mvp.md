@@ -626,48 +626,18 @@ EOF
 **Interfaces:**
 - Consumes: `saveCodeMakerCredentials`, `AuthStatus`
 - Produces:
-  - `beginCodeMakerLogin(opts?: { openBrowser?: (url: string) => void }): Promise<LoginStart & { waitUntilComplete: () => Promise<AuthStatus> }>`
-  - 在 `127.0.0.1` 临时端口起 callback server；组装 `https://auth.nie.netease.com` 登录 URL（`callback_url` 指向临时服务）
-  - 回调拿到 code 后 `POST` CodeMaker token 交换端点（与 CLI/Hub 一致；实现时用 probe/抓包确认 path，常见为 auth API 的 token exchange），写入 Muse auth
+  - `beginCodeMakerLogin(opts?): Promise<LoginStart & { waitUntilComplete: () => Promise<AuthStatus> }>`
+  - 对齐 CodeMaker CLI：**uuid 轮询**（非本机 `callback_url`）
+    1. `authUrl = ${API}/vs_login?ide=cli&uuid=&redirect_uri=vs://cli?uuid=`
+    2. poll `GET /vs_login_info/:uuid`（2s / 600s）→ `access_user` + `access_token`
+    3. `GET /get_auth_key`（`X-Access-Token`）→ `refresh_key`
+    4. `saveCodeMakerCredentials` → `~/.muse-work/auth/codemaker.json`
   - `createCodeMakerProvider.beginLogin/completeLogin/logout` 接到上述实现
   - 若已有有效凭证：`beginLogin` 可返回 `{ reused: true }`
 
-- [ ] **Step 1: 写失败测试**（mock `http` 与 fetch）
+> **修正（2026-08-12）：** 初版 brief 误写 Wave 式本地 callback；以 CLI/Hub 真实流程为准（用户确认方案 A）。
 
-```ts
-it("start login returns authUrl containing callback_url", async () => {
-  const start = await beginCodeMakerLogin({
-    openBrowser: () => {},
-    // inject fetch + auth base for test
-  });
-  expect(start).toHaveProperty("authUrl");
-  expect(String((start as { authUrl: string }).authUrl)).toContain("callback_url");
-});
-
-it("complete login persists muse auth file", async () => {
-  // mock token response → saveCodeMakerCredentials called / file exists
-});
-```
-
-- [ ] **Step 2: Run — FAIL**
-
-- [ ] **Step 3: 实现 login.ts 并接入 provider**
-
-参考 Wave `authService` 模式（本地 callback + 换 token），但端点与字段对齐 CodeMaker（`AUTH_API_URL=https://auth.nie.netease.com`，API `https://api-code-maker.nie.netease.com`）。用一次真实 `codemaker providers login` 或 Hub 登录抓网络确认 exchange URL，把常量写进 `login.ts`。
-
-- [ ] **Step 4: Run unit tests PASS；手工一次浏览器登录冒烟（可选）**
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/provider
-git commit -m "$(cat <<'EOF'
-feat(provider): add CodeMaker SSO login via local callback
-
-Match CodeMaker auth flow and persist tokens under ~/.muse-work.
-EOF
-)"
-```
+- [x] **Steps 1–5:** 已实现并提交 `49d69b3`；见 `.superpowers/sdd/task-6-report.md`
 
 ---
 

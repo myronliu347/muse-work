@@ -160,14 +160,24 @@ interface GatewayResolution {
 - 过期且有 `refresh_key` → provider 内 refresh，成功回写 **Muse 自有** auth 文件（不强制改写 CodeMaker 原文件）
 - refresh 失败 → 未登录
 
-### 5.2 App 内登录（与 CodeMaker 同方案）
+### 5.2 App 内登录（与 CodeMaker CLI 同方案）
 
-1. UI「登录」→ `POST /auth/login` → `codemakerProvider.beginLogin()`
-2. 系统浏览器打开 `https://auth.nie.netease.com/...`，回调到本机临时 HTTP
-3. 换 token 成功 → 写入 `~/.muse-work/auth/codemaker.json`（`0600`）
-4. 推送 `auth:changed` → webview 更新登录态
+对齐 CodeMaker CLI `NetEaseCodeMakerAuthPlugin`（**uuid 轮询**，不是 Wave 式本机 `callback_url`）：
 
-远程/无回调场景（MVP+）：支持粘贴 code/token 完成登录。
+```text
+1. UI「登录」→ POST /auth/login → beginLogin()
+2. uuid = randomUUID()
+3. 浏览器打开
+   https://api-code-maker.nie.netease.com/vs_login
+     ?ide=cli&uuid=<uuid>&redirect_uri=vs://cli?uuid=<uuid>
+4. 轮询 GET /vs_login_info/<uuid>（间隔 2s，最长 600s）
+   直到返回 access_user + access_token
+5. GET /get_auth_key（Header: X-Access-Token）→ auth_key 作为 refresh_key
+6. 写入 ~/.muse-work/auth/codemaker.json（0600）
+7. 推送 auth:changed → webview 更新登录态
+```
+
+说明：`https://auth.nie.netease.com/api/v2/tokens` 仅用于 CLI env-key 换票，**不是**浏览器 SSO 路径。
 
 ### 5.3 OpenAI-compat
 
@@ -297,7 +307,7 @@ server:
 ## 11. 参考（本机调研摘要）
 
 - CodeMaker 登录态：`~/.local/share/codemaker/auth.json`（provider key：`netease-codemaker`）
-- SSO：`https://auth.nie.netease.com`
+- 浏览器 SSO：`https://api-code-maker.nie.netease.com/vs_login` + `/vs_login_info/:uuid` + `/get_auth_key`（`auth.nie` 仅 env-key 换票）
 - AI：`https://api-code-maker.nie.netease.com/openai/v1/chat/completions`（OpenAI 兼容）
 - 配置 schema 指向：`https://api-code-maker.nie.netease.com/main/config/config.json`
 - Wave 参考源码：`/Users/liuyuyang/Documents/projects/codes/wave-agent`（`desktop` / `webview` / `agent-sdk`）
