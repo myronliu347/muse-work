@@ -1,8 +1,8 @@
 import type { IncomingMessage, Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { WsEvent } from "./wsEvents.js";
+import type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
-export type { WsEvent } from "./wsEvents.js";
+export type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
 export interface WsHub {
   attach(server: HttpServer): void;
@@ -47,11 +47,7 @@ export function createWsHub(): WsHub {
           socket.destroy();
           return;
         }
-        const sessionId = url.searchParams.get("sessionId");
-        if (!sessionId) {
-          socket.destroy();
-          return;
-        }
+        const sessionId = url.searchParams.get("sessionId") ?? "*";
         wss!.handleUpgrade(req, socket, head, (ws) => {
           addClient(sessionId, ws);
           wss!.emit("connection", ws, req);
@@ -62,14 +58,21 @@ export function createWsHub(): WsHub {
     },
 
     broadcast(sessionId: string, event: WsEvent): void {
-      const set = clients.get(sessionId);
-      if (!set || set.size === 0) {
-        return;
-      }
-      const payload = JSON.stringify(event);
-      for (const ws of set) {
-        if (ws.readyState === ws.OPEN) {
-          ws.send(payload);
+      const payload = JSON.stringify({ ...event, sessionId } satisfies WsBroadcastEvent);
+      const delivered = new Set<WebSocket>();
+      for (const key of [sessionId, "*"]) {
+        const set = clients.get(key);
+        if (!set) {
+          continue;
+        }
+        for (const ws of set) {
+          if (delivered.has(ws)) {
+            continue;
+          }
+          delivered.add(ws);
+          if (ws.readyState === ws.OPEN) {
+            ws.send(payload);
+          }
         }
       }
     },

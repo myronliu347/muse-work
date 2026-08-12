@@ -93,15 +93,70 @@ describe("sessions + websocket streaming", () => {
         messageId: "m1",
         text: "hi",
         stage: "streaming",
+        sessionId: session.id,
       },
       {
         type: "message:delta",
         messageId: "m1",
         text: "",
         stage: "end",
+        sessionId: session.id,
       },
-      { type: "message:completed", messageId: "m1" },
+      { type: "message:completed", messageId: "m1", sessionId: session.id },
     ]);
+  });
+
+  it("broadcast includes sessionId and * subscriber receives it", async () => {
+    const createAgent: CreateAgent = async (opts) => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {
+          opts.callbacks?.onAssistantContentUpdated?.({
+            messageId: "m1",
+            chunk: "hi",
+            stage: "streaming",
+          });
+          opts.callbacks?.onAssistantContentUpdated?.({
+            messageId: "m1",
+            chunk: "",
+            stage: "end",
+          });
+        },
+        dispose: async () => {},
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, "*", {
+      minCount: 1,
+      filter: (e) => e.type === "message:delta" && e.stage === "streaming",
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+
+    const [first] = await events;
+    expect(first.sessionId).toBe(session.id);
+    expect(first).toMatchObject({
+      type: "message:delta",
+      messageId: "m1",
+      text: "hi",
+      stage: "streaming",
+    });
   });
 
   it("forwards compaction and subagent callbacks over WS", async () => {
@@ -177,13 +232,14 @@ describe("sessions + websocket streaming", () => {
     const received = await events;
     expect(received).toEqual(
       expect.arrayContaining([
-        { type: "compaction:state", isCompacting: true },
-        { type: "messages:replace", messages: compacted },
-        { type: "compaction:state", isCompacting: false },
+        { type: "compaction:state", isCompacting: true, sessionId: session.id },
+        { type: "messages:replace", messages: compacted, sessionId: session.id },
+        { type: "compaction:state", isCompacting: false, sessionId: session.id },
         {
           type: "subagent:assistant:message",
           subagentId: "sa1",
           messageId: "sm1",
+          sessionId: session.id,
         },
         {
           type: "subagent:message:delta",
@@ -191,6 +247,7 @@ describe("sessions + websocket streaming", () => {
           messageId: "sm1",
           text: "from-sub",
           stage: "streaming",
+          sessionId: session.id,
         },
         {
           type: "subagent:tool:update",
@@ -202,6 +259,7 @@ describe("sessions + websocket streaming", () => {
             stage: "end",
             success: true,
           },
+          sessionId: session.id,
         },
       ]),
     );

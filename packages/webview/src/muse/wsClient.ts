@@ -1,4 +1,4 @@
-export type MuseWsEvent =
+export type MuseWsEventPayload =
   | {
       type: "message:delta";
       messageId?: string;
@@ -48,7 +48,10 @@ export type MuseWsEvent =
       type: "subagent:tool:update";
       subagentId: string;
       params: Record<string, unknown>;
-    };
+    }
+  | { type: "session:unread"; unreadDone: boolean };
+
+export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 
 export type MuseWsEventHandler = (event: MuseWsEvent) => void;
 
@@ -84,7 +87,7 @@ export class MuseWsClient {
     };
   }
 
-  connect(sessionId: string): Promise<void> {
+  connect(sessionId: string = "*"): Promise<void> {
     if (this.sessionId === sessionId && this.socket) {
       const state = this.socket.readyState;
       if (state === this.WebSocketImpl.OPEN) {

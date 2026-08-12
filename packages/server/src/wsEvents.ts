@@ -73,4 +73,6 @@ export type WsEvent =
       params: ToolUpdateParams | Record<string, unknown>;
     };
 
+export type WsBroadcastEvent = WsEvent & { sessionId: string };
+
 export type { SessionStatus };
