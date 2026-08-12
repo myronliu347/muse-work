@@ -1,0 +1,50 @@
+packages/provider/src/codemaker/provider.ts
+  116d1768ed4998ce 12,130
+packages/server/src/sessionRunner.ts
+  116d1768ed4998ce 56-57,61
+packages/provider/src/types.ts
+  116d1768ed4998ce 19-20
+packages/server/tests/sessionRunner.test.ts
+  116d1768ed4998ce 194-268
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f524938c0583e0a91aad5ad542114aee200eab76",
+  "prompts": {
+    "116d1768ed4998ce": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bb23ca13-858a-463f-985e-3fcc6a3230ce",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 93,
+      "total_deletions": 13,
+      "accepted_lines": 82,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/provider/src/types.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 86,
+          "deletions": 11,
+          "accepted_lines": 75
+        }
+      }
+    }
+  }
+}
