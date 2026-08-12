@@ -1,0 +1,155 @@
+.queued-message-list-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  background-color: var(--vscode-menu-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 8px;
+  box-sizing: border-box;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.queued-message-list-header {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.queued-message-list-header .queued-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--vscode-foreground);
+  transition: transform 0.15s ease;
+}
+
+.queued-message-list-header .queued-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.queued-message-list-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.queued-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.queued-items.expanded {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.queued-item-tooltip {
+  display: block;
+  width: 100%;
+}
+
+/* Show the full queued-message text on hover instead of truncating. */
+.queued-item-tooltip .tooltip-box {
+  max-width: 500px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.queued-item {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.queued-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.queued-item.editing {
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+.queued-item-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--vscode-editor-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queued-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.queued-item:hover .queued-item-actions,
+.queued-item.editing .queued-item-actions {
+  opacity: 1;
+}
+
+.queued-action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: var(--vscode-icon-foreground);
+}
+
+.queued-action-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.queued-action-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.queued-items-scrim {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 12px;
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0),
+    var(--vscode-menu-background)
+  );
+}
+
+/* When the task list sits directly above the queue, keep them flush (no double
+   border, no corner gap) but retain a single divider line between them. */
+.task-list-inline:has(+ .queued-message-list-container) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.task-list-inline + .queued-message-list-container {
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}

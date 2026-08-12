@@ -1,0 +1,155 @@
+/* Task list card pinned above the input area (design 2230:1141) */
+.task-list-inline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  background-color: var(--vscode-menu-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 8px;
+  box-sizing: border-box;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.task-list-plan-row {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.task-list-plan-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-list-title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+}
+
+.task-list-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-list-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-list-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-list-stat-text {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--vscode-editor-foreground);
+  white-space: nowrap;
+}
+
+.task-list-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--vscode-foreground);
+  transition: transform 0.15s ease;
+}
+
+.task-list-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.task-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 最多同时显示 4 个任务（行高 18px + 10px 间距），其余滚动查看 */
+  max-height: 102px;
+  overflow-y: auto;
+}
+
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.task-status {
+  flex-shrink: 0;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.task-status-svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.task-status-spin {
+  animation: spin 2s linear infinite;
+}
+
+.task-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 0 0;
+}
+
+.task-title {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  word-break: break-word;
+  color: var(--vscode-editor-foreground);
+}
+
+.task-title.completed {
+  color: var(--vscode-descriptionForeground);
+  text-decoration: line-through;
+}
+
+.task-title.deleted {
+  color: var(--vscode-descriptionForeground);
+  text-decoration: line-through;
+}
+
+.task-dep {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--vscode-textLink-foreground, #48a0c7);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

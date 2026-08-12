@@ -1,0 +1,82 @@
+import { describe, it, expect } from "vitest";
+import { MuseApiClient } from "../src/muse/apiClient.js";
+
+describe("MuseApiClient", () => {
+  it("setActive posts provider and model", async () => {
+    const fetches: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push(`${init?.method} ${url}`);
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      },
+    });
+    await client.setActive("codemaker", "deepseek-v4-pro");
+    expect(fetches[0]).toContain("/providers/active");
+    expect(fetches[0]).toMatch(/^POST /);
+  });
+
+  it("listProviders GETs /providers", async () => {
+    const fetches: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push(`${init?.method ?? "GET"} ${url}`);
+        return new Response(
+          JSON.stringify({
+            providers: [],
+            active: { providerId: "codemaker", modelId: "m1" },
+          }),
+          { status: 200 },
+        );
+      },
+    });
+    const body = await client.listProviders();
+    expect(fetches[0]).toBe("GET http://127.0.0.1:9/providers");
+    expect(body.active.providerId).toBe("codemaker");
+  });
+
+  it("login posts /auth/login", async () => {
+    const fetches: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push(`${init?.method} ${url}`);
+        return new Response(JSON.stringify({ authUrl: "https://example/auth" }), {
+          status: 200,
+        });
+      },
+    });
+    const start = await client.login();
+    expect(fetches[0]).toContain("/auth/login");
+    expect(start).toEqual({ authUrl: "https://example/auth" });
+  });
+
+  it("sendMessage posts content to session messages", async () => {
+    const bodies: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        bodies.push(`${init?.method} ${url} ${String(init?.body)}`);
+        return new Response(JSON.stringify({ accepted: true }), { status: 200 });
+      },
+    });
+    await client.sendMessage("sess-1", "hello");
+    expect(bodies[0]).toContain("/sessions/sess-1/messages");
+    expect(bodies[0]).toContain('"content":"hello"');
+  });
+
+  it("respondPermission posts decision", async () => {
+    const bodies: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        bodies.push(`${init?.method} ${url} ${String(init?.body)}`);
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      },
+    });
+    await client.respondPermission("sess-1", "perm-9", "allow");
+    expect(bodies[0]).toContain("/sessions/sess-1/permissions/perm-9");
+    expect(bodies[0]).toContain('"decision":"allow"');
+  });
+});

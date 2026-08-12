@@ -1,11 +1,53 @@
 {
   "name": "@muse-work/webview",
-  "version": "0.1.0",
   "private": true,
+  "description": "Muse Work webview (React IIFE) — forked from Wave, wired to Muse HTTP/WS",
+  "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
-    "build": "echo ok",
-    "type-check": "echo ok",
-    "test": "echo ok"
+    "build": "pnpm run compile",
+    "postbuild": "node scripts/syncTargets.mjs",
+    "sync:targets": "node scripts/syncTargets.mjs",
+    "clean": "node -e \"import('fs').then(fs => {try{fs.rmSync('dist', {recursive:true, force:true})}catch(e){}})\"",
+    "compile": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint --cache",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/diff": "^7.0.2",
+    "@types/node": "^25.0.1",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "esbuild": "^0.28.0",
+    "jsdom": "^29.1.1",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.43",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
+    "diff": "^8.0.2",
+    "dompurify": "^3.3.0",
+    "highlight.js": "^11.11.1",
+    "marked": "^9.1.6",
+    "mermaid": "^11.12.2",
+    "wave-agent-sdk": "1.0.7"
   }
 }

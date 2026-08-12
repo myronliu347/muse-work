@@ -1,0 +1,118 @@
+import React, { useState } from "react";
+import { Tooltip } from "./Tooltip";
+import { NewSessionIcon, HistoryIcon, MoreIcon } from "./HeaderIcons";
+import { SessionListPopup } from "./SessionListPopup";
+import { MoreMenu } from "./MoreMenu";
+import { PanelToggleMenu } from "./PanelToggleMenu";
+import { MuseModelSelect } from "./MuseModelSelect";
+import { getSessionTitle } from "../utils/session";
+import type { ChatHeaderProps } from "../types";
+import "../styles/ChatHeader.css";
+
+export const ChatHeader: React.FC<ChatHeaderProps> = ({
+  onNewSession,
+  newSessionDisabled = false,
+  messages,
+  sessions,
+  currentSession,
+  onSessionSelect,
+  sessionsLoading,
+  onOpenSettings,
+  onLogin,
+  onLogout,
+  isAuthenticated,
+  hideSessionButtons = false,
+  hideMoreButton = false,
+  panelToggle,
+}) => {
+  const [showSessionList, setShowSessionList] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showPanelMenu, setShowPanelMenu] = useState(false);
+
+  const title = getSessionTitle(currentSession, messages);
+
+  return (
+    <div className="chat-header" data-testid="chat-header">
+      <div className="header-title">{title}</div>
+      <div className="header-buttons">
+        <MuseModelSelect />
+        {!hideSessionButtons && (
+          <>
+            <Tooltip text="新建对话" position="bottom">
+              <button
+                className="header-button"
+                onClick={onNewSession}
+                disabled={newSessionDisabled}
+                data-testid="new-session-btn"
+                aria-label="新建对话"
+              >
+                <NewSessionIcon />
+              </button>
+            </Tooltip>
+            <Tooltip text="历史对话" position="bottom">
+              <button
+                className="header-button"
+                onClick={() => setShowSessionList((prev) => !prev)}
+                data-testid="history-btn"
+                aria-label="历史对话"
+              >
+                <HistoryIcon />
+              </button>
+            </Tooltip>
+          </>
+        )}
+        {!hideMoreButton && (
+          <Tooltip text="更多" position="bottom">
+            <button
+              className="header-button"
+              onClick={() => setShowMoreMenu((prev) => !prev)}
+              data-testid="more-btn"
+              aria-label="更多"
+            >
+              <MoreIcon />
+            </button>
+          </Tooltip>
+        )}
+        {panelToggle && (
+          <Tooltip text="面板" position="bottom">
+            <button
+              className="header-button header-panel-toggle"
+              onClick={() => setShowPanelMenu((prev) => !prev)}
+              data-testid="panel-toggle-btn"
+              aria-label="面板"
+            >
+              <i className="codicon codicon-layout-sidebar-right" />
+              <i className="codicon codicon-chevron-down header-panel-toggle-caret" />
+            </button>
+          </Tooltip>
+        )}
+      </div>
+      {showSessionList && (
+        <SessionListPopup
+          sessions={sessions}
+          currentSession={currentSession}
+          onSessionSelect={onSessionSelect}
+          loading={sessionsLoading}
+          onClose={() => setShowSessionList(false)}
+        />
+      )}
+      {showMoreMenu && !hideMoreButton && (
+        <MoreMenu
+          onOpenSettings={onOpenSettings}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          isAuthenticated={isAuthenticated}
+          onClose={() => setShowMoreMenu(false)}
+        />
+      )}
+      {showPanelMenu && panelToggle && (
+        <PanelToggleMenu
+          checked={panelToggle.checked}
+          onToggle={panelToggle.onToggle}
+          disabled={panelToggle.disabled}
+          onClose={() => setShowPanelMenu(false)}
+        />
+      )}
+    </div>
+  );
+};
