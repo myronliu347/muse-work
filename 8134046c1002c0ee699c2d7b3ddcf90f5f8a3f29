@@ -1,0 +1,66 @@
+packages/provider/src/registry.ts
+  793f4564dba5741f 1-42
+packages/provider/src/index.ts
+  793f4564dba5741f 1-25
+packages/provider/vitest.config.ts
+  793f4564dba5741f 1-7
+packages/provider/src/types.ts
+  793f4564dba5741f 1-57
+packages/provider/src/paths.ts
+  793f4564dba5741f 1-18
+packages/provider/src/configStore.ts
+  793f4564dba5741f 1-48
+packages/provider/tests/configStore.test.ts
+  793f4564dba5741f 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8134046c1002c0ee699c2d7b3ddcf90f5f8a3f29",
+  "prompts": {
+    "793f4564dba5741f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aeb58bad-8786-43ae-9b21-46bce012c401",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 232,
+      "total_deletions": 1,
+      "accepted_lines": 232,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/index.ts": {
+          "additions": 25,
+          "deletions": 1,
+          "accepted_lines": 25
+        },
+        "packages/provider/vitest.config.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/provider/tests/configStore.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/provider/src/paths.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 48,
+          "accepted_lines": 48
+        },
+        "packages/provider/src/types.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/provider/src/registry.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        }
+      }
+    }
+  }
+}
