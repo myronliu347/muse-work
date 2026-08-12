@@ -1,0 +1,83 @@
+packages/webview/tests/setup.ts
+  2818741b5c65b9e0 2
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  2818741b5c65b9e0 1-190
+packages/webview/src/components/DesktopSidebar.tsx
+  2818741b5c65b9e0 29-39,48-49,59-79,82-83,96-97,103,113-117,119-121,125,130-133,143,155,157,162-185,188-197,220-239,274,287-288
+packages/webview/src/types/index.ts
+  2818741b5c65b9e0 274-275
+packages/webview/src/components/DesktopShell.tsx
+  2818741b5c65b9e0 10,630,636
+packages/webview/vitest.config.ts
+  2818741b5c65b9e0 8-14
+packages/webview/src/components/DesktopApp.tsx
+  2818741b5c65b9e0 150-160,201
+packages/webview/src/styles/DesktopApp.css
+  2818741b5c65b9e0 89,97-98,101-103,105-106,122,143,147-156,171,173-185,189-190,193,207-209,214,217-219,224
+packages/webview/src/components/ChatApp.tsx
+  2818741b5c65b9e0 32-35,2013,2103,2108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7db3f63855927759353da7c5c55cf7ba1b279397",
+  "prompts": {
+    "2818741b5c65b9e0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "fa9af91f-fd6e-4fa4-891a-c27f6564a106",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 433,
+      "total_deletions": 212,
+      "accepted_lines": 389,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/setup.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 120,
+          "deletions": 113,
+          "accepted_lines": 118
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 32,
+          "deletions": 28,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 210,
+          "deletions": 20,
+          "accepted_lines": 190
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 46,
+          "deletions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
