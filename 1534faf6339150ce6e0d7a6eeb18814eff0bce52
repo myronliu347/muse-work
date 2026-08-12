@@ -1,0 +1,43 @@
+packages/webview/src/muse/hostBridge.ts
+  10a56b42d8ca66f0 115
+packages/webview/src/muse/wsClient.ts
+  10a56b42d8ca66f0 32,47,50-51,53-54,72-94,96,100
+packages/webview/tests/muse/wsClient.test.ts
+  10a56b42d8ca66f0 1-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1534faf6339150ce6e0d7a6eeb18814eff0bce52",
+  "prompts": {
+    "10a56b42d8ca66f0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "440fcfc9-9782-4ae6-9b0f-154418ca73ec",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 142,
+      "total_deletions": 7,
+      "accepted_lines": 142,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/wsClient.test.ts": {
+          "additions": 108,
+          "accepted_lines": 108
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 33,
+          "deletions": 6,
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
