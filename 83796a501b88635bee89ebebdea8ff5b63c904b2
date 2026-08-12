@@ -1,0 +1,29 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "83796a501b88635bee89ebebdea8ff5b63c904b2",
+  "prompts": {
+    "acb156b280b2d1a2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "01d5c7a6-c349-4d74-b1fe-ce63eaca4442",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 2,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/index.d.ts": {
+          "deletions": 1
+        },
+        "packages/provider/src/index.js": {
+          "deletions": 1
+        }
+      }
+    }
+  }
+}
