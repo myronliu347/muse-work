@@ -29,6 +29,7 @@ export class MuseWsClient {
   private readonly WebSocketImpl: typeof WebSocket;
   private socket: WebSocket | null = null;
   private sessionId: string | null = null;
+  private connectPromise: Promise<void> | null = null;
   private handlers = new Set<MuseWsEventHandler>();
 
   constructor(opts: MuseWsClientOptions) {
@@ -43,14 +44,14 @@ export class MuseWsClient {
     };
   }
 
-  connect(sessionId: string): void {
+  connect(sessionId: string): Promise<void> {
     if (this.sessionId === sessionId && this.socket) {
       const state = this.socket.readyState;
-      if (
-        state === this.WebSocketImpl.OPEN ||
-        state === this.WebSocketImpl.CONNECTING
-      ) {
-        return;
+      if (state === this.WebSocketImpl.OPEN) {
+        return Promise.resolve();
+      }
+      if (state === this.WebSocketImpl.CONNECTING && this.connectPromise) {
+        return this.connectPromise;
       }
     }
     this.close();
@@ -68,9 +69,35 @@ export class MuseWsClient {
         // ignore malformed frames
       }
     });
+    this.connectPromise = new Promise((resolve, reject) => {
+      const cleanup = () => {
+        socket.removeEventListener("open", onOpen);
+        socket.removeEventListener("error", onError);
+        socket.removeEventListener("close", onClose);
+      };
+      const onOpen = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("WebSocket connection failed"));
+      };
+      const onClose = () => {
+        if (socket.readyState !== this.WebSocketImpl.OPEN) {
+          cleanup();
+          reject(new Error("WebSocket closed before open"));
+        }
+      };
+      socket.addEventListener("open", onOpen);
+      socket.addEventListener("error", onError);
+      socket.addEventListener("close", onClose);
+    });
+    return this.connectPromise;
   }
 
   close(): void {
+    this.connectPromise = null;
     if (this.socket) {
       try {
         this.socket.close();

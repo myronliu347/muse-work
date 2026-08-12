@@ -112,7 +112,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (sessionId) return sessionId;
     const session = await api.createSession(workdir);
     sessionId = session.id;
-    ws.connect(sessionId);
+    await ws.connect(sessionId);
     postToWebview({
       command: "updateCurrentSession",
       session: {
