@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-08-12-muse-work-design.md
+  db26196a999da47a 1-308
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f887024c532667c5c32b4629e8f1391c98998fec",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 308,
+      "total_deletions": 0,
+      "accepted_lines": 308,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-12-muse-work-design.md": {
+          "additions": 308,
+          "accepted_lines": 308
+        }
+      }
+    }
+  }
+}
