@@ -8,7 +8,7 @@ const shared = {
   sourcemap: true,
   clean: false,
   dts: false,
-  external: ["electron"],
+  external: ["electron", "node-pty"],
 } as const;
 
 export default defineConfig([

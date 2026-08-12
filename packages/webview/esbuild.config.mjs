@@ -35,9 +35,8 @@ const terminalConfig = {
 };
 
 async function main() {
-  // MVP: chat UI only. Terminal chunk needs a healthy @xterm/xterm install;
-  // skip until terminal panel is in scope (Wave desktop feature, deferred).
-  const skipTerminal = process.env.MUSE_SKIP_TERMINAL !== "0";
+  // Desktop terminal chunk (xterm). Build by default; set MUSE_SKIP_TERMINAL=1 to skip.
+  const skipTerminal = process.env.MUSE_SKIP_TERMINAL === "1";
   const ctx = await esbuild.context(frontendConfig);
   const terminalCtx = skipTerminal
     ? null
@@ -54,7 +53,7 @@ async function main() {
       await terminalCtx.rebuild();
       await terminalCtx.dispose();
     } else {
-      console.log("[build] skipped terminal.js (MVP)");
+      console.log("[build] skipped terminal.js (MUSE_SKIP_TERMINAL=1)");
     }
     console.log("[build] frontend finished");
   }

@@ -15,7 +15,11 @@
       "dist/main/**/*",
       "webview/**/*",
       "assets/**/*",
-      "package.json"
+      "package.json",
+      "node_modules/node-pty/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**/*"
     ],
     "extraResources": [
       {
@@ -66,5 +70,8 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "node-pty": "1.0.0"
   }
 }
