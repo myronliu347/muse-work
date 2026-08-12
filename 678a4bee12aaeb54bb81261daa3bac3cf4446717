@@ -1,0 +1,76 @@
+scripts/smoke-mvp.sh
+  07ab8b98cade99f7 1-51
+packages/webview/src/components/WelcomeView.tsx
+  07ab8b98cade99f7 20-21,24-25,30-33,35-40,92
+packages/provider/providers.json.example
+  07ab8b98cade99f7 1-22
+packages/webview/src/components/DesktopSidebar.tsx
+  07ab8b98cade99f7 192
+packages/desktop/src/main/index.ts
+  07ab8b98cade99f7 34-35
+README.md
+  07ab8b98cade99f7 3,7-10,12-15,21-32,35,37-90
+packages/desktop/assets/icon.svg
+  07ab8b98cade99f7 1-11
+packages/desktop/package.json
+  07ab8b98cade99f7 6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "678a4bee12aaeb54bb81261daa3bac3cf4446717",
+  "prompts": {
+    "07ab8b98cade99f7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "77368b44-62d9-44b1-9dcf-15f11656a8a9",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 183,
+      "total_deletions": 40,
+      "accepted_lines": 181,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/assets/icon.svg": {
+          "additions": 11,
+          "deletions": 16,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/WelcomeView.tsx": {
+          "additions": 15,
+          "deletions": 8,
+          "accepted_lines": 15
+        },
+        "packages/provider/providers.json.example": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "scripts/smoke-mvp.sh": {
+          "additions": 53,
+          "deletions": 2,
+          "accepted_lines": 51
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/desktop/package.json": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "README.md": {
+          "additions": 77,
+          "deletions": 13,
+          "accepted_lines": 77
+        }
+      }
+    }
+  }
+}
