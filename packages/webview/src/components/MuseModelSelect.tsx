@@ -10,7 +10,8 @@ export interface MuseModelSelectProps {
 }
 
 /**
- * Minimal provider/model selector wired to Muse HTTP `/providers` + `/providers/active`.
+ * Header model selector for the *active* provider only.
+ * Provider switching lives in Settings → AI 供应商.
  */
 export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
@@ -36,33 +37,37 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
 
   useEffect(() => {
     void refresh();
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
 
-  const value = data
-    ? `${data.active.providerId}::${data.active.modelId ?? ""}`
-    : "";
-
-  const options =
-    data?.providers.flatMap((p) =>
-      p.models.map((m) => ({
-        key: `${p.id}::${m.id}`,
-        label: `${p.displayName} / ${m.label || m.id}`,
-        providerId: p.id,
-        modelId: m.id,
-      })),
-    ) ?? [];
+  const activeProvider = data?.providers.find(
+    (p) => p.id === data.active.providerId,
+  );
+  const models = activeProvider?.models ?? [];
+  const value = data?.active.modelId ?? "";
 
   return (
     <select
       data-testid="muse-model-select"
       aria-label="Model"
       value={value}
-      disabled={!data || options.length === 0}
-      title={error ?? undefined}
+      disabled={!data || models.length === 0}
+      title={
+        error ??
+        (activeProvider
+          ? `当前供应商：${activeProvider.displayName}`
+          : undefined)
+      }
       onChange={(e) => {
-        const opt = options.find((o) => o.key === e.target.value);
-        if (!opt) return;
-        void client.setActive(opt.providerId, opt.modelId).then(refresh);
+        if (!data?.active.providerId) return;
+        const modelId = e.target.value;
+        void client.setActive(data.active.providerId, modelId).then(refresh);
       }}
       style={{
         maxWidth: 220,
@@ -74,12 +79,12 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({ api }) => {
         color: "var(--vscode-dropdown-foreground, #ccc)",
       }}
     >
-      {options.length === 0 ? (
+      {models.length === 0 ? (
         <option value="">{error ? "模型不可用" : "加载模型…"}</option>
       ) : (
-        options.map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.label}
+        models.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.label || m.id}
           </option>
         ))
       )}

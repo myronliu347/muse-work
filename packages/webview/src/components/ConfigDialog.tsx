@@ -9,9 +9,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ConfigDialogProps, ConfigurationData, VsCodeApi } from "../types";
 import { InfoIcon, CloseIcon } from "./HeaderIcons";
+import { MuseProviderSettings } from "./MuseProviderSettings";
 import "../styles/ConfigurationDialog.css";
 
-type ConfigTab = "global" | "model" | "project";
+type ConfigTab = "global" | "provider" | "model" | "project";
 
 const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   configurationData,
@@ -130,6 +131,16 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           <button
             type="button"
             role="tab"
+            aria-selected={activeTab === "provider"}
+            className={`config-tab${activeTab === "provider" ? " active" : ""}`}
+            onClick={() => setActiveTab("provider")}
+            data-testid="config-tab-provider"
+          >
+            AI 供应商
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={activeTab === "model"}
             className={`config-tab${activeTab === "model" ? " active" : ""}`}
             onClick={() => setActiveTab("model")}
@@ -166,6 +177,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 </select>
               </div>
             )}
+
+            {activeTab === "provider" && <MuseProviderSettings />}
 
             {activeTab === "model" && (
               <>

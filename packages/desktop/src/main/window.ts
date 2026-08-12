@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from "electron";
+import { BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
 
 export type CreateMainWindowOpts = {
@@ -15,6 +15,11 @@ export type CreateMainWindowOpts = {
  * Server base URL is passed via additionalArguments for the preload to expose.
  */
 export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
+  const packageRoot = path.join(path.dirname(opts.preloadPath), "..", "..");
+  const icon = nativeImage.createFromPath(
+    path.join(packageRoot, "assets", "icon.png"),
+  );
+
   const win = new BrowserWindow({
     width: 1280,
     height: 840,
@@ -22,6 +27,7 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     minHeight: 480,
     title: opts.title ?? "Muse Work",
     backgroundColor: "#1e1e1e",
+    icon: icon.isEmpty() ? undefined : icon,
     webPreferences: {
       preload: opts.preloadPath,
       contextIsolation: true,

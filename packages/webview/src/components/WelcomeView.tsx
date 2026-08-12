@@ -5,41 +5,16 @@
  * button + "登录后即可开始使用" line are only rendered when the user is neither
  * authenticated nor has a direct-connect config (baseURL + apiKey), since a
  * direct-connect config works without logging in.
- *
- * Design ref: Figma 2171:1482.
  */
 
 import React from "react";
+import museM from "../assets/muse-m.png";
 
 export interface WelcomeViewProps {
   isAuthenticated: boolean;
   hasDirectConnectConfig: boolean;
   onLogin: () => void;
 }
-
-// Muse Work logo placeholder (solid mark until final brand assets land).
-const MuseLogo: React.FC<{ size?: number }> = ({ size = 20 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 20 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ display: "block" }}
-  >
-    <text
-      x="10"
-      y="14"
-      textAnchor="middle"
-      fill="white"
-      fontSize="13"
-      fontWeight="700"
-      fontFamily='"PingFang SC", sans-serif'
-    >
-      M
-    </text>
-  </svg>
-);
 
 const FONT_FAMILY = '"PingFang SC", var(--vscode-font-family, sans-serif)';
 
@@ -48,8 +23,6 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
   hasDirectConnectConfig,
   onLogin,
 }) => {
-  // Login UI is only relevant when the user can neither use a direct-connect
-  // config nor is already authenticated.
   const showLogin = !isAuthenticated && !hasDirectConnectConfig;
   return (
     <div
@@ -76,23 +49,21 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
           padding: "0 16px",
         }}
       >
-        {/* Logo */}
-        <div
+        {/* Geometric red M mark */}
+        <img
+          src={museM}
+          width={40}
+          height={40}
+          alt=""
+          draggable={false}
+          data-testid="welcome-muse-logo"
           style={{
-            width: "32px",
-            height: "32px",
-            background: "var(--vscode-brand-primary, #c1292e)",
-            borderRadius: "8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            display: "block",
             flexShrink: 0,
+            objectFit: "contain",
           }}
-        >
-          <MuseLogo size={20} />
-        </div>
+        />
 
-        {/* Text area */}
         <div
           style={{
             display: "flex",
@@ -140,7 +111,6 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
           )}
         </div>
 
-        {/* Login button (only when login is required) — full-width, label centered */}
         {showLogin && (
           <button
             type="button"

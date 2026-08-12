@@ -5,6 +5,13 @@
   "version": "0.1.0",
   "productName": "Muse Work",
   "appId": "com.muse.work",
+  "build": {
+    "appId": "com.muse.work",
+    "productName": "Muse Work",
+    "mac": {
+      "icon": "assets/icon.png"
+    }
+  },
   "type": "module",
   "main": "./dist/main/index.cjs",
   "engines": {
