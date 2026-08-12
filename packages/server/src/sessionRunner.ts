@@ -47,6 +47,8 @@ export function createSessionRunner(
   const createAgent = options.createAgent ?? defaultCreateAgent;
   const agents = new Map<string, SessionAgent>();
   const pending = new Map<string, PendingPermission>();
+  /** Session IDs that were disposed; late createAgent completions must not revive them. */
+  const disposed = new Set<string>();
 
   async function ensureAgent(
     sessionId: string,
@@ -56,6 +58,11 @@ export function createSessionRunner(
     const existing = agents.get(sessionId);
     if (existing) {
       return existing;
+    }
+    if (disposed.has(sessionId)) {
+      throw Object.assign(new Error(`session disposed: ${sessionId}`), {
+        statusCode: 404,
+      });
     }
 
     const agent = await createAgent({
@@ -69,6 +76,9 @@ export function createSessionRunner(
       // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
         onAssistantContentUpdated: ({ chunk, stage }) => {
+          if (disposed.has(sessionId)) {
+            return;
+          }
           if (stage === "streaming") {
             if (chunk) {
               hub.broadcast(sessionId, { type: "message:delta", text: chunk });
@@ -78,6 +88,11 @@ export function createSessionRunner(
               hub.broadcast(sessionId, { type: "message:delta", text: chunk });
             }
             hub.broadcast(sessionId, { type: "message:completed" });
+            // Drive idle from stream end — do not treat await sendMessage as turn-complete.
+            if (store.get(sessionId)?.status === "running") {
+              store.updateStatus(sessionId, "idle");
+              hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+            }
           }
         },
       },
@@ -102,6 +117,13 @@ export function createSessionRunner(
         return decisionPromise;
       },
     });
+
+    if (disposed.has(sessionId)) {
+      await agent.dispose();
+      throw Object.assign(new Error(`session disposed: ${sessionId}`), {
+        statusCode: 404,
+      });
+    }
 
     agents.set(sessionId, agent);
     return agent;
@@ -135,6 +157,11 @@ export function createSessionRunner(
           statusCode: 404,
         });
       }
+      if (session.status === "running") {
+        throw Object.assign(new Error(`session is busy: ${sessionId}`), {
+          statusCode: 409,
+        });
+      }
 
       store.updateStatus(sessionId, "running");
       hub.broadcast(sessionId, { type: "session:status", status: "running" });
@@ -164,9 +191,12 @@ export function createSessionRunner(
 
           const agent = await ensureAgent(sessionId, session.workdir, gateway);
           await agent.sendMessage(content);
-          store.updateStatus(sessionId, "idle");
-          hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+          // Status idle is driven by onAssistantContentUpdated stage "end",
+          // not by this await (SDK may return while still streaming).
         } catch (err) {
+          if (disposed.has(sessionId) || !store.get(sessionId)) {
+            return;
+          }
           if (isUnauthorized(err)) {
             await handleUnauthorized(sessionId);
             return;
@@ -195,6 +225,7 @@ export function createSessionRunner(
     },
 
     async disposeSession(sessionId) {
+      disposed.add(sessionId);
       for (const [id, entry] of pending) {
         if (entry.sessionId === sessionId) {
           pending.delete(id);

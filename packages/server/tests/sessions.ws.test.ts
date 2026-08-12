@@ -172,6 +172,60 @@ describe("sessions + websocket streaming", () => {
     expect(settled).toBe(true);
   });
 
+  it("second POST message while running returns 409", async () => {
+    let releaseSend!: () => void;
+    const sendGate = new Promise<void>((resolve) => {
+      releaseSend = resolve;
+    });
+
+    const createAgent: CreateAgent = async (opts) => ({
+      sendMessage: async () => {
+        await sendGate;
+        opts.callbacks?.onAssistantContentUpdated?.({
+          messageId: "m1",
+          chunk: "",
+          stage: "end",
+        });
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const first = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "first" }),
+    });
+    expect(first.status).toBe(200);
+
+    // Wait until session is marked running (fire-and-forget starts synchronously).
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("running");
+
+    const second = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "second" }),
+    });
+    expect(second.status).toBe(409);
+
+    releaseSend();
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},
