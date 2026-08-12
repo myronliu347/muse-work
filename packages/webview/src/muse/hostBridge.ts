@@ -279,8 +279,10 @@ export function resolveMuseServerUrl(): string {
   const w = window as Window & {
     __MUSE_SERVER_URL__?: string;
     museServerUrl?: string;
+    museServerBaseUrl?: string;
   };
   return (
+    w.museServerBaseUrl ||
     w.__MUSE_SERVER_URL__ ||
     w.museServerUrl ||
     "http://127.0.0.1:8787"

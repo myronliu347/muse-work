@@ -1,4 +1,25 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "include": ["src/**/*"]
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/main/index.ts",
+    "src/main/preload.ts",
+    "src/main/serverProcess.ts",
+    "src/main/window.ts"
+  ],
+  "exclude": ["node_modules", "tests", "dist", "release", "webview"]
 }

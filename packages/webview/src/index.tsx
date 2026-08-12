@@ -12,7 +12,9 @@ declare global {
   interface Window {
     __MUSE_SERVER_URL__?: string;
     museServerUrl?: string;
+    museServerBaseUrl?: string;
     museWorkdir?: string;
+    waveHostType?: string;
   }
 }
 

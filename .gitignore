@@ -6,3 +6,5 @@ release
 coverage
 .vite
 webview/dist
+packages/desktop/webview/
+.pnpm-store/

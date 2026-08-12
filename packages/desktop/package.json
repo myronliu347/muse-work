@@ -1,12 +1,28 @@
 {
   "name": "@muse-work/desktop",
-  "version": "0.1.0",
   "private": true,
+  "description": "Muse Work desktop app (Electron)",
+  "version": "0.1.0",
   "type": "module",
+  "main": "./dist/main/index.cjs",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "build": "echo ok",
-    "dev": "echo ok",
-    "type-check": "echo ok",
-    "test": "echo ok"
+    "build": "pnpm run compile",
+    "compile": "pnpm run sync:webview && tsup",
+    "sync:webview": "node scripts/syncWebview.mjs",
+    "dev": "pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
+    "clean": "node -e \"import('fs').then(fs => ['dist', 'release', 'webview'].forEach(d => {try{fs.rmSync(d, {recursive:true, force:true})}catch(e){}}))\"",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.1",
+    "electron": "^43.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
