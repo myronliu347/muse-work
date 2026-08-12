@@ -1,0 +1,62 @@
+packages/provider/tests/provider.codemaker.test.ts
+  d4c5659cda080a4c 71,74-79,84,87
+packages/provider/src/index.ts
+  d4c5659cda080a4c 32,38-48
+packages/provider/src/codemaker/credentials.ts
+  d4c5659cda080a4c 86-92
+packages/provider/src/codemaker/login.ts
+  d4c5659cda080a4c 1-198
+packages/provider/src/codemaker/provider.ts
+  d4c5659cda080a4c 1,3,7-10,20-21,31-32,56-67,70-76,80-81
+packages/provider/tests/login.test.ts
+  d4c5659cda080a4c 1-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "49d69b3381e89a8e4b4f624407dc67416989cd8a",
+  "prompts": {
+    "d4c5659cda080a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b72d596c-38da-4bca-bbfa-9d0d6501ae16",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 384,
+      "total_deletions": 16,
+      "accepted_lines": 380,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/codemaker/login.ts": {
+          "additions": 202,
+          "deletions": 4,
+          "accepted_lines": 198
+        },
+        "packages/provider/src/codemaker/credentials.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 31,
+          "deletions": 9,
+          "accepted_lines": 31
+        },
+        "packages/provider/tests/provider.codemaker.test.ts": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/provider/tests/login.test.ts": {
+          "additions": 120,
+          "accepted_lines": 120
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
