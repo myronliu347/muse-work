@@ -9,7 +9,7 @@ import {
   type CodeMakerLoginStart,
 } from "./login.js";
 import { renewCodeMakerCredentials } from "./refresh.js";
-import { createCodeMakerFetch } from "./sign.js";
+import { createCodeMakerFetch, tokenHashPrefix } from "./sign.js";
 import type { CodeMakerCreds } from "./types.js";
 
 export const CODEMAKER_BASE_URL = "https://api-code-maker.nie.netease.com";
@@ -127,6 +127,7 @@ export function createCodeMakerProvider(
       }
       return {
         baseURL: `${CODEMAKER_BASE_URL}/openai/v1`,
+        credentialFingerprint: tokenHashPrefix(creds.accessToken),
         model: modelId,
         fetch: createCodeMakerFetch(creds),
       };

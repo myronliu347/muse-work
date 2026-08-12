@@ -16,6 +16,8 @@ export interface ModelInfo {
 export interface GatewayResolution {
   apiKey?: string;
   baseURL: string;
+  /** Stable hash/prefix of active credentials (e.g. access token); used to detect renew. */
+  credentialFingerprint?: string;
   defaultHeaders?: Record<string, string>;
   fetch?: typeof fetch;
   model: string;

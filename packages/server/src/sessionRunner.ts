@@ -53,10 +53,12 @@ export function createSessionRunner(
   const disposed = new Set<string>();
 
   function gatewayIdentity(gateway: GatewayResolution): string {
+    const credential =
+      gateway.credentialFingerprint ?? gateway.apiKey ?? "";
     return [
       gateway.baseURL,
       gateway.model,
-      gateway.apiKey ?? "",
+      credential,
       gateway.fastModel ?? "",
     ].join("\0");
   }
