@@ -201,6 +201,141 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("ensureSession creates for new workdir instead of foreign activeSessionId", async () => {
+    const foreign: MuseSession = {
+      ...baseSession,
+      id: "sess-foreign",
+      workdir: "/old-project",
+    };
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-new",
+      workdir: "/new-project",
+      title: "新对话",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [foreign],
+        activeSessionId: "sess-foreign",
+      })),
+      createSession: vi.fn(async (workdir: string) => ({
+        ...created,
+        workdir,
+      })),
+      selectSession: vi.fn(async (id: string) => ({
+        session: id === "sess-new" ? created : foreign,
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/old-project",
+    });
+
+    // Establish then clear sessionId via workdir change (as desktopSelectRecentWorkdir does).
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    expect(api.selectSession).toHaveBeenCalledWith("sess-foreign");
+    vi.mocked(api.selectSession).mockClear();
+    vi.mocked(api.createSession).mockClear();
+
+    bridge.postMessage({
+      command: "desktopSelectRecentWorkdir",
+      path: "/new-project",
+    });
+    await flush();
+
+    bridge.postMessage({ command: "sendMessage", text: "hello new workdir" });
+    await flush();
+
+    expect(api.createSession).toHaveBeenCalledWith("/new-project");
+    expect(api.selectSession).toHaveBeenCalledWith("sess-new");
+    expect(api.selectSession).not.toHaveBeenCalledWith("sess-foreign");
+    expect(api.sendMessage).toHaveBeenCalledWith("sess-new", "hello new workdir");
+  });
+
+  it("mergeRuntimeFields prefers API status over sticky local running", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [{ ...baseSession, status: "idle" as const }],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    handler!({
+      type: "session:status",
+      sessionId: "sess-active",
+      status: "running",
+    });
+    await flush();
+
+    const afterWs = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; running?: boolean }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      afterWs?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-active")?.running,
+    ).toBe(true);
+
+    messages.length = 0;
+    // pin triggers refreshTree; API still idle must clear sticky local running
+    bridge.postMessage({
+      command: "desktopTogglePinSession",
+      sessionId: "sess-active",
+      pinned: true,
+    });
+    await flush();
+
+    const afterRefresh = messages.find(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        (m as { command?: string }).command === "desktopSessionTree",
+    ) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; running?: boolean }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      afterRefresh?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-active")?.running,
+    ).toBe(false);
+  });
+
   it("non-focus session:status running only updates tree, not startStreaming", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

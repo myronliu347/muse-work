@@ -89,7 +89,8 @@ function mergeRuntimeFields(
     return {
       ...s,
       unreadDone: prev?.unreadDone ?? s.unreadDone,
-      running: prev?.running ?? s.status === "running",
+      // Prefer API status so refresh clears sticky local running.
+      running: s.status === "running",
       waitingConfirmation: prev?.waitingConfirmation,
     };
   });
@@ -530,11 +531,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
     const grouped = await api.listSessionsGrouped();
     applyGrouped(grouped);
-    if (grouped.activeSessionId) {
-      const { session } = await api.selectSession(grouped.activeSessionId);
-      sessionId = session.id;
-      emitCurrentSession(session);
-      return sessionId;
+    const activeId = grouped.activeSessionId;
+    if (activeId) {
+      const candidate =
+        grouped.pinned.find((s) => s.id === activeId) ??
+        grouped.recent.find((s) => s.id === activeId);
+      // Only reuse activeSessionId when it belongs to the current workdir.
+      if (candidate && candidate.workdir === (currentWorkdir || "/")) {
+        const { session } = await api.selectSession(activeId);
+        sessionId = session.id;
+        emitCurrentSession(session);
+        return sessionId;
+      }
     }
 
     const session = await api.createSession(currentWorkdir || "/");
