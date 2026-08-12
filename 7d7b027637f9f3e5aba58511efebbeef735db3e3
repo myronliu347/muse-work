@@ -1,0 +1,43 @@
+packages/server/tests/sessionRunner.test.ts
+  41cbcfbcfe163c4c 1-112
+packages/server/src/sessionRunner.ts
+  41cbcfbcfe163c4c 50-51,62-66,79-81,91-95,121-126,160-162,194-195,197-199,228
+packages/server/tests/sessions.ws.test.ts
+  41cbcfbcfe163c4c 175-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7d7b027637f9f3e5aba58511efebbeef735db3e3",
+  "prompts": {
+    "41cbcfbcfe163c4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aa61ce35-b435-4818-949c-d7fa58db2e37",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 217,
+      "total_deletions": 20,
+      "accepted_lines": 199,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 130,
+          "deletions": 18,
+          "accepted_lines": 112
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 33,
+          "deletions": 2,
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
