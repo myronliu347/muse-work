@@ -33,3 +33,17 @@ export {
   loadCodeMakerCredentials,
   saveCodeMakerCredentials,
 } from "./codemaker/credentials.js";
+
+export {
+  buildCanonicalString,
+  buildCodeMakerHeaders,
+  createCodeMakerFetch,
+  getSigningKey,
+  signCanonical,
+  tokenHashPrefix,
+} from "./codemaker/sign.js";
+
+export {
+  CODEMAKER_BASE_URL,
+  createCodeMakerProvider,
+} from "./codemaker/provider.js";
