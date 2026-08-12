@@ -29,7 +29,10 @@ import AgentsDialog from "./AgentsDialog";
 import WelcomeView from "./WelcomeView";
 import LoadingLogo from "./LoadingLogo";
 import { DesktopHostSelector } from "./DesktopHostSelector";
-import { DesktopSidebar } from "./DesktopSidebar";
+import {
+  DesktopSidebar,
+  resolveSidebarSessions,
+} from "./DesktopSidebar";
 import { DesktopShell } from "./DesktopShell";
 import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
@@ -2007,7 +2010,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       <ChatHeader
         onNewSession={handleClearChat}
-        newSessionDisabled={state.isStreaming}
+        newSessionDisabled={false}
         onAbortMessage={handleAbortMessage}
         messages={state.messages}
         sessions={state.sessions}
@@ -2097,11 +2100,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onLogout={handleLogout}
           isAuthenticated={state.isAuthenticated}
           hostLabel={effectiveHost}
-          sessionTree={host.sessionTree}
+          {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           currentSessionId={state.currentSession?.id}
           onSelectSession={host.onSelectSession}
           onOpenPane={host.onOpenPane}
           onDeleteSession={host.onDeleteSession}
+          onTogglePin={host.onTogglePin}
         />
         {chatContainer}
         {dialogs}

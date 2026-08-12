@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 
 // Suppress console output during tests to reduce noise
 vi.spyOn(console, "log").mockImplementation(() => {});

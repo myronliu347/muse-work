@@ -5,9 +5,13 @@ export default defineConfig({
     globals: true,
     reporter: "dot",
     environment: "node",
-    // Muse MVP: apiClient (+ future muse/*) only. Wave-era UI tests need
-    // wave-webview-fixtures which we intentionally dropped.
-    include: ["tests/apiClient.test.ts", "tests/muse/**/*.test.ts"],
+    // Muse MVP: apiClient + muse/* + sidebar component tests.
+    // Wave-era tests/webview/* still need fixtures we dropped.
+    include: [
+      "tests/apiClient.test.ts",
+      "tests/muse/**/*.test.ts",
+      "tests/components/**/*.test.tsx",
+    ],
     exclude: ["node_modules"],
     setupFiles: ["tests/setup.ts"],
     coverage: {

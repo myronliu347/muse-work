@@ -147,6 +147,17 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     [vscode],
   );
 
+  const handleTogglePin = useCallback(
+    (sessionId: string, pinned: boolean) => {
+      vscode.postMessage({
+        command: "desktopTogglePinSession",
+        sessionId,
+        pinned,
+      });
+    },
+    [vscode],
+  );
+
   const handleOpenPane = useCallback(
     (workdir: string, sessionId: string, opts?: OpenPaneOptions) => {
       vscode.postMessage({
@@ -187,6 +198,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         sessionTree,
         onSelectSession: handleSelectSession,
         onDeleteSession: handleDeleteSession,
+        onTogglePin: handleTogglePin,
         onOpenPane: handleOpenPane,
         panes,
         rowHeights,

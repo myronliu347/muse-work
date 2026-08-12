@@ -26,9 +26,17 @@ export interface DesktopSidebarProps {
    * more menu's 登录/退出登录 entry so it names the auth subject it acts on.
    */
   hostLabel?: string;
-  /** Session tree groups, one per recent directory (FR-020). */
-  sessionTree: DesktopSessionGroup[];
-  /** Active session id — gets the running dot while streaming. */
+  /**
+   * Legacy session tree groups. Prefer `pinnedSessions` / `recentSessions`.
+   * When those are omitted, pin/recent groups are derived from workdir
+   * `"pin"` / `"recent"` entries (Task 5 `buildSidebarModel`).
+   */
+  sessionTree?: DesktopSessionGroup[];
+  /** Sessions in the Pin section. */
+  pinnedSessions?: DesktopSessionEntry[];
+  /** Sessions in the 最近 section. */
+  recentSessions?: DesktopSessionEntry[];
+  /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
   visibleSessionIds?: string[];
@@ -37,26 +45,42 @@ export interface DesktopSidebarProps {
   onOpenPane: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index (also cleans up worktree if applicable). */
   onDeleteSession: (sessionId: string) => void;
+  /** Hover pin button: toggle pinned membership. */
+  onTogglePin: (sessionId: string, pinned: boolean) => void;
 }
 
 const dirName = (workdir: string): string =>
   workdir.split("/").filter(Boolean).pop() ?? workdir;
 
-// A group is identified by (host, workdir) — the same directory may exist on
-// the local machine and on an SSH host, and those are distinct groups (spec
-// docs/specs/ui/desktop-app.md 「SSH 远程主机」scenario 9).
-const groupKey = (group: DesktopSessionGroup): string =>
-  `${group.host}:${group.workdir}`;
-
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().startsWith("MAC");
 
+/** Resolve pin/recent lists from explicit props or legacy sessionTree groups. */
+export function resolveSidebarSessions(props: {
+  sessionTree?: DesktopSessionGroup[];
+  pinnedSessions?: DesktopSessionEntry[];
+  recentSessions?: DesktopSessionEntry[];
+}): {
+  pinnedSessions: DesktopSessionEntry[];
+  recentSessions: DesktopSessionEntry[];
+} {
+  if (props.pinnedSessions !== undefined || props.recentSessions !== undefined) {
+    return {
+      pinnedSessions: props.pinnedSessions ?? [],
+      recentSessions: props.recentSessions ?? [],
+    };
+  }
+  const tree = props.sessionTree ?? [];
+  return {
+    pinnedSessions: tree.find((g) => g.workdir === "pin")?.sessions ?? [],
+    recentSessions: tree.find((g) => g.workdir === "recent")?.sessions ?? [],
+  };
+}
+
 /**
- * Left rail for the desktop host: app title, "新对话" button, and the session
- * history tree (FR-020) — one collapsible group per recent directory holding up
- * to 5 recent sessions. Clicking a session restores it (switching workdir first
- * when it lives in another directory).
+ * Left rail for the desktop host: app title, "新对话" button, and the global
+ * pin / 最近 session list (spec §7).
  */
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onNewSession,
@@ -69,16 +93,15 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isAuthenticated,
   hostLabel,
   sessionTree,
+  pinnedSessions: pinnedProp,
+  recentSessions: recentProp,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
   onOpenPane,
   onDeleteSession,
+  onTogglePin,
 }) => {
-  // Explicit expand/collapse overrides; groups without an entry are expanded
-  // by default — the tree starts fully expanded on every app launch (expansion
-  // state is not persisted).
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   // Session awaiting delete confirmation; non-null shows the ConfirmDialog.
   const [pendingDelete, setPendingDelete] = useState<{
@@ -87,45 +110,37 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     description?: string;
   } | null>(null);
 
-  const isExpanded = (group: DesktopSessionGroup): boolean =>
-    overrides[groupKey(group)] ?? true;
+  const { pinnedSessions, recentSessions } = resolveSidebarSessions({
+    sessionTree,
+    pinnedSessions: pinnedProp,
+    recentSessions: recentProp,
+  });
 
-  const toggleGroup = (group: DesktopSessionGroup) => {
-    setOverrides((prev) => ({
-      ...prev,
-      [groupKey(group)]: !(prev[groupKey(group)] ?? true),
-    }));
-  };
-
-  const renderSession = (
-    group: DesktopSessionGroup,
-    session: DesktopSessionEntry,
-  ) => {
-    // FR-031 multi-session parallel: the host derives `session.running` for every
-    // live session; the active one also falls back to the local streaming flag so
-    // its dot appears without waiting for the next tree refresh.
+  const renderSession = (session: DesktopSessionEntry) => {
+    // Prefer host-derived running; fall back to local streaming for the
+    // focused session so the spinner appears before the next tree refresh.
     const running =
       session.running ||
       (session.sessionId === currentSessionId && isStreaming);
-    // Waiting takes precedence: a session blocked on user confirmation is not
-    // meaningfully "running", and it needs attention more than the running dot.
+    // Waiting takes precedence over running.
     const waiting = session.waitingConfirmation ?? false;
     const isCurrent = session.sessionId === currentSessionId;
-    // A session displayed in a non-focused pane gets the weak highlight.
     const isVisible =
       !isCurrent && (visibleSessionIds?.includes(session.sessionId) ?? false);
+    const showUnread = Boolean(session.unreadDone) && !isCurrent;
+    const workdir = session.workdir ?? "";
+    const shortName = workdir ? dirName(workdir) : "";
+
     return (
       <li
         key={session.sessionId}
         className={`desktop-session-item${isCurrent ? " desktop-session-item--current" : ""}${isVisible ? " desktop-session-item--visible" : ""}`}
         draggable
         onDragStart={(e) => {
-          // Drag into the chat area opens the session in a new pane (drop on a
-          // pane gap inserts there, anywhere else appends at the right end).
           e.dataTransfer.setData(
             SESSION_DRAG_MIME,
             JSON.stringify({
-              workdir: group.workdir,
+              workdir,
               sessionId: session.sessionId,
             }),
           );
@@ -136,39 +151,55 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           }
         }}
         onClick={(e) => {
-          // Cmd on macOS / Ctrl elsewhere opens the session in a new pane to
-          // the right; a plain click keeps the replace-focused-pane behavior.
           if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
-            onOpenPane(group.workdir, session.sessionId);
+            onOpenPane(workdir, session.sessionId);
           } else {
-            onSelectSession(group.workdir, session.sessionId);
+            onSelectSession(workdir, session.sessionId);
           }
         }}
         data-testid={`desktop-session-item-${session.sessionId}`}
       >
-        {running || waiting ? (
-          <i
-            className={`codicon codicon-${waiting ? "bell" : "loading codicon-modifier-spin"} desktop-session-status-icon`}
-            style={{
-              color: waiting
-                ? "var(--vscode-charts-purple, #b180d7)"
-                : "var(--vscode-charts-blue, #59a4f9)",
-            }}
-            title={waiting ? "等待确认" : "正在运行"}
-          />
-        ) : (
-          <span className="desktop-session-dot" aria-hidden="true" />
-        )}
-        <span className="desktop-session-title">
-          {session.title || "新对话"}
+        <span className="desktop-session-status-slot" aria-hidden="true">
+          {running || waiting ? (
+            <i
+              className={`codicon codicon-${waiting ? "bell" : "loading codicon-modifier-spin"} desktop-session-status-icon`}
+              style={{
+                color: waiting
+                  ? "var(--vscode-charts-purple, #b180d7)"
+                  : "var(--vscode-charts-blue, #59a4f9)",
+              }}
+              title={waiting ? "等待确认" : "正在运行"}
+            />
+          ) : showUnread ? (
+            <span className="desktop-session-unread-dot" />
+          ) : null}
         </span>
+        <span className="desktop-session-text">
+          <span className="desktop-session-title">
+            {session.title || "新对话"}
+          </span>
+          {shortName ? (
+            <span className="desktop-session-workdir" title={workdir}>
+              {shortName}
+            </span>
+          ) : null}
+        </span>
+        <button
+          className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
+          title={session.pinned ? "取消置顶" : "置顶"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin(session.sessionId, !session.pinned);
+          }}
+          data-testid={`desktop-session-pin-${session.sessionId}`}
+        >
+          <span className="codicon codicon-pinned"></span>
+        </button>
         <button
           className="desktop-session-delete"
           title="删除会话"
           onClick={(e) => {
             e.stopPropagation();
-            // Worktree sessions warn about the worktree dir + temp branch and
-            // the loss of uncommitted changes.
             const label = session.title || "新对话";
             setPendingDelete({
               sessionId: session.sessionId,
@@ -185,6 +216,26 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       </li>
     );
   };
+
+  const renderSection = (
+    key: "pin" | "recent",
+    label: string,
+    sessions: DesktopSessionEntry[],
+  ) => (
+    <div
+      className="desktop-session-section"
+      data-testid={`desktop-session-section-${key}`}
+    >
+      <div className="desktop-session-section-header">{label}</div>
+      {sessions.length === 0 ? (
+        <div className="desktop-session-empty">无会话</div>
+      ) : (
+        <ul className="desktop-session-items">
+          {sessions.map((session) => renderSession(session))}
+        </ul>
+      )}
+    </div>
+  );
 
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
@@ -207,8 +258,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           onLogin={onLogin}
           onLogout={onLogout}
           isAuthenticated={isAuthenticated}
-          // Only remote hosts get annotated — the local host is the default
-          // subject, so its 登录/退出登录 entry stays unlabeled.
           hostLabel={hostLabel === "local" ? undefined : hostLabel}
           onClose={() => setShowMoreMenu(false)}
         />
@@ -216,16 +265,13 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <button
         className="desktop-sidebar-new-chat"
         onClick={(e) => {
-          // Cmd on macOS / Ctrl elsewhere opens the new session side-by-side
-          // in a fresh pane; a plain click keeps the replace-focused-pane
-          // behavior (same branching as session items above).
           if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
             onNewSessionInPane();
           } else {
             onNewSession();
           }
         }}
-        // 新对话在会话运行（streaming）期间也可用 — 多会话并行，旧会话在后台继续生成（FR-031）。
+        // 新对话仅在无 workdir 时禁用；streaming 中也可开新会话（spec §7）。
         disabled={disabled}
         title={
           isMacPlatform()
@@ -238,47 +284,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <span>新对话</span>
       </button>
       <div className="desktop-session-tree" data-testid="desktop-session-tree">
-        {sessionTree.map((group) => {
-          const expanded = isExpanded(group);
-          return (
-            <div
-              key={groupKey(group)}
-              className="desktop-session-group"
-              data-testid={`desktop-session-group-${groupKey(group)}`}
-            >
-              <div
-                className="desktop-session-group-header"
-                onClick={() => toggleGroup(group)}
-                title={group.workdir}
-              >
-                <span
-                  className={`codicon codicon-chevron-${expanded ? "down" : "right"}`}
-                ></span>
-                <span className="desktop-session-group-name">
-                  {dirName(group.workdir)}
-                </span>
-                {group.host !== "local" && (
-                  <span
-                    className="desktop-session-group-host"
-                    title={group.host}
-                  >
-                    {group.host}
-                  </span>
-                )}
-              </div>
-              {expanded &&
-                (group.sessions.length === 0 ? (
-                  <div className="desktop-session-empty">无会话</div>
-                ) : (
-                  <ul className="desktop-session-items">
-                    {group.sessions.map((session) =>
-                      renderSession(group, session),
-                    )}
-                  </ul>
-                ))}
-            </div>
-          );
-        })}
+        {renderSection("pin", "Pin", pinnedSessions)}
+        {renderSection("recent", "最近", recentSessions)}
       </div>
       {pendingDelete && (
         <ConfirmDialog

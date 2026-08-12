@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { ChatApp } from "./ChatApp";
-import { DesktopSidebar, SESSION_DRAG_MIME } from "./DesktopSidebar";
+import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import type {
   DesktopHostProps,
   DesktopPane,
@@ -627,12 +627,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onLogout={onLogout}
         isAuthenticated={isAuthenticated}
         hostLabel={focusedHost}
-        sessionTree={host.sessionTree}
+        {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
         currentSessionId={focusedSessionId}
         visibleSessionIds={visibleSessionIds}
         onSelectSession={host.onSelectSession}
         onOpenPane={handleOpenPane}
         onDeleteSession={host.onDeleteSession}
+        onTogglePin={host.onTogglePin}
       />
       <div
         className="desktop-pane-rows"

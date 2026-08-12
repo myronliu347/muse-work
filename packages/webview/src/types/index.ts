@@ -271,6 +271,8 @@ export interface DesktopHostProps {
   onSelectSession: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index; also removes worktree+branch if applicable. */
   onDeleteSession: (sessionId: string) => void;
+  /** Toggle pin membership for a sidebar session. */
+  onTogglePin: (sessionId: string, pinned: boolean) => void;
   /**
    * Open a session in a new pane (Cmd/Ctrl+Click on a sidebar session, or drag
    * one into the chat area). When the session is already shown, the host

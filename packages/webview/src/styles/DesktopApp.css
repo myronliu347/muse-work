@@ -86,7 +86,7 @@
   cursor: not-allowed;
 }
 
-/* ---- Sidebar session tree (FR-020) ---- */
+/* ---- Sidebar session list (pin / 最近) ---- */
 
 .desktop-session-tree {
   flex: 1;
@@ -94,49 +94,16 @@
   padding: 0 6px 8px;
 }
 
-.desktop-session-group-header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.desktop-session-section + .desktop-session-section {
+  margin-top: 8px;
+}
+
+.desktop-session-section-header {
   padding: 4px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--vscode-foreground);
-  user-select: none;
-}
-
-.desktop-session-group-header:hover {
-  background: var(--vscode-list-hoverBackground);
-}
-
-.desktop-session-group-header .codicon {
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.desktop-session-group-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 11px;
   font-weight: 600;
-}
-
-/* SSH host tag on a remote session group's header (spec 「SSH 远程主机」): a
-   small pill distinguishing remote groups from same-named local ones. */
-.desktop-session-group-host {
-  flex-shrink: 0;
-  margin-left: auto;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  font-weight: 400;
-  padding: 0 5px;
-  border-radius: 8px;
-  background: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
+  opacity: 0.7;
+  user-select: none;
 }
 
 .desktop-session-items {
@@ -152,7 +119,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px 4px 20px;
+  padding: 4px 6px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -173,9 +140,20 @@
   background: var(--vscode-list-inactiveSelectionBackground);
 }
 
-.desktop-session-dot {
+.desktop-session-status-slot {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-session-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vscode-charts-blue, #59a4f9);
   flex-shrink: 0;
 }
 
@@ -190,13 +168,29 @@
   height: 16px;
 }
 
-.desktop-session-title {
+.desktop-session-text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.desktop-session-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.desktop-session-workdir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.desktop-session-pin,
 .desktop-session-delete {
   display: none;
   flex-shrink: 0;
@@ -210,18 +204,24 @@
   line-height: 1;
 }
 
-.desktop-session-item:hover .desktop-session-delete {
+.desktop-session-item:hover .desktop-session-pin,
+.desktop-session-item:hover .desktop-session-delete,
+.desktop-session-pin--active {
   display: inline-flex;
   align-items: center;
 }
 
+.desktop-session-pin:hover,
 .desktop-session-delete:hover {
   opacity: 1;
+}
+
+.desktop-session-delete:hover {
   color: var(--vscode-errorForeground, #f14c4c);
 }
 
 .desktop-session-empty {
-  padding: 4px 6px 4px 20px;
+  padding: 4px 6px 4px 22px;
   font-size: 12px;
   opacity: 0.6;
 }
