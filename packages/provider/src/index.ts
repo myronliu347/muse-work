@@ -29,10 +29,23 @@ export { createOpenAiCompatibleProvider } from "./openaiCompatible.js";
 export type { CodeMakerCreds } from "./codemaker/types.js";
 
 export {
+  clearCodeMakerCredentials,
   isExpired,
   loadCodeMakerCredentials,
   saveCodeMakerCredentials,
 } from "./codemaker/credentials.js";
+
+export {
+  beginCodeMakerLogin,
+  CODEMAKER_API_BASE_URL,
+  CODEMAKER_AUTH_API_URL,
+  CODEMAKER_AUTH_KEY_PATH,
+  CODEMAKER_LOGIN_INFO_PATH,
+  CODEMAKER_LOGIN_PATH,
+  CODEMAKER_TOKEN_EXCHANGE_PATH,
+  type BeginCodeMakerLoginOptions,
+  type CodeMakerLoginStart,
+} from "./codemaker/login.js";
 
 export {
   buildCanonicalString,

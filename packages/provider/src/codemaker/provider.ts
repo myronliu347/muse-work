@@ -1,20 +1,24 @@
-import type { AiProvider, CodeMakerProviderConfig } from "../types.js";
+import type { AiProvider, AuthStatus, CodeMakerProviderConfig } from "../types.js";
 import {
+  clearCodeMakerCredentials,
   isExpired,
   loadCodeMakerCredentials,
 } from "./credentials.js";
+import {
+  beginCodeMakerLogin,
+  type CodeMakerLoginStart,
+} from "./login.js";
 import { createCodeMakerFetch } from "./sign.js";
 import type { CodeMakerCreds } from "./types.js";
 
 export const CODEMAKER_BASE_URL = "https://api-code-maker.nie.netease.com";
 
-const LOGIN_STUB_MESSAGE =
-  "CodeMaker SSO login is not implemented yet (Task 6)";
-
 export interface CodeMakerProviderDeps {
   getConfig: () => CodeMakerProviderConfig;
   loadCredentials?: () => CodeMakerCreds | null;
   home?: string;
+  openBrowser?: (url: string) => void;
+  fetch?: typeof fetch;
 }
 
 export function createCodeMakerProvider(
@@ -23,6 +27,8 @@ export function createCodeMakerProvider(
   const loadCredentials =
     deps.loadCredentials ??
     (() => loadCodeMakerCredentials(deps.home));
+
+  let activeLogin: CodeMakerLoginStart | null = null;
 
   return {
     id: "codemaker",
@@ -47,16 +53,32 @@ export function createCodeMakerProvider(
       };
     },
 
-    async beginLogin() {
-      throw new Error(LOGIN_STUB_MESSAGE);
+    async beginLogin(opts?: { openBrowser?: (url: string) => void }) {
+      const start = await beginCodeMakerLogin({
+        home: deps.home,
+        loadCredentials,
+        openBrowser: opts?.openBrowser ?? deps.openBrowser,
+        fetch: deps.fetch,
+      });
+      activeLogin = start;
+      if ("reused" in start && start.reused) {
+        return { reused: true };
+      }
+      return { authUrl: (start as { authUrl: string }).authUrl };
     },
 
-    async completeLogin() {
-      throw new Error(LOGIN_STUB_MESSAGE);
+    async completeLogin(): Promise<AuthStatus> {
+      if (!activeLogin) {
+        throw new Error("No CodeMaker login in progress; call beginLogin first");
+      }
+      const status = await activeLogin.waitUntilComplete();
+      activeLogin = null;
+      return status;
     },
 
     async logout() {
-      // Task 6: clear muse auth; no-op for now
+      clearCodeMakerCredentials(deps.home);
+      activeLogin = null;
     },
 
     async listModels() {

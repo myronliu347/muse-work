@@ -68,12 +68,20 @@ describe("createCodeMakerProvider", () => {
     expect((await expired.getAuthStatus()).state).toBe("expired");
   });
 
-  it("login stubs throw until Task 6", async () => {
+  it("beginLogin reuses valid credentials", async () => {
+    const p = createCodeMakerProvider({
+      getConfig: () => ({ enabled: true, models }),
+      loadCredentials: () => validCreds,
+    });
+    await expect(p.beginLogin()).resolves.toEqual({ reused: true });
+  });
+
+  it("completeLogin requires beginLogin first", async () => {
     const p = createCodeMakerProvider({
       getConfig: () => ({ enabled: true, models }),
       loadCredentials: () => null,
     });
-    await expect(p.beginLogin()).rejects.toThrow(/Task 6|not implemented/i);
-    await expect(p.completeLogin({})).rejects.toThrow(/Task 6|not implemented/i);
+    await expect(p.completeLogin({})).rejects.toThrow(/beginLogin/i);
   });
 });
+

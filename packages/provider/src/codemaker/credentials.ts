@@ -83,6 +83,13 @@ export function saveCodeMakerCredentials(
   fs.chmodSync(musePath, 0o600);
 }
 
+export function clearCodeMakerCredentials(home = os.homedir()): void {
+  const musePath = getCodeMakerAuthPath(home);
+  if (fs.existsSync(musePath)) {
+    fs.unlinkSync(musePath);
+  }
+}
+
 export function isExpired(
   creds: CodeMakerCreds,
   now = Date.now(),
