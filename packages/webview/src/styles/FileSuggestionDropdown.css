@@ -58,6 +58,21 @@
   gap: 2px;
 }
 
+.suggestion-item.search-row .suggestion-content {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.suggestion-item.search-row .suggestion-path {
+  margin-left: auto;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
 .suggestion-name {
   color: var(--vscode-foreground);
   font-weight: 500;
@@ -116,4 +131,59 @@
 .suggestion-item.kb-option .suggestion-path {
   color: var(--vscode-button-secondaryForeground);
   opacity: 0.8;
+}
+
+.suggestion-breadcrumb {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--vscode-dropdown-border);
+  background: var(--vscode-dropdown-background);
+  font-size: 12px;
+}
+
+.suggestion-crumb {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.suggestion-crumb-sep {
+  font-size: 10px;
+  opacity: 0.5;
+  margin: 0 2px;
+}
+
+.suggestion-crumb-btn {
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 0 2px;
+  font: inherit;
+}
+
+.suggestion-crumb-btn:hover {
+  color: var(--vscode-foreground);
+  text-decoration: underline;
+}
+
+.suggestion-enter {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.suggestion-enter:hover {
+  color: var(--vscode-foreground);
 }

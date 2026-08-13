@@ -481,6 +481,9 @@ export interface FileSuggestionDropdownProps {
   position: { top: number; left: number };
   filterText: string;
   isLoading?: boolean;
+  browsePath?: string;
+  onEnterDirectory?: (file: FileItem) => void;
+  onBrowseTo?: (path: string) => void;
 }
 
 /** Desktop conversation-level side panels. VSCE/JetBrains hosts never render these. */

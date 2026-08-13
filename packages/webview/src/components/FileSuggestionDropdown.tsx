@@ -1,13 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { FileSuggestionDropdownProps, FileItem } from "../types";
+import { breadcrumbCrumbs } from "../utils/fileMentionBrowse";
 import "../styles/FileSuggestionDropdown.css";
 
-/**
- * FileSuggestionDropdown - A dropdown component for file suggestions
- *
- * This component displays a list of file suggestions when the user types @ in the message input.
- * It supports keyboard navigation and file icons using VS Code's codicon font.
- */
 export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
   suggestions,
   isVisible,
@@ -17,10 +12,13 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
   position,
   filterText,
   isLoading = false,
+  browsePath = "",
+  onEnterDirectory,
+  onBrowseTo,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isBrowse = filterText === "";
 
-  // Handle clicks outside dropdown to close it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -38,39 +36,25 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
     }
   }, [isVisible, onClose]);
 
-  // Scroll selected item into view
   useEffect(() => {
-    if (dropdownRef.current && selectedIndex >= 0) {
-      if (selectedIndex < dropdownRef.current.children.length) {
-        const selectedElement = dropdownRef.current.children[
-          selectedIndex
-        ] as HTMLElement;
-        if (selectedElement) {
-          selectedElement.scrollIntoView({
-            block: "nearest",
-            behavior: "smooth",
-          });
-        }
-      }
-    }
+    if (!dropdownRef.current || selectedIndex < 0) return;
+    const items = dropdownRef.current.querySelectorAll(
+      ".suggestion-item:not(.suggestion-empty)",
+    );
+    const selectedElement = items[selectedIndex] as HTMLElement | undefined;
+    selectedElement?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedIndex]);
 
   if (!isVisible) {
     return null;
   }
 
-  /**
-   * Highlights matching text in the file name based on filter text
-   */
   const highlightMatch = (text: string, filter: string): React.ReactNode => {
     if (!filter) return text;
-
     const lowerText = text.toLowerCase();
     const lowerFilter = filter.toLowerCase();
     const index = lowerText.indexOf(lowerFilter);
-
     if (index === -1) return text;
-
     return (
       <>
         {text.slice(0, index)}
@@ -82,69 +66,93 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
     );
   };
 
-  /**
-   * Truncates long file paths for display
-   */
-  const truncatePath = (path: string, maxLength: number = 50): string => {
-    if (path.length <= maxLength) return path;
-    return "..." + path.slice(path.length - maxLength + 3);
-  };
-
   return (
     <div
       ref={dropdownRef}
-      className="file-suggestion-dropdown"
+      className={`file-suggestion-dropdown${isBrowse ? " is-browse" : " is-search"}`}
       style={{
         position: "absolute",
         top: `${position.top}px`,
         left: `${position.left}px`,
       }}
     >
+      {isBrowse && (
+        <div className="suggestion-breadcrumb" data-testid="suggestion-breadcrumb">
+          {breadcrumbCrumbs(browsePath).map((crumb, i) => (
+            <span key={`${crumb.path}-${i}`} className="suggestion-crumb">
+              {i > 0 && (
+                <span className="suggestion-crumb-sep codicon codicon-chevron-right" />
+              )}
+              <button
+                type="button"
+                className="suggestion-crumb-btn"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onBrowseTo?.(crumb.path)}
+              >
+                {crumb.label}
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       {suggestions.map((file: FileItem, index: number) => (
         <div
           key={file.path}
-          className={`suggestion-item ${index === selectedIndex ? "selected" : ""}`}
+          className={`suggestion-item${isBrowse ? "" : " search-row"}${
+            index === selectedIndex ? " selected" : ""
+          }`}
           onClick={() => onSelect(file)}
-          onMouseEnter={() => {
-            // Optional: Update selected index on hover
-            // This would need to be handled by parent component
-          }}
         >
           <span className={`suggestion-icon codicon ${file.icon}`}></span>
           <div className="suggestion-content">
             <div className="suggestion-name">
+              {filterText ? <span hidden>{file.name}</span> : null}
               {highlightMatch(file.name, filterText)}
             </div>
-            <div className="suggestion-path">
-              {truncatePath(file.relativePath)}
-            </div>
+            {!isBrowse && (
+              <div className="suggestion-path">{file.relativePath}</div>
+            )}
           </div>
+          {isBrowse && file.isDirectory && (
+            <button
+              type="button"
+              className="suggestion-enter"
+              data-testid={`suggestion-enter-${file.name}`}
+              aria-label={`进入 ${file.name}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEnterDirectory?.(file);
+              }}
+            >
+              <span className="codicon codicon-chevron-right" />
+            </button>
+          )}
         </div>
       ))}
+
       {isLoading && suggestions.length === 0 && (
         <div className="suggestion-item suggestion-empty">
           <span className="codicon codicon-loading"></span>
           <div className="suggestion-content">
             <div className="suggestion-name">正在搜索文件...</div>
-            <div className="suggestion-path">请稍等</div>
           </div>
         </div>
       )}
-      {!isLoading && suggestions.length === 0 && filterText && (
+      {!isLoading && suggestions.length === 0 && !isBrowse && (
         <div className="suggestion-item suggestion-empty">
           <span className="codicon codicon-search"></span>
           <div className="suggestion-content">
             <div className="suggestion-name">未找到匹配的文件</div>
-            <div className="suggestion-path">尝试修改搜索关键词</div>
           </div>
         </div>
       )}
-      {!isLoading && suggestions.length === 0 && !filterText && (
+      {!isLoading && suggestions.length === 0 && isBrowse && (
         <div className="suggestion-item suggestion-empty">
           <span className="codicon codicon-folder"></span>
           <div className="suggestion-content">
-            <div className="suggestion-name">开始输入文件名</div>
-            <div className="suggestion-path">输入文件名或路径进行搜索</div>
+            <div className="suggestion-name">此目录为空</div>
           </div>
         </div>
       )}
