@@ -117,5 +117,15 @@ describe("resolveFileMentionKey", () => {
         selectedIndex: 0,
       }),
     ).toBeNull();
+
+    expect(
+      resolveFileMentionKey({
+        key: "Backspace",
+        filterText: "s",
+        browsePath: "src",
+        suggestions: [file],
+        selectedIndex: 0,
+      }),
+    ).toBeNull();
   });
 });

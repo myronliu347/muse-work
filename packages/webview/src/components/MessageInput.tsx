@@ -306,6 +306,21 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [],
     );
 
+    const readLiveAtMention = useCallback((): AtMentionState | null => {
+      if (!textareaRef.current) return null;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return null;
+
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(textareaRef.current);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+      const textBeforeCursor = preCaretRange.toString();
+      return detectAtMention(textBeforeCursor, textBeforeCursor.length);
+    }, [detectAtMention]);
+
     // Calculate dropdown position based on cursor
     const calculateDropdownPosition = useCallback(() => {
       if (!textareaRef.current) return { top: 0, left: 0 };
@@ -654,10 +669,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
         // Handle dropdown navigation
         if (atMention.isActive) {
+          const liveMention = readLiveAtMention();
+          const liveFilterText =
+            liveMention?.filterText ?? atMention.filterText;
           const action = resolveFileMentionKey({
             key: event.key,
-            filterText: atMention.filterText,
-            browsePath: browsePathRef.current,
+            filterText: liveFilterText,
+            browsePath: liveFilterText ? "" : browsePathRef.current,
             suggestions,
             selectedIndex,
           });
@@ -724,6 +742,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         vscode,
         isStreaming,
         onAbortMessage,
+        readLiveAtMention,
       ],
     );
 
@@ -825,6 +844,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }, 150);
 
         // Debounced selection change detection (for @mention)
+        const liveMention = readLiveAtMention();
+        if (liveMention?.filterText) {
+          setBrowsePathBoth("");
+        }
         handleSelectionChange();
       },
       [
@@ -833,6 +856,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         editingQueuedId,
         onCancelQueuedEdit,
         sessionId,
+        readLiveAtMention,
+        setBrowsePathBoth,
       ],
     );
 
