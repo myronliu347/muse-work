@@ -76,4 +76,22 @@ describe("sessions HTTP routes", () => {
     expect(aGet.model).toBe("m1-updated");
     expect(bGet.model).toBe("m2");
   });
+
+  it("POST /sessions/:id/abort returns ok", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", model: "m1" }),
+    }).then((r) => r.json());
+
+    const res = await fetch(`${app.baseUrl}/sessions/${created.id}/abort`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
 });

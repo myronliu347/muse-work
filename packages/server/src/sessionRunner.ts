@@ -36,6 +36,8 @@ const TITLE_MAX_LEN = 40;
 export interface SessionAgent {
   sendMessage(content: string): Promise<void>;
   dispose(): Promise<void>;
+  /** Interrupt in-flight AI / tools / bash (SDK abortMessage). */
+  abortMessage?: () => void;
   /** Optional SDK message snapshot (used after compaction). */
   getMessages?: () => unknown[];
   /** Wave session id when available (SDK agent or test stub). */
@@ -46,6 +48,7 @@ export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
 
 export interface SessionRunner {
   sendMessage(sessionId: string, content: string): Promise<{ accepted: true }>;
+  abortMessage(sessionId: string): Promise<{ ok: true }>;
   respondPermission(
     sessionId: string,
     permissionId: string,
@@ -86,6 +89,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
     );
     return {
       sendMessage: (content: string) => agent.sendMessage(content),
+      abortMessage: () => agent.abortMessage(),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
       getMessages: () => agent.messages,
@@ -460,6 +464,8 @@ export function createSessionRunner(
         },
         onErrorBlockAdded: (error) => {
           if (disposed.has(sessionId)) return;
+          // User-initiated abort surfaces as "Request was aborted" — not a session error.
+          if (isAbortError(error)) return;
           hub.broadcast(sessionId, {
             type: "session:status",
             status: "error",
@@ -742,6 +748,14 @@ export function createSessionRunner(
       if (disposed.has(sessionId) || !store.get(sessionId)) {
         return;
       }
+      if (isAbortError(err)) {
+        agentLoading.set(sessionId, false);
+        if (!turnEnded.get(sessionId)) {
+          hub.broadcast(sessionId, { type: "message:completed" });
+        }
+        markIdle(sessionId);
+        return;
+      }
       if (isUnauthorized(err)) {
         await handleUnauthorized(sessionId);
         return;
@@ -750,6 +764,14 @@ export function createSessionRunner(
     } finally {
       // Drain only after this turn's sendMessage has settled (avoids overlapping turns).
       void drainQueue(sessionId);
+    }
+  }
+
+  function denyPendingPermissions(sessionId: string, message: string): void {
+    for (const [id, entry] of pending) {
+      if (entry.sessionId !== sessionId) continue;
+      pending.delete(id);
+      entry.resolve({ behavior: "deny", message });
     }
   }
 
@@ -774,6 +796,33 @@ export function createSessionRunner(
       void runTurn(sessionId, content);
 
       return { accepted: true };
+    },
+
+    async abortMessage(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+
+      // Unblock canUseTool waiters so the in-flight turn can settle.
+      denyPendingPermissions(sessionId, "Aborted by user");
+
+      const agent = agents.get(sessionId);
+      agent?.abortMessage?.();
+
+      agentLoading.set(sessionId, false);
+      hub.broadcast(sessionId, { type: "loading", loading: false });
+      if (!turnEnded.get(sessionId)) {
+        hub.broadcast(sessionId, { type: "message:completed" });
+        turnEnded.set(sessionId, true);
+      }
+      // If the SDK already flipped loading via abort, markIdle is a no-op.
+      // If there is no agent yet (turn still creating), still clear running.
+      markIdle(sessionId);
+
+      return { ok: true };
     },
 
     async respondPermission(sessionId, permissionId, decision) {
@@ -867,6 +916,20 @@ function isUnauthorized(err: unknown): boolean {
     return true;
   }
   return false;
+}
+
+function isAbortError(err: unknown): boolean {
+  if (typeof err === "string") {
+    return /aborted/i.test(err);
+  }
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  const e = err as { name?: string; message?: string };
+  if (e.name === "AbortError") {
+    return true;
+  }
+  return typeof e.message === "string" && /aborted/i.test(e.message);
 }
 
 function safeJson(value: unknown): string {

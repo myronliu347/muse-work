@@ -265,4 +265,96 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => createCount).toBe(2);
     expect(disposeCount).toBe(1);
   });
+
+  it("abortMessage stops the in-flight agent and marks session idle", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-abort-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    let abortCalls = 0;
+    let releaseSend!: () => void;
+    const sendStarted = Promise.withResolvers<void>();
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const events: Array<{ type: string; loading?: boolean; status?: string }> =
+      [];
+    const originalBroadcast = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      events.push(event as { type: string; loading?: boolean; status?: string });
+      return originalBroadcast(sessionId, event);
+    };
+
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      createAgent: async () => ({
+        sendMessage: async () => {
+          sendStarted.resolve();
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+        },
+        abortMessage: () => {
+          abortCalls += 1;
+          releaseSend();
+        },
+        dispose: async () => {},
+      }),
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await sendStarted.promise;
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+
+    await runner.abortMessage(session.id);
+    expect(abortCalls).toBe(1);
+    expect(store.get(session.id)?.status).toBe("idle");
+    expect(events.some((e) => e.type === "loading" && e.loading === false)).toBe(
+      true,
+    );
+    expect(
+      events.some((e) => e.type === "session:status" && e.status === "idle"),
+    ).toBe(true);
+
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+  });
 });

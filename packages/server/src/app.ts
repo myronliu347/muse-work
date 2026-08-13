@@ -16,6 +16,7 @@ import {
   handleSetActive,
 } from "./routes/providers.js";
 import {
+  handleAbortMessage,
   handleCreateSession,
   handleDeleteSession,
   handleGetMessages,
@@ -151,6 +152,17 @@ async function routeRequest(
       await handleSendMessage(req, res, ctx, sessionId);
       return;
     }
+  }
+
+  const abortMatch = pathname.match(/^\/sessions\/([^/]+)\/abort$/);
+  if (method === "POST" && abortMatch) {
+    await handleAbortMessage(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(abortMatch[1]!),
+    );
+    return;
   }
 
   const permissionMatch = pathname.match(

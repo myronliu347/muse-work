@@ -878,6 +878,29 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  async function handleAbortMessage(): Promise<void> {
+    // Optimistic UI: hide stop button immediately while the server aborts.
+    if (streamingMessageId) {
+      postToWebview({
+        command: "updateStreamingContent",
+        messageId: streamingMessageId,
+        chunk: "",
+        stage: "end",
+      });
+    }
+    loading = false;
+    streamingMessageId = null;
+    knownAssistantIds.clear();
+    postToWebview({ command: "endStreaming" });
+
+    if (!sessionId || pendingNewSession) return;
+    try {
+      await api.abortMessage(sessionId);
+    } catch {
+      // Server may already be idle; UI is already stopped.
+    }
+  }
+
   async function handleConfirmationResponse(msg: {
     confirmationId?: string;
     approved?: boolean;
@@ -1051,6 +1074,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "sendMessage":
           void handleSendMessage(msg as { text?: string });
+          return;
+        case "abortMessage":
+          void handleAbortMessage();
           return;
         case "desktopCreateWorktree": {
           // ChatApp routes the first empty-session message here when the

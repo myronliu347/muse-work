@@ -244,6 +244,14 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async abortMessage(sessionId: string): Promise<{ ok: true }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/abort`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
   async respondPermission(
     sessionId: string,
     permissionId: string,

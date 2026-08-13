@@ -177,6 +177,25 @@ export async function handleSendMessage(
   }
 }
 
+export async function handleAbortMessage(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const result = await ctx.runner.abortMessage(sessionId);
+    sendJson(res, 200, result);
+  } catch (err) {
+    const statusCode =
+      err && typeof err === "object" && "statusCode" in err
+        ? Number((err as { statusCode: number }).statusCode)
+        : 500;
+    const message = err instanceof Error ? err.message : String(err);
+    sendError(res, statusCode || 500, message);
+  }
+}
+
 export async function handleRespondPermission(
   req: IncomingMessage,
   res: ServerResponse,

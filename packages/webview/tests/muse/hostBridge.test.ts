@@ -42,6 +42,7 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
     })),
     deleteSession: vi.fn(async () => ({ ok: true as const })),
     sendMessage: vi.fn(async () => ({ accepted: true as const })),
+    abortMessage: vi.fn(async () => ({ ok: true as const })),
     respondPermission: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
   } as unknown as MuseApiClient;
@@ -243,6 +244,24 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     // New session clears workdir; server mints ~/.muse-work/projects/...
     expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
     expect(api.sendMessage).toHaveBeenCalledWith("sess-created", "first message");
+  });
+
+  it("abortMessage calls API and ends streaming", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "abortMessage" });
+    await flush();
+
+    expect(api.abortMessage).toHaveBeenCalledWith("sess-active");
+    expect(messages).toContainEqual({ command: "endStreaming" });
   });
 
   it("desktopRenameSession patches title and updates tree", async () => {
