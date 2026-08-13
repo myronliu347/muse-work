@@ -1,0 +1,152 @@
+packages/webview/src/components/PanelToggleControl.tsx
+  2c9be225501a72c4 1-36
+packages/webview/src/styles/DesktopPanelDock.css
+  2c9be225501a72c4 1-112
+packages/webview/src/components/DesktopPanelDock.tsx
+  2c9be225501a72c4 1-101
+packages/webview/src/styles/DesktopApp.css
+  2c9be225501a72c4 1009-1011,1025
+packages/webview/src/styles/PanelToggleMenu.css
+  2c9be225501a72c4 3-7
+packages/webview/tests/muse/panelTabs.test.ts
+  2c9be225501a72c4 1-29
+packages/webview/src/components/DiffPane.tsx
+  2c9be225501a72c4 487
+packages/webview/src/components/ChatHeader.tsx
+  2c9be225501a72c4 6,73
+packages/webview/src/components/PanelToggleMenu.tsx
+  2c9be225501a72c4 4,11-15
+packages/webview/src/muse/panelTabs.ts
+  2c9be225501a72c4 1-41
+packages/webview/src/components/ChatApp.tsx
+  2c9be225501a72c4 14,42-46,69-70,128-129,168,344-351,365,406-408,422,437,479,494-498,1557-1558,1561-1586,1595,1605-1611,1700-1715,1722,1736,1793-1795,1798-1799,1801-1803,1854,2173-2174,2191,2200-2225,2228-2260,2264
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  2c9be225501a72c4 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2643dee3ae520c2acbd4b418a45ebef155b63e4f",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 561,
+      "total_deletions": 187,
+      "accepted_lines": 559,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelTabs.ts": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/components/PanelToggleControl.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/ChatHeader.tsx": {
+          "additions": 2,
+          "deletions": 23,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/TerminalPane.tsx": {
+          "deletions": 9
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 112,
+          "accepted_lines": 112
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/styles/PanelToggleMenu.css": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 158,
+          "deletions": 112,
+          "accepted_lines": 158
+        },
+        "packages/webview/src/components/PreviewPane.tsx": {
+          "deletions": 9
+        },
+        "packages/webview/src/components/DesktopPanelDock.tsx": {
+          "additions": 101,
+          "accepted_lines": 101
+        },
+        "packages/webview/src/components/FilePane.tsx": {
+          "deletions": 9
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/PanelToggleMenu.tsx": {
+          "additions": 8,
+          "deletions": 12,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/src/components/DiffPane.tsx": {
+          "additions": 1,
+          "deletions": 10,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 212,
+      "total_deletions": 20,
+      "accepted_lines": 200,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/provider/src/codemaker/sign.ts": {
+          "additions": 82,
+          "deletions": 11,
+          "accepted_lines": 71
+        },
+        "packages/webview/src/components/Message.tsx": {
+          "additions": 28,
+          "deletions": 5,
+          "accepted_lines": 28
+        },
+        "packages/provider/tests/sign.test.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/userMessageImages.test.tsx": {
+          "additions": 62,
+          "deletions": 1,
+          "accepted_lines": 61
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
