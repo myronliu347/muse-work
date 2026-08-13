@@ -551,7 +551,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     );
 
     const handleSend = useCallback(() => {
-      if (disabled) return;
+      if (disabled || isStreaming) return;
       if (!textareaRef.current) return;
 
       const { markdown: rawMarkdown, images: extractedImages } =
@@ -590,6 +590,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       }
     }, [
       disabled,
+      isStreaming,
       attachedImages,
       onSendMessage,
       closeDropdown,
@@ -656,6 +657,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // Normal behavior for Enter key
         if (event.key === "Enter" && !event.shiftKey && !isComposing) {
           event.preventDefault();
+          if (isStreaming) return;
           handleSend();
         }
       },

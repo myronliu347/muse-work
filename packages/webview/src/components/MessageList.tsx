@@ -69,6 +69,7 @@ export const MessageList = forwardRef<
     workdir,
     onOpenPreview,
     onOpenFile,
+    onOpenAgentTranscript,
   },
   ref,
 ) {
@@ -394,6 +395,7 @@ export const MessageList = forwardRef<
               workdir={workdir}
               onOpenPreview={onOpenPreview}
               onOpenFile={onOpenFile}
+              onOpenAgentTranscript={onOpenAgentTranscript}
               blockRenderMode={extras?.blockRenderMode}
               finalTextBlockIndex={extras?.finalTextBlockIndex}
             />
@@ -489,7 +491,17 @@ export const MessageList = forwardRef<
         workdir,
         onOpenPreview,
         onOpenFile,
+        onOpenAgentTranscript,
       ])}
+
+      {isStreaming && !isCompacting && (
+        <div
+          className="thinking-hint text-shimmer"
+          data-testid="thinking-hint"
+        >
+          思考中...
+        </div>
+      )}
 
       {/* Compaction hint: blinking cursor + label pinned to the end of the
           message list, independent of isStreaming (auto-compaction runs between

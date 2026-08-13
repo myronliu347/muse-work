@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AgentTranscriptPopup } from "./AgentTranscriptPopup";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import type { MessageInputHandle } from "./MessageInput";
@@ -47,10 +48,13 @@ import type {
   ConfirmationDecision,
   DesktopPanelKind,
   FileViewState,
+  Message,
+  ToolBlock,
   ToolBlockUpdateCallbackParams,
   UpdateToast,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
+import { resolveSubagentMessages } from "../utils/subagentTranscript";
 import "../styles/ChatApp.css";
 
 /** Desktop conversation-level panels: fixed left→right order regardless of check order. */
@@ -196,6 +200,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     undefined,
   );
   const [modelLoading, setModelLoading] = useState(false);
+  const [agentTranscript, setAgentTranscript] = useState<{
+    subagentId: string;
+    title: string;
+    nestedMessages?: Message[];
+    fallbackText?: string;
+  } | null>(null);
   // /btw side-question panel (webview spec story 3). Non-null while the panel is
   // open; `loading` while the askBtw RPC is in flight, `answer` afterwards
   // (including the bare-/btw usage hint and API-error strings).
@@ -931,6 +941,48 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             payload: { error: message.error },
           });
           break;
+        case "appendSubagentMessage":
+          if (!forThisPane(message)) break;
+          dispatch({
+            type: "APPEND_SUBAGENT_MESSAGE",
+            payload: {
+              subagentId: message.subagentId,
+              messageId: message.messageId,
+            },
+          });
+          break;
+        case "updateSubagentStreamingContent":
+          if (!forThisPane(message)) break;
+          dispatch({
+            type: "UPDATE_SUBAGENT_STREAMING_CONTENT",
+            payload: {
+              subagentId: message.subagentId,
+              messageId: message.messageId,
+              chunk: message.chunk,
+              stage: message.stage,
+            },
+          });
+          break;
+        case "updateSubagentToolBlock":
+          if (!forThisPane(message)) break;
+          dispatch({
+            type: "UPDATE_SUBAGENT_TOOL_BLOCK",
+            payload: {
+              subagentId: message.subagentId,
+              params: message.params as ToolBlockUpdateCallbackParams,
+            },
+          });
+          break;
+        case "setSubagentMessages":
+          if (!forThisPane(message)) break;
+          dispatch({
+            type: "SET_SUBAGENT_MESSAGES",
+            payload: {
+              subagentId: message.subagentId,
+              messages: message.messages,
+            },
+          });
+          break;
         case "authStatusResponse":
           dispatch({
             type: "SET_AUTHENTICATED",
@@ -1273,6 +1325,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     }
   }, [state.isCommandRunning]);
 
+  useEffect(() => {
+    setAgentTranscript(null);
+  }, [state.currentSession?.id]);
+
   const handleConfirmation = useCallback(
     (confirmationId: string, decision?: ConfirmationDecision) => {
       postToHost({
@@ -1305,6 +1361,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     },
     [state.isStreaming],
   );
+
+  const handleOpenAgentTranscript = useCallback((toolBlock: ToolBlock) => {
+    const nested = (
+      toolBlock as ToolBlock & { nestedMessages?: Message[] }
+    ).nestedMessages;
+    const resultText = (toolBlock.result || "").trim();
+    setAgentTranscript({
+      subagentId: toolBlock.id ?? "",
+      title: toolBlock.compactParams?.trim() || toolBlock.name || "Agent",
+      nestedMessages: nested,
+      fallbackText: resultText || undefined,
+    });
+  }, []);
+
+  const handleCloseAgentTranscript = useCallback(() => {
+    setAgentTranscript(null);
+  }, []);
 
   // /rewind popup selection reuses the same ConfirmDialog flow as the
   // per-message rewind button.
@@ -1849,6 +1922,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           workdir={state.workdir}
           onOpenPreview={openPreviewHandler}
           onOpenFile={handleOpenFile}
+          onOpenAgentTranscript={handleOpenAgentTranscript}
         />
       )}
 
@@ -2037,6 +2111,22 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       {state.activeDialog === "agents" && (
         <AgentsDialog vscode={vscode} onClose={handleDialogClose} />
+      )}
+      {agentTranscript && (
+        <AgentTranscriptPopup
+          title={agentTranscript.title}
+          messages={resolveSubagentMessages(
+            state.subagentMessages,
+            state.agentToolSubagentIds,
+            agentTranscript.subagentId,
+            {
+              nestedMessages: agentTranscript.nestedMessages,
+              fallbackText: agentTranscript.fallbackText,
+            },
+          )}
+          vscode={vscode}
+          onClose={handleCloseAgentTranscript}
+        />
       )}
       {pendingRewindId && (
         <ConfirmDialog

@@ -265,6 +265,85 @@ describe("sessions + websocket streaming", () => {
     );
   });
 
+  it("attaches nested Agent transcripts on GET messages", async () => {
+    const nested = [
+      {
+        id: "sm1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [{ type: "text", content: "explored" }],
+      },
+    ];
+    const parent = [
+      {
+        id: "m1",
+        role: "assistant",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        blocks: [
+          {
+            type: "tool",
+            id: "call-1",
+            name: "Agent",
+            stage: "end",
+            compactParams: "Explore: 结构",
+          },
+        ],
+      },
+    ];
+
+    const createAgent: CreateAgent = async (opts) => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {
+          opts.callbacks?.onToolBlockUpdated?.({
+            messageId: "m1",
+            id: "call-1",
+            name: "Agent",
+            stage: "running",
+          });
+          opts.callbacks?.onSubagentMessagesChange?.("uuid-sa", nested);
+          opts.callbacks?.onAssistantContentUpdated?.({
+            messageId: "m1",
+            chunk: "",
+            stage: "end",
+          });
+        },
+        dispose: async () => {},
+        getMessages: () => parent,
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 1,
+      filter: (e) => e.type === "subagent:messages",
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "explore" }),
+    });
+    await events;
+
+    const loaded = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`);
+    const body = (await loaded.json()) as {
+      messages: Array<{ blocks: Array<{ nestedMessages?: unknown }> }>;
+    };
+    expect(body.messages[0].blocks[0].nestedMessages).toEqual(nested);
+  });
+
   it("canUseTool hangs until POST permission allow resolves", async () => {
     let permissionPromise: Promise<{ behavior: string }> | undefined;
     let resolveSend: (() => void) | undefined;

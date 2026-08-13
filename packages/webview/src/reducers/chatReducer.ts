@@ -6,8 +6,175 @@ import type {
   TextBlock,
   ToolBlock,
   ErrorBlock,
+  ToolBlockUpdateCallbackParams,
 } from "../types";
 import { pinSessionTitle } from "../utils/session";
+import { transcriptScore } from "../utils/subagentTranscript";
+import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+
+function emptyAssistant(messageId: string): Message {
+  return {
+    id: messageId,
+    role: "assistant",
+    timestamp: new Date().toISOString(),
+    blocks: [],
+  };
+}
+
+function ensureMessage(messages: Message[], messageId: string): Message[] {
+  if (messages.some((m) => m.id === messageId)) return messages;
+  return [...messages, emptyAssistant(messageId)];
+}
+
+function patchTranscript(
+  transcripts: Record<string, Message[]>,
+  subagentId: string,
+  patch: (messages: Message[]) => Message[],
+): Record<string, Message[]> {
+  return {
+    ...transcripts,
+    [subagentId]: patch(transcripts[subagentId] ?? []),
+  };
+}
+
+function applyStreamingContent(
+  messages: Message[],
+  payload: { messageId: string; chunk: string; stage: "streaming" | "end" },
+): Message[] {
+  const list = ensureMessage(messages, payload.messageId);
+  return list.map((m) => {
+    if (m.id !== payload.messageId) return m;
+    const textBlockIndex = m.blocks.findIndex((b) => b.type === "text");
+    if (textBlockIndex === -1) {
+      return {
+        ...m,
+        blocks: [
+          ...m.blocks,
+          { type: "text" as const, content: payload.chunk, stage: payload.stage },
+        ],
+      };
+    }
+    return {
+      ...m,
+      blocks: m.blocks.map((block, idx) =>
+        idx === textBlockIndex && block.type === "text"
+          ? {
+              ...block,
+              content: block.content + payload.chunk,
+              stage: payload.stage,
+            }
+          : block,
+      ),
+    };
+  });
+}
+
+function applyToolBlock(
+  messages: Message[],
+  payload: ToolBlockUpdateCallbackParams,
+): Message[] {
+  const messageId = payload.messageId as string;
+  const list = ensureMessage(messages, messageId);
+  const { messageId: _ignored, id: toolBlockId, parametersChunk, ...rest } =
+    payload;
+  return list.map((m) => {
+    if (m.id !== messageId) return m;
+    const toolBlockIndex = m.blocks.findIndex(
+      (b) => b.type === "tool" && b.id === toolBlockId,
+    );
+    if (toolBlockIndex === -1) {
+      const newToolBlock: ToolBlock = {
+        type: "tool",
+        id: toolBlockId,
+        name: rest.name || "",
+        stage: rest.stage || "start",
+        result: rest.result || "",
+        success: rest.success ?? false,
+        ...rest,
+        parameters: (rest.parameters || "") + (parametersChunk || ""),
+      };
+      return { ...m, blocks: [...m.blocks, newToolBlock] };
+    }
+    return {
+      ...m,
+      blocks: m.blocks.map((block, idx) => {
+        if (idx !== toolBlockIndex || block.type !== "tool") return block;
+        const merged: ToolBlock = { ...block, ...rest };
+        if (parametersChunk) {
+          merged.parameters = (block.parameters || "") + parametersChunk;
+        }
+        return merged;
+      }),
+    };
+  });
+}
+
+function enqueueAgentTool(state: ChatState, toolId: string): ChatState {
+  if (
+    !toolId ||
+    state.agentToolSubagentIds[toolId] ||
+    state.pendingAgentToolIds.includes(toolId)
+  ) {
+    return state;
+  }
+  return {
+    ...state,
+    pendingAgentToolIds: [...state.pendingAgentToolIds, toolId],
+  };
+}
+
+function enqueueSubagent(state: ChatState, subagentId: string): ChatState {
+  if (
+    Object.values(state.agentToolSubagentIds).includes(subagentId) ||
+    state.unboundSubagentIds.includes(subagentId)
+  ) {
+    return state;
+  }
+  return {
+    ...state,
+    unboundSubagentIds: [...state.unboundSubagentIds, subagentId],
+  };
+}
+
+function bindAgentTools(state: ChatState): ChatState {
+  const pending = [...state.pendingAgentToolIds];
+  const unbound = [...state.unboundSubagentIds];
+  const map = { ...state.agentToolSubagentIds };
+  while (pending.length > 0 && unbound.length > 0) {
+    const toolId = pending.shift()!;
+    if (map[toolId]) continue;
+    map[toolId] = unbound.shift()!;
+  }
+  const subagentMessages = { ...state.subagentMessages };
+  for (const [toolId, subagentId] of Object.entries(map)) {
+    if (subagentMessages[subagentId]) {
+      subagentMessages[toolId] = subagentMessages[subagentId];
+    }
+  }
+  return {
+    ...state,
+    pendingAgentToolIds: pending,
+    unboundSubagentIds: unbound,
+    agentToolSubagentIds: map,
+    subagentMessages,
+  };
+}
+
+function nestedMessagesFromLoaded(messages: Message[]): Record<string, Message[]> {
+  const out: Record<string, Message[]> = {};
+  for (const message of messages) {
+    for (const block of message.blocks ?? []) {
+      if (block.type !== "tool" || !block.id) continue;
+      const nested = (
+        block as ToolBlock & { nestedMessages?: Message[] }
+      ).nestedMessages;
+      if (Array.isArray(nested) && nested.length > 0) {
+        out[block.id] = nested;
+      }
+    }
+  }
+  return out;
+}
 
 export const initialState: ChatState = {
   messages: [],
@@ -41,6 +208,10 @@ export const initialState: ChatState = {
   isAuthenticated: false,
   initialized: false,
   workdir: undefined,
+  subagentMessages: {},
+  agentToolSubagentIds: {},
+  pendingAgentToolIds: [],
+  unboundSubagentIds: [],
 };
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
@@ -50,6 +221,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: action.payload,
         currentSession: pinSessionTitle(state.currentSession, action.payload),
+        subagentMessages: {
+          ...state.subagentMessages,
+          ...nestedMessagesFromLoaded(action.payload),
+        },
       };
     }
     case "SET_TASKS":
@@ -241,6 +416,12 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           action.payload.theme !== undefined
             ? action.payload.theme
             : state.theme,
+        subagentMessages: nestedMessagesFromLoaded(
+          action.payload.messages || [],
+        ),
+        agentToolSubagentIds: {},
+        pendingAgentToolIds: [],
+        unboundSubagentIds: [],
       };
     case "UPDATE_SELECTION":
       return {
@@ -432,10 +613,18 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         return m;
       });
 
-      return {
-        ...state,
-        messages: newMessages,
-      };
+      const isAgentTool =
+        rest.name === AGENT_TOOL_NAME ||
+        (toolBlockIndex !== -1 &&
+          message.blocks[toolBlockIndex].type === "tool" &&
+          message.blocks[toolBlockIndex].name === AGENT_TOOL_NAME);
+
+      return bindAgentTools(
+        enqueueAgentTool(
+          { ...state, messages: newMessages },
+          isAgentTool ? String(toolBlockId ?? "") : "",
+        ),
+      );
     }
     case "APPEND_ERROR_BLOCK": {
       const { error } = action.payload;
@@ -546,6 +735,64 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         };
       });
       return { ...state, messages: newMessages };
+    }
+    case "APPEND_SUBAGENT_MESSAGE": {
+      const { subagentId, messageId } = action.payload;
+      return bindAgentTools(
+        enqueueSubagent(
+          {
+            ...state,
+            subagentMessages: patchTranscript(
+              state.subagentMessages,
+              subagentId,
+              (messages) => ensureMessage(messages, messageId),
+            ),
+          },
+          subagentId,
+        ),
+      );
+    }
+    case "SET_SUBAGENT_MESSAGES": {
+      const { subagentId, messages: incoming } = action.payload;
+      const existing = state.subagentMessages[subagentId];
+      const messages =
+        transcriptScore(incoming) >= transcriptScore(existing)
+          ? incoming
+          : (existing ?? incoming);
+      return bindAgentTools(
+        enqueueSubagent(
+          {
+            ...state,
+            subagentMessages: {
+              ...state.subagentMessages,
+              [subagentId]: messages,
+            },
+          },
+          subagentId,
+        ),
+      );
+    }
+    case "UPDATE_SUBAGENT_STREAMING_CONTENT": {
+      const { subagentId, ...payload } = action.payload;
+      return bindAgentTools({
+        ...state,
+        subagentMessages: patchTranscript(
+          state.subagentMessages,
+          subagentId,
+          (messages) => applyStreamingContent(messages, payload),
+        ),
+      });
+    }
+    case "UPDATE_SUBAGENT_TOOL_BLOCK": {
+      const { subagentId, params } = action.payload;
+      return bindAgentTools({
+        ...state,
+        subagentMessages: patchTranscript(
+          state.subagentMessages,
+          subagentId,
+          (messages) => applyToolBlock(messages, params),
+        ),
+      });
     }
     default:
       return state;

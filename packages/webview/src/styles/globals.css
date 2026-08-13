@@ -33,6 +33,39 @@ body {
   }
 }
 
+@keyframes text-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--gray-9) 0%,
+    var(--gray-12) 45%,
+    var(--gray-9) 90%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: text-shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer {
+    animation: none;
+    background: none;
+    color: var(--gray-11);
+    -webkit-text-fill-color: unset;
+  }
+}
+
 /* Simple codicon setup - file and folder icons */
 .codicon {
   font-family: codicon;

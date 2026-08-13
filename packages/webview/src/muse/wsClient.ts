@@ -55,6 +55,11 @@ export type MuseWsEventPayload =
       subagentId: string;
       params: Record<string, unknown>;
     }
+  | {
+      type: "subagent:messages";
+      subagentId: string;
+      messages: unknown[];
+    }
   | { type: "session:unread"; unreadDone: boolean };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };

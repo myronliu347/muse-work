@@ -374,6 +374,8 @@ export interface MessageListProps {
   onOpenPreview?: (url: string) => void;
   /** Desktop host only: open a file in the file panel instead of the OS. */
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  /** Open the nested Agent tool transcript popup. */
+  onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
 }
 
 export interface MessageProps {
@@ -386,6 +388,8 @@ export interface MessageProps {
   onOpenPreview?: (url: string) => void;
   /** Desktop host only: open a file in the file panel instead of the OS. */
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  /** Open the nested Agent tool transcript popup. */
+  onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
   /**
    * Assistant turn collapse helpers:
    * - all: default
@@ -595,6 +599,12 @@ export interface ChatState {
   initialized: boolean;
   // Agent working directory, used to render tool file paths as relative.
   workdir?: string;
+  /** Nested transcripts keyed by subagent id (Agent tool popup). */
+  subagentMessages: Record<string, Message[]>;
+  /** Agent tool block id → live subagent UUID. */
+  agentToolSubagentIds: Record<string, string>;
+  pendingAgentToolIds: string[];
+  unboundSubagentIds: string[];
   // Dialog state
   activeDialog:
     | "config"
@@ -835,6 +845,30 @@ export type ChatAction =
     }
   | { type: "UPDATE_TOOL_BLOCK"; payload: ToolBlockUpdateCallbackParams }
   | { type: "APPEND_ERROR_BLOCK"; payload: { error: string } }
+    | {
+        type: "SET_SUBAGENT_MESSAGES";
+        payload: { subagentId: string; messages: Message[] };
+      }
+    | {
+        type: "APPEND_SUBAGENT_MESSAGE";
+      payload: { subagentId: string; messageId: string };
+    }
+  | {
+      type: "UPDATE_SUBAGENT_STREAMING_CONTENT";
+      payload: {
+        subagentId: string;
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      };
+    }
+  | {
+      type: "UPDATE_SUBAGENT_TOOL_BLOCK";
+      payload: {
+        subagentId: string;
+        params: ToolBlockUpdateCallbackParams;
+      };
+    }
   // Bang message incremental updates (keyed by messageId). The bang block is
   // constructed in the reducer because it needs a Message wrapper (id/timestamp).
   | {

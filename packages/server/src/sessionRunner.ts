@@ -12,6 +12,7 @@ import {
   MUSE_IDENTITY_REV,
 } from "./museSystemPrompt.js";
 import { mapSdkMessages } from "./messageMapper.js";
+import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 
 /** Resolve UI label for a model id (falls back to the raw id). */
 export function resolveModelDisplay(modelId: string | undefined): string {
@@ -112,6 +113,92 @@ export function createSessionRunner(
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
   const agentLoading = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const subagentTranscripts = new Map<string, Map<string, unknown[]>>();
+  const agentToolBinds = new Map<string, Map<string, string>>();
+  const pendingAgentToolIds = new Map<string, string[]>();
+  const unboundSubagentIds = new Map<string, string[]>();
+  const knownAgentToolIds = new Map<string, Set<string>>();
+
+  function bindAgentTools(sessionId: string): void {
+    const pending = pendingAgentToolIds.get(sessionId) ?? [];
+    const unbound = unboundSubagentIds.get(sessionId) ?? [];
+    const binds = agentToolBinds.get(sessionId) ?? new Map<string, string>();
+    while (pending.length > 0 && unbound.length > 0) {
+      const toolId = pending.shift()!;
+      if (binds.has(toolId)) continue;
+      binds.set(toolId, unbound.shift()!);
+    }
+    pendingAgentToolIds.set(sessionId, pending);
+    unboundSubagentIds.set(sessionId, unbound);
+    agentToolBinds.set(sessionId, binds);
+  }
+
+  function rememberAgentTool(
+    sessionId: string,
+    params: Record<string, unknown>,
+  ): void {
+    const id = typeof params.id === "string" ? params.id : "";
+    if (!id) return;
+    const known = knownAgentToolIds.get(sessionId) ?? new Set<string>();
+    if (params.name === AGENT_TOOL_NAME) known.add(id);
+    knownAgentToolIds.set(sessionId, known);
+    if (!known.has(id)) return;
+    const binds = agentToolBinds.get(sessionId) ?? new Map<string, string>();
+    const pending = pendingAgentToolIds.get(sessionId) ?? [];
+    if (!binds.has(id) && !pending.includes(id)) {
+      pending.push(id);
+      pendingAgentToolIds.set(sessionId, pending);
+    }
+    bindAgentTools(sessionId);
+  }
+
+  function rememberTranscript(
+    sessionId: string,
+    subagentId: string,
+    messages: unknown[],
+  ): void {
+    const transcripts =
+      subagentTranscripts.get(sessionId) ?? new Map<string, unknown[]>();
+    transcripts.set(subagentId, messages);
+    subagentTranscripts.set(sessionId, transcripts);
+    const boundIds = [...(agentToolBinds.get(sessionId)?.values() ?? [])];
+    const unbound = unboundSubagentIds.get(sessionId) ?? [];
+    if (!boundIds.includes(subagentId) && !unbound.includes(subagentId)) {
+      unbound.push(subagentId);
+      unboundSubagentIds.set(sessionId, unbound);
+    }
+    bindAgentTools(sessionId);
+  }
+
+  function attachNestedMessages(
+    sessionId: string,
+    messages: unknown[],
+  ): unknown[] {
+    const transcripts = subagentTranscripts.get(sessionId);
+    if (!transcripts) return messages;
+    const binds = agentToolBinds.get(sessionId);
+    return messages.map((message) => {
+      if (!message || typeof message !== "object") return message;
+      const blocks = (message as { blocks?: unknown[] }).blocks;
+      if (!Array.isArray(blocks)) return message;
+      return {
+        ...(message as Record<string, unknown>),
+        blocks: blocks.map((block) => {
+          if (!block || typeof block !== "object") return block;
+          const tool = block as { type?: string; name?: string; id?: string };
+          if (tool.type !== "tool" || tool.name !== AGENT_TOOL_NAME) {
+            return block;
+          }
+          const subagentId = (tool.id && binds?.get(tool.id)) || tool.id;
+          const nested =
+            (subagentId ? transcripts.get(subagentId) : undefined) ||
+            (tool.id ? transcripts.get(tool.id) : undefined);
+          if (!nested) return block;
+          return { ...tool, nestedMessages: nested };
+        }),
+      };
+    });
+  }
 
   function gatewayIdentity(gateway: GatewayResolution): string {
     const credential =
@@ -368,6 +455,7 @@ export function createSessionRunner(
         },
         onToolBlockUpdated: (params) => {
           if (disposed.has(sessionId)) return;
+          rememberAgentTool(sessionId, params as Record<string, unknown>);
           hub.broadcast(sessionId, { type: "tool:update", params });
         },
         onErrorBlockAdded: (error) => {
@@ -441,6 +529,16 @@ export function createSessionRunner(
             type: "subagent:tool:update",
             subagentId,
             params,
+          });
+        },
+        onSubagentMessagesChange: (subagentId, messages) => {
+          if (disposed.has(sessionId)) return;
+          const snapshot = mapSdkMessages(messages);
+          rememberTranscript(sessionId, subagentId, snapshot);
+          hub.broadcast(sessionId, {
+            type: "subagent:messages",
+            subagentId,
+            messages: snapshot,
           });
         },
       },
@@ -707,6 +805,11 @@ export function createSessionRunner(
       messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
       agentLoading.delete(sessionId);
+      subagentTranscripts.delete(sessionId);
+      agentToolBinds.delete(sessionId);
+      pendingAgentToolIds.delete(sessionId);
+      unboundSubagentIds.delete(sessionId);
+      knownAgentToolIds.delete(sessionId);
       for (const [id, entry] of pending) {
         if (entry.sessionId === sessionId) {
           pending.delete(id);
@@ -736,7 +839,10 @@ export function createSessionRunner(
       const agent = await ensureAgent(sessionId);
       // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
       rearmIdleIfNeeded(sessionId);
-      return mapSdkMessages(agent.getMessages?.() ?? []);
+      return attachNestedMessages(
+        sessionId,
+        mapSdkMessages(agent.getMessages?.() ?? []),
+      );
     },
 
     invalidateAgentIdentities() {

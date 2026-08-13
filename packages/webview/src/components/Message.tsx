@@ -5,8 +5,6 @@ import { isLocalhostUrl } from "../utils/isLocalhostUrl";
 import { marked } from "marked";
 import { BangBlock } from "./BangBlock";
 import { Tooltip } from "./Tooltip";
-
-// ... (existing imports)
 import DOMPurify from "dompurify";
 import {
   BASH_TOOL_NAME,
@@ -16,6 +14,7 @@ import {
   READ_TOOL_NAME,
   ASK_USER_QUESTION_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
+  AGENT_TOOL_NAME,
 } from "wave-agent-sdk/dist/constants/tools.js";
 import type {
   Message as MessageType,
@@ -171,6 +170,7 @@ export const Message: React.FC<MessageProps> = React.memo(
       workdir,
       blockRenderMode = "all",
       finalTextBlockIndex,
+      onOpenAgentTranscript,
     } = props;
 
     // Desktop routes file opens to its file panel (the host resolves the path,
@@ -353,6 +353,9 @@ export const Message: React.FC<MessageProps> = React.memo(
         ? "var(--vscode-editorWarning-foreground, #cca700)"
         : "var(--vscode-testing-iconPassed, #73c991)";
 
+    const isToolActive = (stage?: string) =>
+      stage === "running" || stage === "streaming";
+
     const renderToolBlock = (toolBlock: ToolBlock, index: number) => {
       // Default tool rendering for all tools (including Bash)
       const compactInfo =
@@ -362,12 +365,24 @@ export const Message: React.FC<MessageProps> = React.memo(
             : ""
           : toolBlock.compactParams || "";
       const toolStatusColor = getToolStatusColor(toolBlock);
+      const toolName = (
+        <span
+          data-testid="tool-name"
+          className={
+            isToolActive(toolBlock.stage)
+              ? "tool-name text-shimmer"
+              : "tool-name"
+          }
+        >
+          {toolBlock.name || "Tool"}
+        </span>
+      );
       const toolHeader = (
         <div key={index} className="tool-block">
           <span className="tool-status-dot" style={{ color: toolStatusColor }}>
             ●
           </span>{" "}
-          {toolBlock.name || "Tool"}
+          {toolName}
           {compactInfo ? (
             <span className="compact-params"> {compactInfo}</span>
           ) : (
@@ -385,6 +400,33 @@ export const Message: React.FC<MessageProps> = React.memo(
           </pre>
         </div>
       ) : null;
+
+      if (toolBlock.name === AGENT_TOOL_NAME) {
+        const resultText = (
+          toolBlock.shortResult ||
+          toolBlock.result ||
+          ""
+        ).trim();
+        return (
+          <div key={index} className="tool-container">
+            <button
+              type="button"
+              className="agent-tool-row"
+              data-testid="agent-tool-row"
+              onClick={() => onOpenAgentTranscript?.(toolBlock)}
+            >
+              {toolName}
+              {compactInfo ? (
+                <span className="compact-params"> {compactInfo}</span>
+              ) : null}
+            </button>
+            {resultText ? (
+              <div className="write-tool-stats">{resultText}</div>
+            ) : null}
+            {errorContent}
+          </div>
+        );
+      }
 
       // For Bash tools, add the bash-specific content below the header
       if (toolBlock.name === BASH_TOOL_NAME) {
@@ -976,6 +1018,7 @@ export const Message: React.FC<MessageProps> = React.memo(
       prev.message === next.message &&
       prev.isQueued === next.isQueued &&
       prev.onRewindToMessage === next.onRewindToMessage &&
+      prev.onOpenAgentTranscript === next.onOpenAgentTranscript &&
       prev.blockRenderMode === next.blockRenderMode &&
       prev.finalTextBlockIndex === next.finalTextBlockIndex
     );

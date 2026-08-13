@@ -12,20 +12,13 @@
 
 .timeline-row {
   position: relative;
-  padding-left: 14px;
+  padding-left: 0;
   padding-top: 8px;
 }
 
 .timeline-row::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 14px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gray-8);
-  z-index: 1;
+  content: none;
+  display: none;
 }
 
 /* Continuous timeline line running through every dot of an assistant group
@@ -72,34 +65,10 @@
   margin-top: 4px;
 }
 
-/* Full-height segment for interior rows: spans the whole row so it joins the
-   rows above and below into a continuous line. */
+/* Timeline connector is hidden; assistant groups still wrap consecutive
+   assistant messages so collapse counting stays intact. */
 .assistant-group .timeline-row::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--gray-6);
-  z-index: 0;
-}
-
-/* First row of the whole group: line starts at its dot center
-   (dot top 15px + radius 3px = 18px). */
-.assistant-group > .message:first-child .timeline-row:first-child::after {
-  top: 17px;
-}
-
-/* Last row of the whole group: line ends at its dot center. */
-.assistant-group > .message:last-child .timeline-row:last-child::after {
-  bottom: auto;
-  height: 17px;
-}
-
-/* A group whose messages contribute only a single dot shows an isolated dot,
-   no connecting line. */
-.assistant-group--single .timeline-row::after {
+  content: none;
   display: none;
 }
 
@@ -206,11 +175,7 @@
 }
 
 .messages-container.streaming::after {
-  content: "▋";
-  animation: blink 1s ease-in-out infinite;
-  align-self: flex-start;
-  padding-left: 2px;
-  line-height: 1;
+  content: none;
 }
 
 /* While compacting, the hint below carries its own blinking cursor — suppress
@@ -221,9 +186,56 @@
 
 .compaction-hint {
   align-self: flex-start;
-  padding-left: 2px;
-  line-height: 1;
+  padding-left: 0;
+  line-height: 18px;
+  font-size: 12px;
   color: var(--vscode-descriptionForeground);
+}
+
+.thinking-hint {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  padding: 2px 0 0;
+}
+
+.tool-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-11);
+}
+
+.agent-tool-row {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  height: 18px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-tool-row:hover .tool-name,
+.agent-tool-row:hover .compact-params {
+  color: var(--gray-12);
+}
+
+.agent-tool-row:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .compaction-hint-cursor {

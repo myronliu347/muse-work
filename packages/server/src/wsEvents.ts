@@ -78,6 +78,11 @@ export type WsEvent =
       type: "subagent:tool:update";
       subagentId: string;
       params: ToolUpdateParams | Record<string, unknown>;
+    }
+  | {
+      type: "subagent:messages";
+      subagentId: string;
+      messages: unknown[];
     };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };

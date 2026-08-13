@@ -1042,6 +1042,19 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         success: true,
       },
     });
+    handler!({
+      type: "subagent:messages",
+      sessionId: "sess-active",
+      subagentId: "sa1",
+      messages: [
+        {
+          id: "m9",
+          role: "assistant",
+          timestamp: "0",
+          blocks: [{ type: "text", content: "snapshot" }],
+        },
+      ],
+    });
     await flush();
     expect(messages).not.toContainEqual(
       expect.objectContaining({ command: "appendMessage" }),
@@ -1052,6 +1065,41 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).not.toContainEqual(
       expect.objectContaining({ command: "updateToolBlock" }),
     );
+    expect(messages).toContainEqual({
+      command: "appendSubagentMessage",
+      subagentId: "sa1",
+      messageId: "m9",
+    });
+    expect(messages).toContainEqual({
+      command: "updateSubagentStreamingContent",
+      subagentId: "sa1",
+      messageId: "m9",
+      chunk: "nested",
+      stage: "streaming",
+    });
+    expect(messages).toContainEqual({
+      command: "updateSubagentToolBlock",
+      subagentId: "sa1",
+      params: {
+        messageId: "m9",
+        id: "t1",
+        name: "Read",
+        stage: "end",
+        success: true,
+      },
+    });
+    expect(messages).toContainEqual({
+      command: "setSubagentMessages",
+      subagentId: "sa1",
+      messages: [
+        {
+          id: "m9",
+          role: "assistant",
+          timestamp: "0",
+          blocks: [{ type: "text", content: "snapshot" }],
+        },
+      ],
+    });
   });
 
   it("setSessionModel patches session model and emits current session", async () => {

@@ -588,15 +588,47 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
-    // Subagent streams belong inside the parent Task/Agent tool block (updated
-    // via the main agent's tool:update / shortResult). Do NOT append them as
-    // top-level chat messages — that duplicates Bash/Read under the list.
-    if (
-      event.type === "subagent:assistant:message" ||
-      event.type === "subagent:message:delta" ||
-      event.type === "subagent:reasoning:delta" ||
-      event.type === "subagent:tool:update"
-    ) {
+    // Subagent streams belong inside the parent Agent tool block. Forward them
+    // into the nested transcript store — never as top-level chat messages.
+    if (event.type === "subagent:assistant:message") {
+      postToWebview({
+        command: "appendSubagentMessage",
+        subagentId: event.subagentId,
+        messageId: event.messageId,
+      });
+      return;
+    }
+
+    if (event.type === "subagent:message:delta") {
+      postToWebview({
+        command: "updateSubagentStreamingContent",
+        subagentId: event.subagentId,
+        messageId: event.messageId,
+        chunk: event.text,
+        stage: event.stage ?? "streaming",
+      });
+      return;
+    }
+
+    if (event.type === "subagent:reasoning:delta") {
+      return;
+    }
+
+    if (event.type === "subagent:tool:update") {
+      postToWebview({
+        command: "updateSubagentToolBlock",
+        subagentId: event.subagentId,
+        params: event.params,
+      });
+      return;
+    }
+
+    if (event.type === "subagent:messages") {
+      postToWebview({
+        command: "setSubagentMessages",
+        subagentId: event.subagentId,
+        messages: event.messages,
+      });
       return;
     }
   };
