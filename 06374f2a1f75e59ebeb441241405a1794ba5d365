@@ -1,0 +1,120 @@
+packages/desktop/tests/serverProcess.test.ts
+  d7d6cce062073fd7 55-99
+packages/server/tests/sessions.ws.test.ts
+  d7d6cce062073fd7 660-712
+packages/desktop/src/main/serverProcess.ts
+  d7d6cce062073fd7 4-31,44,206-211,219-225,229-236,239-244
+packages/desktop/src/main/index.ts
+  d7d6cce062073fd7 15,118-126
+packages/server/src/createAppContext.ts
+  d7d6cce062073fd7 56
+packages/webview/tests/muse/hostBridge.test.ts
+  d7d6cce062073fd7 54,56-57,1313-1495
+packages/webview/src/muse/wsClient.ts
+  d7d6cce062073fd7 69-72,77-84,96-103,108-113,118-122,132-135,140,150-151,153-161,163-177,192-193,196-197,201-203,207-213,216,225-255,257-261,263-275
+packages/server/src/sessionRunner.ts
+  d7d6cce062073fd7 8,73-74,85,590,601-603,606,948-979
+packages/webview/tests/muse/wsClient.test.ts
+  d7d6cce062073fd7 108-199
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  d7d6cce062073fd7 410-500
+packages/server/src/wsHub.ts
+  d7d6cce062073fd7 11,22,24-32,42,56-59
+packages/webview/src/muse/hostBridge.ts
+  d7d6cce062073fd7 7,185,287-319,433-454,839-851
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "06374f2a1f75e59ebeb441241405a1794ba5d365",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 179,
+      "total_deletions": 2,
+      "accepted_lines": 177,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "additions": 179,
+          "deletions": 2,
+          "accepted_lines": 177
+        }
+      }
+    },
+    "d7d6cce062073fd7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "96b5cb27-a53f-4529-9164-a2426ef88b26",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 811,
+      "total_deletions": 45,
+      "accepted_lines": 794,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 76,
+          "deletions": 7,
+          "accepted_lines": 70
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 186,
+          "accepted_lines": 186
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 142,
+          "deletions": 29,
+          "accepted_lines": 131
+        },
+        "packages/desktop/src/main/serverProcess.ts": {
+          "additions": 56,
+          "deletions": 1,
+          "accepted_lines": 56
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 91,
+          "accepted_lines": 91
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/desktop/tests/serverProcess.test.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/server/src/wsHub.ts": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/muse/wsClient.test.ts": {
+          "additions": 92,
+          "accepted_lines": 92
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 42,
+          "deletions": 6,
+          "accepted_lines": 42
+        }
+      }
+    }
+  }
+}
