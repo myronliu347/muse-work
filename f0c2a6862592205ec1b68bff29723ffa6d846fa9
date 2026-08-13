@@ -1,0 +1,82 @@
+packages/server/tests/sessions.routes.test.ts
+  2c9be225501a72c4 80-101
+packages/server/src/routes/sessions.ts
+  2c9be225501a72c4 2,30
+  db26196a999da47a 5,49-54,133,178,218-222,230-234,247,255-259
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 9,349,688,760-765,780,792
+packages/server/src/wsHub.ts
+  db26196a999da47a 3,29,32-35
+packages/server/src/index.ts
+  db26196a999da47a 4,28,34,37,41-45
+packages/server/tests/logger.test.ts
+  db26196a999da47a 1-64
+packages/server/src/logger.ts
+  db26196a999da47a 1-127
+packages/server/src/app.ts
+  db26196a999da47a 4,32-61,66-70,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f0c2a6862592205ec1b68bff29723ffa6d846fa9",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "accepted_lines": 22
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 279,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionRunner.ts": {
+          "accepted_lines": 11
+        },
+        "packages/server/src/wsHub.ts": {
+          "accepted_lines": 6
+        },
+        "packages/server/tests/logger.test.ts": {
+          "accepted_lines": 64
+        },
+        "packages/server/src/index.ts": {
+          "accepted_lines": 9
+        },
+        "packages/server/src/app.ts": {
+          "accepted_lines": 37
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 25
+        },
+        "packages/server/src/logger.ts": {
+          "accepted_lines": 127
+        }
+      }
+    }
+  }
+}
