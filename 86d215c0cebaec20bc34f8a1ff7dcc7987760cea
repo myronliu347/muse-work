@@ -1,0 +1,121 @@
+packages/server/tests/settings.routes.test.ts
+  ae68f193e18a8441 1-89
+packages/server/src/routes/settings.ts
+  ae68f193e18a8441 1-33
+packages/server/src/app.ts
+  ae68f193e18a8441 11-14,101-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "86d215c0cebaec20bc34f8a1ff7dcc7987760cea",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        },
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "accepted_lines": 1285
+        }
+      }
+    },
+    "ae68f193e18a8441": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "02ec172d-384c-4fe4-95de-814a7b9fd9f7",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 136,
+      "total_deletions": 6,
+      "accepted_lines": 136,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/settings.routes.test.ts": {
+          "additions": 89,
+          "accepted_lines": 89
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/server/src/app.ts": {
+          "additions": 14,
+          "deletions": 6,
+          "accepted_lines": 14
+        }
+      }
+    },
+    "d7d6cce062073fd7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "96b5cb27-a53f-4529-9164-a2426ef88b26",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 494,
+      "total_deletions": 54,
+      "accepted_lines": 451,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/healthWatch.ts": {
+          "additions": 89,
+          "deletions": 4,
+          "accepted_lines": 85
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 27
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 82,
+          "deletions": 16,
+          "accepted_lines": 82
+        },
+        "packages/server/src/app.ts": {
+          "additions": 6
+        },
+        "packages/desktop/tests/healthWatch.test.ts": {
+          "additions": 83,
+          "accepted_lines": 83
+        },
+        "packages/desktop/src/main/serverProcess.ts": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "packages/server/src/routes/control.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 123,
+          "deletions": 33,
+          "accepted_lines": 90
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        }
+      }
+    }
+  }
+}
