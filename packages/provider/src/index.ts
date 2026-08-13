@@ -22,7 +22,11 @@ export {
   getProjectsDir,
 } from "./defaultProject.js";
 
-export { loadProvidersConfig, saveProvidersConfig } from "./configStore.js";
+export {
+  DEFAULT_ACTIVE_MODEL_ID,
+  loadProvidersConfig,
+  saveProvidersConfig,
+} from "./configStore.js";
 
 export {
   createProviderRegistry,

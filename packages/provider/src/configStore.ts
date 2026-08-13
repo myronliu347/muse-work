@@ -4,22 +4,26 @@ import path from "node:path";
 import { getProvidersConfigPath } from "./paths.js";
 import type { ProvidersFile } from "./types.js";
 
+/** Default model for new sessions / CodeMaker fallback (not models[0]). */
+export const DEFAULT_ACTIVE_MODEL_ID = "deepseek-v4-flash";
+
 function defaultProvidersConfig(): ProvidersFile {
   return {
     activeProviderId: "codemaker",
-    activeModelId: "deepseek-v4-flash",
+    activeModelId: DEFAULT_ACTIVE_MODEL_ID,
     providers: {
       codemaker: {
         enabled: true,
         models: [
+          // Keep default model first so naive models[0] fallbacks stay correct.
+          { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+          { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
           { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
           { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
           { id: "claude-opus-5", label: "Claude Opus 5" },
           { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
           { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
           { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
-          { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
-          { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
           { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro" },
           { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
           { id: "glm-5.2", label: "GLM 5.2" },

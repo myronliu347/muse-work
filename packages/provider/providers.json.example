@@ -5,14 +5,14 @@
     "codemaker": {
       "enabled": true,
       "models": [
+        { "id": "deepseek-v4-flash", "label": "DeepSeek V4 Flash" },
+        { "id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro" },
         { "id": "claude-opus-4-6", "label": "Claude Opus 4.6" },
         { "id": "claude-opus-4-8", "label": "Claude Opus 4.8" },
         { "id": "claude-opus-5", "label": "Claude Opus 5" },
         { "id": "claude-sonnet-4-5-20250929", "label": "Claude Sonnet 4.5" },
         { "id": "claude-sonnet-4-6", "label": "Claude Sonnet 4.6" },
         { "id": "claude-sonnet-5", "label": "Claude Sonnet 5" },
-        { "id": "deepseek-v4-flash", "label": "DeepSeek V4 Flash" },
-        { "id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro" },
         { "id": "gemini-3.1-pro", "label": "Gemini 3.1 Pro" },
         { "id": "gemini-3.5-flash", "label": "Gemini 3.5 Flash" },
         { "id": "glm-5.2", "label": "GLM 5.2" },

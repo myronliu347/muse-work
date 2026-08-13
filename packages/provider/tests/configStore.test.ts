@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+  DEFAULT_ACTIVE_MODEL_ID,
   loadProvidersConfig,
   saveProvidersConfig,
 } from "../src/configStore.js";
@@ -19,6 +20,9 @@ describe("configStore", () => {
   it("returns default config when file missing", () => {
     const cfg = loadProvidersConfig(tmp);
     expect(cfg.activeProviderId).toBe("codemaker");
+    expect(cfg.activeModelId).toBe(DEFAULT_ACTIVE_MODEL_ID);
+    expect(cfg.activeModelId).toBe("deepseek-v4-flash");
+    expect(cfg.providers.codemaker.models[0]?.id).toBe("deepseek-v4-flash");
     expect(cfg.providers.codemaker.models.length).toBeGreaterThan(0);
     expect(cfg.providers["openai-compatible"]).toBeDefined();
   });

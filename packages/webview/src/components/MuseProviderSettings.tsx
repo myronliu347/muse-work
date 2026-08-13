@@ -25,6 +25,9 @@ import { resolveMuseServerUrl } from "../muse/hostBridge";
 import { notifyProvidersChanged } from "../muse/providersEvents";
 import { Field } from "../ui/Field";
 
+/** Prefer this when active model is missing from CodeMaker list (not models[0]). */
+const CODEMAKER_DEFAULT_MODEL_ID = "deepseek-v4-flash";
+
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
   onSavingChange?: (saving: boolean) => void;
@@ -245,6 +248,7 @@ export const MuseProviderSettings = forwardRef<
       }
       modelId =
         provider.models.find((m) => m.id === data.active.modelId)?.id ??
+        provider.models.find((m) => m.id === CODEMAKER_DEFAULT_MODEL_ID)?.id ??
         provider.models[0]!.id;
     }
 

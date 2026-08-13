@@ -167,4 +167,52 @@ describe("MuseProviderSettings", () => {
 
     window.removeEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
   });
+
+  it("falls back to deepseek-v4-flash when switching to CodeMaker without matching active", async () => {
+    const api = createApi({
+      listProviders: vi.fn(async () => ({
+        providers: [
+          {
+            id: "codemaker",
+            displayName: "CodeMaker",
+            models: [
+              { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+            ],
+          },
+          {
+            id: "openai-compatible",
+            displayName: "OpenAI Compatible",
+            models: [{ id: "gpt-4.1", label: "GPT-4.1" }],
+          },
+        ],
+        active: { providerId: "openai-compatible", modelId: "gpt-4.1" },
+      })),
+      getOpenAiCompatibleConfig: vi.fn(async () => ({
+        baseURL: "https://api.example.com/v1",
+        apiKeyEnv: "MUSE_OPENAI_API_KEY",
+        hasApiKey: true,
+        hasStoredApiKey: false,
+        models: [{ id: "gpt-4.1", label: "GPT-4.1" }],
+      })),
+    });
+    const ref = createRef<MuseProviderSettingsHandle>();
+    const user = userEvent.setup();
+
+    renderProviderSettings({ ref, api });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("AI 供应商 (Provider)")).toBeTruthy();
+    });
+
+    await user.click(screen.getByLabelText("AI 供应商 (Provider)"));
+    await user.click(await screen.findByRole("option", { name: "CodeMaker" }));
+
+    const ok = await ref.current!.save();
+    expect(ok).toBe(true);
+    expect(api.setActive).toHaveBeenCalledWith(
+      "codemaker",
+      "deepseek-v4-flash",
+    );
+  });
 });
