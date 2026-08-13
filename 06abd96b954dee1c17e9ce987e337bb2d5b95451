@@ -1,0 +1,65 @@
+packages/webview/src/styles/DesktopApp.css
+  55d1a0f89a854e75 23-24,35,63,85,99,138,174,215,222,226-227,248,391,511,660,698,787,991
+packages/webview/src/styles/Message.css
+  55d1a0f89a854e75 27,117-118
+packages/webview/src/styles/MessageList.css
+  55d1a0f89a854e75 22,41-42,59,63,83
+packages/webview/src/styles/ChatApp.css
+  55d1a0f89a854e75 12,17
+packages/webview/src/styles/ChatHeader.css
+  55d1a0f89a854e75 5,58
+packages/webview/src/styles/MessageInput.css
+  55d1a0f89a854e75 28-29,35,117,122,133-145,147,157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "06abd96b954dee1c17e9ce987e337bb2d5b95451",
+  "prompts": {
+    "55d1a0f89a854e75": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f0a8885f-9367-49dc-ba42-7cd7e1450b59",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 61,
+      "accepted_lines": 52,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 20,
+          "deletions": 19,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 19,
+          "deletions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 6,
+          "deletions": 16,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
