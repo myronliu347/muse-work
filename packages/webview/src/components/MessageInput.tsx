@@ -17,6 +17,12 @@ import type {
   AttachedImage,
 } from "../types";
 import { FileSuggestionDropdown } from "./FileSuggestionDropdown";
+import {
+  dirFromRelativePath,
+  fileSuggestionsRequestPayload,
+  parentBrowsePath,
+  resolveFileMentionKey,
+} from "../utils/fileMentionBrowse";
 import { QueueSendIcon } from "./HeaderIcons";
 import { MuseModelSelect } from "./MuseModelSelect";
 import "../styles/MessageInput.css";
@@ -74,6 +80,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       left: 0,
     });
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+    const [browsePath, setBrowsePath] = useState("");
+    const browsePathRef = useRef("");
     const [isComposing, setIsComposing] = useState(false);
     const [attachedImages, setAttachedImages] = useState<AttachedImage[]>(
       initialAttachedImages || [],
@@ -204,6 +212,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       setSuggestions([]);
       setSelectedIndex(0);
       setIsLoadingSuggestions(false);
+      browsePathRef.current = "";
+      setBrowsePath("");
     }, []);
 
     // Load content for editing a queued message.
@@ -326,18 +336,24 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       }
     }, [shouldClearInput, onInputCleared, vscode, closeDropdown, sessionId]);
 
+    const setBrowsePathBoth = useCallback((next: string) => {
+      browsePathRef.current = next;
+      setBrowsePath(next);
+    }, []);
+
     // Request file suggestions from extension
     const requestFileSuggestions = useCallback(
-      (filterText: string) => {
+      (filterText: string, dir?: string) => {
         const requestId = Date.now().toString();
         requestIdRef.current = requestId;
         setIsLoadingSuggestions(true);
-
-        vscode.postMessage({
-          command: "requestFileSuggestions",
-          filterText: filterText,
-          requestId: requestId,
-        });
+        vscode.postMessage(
+          fileSuggestionsRequestPayload(
+            filterText,
+            dir ?? browsePathRef.current,
+            requestId,
+          ),
+        );
       },
       [vscode],
     );
@@ -458,6 +474,24 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modal.appendChild(closeBtn);
       document.body.appendChild(modal);
     }, []);
+
+    const enterDirectory = useCallback(
+      (file: FileItem) => {
+        if (!file.isDirectory) return;
+        const next = dirFromRelativePath(file.relativePath);
+        setBrowsePathBoth(next);
+        setSelectedIndex(0);
+        requestFileSuggestions("", next);
+      },
+      [requestFileSuggestions, setBrowsePathBoth],
+    );
+
+    const goUpDirectory = useCallback(() => {
+      const next = parentBrowsePath(browsePathRef.current);
+      setBrowsePathBoth(next);
+      setSelectedIndex(0);
+      requestFileSuggestions("", next);
+    }, [requestFileSuggestions, setBrowsePathBoth]);
 
     // Handle file selection
     const handleFileSelect = useCallback(
@@ -619,31 +653,46 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }
 
         // Handle dropdown navigation
-        if (atMention.isActive && suggestions.length > 0) {
-          const maxIndex = suggestions.length - 1;
+        if (atMention.isActive) {
+          const action = resolveFileMentionKey({
+            key: event.key,
+            filterText: atMention.filterText,
+            browsePath: browsePathRef.current,
+            suggestions,
+            selectedIndex,
+          });
 
-          switch (event.key) {
-            case "ArrowUp":
-              event.preventDefault();
-              setSelectedIndex((prev: number) => Math.max(0, prev - 1));
-              return;
-            case "ArrowDown":
-              event.preventDefault();
-              setSelectedIndex((prev: number) => Math.min(maxIndex, prev + 1));
-              return;
-            case "Enter":
-              event.preventDefault();
-              if (suggestions[selectedIndex]) {
-                handleFileSelect(suggestions[selectedIndex]);
+          if (action) {
+            event.preventDefault();
+            switch (action.type) {
+              case "move": {
+                const maxIndex = suggestions.length - 1;
+                setSelectedIndex((prev: number) =>
+                  Math.max(0, Math.min(maxIndex, prev + action.delta)),
+                );
+                break;
               }
-              return;
-            case "Escape":
-              event.preventDefault();
-              if (isStreaming) {
-                onAbortMessage();
-              }
-              closeDropdown();
-              return;
+              case "select":
+                if (suggestions[action.index]) {
+                  handleFileSelect(suggestions[action.index]);
+                }
+                break;
+              case "enterDir":
+                if (suggestions[action.index]) {
+                  enterDirectory(suggestions[action.index]);
+                }
+                break;
+              case "goUp":
+                goUpDirectory();
+                break;
+              case "close":
+                if (isStreaming) {
+                  onAbortMessage();
+                }
+                closeDropdown();
+                break;
+            }
+            return;
           }
         }
 
@@ -663,10 +712,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       },
       [
         atMention.isActive,
+        atMention.filterText,
         suggestions,
         selectedIndex,
         handleFileSelect,
         closeDropdown,
+        enterDirectory,
+        goUpDirectory,
         handleSend,
         isComposing,
         vscode,
@@ -726,7 +778,12 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         } else {
           setAtMention(mentionState);
           setDropdownPosition(calculateDropdownPosition());
-          requestFileSuggestions(mentionState.filterText);
+          if (mentionState.filterText) {
+            setBrowsePathBoth("");
+            requestFileSuggestions(mentionState.filterText);
+          } else {
+            requestFileSuggestions("", browsePathRef.current);
+          }
         }
         selectionChangeTimerRef.current = null;
       }, 200);
@@ -735,6 +792,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       closeDropdown,
       calculateDropdownPosition,
       requestFileSuggestions,
+      setBrowsePathBoth,
     ]);
 
     const handleInput = useCallback(
@@ -1028,7 +1086,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             isVisible={
               !!(
                 atMention.isActive &&
-                (suggestions.length > 0 || isLoadingSuggestions)
+                (suggestions.length > 0 ||
+                  isLoadingSuggestions ||
+                  !atMention.filterText)
               )
             }
             selectedIndex={selectedIndex}
@@ -1037,6 +1097,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             position={dropdownPosition}
             filterText={atMention.filterText}
             isLoading={isLoadingSuggestions}
+            browsePath={browsePath}
+            onEnterDirectory={enterDirectory}
+            onBrowseTo={(path) => {
+              setBrowsePathBoth(path);
+              setSelectedIndex(0);
+              requestFileSuggestions("", path);
+            }}
           />
 
           {/* /rewind 检查点弹窗，与历史记录弹窗共用 .input-wrapper 定位上下文 */}
