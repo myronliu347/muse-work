@@ -32,7 +32,12 @@ function adoptLoginShellPath(): void {
 
 adoptLoginShellPath();
 
-app.setName("Muse Work");
+/** Packaged: "Muse Work"; local `pnpm dev`: "Muse Work developing". */
+const APP_DISPLAY_NAME = app.isPackaged
+  ? "Muse Work"
+  : "Muse Work developing";
+
+app.setName(APP_DISPLAY_NAME);
 
 if (!app.isPackaged) {
   app.setPath(
@@ -60,6 +65,7 @@ function openMainWindow(): void {
     serverBaseUrl,
     preloadPath: paths.preloadPath,
     webviewHtmlPath: paths.webviewHtmlPath,
+    title: APP_DISPLAY_NAME,
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -79,12 +85,18 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
-    if (!app.isPackaged) {
-      app.dock?.setIcon(
-        nativeImage.createFromPath(
-          path.join(__dirname, "../../assets/icon.png"),
-        ),
-      );
+    const iconPath = path.join(__dirname, "../../assets/icon.png");
+    const appIcon = nativeImage.createFromPath(iconPath);
+
+    app.setAboutPanelOptions({
+      applicationName: APP_DISPLAY_NAME,
+      applicationVersion: app.getVersion(),
+      version: app.getVersion(),
+      iconPath,
+    });
+
+    if (!app.isPackaged && !appIcon.isEmpty()) {
+      app.dock?.setIcon(appIcon);
     }
 
     workdirHost = installWorkdirHost({
