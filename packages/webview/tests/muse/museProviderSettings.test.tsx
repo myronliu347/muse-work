@@ -2,12 +2,26 @@
 import React, { createRef } from "react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   MuseProviderSettings,
   type MuseProviderSettingsHandle,
 } from "../../src/components/MuseProviderSettings";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 import { MUSE_PROVIDERS_CHANGED_EVENT } from "../../src/muse/providersEvents";
+import { MuseTheme } from "../../src/ui/theme";
+
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
+HTMLElement.prototype.scrollIntoView ??= () => {};
 
 afterEach(() => {
   cleanup();
@@ -66,6 +80,16 @@ function createApi(overrides?: Partial<MuseApiClient>): MuseApiClient {
   return api as unknown as MuseApiClient;
 }
 
+function renderProviderSettings(
+  props: React.ComponentProps<typeof MuseProviderSettings>,
+) {
+  return render(
+    <MuseTheme>
+      <MuseProviderSettings {...props} />
+    </MuseTheme>,
+  );
+}
+
 describe("MuseProviderSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -73,7 +97,7 @@ describe("MuseProviderSettings", () => {
 
   it("shows CodeMaker quota for the active provider", async () => {
     const api = createApi();
-    render(<MuseProviderSettings api={api} />);
+    renderProviderSettings({ api });
 
     await waitFor(() => {
       expect(screen.getByTestId("muse-codemaker-quota")).toBeTruthy();
@@ -91,17 +115,19 @@ describe("MuseProviderSettings", () => {
     const api = createApi();
     const ref = createRef<MuseProviderSettingsHandle>();
     const changed = vi.fn();
+    const user = userEvent.setup();
     window.addEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
 
-    render(<MuseProviderSettings ref={ref} api={api} />);
+    renderProviderSettings({ ref, api });
 
     await waitFor(() => {
       expect(screen.getByLabelText("AI 供应商 (Provider)")).toBeTruthy();
     });
 
-    fireEvent.change(screen.getByLabelText("AI 供应商 (Provider)"), {
-      target: { value: "openai-compatible" },
-    });
+    await user.click(screen.getByLabelText("AI 供应商 (Provider)"));
+    await user.click(
+      await screen.findByRole("option", { name: "OpenAI Compatible" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("muse-openai-form")).toBeTruthy();

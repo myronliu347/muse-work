@@ -8,6 +8,13 @@ import React, {
   useState,
 } from "react";
 import {
+  Progress,
+  Select,
+  Text,
+  TextArea,
+  TextField,
+} from "@radix-ui/themes";
+import {
   MuseApiClient,
   type MuseCodeMakerQuota,
   type MuseModelInfo,
@@ -16,6 +23,7 @@ import {
 } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import { notifyProvidersChanged } from "../muse/providersEvents";
+import { Field } from "../ui/Field";
 
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
@@ -284,31 +292,30 @@ export const MuseProviderSettings = forwardRef<
 
   return (
     <div data-testid="muse-provider-settings">
-      <div className="configuration-field">
-        <label htmlFor="muse-provider">AI 供应商 (Provider)</label>
-        <select
-          id="muse-provider"
-          className="configuration-select"
+      <Field label="AI 供应商 (Provider)" htmlFor="muse-provider">
+        <Select.Root
           value={draftProviderId}
           disabled={!data || saving}
-          title={error ?? undefined}
-          onChange={(e) => onChangeProvider(e.target.value)}
+          onValueChange={onChangeProvider}
         >
-          {!data ? (
-            <option value="">{error ? "加载失败" : "加载中…"}</option>
-          ) : (
-            data.providers.map((p) => (
-              <option key={p.id} value={p.id}>
+          <Select.Trigger
+            id="muse-provider"
+            aria-label="AI 供应商 (Provider)"
+            title={error ?? undefined}
+            placeholder={error ? "加载失败" : "加载中…"}
+          />
+          <Select.Content>
+            {data?.providers.map((p) => (
+              <Select.Item key={p.id} value={p.id}>
                 {p.displayName}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+      </Field>
 
       {draftProviderId === "codemaker" && (
         <div
-          className="configuration-field"
           data-testid="muse-codemaker-quota"
           style={{ marginTop: 12 }}
         >
@@ -340,27 +347,16 @@ export const MuseProviderSettings = forwardRef<
                 <span className="muse-quota-label">剩余</span>
                 <span>{formatQuotaNumber(quota.remaining)}</span>
               </div>
-              <div
-                className="muse-quota-progress"
-                data-testid="muse-quota-progress"
-              >
+              <div className="muse-quota-progress">
                 <div className="muse-quota-progress-meta">
                   <span className="muse-quota-label">本月使用</span>
                   <span>{formatQuotaPercent(quota.percentage)}</span>
                 </div>
-                <div
-                  className="muse-quota-progress-track"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={quotaBarWidth(quota.percentage)}
+                <Progress
+                  data-testid="muse-quota-progress"
+                  value={quotaBarWidth(quota.percentage)}
                   aria-label="本月额度使用百分比"
-                >
-                  <div
-                    className="muse-quota-progress-fill"
-                    style={{ width: `${quotaBarWidth(quota.percentage)}%` }}
-                  />
-                </div>
+                />
               </div>
             </div>
           )}
@@ -369,9 +365,8 @@ export const MuseProviderSettings = forwardRef<
 
       {draftProviderId === "openai-compatible" && (
         <div data-testid="muse-openai-form" style={{ marginTop: 4 }}>
-          <div className="configuration-field">
-            <label htmlFor="muse-openai-base-url">API URL</label>
-            <input
+          <Field label="API URL" htmlFor="muse-openai-base-url">
+            <TextField.Root
               id="muse-openai-base-url"
               type="text"
               value={baseURL}
@@ -379,10 +374,9 @@ export const MuseProviderSettings = forwardRef<
               disabled={saving || !openaiCfg}
               placeholder="https://api.example.com/v1"
             />
-          </div>
-          <div className="configuration-field">
-            <label htmlFor="muse-openai-api-key">API Key</label>
-            <input
+          </Field>
+          <Field label="API Key" htmlFor="muse-openai-api-key">
+            <TextField.Root
               id="muse-openai-api-key"
               type="password"
               value={apiKey}
@@ -395,22 +389,21 @@ export const MuseProviderSettings = forwardRef<
               }
               autoComplete="off"
             />
-          </div>
-          <div className="configuration-field">
-            <label htmlFor="muse-openai-models">支持的 Model 列表</label>
-            <textarea
+          </Field>
+          <Field
+            label="支持的 Model 列表"
+            htmlFor="muse-openai-models"
+            hint="每行一个模型：`id` 或 `id|显示名`。"
+          >
+            <TextArea
               id="muse-openai-models"
-              className="muse-openai-models"
               value={modelsText}
               onChange={(e) => setModelsText(e.target.value)}
               disabled={saving || !openaiCfg}
               rows={6}
               placeholder={"gpt-4.1\ngpt-4.1-mini|GPT-4.1 Mini"}
             />
-            <div className="config-model-hint" style={{ marginTop: 6 }}>
-              <span>每行一个模型：`id` 或 `id|显示名`。</span>
-            </div>
-          </div>
+          </Field>
         </div>
       )}
 
@@ -419,9 +412,9 @@ export const MuseProviderSettings = forwardRef<
           {error}
         </div>
       )}
-      <div className="config-model-hint" style={{ marginTop: 8 }}>
-        <span>修改后需点击保存才生效；下次发消息会按新配置重建 Agent。</span>
-      </div>
+      <Text size="1" color="gray" style={{ marginTop: 8 }}>
+        修改后需点击保存才生效；下次发消息会按新配置重建 Agent。
+      </Text>
     </div>
   );
 });
