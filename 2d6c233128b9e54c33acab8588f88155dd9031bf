@@ -1,0 +1,53 @@
+packages/webview/tests/muse/fileMentionBrowse.test.ts
+  da9c5f3f3d06ee33 1-121
+packages/webview/src/utils/fileMentionBrowse.ts
+  da9c5f3f3d06ee33 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2d6c233128b9e54c33acab8588f88155dd9031bf",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1421,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-file-mention-cascader.md": {
+          "accepted_lines": 1421
+        }
+      }
+    },
+    "da9c5f3f3d06ee33": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a2290863-381c-4467-bec7-c49db4b8ca74",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 202,
+      "total_deletions": 0,
+      "accepted_lines": 202,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/fileMentionBrowse.test.ts": {
+          "additions": 121,
+          "accepted_lines": 121
+        },
+        "packages/webview/src/utils/fileMentionBrowse.ts": {
+          "additions": 81,
+          "accepted_lines": 81
+        }
+      }
+    }
+  }
+}
