@@ -202,14 +202,32 @@ export class MuseApiClient {
   async respondPermission(
     sessionId: string,
     permissionId: string,
-    decision: "allow" | "deny",
+    decision:
+      | "allow"
+      | "deny"
+      | {
+          behavior: "allow" | "deny";
+          message?: string;
+          newPermissionMode?: string;
+          newPermissionRule?: string;
+        },
   ): Promise<{ ok: true }> {
+    const body =
+      typeof decision === "string"
+        ? { decision, behavior: decision }
+        : {
+            decision: decision.behavior,
+            behavior: decision.behavior,
+            message: decision.message,
+            newPermissionMode: decision.newPermissionMode,
+            newPermissionRule: decision.newPermissionRule,
+          };
     const res = await this.request(
       `/sessions/${encodeURIComponent(sessionId)}/permissions/${encodeURIComponent(permissionId)}`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ decision }),
+        body: JSON.stringify(body),
       },
     );
     return parseJson(res);

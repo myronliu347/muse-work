@@ -20,6 +20,12 @@ export type MuseWsEventPayload =
       permissionId: string;
       toolName: string;
       description: string;
+      toolInput?: Record<string, unknown>;
+      planContent?: string;
+      suggestedPrefix?: string;
+      hidePersistentOption?: boolean;
+      permissionMode?: string;
+      toolCallId?: string;
     }
   | { type: "session:status"; status: string; error?: string }
   | { type: "auth:changed"; status: unknown }

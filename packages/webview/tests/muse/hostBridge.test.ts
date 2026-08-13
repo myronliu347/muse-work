@@ -673,8 +673,134 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       command: "showConfirmation",
       confirmationId: "perm-bg",
       toolName: "Bash",
-      confirmationType: "tool",
-      toolInput: "ls -la",
+      confirmationType: "Bash 命令执行确认",
+      toolInput: { command: "ls -la" },
+      planContent: undefined,
+      suggestedPrefix: undefined,
+      hidePersistentOption: undefined,
+      permissionMode: undefined,
+    });
+  });
+
+  it("permission:request shows structured AskUserQuestion toolInput", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    const questions = [
+      {
+        question: "Pick?",
+        header: "Pick",
+        options: [{ label: "Yes" }, { label: "No" }],
+      },
+    ];
+    handler!({
+      type: "permission:request",
+      sessionId: "sess-active",
+      permissionId: "perm-ask",
+      toolName: "AskUserQuestion",
+      description: "AskUserQuestion: {}",
+      toolInput: { questions },
+      hidePersistentOption: true,
+    });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showConfirmation",
+        confirmationId: "perm-ask",
+        toolName: "AskUserQuestion",
+        confirmationType: "问题待回答",
+        toolInput: { questions },
+        hidePersistentOption: true,
+      }),
+    );
+  });
+
+  it("confirmationResponse forwards answers and respects reject", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const respondPermission = vi.fn(async () => ({ ok: true as const }));
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const bridge = createHostBridge({
+      api: stubApi({ respondPermission }),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    handler!({
+      type: "permission:request",
+      sessionId: "sess-active",
+      permissionId: "perm-1",
+      toolName: "AskUserQuestion",
+      description: "q",
+      toolInput: { questions: [] },
+    });
+    await flush();
+
+    bridge.postMessage({
+      command: "confirmationResponse",
+      confirmationId: "perm-1",
+      approved: true,
+      decision: {
+        behavior: "allow",
+        message: JSON.stringify({ Q: "A" }),
+      },
+    });
+    await flush();
+
+    expect(respondPermission).toHaveBeenCalledWith("sess-active", "perm-1", {
+      behavior: "allow",
+      message: JSON.stringify({ Q: "A" }),
+      newPermissionMode: undefined,
+      newPermissionRule: undefined,
+    });
+
+    respondPermission.mockClear();
+    handler!({
+      type: "permission:request",
+      sessionId: "sess-active",
+      permissionId: "perm-2",
+      toolName: "Bash",
+      description: "ls",
+      toolInput: { command: "ls" },
+    });
+    await flush();
+
+    bridge.postMessage({
+      command: "confirmationResponse",
+      confirmationId: "perm-2",
+      approved: false,
+    });
+    await flush();
+
+    expect(respondPermission).toHaveBeenCalledWith("sess-active", "perm-2", {
+      behavior: "deny",
+      message: "Denied by user",
+      newPermissionMode: undefined,
+      newPermissionRule: undefined,
     });
   });
 

@@ -185,18 +185,48 @@ export async function handleRespondPermission(
   permissionId: string,
 ): Promise<void> {
   const body = (await readJsonBody(req)) as
-    | { decision?: "allow" | "deny" }
+    | {
+        decision?: "allow" | "deny";
+        behavior?: "allow" | "deny";
+        message?: string;
+        newPermissionMode?: string;
+        newPermissionRule?: string;
+      }
     | undefined;
-  if (body?.decision !== "allow" && body?.decision !== "deny") {
-    sendError(res, 400, 'decision must be "allow" or "deny"');
+
+  // Prefer structured PermissionDecision fields; keep legacy { decision }.
+  const behavior =
+    body?.behavior === "allow" || body?.behavior === "deny"
+      ? body.behavior
+      : body?.decision === "allow" || body?.decision === "deny"
+        ? body.decision
+        : undefined;
+  if (behavior !== "allow" && behavior !== "deny") {
+    sendError(
+      res,
+      400,
+      'behavior (or decision) must be "allow" or "deny"',
+    );
     return;
   }
   try {
-    const result = await ctx.runner.respondPermission(
-      sessionId,
-      permissionId,
-      body.decision,
-    );
+    const result = await ctx.runner.respondPermission(sessionId, permissionId, {
+      behavior,
+      message: typeof body?.message === "string" ? body.message : undefined,
+      newPermissionMode:
+        typeof body?.newPermissionMode === "string"
+          ? (body.newPermissionMode as
+              | "default"
+              | "bypassPermissions"
+              | "acceptEdits"
+              | "plan"
+              | "dontAsk")
+          : undefined,
+      newPermissionRule:
+        typeof body?.newPermissionRule === "string"
+          ? body.newPermissionRule
+          : undefined,
+    });
     sendJson(res, 200, result);
   } catch (err) {
     const statusCode =

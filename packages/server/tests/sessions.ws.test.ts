@@ -324,6 +324,7 @@ describe("sessions + websocket streaming", () => {
     expect(permissionEvent.toolName).toBe("Bash");
     expect(typeof permissionEvent.permissionId).toBe("string");
     expect(typeof permissionEvent.description).toBe("string");
+    expect(permissionEvent.toolInput).toEqual({ command: "ls" });
 
     expect(permissionPromise).toBeTruthy();
     let settled = false;
@@ -345,6 +346,91 @@ describe("sessions + websocket streaming", () => {
 
     await sendDone;
     expect(settled).toBe(true);
+  });
+
+  it("AskUserQuestion permission carries toolInput and answer message", async () => {
+    let permissionPromise: Promise<{ behavior: string; message?: string }> | undefined;
+    let resolveSend: (() => void) | undefined;
+    const sendDone = new Promise<void>((resolve) => {
+      resolveSend = resolve;
+    });
+    const questions = [
+      {
+        question: "Which?",
+        header: "Choice",
+        options: [{ label: "A" }, { label: "B" }],
+      },
+    ];
+
+    const createAgent: CreateAgent = async (opts) => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {
+          if (!opts.canUseTool) {
+            throw new Error("expected canUseTool");
+          }
+          permissionPromise = opts.canUseTool({
+            toolName: "AskUserQuestion",
+            permissionMode: "acceptEdits",
+            toolInput: { questions },
+            hidePersistentOption: true,
+          });
+          const decision = await permissionPromise;
+          expect(decision.behavior).toBe("allow");
+          expect(decision.message).toBe(JSON.stringify({ "Which?": "A" }));
+          resolveSend?.();
+        },
+        dispose: async () => {},
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events: permissionEvents } = openWsCollector(
+      app.baseUrl,
+      session.id,
+      {
+        minCount: 1,
+        filter: (e) => e.type === "permission:request",
+      },
+    );
+    await ready;
+
+    void fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "ask me" }),
+    });
+
+    const [permissionEvent] = await permissionEvents;
+    expect(permissionEvent.toolName).toBe("AskUserQuestion");
+    expect(permissionEvent.toolInput).toEqual({ questions });
+    expect(permissionEvent.hidePersistentOption).toBe(true);
+
+    const allowRes = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/permissions/${String(permissionEvent.permissionId)}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          behavior: "allow",
+          message: JSON.stringify({ "Which?": "A" }),
+        }),
+      },
+    );
+    expect(allowRes.status).toBe(200);
+
+    await sendDone;
+    expect(permissionPromise).toBeTruthy();
   });
 
   it("second POST message while running is queued then processed", async () => {

@@ -251,9 +251,9 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
     } else if (confirmation.toolName === ASK_USER_QUESTION_TOOL_NAME) {
       // Combine selected options and "Other" inputs
       const finalAnswers: Record<string, string | string[]> = { ...answers };
-      const questions = (
-        confirmation.toolInput as unknown as AskUserQuestionInput
-      ).questions;
+      const questions =
+        (confirmation.toolInput as unknown as AskUserQuestionInput | undefined)
+          ?.questions ?? [];
 
       questions.forEach((q) => {
         const qKey = q.question;
@@ -600,9 +600,9 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   const isCurrentQuestionAnswered = () => {
     if (confirmation.toolName !== ASK_USER_QUESTION_TOOL_NAME) return true;
-    const questions = (
-      confirmation.toolInput as unknown as AskUserQuestionInput
-    ).questions;
+    const questions =
+      (confirmation.toolInput as unknown as AskUserQuestionInput | undefined)
+        ?.questions ?? [];
     const q = questions[currentQuestionIndex];
     if (!q) return true;
 
@@ -621,9 +621,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   const isConfirmDisabled = () => {
     if (confirmation.toolName === ASK_USER_QUESTION_TOOL_NAME) {
-      const questions = (
-        confirmation.toolInput as unknown as AskUserQuestionInput
-      ).questions;
+      const questions =
+        (confirmation.toolInput as unknown as AskUserQuestionInput | undefined)
+          ?.questions ?? [];
+      if (questions.length === 0) return true;
       return !questions.every((q) => {
         const answer = answers[q.question];
         const other = otherInputs[q.question];

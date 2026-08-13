@@ -37,6 +37,13 @@ export type WsEvent =
       permissionId: string;
       toolName: string;
       description: string;
+      /** Structured tool args for ConfirmationDialog (questions, command, etc.). */
+      toolInput?: Record<string, unknown>;
+      planContent?: string;
+      suggestedPrefix?: string;
+      hidePersistentOption?: boolean;
+      permissionMode?: string;
+      toolCallId?: string;
     }
   | {
       type: "session:status";

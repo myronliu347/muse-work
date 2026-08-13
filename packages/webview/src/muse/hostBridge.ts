@@ -92,6 +92,62 @@ function mergeRuntimeFields(
   });
 }
 
+type PendingPermission = {
+  permissionId: string;
+  toolName: string;
+  description: string;
+  toolInput?: Record<string, unknown>;
+  planContent?: string;
+  suggestedPrefix?: string;
+  hidePersistentOption?: boolean;
+  permissionMode?: string;
+  toolCallId?: string;
+};
+
+function confirmationTypeForTool(toolName: string): string {
+  switch (toolName) {
+    case "AskUserQuestion":
+      return "问题待回答";
+    case "Bash":
+      return "Bash 命令执行确认";
+    case "Edit":
+    case "Write":
+      return "代码修改确认";
+    case "ExitPlanMode":
+      return "计划执行确认";
+    case "EnterPlanMode":
+      return "进入计划模式确认";
+    default:
+      if (toolName.startsWith("mcp__")) return "MCP 工具确认";
+      return "工具确认";
+  }
+}
+
+/** Normalize WS toolInput; fall back to parsing description when older servers omit it. */
+function resolveToolInput(pending: PendingPermission): Record<string, unknown> {
+  if (pending.toolInput && typeof pending.toolInput === "object") {
+    return pending.toolInput;
+  }
+  const prefix = `${pending.toolName}: `;
+  if (pending.description.startsWith(prefix)) {
+    try {
+      const parsed: unknown = JSON.parse(
+        pending.description.slice(prefix.length),
+      );
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  // Legacy hostBridge stored the bare command string as description for Bash.
+  if (pending.toolName === "Bash" && pending.description.trim()) {
+    return { command: pending.description };
+  }
+  return {};
+}
+
 /**
  * Minimal host bridge: maps legacy webview postMessage commands onto Muse HTTP/WS.
  * Compatible subset: login / logout / sendMessage / confirmationResponse (+ auth bootstrap).
@@ -127,10 +183,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let recent: TreeSession[] = [];
   const titledSessions = new Set<string>();
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
-  const pendingPermissions = new Map<
-    string,
-    { permissionId: string; toolName: string; description: string }
-  >();
+  const pendingPermissions = new Map<string, PendingPermission>();
 
   const DRAFT_SESSION_ID = "__draft__";
 
@@ -183,17 +236,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     patchTreeSession(id, { unreadDone: false });
   };
 
-  const showPermissionConfirmation = (pending: {
-    permissionId: string;
-    toolName: string;
-    description: string;
-  }) => {
+  const showPermissionConfirmation = (pending: PendingPermission) => {
     postToWebview({
       command: "showConfirmation",
       confirmationId: pending.permissionId,
       toolName: pending.toolName,
-      confirmationType: "tool",
-      toolInput: pending.description,
+      confirmationType: confirmationTypeForTool(pending.toolName),
+      toolInput: resolveToolInput(pending),
+      planContent: pending.planContent,
+      suggestedPrefix: pending.suggestedPrefix,
+      hidePersistentOption: pending.hidePersistentOption,
+      permissionMode: pending.permissionMode,
     });
   };
 
@@ -536,10 +589,16 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "permission:request") {
-      const pending = {
+      const pending: PendingPermission = {
         permissionId: event.permissionId,
         toolName: event.toolName,
         description: event.description,
+        toolInput: event.toolInput,
+        planContent: event.planContent,
+        suggestedPrefix: event.suggestedPrefix,
+        hidePersistentOption: event.hidePersistentOption,
+        permissionMode: event.permissionMode,
+        toolCallId: event.toolCallId,
       };
       pendingPermissions.set(event.sessionId, pending);
       // Sidebar must show waiting even when this session is not focused.
@@ -761,14 +820,60 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   async function handleConfirmationResponse(msg: {
     confirmationId?: string;
-    decision?: string;
+    approved?: boolean;
+    decision?:
+      | string
+      | {
+          behavior?: "allow" | "deny";
+          message?: string;
+          newPermissionMode?: string;
+          newPermissionRule?: string;
+        };
   }): Promise<void> {
     if (!sessionId || !msg.confirmationId) return;
-    const decision =
-      msg.decision === "deny" || msg.decision === "reject" ? "deny" : "allow";
     const sid = sessionId;
+
+    let behavior: "allow" | "deny" = "allow";
+    let message: string | undefined;
+    let newPermissionMode: string | undefined;
+    let newPermissionRule: string | undefined;
+
+    if (msg.approved === false) {
+      behavior = "deny";
+      message = "Denied by user";
+    }
+
+    if (typeof msg.decision === "string") {
+      if (msg.decision === "deny" || msg.decision === "reject") {
+        behavior = "deny";
+        message = message ?? "Denied by user";
+      } else if (msg.decision === "allow") {
+        behavior = "allow";
+      }
+    } else if (msg.decision && typeof msg.decision === "object") {
+      if (msg.decision.behavior === "deny" || msg.decision.behavior === "allow") {
+        behavior = msg.decision.behavior;
+      }
+      if (typeof msg.decision.message === "string") {
+        message = msg.decision.message;
+      } else if (behavior === "deny") {
+        message = message ?? "Denied by user";
+      }
+      if (typeof msg.decision.newPermissionMode === "string") {
+        newPermissionMode = msg.decision.newPermissionMode;
+      }
+      if (typeof msg.decision.newPermissionRule === "string") {
+        newPermissionRule = msg.decision.newPermissionRule;
+      }
+    }
+
     try {
-      await api.respondPermission(sid, msg.confirmationId, decision);
+      await api.respondPermission(sid, msg.confirmationId, {
+        behavior,
+        message,
+        newPermissionMode,
+        newPermissionRule,
+      });
       clearPendingPermission(sid);
     } catch (err) {
       postToWebview({
@@ -885,7 +990,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         }
         case "confirmationResponse":
           void handleConfirmationResponse(
-            msg as { confirmationId?: string; decision?: string },
+            msg as {
+              confirmationId?: string;
+              approved?: boolean;
+              decision?:
+                | string
+                | {
+                    behavior?: "allow" | "deny";
+                    message?: string;
+                    newPermissionMode?: string;
+                    newPermissionRule?: string;
+                  };
+            },
           );
           return;
         case "webviewReady":

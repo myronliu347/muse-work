@@ -48,7 +48,7 @@ export interface SessionRunner {
   respondPermission(
     sessionId: string,
     permissionId: string,
-    decision: "allow" | "deny",
+    decision: PermissionDecision,
   ): Promise<{ ok: true }>;
   disposeSession(sessionId: string): Promise<void>;
   getMessages(sessionId: string): Promise<unknown[]>;
@@ -442,9 +442,13 @@ export function createSessionRunner(
       canUseTool: async (context) => {
         clearIdleTimer(sessionId);
         const permissionId = crypto.randomUUID();
+        const toolInput =
+          context.toolInput && typeof context.toolInput === "object"
+            ? (context.toolInput as Record<string, unknown>)
+            : undefined;
         const description =
-          context.toolInput !== undefined
-            ? `${context.toolName}: ${safeJson(context.toolInput)}`
+          toolInput !== undefined
+            ? `${context.toolName}: ${safeJson(toolInput)}`
             : `Request to use ${context.toolName}`;
 
         const decisionPromise = new Promise<PermissionDecision>((resolve) => {
@@ -456,6 +460,12 @@ export function createSessionRunner(
           permissionId,
           toolName: context.toolName,
           description,
+          toolInput,
+          planContent: context.planContent,
+          suggestedPrefix: context.suggestedPrefix,
+          hidePersistentOption: context.hidePersistentOption,
+          permissionMode: context.permissionMode,
+          toolCallId: context.toolCallId,
         });
 
         return decisionPromise;
@@ -671,9 +681,17 @@ export function createSessionRunner(
         });
       }
       pending.delete(permissionId);
+      const behavior =
+        decision.behavior === "deny" || decision.behavior === "allow"
+          ? decision.behavior
+          : "deny";
       entry.resolve({
-        behavior: decision,
-        message: decision === "deny" ? "Denied by user" : undefined,
+        behavior,
+        message:
+          decision.message ??
+          (behavior === "deny" ? "Denied by user" : undefined),
+        newPermissionMode: decision.newPermissionMode,
+        newPermissionRule: decision.newPermissionRule,
       });
       return { ok: true };
     },
