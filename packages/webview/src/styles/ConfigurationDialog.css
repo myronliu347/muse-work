@@ -141,17 +141,6 @@
   font-weight: 500;
 }
 
-.config-dialog .configuration-field input,
-.config-dialog .configuration-field select {
-  height: 32px;
-  box-sizing: border-box;
-  border-radius: 6px;
-}
-
-.config-dialog .configuration-field input::placeholder {
-  color: var(--vscode-input-placeholderForeground);
-}
-
 .config-dialog .configuration-actions {
   margin-top: 0;
   padding: 8px 16px;
@@ -159,17 +148,6 @@
   box-sizing: border-box;
   align-items: center;
   border-top: 1px solid var(--vscode-widget-border);
-}
-
-.config-dialog .configuration-cancel-btn,
-.config-dialog .configuration-save-btn {
-  height: 28px;
-  min-width: 64px;
-  border-radius: 6px;
-}
-
-.config-dialog .configuration-cancel-btn {
-  border: 1px solid var(--vscode-input-border);
 }
 
 /* Plugins Container */
@@ -511,26 +489,6 @@ input:checked + .slider:before {
   margin-left: 2px;
 }
 
-.configuration-field input,
-.configuration-field select,
-.configuration-field textarea {
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  padding: 6px 8px;
-  border-radius: 3px;
-  font-family: var(--vscode-font-family);
-  font-size: 13px;
-  min-height: 20px;
-}
-
-.configuration-field input:focus,
-.configuration-field select:focus,
-.configuration-field textarea:focus {
-  outline: none;
-  border-color: var(--vscode-focusBorder);
-}
-
 .muse-quota-header {
   display: flex;
   align-items: baseline;
@@ -606,13 +564,6 @@ input:checked + .slider:before {
     monospace
   );
   font-size: 12px;
-}
-
-.configuration-field input:disabled,
-.configuration-field select:disabled,
-.configuration-field textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .configuration-textarea {

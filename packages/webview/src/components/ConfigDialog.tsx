@@ -4,6 +4,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
+import { Button } from "@radix-ui/themes";
 import { ConfigDialogProps, VsCodeApi } from "../types";
 import { CloseIcon } from "./HeaderIcons";
 import {
@@ -182,23 +183,21 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           </div>
 
           <div className="configuration-actions">
-            <button
-              type="button"
+            <Button
+              variant="soft"
+              color="gray"
               onClick={requestClose}
               disabled={saving}
-              className="configuration-cancel-btn"
             >
               关闭
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => void handleSave()}
               disabled={saving}
-              className="configuration-save-btn"
               data-testid="config-dialog-save"
             >
               {saving ? "保存中..." : "保存"}
-            </button>
+            </Button>
           </div>
         </div>
       </motion.div>

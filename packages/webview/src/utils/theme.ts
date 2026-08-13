@@ -3,7 +3,7 @@
  * - VS Code webview: the host sets vscode-dark / vscode-light / vscode-high-contrast(-light)
  *   classes on <body>.
  * - Desktop / JetBrains: <html data-theme="dark|light"> (desktop preload; JB injects it in
- *   WebviewContentBuilder).
+ *   WebviewContentBuilder). Desktop supports the in-app system/light/dark preference.
  */
 export const isDarkTheme = (): boolean => {
   const bodyClass = document.body?.classList;
