@@ -1,0 +1,66 @@
+packages/webview/src/styles/FileSuggestionDropdown.css
+  6509ebc88c805931 61-75,135-189
+packages/webview/tests/components/fileSuggestionDropdown.test.tsx
+  6509ebc88c805931 1-100
+packages/webview/src/components/FileSuggestionDropdown.tsx
+  6509ebc88c805931 3,15-17,20,40-45,72,79-98,102-104,110,113-115,117-131,134,143,151,155
+packages/webview/src/types/index.ts
+  6509ebc88c805931 484-486
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b76a3f0d51509952f39f8a430b7de0a450cf195d",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1421,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-file-mention-cascader.md": {
+          "accepted_lines": 1421
+        }
+      }
+    },
+    "6509ebc88c805931": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5298c527-2e17-4145-bc02-b22791dff419",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 231,
+      "total_deletions": 50,
+      "accepted_lines": 231,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/FileSuggestionDropdown.tsx": {
+          "additions": 58,
+          "deletions": 50,
+          "accepted_lines": 58
+        },
+        "packages/webview/tests/components/fileSuggestionDropdown.test.tsx": {
+          "additions": 100,
+          "accepted_lines": 100
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "additions": 70,
+          "accepted_lines": 70
+        }
+      }
+    }
+  }
+}
