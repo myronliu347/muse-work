@@ -164,7 +164,14 @@ const isRewindTargetMessage = (message: MessageType): boolean =>
 
 export const Message: React.FC<MessageProps> = React.memo(
   (props: MessageProps) => {
-    const { message, isQueued = false, onRewindToMessage, workdir } = props;
+    const {
+      message,
+      isQueued = false,
+      onRewindToMessage,
+      workdir,
+      blockRenderMode = "all",
+      finalTextBlockIndex,
+    } = props;
 
     // Desktop routes file opens to its file panel (the host resolves the path,
     // pushing content back); IDE hosts keep the plain openFile RPC. The message
@@ -807,6 +814,15 @@ export const Message: React.FC<MessageProps> = React.memo(
     };
 
     const renderBlock = (block: MessageBlock, index: number) => {
+      if (
+        typeof finalTextBlockIndex === "number" &&
+        blockRenderMode !== "all"
+      ) {
+        const isFinal = index === finalTextBlockIndex;
+        if (blockRenderMode === "finalTextOnly" && !isFinal) return null;
+        if (blockRenderMode === "omitFinalText" && isFinal) return null;
+      }
+
       let rendered: React.ReactNode = null;
       let wrap = false;
       let dotColor: string | undefined;
@@ -959,7 +975,9 @@ export const Message: React.FC<MessageProps> = React.memo(
     return (
       prev.message === next.message &&
       prev.isQueued === next.isQueued &&
-      prev.onRewindToMessage === next.onRewindToMessage
+      prev.onRewindToMessage === next.onRewindToMessage &&
+      prev.blockRenderMode === next.blockRenderMode &&
+      prev.finalTextBlockIndex === next.finalTextBlockIndex
     );
   },
 );

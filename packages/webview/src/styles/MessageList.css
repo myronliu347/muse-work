@@ -5,6 +5,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px;
+  /* Leave scroll room under the last bubble so content is not glued to the
+       composer; session jumps land with breathing space above the input. */
+  padding-bottom: min(36vh, 240px);
   /* Cap the conversation column at 800px and center it, mirroring .input-wrapper
        so messages line up with the input box instead of spanning the full pane
        width. The panel-background gutters come from .chat-container (see

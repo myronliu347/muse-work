@@ -8,9 +8,30 @@ import React, {
   useState,
 } from "react";
 import { Message } from "./Message";
+import {
+  AssistantWorkSummary,
+  shouldCollapseAssistantGroup,
+} from "./AssistantWorkSummary";
 import type { MessageListProps } from "../types";
 import type { Message as MessageType } from "wave-agent-sdk";
 import "../styles/MessageList.css";
+
+/** Locate the last non-empty text block in an assistant group. */
+function findFinalTextBlock(
+  groupMessages: MessageType[],
+): { messageId: string; blockIndex: number } | null {
+  for (let mi = groupMessages.length - 1; mi >= 0; mi--) {
+    const message = groupMessages[mi];
+    const blocks = message.blocks ?? [];
+    for (let bi = blocks.length - 1; bi >= 0; bi--) {
+      const block = blocks[bi];
+      if (block.type === "text" && block.content?.trim()) {
+        return { messageId: message.id, blockIndex: bi };
+      }
+    }
+  }
+  return null;
+}
 
 // Count the blocks in an assistant message that Message.tsx wraps in a `.timeline-row`
 // (i.e. that carry a timeline dot): non-empty text/compact, tool, and reasoning blocks.
@@ -60,6 +81,8 @@ export const MessageList = forwardRef<
   // messages exist (empty state shows LoadingLogo/WelcomeView), so the first run
   // IS the initial session load and must force-scroll to the bottom.
   const isFirstEffectRef = useRef(true);
+  // Detect session / history replacement so we jump instantly, not smoothly.
+  const prevListHeadRef = useRef<string | undefined>(messages[0]?.id);
   // True when the user has scrolled up away from the bottom. While set,
   // auto-scroll-to-bottom is suspended so the user can read history undisturbed
   // during streaming. Set by ANY upward scroll (even a few px) — detected by
@@ -198,11 +221,18 @@ export const MessageList = forwardRef<
     const container = containerRef.current;
     if (!container) return;
 
-    // Initial load scrolls instantly ('auto') — a smooth animation would compute
-    // its target once and land short while async content (images, webfonts,
-    // mermaid) is still loading. isNewMessage marks appended messages.
+    // Initial load / session switch scrolls instantly ('auto') — a smooth
+    // animation would compute its target once and land short while async
+    // content (images, webfonts, mermaid) is still loading.
+    const listHead = messages[0]?.id;
+    const isSessionSwap =
+      Boolean(listHead) && listHead !== prevListHeadRef.current;
+    prevListHeadRef.current = listHead;
     const isInitialLoad = isFirstEffectRef.current && messages.length > 0;
     isFirstEffectRef.current = false;
+    if (isSessionSwap) {
+      userScrolledUpRef.current = false;
+    }
     const isNewMessage =
       messages.length > prevMessagesLengthRef.current ||
       (queuedMessages?.length || 0) > prevQueuedLengthRef.current;
@@ -273,8 +303,8 @@ export const MessageList = forwardRef<
     // chunks so streamed text stays visible), gated by userScrolledUp inside
     // scrollToBottom. A brand-new message forces the scroll.
     scrollToBottom(
-      isStreaming || isInitialLoad ? "auto" : "smooth",
-      isNewMessage || isInitialLoad,
+      isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
+      isNewMessage || isInitialLoad || isSessionSwap,
     );
     computeSticky();
 
@@ -347,16 +377,25 @@ export const MessageList = forwardRef<
           visibleMessages.push(msg);
         }
 
-        const renderMessage = (message: MessageType) => {
+        const renderMessage = (
+          message: MessageType,
+          extras?: {
+            blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
+            finalTextBlockIndex?: number;
+            keySuffix?: string;
+          },
+        ) => {
           return (
             <Message
-              key={message.id}
+              key={`${message.id}${extras?.keySuffix ?? ""}`}
               message={message}
               vscode={vscode}
               onRewindToMessage={onRewindToMessage}
               workdir={workdir}
               onOpenPreview={onOpenPreview}
               onOpenFile={onOpenFile}
+              blockRenderMode={extras?.blockRenderMode}
+              finalTextBlockIndex={extras?.finalTextBlockIndex}
             />
           );
         };
@@ -366,22 +405,68 @@ export const MessageList = forwardRef<
         // messages break the timeline (rendered as bare bubbles outside any group).
         const rendered: React.ReactNode[] = [];
         let group: { message: MessageType }[] = [];
+        const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
 
         const flushGroup = () => {
           if (group.length === 0) return;
-          const dotCount = group.reduce(
-            (sum, g) => sum + countTimelineBlocks(g.message),
+          const groupMessages = group.map((g) => g.message);
+          const isLiveGroup =
+            Boolean(isStreaming) &&
+            groupMessages.some((m) => m.id === lastVisibleId);
+          const finalText = findFinalTextBlock(groupMessages);
+          const collapse =
+            !isLiveGroup &&
+            finalText &&
+            shouldCollapseAssistantGroup(groupMessages);
+
+          const dotCount = groupMessages.reduce(
+            (sum, m) => sum + countTimelineBlocks(m),
             0,
           );
           const single = dotCount <= 1;
-          rendered.push(
-            <div
-              key={group[0].message.id}
-              className={`assistant-group${single ? " assistant-group--single" : ""}`}
-            >
-              {group.map((g) => renderMessage(g.message))}
-            </div>,
-          );
+
+          if (collapse && finalText) {
+            rendered.push(
+              <div
+                key={groupMessages[0].id}
+                className={`assistant-group${single ? " assistant-group--single" : ""}`}
+                data-testid="assistant-group-collapsed"
+              >
+                <AssistantWorkSummary messages={groupMessages}>
+                  {groupMessages.map((m) =>
+                    renderMessage(m, {
+                      blockRenderMode:
+                        m.id === finalText.messageId
+                          ? "omitFinalText"
+                          : "all",
+                      finalTextBlockIndex:
+                        m.id === finalText.messageId
+                          ? finalText.blockIndex
+                          : undefined,
+                      keySuffix: "-work",
+                    }),
+                  )}
+                </AssistantWorkSummary>
+                {renderMessage(
+                  groupMessages.find((m) => m.id === finalText.messageId)!,
+                  {
+                    blockRenderMode: "finalTextOnly",
+                    finalTextBlockIndex: finalText.blockIndex,
+                    keySuffix: "-final",
+                  },
+                )}
+              </div>,
+            );
+          } else {
+            rendered.push(
+              <div
+                key={groupMessages[0].id}
+                className={`assistant-group${single ? " assistant-group--single" : ""}`}
+              >
+                {groupMessages.map((m) => renderMessage(m))}
+              </div>,
+            );
+          }
           group = [];
         };
 
@@ -398,6 +483,7 @@ export const MessageList = forwardRef<
         return rendered;
       }, [
         messages,
+        isStreaming,
         vscode,
         onRewindToMessage,
         workdir,

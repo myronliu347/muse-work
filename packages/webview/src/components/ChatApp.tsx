@@ -709,7 +709,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               messageListRef.current &&
               typeof messageListRef.current.scrollToBottom === "function"
             ) {
-              messageListRef.current.scrollToBottom("smooth");
+              messageListRef.current.scrollToBottom("auto");
             }
           }, 0);
           break;
@@ -875,7 +875,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             messageListRef.current &&
             typeof messageListRef.current.scrollToBottom === "function"
           ) {
-            messageListRef.current.scrollToBottom("smooth");
+            messageListRef.current.scrollToBottom("auto");
           }
           break;
         // Incremental update commands for streaming optimization

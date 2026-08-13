@@ -387,6 +387,15 @@ export interface MessageProps {
   onOpenPreview?: (url: string) => void;
   /** Desktop host only: open a file in the file panel instead of the OS. */
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  /**
+   * Assistant turn collapse helpers:
+   * - all: default
+   * - omitFinalText: hide the group's last non-empty text block (shown outside)
+   * - finalTextOnly: render only that last text block
+   */
+  blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
+  /** Block index of the group's final text within this message (when collapsing). */
+  finalTextBlockIndex?: number;
 }
 
 // Image attachment types (uses base64 data directly)

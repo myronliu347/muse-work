@@ -42,6 +42,36 @@
   width: 100%;
 }
 
+.assistant-work-summary {
+  align-self: stretch;
+  width: 100%;
+  margin: 2px 0 6px;
+}
+
+.assistant-work-summary-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--vscode-descriptionForeground, #8b949e);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 0;
+}
+
+.assistant-work-summary-header:hover {
+  color: var(--vscode-foreground);
+}
+
+.assistant-work-summary-title {
+  font-weight: 500;
+}
+
+.assistant-work-summary-body {
+  margin-top: 4px;
+}
+
 /* Full-height segment for interior rows: spans the whole row so it joins the
    rows above and below into a continuous line. */
 .assistant-group .timeline-row::after {
