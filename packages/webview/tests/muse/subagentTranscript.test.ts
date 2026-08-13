@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { chatReducer, initialState } from "../../src/reducers/chatReducer";
-import { resolveSubagentMessages } from "../../src/utils/subagentTranscript";
+import {
+  parseAgentPrompt,
+  resolveSubagentMessages,
+} from "../../src/utils/subagentTranscript";
 import type { Message } from "../../src/types";
 
 describe("subagent transcript", () => {
@@ -231,6 +234,70 @@ describe("subagent transcript", () => {
     expect(
       resolved.some((m) => m.blocks.some((b) => b.type === "tool")),
     ).toBe(true);
+  });
+
+  it("prepends parameters.prompt as a user message when the transcript has none", () => {
+    const nested: Message[] = [
+      {
+        id: "sm1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [
+          { type: "tool", id: "t1", name: "Read", stage: "end", success: true },
+          { type: "text", content: "explored" },
+        ],
+      },
+    ];
+    const resolved = resolveSubagentMessages(
+      { "call-1": nested },
+      {},
+      "call-1",
+      { prompt: "explore the repo structure" },
+    );
+    expect(resolved[0]).toMatchObject({
+      role: "user",
+      blocks: [{ type: "text", content: "explore the repo structure" }],
+    });
+    expect(resolved.slice(1)).toEqual(nested);
+  });
+
+  it("does not duplicate parameters.prompt when a leading user message already exists", () => {
+    const nested: Message[] = [
+      {
+        id: "u1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "explore the repo structure" }],
+      },
+      {
+        id: "sm1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "explored" }],
+      },
+    ];
+    const resolved = resolveSubagentMessages(
+      { "call-1": nested },
+      {},
+      "call-1",
+      { prompt: "explore the repo structure" },
+    );
+    expect(resolved.filter((m) => m.role === "user")).toHaveLength(1);
+    expect(resolved).toEqual(nested);
+  });
+
+  it("reads prompt from Agent tool parameters JSON", () => {
+    expect(
+      parseAgentPrompt(
+        JSON.stringify({
+          subagent_type: "Explore",
+          description: "结构",
+          prompt: "explore the repo",
+        }),
+      ),
+    ).toBe("explore the repo");
+    expect(parseAgentPrompt("{")).toBeUndefined();
+    expect(parseAgentPrompt('{"description":"x"}')).toBeUndefined();
   });
 
   it("hydrates nested Agent transcripts from loaded messages", () => {

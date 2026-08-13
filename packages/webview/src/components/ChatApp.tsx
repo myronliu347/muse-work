@@ -54,7 +54,10 @@ import type {
   UpdateToast,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { resolveSubagentMessages } from "../utils/subagentTranscript";
+import {
+  parseAgentPrompt,
+  resolveSubagentMessages,
+} from "../utils/subagentTranscript";
 import "../styles/ChatApp.css";
 
 /** Desktop conversation-level panels: fixed left→right order regardless of check order. */
@@ -205,6 +208,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     title: string;
     nestedMessages?: Message[];
     fallbackText?: string;
+    prompt?: string;
   } | null>(null);
   // /btw side-question panel (webview spec story 3). Non-null while the panel is
   // open; `loading` while the askBtw RPC is in flight, `answer` afterwards
@@ -1372,6 +1376,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       title: toolBlock.compactParams?.trim() || toolBlock.name || "Agent",
       nestedMessages: nested,
       fallbackText: resultText || undefined,
+      prompt: parseAgentPrompt(toolBlock.parameters),
     });
   }, []);
 
@@ -2122,6 +2127,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             {
               nestedMessages: agentTranscript.nestedMessages,
               fallbackText: agentTranscript.fallbackText,
+              prompt: agentTranscript.prompt,
             },
           )}
           vscode={vscode}

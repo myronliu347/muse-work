@@ -13,6 +13,18 @@ export function transcriptScore(messages: Message[] | undefined): number {
   return score;
 }
 
+export function parseAgentPrompt(parameters?: string): string | undefined {
+  if (!parameters?.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(parameters) as { prompt?: unknown };
+    return typeof parsed.prompt === "string" && parsed.prompt.trim()
+      ? parsed.prompt.trim()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function transcriptIdentity(messages: Message[]): string {
   return messages
     .map((message) => {
@@ -47,6 +59,42 @@ function pickRichest(lists: Message[][]): Message[] {
   );
 }
 
+function userText(message: Message): string {
+  return (message.blocks ?? [])
+    .filter((block) => block.type === "text")
+    .map((block) => (block.type === "text" ? block.content : ""))
+    .join("\n")
+    .trim();
+}
+
+function withLeadingPrompt(messages: Message[], prompt?: string): Message[] {
+  const trimmed = prompt?.trim();
+  if (!trimmed) return messages;
+  const leadingUser = messages.find(
+    (message) => message.role === "user" && !message.isMeta,
+  );
+  if (leadingUser) {
+    const text = userText(leadingUser);
+    if (
+      !text ||
+      text === trimmed ||
+      text.includes(trimmed) ||
+      trimmed.includes(text)
+    ) {
+      return messages;
+    }
+  }
+  return [
+    {
+      id: "agent-prompt",
+      role: "user",
+      timestamp: messages[0]?.timestamp ?? new Date().toISOString(),
+      blocks: [{ type: "text", content: trimmed }],
+    },
+    ...messages,
+  ];
+}
+
 export function resolveSubagentMessages(
   subagentMessages: Record<string, Message[]>,
   agentToolSubagentIds: Record<string, string>,
@@ -54,6 +102,7 @@ export function resolveSubagentMessages(
   options?: {
     nestedMessages?: Message[];
     fallbackText?: string;
+    prompt?: string;
   },
 ): Message[] {
   const mappedId = (toolId && agentToolSubagentIds[toolId]) || toolId;
@@ -62,25 +111,26 @@ export function resolveSubagentMessages(
     toolId && toolId !== mappedId ? subagentMessages[toolId] : undefined,
     options?.nestedMessages,
   ]);
+  let resolved: Message[] = [];
   if (candidates.length > 0) {
-    return pickRichest(candidates);
+    resolved = pickRichest(candidates);
+  } else {
+    const unique = uniqueTranscripts(Object.values(subagentMessages));
+    if (unique.length === 1) {
+      resolved = unique[0];
+    } else {
+      const trimmed = options?.fallbackText?.trim();
+      if (trimmed) {
+        resolved = [
+          {
+            id: "agent-fallback",
+            role: "assistant",
+            timestamp: new Date().toISOString(),
+            blocks: [{ type: "text", content: trimmed }],
+          },
+        ];
+      }
+    }
   }
-
-  const unique = uniqueTranscripts(Object.values(subagentMessages));
-  if (unique.length === 1) {
-    return unique[0];
-  }
-
-  const trimmed = options?.fallbackText?.trim();
-  if (trimmed) {
-    return [
-      {
-        id: "agent-fallback",
-        role: "assistant",
-        timestamp: new Date().toISOString(),
-        blocks: [{ type: "text", content: trimmed }],
-      },
-    ];
-  }
-  return [];
+  return withLeadingPrompt(resolved, options?.prompt);
 }
