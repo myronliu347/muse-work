@@ -70,6 +70,20 @@ describe("ConfigDialog appearance tab", () => {
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
   });
 
+  it("moves the active-tab underline to the selected tab", () => {
+    renderDialog();
+
+    const appearanceTab = screen.getByRole("tab", { name: "外观" });
+    const providerTab = screen.getByRole("tab", { name: "供应商" });
+    expect(appearanceTab.querySelector(".settings-tab-underline")).toBeTruthy();
+    expect(providerTab.querySelector(".settings-tab-underline")).toBeNull();
+
+    fireEvent.click(providerTab);
+
+    expect(appearanceTab.querySelector(".settings-tab-underline")).toBeNull();
+    expect(providerTab.querySelector(".settings-tab-underline")).toBeTruthy();
+  });
+
   it("does not treat a theme change as provider settings dirtiness", () => {
     const { onCancel } = renderDialog();
 

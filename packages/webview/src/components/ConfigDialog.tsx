@@ -3,6 +3,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { ConfigDialogProps, VsCodeApi } from "../types";
 import { CloseIcon } from "./HeaderIcons";
 import {
@@ -22,6 +23,12 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
     "appearance",
   );
   const savingRef = useRef(false);
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const panelTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 380, damping: 28 };
   savingRef.current = saving;
 
   const requestClose = useCallback(() => {
@@ -68,11 +75,21 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   };
 
   return (
-    <div className="configuration-dialog-overlay">
-      <div
+    <motion.div
+      className="configuration-dialog-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.16 }}
+    >
+      <motion.div
         ref={dialogRef}
         className="configuration-dialog config-dialog"
         data-testid="config-dialog"
+        initial={
+          reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }
+        }
+        animate={{ opacity: 1, scale: 1 }}
+        transition={panelTransition}
       >
         <div className="configuration-dialog-header config-dialog-header">
           <h3>设置</h3>
@@ -95,8 +112,23 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-appearance-panel"
             className={`config-tab${activeTab === "appearance" ? " active" : ""}`}
             onClick={() => setActiveTab("appearance")}
+            style={{ position: "relative", borderBottomColor: "transparent" }}
           >
             外观
+            {activeTab === "appearance" && (
+              <motion.span
+                className="settings-tab-underline"
+                layoutId="settings-tab-underline"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: -1,
+                  left: 0,
+                  height: 2,
+                  backgroundColor: "var(--vscode-focusBorder)",
+                }}
+              />
+            )}
           </button>
           <button
             type="button"
@@ -105,8 +137,23 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-provider-panel"
             className={`config-tab${activeTab === "provider" ? " active" : ""}`}
             onClick={() => setActiveTab("provider")}
+            style={{ position: "relative", borderBottomColor: "transparent" }}
           >
             供应商
+            {activeTab === "provider" && (
+              <motion.span
+                className="settings-tab-underline"
+                layoutId="settings-tab-underline"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: -1,
+                  left: 0,
+                  height: 2,
+                  backgroundColor: "var(--vscode-focusBorder)",
+                }}
+              />
+            )}
           </button>
         </div>
 
@@ -151,8 +198,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
