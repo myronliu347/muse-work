@@ -83,6 +83,23 @@ describe("FileSuggestionDropdown", () => {
     expect(screen.queryByTestId("suggestion-enter-hello.ts")).not.toBeInTheDocument();
   });
 
+  it("shows empty-search copy when visible with filter and no suggestions", () => {
+    render(
+      <FileSuggestionDropdown
+        suggestions={[]}
+        isVisible
+        selectedIndex={0}
+        onSelect={() => {}}
+        onClose={() => {}}
+        position={position}
+        filterText="zzz"
+        isLoading={false}
+      />,
+    );
+
+    expect(screen.getByText("未找到匹配的文件")).toBeInTheDocument();
+  });
+
   it("shows empty-directory copy in browse mode", () => {
     render(
       <FileSuggestionDropdown

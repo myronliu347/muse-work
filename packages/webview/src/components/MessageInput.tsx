@@ -20,6 +20,7 @@ import { FileSuggestionDropdown } from "./FileSuggestionDropdown";
 import {
   dirFromRelativePath,
   fileSuggestionsRequestPayload,
+  isFileMentionDropdownVisible,
   parentBrowsePath,
   resolveFileMentionKey,
 } from "../utils/fileMentionBrowse";
@@ -667,15 +668,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           }
         }
 
-        // Handle dropdown navigation
-        if (atMention.isActive) {
-          const liveMention = readLiveAtMention();
-          const liveFilterText =
-            liveMention?.filterText ?? atMention.filterText;
+        // Handle dropdown navigation from the live caret, not debounced state.
+        const liveMention = readLiveAtMention();
+        if (liveMention?.isActive) {
           const action = resolveFileMentionKey({
             key: event.key,
-            filterText: liveFilterText,
-            browsePath: liveFilterText ? "" : browsePathRef.current,
+            filterText: liveMention.filterText,
+            browsePath: liveMention.filterText ? "" : browsePathRef.current,
             suggestions,
             selectedIndex,
           });
@@ -712,6 +711,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             }
             return;
           }
+        } else if (atMention.isActive) {
+          closeDropdown();
         }
 
         // Handle Esc key for interruption when focused and streaming
@@ -730,7 +731,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       },
       [
         atMention.isActive,
-        atMention.filterText,
         suggestions,
         selectedIndex,
         handleFileSelect,
@@ -844,10 +844,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }, 150);
 
         // Debounced selection change detection (for @mention)
-        const liveMention = readLiveAtMention();
-        if (liveMention?.filterText) {
-          setBrowsePathBoth("");
-        }
         handleSelectionChange();
       },
       [
@@ -856,8 +852,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         editingQueuedId,
         onCancelQueuedEdit,
         sessionId,
-        readLiveAtMention,
-        setBrowsePathBoth,
       ],
     );
 
@@ -1108,14 +1102,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           {/* File Suggestion Dropdown */}
           <FileSuggestionDropdown
             suggestions={suggestions}
-            isVisible={
-              !!(
-                atMention.isActive &&
-                (suggestions.length > 0 ||
-                  isLoadingSuggestions ||
-                  !atMention.filterText)
-              )
-            }
+            isVisible={isFileMentionDropdownVisible({
+              isActive: atMention.isActive,
+            })}
             selectedIndex={selectedIndex}
             onSelect={handleFileSelect}
             onClose={closeDropdown}

@@ -3,6 +3,7 @@ import {
   breadcrumbCrumbs,
   dirFromRelativePath,
   fileSuggestionsRequestPayload,
+  isFileMentionDropdownVisible,
   parentBrowsePath,
   resolveFileMentionKey,
 } from "../../src/utils/fileMentionBrowse";
@@ -40,6 +41,27 @@ describe("fileSuggestionsRequestPayload", () => {
       filterText: "hello",
       requestId: "2",
     });
+  });
+});
+
+describe("isFileMentionDropdownVisible", () => {
+  it("is visible while mention is active, including empty search", () => {
+    expect(
+      isFileMentionDropdownVisible({
+        isActive: true,
+        suggestionCount: 0,
+        filterText: "zzz",
+        isLoading: false,
+      }),
+    ).toBe(true);
+    expect(
+      isFileMentionDropdownVisible({
+        isActive: false,
+        suggestionCount: 0,
+        filterText: "zzz",
+        isLoading: false,
+      }),
+    ).toBe(false);
   });
 });
 

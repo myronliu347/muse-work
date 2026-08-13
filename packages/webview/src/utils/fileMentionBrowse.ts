@@ -42,6 +42,16 @@ export function fileSuggestionsRequestPayload(
   return payload;
 }
 
+/** Shown whenever the @ mention is live-active (browse, search, empty, or loading). */
+export function isFileMentionDropdownVisible(opts: {
+  isActive: boolean;
+  suggestionCount?: number;
+  filterText?: string;
+  isLoading?: boolean;
+}): boolean {
+  return opts.isActive;
+}
+
 export type FileMentionKeyAction =
   | { type: "move"; delta: number }
   | { type: "select"; index: number }
