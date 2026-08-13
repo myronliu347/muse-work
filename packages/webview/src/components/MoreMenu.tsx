@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import "../styles/MoreMenu.css";
 
 interface MoreMenuProps {
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
   onLogin: () => void;
   onLogout: () => void;
   onClose: () => void;
@@ -14,6 +14,10 @@ interface MoreMenuProps {
    * case the entry shows no annotation.
    */
   hostLabel?: string;
+  /** Hide the settings row (settings lives on a dedicated sidebar button). */
+  hideSettings?: boolean;
+  /** Extra class for placement (e.g. footer menu opens upward). */
+  className?: string;
 }
 
 export const MoreMenu: React.FC<MoreMenuProps> = ({
@@ -23,6 +27,8 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
   onClose,
   isAuthenticated,
   hostLabel,
+  hideSettings = false,
+  className,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +52,7 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
   }, [onClose]);
 
   const handleSettings = () => {
-    onOpenSettings();
+    onOpenSettings?.();
     onClose();
   };
 
@@ -61,14 +67,20 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
   };
 
   return (
-    <div ref={menuRef} className="more-menu" data-testid="more-menu">
-      <div
-        className="more-menu-item"
-        onClick={handleSettings}
-        data-testid="more-menu-settings"
-      >
-        设置{hostLabel ? `（${hostLabel}）` : ""}
-      </div>
+    <div
+      ref={menuRef}
+      className={["more-menu", className].filter(Boolean).join(" ")}
+      data-testid="more-menu"
+    >
+      {!hideSettings && onOpenSettings ? (
+        <div
+          className="more-menu-item"
+          onClick={handleSettings}
+          data-testid="more-menu-settings"
+        >
+          设置{hostLabel ? `（${hostLabel}）` : ""}
+        </div>
+      ) : null}
       {isAuthenticated ? (
         <div
           className="more-menu-item"

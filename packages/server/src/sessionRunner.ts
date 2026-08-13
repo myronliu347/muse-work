@@ -52,6 +52,11 @@ export interface SessionRunner {
   ): Promise<{ ok: true }>;
   disposeSession(sessionId: string): Promise<void>;
   getMessages(sessionId: string): Promise<unknown[]>;
+  /**
+   * Drop cached agent identity fingerprints so the next ensureAgent recreates
+   * agents with the current provider gateway settings.
+   */
+  invalidateAgentIdentities(): void;
 }
 
 interface PendingPermission {
@@ -732,6 +737,10 @@ export function createSessionRunner(
       // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
       rearmIdleIfNeeded(sessionId);
       return mapSdkMessages(agent.getMessages?.() ?? []);
+    },
+
+    invalidateAgentIdentities() {
+      agentIdentities.clear();
     },
   };
 }

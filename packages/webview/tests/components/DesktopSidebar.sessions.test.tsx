@@ -37,9 +37,6 @@ function renderSidebar(
       isStreaming={false}
       disabled={false}
       onOpenSettings={noop}
-      onLogin={noop}
-      onLogout={noop}
-      isAuthenticated={false}
       sessionTree={[]}
       pinnedSessions={[]}
       recentSessions={[]}

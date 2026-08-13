@@ -512,7 +512,8 @@ input:checked + .slider:before {
 }
 
 .configuration-field input,
-.configuration-field select {
+.configuration-field select,
+.configuration-field textarea {
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
@@ -528,6 +529,83 @@ input:checked + .slider:before {
 .configuration-field textarea:focus {
   outline: none;
   border-color: var(--vscode-focusBorder);
+}
+
+.muse-quota-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.muse-quota-header label {
+  margin-bottom: 0;
+}
+
+.muse-quota-user {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, rgba(204, 204, 204, 0.7));
+}
+
+.muse-quota-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.muse-quota-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.muse-quota-label {
+  color: var(--vscode-descriptionForeground, rgba(204, 204, 204, 0.7));
+}
+
+.muse-quota-progress {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.muse-quota-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.muse-quota-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--vscode-input-background, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+}
+
+.muse-quota-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--vscode-progressBar-background, #3794ff);
+  min-width: 0;
+  transition: width 160ms ease;
+}
+
+.muse-openai-models {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(
+    --vscode-editor-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
+  font-size: 12px;
 }
 
 .configuration-field input:disabled,

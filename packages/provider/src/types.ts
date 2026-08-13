@@ -45,6 +45,8 @@ export interface CodeMakerProviderConfig {
 export interface OpenAiCompatibleProviderConfig {
   enabled: boolean;
   baseURL?: string;
+  /** Optional key stored in providers.json (preferred over env when set). */
+  apiKey?: string;
   apiKeyEnv?: string;
   models: ModelInfo[];
 }

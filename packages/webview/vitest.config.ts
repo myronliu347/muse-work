@@ -10,6 +10,7 @@ export default defineConfig({
     include: [
       "tests/apiClient.test.ts",
       "tests/muse/**/*.test.ts",
+      "tests/muse/**/*.test.tsx",
       "tests/components/**/*.test.tsx",
     ],
     exclude: ["node_modules"],

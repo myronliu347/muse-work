@@ -26,6 +26,30 @@ export interface MuseProvidersResponse {
   active: { providerId: string; modelId?: string };
 }
 
+export interface MuseCodeMakerQuota {
+  raw: unknown;
+  user?: string;
+  total?: number;
+  used?: number;
+  remaining?: number;
+  /** Usage percent (e.g. 0.07 means 0.07%). */
+  percentage?: number;
+}
+
+export interface MuseOpenAiCompatibleConfig {
+  baseURL: string;
+  apiKeyEnv: string;
+  hasApiKey: boolean;
+  hasStoredApiKey: boolean;
+  models: MuseModelInfo[];
+}
+
+export interface MuseOpenAiCompatibleConfigPatch {
+  baseURL?: string;
+  apiKey?: string;
+  models?: MuseModelInfo[];
+}
+
 export interface MuseAuthStatus {
   state: "authenticated" | "unauthenticated" | "needs_config" | "expired";
   user?: string;
@@ -107,6 +131,27 @@ export class MuseApiClient {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ providerId, modelId }),
+    });
+    return parseJson(res);
+  }
+
+  async getCodeMakerQuota(): Promise<MuseCodeMakerQuota> {
+    const res = await this.request("/providers/codemaker/quota");
+    return parseJson(res);
+  }
+
+  async getOpenAiCompatibleConfig(): Promise<MuseOpenAiCompatibleConfig> {
+    const res = await this.request("/providers/openai-compatible");
+    return parseJson(res);
+  }
+
+  async updateOpenAiCompatibleConfig(
+    patch: MuseOpenAiCompatibleConfigPatch,
+  ): Promise<{ ok: true; active: { providerId: string; modelId?: string } }> {
+    const res = await this.request("/providers/openai-compatible", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
     });
     return parseJson(res);
   }

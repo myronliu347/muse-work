@@ -53,10 +53,17 @@ describe("providers + auth routes", () => {
     expect(openai?.models.map((m) => m.id)).toContain("gpt-4.1");
   });
 
-  it("POST /providers/active switches model", async () => {
+  it("POST /providers/active switches model and invalidates agent identities", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
+
+    let invalidated = false;
+    const original = app.ctx.runner.invalidateAgentIdentities.bind(app.ctx.runner);
+    app.ctx.runner.invalidateAgentIdentities = () => {
+      invalidated = true;
+      original();
+    };
 
     const res = await fetch(`${app.baseUrl}/providers/active`, {
       method: "POST",
@@ -74,6 +81,7 @@ describe("providers + auth routes", () => {
         modelId: "gpt-4.1-mini",
       },
     });
+    expect(invalidated).toBe(true);
 
     const cfg = loadProvidersConfig(home);
     expect(cfg.activeProviderId).toBe("openai-compatible");
@@ -87,6 +95,62 @@ describe("providers + auth routes", () => {
       providerId: "openai-compatible",
       modelId: "gpt-4.1-mini",
     });
+  });
+
+  it("GET/PATCH /providers/openai-compatible reads and writes config", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    let invalidated = false;
+    const original = app.ctx.runner.invalidateAgentIdentities.bind(app.ctx.runner);
+    app.ctx.runner.invalidateAgentIdentities = () => {
+      invalidated = true;
+      original();
+    };
+
+    const getRes = await fetch(`${app.baseUrl}/providers/openai-compatible`);
+    expect(getRes.status).toBe(200);
+    const before = (await getRes.json()) as {
+      baseURL: string;
+      models: ModelInfo[];
+    };
+    expect(before.baseURL).toContain("http");
+    expect(before.models.length).toBeGreaterThan(0);
+
+    const patchRes = await fetch(`${app.baseUrl}/providers/openai-compatible`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        baseURL: "https://llm.example.com/v1",
+        apiKey: "sk-test-key",
+        models: [
+          { id: "m-a", label: "Model A" },
+          { id: "m-b", label: "Model B" },
+        ],
+      }),
+    });
+    expect(patchRes.status).toBe(200);
+    expect(invalidated).toBe(true);
+
+    const cfg = loadProvidersConfig(home);
+    expect(cfg.providers["openai-compatible"].baseURL).toBe(
+      "https://llm.example.com/v1",
+    );
+    expect(cfg.providers["openai-compatible"].apiKey).toBe("sk-test-key");
+    expect(cfg.providers["openai-compatible"].models.map((m) => m.id)).toEqual([
+      "m-a",
+      "m-b",
+    ]);
+  });
+
+  it("GET /providers/codemaker/quota returns 401 when unauthenticated", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const res = await fetch(`${app.baseUrl}/providers/codemaker/quota`);
+    expect(res.status).toBe(401);
   });
 
   it("GET /providers/:id/models returns model list", async () => {

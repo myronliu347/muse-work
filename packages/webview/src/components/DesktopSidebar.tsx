@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Tooltip } from "./Tooltip";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { MoreIcon } from "./HeaderIcons";
-import { MoreMenu } from "./MoreMenu";
+import museM from "../assets/muse-m.png";
 import type { DesktopSessionGroup, DesktopSessionEntry } from "../types";
 import "../styles/DesktopApp.css";
 
@@ -20,16 +19,8 @@ export interface DesktopSidebarProps {
   isStreaming: boolean;
   /** No workdir picked yet — starting a new session is not possible. */
   disabled: boolean;
-  /** Desktop host: the more menu (settings/login) lives here. */
+  /** Opens provider settings from the sidebar footer. */
   onOpenSettings: () => void;
-  onLogin: () => void;
-  onLogout: () => void;
-  isAuthenticated: boolean;
-  /**
-   * Host the focused pane runs on ('local' or an SSH host name). Labels the
-   * more menu's 登录/退出登录 entry so it names the auth subject it acts on.
-   */
-  hostLabel?: string;
   /**
    * Legacy session tree groups. Prefer `pinnedSessions` / `recentSessions`.
    * When those are omitted, pin/recent groups are derived from workdir
@@ -123,8 +114,8 @@ export function groupRecentSessionsByWorkdir(
 }
 
 /**
- * Left rail for the desktop host: app title, "新对话" button, and the global
- * pin / 工作空间 session list (spec §7).
+ * Left rail for the desktop host: "新对话", pin / 工作空间 session list,
+ * and a footer with brand logo + settings.
  */
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onNewSession,
@@ -133,10 +124,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isStreaming,
   disabled,
   onOpenSettings,
-  onLogin,
-  onLogout,
-  isAuthenticated,
-  hostLabel,
   sessionTree,
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
@@ -148,7 +135,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onTogglePin,
   onRenameSession,
 }) => {
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   // Session awaiting delete confirmation; non-null shows the ConfirmDialog.
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
@@ -415,29 +401,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
-      <div className="desktop-sidebar-header">
-        <span className="desktop-sidebar-title">Muse Work</span>
-        <Tooltip text="更多" position="bottom">
-          <button
-            className="desktop-sidebar-more-btn"
-            onClick={() => setShowMoreMenu((prev) => !prev)}
-            data-testid="desktop-more-btn"
-            aria-label="更多"
-          >
-            <MoreIcon />
-          </button>
-        </Tooltip>
-      </div>
-      {showMoreMenu && (
-        <MoreMenu
-          onOpenSettings={onOpenSettings}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          isAuthenticated={isAuthenticated}
-          hostLabel={hostLabel === "local" ? undefined : hostLabel}
-          onClose={() => setShowMoreMenu(false)}
-        />
-      )}
       <button
         className="desktop-sidebar-new-chat"
         onClick={(e) => {
@@ -462,6 +425,27 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <div className="desktop-session-tree" data-testid="desktop-session-tree">
         {renderPinSection()}
         {renderRecentSection()}
+      </div>
+      <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
+        <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">
+          <img
+            src={museM}
+            alt="Muse Work"
+            className="desktop-sidebar-logo"
+            draggable={false}
+          />
+        </span>
+        <Tooltip text="设置" position="top">
+          <button
+            type="button"
+            className="desktop-sidebar-settings-btn"
+            onClick={onOpenSettings}
+            data-testid="desktop-settings-btn"
+            aria-label="设置"
+          >
+            <span className="codicon codicon-settings-gear" aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
       {pendingDelete && (
         <ConfirmDialog

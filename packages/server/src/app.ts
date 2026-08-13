@@ -8,8 +8,11 @@ import {
 } from "./routes/auth.js";
 import { handleHealth } from "./routes/health.js";
 import {
+  handleCodeMakerQuota,
+  handleGetOpenAiCompatibleConfig,
   handleListModels,
   handleListProviders,
+  handlePatchOpenAiCompatibleConfig,
   handleSetActive,
 } from "./routes/providers.js";
 import {
@@ -60,6 +63,21 @@ async function routeRequest(
 
   if (method === "POST" && pathname === "/providers/active") {
     await handleSetActive(req, res, ctx);
+    return;
+  }
+
+  if (method === "GET" && pathname === "/providers/codemaker/quota") {
+    await handleCodeMakerQuota(req, res, ctx);
+    return;
+  }
+
+  if (method === "GET" && pathname === "/providers/openai-compatible") {
+    await handleGetOpenAiCompatibleConfig(req, res, ctx);
+    return;
+  }
+
+  if (method === "PATCH" && pathname === "/providers/openai-compatible") {
+    await handlePatchOpenAiCompatibleConfig(req, res, ctx);
     return;
   }
 

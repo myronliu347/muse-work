@@ -71,3 +71,10 @@ export {
   CODEMAKER_BASE_URL,
   createCodeMakerProvider,
 } from "./codemaker/provider.js";
+
+export {
+  CODEMAKER_USER_QUOTA_USAGE_PATH,
+  fetchCodeMakerQuotaUsage,
+  normalizeQuotaUsage,
+  type CodeMakerQuotaUsage,
+} from "./codemaker/quota.js";

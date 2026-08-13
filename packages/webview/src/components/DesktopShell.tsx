@@ -27,11 +27,8 @@ type DropZone = "above" | "below";
 interface DesktopShellProps {
   vscode: VsCodeApi;
   host: DesktopHostProps;
-  /** Sidebar more-menu actions — owned by the delegating ChatApp instance. */
+  /** Sidebar settings — owned by the delegating ChatApp instance. */
   onOpenSettings: () => void;
-  onLogin: () => void;
-  onLogout: () => void;
-  isAuthenticated: boolean;
 }
 
 /**
@@ -57,9 +54,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   vscode,
   host,
   onOpenSettings,
-  onLogin,
-  onLogout,
-  isAuthenticated,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
@@ -595,10 +589,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const focusedSessionId = panes.find(
     (p) => p.paneId === focusedPaneId,
   )?.sessionId;
-  // Host of the focused pane — labels the more menu's 登录/退出登录 entry so it
-  // names the auth subject it acts on; falls back to the host-level default.
-  const focusedHost =
-    panes.find((p) => p.paneId === focusedPaneId)?.host ?? host.host;
   // Every session shown in a pane is highlighted in the sidebar — the focused
   // one strongly (current), the rest weakly. New-session panes carry no id.
   const visibleSessionIds = panes
@@ -626,10 +616,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         isStreaming={false}
         disabled={false}
         onOpenSettings={onOpenSettings}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        isAuthenticated={isAuthenticated}
-        hostLabel={focusedHost}
         {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
         currentSessionId={focusedSessionId}
         visibleSessionIds={visibleSessionIds}

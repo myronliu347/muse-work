@@ -27,16 +27,35 @@
   position: relative;
 }
 
-.desktop-sidebar-header {
+.desktop-sidebar-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 12px 4px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  position: relative;
+  flex-shrink: 0;
 }
 
-.desktop-sidebar-more-btn {
-  width: 22px;
-  height: 22px;
+.desktop-sidebar-logo-wrap {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-sidebar-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.desktop-sidebar-settings-btn {
+  width: 28px;
+  height: 28px;
   padding: 0;
   background-color: transparent;
   color: var(--vscode-foreground);
@@ -48,20 +67,19 @@
   justify-content: center;
 }
 
-.desktop-sidebar-more-btn:hover {
+.desktop-sidebar-settings-btn:hover {
   background-color: var(--vscode-toolbar-hoverBackground);
 }
 
-.desktop-sidebar-title {
-  font-weight: 600;
-  font-size: 13px;
+.desktop-sidebar-settings-btn .codicon {
+  font-size: 16px;
 }
 
 .desktop-sidebar-new-chat {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 8px 6px;
+  margin: 12px 6px 8px;
   padding: 6px 6px;
   border: none;
   border-radius: 4px;

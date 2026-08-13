@@ -2152,9 +2152,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             vscode={vscode}
             host={host}
             onOpenSettings={handleOpenSettings}
-            onLogin={handleLogin}
-            onLogout={handleLogout}
-            isAuthenticated={state.isAuthenticated}
           />
           {dialogs}
         </>
@@ -2181,10 +2178,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           isStreaming={state.isStreaming}
           disabled={false}
           onOpenSettings={handleOpenSettings}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          isAuthenticated={state.isAuthenticated}
-          hostLabel={effectiveHost}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           currentSessionId={state.currentSession?.id}
           onSelectSession={host.onSelectSession}

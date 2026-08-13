@@ -1,24 +1,88 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import {
   MuseApiClient,
+  type MuseCodeMakerQuota,
+  type MuseModelInfo,
+  type MuseOpenAiCompatibleConfig,
   type MuseProvidersResponse,
 } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
+  onSavingChange?: (saving: boolean) => void;
+}
+
+export interface MuseProviderSettingsHandle {
+  /** Persist draft settings. Returns true on success. */
+  save: () => Promise<boolean>;
+}
+
+function formatQuotaNumber(n: number | undefined): string {
+  if (n === undefined) return "—";
+  return `￥${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function formatQuotaPercent(n: number | undefined): string {
+  if (n === undefined) return "—";
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+}
+
+function quotaBarWidth(percentage: number | undefined): number {
+  if (percentage === undefined || !Number.isFinite(percentage)) return 0;
+  return Math.min(100, Math.max(0, percentage));
+}
+
+function modelsToText(models: MuseModelInfo[]): string {
+  return models
+    .map((m) => (m.label && m.label !== m.id ? `${m.id}|${m.label}` : m.id))
+    .join("\n");
+}
+
+function parseModelsText(text: string): MuseModelInfo[] {
+  const models: MuseModelInfo[] = [];
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const sep = trimmed.indexOf("|");
+    if (sep === -1) {
+      models.push({ id: trimmed, label: trimmed });
+    } else {
+      const id = trimmed.slice(0, sep).trim();
+      const label = trimmed.slice(sep + 1).trim() || id;
+      if (id) models.push({ id, label });
+    }
+  }
+  return models;
 }
 
 /**
- * Provider picker for the settings dialog. Changing provider keeps a model
- * from that provider (prefer previous model id if still present, else first).
+ * Provider settings panel (draft until parent calls save via ref).
  */
-export const MuseProviderSettings: React.FC<MuseProviderSettingsProps> = ({
-  api,
-}) => {
+export const MuseProviderSettings = forwardRef<
+  MuseProviderSettingsHandle,
+  MuseProviderSettingsProps
+>(function MuseProviderSettings({ api, onSavingChange }, ref) {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
+  const [draftProviderId, setDraftProviderId] = useState("");
+  const [quota, setQuota] = useState<MuseCodeMakerQuota | null>(null);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [openaiCfg, setOpenaiCfg] = useState<MuseOpenAiCompatibleConfig | null>(
+    null,
+  );
+  const [baseURL, setBaseURL] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [modelsText, setModelsText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
   const client = useMemo(
     () =>
       api ??
@@ -28,69 +92,276 @@ export const MuseProviderSettings: React.FC<MuseProviderSettingsProps> = ({
     [api],
   );
 
-  const refresh = useCallback(async () => {
+  const setSavingState = useCallback(
+    (next: boolean) => {
+      setSaving(next);
+      onSavingChange?.(next);
+    },
+    [onSavingChange],
+  );
+
+  const loadQuota = useCallback(async () => {
+    setQuota(null);
+    setQuotaError(null);
     try {
-      const body = await client.listProviders();
-      setData(body);
-      setError(null);
+      const body = await client.getCodeMakerQuota();
+      setQuota(body);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setQuota(null);
+      setQuotaError(err instanceof Error ? err.message : String(err));
     }
   }, [client]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const loadOpenai = useCallback(async () => {
+    const cfg = await client.getOpenAiCompatibleConfig();
+    setOpenaiCfg(cfg);
+    setBaseURL(cfg.baseURL);
+    setApiKey("");
+    setModelsText(modelsToText(cfg.models));
+  }, [client]);
 
-  const onChangeProvider = async (providerId: string) => {
+  const loadPanelForProvider = useCallback(
+    async (providerId: string) => {
+      if (providerId === "codemaker") {
+        setOpenaiCfg(null);
+        await loadQuota();
+      } else if (providerId === "openai-compatible") {
+        setQuota(null);
+        setQuotaError(null);
+        await loadOpenai();
+      }
+    },
+    [loadQuota, loadOpenai],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const body = await client.listProviders();
+        if (cancelled) return;
+        setData(body);
+        setDraftProviderId(body.active.providerId);
+        setError(null);
+        await loadPanelForProvider(body.active.providerId);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [client, loadPanelForProvider]);
+
+  const onChangeProvider = (providerId: string) => {
     if (!data) return;
     const provider = data.providers.find((p) => p.id === providerId);
-    if (!provider || provider.models.length === 0) return;
-    const keep =
-      provider.models.find((m) => m.id === data.active.modelId)?.id ??
-      provider.models[0]!.id;
-    setSaving(true);
-    try {
-      await client.setActive(providerId, keep);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    if (!provider) return;
+    setDraftProviderId(providerId);
+    setError(null);
+    void loadPanelForProvider(providerId);
   };
 
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!data || !draftProviderId) return false;
+    const provider = data.providers.find((p) => p.id === draftProviderId);
+    if (!provider || provider.models.length === 0) {
+      setError("该供应商没有可用模型");
+      return false;
+    }
+
+    if (draftProviderId === "openai-compatible") {
+      const models = parseModelsText(modelsText);
+      if (models.length === 0) {
+        setError("请至少配置一个 model（每行一个：id 或 id|显示名）");
+        return false;
+      }
+    }
+
+    const modelId =
+      provider.models.find((m) => m.id === data.active.modelId)?.id ??
+      provider.models[0]!.id;
+
+    setSavingState(true);
+    setError(null);
+    try {
+      if (draftProviderId === "openai-compatible") {
+        const models = parseModelsText(modelsText);
+        const patch: {
+          baseURL: string;
+          models: MuseModelInfo[];
+          apiKey?: string;
+        } = { baseURL: baseURL.trim(), models };
+        if (apiKey.trim()) patch.apiKey = apiKey.trim();
+        await client.updateOpenAiCompatibleConfig(patch);
+      }
+      await client.setActive(draftProviderId, modelId);
+      const body = await client.listProviders();
+      setData(body);
+      setDraftProviderId(body.active.providerId);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setSavingState(false);
+    }
+  }, [
+    apiKey,
+    baseURL,
+    client,
+    data,
+    draftProviderId,
+    modelsText,
+    setSavingState,
+  ]);
+
+  useImperativeHandle(ref, () => ({ save }), [save]);
+
   return (
-    <div className="configuration-field" data-testid="muse-provider-settings">
-      <label htmlFor="muse-provider">AI 供应商 (Provider)</label>
-      <select
-        id="muse-provider"
-        className="configuration-select"
-        value={data?.active.providerId ?? ""}
-        disabled={!data || saving}
-        title={error ?? undefined}
-        onChange={(e) => void onChangeProvider(e.target.value)}
-      >
-        {!data ? (
-          <option value="">{error ? "加载失败" : "加载中…"}</option>
-        ) : (
-          data.providers.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.displayName}
-            </option>
-          ))
-        )}
-      </select>
+    <div data-testid="muse-provider-settings">
+      <div className="configuration-field">
+        <label htmlFor="muse-provider">AI 供应商 (Provider)</label>
+        <select
+          id="muse-provider"
+          className="configuration-select"
+          value={draftProviderId}
+          disabled={!data || saving}
+          title={error ?? undefined}
+          onChange={(e) => onChangeProvider(e.target.value)}
+        >
+          {!data ? (
+            <option value="">{error ? "加载失败" : "加载中…"}</option>
+          ) : (
+            data.providers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.displayName}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
+      {draftProviderId === "codemaker" && (
+        <div
+          className="configuration-field"
+          data-testid="muse-codemaker-quota"
+          style={{ marginTop: 12 }}
+        >
+          <div className="muse-quota-header">
+            <label>Token 额度</label>
+            {quota?.user ? (
+              <span className="muse-quota-user">{quota.user}</span>
+            ) : null}
+          </div>
+          {quotaError ? (
+            <div className="config-model-hint">
+              <span>{quotaError}</span>
+            </div>
+          ) : !quota ? (
+            <div className="config-model-hint">
+              <span>加载中…</span>
+            </div>
+          ) : (
+            <div className="muse-quota-grid">
+              <div className="muse-quota-row">
+                <span className="muse-quota-label">总额度</span>
+                <span>{formatQuotaNumber(quota.total)}</span>
+              </div>
+              <div className="muse-quota-row">
+                <span className="muse-quota-label">已使用</span>
+                <span>{formatQuotaNumber(quota.used)}</span>
+              </div>
+              <div className="muse-quota-row">
+                <span className="muse-quota-label">剩余</span>
+                <span>{formatQuotaNumber(quota.remaining)}</span>
+              </div>
+              <div
+                className="muse-quota-progress"
+                data-testid="muse-quota-progress"
+              >
+                <div className="muse-quota-progress-meta">
+                  <span className="muse-quota-label">本月使用</span>
+                  <span>{formatQuotaPercent(quota.percentage)}</span>
+                </div>
+                <div
+                  className="muse-quota-progress-track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={quotaBarWidth(quota.percentage)}
+                  aria-label="本月额度使用百分比"
+                >
+                  <div
+                    className="muse-quota-progress-fill"
+                    style={{ width: `${quotaBarWidth(quota.percentage)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {draftProviderId === "openai-compatible" && (
+        <div data-testid="muse-openai-form" style={{ marginTop: 4 }}>
+          <div className="configuration-field">
+            <label htmlFor="muse-openai-base-url">API URL</label>
+            <input
+              id="muse-openai-base-url"
+              type="text"
+              value={baseURL}
+              onChange={(e) => setBaseURL(e.target.value)}
+              disabled={saving || !openaiCfg}
+              placeholder="https://api.example.com/v1"
+            />
+          </div>
+          <div className="configuration-field">
+            <label htmlFor="muse-openai-api-key">API Key</label>
+            <input
+              id="muse-openai-api-key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              disabled={saving || !openaiCfg}
+              placeholder={
+                openaiCfg?.hasApiKey
+                  ? "已配置（留空则保持不变）"
+                  : "请输入 API Key"
+              }
+              autoComplete="off"
+            />
+          </div>
+          <div className="configuration-field">
+            <label htmlFor="muse-openai-models">支持的 Model 列表</label>
+            <textarea
+              id="muse-openai-models"
+              className="muse-openai-models"
+              value={modelsText}
+              onChange={(e) => setModelsText(e.target.value)}
+              disabled={saving || !openaiCfg}
+              rows={6}
+              placeholder={"gpt-4.1\ngpt-4.1-mini|GPT-4.1 Mini"}
+            />
+            <div className="config-model-hint" style={{ marginTop: 6 }}>
+              <span>每行一个模型：`id` 或 `id|显示名`。</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="config-model-hint" style={{ marginTop: 8 }}>
-          <span>{error}</span>
+        <div className="configuration-error" style={{ marginTop: 8 }}>
+          {error}
         </div>
       )}
       <div className="config-model-hint" style={{ marginTop: 8 }}>
-        <span>切换供应商后，顶部模型列表会更新为该供应商下的可用模型。</span>
+        <span>修改后需点击保存才生效；下次发消息会按新配置重建 Agent。</span>
       </div>
     </div>
   );
-};
+});
 
 export default MuseProviderSettings;

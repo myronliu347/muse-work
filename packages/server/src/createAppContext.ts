@@ -82,9 +82,9 @@ export function createAppContext(
   const openai = createOpenAiCompatibleProvider({
     getConfig: () => getConfig().providers["openai-compatible"],
     getApiKey: () => {
-      const envName =
-        getConfig().providers["openai-compatible"].apiKeyEnv ??
-        "MUSE_OPENAI_API_KEY";
+      const cfg = getConfig().providers["openai-compatible"];
+      if (cfg.apiKey) return cfg.apiKey;
+      const envName = cfg.apiKeyEnv ?? "MUSE_OPENAI_API_KEY";
       return process.env[envName];
     },
   });
