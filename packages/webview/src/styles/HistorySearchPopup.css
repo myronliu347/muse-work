@@ -1,7 +1,7 @@
 .history-search-popup {
-  background-color: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 600px;
@@ -11,71 +11,71 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform: translateY(-100%); /* Position above the input */
+  transform: translateY(-100%);
   margin-top: -8px;
-  left: 0 !important; /* Ensure it aligns with the input container */
+  left: 0 !important;
 }
 
 .history-search-header {
   display: flex;
   align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid var(--vscode-dropdown-border);
-  background-color: var(--vscode-editor-background);
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-6);
+  background-color: var(--color-background);
 }
 
 .history-search-header .codicon-history {
-  margin-right: 8px;
-  color: var(--vscode-descriptionForeground);
+  margin-right: 0;
+  color: var(--gray-11);
 }
 
 .history-search-input {
   flex: 1;
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 2px;
-  padding: 4px 8px;
+  background-color: var(--color-background);
+  color: var(--gray-12);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-3);
+  padding: 6px 10px;
   font-size: 12px;
+  line-height: 16px;
   outline: none;
 }
 
 .history-search-input:focus {
-  border-color: var(--vscode-focusBorder);
+  border-color: var(--accent-9);
 }
 
 .history-search-results {
   flex: 1;
   overflow-y: auto;
-  background-color: var(--vscode-dropdown-background);
+  background-color: var(--color-panel);
 }
 
 .history-search-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px;
 }
 
 .history-search-item {
   padding: 8px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--radius-2);
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.history-search-item:last-child {
-  border-bottom: none;
-}
-
+.history-search-item:hover,
 .history-search-item.selected {
-  background-color: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background-color: var(--gray-4);
+  color: var(--gray-12);
 }
 
 .history-item-prompt {
   font-size: 13px;
+  line-height: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -83,7 +83,8 @@
 
 .history-item-time {
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  line-height: 14px;
+  color: var(--gray-11);
 }
 
 .history-search-item.selected .history-item-time {
@@ -95,8 +96,9 @@
 .history-search-empty {
   padding: 20px;
   text-align: center;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-size: 12px;
+  line-height: 1.45;
   display: flex;
   flex-direction: column;
   align-items: center;

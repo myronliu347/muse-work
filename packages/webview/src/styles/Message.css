@@ -12,15 +12,15 @@
 
 .timeline-row {
   position: relative;
-  padding-left: 12px;
-  padding-top: 10px;
+  padding-left: 14px;
+  padding-top: 8px;
 }
 
 .timeline-row::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 15px;
+  top: 14px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -54,14 +54,14 @@
   gap: 6px;
   cursor: pointer;
   user-select: none;
-  color: var(--vscode-descriptionForeground, #8b949e);
+  color: var(--gray-11);
   font-size: 12px;
   line-height: 18px;
   padding: 2px 0;
 }
 
 .assistant-work-summary-header:hover {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
 }
 
 .assistant-work-summary-title {
@@ -81,20 +81,20 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--vscode-widget-border);
+  background: var(--gray-6);
   z-index: 0;
 }
 
 /* First row of the whole group: line starts at its dot center
    (dot top 15px + radius 3px = 18px). */
 .assistant-group > .message:first-child .timeline-row:first-child::after {
-  top: 18px;
+  top: 17px;
 }
 
 /* Last row of the whole group: line ends at its dot center. */
 .assistant-group > .message:last-child .timeline-row:last-child::after {
   bottom: auto;
-  height: 18px;
+  height: 17px;
 }
 
 /* A group whose messages contribute only a single dot shows an isolated dot,
@@ -116,7 +116,7 @@
 .user-text-block {
   background-color: var(--gray-3);
   border-radius: var(--radius-3);
-  padding: 6px 10px;
+  padding: 8px 12px;
   transition: background-color 0.2s ease;
 }
 
@@ -261,8 +261,9 @@
 }
 
 .message-content {
-  font-family: var(--vscode-editor-font-family);
-  line-height: 1.4;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 /* User message content styling - make pre look like normal text */
@@ -288,9 +289,9 @@
 
 /* Tools */
 .tool-block {
-  color: var(--vscode-editor-foreground);
-  font-weight: 600;
-  font-size: 13px;
+  color: var(--gray-11);
+  font-weight: 500;
+  font-size: 12px;
   /* 固定单行行高，吸收 streaming 时中英混排导致的字体度量差异（行框抖动） */
   line-height: 18px;
   height: 18px;
@@ -377,23 +378,20 @@
 
 /* Compact block reuses reasoning layout; only the dot color differs (brand accent). */
 .compact-dot {
-  background-color: var(
-    --vscode-textLink-foreground,
-    var(--vscode-descriptionForeground)
-  );
+  background-color: var(--gray-8);
 }
 
 /* Write tool preview */
 .write-tool-header {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
 }
 
 .write-tool-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--vscode-editor-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-11);
 }
 
 .write-tool-path {
@@ -401,7 +399,7 @@
   flex: 1 1 auto;
   font-family: Menlo, monospace;
   font-size: 12px;
-  color: var(--vscode-textLink-foreground, #48a0c7);
+  color: var(--gray-12);
   text-decoration: underline dotted;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -411,15 +409,15 @@
 .write-tool-stats {
   margin-top: 2px;
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
 }
 
 .write-preview-box {
   position: relative;
   margin: 6px 0 0 0;
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 6px;
+  background: var(--gray-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
   overflow: hidden;
 }
 
@@ -430,11 +428,11 @@
 
 .write-preview-content {
   margin: 0;
-  padding: 10px;
+  padding: 10px 12px;
   font-family: Menlo, monospace;
   font-size: 12px;
-  line-height: 16px;
-  color: var(--vscode-foreground);
+  line-height: 1.55;
+  color: var(--gray-12);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -547,17 +545,17 @@
 .tool-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .bash-command-input {
   display: flex;
   align-items: flex-start;
-  padding: 4px 8px;
+  padding: 10px 12px;
   background-color: var(--gray-3);
   font-size: 12px;
-  line-height: 1.2;
-  border-radius: 6px;
+  line-height: 1.55;
+  border-radius: var(--radius-3);
   border: 1px solid var(--gray-6);
   max-height: 120px;
   overflow-y: auto;
@@ -577,7 +575,7 @@
 .bash-command-unified {
   position: relative;
   border: 1px solid var(--gray-6);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   overflow: hidden;
 }
 
@@ -595,13 +593,13 @@
 }
 
 .bash-command-output {
-  padding: 4px 8px;
+  padding: 10px 12px;
   background-color: var(--gray-3);
   color: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
   border: 1px solid var(--gray-6);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 120px;
@@ -611,13 +609,13 @@
 }
 
 .lsp-output {
-  padding: 4px 8px;
+  padding: 10px 12px;
   background-color: var(--gray-3);
   color: var(--vscode-textPreformat-foreground);
   border: 1px solid var(--gray-6);
-  border-radius: 4px;
+  border-radius: var(--radius-3);
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 100px;
@@ -779,14 +777,14 @@
 .markdown-content pre {
   background-color: var(--gray-3);
   color: var(--vscode-textPreformat-foreground);
-  padding: 12px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-3);
   border: 1px solid var(--gray-6);
   overflow-x: auto;
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 12px;
   margin: 8px 0;
-  line-height: 1.4;
+  line-height: 1.55;
 }
 
 .markdown-content pre code {
@@ -847,14 +845,14 @@
 
 /* Markdown Links */
 .markdown-content a {
-  color: var(--vscode-textLink-foreground);
+  color: var(--gray-12);
   text-decoration: none;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid var(--gray-8);
 }
 
 .markdown-content a:hover {
-  color: var(--vscode-textLink-activeForeground);
-  border-bottom-color: var(--vscode-textLink-activeForeground);
+  color: var(--gray-12);
+  border-bottom-color: var(--gray-12);
 }
 
 /* Markdown Blockquotes */
@@ -874,7 +872,7 @@
 /* Markdown Paragraphs */
 .markdown-content p {
   margin: 8px 0;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 /* Markdown horizontal rule (---) */

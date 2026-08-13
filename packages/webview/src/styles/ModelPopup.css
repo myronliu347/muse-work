@@ -1,11 +1,11 @@
 .model-popup {
   position: absolute;
-  bottom: 100%; /* Anchor to the top of .input-wrapper (= top of the input box) */
-  margin-bottom: 8px; /* Gap above the input */
+  bottom: 100%;
+  margin-bottom: 8px;
   z-index: 1000;
-  background-color: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 600px;
@@ -16,21 +16,22 @@
   flex-direction: column;
   overflow: hidden;
   outline: none;
-  left: 0; /* Align with the input container */
+  left: 0;
 }
 
 .model-popup-header {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--vscode-dropdown-border);
-  background-color: var(--vscode-editor-background);
-  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--gray-6);
+  background-color: var(--color-background);
+  color: var(--gray-11);
   font-size: 12px;
+  line-height: 16px;
 }
 
 .model-popup-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px;
   flex: 1;
   overflow-y: auto;
 }
@@ -38,8 +39,9 @@
 .model-popup-item {
   padding: 8px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--radius-2);
   font-size: 13px;
+  line-height: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -49,13 +51,10 @@
   gap: 8px;
 }
 
-.model-popup-item:last-child {
-  border-bottom: none;
-}
-
+.model-popup-item:hover,
 .model-popup-item.selected {
-  background-color: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background-color: var(--gray-4);
+  color: var(--gray-12);
 }
 
 .model-popup-item-name {
@@ -71,8 +70,9 @@
 .model-popup-empty {
   padding: 20px;
   text-align: center;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-size: 12px;
+  line-height: 1.45;
   display: flex;
   flex-direction: column;
   align-items: center;

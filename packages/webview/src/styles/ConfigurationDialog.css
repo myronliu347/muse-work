@@ -37,15 +37,16 @@
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--vscode-editor-foreground);
+  color: var(--gray-12);
 }
 
 /* ConfigDialog (design-restored) - scoped overrides, does not affect
    plugin/mcp/status dialogs which reuse the base .configuration-dialog. */
 .config-dialog {
-  background-color: var(--vscode-panel-background);
-  border: 1px solid var(--vscode-widget-border);
-  border-radius: 6px;
+  background-color: var(--color-panel);
+  color: var(--gray-12);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-4);
   padding: 0;
   height: 500px;
   max-height: 90%;
@@ -59,7 +60,7 @@
   box-sizing: border-box;
   margin-bottom: 0;
   padding: 0 16px;
-  border-bottom: 1px solid var(--vscode-widget-border);
+  border-bottom: 1px solid var(--gray-6);
 }
 
 .configuration-close-btn {
@@ -88,7 +89,7 @@
 .config-tabs {
   display: flex;
   padding: 0 16px;
-  border-bottom: 1px solid var(--vscode-widget-border);
+  border-bottom: 1px solid var(--gray-6);
   flex-shrink: 0;
 }
 
@@ -96,7 +97,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   padding: 8px 12px;
   cursor: pointer;
   font-size: 13px;
@@ -105,7 +106,7 @@
 }
 
 .config-tab.active {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   border-bottom-color: var(--accent-9);
 }
 
@@ -132,7 +133,7 @@
 }
 
 .config-dialog .configuration-fields-scroll-area {
-  gap: 16px;
+  gap: 12px;
   padding: 16px;
 }
 
@@ -147,7 +148,7 @@
   height: 48px;
   box-sizing: border-box;
   align-items: center;
-  border-top: 1px solid var(--vscode-widget-border);
+  border-top: 1px solid var(--gray-6);
 }
 
 /* Plugins Container */

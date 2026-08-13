@@ -291,7 +291,7 @@ export const MuseProviderSettings = forwardRef<
   useImperativeHandle(ref, () => ({ save, isDirty }), [save, isDirty]);
 
   return (
-    <div data-testid="muse-provider-settings">
+    <div className="muse-settings-stack" data-testid="muse-provider-settings">
       <Field label="AI 供应商 (Provider)" htmlFor="muse-provider">
         <Select.Root
           value={draftProviderId}
@@ -315,10 +315,7 @@ export const MuseProviderSettings = forwardRef<
       </Field>
 
       {draftProviderId === "codemaker" && (
-        <div
-          data-testid="muse-codemaker-quota"
-          style={{ marginTop: 12 }}
-        >
+        <div data-testid="muse-codemaker-quota">
           <div className="muse-quota-header">
             <label>Token 额度</label>
             {quota?.user ? (
@@ -364,7 +361,7 @@ export const MuseProviderSettings = forwardRef<
       )}
 
       {draftProviderId === "openai-compatible" && (
-        <div data-testid="muse-openai-form" style={{ marginTop: 4 }}>
+        <div className="muse-settings-stack" data-testid="muse-openai-form">
           <Field label="API URL" htmlFor="muse-openai-base-url">
             <TextField.Root
               id="muse-openai-base-url"
@@ -412,7 +409,7 @@ export const MuseProviderSettings = forwardRef<
           {error}
         </div>
       )}
-      <Text size="1" color="gray" style={{ marginTop: 8 }}>
+      <Text size="1" color="gray">
         修改后需点击保存才生效；下次发消息会按新配置重建 Agent。
       </Text>
     </div>

@@ -1,5 +1,6 @@
 import React from "react";
-import { Flex, Text } from "@radix-ui/themes";
+import { Text } from "@radix-ui/themes";
+import "../styles/Field.css";
 
 export function Field(props: {
   label: string;
@@ -9,12 +10,8 @@ export function Field(props: {
   children: React.ReactNode;
 }) {
   return (
-    <Flex direction="column" gap="1">
-      <label htmlFor={props.htmlFor}>
-        <Text size="2" weight="medium">
-          {props.label}
-        </Text>
-      </label>
+    <div className="muse-field">
+      <label htmlFor={props.htmlFor}>{props.label}</label>
       {props.children}
       {props.error ? (
         <Text size="1" color="red">
@@ -26,6 +23,6 @@ export function Field(props: {
           {props.hint}
         </Text>
       ) : null}
-    </Flex>
+    </div>
   );
 }

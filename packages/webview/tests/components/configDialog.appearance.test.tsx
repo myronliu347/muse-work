@@ -117,7 +117,7 @@ describe("ConfigDialog appearance tab", () => {
   it("does not treat a theme change as provider settings dirtiness", () => {
     const { onCancel } = renderDialog();
 
-    fireEvent.click(screen.getByRole("button", { name: /深色/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /深色/ }));
     fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[1]);
 
     expect(onCancel).toHaveBeenCalledTimes(1);

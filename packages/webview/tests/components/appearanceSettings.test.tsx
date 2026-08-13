@@ -28,13 +28,33 @@ describe("AppearanceSettings", () => {
       </MuseTheme>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /深色/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /深色/ }));
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
 
-    fireEvent.click(screen.getByRole("button", { name: /跟随系统/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /跟随系统/ }));
     expect(
-      screen.getByRole("button", { name: /跟随系统/ }).getAttribute("aria-pressed"),
+      screen.getByRole("radio", { name: /跟随系统/ }).getAttribute("aria-pressed"),
     ).toBe("true");
+  });
+
+  it("renders three preview cards with labels and hints", () => {
+    render(
+      <MuseTheme>
+        <AppearanceSettings />
+      </MuseTheme>,
+    );
+
+    expect(screen.getByRole("radiogroup", { name: "外观" })).toBeTruthy();
+    expect(document.querySelectorAll(".appearance-card")).toHaveLength(3);
+    expect(screen.getByRole("radio", { name: /跟随系统/ })).toHaveTextContent(
+      "默认",
+    );
+    expect(screen.getByRole("radio", { name: /浅色/ })).toHaveTextContent(
+      "固定 Light",
+    );
+    expect(screen.getByRole("radio", { name: /深色/ })).toHaveTextContent(
+      "固定 Dark",
+    );
   });
 
   it("visibly accents the selected appearance card", () => {
@@ -44,12 +64,9 @@ describe("AppearanceSettings", () => {
       </MuseTheme>,
     );
 
-    const selected = screen.getByRole("button", { name: /跟随系统/ });
-    expect(selected.getAttribute("style")).toContain(
-      "border-color: var(--accent-9)",
-    );
-    expect(selected.getAttribute("style")).toContain(
-      "background-color: var(--accent-3)",
-    );
+    const selected = screen.getByRole("radio", { name: /跟随系统/ });
+    expect(selected).toHaveAttribute("aria-pressed", "true");
+    expect(selected.className).toContain("appearance-card");
+    expect(selected.getAttribute("style")).toBeNull();
   });
 });

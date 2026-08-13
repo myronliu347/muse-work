@@ -9,9 +9,9 @@
   width: 160px;
   box-sizing: border-box;
   padding: 8px;
-  background-color: var(--vscode-menu-background);
-  border: 1px solid var(--vscode-widget-border);
-  border-radius: 8px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
 }
 
@@ -20,15 +20,15 @@
   align-items: center;
   height: 24px;
   padding: 0 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   font-size: 12px;
   font-weight: 500;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   cursor: pointer;
 }
 
 .more-menu-item:hover {
-  background-color: var(--vscode-list-hoverBackground);
+  background-color: var(--gray-4);
 }
 
 .more-menu-item--between {

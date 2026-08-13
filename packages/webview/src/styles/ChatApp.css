@@ -17,7 +17,7 @@
   background-color: var(--color-background);
   display: flex;
   flex-direction: column;
-  padding: 0 10px;
+  padding: 0 16px 14px;
 }
 .queue-edit-warning-banner {
   display: flex;
