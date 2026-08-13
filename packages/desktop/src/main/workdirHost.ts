@@ -6,7 +6,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
-import { searchWorkspaceFiles } from "./fileSearch.js";
+import { listWorkspaceDir, searchWorkspaceFiles } from "./fileSearch.js";
 import { listGitBranches } from "./gitBranches.js";
 import { getWorkspaceDiff } from "./gitDiff.js";
 import { TerminalManager } from "./terminal.js";
@@ -165,6 +165,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       startLine?: number;
       endLine?: number;
       filterText?: string;
+      dir?: string;
       workdir?: string;
     };
     const command = msg?.command;
@@ -211,10 +212,14 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         typeof msg.requestId === "string" ? msg.requestId : undefined;
       const filterText =
         typeof msg.filterText === "string" ? msg.filterText : "";
+      const dir = typeof msg.dir === "string" ? msg.dir : "";
       const cwd = state.workdir;
       try {
+        const query = filterText.trim();
         const suggestions = cwd
-          ? searchWorkspaceFiles(cwd, { query: filterText, maxResults: 20 })
+          ? query
+            ? searchWorkspaceFiles(cwd, { query, maxResults: 20 })
+            : listWorkspaceDir(cwd, dir)
           : [];
         pushToWebview(win, {
           command: "fileSuggestionsResponse",

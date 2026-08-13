@@ -254,6 +254,129 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("requestFileSuggestions with empty filter lists dir children only", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-ls-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-host-"));
+    fs.mkdirSync(path.join(dir, "src"));
+    fs.writeFileSync(path.join(dir, "README.md"), "hi\n");
+    fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "requestFileSuggestions",
+        filterText: "",
+        dir: "src",
+        requestId: "req-ls",
+      },
+    );
+
+    const reply = sent.find(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        (m as { command?: string }).command === "fileSuggestionsResponse",
+    ) as { suggestions: Array<{ name: string; relativePath: string }> };
+
+    expect(reply.suggestions.map((s) => s.relativePath)).toEqual(["src/hello.ts"]);
+    expect(reply.suggestions.some((s) => s.name === "README.md")).toBe(false);
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("requestFileSuggestions with query ignores dir and searches globally", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-q-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-q-host-"));
+    fs.mkdirSync(path.join(dir, "src"));
+    fs.mkdirSync(path.join(dir, "other"));
+    fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "requestFileSuggestions",
+        filterText: "hello",
+        dir: "other",
+        requestId: "req-q",
+      },
+    );
+
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "fileSuggestionsResponse",
+        requestId: "req-q",
+        suggestions: expect.arrayContaining([
+          expect.objectContaining({
+            name: "hello.ts",
+            relativePath: "src/hello.ts",
+          }),
+        ]),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("desktopGetWorkspaceDiff and desktopListGitBranches reply", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-diff-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-diff-host-"));
