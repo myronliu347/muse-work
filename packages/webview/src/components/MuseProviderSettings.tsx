@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -14,6 +15,7 @@ import {
   type MuseProvidersResponse,
 } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
+import { notifyProvidersChanged } from "../muse/providersEvents";
 
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;
@@ -23,6 +25,8 @@ export interface MuseProviderSettingsProps {
 export interface MuseProviderSettingsHandle {
   /** Persist draft settings. Returns true on success. */
   save: () => Promise<boolean>;
+  /** Whether the draft differs from the last loaded/saved baseline. */
+  isDirty: () => boolean;
 }
 
 function formatQuotaNumber(n: number | undefined): string {
@@ -83,6 +87,14 @@ export const MuseProviderSettings = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const baselineRef = useRef<{
+    providerId: string;
+    baseURL: string;
+    modelsText: string;
+  }>({ providerId: "", baseURL: "", modelsText: "" });
+  /** Bumps on each panel load so stale responses are ignored. */
+  const loadGenRef = useRef(0);
+
   const client = useMemo(
     () =>
       api ??
@@ -100,35 +112,56 @@ export const MuseProviderSettings = forwardRef<
     [onSavingChange],
   );
 
-  const loadQuota = useCallback(async () => {
-    setQuota(null);
-    setQuotaError(null);
-    try {
-      const body = await client.getCodeMakerQuota();
-      setQuota(body);
-    } catch (err) {
+  const loadQuota = useCallback(
+    async (gen: number) => {
       setQuota(null);
-      setQuotaError(err instanceof Error ? err.message : String(err));
-    }
-  }, [client]);
+      setQuotaError(null);
+      try {
+        const body = await client.getCodeMakerQuota();
+        if (gen !== loadGenRef.current) return;
+        setQuota(body);
+      } catch (err) {
+        if (gen !== loadGenRef.current) return;
+        setQuota(null);
+        setQuotaError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [client],
+  );
 
-  const loadOpenai = useCallback(async () => {
-    const cfg = await client.getOpenAiCompatibleConfig();
-    setOpenaiCfg(cfg);
-    setBaseURL(cfg.baseURL);
-    setApiKey("");
-    setModelsText(modelsToText(cfg.models));
-  }, [client]);
+  const loadOpenai = useCallback(
+    async (gen: number) => {
+      try {
+        const cfg = await client.getOpenAiCompatibleConfig();
+        if (gen !== loadGenRef.current) return;
+        setOpenaiCfg(cfg);
+        setBaseURL(cfg.baseURL);
+        setApiKey("");
+        const text = modelsToText(cfg.models);
+        setModelsText(text);
+        baselineRef.current = {
+          ...baselineRef.current,
+          baseURL: cfg.baseURL,
+          modelsText: text,
+        };
+      } catch (err) {
+        if (gen !== loadGenRef.current) return;
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [client],
+  );
 
   const loadPanelForProvider = useCallback(
     async (providerId: string) => {
+      const gen = ++loadGenRef.current;
       if (providerId === "codemaker") {
         setOpenaiCfg(null);
-        await loadQuota();
+        await loadQuota(gen);
       } else if (providerId === "openai-compatible") {
         setQuota(null);
         setQuotaError(null);
-        await loadOpenai();
+        await loadOpenai(gen);
       }
     },
     [loadQuota, loadOpenai],
@@ -142,6 +175,10 @@ export const MuseProviderSettings = forwardRef<
         if (cancelled) return;
         setData(body);
         setDraftProviderId(body.active.providerId);
+        baselineRef.current = {
+          ...baselineRef.current,
+          providerId: body.active.providerId,
+        };
         setError(null);
         await loadPanelForProvider(body.active.providerId);
       } catch (err) {
@@ -152,6 +189,7 @@ export const MuseProviderSettings = forwardRef<
     })();
     return () => {
       cancelled = true;
+      loadGenRef.current += 1;
     };
   }, [client, loadPanelForProvider]);
 
@@ -164,36 +202,53 @@ export const MuseProviderSettings = forwardRef<
     void loadPanelForProvider(providerId);
   };
 
+  const isDirty = useCallback(() => {
+    const baseline = baselineRef.current;
+    if (!baseline.providerId) return false;
+    if (draftProviderId !== baseline.providerId) return true;
+    if (draftProviderId === "openai-compatible") {
+      if (baseURL.trim() !== baseline.baseURL.trim()) return true;
+      if (modelsText !== baseline.modelsText) return true;
+      if (apiKey.trim() !== "") return true;
+    }
+    return false;
+  }, [apiKey, baseURL, draftProviderId, modelsText]);
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!data || !draftProviderId) return false;
-    const provider = data.providers.find((p) => p.id === draftProviderId);
-    if (!provider || provider.models.length === 0) {
-      setError("该供应商没有可用模型");
-      return false;
-    }
+
+    let modelId: string;
+    let openaiModels: MuseModelInfo[] | null = null;
 
     if (draftProviderId === "openai-compatible") {
-      const models = parseModelsText(modelsText);
-      if (models.length === 0) {
+      openaiModels = parseModelsText(modelsText);
+      if (openaiModels.length === 0) {
         setError("请至少配置一个 model（每行一个：id 或 id|显示名）");
         return false;
       }
+      modelId =
+        openaiModels.find((m) => m.id === data.active.modelId)?.id ??
+        openaiModels[0]!.id;
+    } else {
+      const provider = data.providers.find((p) => p.id === draftProviderId);
+      if (!provider || provider.models.length === 0) {
+        setError("该供应商没有可用模型");
+        return false;
+      }
+      modelId =
+        provider.models.find((m) => m.id === data.active.modelId)?.id ??
+        provider.models[0]!.id;
     }
-
-    const modelId =
-      provider.models.find((m) => m.id === data.active.modelId)?.id ??
-      provider.models[0]!.id;
 
     setSavingState(true);
     setError(null);
     try {
-      if (draftProviderId === "openai-compatible") {
-        const models = parseModelsText(modelsText);
+      if (draftProviderId === "openai-compatible" && openaiModels) {
         const patch: {
           baseURL: string;
           models: MuseModelInfo[];
           apiKey?: string;
-        } = { baseURL: baseURL.trim(), models };
+        } = { baseURL: baseURL.trim(), models: openaiModels };
         if (apiKey.trim()) patch.apiKey = apiKey.trim();
         await client.updateOpenAiCompatibleConfig(patch);
       }
@@ -201,6 +256,13 @@ export const MuseProviderSettings = forwardRef<
       const body = await client.listProviders();
       setData(body);
       setDraftProviderId(body.active.providerId);
+      baselineRef.current = {
+        providerId: body.active.providerId,
+        baseURL: baseURL.trim(),
+        modelsText,
+      };
+      setApiKey("");
+      notifyProvidersChanged();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -218,7 +280,7 @@ export const MuseProviderSettings = forwardRef<
     setSavingState,
   ]);
 
-  useImperativeHandle(ref, () => ({ save }), [save]);
+  useImperativeHandle(ref, () => ({ save, isDirty }), [save, isDirty]);
 
   return (
     <div data-testid="muse-provider-settings">

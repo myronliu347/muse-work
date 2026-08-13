@@ -2,7 +2,7 @@
  * ConfigDialog — settings overlay. Currently only hosts provider settings.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ConfigDialogProps, VsCodeApi } from "../types";
 import { CloseIcon } from "./HeaderIcons";
 import {
@@ -17,6 +17,17 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  savingRef.current = saving;
+
+  const requestClose = useCallback(() => {
+    if (savingRef.current) return;
+    if (settingsRef.current?.isDirty()) {
+      const discard = window.confirm("有未保存的修改，确定关闭？");
+      if (!discard) return;
+    }
+    onCancel();
+  }, [onCancel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -24,13 +35,13 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
         dialogRef.current &&
         !dialogRef.current.contains(event.target as Node)
       ) {
-        onCancel();
+        requestClose();
       }
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onCancel();
+        requestClose();
       }
     };
 
@@ -45,7 +56,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [onCancel]);
+  }, [requestClose]);
 
   const handleSave = async () => {
     const ok = await settingsRef.current?.save();
@@ -65,7 +76,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             type="button"
             className="configuration-close-btn"
             aria-label="关闭"
-            onClick={onCancel}
+            onClick={requestClose}
             disabled={saving}
           >
             <CloseIcon className="configuration-close-icon" />
@@ -83,7 +94,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           <div className="configuration-actions">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={requestClose}
               disabled={saving}
               className="configuration-cancel-btn"
             >

@@ -9,11 +9,15 @@ vi.mock("../../src/components/MuseProviderSettings", () => {
   return {
     MuseProviderSettings: React.forwardRef(
       (
-        props: { onSavingChange?: (saving: boolean) => void },
-        ref: React.ForwardedRef<{ save: () => Promise<boolean> }>,
+        _props: { onSavingChange?: (saving: boolean) => void },
+        ref: React.ForwardedRef<{
+          save: () => Promise<boolean>;
+          isDirty: () => boolean;
+        }>,
       ) => {
         React.useImperativeHandle(ref, () => ({
           save: async () => true,
+          isDirty: () => false,
         }));
         return (
           <div data-testid="muse-provider-settings">provider settings</div>

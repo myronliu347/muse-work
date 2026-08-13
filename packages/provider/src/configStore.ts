@@ -59,6 +59,16 @@ export function saveProvidersConfig(
   home = os.homedir(),
 ): void {
   const configPath = getProvidersConfigPath(home);
-  fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n", "utf-8");
+  fs.mkdirSync(path.dirname(configPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n", {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  // Ensure permissions even when the file already existed (mode on writeFile
+  // only applies to newly created files on some platforms).
+  try {
+    fs.chmodSync(configPath, 0o600);
+  } catch {
+    // ignore chmod failures on unsupported FS
+  }
 }

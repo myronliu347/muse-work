@@ -4,6 +4,7 @@ import {
   type MuseProvidersResponse,
 } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
+import { MUSE_PROVIDERS_CHANGED_EVENT } from "../muse/providersEvents";
 
 export interface MuseModelSelectProps {
   api?: MuseApiClient;
@@ -49,10 +50,16 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
   useEffect(() => {
     void refresh();
     const onFocus = () => void refresh();
+    const onProvidersChanged = () => void refresh();
     window.addEventListener("focus", onFocus);
+    window.addEventListener(MUSE_PROVIDERS_CHANGED_EVENT, onProvidersChanged);
     const timer = window.setInterval(() => void refresh(), 5000);
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(
+        MUSE_PROVIDERS_CHANGED_EVENT,
+        onProvidersChanged,
+      );
       window.clearInterval(timer);
     };
   }, [refresh]);

@@ -7,6 +7,7 @@ import {
   type MuseProviderSettingsHandle,
 } from "../../src/components/MuseProviderSettings";
 import type { MuseApiClient } from "../../src/muse/apiClient";
+import { MUSE_PROVIDERS_CHANGED_EVENT } from "../../src/muse/providersEvents";
 
 afterEach(() => {
   cleanup();
@@ -86,9 +87,12 @@ describe("MuseProviderSettings", () => {
     expect(screen.getByText("0.07%")).toBeTruthy();
   });
 
-  it("keeps provider switch as draft until save", async () => {
+  it("keeps provider switch as draft until save, using draft model ids", async () => {
     const api = createApi();
     const ref = createRef<MuseProviderSettingsHandle>();
+    const changed = vi.fn();
+    window.addEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
+
     render(<MuseProviderSettings ref={ref} api={api} />);
 
     await waitFor(() => {
@@ -103,6 +107,7 @@ describe("MuseProviderSettings", () => {
       expect(screen.getByTestId("muse-openai-form")).toBeTruthy();
     });
     expect(api.setActive).not.toHaveBeenCalled();
+    expect(ref.current!.isDirty()).toBe(true);
 
     fireEvent.change(screen.getByLabelText("API URL"), {
       target: { value: "https://new.example.com/v1" },
@@ -111,7 +116,7 @@ describe("MuseProviderSettings", () => {
       target: { value: "sk-new" },
     });
     fireEvent.change(screen.getByLabelText("支持的 Model 列表"), {
-      target: { value: "gpt-4.1\ngpt-mini|Mini" },
+      target: { value: "only-a|Only A\nonly-b|Only B" },
     });
 
     const ok = await ref.current!.save();
@@ -122,14 +127,18 @@ describe("MuseProviderSettings", () => {
         baseURL: "https://new.example.com/v1",
         apiKey: "sk-new",
         models: [
-          { id: "gpt-4.1", label: "gpt-4.1" },
-          { id: "gpt-mini", label: "Mini" },
+          { id: "only-a", label: "Only A" },
+          { id: "only-b", label: "Only B" },
         ],
       });
+      // Must not keep the stale gpt-4.1 from the pre-edit provider list.
       expect(api.setActive).toHaveBeenCalledWith(
         "openai-compatible",
-        "gpt-4.1",
+        "only-a",
       );
+      expect(changed).toHaveBeenCalled();
     });
+
+    window.removeEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
   });
 });

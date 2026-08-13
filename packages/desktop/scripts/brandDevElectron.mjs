@@ -24,7 +24,6 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const DESIRED_NAME = "Muse Work developing";
-const DESIRED_VERSION = "0.1.0";
 
 if (process.platform !== "darwin") {
   process.exit(0);
@@ -34,6 +33,22 @@ const require = createRequire(import.meta.url);
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, "..");
 const sourceIconPng = join(packageRoot, "assets", "icon.png");
+
+function readPackageVersion() {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(join(packageRoot, "package.json"), "utf8"),
+    );
+    if (typeof pkg.version === "string" && pkg.version.trim()) {
+      return pkg.version.trim();
+    }
+  } catch {
+    // fall through
+  }
+  return "0.0.0";
+}
+
+const DESIRED_VERSION = readPackageVersion();
 
 let electronBin;
 try {
