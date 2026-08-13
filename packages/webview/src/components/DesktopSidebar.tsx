@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Tooltip } from "./Tooltip";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { MoreIcon } from "./HeaderIcons";
@@ -13,6 +13,10 @@ export interface DesktopSidebarProps {
   onNewSession: () => void;
   /** Cmd/Ctrl+Click on the 新对话 button: start the new session in an additional pane. */
   onNewSessionInPane: () => void;
+  /**
+   * Start a draft session with this workdir pre-selected (workdir group "+" button).
+   */
+  onNewSessionInWorkdir?: (workdir: string) => void;
   isStreaming: boolean;
   /** No workdir picked yet — starting a new session is not possible. */
   disabled: boolean;
@@ -34,7 +38,7 @@ export interface DesktopSidebarProps {
   sessionTree?: DesktopSessionGroup[];
   /** Sessions in the Pin section. */
   pinnedSessions?: DesktopSessionEntry[];
-  /** Sessions in the 最近 section. */
+  /** Sessions in the 工作空间 section. */
   recentSessions?: DesktopSessionEntry[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
@@ -47,10 +51,12 @@ export interface DesktopSidebarProps {
   onDeleteSession: (sessionId: string) => void;
   /** Hover pin button: toggle pinned membership. */
   onTogglePin: (sessionId: string, pinned: boolean) => void;
+  /** Persist a renamed session title (double-click title to edit). */
+  onRenameSession?: (sessionId: string, title: string) => void;
 }
 
 const dirName = (workdir: string): string =>
-  workdir.split("/").filter(Boolean).pop() ?? workdir;
+  workdir.split(/[\\/]/).filter(Boolean).pop() ?? workdir;
 
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
@@ -78,13 +84,52 @@ export function resolveSidebarSessions(props: {
   };
 }
 
+export type WorkdirSessionGroup = {
+  workdir: string;
+  label: string;
+  sessions: DesktopSessionEntry[];
+};
+
+/** Group recent sessions by workdir; groups ordered by latest activity. */
+export function groupRecentSessionsByWorkdir(
+  sessions: DesktopSessionEntry[],
+): WorkdirSessionGroup[] {
+  const map = new Map<string, DesktopSessionEntry[]>();
+  for (const session of sessions) {
+    const key = session.workdir?.trim() || "";
+    const list = map.get(key) ?? [];
+    list.push(session);
+    map.set(key, list);
+  }
+
+  const groups: WorkdirSessionGroup[] = [];
+  for (const [workdir, list] of map) {
+    const sorted = [...list].sort(
+      (a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0),
+    );
+    groups.push({
+      workdir,
+      label: workdir ? dirName(workdir) : "未选择目录",
+      sessions: sorted,
+    });
+  }
+
+  groups.sort((a, b) => {
+    const aMax = a.sessions[0]?.lastActiveAt ?? 0;
+    const bMax = b.sessions[0]?.lastActiveAt ?? 0;
+    return bMax - aMax;
+  });
+  return groups;
+}
+
 /**
  * Left rail for the desktop host: app title, "新对话" button, and the global
- * pin / 最近 session list (spec §7).
+ * pin / 工作空间 session list (spec §7).
  */
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onNewSession,
   onNewSessionInPane,
+  onNewSessionInWorkdir,
   isStreaming,
   disabled,
   onOpenSettings,
@@ -101,6 +146,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenPane,
   onDeleteSession,
   onTogglePin,
+  onRenameSession,
 }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   // Session awaiting delete confirmation; non-null shows the ConfirmDialog.
@@ -109,6 +155,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     title: string;
     description?: string;
   } | null>(null);
+  /** Collapsed workdir keys in the 工作空间 section (default: all expanded). */
+  const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   const { pinnedSessions, recentSessions } = resolveSidebarSessions({
     sessionTree,
@@ -116,7 +168,26 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     recentSessions: recentProp,
   });
 
-  const renderSession = (session: DesktopSessionEntry) => {
+  const recentGroups = useMemo(
+    () => groupRecentSessionsByWorkdir(recentSessions),
+    [recentSessions],
+  );
+
+  const commitRename = (sessionId: string) => {
+    const next = editingTitle.trim();
+    setEditingSessionId(null);
+    if (!next || !onRenameSession) return;
+    const current =
+      pinnedSessions.find((s) => s.sessionId === sessionId) ??
+      recentSessions.find((s) => s.sessionId === sessionId);
+    if ((current?.title || "新对话") === next) return;
+    onRenameSession(sessionId, next);
+  };
+
+  const renderSession = (
+    session: DesktopSessionEntry,
+    opts?: { hideWorkdir?: boolean },
+  ) => {
     // Prefer host-derived running; fall back to local streaming for the
     // focused session so the spinner appears before the next tree refresh.
     const running =
@@ -130,12 +201,13 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     const showUnread = Boolean(session.unreadDone) && !isCurrent;
     const workdir = session.workdir ?? "";
     const shortName = workdir ? dirName(workdir) : "";
+    const isEditing = editingSessionId === session.sessionId;
 
     return (
       <li
         key={session.sessionId}
         className={`desktop-session-item${isCurrent ? " desktop-session-item--current" : ""}${isVisible ? " desktop-session-item--visible" : ""}`}
-        draggable
+        draggable={!isEditing}
         onDragStart={(e) => {
           e.dataTransfer.setData(
             SESSION_DRAG_MIME,
@@ -151,6 +223,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           }
         }}
         onClick={(e) => {
+          if (isEditing) return;
           if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
             onOpenPane(workdir, session.sessionId);
           } else {
@@ -175,10 +248,40 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           ) : null}
         </span>
         <span className="desktop-session-text">
-          <span className="desktop-session-title">
-            {session.title || "新对话"}
-          </span>
-          {shortName ? (
+          {isEditing ? (
+            <input
+              className="desktop-session-title-input"
+              value={editingTitle}
+              autoFocus
+              data-testid={`desktop-session-title-input-${session.sessionId}`}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onBlur={() => commitRename(session.sessionId)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitRename(session.sessionId);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingSessionId(null);
+                }
+              }}
+            />
+          ) : (
+            <span
+              className="desktop-session-title"
+              title="双击修改标题"
+              onDoubleClick={(e) => {
+                if (!onRenameSession) return;
+                e.stopPropagation();
+                setEditingSessionId(session.sessionId);
+                setEditingTitle(session.title || "新对话");
+              }}
+            >
+              {session.title || "新对话"}
+            </span>
+          )}
+          {!opts?.hideWorkdir && shortName ? (
             <span className="desktop-session-workdir" title={workdir}>
               {shortName}
             </span>
@@ -217,22 +320,95 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     );
   };
 
-  const renderSection = (
-    key: "pin" | "recent",
-    label: string,
-    sessions: DesktopSessionEntry[],
-  ) => (
+  const toggleWorkdirCollapsed = (workdir: string) => {
+    setCollapsedWorkdirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(workdir)) next.delete(workdir);
+      else next.add(workdir);
+      return next;
+    });
+  };
+
+  const renderPinSection = () => (
     <div
       className="desktop-session-section"
-      data-testid={`desktop-session-section-${key}`}
+      data-testid="desktop-session-section-pin"
     >
-      <div className="desktop-session-section-header">{label}</div>
-      {sessions.length === 0 ? (
+      <div className="desktop-session-section-header">Pin</div>
+      {pinnedSessions.length === 0 ? (
         <div className="desktop-session-empty">无会话</div>
       ) : (
         <ul className="desktop-session-items">
-          {sessions.map((session) => renderSession(session))}
+          {pinnedSessions.map((session) => renderSession(session))}
         </ul>
+      )}
+    </div>
+  );
+
+  const renderRecentSection = () => (
+    <div
+      className="desktop-session-section"
+      data-testid="desktop-session-section-recent"
+    >
+      <div className="desktop-session-section-header">工作空间</div>
+      {recentGroups.length === 0 ? (
+        <div className="desktop-session-empty">无会话</div>
+      ) : (
+        <div className="desktop-session-workdir-groups">
+          {recentGroups.map((group) => {
+            const collapsed = collapsedWorkdirs.has(group.workdir);
+            const groupKey = group.workdir || "__none__";
+            return (
+              <div
+                key={groupKey}
+                className="desktop-session-workdir-group"
+                data-testid={`desktop-session-workdir-group-${groupKey}`}
+              >
+                <div
+                  className="desktop-session-workdir-row"
+                  onClick={() => toggleWorkdirCollapsed(group.workdir)}
+                  data-testid={`desktop-session-workdir-row-${groupKey}`}
+                >
+                  <span
+                    className={`codicon codicon-chevron-${collapsed ? "right" : "down"} desktop-session-workdir-chevron`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="codicon codicon-folder desktop-session-workdir-folder"
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="desktop-session-workdir-label"
+                    title={group.workdir || undefined}
+                  >
+                    {group.label}
+                  </span>
+                  {group.workdir && onNewSessionInWorkdir ? (
+                    <button
+                      type="button"
+                      className="desktop-session-workdir-add"
+                      title="在此目录新建对话"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNewSessionInWorkdir(group.workdir);
+                      }}
+                      data-testid={`desktop-session-workdir-add-${groupKey}`}
+                    >
+                      <span className="codicon codicon-add"></span>
+                    </button>
+                  ) : null}
+                </div>
+                {!collapsed ? (
+                  <ul className="desktop-session-items desktop-session-items--nested">
+                    {group.sessions.map((session) =>
+                      renderSession(session, { hideWorkdir: true }),
+                    )}
+                  </ul>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -284,8 +460,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <span>新对话</span>
       </button>
       <div className="desktop-session-tree" data-testid="desktop-session-tree">
-        {renderSection("pin", "Pin", pinnedSessions)}
-        {renderSection("recent", "最近", recentSessions)}
+        {renderPinSection()}
+        {renderRecentSection()}
       </div>
       {pendingDelete && (
         <ConfirmDialog

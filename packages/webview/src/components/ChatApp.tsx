@@ -36,6 +36,7 @@ import { DesktopShell } from "./DesktopShell";
 import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
 import { matchPanelShortcut } from "../muse/panelShortcuts";
+import { planPanelWidthsForOpen } from "../muse/panelFit";
 import { PreviewPane } from "./PreviewPane";
 import { DiffPane } from "./DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./TerminalPane";
@@ -1043,6 +1044,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     });
   }, [postToHost]);
 
+  const handleDesktopNewSessionInWorkdir = useCallback(
+    (workdir: string) => {
+      postToHost({
+        command: "newSession",
+        workdir,
+      });
+    },
+    [postToHost],
+  );
+
   const handleLogin = useCallback(() => {
     vscode.postMessage({ command: "login" });
   }, [vscode]);
@@ -1451,22 +1462,32 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     };
   }, [isDesktop]);
 
-  // Check a panel on: it shares its row with the message area, so refuse (with
-  // a hint) when the checked panels would squeeze the conversation below its
-  // minimum width. Mounting is sticky — unchecking only hides.
+  // Check a panel on: it shares its row with the message area. When default
+  // widths would squeeze the conversation below its minimum, shrink sibling
+  // panels toward PANEL_MIN_WIDTH first; only refuse when even all-min widths
+  // do not fit. Mounting is sticky — unchecking only hides.
   const tryOpenPanel = useCallback(
     (kind: DesktopPanelKind): boolean => {
       const containerW =
         chatContainerRef.current?.getBoundingClientRect().width;
       if (containerW) {
-        const used =
-          checkedPanelsRef.current
-            .filter((k) => k !== kind)
-            .reduce((sum, k) => sum + panelWidthsRef.current[k], 0) +
-          panelWidthsRef.current[kind];
-        if (containerW - used < CHAT_MAIN_MIN_WIDTH) {
+        const planned = planPanelWidthsForOpen(
+          containerW,
+          checkedPanelsRef.current,
+          panelWidthsRef.current,
+          kind,
+          { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
+        );
+        if (!planned.ok) {
           showPanelHint("空间不足，无法开启面板");
           return false;
+        }
+        const changed = PANEL_ORDER.some(
+          (k) => planned.widths[k] !== panelWidthsRef.current[k],
+        );
+        if (changed) {
+          panelWidthsRef.current = planned.widths;
+          setPanelWidths(planned.widths);
         }
       }
       setCheckedPanels((prev) =>
@@ -2156,6 +2177,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onNewSessionInPane={() =>
             postToHost({ command: "desktopNewSessionInPane" })
           }
+          onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
           isStreaming={state.isStreaming}
           disabled={false}
           onOpenSettings={handleOpenSettings}
@@ -2169,6 +2191,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenPane={host.onOpenPane}
           onDeleteSession={host.onDeleteSession}
           onTogglePin={host.onTogglePin}
+          onRenameSession={host.onRenameSession}
         />
         {chatContainer}
         {dialogs}

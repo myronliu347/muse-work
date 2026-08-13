@@ -158,6 +158,17 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     [vscode],
   );
 
+  const handleRenameSession = useCallback(
+    (sessionId: string, title: string) => {
+      vscode.postMessage({
+        command: "desktopRenameSession",
+        sessionId,
+        title,
+      });
+    },
+    [vscode],
+  );
+
   const handleOpenPane = useCallback(
     (workdir: string, sessionId: string, opts?: OpenPaneOptions) => {
       vscode.postMessage({
@@ -199,6 +210,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         onSelectSession: handleSelectSession,
         onDeleteSession: handleDeleteSession,
         onTogglePin: handleTogglePin,
+        onRenameSession: handleRenameSession,
         onOpenPane: handleOpenPane,
         panes,
         rowHeights,

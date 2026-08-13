@@ -2,7 +2,10 @@
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { DesktopSidebar } from "../../src/components/DesktopSidebar";
+import {
+  DesktopSidebar,
+  groupRecentSessionsByWorkdir,
+} from "../../src/components/DesktopSidebar";
 import type { DesktopSessionEntry } from "../../src/types";
 
 afterEach(() => {
@@ -30,6 +33,7 @@ function renderSidebar(
     <DesktopSidebar
       onNewSession={noop}
       onNewSessionInPane={noop}
+      onNewSessionInWorkdir={noop}
       isStreaming={false}
       disabled={false}
       onOpenSettings={noop}
@@ -67,7 +71,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("renders fixed Pin and 最近 sections with workdir short name subtitle", () => {
+  it("renders Pin flat and 工作空间 grouped by workdir", () => {
     renderSidebar({
       pinnedSessions: [
         entry({
@@ -82,6 +86,18 @@ describe("DesktopSidebar pin/recent sessions", () => {
           title: "Recent chat",
           workdir: "/repo/beta",
         }),
+        entry({
+          sessionId: "r2",
+          title: "Other in beta",
+          workdir: "/repo/beta",
+          lastActiveAt: Date.now() - 1000,
+        }),
+        entry({
+          sessionId: "r3",
+          title: "Gamma chat",
+          workdir: "/repo/gamma",
+          lastActiveAt: Date.now() - 5000,
+        }),
       ],
     });
 
@@ -90,13 +106,86 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
     expect(
       screen.getByTestId("desktop-session-section-recent"),
-    ).toHaveTextContent("最近");
+    ).toHaveTextContent("工作空间");
+    // Pin keeps workdir subtitle.
     expect(screen.getByTestId("desktop-session-item-p1")).toHaveTextContent(
       "alpha",
     );
-    expect(screen.getByTestId("desktop-session-item-r1")).toHaveTextContent(
+    // Recent: workdir is the group header; nested sessions omit subtitle.
+    expect(
+      screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
+    ).toHaveTextContent("beta");
+    expect(
+      screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
+    ).toContainElement(screen.getByTestId("desktop-session-item-r1"));
+    expect(
+      screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
+    ).toContainElement(screen.getByTestId("desktop-session-item-r2"));
+    expect(screen.getByTestId("desktop-session-item-r1")).not.toHaveTextContent(
       "beta",
     );
+    expect(
+      screen.getByTestId("desktop-session-workdir-group-/repo/gamma"),
+    ).toHaveTextContent("gamma");
+  });
+
+  it("calls onNewSessionInWorkdir from workdir group + button", () => {
+    const onNewSessionInWorkdir = vi.fn();
+    renderSidebar({
+      recentSessions: [
+        entry({ sessionId: "r1", workdir: "/repo/beta" }),
+      ],
+      onNewSessionInWorkdir,
+    });
+    fireEvent.click(
+      screen.getByTestId("desktop-session-workdir-add-/repo/beta"),
+    );
+    expect(onNewSessionInWorkdir).toHaveBeenCalledWith("/repo/beta");
+  });
+
+  it("double-click title renames via onRenameSession", () => {
+    const onRenameSession = vi.fn();
+    renderSidebar({
+      recentSessions: [
+        entry({
+          sessionId: "r1",
+          title: "Old title",
+          workdir: "/repo/beta",
+        }),
+      ],
+      onRenameSession,
+    });
+    fireEvent.doubleClick(
+      screen.getByTestId("desktop-session-item-r1").querySelector(
+        ".desktop-session-title",
+      )!,
+    );
+    const input = screen.getByTestId("desktop-session-title-input-r1");
+    fireEvent.change(input, { target: { value: "New title" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onRenameSession).toHaveBeenCalledWith("r1", "New title");
+  });
+
+  it("groupRecentSessionsByWorkdir sorts by latest activity", () => {
+    const groups = groupRecentSessionsByWorkdir([
+      entry({
+        sessionId: "old",
+        workdir: "/a",
+        lastActiveAt: 1,
+      }),
+      entry({
+        sessionId: "new",
+        workdir: "/b",
+        lastActiveAt: 99,
+      }),
+      entry({
+        sessionId: "mid",
+        workdir: "/a",
+        lastActiveAt: 50,
+      }),
+    ]);
+    expect(groups.map((g) => g.workdir)).toEqual(["/b", "/a"]);
+    expect(groups[1]?.sessions.map((s) => s.sessionId)).toEqual(["mid", "old"]);
   });
 
   it("does not show unread dot on the current session", () => {
@@ -158,6 +247,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       <DesktopSidebar
         onNewSession={noop}
         onNewSessionInPane={noop}
+        onNewSessionInWorkdir={noop}
         isStreaming={false}
         disabled={true}
         onOpenSettings={noop}

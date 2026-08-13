@@ -620,6 +620,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onNewSessionInPane={() =>
           vscode.postMessage({ command: "desktopNewSessionInPane" })
         }
+        onNewSessionInWorkdir={(workdir) =>
+          vscode.postMessage({ command: "newSession", workdir })
+        }
         isStreaming={false}
         disabled={false}
         onOpenSettings={onOpenSettings}
@@ -634,6 +637,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onOpenPane={handleOpenPane}
         onDeleteSession={host.onDeleteSession}
         onTogglePin={host.onTogglePin}
+        onRenameSession={host.onRenameSession}
       />
       <div
         className="desktop-pane-rows"

@@ -245,6 +245,94 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(api.sendMessage).toHaveBeenCalledWith("sess-created", "first message");
   });
 
+  it("desktopRenameSession patches title and updates tree", async () => {
+    const api = stubApi({
+      patchSession: vi.fn(async (id: string, patch: { title?: string }) => ({
+        ...baseSession,
+        id,
+        title: patch.title ?? baseSession.title,
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "desktopRenameSession",
+      sessionId: "sess-active",
+      title: "Renamed",
+    });
+    await flush();
+
+    expect(api.patchSession).toHaveBeenCalledWith("sess-active", {
+      title: "Renamed",
+    });
+    const tree = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; title?: string }>;
+          }>;
+        }
+      | undefined;
+    const entry = tree?.groups
+      ?.flatMap((g) => g.sessions)
+      .find((s) => s.sessionId === "sess-active");
+    expect(entry?.title).toBe("Renamed");
+  });
+
+  it("newSession with workdir preselects directory for createSession", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-wd",
+      title: "新对话",
+      workdir: "/repo/beta",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+
+    bridge.postMessage({ command: "newSession", workdir: "/repo/beta" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopWorkdirState",
+        workdir: "/repo/beta",
+      }),
+    );
+
+    bridge.postMessage({ command: "sendMessage", text: "hi" });
+    await flush();
+    expect(api.createSession).toHaveBeenCalledWith("/repo/beta", undefined);
+  });
+
   it("desktopCreateWorktree falls back to create+send (MVP)", async () => {
     const created: MuseSession = {
       ...baseSession,

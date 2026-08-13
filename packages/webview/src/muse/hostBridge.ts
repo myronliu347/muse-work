@@ -391,16 +391,30 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     return session;
   };
 
-  const handleNewSession = async (): Promise<void> => {
+  const handleNewSession = async (workdir?: string): Promise<void> => {
     await ensureWs();
     // Lazy create: do not POST /sessions until the first user message.
     pendingNewSession = true;
-    suppressWorkdirPush = true;
     sessionId = null;
     resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
-    // New session starts with no workdir; first send auto-creates one.
-    emitWorkdirState({ clearWorkdir: true });
+    if (workdir) {
+      // Workdir-group "+": draft session with that directory pre-selected.
+      suppressWorkdirPush = false;
+      const nextRecent = [
+        workdir,
+        ...recentWorkdirs.filter((p) => p !== workdir),
+      ].slice(0, 10);
+      emitWorkdirState({ workdir, recentWorkdirs: nextRecent });
+      opts.outer?.postMessage({
+        command: "desktopSelectRecentWorkdir",
+        path: workdir,
+      });
+    } else {
+      suppressWorkdirPush = true;
+      // New session starts with no workdir; first send auto-creates one.
+      emitWorkdirState({ clearWorkdir: true });
+    }
     emitDraftSession();
     await refreshTree();
   };
@@ -433,6 +447,20 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   ): Promise<void> => {
     await api.patchSession(id, { pinned: pinnedNext });
     await refreshTree();
+  };
+
+  const handleRenameSession = async (
+    id: string,
+    title: string,
+  ): Promise<void> => {
+    const next = title.trim();
+    if (!next) return;
+    const session = await api.patchSession(id, { title: next });
+    titledSessions.add(id);
+    patchTreeSession(id, { title: session.title || next });
+    if (sessionId === id) {
+      emitCurrentSession(session);
+    }
   };
 
   const handleSetSessionModel = async (model: string): Promise<void> => {
@@ -922,9 +950,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           void handleDesktopReady();
           opts.outer?.postMessage(raw);
           return;
-        case "newSession":
-          void handleNewSession();
+        case "newSession": {
+          const workdir =
+            typeof msg.workdir === "string" && msg.workdir
+              ? msg.workdir
+              : undefined;
+          void handleNewSession(workdir);
           return;
+        }
         case "desktopSelectSession": {
           const id =
             typeof msg.sessionId === "string" ? msg.sessionId : undefined;
@@ -943,6 +976,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           if (id && typeof msg.pinned === "boolean") {
             void handleTogglePin(id, msg.pinned);
           }
+          return;
+        }
+        case "desktopRenameSession": {
+          const id =
+            typeof msg.sessionId === "string" ? msg.sessionId : undefined;
+          const title = typeof msg.title === "string" ? msg.title : undefined;
+          if (id && title) void handleRenameSession(id, title);
           return;
         }
         case "setSessionModel": {

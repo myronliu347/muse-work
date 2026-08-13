@@ -273,6 +273,8 @@ export interface DesktopHostProps {
   onDeleteSession: (sessionId: string) => void;
   /** Toggle pin membership for a sidebar session. */
   onTogglePin: (sessionId: string, pinned: boolean) => void;
+  /** Rename a sidebar session title. */
+  onRenameSession: (sessionId: string, title: string) => void;
   /**
    * Open a session in a new pane (Cmd/Ctrl+Click on a sidebar session, or drag
    * one into the chat area). When the session is already shown, the host
