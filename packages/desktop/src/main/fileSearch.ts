@@ -47,6 +47,75 @@ function isSkippedDir(name: string): boolean {
   return SKIP_DIR_NAMES.has(name) || name.startsWith(".");
 }
 
+function toWorkspaceSuggestion(
+  abs: string,
+  rel: string,
+  name: string,
+  isDirectory: boolean,
+): WorkspaceFileSuggestion {
+  const relativePath = isDirectory ? `${rel}/` : rel;
+  const extensionMatch = !isDirectory ? name.match(/\.([^.]+)$/) : null;
+  return {
+    path: abs,
+    relativePath,
+    name,
+    extension: extensionMatch ? extensionMatch[1] : "",
+    icon: isDirectory ? "codicon-folder" : "codicon-file",
+    isDirectory,
+  };
+}
+
+/**
+ * List direct children of `dir` (relative to workdir). Does not recurse.
+ */
+export function listWorkspaceDir(
+  workdir: string,
+  dir = "",
+): WorkspaceFileSuggestion[] {
+  if (!workdir || !fs.existsSync(workdir)) {
+    return [];
+  }
+
+  const normalized = dir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  if (normalized.split("/").some((seg) => seg === ".." || seg === ".")) {
+    return [];
+  }
+
+  const workdirAbs = path.resolve(workdir);
+  const target = normalized
+    ? path.resolve(workdirAbs, ...normalized.split("/"))
+    : workdirAbs;
+  const relToRoot = path.relative(workdirAbs, target);
+  if (relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) {
+    return [];
+  }
+
+  let entries: fs.Dirent[];
+  try {
+    const stat = fs.statSync(target);
+    if (!stat.isDirectory()) return [];
+    entries = fs.readdirSync(target, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const items: WorkspaceFileSuggestion[] = [];
+  for (const entry of entries) {
+    const name = entry.name;
+    if (entry.isDirectory() && isSkippedDir(name)) continue;
+    if (name === ".DS_Store") continue;
+    const rel = normalized ? `${normalized}/${name}` : name;
+    const abs = path.join(target, name);
+    items.push(toWorkspaceSuggestion(abs, rel, name, entry.isDirectory()));
+  }
+
+  items.sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return items;
+}
+
 function scoreMatch(relativePath: string, name: string, query: string): number {
   if (!query) return 1;
   const q = query.toLowerCase();
@@ -104,14 +173,8 @@ export function searchWorkspaceFiles(
       const relativePath = isDirectory ? `${rel}/` : rel;
       const score = scoreMatch(relativePath, name, query);
       if (score > 0) {
-        const extensionMatch = !isDirectory ? name.match(/\.([^.]+)$/) : null;
         hits.push({
-          path: abs,
-          relativePath,
-          name,
-          extension: extensionMatch ? extensionMatch[1] : "",
-          icon: isDirectory ? "codicon-folder" : "codicon-file",
-          isDirectory,
+          ...toWorkspaceSuggestion(abs, rel, name, isDirectory),
           score,
         });
       }
