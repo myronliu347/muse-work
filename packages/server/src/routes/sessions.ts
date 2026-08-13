@@ -159,13 +159,36 @@ export async function handleSendMessage(
   ctx: AppContext,
   sessionId: string,
 ): Promise<void> {
-  const body = (await readJsonBody(req)) as { content?: string } | undefined;
-  if (!body?.content || typeof body.content !== "string") {
-    sendError(res, 400, "content is required");
+  const body = (await readJsonBody(req)) as
+    | {
+        content?: string;
+        images?: Array<{ data?: string; mediaType?: string }>;
+      }
+    | undefined;
+  const content = typeof body?.content === "string" ? body.content : "";
+  const images: Array<{ data: string; mediaType: string }> = [];
+  if (Array.isArray(body?.images)) {
+    for (const img of body.images) {
+      if (!img || typeof img.data !== "string" || !img.data) continue;
+      images.push({
+        data: img.data,
+        mediaType:
+          typeof img.mediaType === "string" && img.mediaType
+            ? img.mediaType
+            : "image/png",
+      });
+    }
+  }
+  if (!content.trim() && images.length === 0) {
+    sendError(res, 400, "content or images is required");
     return;
   }
   try {
-    const result = await ctx.runner.sendMessage(sessionId, body.content);
+    const result = await ctx.runner.sendMessage(
+      sessionId,
+      content,
+      images.length > 0 ? images : undefined,
+    );
     sendJson(res, 200, result);
   } catch (err) {
     const statusCode =

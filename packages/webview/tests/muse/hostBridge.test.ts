@@ -264,6 +264,32 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual({ command: "endStreaming" });
   });
 
+  it("sendMessage forwards base64 images to the API", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    const images = [
+      {
+        data: "data:image/png;base64,aaaa",
+        mediaType: "image/png",
+      },
+    ];
+    bridge.postMessage({
+      command: "sendMessage",
+      text: "look",
+      images,
+    });
+    await flush();
+
+    expect(api.sendMessage).toHaveBeenCalledWith("sess-active", "look", images);
+  });
+
   it("desktopRenameSession patches title and updates tree", async () => {
     const api = stubApi({
       patchSession: vi.fn(async (id: string, patch: { title?: string }) => ({

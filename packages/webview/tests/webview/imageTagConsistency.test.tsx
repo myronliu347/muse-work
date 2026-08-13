@@ -78,18 +78,17 @@ function createImagePasteEvent(filename: string): ClipboardEvent {
   return event as ClipboardEvent;
 }
 
-describe("Image Tag Consistency and Placeholder Flow", () => {
+describe("Pasted image attachments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should show consistent image tags in input and history with [imageN] placeholders", async () => {
+  it("shows thumbnail strip on paste, removes on hover delete, and sends base64", async () => {
     const { vscode } = renderChatApp();
 
     const messageInput = screen.getByTestId("message-input");
     messageInput.focus();
 
-    // 1. Simulate pasting two images
     await act(async () => {
       messageInput.dispatchEvent(createImagePasteEvent("image1.png"));
     });
@@ -97,18 +96,17 @@ describe("Image Tag Consistency and Placeholder Flow", () => {
       messageInput.dispatchEvent(createImagePasteEvent("image2.png"));
     });
 
-    // Wait for images to be processed and tags to appear
     await waitFor(() => {
-      const tags = messageInput.querySelectorAll(".context-tag.is-image");
-      expect(tags).toHaveLength(2);
+      const strip = screen.getByTestId("attached-images");
+      expect(strip.querySelectorAll(".image-thumb")).toHaveLength(2);
     });
 
-    // 2. Verify tags in input box have "图片 1" and "图片 2"
-    const inputTags = messageInput.querySelectorAll(".context-tag.is-image");
-    expect(inputTags[0]).toHaveTextContent("图片 1");
-    expect(inputTags[1]).toHaveTextContent("图片 2");
+    // Type a caption so send includes text + images
+    await act(async () => {
+      messageInput.textContent = "see these";
+      messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
 
-    // 3. Clear and send the message
     vscode.postMessage.mockClear();
 
     const sendButton = screen.getByTestId("send-btn");
@@ -116,50 +114,41 @@ describe("Image Tag Consistency and Placeholder Flow", () => {
       fireEvent.click(sendButton);
     });
 
-    // 4. Verify the markdown sent to extension contains [image1] and [image2]
     const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
     const sendMessage = sentMessages.find((m) => m.command === "sendMessage");
-    if (sendMessage) {
-      expect(sendMessage.text).toContain("[image1]");
-      expect(sendMessage.text).toContain("[image2]");
-    }
+    expect(sendMessage).toBeDefined();
+    expect(sendMessage.images).toHaveLength(2);
+    expect(sendMessage.images[0].data).toMatch(/^data:image\/png;base64,/);
+    expect(sendMessage.images[0].mediaType).toBe("image/png");
+  });
 
-    // 5. Inject a message into history that uses [image1] and [image2]
-    act(() => {
-      sendCommand("updateMessages", {
-        messages: [
-          {
-            id: "msg_1",
-            role: "user",
-            timestamp: "2024-01-01T00:00:00.000Z",
-            blocks: [
-              {
-                type: "text",
-                content: "Check these: [image1] and [image2]",
-              },
-              {
-                type: "image",
-                imageUrls: [TINY_PNG_DATAURL, TINY_PNG_DATAURL],
-              },
-            ],
-          },
-        ],
-      });
+  it("removes a pasted image from the strip", async () => {
+    renderChatApp();
+
+    const messageInput = screen.getByTestId("message-input");
+    messageInput.focus();
+
+    await act(async () => {
+      messageInput.dispatchEvent(createImagePasteEvent("solo.png"));
     });
 
-    // 6. Verify tags in history also show "图片 1" and "图片 2"
     await waitFor(() => {
-      const historyTags = document.querySelectorAll(
-        ".message.user .context-tag.is-image",
+      expect(screen.getByTestId("attached-images").querySelectorAll(".image-thumb")).toHaveLength(
+        1,
       );
-      expect(historyTags).toHaveLength(2);
     });
 
-    const historyTags = document.querySelectorAll(
-      ".message.user .context-tag.is-image",
-    );
-    expect(historyTags[0]).toHaveTextContent("图片 1");
-    expect(historyTags[1]).toHaveTextContent("图片 2");
+    const removeBtn = screen
+      .getByTestId("attached-images")
+      .querySelector(".remove-image-btn") as HTMLButtonElement;
+    expect(removeBtn).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(removeBtn);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("attached-images")).toBeNull();
+    });
   });
 
   it("should open image preview modal when clicking history image tag", async () => {

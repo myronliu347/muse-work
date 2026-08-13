@@ -266,6 +266,75 @@ describe("sessionRunner concurrency / dispose", () => {
     expect(disposeCount).toBe(1);
   });
 
+  it("sendMessage forwards base64 images to the agent", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-img-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    let seen: { content: string; images?: unknown } | undefined;
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      createAgent: async () => ({
+        sendMessage: async (content, images) => {
+          seen = { content, images };
+        },
+        dispose: async () => {},
+      }),
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "see this", [
+      { data: "data:image/png;base64,abc", mediaType: "image/png" },
+    ]);
+    await expect.poll(() => seen).toBeTruthy();
+    expect(seen).toEqual({
+      content: "see this",
+      images: [
+        { path: "data:image/png;base64,abc", mimeType: "image/png" },
+      ],
+    });
+  });
+
   it("abortMessage stops the in-flight agent and marks session idle", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-abort-"));
     saveProvidersConfig(

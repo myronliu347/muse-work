@@ -232,13 +232,21 @@ export class MuseApiClient {
   async sendMessage(
     sessionId: string,
     content: string,
+    images?: Array<{ data: string; mediaType: string }>,
   ): Promise<{ accepted: true }> {
+    const body: {
+      content: string;
+      images?: Array<{ data: string; mediaType: string }>;
+    } = { content };
+    if (images && images.length > 0) {
+      body.images = images;
+    }
     const res = await this.request(
       `/sessions/${encodeURIComponent(sessionId)}/messages`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(body),
       },
     );
     return parseJson(res);

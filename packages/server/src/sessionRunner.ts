@@ -33,8 +33,10 @@ export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_TITLE = "新对话";
 const TITLE_MAX_LEN = 40;
 
+export type SessionImage = { path: string; mimeType: string };
+
 export interface SessionAgent {
-  sendMessage(content: string): Promise<void>;
+  sendMessage(content: string, images?: SessionImage[]): Promise<void>;
   dispose(): Promise<void>;
   /** Interrupt in-flight AI / tools / bash (SDK abortMessage). */
   abortMessage?: () => void;
@@ -46,8 +48,14 @@ export interface SessionAgent {
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
 
+export type OutboundImage = { data: string; mediaType: string };
+
 export interface SessionRunner {
-  sendMessage(sessionId: string, content: string): Promise<{ accepted: true }>;
+  sendMessage(
+    sessionId: string,
+    content: string,
+    images?: OutboundImage[],
+  ): Promise<{ accepted: true }>;
   abortMessage(sessionId: string): Promise<{ ok: true }>;
   respondPermission(
     sessionId: string,
@@ -61,6 +69,11 @@ export interface SessionRunner {
    * agents with the current provider gateway settings.
    */
   invalidateAgentIdentities(): void;
+}
+
+interface QueuedTurn {
+  content: string;
+  images?: SessionImage[];
 }
 
 interface PendingPermission {
@@ -88,7 +101,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       { modelDisplay },
     );
     return {
-      sendMessage: (content: string) => agent.sendMessage(content),
+      sendMessage: (content: string, images?: SessionImage[]) =>
+        agent.sendMessage(content, images),
       abortMessage: () => agent.abortMessage(),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
@@ -96,6 +110,14 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       sessionId: agent.sessionId,
     };
   });
+}
+
+function toSdkImages(images?: OutboundImage[]): SessionImage[] | undefined {
+  if (!images || images.length === 0) return undefined;
+  return images.map((img) => ({
+    path: img.data,
+    mimeType: img.mediaType || "image/png",
+  }));
 }
 
 export function createSessionRunner(
@@ -111,7 +133,7 @@ export function createSessionRunner(
   /** Session IDs that were disposed; late createAgent completions must not revive them. */
   const disposed = new Set<string>();
   /** Messages accepted while a turn is in flight (avoid HTTP 409). */
-  const messageQueues = new Map<string, string[]>();
+  const messageQueues = new Map<string, QueuedTurn[]>();
   /** Per-session flag: current turn already received assistant stage "end". */
   const turnEnded = new Map<string, boolean>();
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
@@ -353,7 +375,7 @@ export function createSessionRunner(
     if (queue.length === 0) {
       messageQueues.delete(sessionId);
     }
-    await runTurn(sessionId, next);
+    await runTurn(sessionId, next.content, next.images);
   }
 
   function rememberWaveSessionId(
@@ -708,7 +730,11 @@ export function createSessionRunner(
     store.update(sessionId, { title });
   }
 
-  async function runTurn(sessionId: string, content: string): Promise<void> {
+  async function runTurn(
+    sessionId: string,
+    content: string,
+    images?: SessionImage[],
+  ): Promise<void> {
     const session = store.get(sessionId);
     if (!session || disposed.has(sessionId)) {
       return;
@@ -716,7 +742,7 @@ export function createSessionRunner(
     if (session.status === "running") {
       // Should not happen; queue instead of overlapping turns.
       const queue = messageQueues.get(sessionId) ?? [];
-      queue.push(content);
+      queue.push({ content, images });
       messageQueues.set(sessionId, queue);
       return;
     }
@@ -731,7 +757,7 @@ export function createSessionRunner(
 
     try {
       const agent = await ensureAgent(sessionId);
-      await agent.sendMessage(content);
+      await agent.sendMessage(content, images);
       // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
       // If loading is still true, tools/stream are in flight — wait for loading false.
       if (
@@ -776,7 +802,7 @@ export function createSessionRunner(
   }
 
   return {
-    async sendMessage(sessionId, content) {
+    async sendMessage(sessionId, content, images) {
       const session = store.get(sessionId);
       if (!session) {
         throw Object.assign(new Error(`session not found: ${sessionId}`), {
@@ -784,16 +810,23 @@ export function createSessionRunner(
         });
       }
 
+      const sdkImages = toSdkImages(images);
+      if (!content.trim() && !sdkImages?.length) {
+        throw Object.assign(new Error("content or images is required"), {
+          statusCode: 400,
+        });
+      }
+
       if (session.status === "running") {
         const queue = messageQueues.get(sessionId) ?? [];
-        queue.push(content);
+        queue.push({ content, images: sdkImages });
         messageQueues.set(sessionId, queue);
         clearIdleTimer(sessionId);
         return { accepted: true };
       }
 
       // Fire-and-forget so HTTP can return { accepted: true } promptly.
-      void runTurn(sessionId, content);
+      void runTurn(sessionId, content, sdkImages);
 
       return { accepted: true };
     },

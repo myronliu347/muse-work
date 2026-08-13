@@ -839,21 +839,53 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  function normalizeOutboundImages(
+    raw: unknown,
+  ): Array<{ data: string; mediaType: string }> {
+    if (!Array.isArray(raw)) return [];
+    const out: Array<{ data: string; mediaType: string }> = [];
+    for (const item of raw) {
+      if (!item || typeof item !== "object") continue;
+      const data = (item as { data?: unknown }).data;
+      const mediaType = (item as { mediaType?: unknown }).mediaType;
+      if (typeof data !== "string" || !data) continue;
+      out.push({
+        data,
+        mediaType:
+          typeof mediaType === "string" && mediaType
+            ? mediaType
+            : "image/png",
+      });
+    }
+    return out;
+  }
+
   async function handleSendMessage(msg: {
     text?: string;
     images?: unknown;
   }): Promise<void> {
     const text = (msg.text ?? "").trim();
-    if (!text) return;
+    const images = normalizeOutboundImages(msg.images);
+    if (!text && images.length === 0) return;
 
     const userId = newId("user");
+    const blocks: Array<Record<string, unknown>> = [];
+    if (text) {
+      blocks.push({ type: "text", content: text });
+    }
+    if (images.length > 0) {
+      blocks.push({
+        type: "image",
+        imageUrls: images.map((img) => img.data),
+      });
+    }
     postToWebview({
       command: "appendMessage",
       message: {
         id: userId,
         role: "user",
         timestamp: new Date().toISOString(),
-        blocks: [{ type: "text", content: text }],
+        blocks,
       },
     });
 
@@ -863,8 +895,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       knownAssistantIds.clear();
       loading = false;
       postToWebview({ command: "startStreaming" });
-      await api.sendMessage(sid, text);
-      await maybePatchTitle(sid, text);
+      await api.sendMessage(sid, text, images.length > 0 ? images : undefined);
+      if (text) {
+        await maybePatchTitle(sid, text);
+      }
       // First send promotes the session into the sidebar (started filter).
       await refreshTree();
     } catch (err) {

@@ -17,6 +17,7 @@ import type {
   AttachedImage,
 } from "../types";
 import { FileSuggestionDropdown } from "./FileSuggestionDropdown";
+import { AttachedImages } from "./AttachedImages";
 import {
   dirFromRelativePath,
   fileSuggestionsRequestPayload,
@@ -470,27 +471,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       return () => window.removeEventListener("message", handleMessage);
     }, [insertSelectionTag]);
 
-    // Handle image preview
-    const handleImagePreview = useCallback((url: string, name: string) => {
-      // Create a temporary modal for image preview
-      const modal = document.createElement("div");
-      modal.className = "image-preview-modal";
-      modal.onclick = () => document.body.removeChild(modal);
-
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = name;
-      img.onclick = (e) => e.stopPropagation();
-
-      const closeBtn = document.createElement("div");
-      closeBtn.className = "image-preview-close";
-      closeBtn.innerHTML = '<i class="codicon codicon-close"></i>';
-
-      modal.appendChild(img);
-      modal.appendChild(closeBtn);
-      document.body.appendChild(modal);
-    }, []);
-
     const enterDirectory = useCallback(
       (file: FileItem) => {
         if (!file.isDirectory) return;
@@ -817,7 +797,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     const handleInput = useCallback(
       (event: React.FormEvent<HTMLDivElement>) => {
         const target = event.currentTarget;
-        const newValue = target.innerText;
+        // jsdom's innerText can be undefined; keep message a string.
+        const newValue = target.innerText ?? target.textContent ?? "";
 
         setMessage(newValue);
 
@@ -875,6 +856,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       });
     }, []);
 
+    const handleRemoveAttachedImage = useCallback((imageId: string) => {
+      setAttachedImages((prev) => prev.filter((img) => img.id !== imageId));
+    }, []);
+
     const handleImagePaste = useCallback(
       async (files: FileList) => {
         const imageFiles = Array.from(files).filter((file) =>
@@ -884,63 +869,20 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         for (const file of imageFiles) {
           try {
             const dataUrl = await createDataUrlFromBlob(file);
-
-            // Insert inline tag for the image
-            if (!textareaRef.current) continue;
-
-            // Count existing images in the input to determine the next index
-            const existingImageTags = textareaRef.current.querySelectorAll(
-              '.context-tag-container[data-is-image="true"]',
-            );
-            const nextIndex = existingImageTags.length + 1;
-            const displayName = `图片 ${nextIndex}`;
-
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0) continue;
-
-            const range = selection.getRangeAt(0);
-
-            const tagSpan = document.createElement("span");
-            tagSpan.className = "context-tag-container";
-            tagSpan.contentEditable = "false";
-            tagSpan.setAttribute("data-path", `pasted-image-${Date.now()}.png`);
-
-            tagSpan.setAttribute("data-name", displayName);
-            tagSpan.setAttribute("data-is-image", "true");
-            tagSpan.setAttribute("data-image-url", dataUrl);
-            tagSpan.innerText = `[image]`;
-
-            const root = ReactDOM.createRoot(tagSpan);
-            root.render(
-              <ContextTag
-                name={displayName}
-                path={`pasted-image-${Date.now()}.png`}
-                isImage={true}
-                onClick={() => handleImagePreview(dataUrl, displayName)}
-              />,
-            );
-
-            range.deleteContents();
-            range.insertNode(tagSpan);
-
-            // Insert a space after the tag
-            const space = document.createTextNode(" ");
-            range.setStartAfter(tagSpan);
-            range.insertNode(space);
-            range.setStartAfter(space);
-            range.setEndAfter(space);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            // Trigger input event to update message state
-            const inputEvent = new Event("input", { bubbles: true });
-            textareaRef.current.dispatchEvent(inputEvent);
+            const attached: AttachedImage = {
+              id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              data: dataUrl,
+              mimeType: file.type || "image/png",
+              filename: file.name || `pasted-image-${Date.now()}.png`,
+              size: file.size,
+            };
+            setAttachedImages((prev) => [...prev, attached]);
           } catch (error) {
             console.error("Failed to process image:", error);
           }
         }
       },
-      [createDataUrlFromBlob, textareaRef, handleImagePreview],
+      [createDataUrlFromBlob],
     );
 
     // Paste event handler
@@ -1035,6 +977,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                 {workdirSelector}
               </div>
             )}
+            <AttachedImages
+              images={attachedImages}
+              onRemove={handleRemoveAttachedImage}
+            />
             {/* ContentEditable - full width */}
             <div
               ref={textareaRef}
@@ -1087,7 +1033,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                     onClick={handleSend}
                     disabled={
                       disabled ||
-                      (!message.trim() && attachedImages.length === 0)
+                      (!(message ?? "").trim() && attachedImages.length === 0)
                     }
                     data-testid="send-btn"
                     aria-label="发送"
