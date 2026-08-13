@@ -1,0 +1,75 @@
+packages/webview/src/index.tsx
+  7f471a6a269921bb 3,9-10,21,47-53
+packages/webview/src/ui/theme.tsx
+  7f471a6a269921bb 1-102
+packages/webview/tests/muse/themePreference.test.ts
+  7f471a6a269921bb 1-46
+packages/webview/src/ui/themePreference.ts
+  7f471a6a269921bb 1-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "86a7bf7ea65ffb63a5c78978d2279d2d1fd53ad1",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2051,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/prototypes/2026-08-13-webview-form-ds.html": {
+          "accepted_lines": 730
+        },
+        "docs/superpowers/specs/2026-08-13-webview-ui-design.md": {
+          "accepted_lines": 183
+        },
+        "docs/superpowers/plans/2026-08-13-webview-ui.md": {
+          "accepted_lines": 1138
+        }
+      }
+    },
+    "7f471a6a269921bb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c867f992-2005-4d5b-987e-46928df126ca",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 226,
+      "total_deletions": 21,
+      "accepted_lines": 226,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/ui/themePreference.ts": {
+          "additions": 67,
+          "accepted_lines": 67
+        },
+        "packages/webview/tests/muse/themePreference.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/ui/theme.tsx": {
+          "additions": 102,
+          "accepted_lines": 102
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 11,
+          "deletions": 5,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 16
+        }
+      }
+    }
+  }
+}
