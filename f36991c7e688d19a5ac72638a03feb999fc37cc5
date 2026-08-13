@@ -1,0 +1,72 @@
+packages/server/tests/sessions.routes.test.ts
+  db26196a999da47a 79-96
+packages/webview/src/muse/apiClient.ts
+  db26196a999da47a 247-250
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 39-40,51,92,467-468,751-758,770-774,801-827,921-934
+packages/server/tests/sessionRunner.test.ts
+  db26196a999da47a 268-359
+packages/server/src/routes/sessions.ts
+  db26196a999da47a 180-188
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 881-903,1078-1080
+packages/server/src/app.ts
+  db26196a999da47a 19,157-167
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 45,249-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f36991c7e688d19a5ac72638a03feb999fc37cc5",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 261,
+      "total_deletions": 4,
+      "accepted_lines": 257,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 63,
+          "accepted_lines": 63
+        },
+        "packages/server/src/app.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 96,
+          "deletions": 4,
+          "accepted_lines": 92
+        }
+      }
+    }
+  }
+}
