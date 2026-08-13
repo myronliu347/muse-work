@@ -191,6 +191,35 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("desktopReady loads the session tree even when WS connect fails", async () => {
+    const ws = stubWs();
+    vi.mocked(ws.connect).mockRejectedValue(new Error("ws down"));
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    expect(api.listSessionsGrouped).toHaveBeenCalled();
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        groups: expect.arrayContaining([
+          expect.objectContaining({
+            workdir: "recent",
+            sessions: expect.arrayContaining([
+              expect.objectContaining({ sessionId: "sess-active" }),
+            ]),
+          }),
+        ]),
+      }),
+    );
+  });
+
   it("selectSession loads messages into ChatApp via updateMessages", async () => {
     const history = [
       {

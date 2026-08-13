@@ -517,7 +517,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   };
 
   const handleNewSession = async (workdir?: string): Promise<void> => {
-    await ensureWs();
     // Lazy create: do not POST /sessions until the first user message.
     pendingNewSession = true;
     sessionId = null;
@@ -542,7 +541,16 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       emitWorkdirState({ clearWorkdir: true });
     }
     emitDraftSession();
-    await refreshTree();
+    try {
+      await refreshTree();
+    } catch {
+      // Sidebar can stay stale; retry on the next successful WS open.
+    }
+    try {
+      await ensureWs();
+    } catch {
+      // Draft composer is already up; reconnect will resync.
+    }
   };
 
   const handleDeleteSession = async (id: string): Promise<void> => {
@@ -1246,7 +1254,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   async function handleDesktopReady(): Promise<void> {
     emitWorkdirState();
     try {
-      await ensureWs();
       const grouped = await refreshTree();
       if (
         !toastedInterrupted &&
@@ -1273,6 +1280,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       }
     } catch {
       // Keep workdir bootstrap even if session APIs fail.
+    }
+    try {
+      await ensureWs();
+    } catch {
+      // Tree already loaded over HTTP; WS reconnect will resync later.
     }
   }
 
