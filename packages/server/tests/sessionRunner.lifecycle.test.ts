@@ -75,7 +75,7 @@ describe("sessionRunner lifecycle", () => {
   }
 
   it("restore failure falls back to new agent and writes waveSessionId", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.setWaveSessionId(session.id, "broken-wave-id");
 
@@ -84,6 +84,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async (opts) => {
         calls++;
@@ -105,7 +106,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("idle TTL destroys agent but keeps waveSessionId", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.setWaveSessionId(session.id, "wave-keep");
 
@@ -116,6 +117,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 40,
       createAgent: async (opts) => {
         restoreIds.push(opts.restoreSessionId);
@@ -147,7 +149,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("model change destroys on next ensure and passes restoreSessionId", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.setWaveSessionId(session.id, "wave-1");
 
@@ -159,6 +161,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async (opts) => {
         createdModels.push(opts.model ?? "unknown");
@@ -187,7 +190,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("sets unreadDone when non-active session becomes idle", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const active = store.create({ workdir: "/tmp", model: "m1" });
     const background = store.create({ workdir: "/tmp", model: "m1" });
     store.select(active.id);
@@ -210,6 +213,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async () => ({
         sendMessage: async () => {},
@@ -237,7 +241,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("sets unreadDone on turn error for non-active session", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const active = store.create({ workdir: "/tmp", model: "m1" });
     const background = store.create({ workdir: "/tmp", model: "m1" });
     store.select(active.id);
@@ -260,6 +264,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async () => ({
         sendMessage: async () => {
@@ -289,7 +294,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("getMessages re-arms idle TTL after clear; agent destroyed, waveSessionId kept", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.setWaveSessionId(session.id, "wave-rearm");
 
@@ -300,6 +305,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 40,
       createAgent: async (opts) => {
         restoreIds.push(opts.restoreSessionId);
@@ -325,7 +331,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("keeps status running after assistant stage end while loading stays true", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.select(session.id);
 
@@ -343,6 +349,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async (opts) => {
         cbs = opts.callbacks as Callbacks;
@@ -375,7 +382,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("idle TTL does not destroy while status is running", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
 
     let disposeCount = 0;
@@ -384,6 +391,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 200,
       createAgent: async () => ({
         sendMessage: async () => {},
@@ -409,7 +417,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("snapshotEvents includes running status and loading for an in-flight turn", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     const hang = Promise.withResolvers<void>();
 
@@ -417,6 +425,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async (opts) => ({
         sendMessage: async () => {
@@ -458,7 +467,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("snapshotEvents includes a pending permission request", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     const permissionSeen = Promise.withResolvers<void>();
     const original = hub.broadcast.bind(hub);
@@ -471,6 +480,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       createAgent: async (opts) => ({
         sendMessage: async () => {
@@ -500,7 +510,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("stall timer errors a hung turn and returns the session to idle", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     const events: Array<{ type: string; status?: string; error?: string }> = [];
     const original = hub.broadcast.bind(hub);
@@ -513,6 +523,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       stallMs: 40,
       createAgent: async () => ({
@@ -538,7 +549,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("abortRunningTurns stops in-flight sessions except permission waiters", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const waiting = store.create({ workdir: "/tmp/wait", model: "m1" });
     const running = store.create({ workdir: "/tmp/run", model: "m1" });
     const permissionSeen = Promise.withResolvers<void>();
@@ -555,6 +566,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       stallMs: 60_000,
       createAgent: async (opts) => {
@@ -590,7 +602,7 @@ describe("sessionRunner lifecycle", () => {
   });
 
   it("shutdown aborts all running turns including permission waiters", async () => {
-    const { store, hub, registry } = setup();
+    const { store, hub, registry, home } = setup();
     const waiting = store.create({ workdir: "/tmp/wait", model: "m1" });
     const running = store.create({ workdir: "/tmp/run", model: "m1" });
     const permissionSeen = Promise.withResolvers<void>();
@@ -607,6 +619,7 @@ describe("sessionRunner lifecycle", () => {
       store,
       hub,
       registry,
+      home,
       idleTtlMs: 60_000,
       stallMs: 60_000,
       createAgent: async (opts) => {

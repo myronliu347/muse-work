@@ -13,6 +13,7 @@ import {
 import { createSessionRunner, type SessionAgent } from "../src/sessionRunner.js";
 import { createSessionStore } from "../src/sessionStore.js";
 import { createWsHub } from "../src/wsHub.js";
+import { saveMuseSettings } from "../src/museSettings.js";
 
 describe("sessionRunner concurrency / dispose", () => {
   let home: string | undefined;
@@ -75,6 +76,7 @@ describe("sessionRunner concurrency / dispose", () => {
       store,
       hub,
       registry,
+      home,
       createAgent: async () => {
         createStarted.resolve();
         return new Promise<SessionAgent>((resolve) => {
@@ -163,6 +165,7 @@ describe("sessionRunner concurrency / dispose", () => {
       store,
       hub,
       registry,
+      home,
       createAgent: async (options) => {
         const model = options.model ?? "unknown";
         createdModels.push(model);
@@ -243,6 +246,7 @@ describe("sessionRunner concurrency / dispose", () => {
       store,
       hub,
       registry,
+      home,
       createAgent: async () => {
         createCount += 1;
         return {
@@ -314,6 +318,7 @@ describe("sessionRunner concurrency / dispose", () => {
       store,
       hub,
       registry,
+      home,
       createAgent: async () => ({
         sendMessage: async (content, images) => {
           seen = { content, images };
@@ -394,6 +399,7 @@ describe("sessionRunner concurrency / dispose", () => {
       store,
       hub,
       registry,
+      home,
       createAgent: async () => ({
         sendMessage: async () => {
           sendStarted.resolve();
@@ -425,5 +431,151 @@ describe("sessionRunner concurrency / dispose", () => {
     ).toBe(true);
 
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+  });
+
+  it("passes local superpowers plugin when enabled", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-on-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+    saveMuseSettings({ version: 1, plugins: { superpowers: true } }, home);
+
+    let seenPlugins: unknown;
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async (options) => {
+        seenPlugins = options.plugins;
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {},
+        };
+      },
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => seenPlugins !== undefined).toBe(true);
+    expect(seenPlugins).toEqual([
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]superpowers$/),
+      },
+    ]);
+  });
+
+  it("omits plugins when superpowers is disabled and recreates on toggle", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-off-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+    saveMuseSettings({ version: 1, plugins: { superpowers: true } }, home);
+
+    const pluginSnapshots: unknown[] = [];
+    let disposeCount = 0;
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async (options) => {
+        pluginSnapshots.push(options.plugins);
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {
+            disposeCount += 1;
+          },
+        };
+      },
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => pluginSnapshots.length).toBe(1);
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+    expect(pluginSnapshots[0]).toBeDefined();
+
+    saveMuseSettings({ version: 1, plugins: { superpowers: false } }, home);
+    runner.invalidateAgentIdentities();
+    await runner.sendMessage(session.id, "again");
+    await expect.poll(() => pluginSnapshots.length).toBe(2);
+    expect(pluginSnapshots[1]).toBeUndefined();
+    expect(disposeCount).toBe(1);
   });
 });

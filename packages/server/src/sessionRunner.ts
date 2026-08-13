@@ -14,6 +14,10 @@ import {
 } from "./museSystemPrompt.js";
 import { mapSdkMessages } from "./messageMapper.js";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import {
+  loadMuseSettings,
+  superpowersPluginDirIfPresent,
+} from "./museSettings.js";
 
 /** Resolve UI label for a model id (falls back to the raw id). */
 export function resolveModelDisplay(modelId: string | undefined): string {
@@ -95,6 +99,7 @@ export interface CreateSessionRunnerOptions {
   store: SessionStore;
   hub: WsHub;
   registry: ProviderRegistry;
+  home: string;
   createAgent?: CreateAgent;
   /** Idle TTL before destroying runtime (keeps store record). Default 10min. */
   idleTtlMs?: number;
@@ -135,7 +140,7 @@ function toSdkImages(images?: OutboundImage[]): SessionImage[] | undefined {
 export function createSessionRunner(
   options: CreateSessionRunnerOptions,
 ): SessionRunner {
-  const { store, hub, registry } = options;
+  const { store, hub, registry, home } = options;
   const createAgent = options.createAgent ?? defaultCreateAgent;
   const idleTtlMs = options.idleTtlMs ?? AGENT_IDLE_TTL_MS;
   const stallMs = options.stallMs ?? TURN_STALL_MS;
@@ -240,6 +245,12 @@ export function createSessionRunner(
     });
   }
 
+  function superpowersFlag(): "superpowers:on" | "superpowers:off" {
+    const enabled = loadMuseSettings(home).plugins.superpowers;
+    const dir = superpowersPluginDirIfPresent();
+    return enabled && dir ? "superpowers:on" : "superpowers:off";
+  }
+
   function gatewayIdentity(gateway: GatewayResolution): string {
     const credential =
       gateway.credentialFingerprint ?? gateway.apiKey ?? "";
@@ -249,6 +260,7 @@ export function createSessionRunner(
       credential,
       gateway.fastModel ?? "",
       MUSE_IDENTITY_REV,
+      superpowersFlag(),
     ].join("\0");
   }
 
@@ -491,6 +503,16 @@ export function createSessionRunner(
       // MVP: auto-accept file edits; UI selector is hidden for now.
       permissionMode: "acceptEdits",
       restoreSessionId,
+      ...(superpowersFlag() === "superpowers:on"
+        ? {
+            plugins: [
+              {
+                type: "local" as const,
+                path: superpowersPluginDirIfPresent() as string,
+              },
+            ],
+          }
+        : {}),
       // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
         onSessionIdChange: (id) => {

@@ -50,6 +50,7 @@ export function createSessionServices(
     store,
     hub,
     registry: options.registry,
+    home: options.home,
     createAgent: options.createAgent,
     idleTtlMs: options.idleTtlMs,
   });
