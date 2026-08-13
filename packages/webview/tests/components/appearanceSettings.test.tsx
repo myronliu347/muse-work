@@ -36,4 +36,20 @@ describe("AppearanceSettings", () => {
       screen.getByRole("button", { name: /跟随系统/ }).getAttribute("aria-pressed"),
     ).toBe("true");
   });
+
+  it("visibly accents the selected appearance card", () => {
+    render(
+      <MuseTheme>
+        <AppearanceSettings />
+      </MuseTheme>,
+    );
+
+    const selected = screen.getByRole("button", { name: /跟随系统/ });
+    expect(selected.getAttribute("style")).toContain(
+      "border-color: var(--accent-9)",
+    );
+    expect(selected.getAttribute("style")).toContain(
+      "background-color: var(--accent-3)",
+    );
+  });
 });

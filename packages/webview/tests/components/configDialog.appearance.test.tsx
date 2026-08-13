@@ -105,6 +105,15 @@ describe("ConfigDialog appearance tab", () => {
     expect(providerTab.querySelector(".settings-tab-underline")).toBeTruthy();
   });
 
+  it("uses the accent token for the active-tab underline", () => {
+    renderDialog();
+
+    const underline = screen
+      .getByRole("tab", { name: "外观" })
+      .querySelector(".settings-tab-underline");
+    expect(underline).toHaveStyle({ backgroundColor: "var(--accent-9)" });
+  });
+
   it("does not treat a theme change as provider settings dirtiness", () => {
     const { onCancel } = renderDialog();
 

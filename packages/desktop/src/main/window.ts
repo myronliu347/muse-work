@@ -1,10 +1,8 @@
 import { BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
-import type { ThemePreference } from "./uiPrefs.js";
 
 export type CreateMainWindowOpts = {
   serverBaseUrl: string;
-  themePreference: ThemePreference;
   backgroundColor: string;
   /** Absolute path to preload.cjs */
   preloadPath: string;
@@ -38,7 +36,6 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
       sandbox: false,
       additionalArguments: [
         `--muse-server-url=${opts.serverBaseUrl}`,
-        `--muse-theme-preference=${opts.themePreference}`,
       ],
     },
   });

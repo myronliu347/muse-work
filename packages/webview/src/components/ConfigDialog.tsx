@@ -128,7 +128,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                   bottom: -1,
                   left: 0,
                   height: 2,
-                  backgroundColor: "var(--vscode-focusBorder)",
+                  backgroundColor: "var(--accent-9)",
                 }}
               />
             )}
@@ -154,7 +154,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                   bottom: -1,
                   left: 0,
                   height: 2,
-                  backgroundColor: "var(--vscode-focusBorder)",
+                  backgroundColor: "var(--accent-9)",
                 }}
               />
             )}

@@ -26,6 +26,14 @@ export function AppearanceSettings() {
               type="button"
               aria-pressed={preference === value}
               onClick={() => setPreference(value)}
+              style={
+                preference === value
+                  ? {
+                      borderColor: "var(--accent-9)",
+                      backgroundColor: "var(--accent-3)",
+                    }
+                  : undefined
+              }
             >
               {label}
             </button>

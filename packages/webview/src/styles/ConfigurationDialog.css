@@ -106,7 +106,7 @@
 
 .config-tab.active {
   color: var(--vscode-foreground);
-  border-bottom-color: var(--vscode-focusBorder);
+  border-bottom-color: var(--accent-9);
 }
 
 /* Model tab hint row */

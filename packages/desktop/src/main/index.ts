@@ -66,7 +66,6 @@ function openMainWindow(): void {
   const paths = resolveDesktopPaths();
   mainWindow = createMainWindow({
     serverBaseUrl,
-    themePreference: themeHost.preference,
     backgroundColor: windowBackgroundFor(themeHost.effective),
     preloadPath: paths.preloadPath,
     webviewHtmlPath: paths.webviewHtmlPath,

@@ -68,7 +68,7 @@
 }
 
 .desktop-sidebar-settings-btn:hover {
-  background-color: var(--vscode-toolbar-hoverBackground);
+  background-color: var(--gray-4);
 }
 
 .desktop-sidebar-settings-btn .codicon {
@@ -143,7 +143,7 @@
 }
 
 .desktop-session-workdir-row:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 .desktop-session-workdir-chevron,

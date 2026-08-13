@@ -8,6 +8,7 @@ import {
   subscribeThemePreference,
   readInitialPreference,
 } from "../../src/ui/themePreference";
+import { isDarkTheme } from "../../src/utils/theme";
 import { THEME_PREFERENCE_STORAGE_KEY } from "../../src/ui/themeStorage";
 
 describe("themePreference store", () => {
@@ -59,9 +60,16 @@ describe("themePreference store", () => {
     delete window.waveHostType;
     expect(detectSystemDark()).toBe(true);
 
+    document.documentElement.removeAttribute("data-theme");
     document.body.classList.add("vscode-light");
     expect(detectSystemDark()).toBe(false);
     document.body.classList.remove("vscode-light");
-    document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("prefers an explicit data-theme over VS Code body classes", () => {
+    document.body.className = "vscode-dark";
+    document.documentElement.setAttribute("data-theme", "light");
+
+    expect(isDarkTheme()).toBe(false);
   });
 });

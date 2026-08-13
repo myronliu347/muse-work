@@ -6,6 +6,10 @@
  *   WebviewContentBuilder). Desktop supports the in-app system/light/dark preference.
  */
 export const isDarkTheme = (): boolean => {
+  const dataTheme = document.documentElement.getAttribute("data-theme");
+  if (dataTheme === "dark") return true;
+  if (dataTheme === "light") return false;
+
   const bodyClass = document.body?.classList;
   if (
     bodyClass?.contains("vscode-dark") ||
@@ -19,5 +23,5 @@ export const isDarkTheme = (): boolean => {
   ) {
     return false;
   }
-  return document.documentElement.getAttribute("data-theme") === "dark";
+  return false;
 };

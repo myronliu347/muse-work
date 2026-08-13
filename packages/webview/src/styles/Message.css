@@ -554,11 +554,11 @@
   display: flex;
   align-items: flex-start;
   padding: 4px 8px;
-  background-color: var(--vscode-textCodeBlock-background);
+  background-color: var(--gray-3);
   font-size: 12px;
   line-height: 1.2;
   border-radius: 6px;
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid var(--gray-6);
   max-height: 120px;
   overflow-y: auto;
   font-family: var(--vscode-editor-font-family);
@@ -576,7 +576,7 @@
 /* Unified bash block for input + output */
 .bash-command-unified {
   position: relative;
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid var(--gray-6);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -585,7 +585,7 @@
   margin-top: 0;
   border: none;
   border-radius: 0;
-  border-bottom: 1px solid var(--vscode-panel-border);
+  border-bottom: 1px solid var(--gray-6);
 }
 
 .bash-command-unified .bash-command-output {
@@ -596,12 +596,9 @@
 
 .bash-command-output {
   padding: 4px 8px;
-  background-color: var(
-    --vscode-terminal-background,
-    var(--vscode-editor-background)
-  );
+  background-color: var(--gray-3);
   color: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid var(--gray-6);
   border-radius: 6px;
   font-size: 12px;
   line-height: 1.2;
@@ -615,9 +612,9 @@
 
 .lsp-output {
   padding: 4px 8px;
-  background-color: var(--vscode-textCodeBlock-background);
+  background-color: var(--gray-3);
   color: var(--vscode-textPreformat-foreground);
-  border: 1px solid var(--vscode-textBlockQuote-border);
+  border: 1px solid var(--gray-6);
   border-radius: 4px;
   font-size: 12px;
   line-height: 1.2;
@@ -771,7 +768,7 @@
 
 /* Markdown Code */
 .markdown-content code {
-  background-color: var(--vscode-textCodeBlock-background);
+  background-color: var(--gray-3);
   color: var(--vscode-textPreformat-foreground);
   padding: 0 4px;
   border-radius: 3px;
@@ -780,11 +777,11 @@
 }
 
 .markdown-content pre {
-  background-color: var(--vscode-textCodeBlock-background);
+  background-color: var(--gray-3);
   color: var(--vscode-textPreformat-foreground);
   padding: 12px;
   border-radius: 6px;
-  border: 1px solid var(--vscode-textBlockQuote-border);
+  border: 1px solid var(--gray-6);
   overflow-x: auto;
   font-family: var(--vscode-editor-font-family);
   font-size: 0.9em;
