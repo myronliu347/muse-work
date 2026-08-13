@@ -1,0 +1,85 @@
+packages/desktop/src/main/index.ts
+  67140512599622a0 12-13,55,65,69-70,112-114,146-147
+packages/desktop/src/main/themeHost.ts
+  67140512599622a0 1-69
+packages/desktop/tests/uiPrefs.test.ts
+  67140512599622a0 1-32
+packages/desktop/src/main/uiPrefs.ts
+  67140512599622a0 1-53
+packages/desktop/src/main/window.ts
+  67140512599622a0 3,7-8,32,39-42
+packages/desktop/src/main/preload.ts
+  67140512599622a0 23-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5974c2a2b16c21e238325897e9531d27be971a23",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2051,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-webview-ui.md": {
+          "accepted_lines": 1138
+        },
+        "docs/superpowers/specs/2026-08-13-webview-ui-design.md": {
+          "accepted_lines": 183
+        },
+        "docs/superpowers/prototypes/2026-08-13-webview-form-ds.html": {
+          "accepted_lines": 730
+        }
+      }
+    },
+    "67140512599622a0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a79cb8f2-9caa-4609-b60e-78a1b7776373",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 195,
+      "total_deletions": 5,
+      "accepted_lines": 193,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/desktop/src/main/themeHost.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/desktop/tests/uiPrefs.test.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 8,
+          "deletions": 2,
+          "accepted_lines": 8
+        },
+        "packages/desktop/src/main/uiPrefs.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        }
+      }
+    }
+  }
+}
