@@ -1,0 +1,36 @@
+packages/webview/src/components/ConfigDialog.tsx
+  6c990b0a6cb36132 6,26-31,78-84,88-92,115,118-131,140,143-156,201-202
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  6c990b0a6cb36132 73-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b4a0e8a88faa6d24f6e839079f77d058af245d76",
+  "prompts": {
+    "6c990b0a6cb36132": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7922942f-49cb-4446-aa75-e5cdf4065cf0",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 65,
+      "total_deletions": 4,
+      "accepted_lines": 65,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ConfigDialog.tsx": {
+          "additions": 51,
+          "deletions": 4,
+          "accepted_lines": 51
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
