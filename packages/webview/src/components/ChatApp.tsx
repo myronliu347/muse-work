@@ -28,7 +28,6 @@ import WorkflowManager from "./WorkflowManager";
 import AgentsDialog from "./AgentsDialog";
 import WelcomeView from "./WelcomeView";
 import LoadingLogo from "./LoadingLogo";
-import { DesktopHostSelector } from "./DesktopHostSelector";
 import {
   DesktopSidebar,
   resolveSidebarSessions,
@@ -36,6 +35,7 @@ import {
 import { DesktopShell } from "./DesktopShell";
 import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
+import { matchPanelShortcut } from "../muse/panelShortcuts";
 import { PreviewPane } from "./PreviewPane";
 import { DiffPane } from "./DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./TerminalPane";
@@ -225,36 +225,36 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     branches: string[];
     current: string;
   } | null>(null);
-  // The pane's effective cwd: its own session workdir wins; a new-session pane
-  // (state.workdir empty during spawn) falls back to the most recently selected
-  // repo root from recents — never to the host-level workdir, which follows the
-  // focused pane and would bleed a sibling worktree session's path/branch into
-  // this new pane until the spawn finishes and setInitialState lands.
-  const effectiveWorkdir =
-    state.workdir ??
-    (host?.type === "desktop"
-      ? (host?.recentWorkdirs?.[0] ?? host?.workdir)
-      : undefined);
+  // Desktop new sessions start with workdir=null. Host bridge syncs
+  // updateWorkdir on activate / folder pick / auto-create. Fall back to
+  // host.workdir only for bound (non-draft) sessions when state has not
+  // caught up yet.
+  const isDraftSession =
+    !state.currentSession?.id || state.currentSession.id === "__draft__";
+  const effectiveWorkdir = isDraftSession
+    ? state.workdir
+    : (state.workdir ?? host?.workdir);
   const isDesktop = host?.type === "desktop";
-  // The pane's effective host ('local' or an SSH host name): a pane-bound
-  // session's host (authoritative `desktopPanes` push) wins; the single-pane
-  // layout reads the host-level current host. Remote sessions run the whole
-  // agent on the remote host, so local-only surfaces — the preview/diff/
-  // terminal panels and preview-pane localhost links — are suppressed for them.
-  const paneHost = paneId
-    ? host?.panes?.find((p) => p.paneId === paneId)?.host
-    : undefined;
-  const effectiveHost = paneHost ?? host?.host ?? "local";
+  // Local-only for now (remote hosts removed from the composer).
+  const effectiveHost = "local";
   const effectiveHostRef = useRef(effectiveHost);
   const gitBranches = isDesktop ? paneGitBranches : null;
   const effectiveWorkdirRef = useRef(effectiveWorkdir);
-  // Desktop only: the panel group follows the session bound to this pane. The
-  // cache key is the session id from the host-authoritative `desktopPanes`
-  // push, or the pane's new-session bucket while no session is bound.
+  // Desktop only: panel group is keyed by session in frontend cache.
+  // - Split pane: host `desktopPanes` sessionId, or `new:${paneId}` while unbound
+  // - Single pane: currentSession.id, or `__draft__` for 新对话
   const boundSessionId = paneId
     ? host?.panes?.find((p) => p.paneId === paneId)?.sessionId
     : undefined;
-  const groupKey = paneId ? (boundSessionId ?? `new:${paneId}`) : undefined;
+  const singlePaneSessionId =
+    state.currentSession?.id && state.currentSession.id !== "__draft__"
+      ? state.currentSession.id
+      : "__draft__";
+  const groupKey = !isDesktop
+    ? undefined
+    : paneId
+      ? (boundSessionId ?? `new:${paneId}`)
+      : singlePaneSessionId;
   const groupKeyRef = useRef(groupKey);
   // Set when the user sends a message from this pane's new-session state. The
   // new-session bucket migrates to the session id only when that message binds
@@ -404,29 +404,48 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   ]);
 
   // Session switch: swap in the incoming session's remembered panel group
-  // (empty when it has none — panels never leak across sessions). Only the
-  // layout/check state is restored; panel content rebuilds for the new
-  // context (diff refetches, preview reloads, terminal respawns). A pane's
-  // new-session bucket migrates to the session id once the first message
-  // binds one, keeping the setup made before sending it.
+  // (empty when it has none — panels never leak across sessions). Diff /
+  // preview refresh for the new context; terminal PTY is per-session on the
+  // host and reattaches with scrollback. A pane's new-session / draft bucket
+  // migrates to the session id once the first message binds one.
   useEffect(() => {
-    if (!paneId || !groupKey || groupKey === groupKeyRef.current) return;
+    if (!groupKey || groupKey === groupKeyRef.current) return;
     const prevKey = groupKeyRef.current;
     groupKeyRef.current = groupKey;
     let group = panelGroupCache.get(groupKey);
+    const prevIsDraftBucket =
+      prevKey === "__draft__" || Boolean(prevKey?.startsWith("new:"));
+    const nextIsRealSession =
+      groupKey !== "__draft__" && !groupKey.startsWith("new:");
     if (
       !group &&
-      prevKey?.startsWith("new:") &&
-      !groupKey.startsWith("new:") &&
+      prevIsDraftBucket &&
+      nextIsRealSession &&
       sentFromNewSessionRef.current
     ) {
-      group = panelGroupCache.get(prevKey);
+      group = panelGroupCache.get(prevKey!);
       if (group) {
         panelGroupCache.set(groupKey, group);
-        panelGroupCache.delete(prevKey);
+        panelGroupCache.delete(prevKey!);
       }
     }
     sentFromNewSessionRef.current = false;
+    // Draft / 新对话 never shows panels.
+    if (groupKey === "__draft__") {
+      setPreviewUrl(null);
+      setPreviewForwardError(null);
+      setCurrentForward(null);
+      setCheckedPanels([]);
+      setMountedPanels([]);
+      setPanelWidths({
+        preview: PANEL_DEFAULT_WIDTH,
+        diff: PANEL_DEFAULT_WIDTH,
+        terminal: PANEL_DEFAULT_WIDTH,
+        file: PANEL_DEFAULT_WIDTH,
+      });
+      setFileView(null);
+      return;
+    }
     setPreviewUrl(group?.previewUrl ?? null);
     setPreviewForwardError(group?.forwardError ?? null);
     setCurrentForward(group?.forward ?? null);
@@ -441,7 +460,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       },
     );
     setFileView(group?.fileView ?? null);
-  }, [paneId, groupKey]);
+  }, [groupKey]);
 
   useEffect(() => {
     paneIdRef.current = paneId;
@@ -1055,8 +1074,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       // Desktop worktree flow (FR-023): on the first message of a new session
       // with the worktree checkbox on, create the worktree first — the main
       // process switches into it and forwards this message.
-      if (paneId && groupKeyRef.current?.startsWith("new:"))
+      if (
+        groupKeyRef.current === "__draft__" ||
+        groupKeyRef.current?.startsWith("new:")
+      ) {
         sentFromNewSessionRef.current = true;
+      }
       if (
         host?.type === "desktop" &&
         !stateRef.current.messages.some(
@@ -1476,6 +1499,34 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     togglePanelRef.current = handleTogglePanel;
   }, [handleTogglePanel]);
 
+  // Desktop panel shortcuts (labels in PanelToggleMenu). Shell host instance
+  // must not bind — only the focused pane ChatApp (or single-pane layout).
+  useEffect(() => {
+    if (!isDesktop) return;
+    const isShellHost =
+      (host?.panes?.length ?? 0) > 0 && paneId === undefined;
+    if (isShellHost) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        paneId !== undefined &&
+        host?.focusedPaneId &&
+        host.focusedPaneId !== paneId
+      ) {
+        return;
+      }
+      const kind = matchPanelShortcut(event);
+      if (!kind) return;
+      event.preventDefault();
+      event.stopPropagation();
+      togglePanelRef.current(kind);
+    };
+
+    // Capture so contenteditable / xterm do not swallow the chord first.
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [isDesktop, host?.panes?.length, host?.focusedPaneId, paneId]);
+
   // Desktop file panel (spec: 文件面板): a file path clicked in a message or
   // terminal opens here instead of the OS. Show the panel immediately with a
   // loading stub; the host reads the file (local fs or over ssh) and replies
@@ -1594,13 +1645,21 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const openPreviewHandler =
     effectiveHost !== "local" ? handleOpenRemotePreview : handleOpenPreview;
 
-  // Diff/terminal need a workdir; preview only needs a URL. Remote sessions
-  // keep diff/terminal (git and the shell run over ssh) and gain preview via
-  // port forwarding (scenario 15); only the workdir requirement remains.
-  const panelDisabled: DesktopPanelKind[] = useMemo(
-    () => (effectiveWorkdir ? [] : ["diff", "terminal"]),
-    [effectiveWorkdir],
-  );
+  // 新对话 / unbound pane: all panels disabled. Bound session: diff/terminal/
+  // file need a workdir; preview can open without one.
+  const panelDisabled: DesktopPanelKind[] = useMemo(() => {
+    if (!isDesktop) return [];
+    if (
+      isDraftSession ||
+      !groupKey ||
+      groupKey === "__draft__" ||
+      groupKey.startsWith("new:")
+    ) {
+      return [...PANEL_ORDER];
+    }
+    if (!effectiveWorkdir) return ["diff", "terminal", "file"];
+    return [];
+  }, [isDesktop, isDraftSession, groupKey, effectiveWorkdir]);
 
   useEffect(() => {
     panelDisabledRef.current = panelDisabled;
@@ -1839,7 +1898,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             sessionId={state.currentSession?.id}
             permissionMode={state.permissionMode}
             initialAttachedImages={state.attachedImages}
-            disabled={host?.type === "desktop" && !effectiveWorkdir}
+            disabled={
+              host?.type === "desktop" && !effectiveWorkdir && !isDraftSession
+            }
             modelId={
               (state.currentSession as { model?: string } | undefined)?.model
             }
@@ -1847,27 +1908,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             workdirSelector={
               host?.type === "desktop" && !hasVisibleMessages ? (
                 <>
-                  <DesktopHostSelector
-                    host={effectiveHost}
-                    hosts={host.hosts}
-                    onSelectHost={host.onSelectHost}
-                    onAddHost={host.onAddHost}
-                  />
                   <DesktopWorkdirSelector
                     host={effectiveHost}
                     workdir={effectiveWorkdir}
                     recentWorkdirs={host.recentWorkdirs}
                     onSelectWorkdir={host.onSelectWorkdir}
-                    onSelectRemotePath={(path) =>
-                      host.onSelectRemotePath(path, effectiveHost)
-                    }
-                    onListRemoteDir={(path, requestId) =>
-                      host.onListRemoteDir(path, effectiveHost, requestId)
-                    }
                     onSelectRecentWorkdir={host.onSelectRecentWorkdir}
                     onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
                   />
-                  {effectiveWorkdir && gitBranches && (
+                  {effectiveWorkdir &&
+                    gitBranches &&
+                    gitBranches.branches.length > 0 && (
                     <DesktopWorktreeControls
                       branches={gitBranches.branches}
                       branch={worktreeBranch || gitBranches.current}
@@ -2106,7 +2157,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             postToHost({ command: "desktopNewSessionInPane" })
           }
           isStreaming={state.isStreaming}
-          disabled={!host.workdir}
+          disabled={false}
           onOpenSettings={handleOpenSettings}
           onLogin={handleLogin}
           onLogout={handleLogout}

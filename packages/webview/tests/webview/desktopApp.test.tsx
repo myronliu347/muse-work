@@ -43,8 +43,8 @@ describe("DesktopApp", () => {
     expect(screen.getByTestId("desktop-workdir")).toHaveTextContent(
       "选择工作目录…",
     );
-    // New-chat stays disabled until a workdir is picked
-    expect(screen.getByTestId("desktop-new-session")).toBeDisabled();
+    // New chat is allowed without a workdir (auto-created on first send).
+    expect(screen.getByTestId("desktop-new-session")).toBeEnabled();
   });
 
   it("should toggle the workdir dropdown and post desktopSelectWorkdir when clicking 浏览…", () => {
@@ -753,49 +753,42 @@ describe("DesktopApp", () => {
     expect(vscode.postMessage).toHaveBeenCalledWith({ command: "newSession" });
   });
 
-  it("should update the workdir name and enable new-chat when a new workdir state arrives", () => {
+  it("should update the workdir name when a new workdir state arrives", () => {
     renderDesktopApp();
     sendCommand("desktopWorkdirState", { recentWorkdirs: [] });
     expect(screen.getByTestId("desktop-workdir")).toHaveTextContent(
       "选择工作目录…",
     );
-    expect(screen.getByTestId("desktop-new-session")).toBeDisabled();
+    expect(screen.getByTestId("desktop-new-session")).toBeEnabled();
 
     sendCommand("desktopWorkdirState", {
       workdir: "/home/user/other",
       recentWorkdirs: ["/home/user/other"],
     });
+    // Composer workdir is driven by updateWorkdir (hostBridge sync).
+    sendCommand("updateWorkdir", { workdir: "/home/user/other" });
 
     expect(screen.getByTestId("desktop-workdir")).toHaveTextContent("other");
-    expect(screen.getByTestId("desktop-new-session")).toBeEnabled();
     expect(screen.getByTestId("chat-container")).toBeInTheDocument();
   });
 
-  it("should disable the input area when no workdir is selected, and enable it once a workdir arrives", () => {
+  it("keeps the input enabled on a new session even when workdir is null", () => {
     renderDesktopApp();
     sendCommand("desktopWorkdirState", { recentWorkdirs: [] });
-
-    expect(screen.getByTestId("message-input")).toHaveAttribute(
-      "contenteditable",
-      "false",
-    );
-    expect(screen.getByTestId("send-btn")).toBeDisabled();
-    expect(screen.getByLabelText("添加")).toBeDisabled();
-    expect(screen.getByLabelText("快捷指令")).toBeDisabled();
-    expect(screen.getByLabelText("权限模式")).toBeDisabled();
-
-    sendCommand("desktopWorkdirState", {
-      workdir: "/home/user/project",
-      recentWorkdirs: [],
+    sendCommand("updateCurrentSession", {
+      session: {
+        id: "__draft__",
+        title: "新对话",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     });
 
     expect(screen.getByTestId("message-input")).toHaveAttribute(
       "contenteditable",
       "true",
     );
-    expect(screen.getByLabelText("添加")).toBeEnabled();
-    expect(screen.getByLabelText("快捷指令")).toBeEnabled();
-    expect(screen.getByLabelText("权限模式")).toBeEnabled();
+    expect(screen.getByTestId("send-btn")).toBeEnabled();
   });
 
   describe("sidebar more menu (FR-037)", () => {
@@ -1937,36 +1930,25 @@ describe("DesktopApp", () => {
       expect(pane0().queryByTestId("btw-panel")).not.toBeInTheDocument();
     });
 
-    it("a new-session pane empty during spawn resolves its workdir to recents[0], not a sibling worktree path leaked via the host workdir", () => {
+    it("a new-session pane with empty workdir shows the placeholder (no recents fallback)", () => {
       const { vscode } = renderWithPanes(
         [{ paneId: "pane-0", sessionId: "s1" }, { paneId: "pane-1" }],
         "pane-0",
       );
-      // Spawn gap: the host-level workdir is a worktree path left over from a
-      // sibling worktree session (session activation rewired this.workdir),
-      // while recents[0] is the repo root the user last picked. pane-1 is a
-      // fresh new-session pane with no setInitialState yet → state.workdir
-      // is empty, so effectiveWorkdir must come from recents, not host.workdir.
-      const worktreePath = "/work/a/.wave/worktrees/gentle-pike-147";
+      // Recents may exist, but new-session workdir stays null until pick/send.
       sendCommand("desktopWorkdirState", {
-        workdir: worktreePath,
         recentWorkdirs: ["/work/a"],
       });
+      sendCommand("updateWorkdir", { workdir: undefined, paneId: "pane-1" });
 
       const pane1 = () => within(screen.getByTestId("desktop-pane-pane-1"));
-      // effectiveWorkdir must be recents[0] (repo root basename), NOT the
-      // host worktree path basename.
-      expect(pane1().getByTestId("desktop-workdir")).toHaveTextContent("a");
-      expect(pane1().getByTestId("desktop-workdir")).not.toHaveTextContent(
-        "gentle-pike-147",
+      expect(pane1().getByTestId("desktop-workdir")).toHaveTextContent(
+        "选择工作目录…",
       );
 
-      // Branch query for the new pane goes to the repo root, never the
-      // worktree path.
       expect(vscode.postMessage).not.toHaveBeenCalledWith(
         expect.objectContaining({
           command: "desktopListGitBranches",
-          workdir: worktreePath,
           paneId: "pane-1",
         }),
       );

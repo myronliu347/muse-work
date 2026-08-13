@@ -202,6 +202,91 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("newSession does not create until first sendMessage", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      title: "新对话",
+      lastActiveAt: 1,
+      createdAt: 1,
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+    expect(api.createSession).not.toHaveBeenCalled();
+    expect(messages).toContainEqual({
+      command: "updateMessages",
+      messages: [],
+    });
+
+    bridge.postMessage({ command: "sendMessage", text: "first message" });
+    await flush();
+    expect(api.createSession).toHaveBeenCalledTimes(1);
+    // New session clears workdir; server mints ~/.muse-work/projects/...
+    expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
+    expect(api.sendMessage).toHaveBeenCalledWith("sess-created", "first message");
+  });
+
+  it("desktopCreateWorktree falls back to create+send (MVP)", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-wt",
+      title: "新对话",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+    vi.mocked(api.sendMessage).mockClear();
+
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+
+    bridge.postMessage({
+      command: "desktopCreateWorktree",
+      workdir: "/tmp",
+      baseBranch: "main",
+      text: "via worktree path",
+    });
+    await flush();
+
+    expect(api.createSession).toHaveBeenCalledTimes(1);
+    expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
+    expect(api.sendMessage).toHaveBeenCalledWith("sess-wt", "via worktree path");
+  });
+
   it("ensureSession creates for new workdir instead of foreign activeSessionId", async () => {
     const foreign: MuseSession = {
       ...baseSession,
@@ -250,7 +335,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     bridge.postMessage({ command: "sendMessage", text: "hello new workdir" });
     await flush();
 
-    expect(api.createSession).toHaveBeenCalledWith("/new-project");
+    expect(api.createSession).toHaveBeenCalledWith("/new-project", undefined);
     expect(api.selectSession).toHaveBeenCalledWith("sess-new");
     expect(api.selectSession).not.toHaveBeenCalledWith("sess-foreign");
     expect(api.sendMessage).toHaveBeenCalledWith("sess-new", "hello new workdir");
@@ -334,6 +419,92 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       afterRefresh?.groups
         ?.flatMap((g) => g.sessions)
         .find((s) => s.sessionId === "sess-active")?.running,
+    ).toBe(false);
+  });
+
+  it("non-focus loading keeps sidebar running without startStreaming", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const other: MuseSession = {
+      ...baseSession,
+      id: "sess-other",
+      title: "Other",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [baseSession, other],
+        activeSessionId: "sess-active",
+      })),
+    });
+
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "loading",
+      sessionId: "sess-other",
+      loading: true,
+    });
+    await flush();
+
+    expect(messages).not.toContainEqual({ command: "startStreaming" });
+    const tree = messages.find(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        (m as { command?: string }).command === "desktopSessionTree",
+    ) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; running?: boolean }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      tree?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-other")?.running,
+    ).toBe(true);
+
+    messages.length = 0;
+    handler!({
+      type: "loading",
+      sessionId: "sess-other",
+      loading: false,
+    });
+    await flush();
+    const after = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; running?: boolean }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      after?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-other")?.running,
     ).toBe(false);
   });
 
@@ -583,7 +754,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).not.toContainEqual({ command: "startStreaming" });
   });
 
-  it("forwards compaction and subagent WS events for active session", async () => {
+  it("forwards compaction; does not promote subagent events to top-level messages", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {
       onEvent: vi.fn((h: (e: unknown) => void) => {
@@ -630,22 +801,13 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       messages: replaced,
     });
 
+    messages.length = 0;
     handler!({
       type: "subagent:assistant:message",
       sessionId: "sess-active",
       subagentId: "sa1",
       messageId: "m9",
     });
-    expect(messages).toContainEqual(
-      expect.objectContaining({
-        command: "appendMessage",
-        message: expect.objectContaining({
-          id: "sa_sa1_m9",
-          role: "assistant",
-        }),
-      }),
-    );
-
     handler!({
       type: "subagent:message:delta",
       sessionId: "sess-active",
@@ -654,14 +816,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       text: "nested",
       stage: "streaming",
     });
-    expect(messages).toContainEqual(
-      expect.objectContaining({
-        command: "updateStreamingContent",
-        messageId: "sa_sa1_m9",
-        chunk: "nested",
-      }),
-    );
-
     handler!({
       type: "subagent:tool:update",
       sessionId: "sess-active",
@@ -674,15 +828,15 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         success: true,
       },
     });
-    expect(messages).toContainEqual(
-      expect.objectContaining({
-        command: "updateToolBlock",
-        params: expect.objectContaining({
-          messageId: "sa_sa1_m9",
-          id: "t1",
-          name: "Read",
-        }),
-      }),
+    await flush();
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "appendMessage" }),
+    );
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "updateStreamingContent" }),
+    );
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "updateToolBlock" }),
     );
   });
 

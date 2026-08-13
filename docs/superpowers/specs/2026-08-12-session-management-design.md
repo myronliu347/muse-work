@@ -148,9 +148,9 @@ type SessionsFile = {
 
 **新建**
 
-1. `POST /sessions`
-2. 清 UI 消息、订阅/标记 active、连 WS 语义切到新 id
-3. 刷新列表
+1. 「新对话」只清 UI / 进入 draft（**不** `POST /sessions`，侧栏不出现空行）
+2. **首条用户消息**发出时再 `POST /sessions` + select + 入列表
+3. `listGrouped` 只返回已开始的会话（有消息 / 非默认标题 / 已有 `waveSessionId`）
 
 **切换**
 

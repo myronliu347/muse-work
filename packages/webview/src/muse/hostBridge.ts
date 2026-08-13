@@ -33,10 +33,6 @@ function newId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function subagentMessageId(subagentId: string, messageId: string): string {
-  return `sa_${subagentId}_${messageId}`;
-}
-
 function truncateTitle(content: string): string {
   const trimmed = content.trim().replace(/\s+/g, " ");
   if (!trimmed) return DEFAULT_TITLE;
@@ -112,6 +108,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     });
 
   let sessionId: string | null = null;
+  /** True after「新对话」until the first send creates a real session. */
+  let pendingNewSession = false;
+  /**
+   * When true, ignore Electron `desktopWorkdirState` workdir pushes so a
+   * persisted last-folder cannot overwrite the new-session null default.
+   * Cleared when the user explicitly picks a folder/recent.
+   */
+  let suppressWorkdirPush = false;
+  let draftModel: string | undefined;
   let streamingMessageId: string | null = null;
   const knownAssistantIds = new Set<string>();
   let state: unknown = null;
@@ -126,6 +131,21 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     string,
     { permissionId: string; toolName: string; description: string }
   >();
+
+  const DRAFT_SESSION_ID = "__draft__";
+
+  const emitDraftSession = () => {
+    postToWebview({
+      command: "updateCurrentSession",
+      session: {
+        id: DRAFT_SESSION_ID,
+        title: DEFAULT_TITLE,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        model: draftModel,
+      },
+    });
+  };
 
   const treeById = (): Map<string, TreeSession> => {
     const map = new Map<string, TreeSession>();
@@ -225,25 +245,36 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     });
   };
 
+  const syncChatWorkdir = (workdir: string | undefined) => {
+    postToWebview({ command: "updateWorkdir", workdir });
+  };
+
   const emitWorkdirState = (patch?: {
-    workdir?: string;
+    workdir?: string | null;
     recentWorkdirs?: string[];
     clearSession?: boolean;
+    /** When true, clear current workdir (new-session default). */
+    clearWorkdir?: boolean;
   }) => {
-    if (typeof patch?.workdir === "string" && patch.workdir) {
+    if (patch?.clearWorkdir) {
+      currentWorkdir = "";
+      if (patch.clearSession) sessionId = null;
+    } else if (typeof patch?.workdir === "string" && patch.workdir) {
       currentWorkdir = patch.workdir;
       if (patch.clearSession) sessionId = null;
     }
     if (patch?.recentWorkdirs) {
       recentWorkdirs = patch.recentWorkdirs;
     }
+    const workdir = currentWorkdir || undefined;
     postToWebview({
       command: "desktopWorkdirState",
-      workdir: currentWorkdir || undefined,
+      workdir,
       recentWorkdirs,
       host: "local",
       hosts: [],
     });
+    syncChatWorkdir(workdir);
   };
 
   // Keep createSession workdir in sync when Electron main (or tests) push state.
@@ -254,14 +285,16 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       recentWorkdirs?: string[];
     };
     if (message?.command !== "desktopWorkdirState") return;
+    if (Array.isArray(message.recentWorkdirs)) {
+      recentWorkdirs = message.recentWorkdirs;
+    }
+    if (suppressWorkdirPush) return;
     if (typeof message.workdir === "string" && message.workdir) {
       if (message.workdir !== currentWorkdir) {
         sessionId = null;
       }
       currentWorkdir = message.workdir;
-    }
-    if (Array.isArray(message.recentWorkdirs)) {
-      recentWorkdirs = message.recentWorkdirs;
+      syncChatWorkdir(currentWorkdir);
     }
   });
 
@@ -286,13 +319,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   };
 
   const activateSession = async (id: string): Promise<MuseSession> => {
+    pendingNewSession = false;
+    suppressWorkdirPush = false;
     const { session } = await api.selectSession(id);
     sessionId = session.id;
     clearUnread(session.id);
-    if (session.workdir && session.workdir !== currentWorkdir) {
+    if (session.workdir) {
       emitWorkdirState({ workdir: session.workdir });
-    } else if (session.workdir) {
-      currentWorkdir = session.workdir;
     }
     resetChatStreaming();
     emitCurrentSession(session);
@@ -307,19 +340,26 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const handleNewSession = async (): Promise<void> => {
     await ensureWs();
-    const session = await api.createSession(currentWorkdir || "/");
-    await api.selectSession(session.id);
-    sessionId = session.id;
+    // Lazy create: do not POST /sessions until the first user message.
+    pendingNewSession = true;
+    suppressWorkdirPush = true;
+    sessionId = null;
     resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
-    emitCurrentSession(session);
-    await loadMessages(session.id);
+    // New session starts with no workdir; first send auto-creates one.
+    emitWorkdirState({ clearWorkdir: true });
+    emitDraftSession();
     await refreshTree();
   };
 
   const handleDeleteSession = async (id: string): Promise<void> => {
     const wasActive = sessionId === id;
     clearPendingPermission(id);
+    // Drop the session-scoped PTY so deleted chats do not leak shells.
+    opts.outer?.postMessage({
+      command: "desktopTerminalKill",
+      termId: `term-${id}`,
+    });
     await api.deleteSession(id);
     if (!wasActive) {
       await refreshTree();
@@ -343,7 +383,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   };
 
   const handleSetSessionModel = async (model: string): Promise<void> => {
-    if (!sessionId || !model) return;
+    if (!model) return;
+    if (!sessionId || pendingNewSession) {
+      draftModel = model;
+      emitDraftSession();
+      return;
+    }
     const session = await api.patchSession(sessionId, { model });
     patchTreeSession(sessionId, { model: session.model });
     emitCurrentSession(session);
@@ -462,58 +507,16 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
-    if (event.type === "subagent:assistant:message") {
-      const messageId = subagentMessageId(event.subagentId, event.messageId);
-      ensureAssistantMessage(messageId, { trackMain: false });
-      if (!loading) {
-        postToWebview({ command: "startStreaming" });
-      }
+    // Subagent streams belong inside the parent Task/Agent tool block (updated
+    // via the main agent's tool:update / shortResult). Do NOT append them as
+    // top-level chat messages — that duplicates Bash/Read under the list.
+    if (
+      event.type === "subagent:assistant:message" ||
+      event.type === "subagent:message:delta" ||
+      event.type === "subagent:reasoning:delta" ||
+      event.type === "subagent:tool:update"
+    ) {
       return;
-    }
-
-    if (event.type === "subagent:message:delta") {
-      const messageId = subagentMessageId(event.subagentId, event.messageId);
-      ensureAssistantMessage(messageId, { trackMain: false });
-      if (!loading) {
-        postToWebview({ command: "startStreaming" });
-      }
-      postToWebview({
-        command: "updateStreamingContent",
-        messageId,
-        chunk: event.text,
-        stage: event.stage,
-      });
-      return;
-    }
-
-    if (event.type === "subagent:reasoning:delta") {
-      const messageId = subagentMessageId(event.subagentId, event.messageId);
-      ensureAssistantMessage(messageId, { trackMain: false });
-      if (!loading) {
-        postToWebview({ command: "startStreaming" });
-      }
-      postToWebview({
-        command: "updateStreamingReasoning",
-        messageId,
-        chunk: event.text,
-        stage: event.stage,
-      });
-      return;
-    }
-
-    if (event.type === "subagent:tool:update") {
-      const params = event.params;
-      const rawMessageId =
-        typeof params.messageId === "string" ? params.messageId : event.subagentId;
-      const messageId = subagentMessageId(event.subagentId, rawMessageId);
-      ensureAssistantMessage(messageId, { trackMain: false });
-      if (!loading) {
-        postToWebview({ command: "startStreaming" });
-      }
-      postToWebview({
-        command: "updateToolBlock",
-        params: { ...params, messageId },
-      });
     }
   };
 
@@ -565,6 +568,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "loading") {
+      const hasPending = pendingPermissions.has(event.sessionId);
+      // Keep sidebar spinner for background sessions; ChatApp only for focus.
+      patchTreeSession(event.sessionId, {
+        running: event.loading || hasPending,
+      });
+      if (event.sessionId === sessionId) {
+        emitChatWs(event);
+      }
+      return;
+    }
+
     // Chat / streaming events only drive ChatApp for the active session.
     if (event.sessionId !== sessionId) return;
     emitChatWs(event);
@@ -574,29 +589,58 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   async function ensureSession(): Promise<string> {
     await ensureWs();
-    if (sessionId) return sessionId;
+    if (sessionId && !pendingNewSession) return sessionId;
 
-    const grouped = await api.listSessionsGrouped();
-    applyGrouped(grouped);
-    const activeId = grouped.activeSessionId;
-    if (activeId) {
-      const candidate =
-        grouped.pinned.find((s) => s.id === activeId) ??
-        grouped.recent.find((s) => s.id === activeId);
-      // Only reuse activeSessionId when it belongs to the current workdir.
-      if (candidate && candidate.workdir === (currentWorkdir || "/")) {
-        const { session } = await api.selectSession(activeId);
-        sessionId = session.id;
-        emitCurrentSession(session);
-        return sessionId;
+    // Explicit「新对话」: always create a fresh session on first send.
+    if (pendingNewSession || !sessionId) {
+      if (!pendingNewSession) {
+        const grouped = await api.listSessionsGrouped();
+        applyGrouped(grouped);
+        const activeId = grouped.activeSessionId;
+        if (activeId) {
+          const candidate =
+            grouped.pinned.find((s) => s.id === activeId) ??
+            grouped.recent.find((s) => s.id === activeId);
+          // Only reuse activeSessionId when it belongs to the current workdir.
+          if (candidate && candidate.workdir === (currentWorkdir || "/")) {
+            const { session } = await api.selectSession(activeId);
+            sessionId = session.id;
+            emitCurrentSession(session);
+            return sessionId;
+          }
+        }
       }
+
+      const session = await api.createSession(
+        currentWorkdir || undefined,
+        draftModel ? { model: draftModel } : undefined,
+      );
+      await api.selectSession(session.id);
+      sessionId = session.id;
+      pendingNewSession = false;
+      suppressWorkdirPush = false;
+      draftModel = undefined;
+      // Server may have minted ~/.muse-work/projects/<date>-<uid>.
+      if (session.workdir) {
+        const nextRecent = [
+          session.workdir,
+          ...recentWorkdirs.filter((p) => p !== session.workdir),
+        ].slice(0, 10);
+        emitWorkdirState({
+          workdir: session.workdir,
+          recentWorkdirs: nextRecent,
+        });
+        // Persist recents via Electron when available.
+        opts.outer?.postMessage({
+          command: "desktopSelectRecentWorkdir",
+          path: session.workdir,
+        });
+      }
+      emitCurrentSession(session);
+      await refreshTree();
+      return sessionId;
     }
 
-    const session = await api.createSession(currentWorkdir || "/");
-    await api.selectSession(session.id);
-    sessionId = session.id;
-    emitCurrentSession(session);
-    await refreshTree();
     return sessionId;
   }
 
@@ -702,6 +746,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       postToWebview({ command: "startStreaming" });
       await api.sendMessage(sid, text);
       await maybePatchTitle(sid, text);
+      // First send promotes the session into the sidebar (started filter).
+      await refreshTree();
     } catch (err) {
       postToWebview({
         command: "updateErrorBlock",
@@ -737,8 +783,20 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       await ensureWs();
       const grouped = await refreshTree();
-      if (grouped.activeSessionId) {
-        await activateSession(grouped.activeSessionId);
+      const activeId = grouped.activeSessionId;
+      const listed = activeId
+        ? [...grouped.pinned, ...grouped.recent].some((s) => s.id === activeId)
+        : false;
+      if (activeId && listed) {
+        await activateSession(activeId);
+      } else {
+        // No started session to restore — show empty composer without a list row.
+        pendingNewSession = true;
+        suppressWorkdirPush = true;
+        sessionId = null;
+        postToWebview({ command: "updateMessages", messages: [] });
+        emitWorkdirState({ clearWorkdir: true });
+        emitDraftSession();
       }
     } catch {
       // Keep workdir bootstrap even if session APIs fail.
@@ -787,9 +845,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           if (model) void handleSetSessionModel(model);
           return;
         }
+        case "desktopSelectWorkdir":
+          suppressWorkdirPush = false;
+          opts.outer?.postMessage(raw);
+          return;
         case "desktopSelectRecentWorkdir": {
           const path = typeof msg.path === "string" ? msg.path : undefined;
           if (path) {
+            suppressWorkdirPush = false;
             const nextRecent = [
               path,
               ...recentWorkdirs.filter((p) => p !== path),
@@ -812,6 +875,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         case "sendMessage":
           void handleSendMessage(msg as { text?: string });
           return;
+        case "desktopCreateWorktree": {
+          // ChatApp routes the first empty-session message here when the
+          // worktree checkbox is on. Electron worktree creation is not wired
+          // yet — fall back to a normal send in the current workdir so the
+          // message is not silently dropped.
+          void handleSendMessage(msg as { text?: string; images?: unknown });
+          return;
+        }
         case "confirmationResponse":
           void handleConfirmationResponse(
             msg as { confirmationId?: string; decision?: string },

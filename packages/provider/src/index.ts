@@ -17,6 +17,11 @@ export {
   getSharedCodeMakerAuthPath,
 } from "./paths.js";
 
+export {
+  createDefaultProjectWorkdir,
+  getProjectsDir,
+} from "./defaultProject.js";
+
 export { loadProvidersConfig, saveProvidersConfig } from "./configStore.js";
 
 export {

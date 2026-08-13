@@ -222,18 +222,29 @@ describe("TerminalPane", () => {
     expect(mockTerminals[0].resetCount).toBe(1);
   });
 
-  it("session switch rebuilds a visible terminal and kills a hidden one", async () => {
+  it("session switch reattaches without killing the previous session PTY", async () => {
     const { vscode, rerenderWith } = renderPane({
       sessionId: "s1",
       workdir: "/w/a",
     });
     await act(async () => {});
+    expect(postsOf(vscode, "desktopTerminalCreate")).toEqual([
+      expect.objectContaining({
+        command: "desktopTerminalCreate",
+        termId: "term-s1",
+        workdir: "/w/a",
+      }),
+    ]);
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(1);
-    expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(2);
+    expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(0);
+    expect(postsOf(vscode, "desktopTerminalCreate")).toEqual([
+      expect.objectContaining({ termId: "term-s1" }),
+      expect.objectContaining({ termId: "term-s2", workdir: "/w/b" }),
+    ]);
+    expect(mockTerminals[0].resetCount).toBe(1);
   });
 
-  it("session switch on a hidden terminal kills without rebuild", async () => {
+  it("session switch on a hidden terminal does not kill or create", async () => {
     const { vscode, rerenderWith } = renderPane({
       visible: false,
       sessionId: "s1",
@@ -246,7 +257,7 @@ describe("TerminalPane", () => {
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
     rerenderWith({ visible: false, sessionId: "s1", workdir: "/w/a" });
     rerenderWith({ visible: false, sessionId: "s2", workdir: "/w/b" });
-    expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(1);
+    expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(0);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
   });
 

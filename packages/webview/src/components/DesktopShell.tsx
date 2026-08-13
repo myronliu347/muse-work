@@ -621,7 +621,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           vscode.postMessage({ command: "desktopNewSessionInPane" })
         }
         isStreaming={false}
-        disabled={!host.workdir}
+        disabled={false}
         onOpenSettings={onOpenSettings}
         onLogin={onLogin}
         onLogout={onLogout}

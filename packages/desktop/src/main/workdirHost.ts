@@ -303,7 +303,8 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     }
 
     if (command === "desktopTerminalCreate") {
-      const cwd = state.workdir;
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       const termId = typeof msg.termId === "string" ? msg.termId : "";
       if (!termId) return;
       if (!cwd) {

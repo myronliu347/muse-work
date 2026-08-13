@@ -1,14 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
   rewritePromptBlocksForMuse,
+  buildMuseIdentityPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
 } from "../src/museSystemPrompt.js";
 
 describe("museSystemPrompt", () => {
-  it("replaces NetEase identity with Muse Work", () => {
-    const blocks = rewritePromptBlocksForMuse([
-      {
-        text: `${MUSE_BASE_SYSTEM_PROMPT}
+  it("replaces NetEase identity with Muse Work and injects selected model", () => {
+    const blocks = rewritePromptBlocksForMuse(
+      [
+        {
+          text: `${MUSE_BASE_SYSTEM_PROMPT}
 
 You are a coding agent developed by NetEase that helps users with software engineering tasks.
 
@@ -18,14 +20,23 @@ If asked about your model, model version, underlying architecture, or product na
 
 # Doing tasks
 - Keep going.`,
-      },
-    ]);
+        },
+      ],
+      { modelDisplay: "DeepSeek V4 Flash (deepseek-v4-flash)" },
+    );
     const text = blocks.map((b) => b.text ?? "").join("\n");
     expect(text).toContain("Muse Work");
-    expect(text).toContain("Do not identify yourself as a NetEase or Wave coding agent");
+    expect(text).toContain("DeepSeek V4 Flash (deepseek-v4-flash)");
+    expect(text).toContain("Do not invent, guess, or substitute");
     expect(text).not.toMatch(/coding agent developed by NetEase/i);
     expect(text).not.toMatch(
       /identify yourself simply as a coding agent developed by NetEase/i,
     );
+  });
+
+  it("buildMuseIdentityPrompt names the selected model", () => {
+    const prompt = buildMuseIdentityPrompt("Claude Opus 4.6 (claude-opus-4-6)");
+    expect(prompt).toContain("Claude Opus 4.6 (claude-opus-4-6)");
+    expect(prompt).toContain("Muse Work");
   });
 });

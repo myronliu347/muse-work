@@ -1,12 +1,32 @@
 import { Agent, type AgentOptions, type PermissionDecision } from "wave-agent-sdk";
-import type { GatewayResolution, ProviderRegistry } from "@muse-work/provider";
+import {
+  loadProvidersConfig,
+  type GatewayResolution,
+  type ProviderRegistry,
+} from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsHub } from "./wsHub.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
+  MUSE_IDENTITY_REV,
 } from "./museSystemPrompt.js";
 import { mapSdkMessages } from "./messageMapper.js";
+
+/** Resolve UI label for a model id (falls back to the raw id). */
+export function resolveModelDisplay(modelId: string | undefined): string {
+  if (!modelId) return "unknown";
+  try {
+    const cfg = loadProvidersConfig();
+    for (const provider of Object.values(cfg.providers ?? {})) {
+      const found = provider.models?.find((m) => m.id === modelId);
+      if (found?.label) return `${found.label} (${modelId})`;
+    }
+  } catch {
+    // ignore config read errors; fall back to id
+  }
+  return modelId;
+}
 
 export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_TITLE = "新对话";
@@ -49,11 +69,15 @@ export interface CreateSessionRunnerOptions {
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
+  const modelDisplay = resolveModelDisplay(options.model);
   return Agent.create({
     ...options,
     systemPrompt: options.systemPrompt ?? MUSE_BASE_SYSTEM_PROMPT,
   }).then((agent) => {
-    patchAgentSystemPrompt(agent as unknown as Parameters<typeof patchAgentSystemPrompt>[0]);
+    patchAgentSystemPrompt(
+      agent as unknown as Parameters<typeof patchAgentSystemPrompt>[0],
+      { modelDisplay },
+    );
     return {
       sendMessage: (content: string) => agent.sendMessage(content),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
@@ -80,6 +104,8 @@ export function createSessionRunner(
   const messageQueues = new Map<string, string[]>();
   /** Per-session flag: current turn already received assistant stage "end". */
   const turnEnded = new Map<string, boolean>();
+  /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
+  const agentLoading = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   function gatewayIdentity(gateway: GatewayResolution): string {
@@ -90,6 +116,7 @@ export function createSessionRunner(
       gateway.model,
       credential,
       gateway.fastModel ?? "",
+      MUSE_IDENTITY_REV,
     ].join("\0");
   }
 
@@ -135,6 +162,7 @@ export function createSessionRunner(
       return;
     }
     clearIdleTimer(sessionId);
+    agentLoading.delete(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);
     agentIdentities.delete(sessionId);
@@ -285,7 +313,21 @@ export function createSessionRunner(
         },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
+          agentLoading.set(sessionId, loading);
           hub.broadcast(sessionId, { type: "loading", loading });
+          // Sidebar / status must track the full agent turn (including tools),
+          // not the first assistant content stage "end".
+          if (loading) {
+            if (store.get(sessionId)?.status !== "running") {
+              store.updateStatus(sessionId, "running");
+              hub.broadcast(sessionId, {
+                type: "session:status",
+                status: "running",
+              });
+            }
+          } else {
+            markIdle(sessionId);
+          }
         },
         onAssistantMessageAdded: (messageId) => {
           if (disposed.has(sessionId)) return;
@@ -307,8 +349,7 @@ export function createSessionRunner(
               type: "message:completed",
               messageId,
             });
-            // Mark idle here so UI unlocks; queue drain waits until sendMessage settles.
-            markIdle(sessionId);
+            // Do not markIdle here: tools / follow-up rounds may still be loading.
           }
         },
         onAssistantReasoningUpdated: ({ messageId, chunk, stage }) => {
@@ -567,17 +608,21 @@ export function createSessionRunner(
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
+    agentLoading.set(sessionId, false);
 
     try {
       const agent = await ensureAgent(sessionId);
       await agent.sendMessage(content);
-      // SDK may swallow errors / return without stage "end". Release busy either way.
+      // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
+      // If loading is still true, tools/stream are in flight — wait for loading false.
       if (
         !disposed.has(sessionId) &&
         store.get(sessionId)?.status === "running" &&
-        !turnEnded.get(sessionId)
+        agentLoading.get(sessionId) !== true
       ) {
-        hub.broadcast(sessionId, { type: "message:completed" });
+        if (!turnEnded.get(sessionId)) {
+          hub.broadcast(sessionId, { type: "message:completed" });
+        }
         markIdle(sessionId);
       }
     } catch (err) {
@@ -638,6 +683,7 @@ export function createSessionRunner(
       clearIdleTimer(sessionId);
       messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
+      agentLoading.delete(sessionId);
       for (const [id, entry] of pending) {
         if (entry.sessionId === sessionId) {
           pending.delete(id);

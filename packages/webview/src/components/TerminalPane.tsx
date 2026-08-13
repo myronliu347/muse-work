@@ -113,9 +113,15 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const fitRef = useRef<FitAddon | null>(null);
   // Whether a PTY for this pane is believed alive in the host.
   const liveRef = useRef(false);
-  const termId = `term-${paneId ?? "main"}`;
+  // Per-session PTY id so switching chats reattaches instead of wiping history.
+  const termId =
+    sessionId && sessionId !== "__draft__"
+      ? `term-${sessionId}`
+      : `term-${paneId ?? "main"}`;
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
+  const workdirRef = useRef(workdir);
+  workdirRef.current = workdir;
   // The terminal is built once on mount; keep the latest callback so the
   // click handler never sees a stale onOpenPreview closure.
   const onOpenPreviewRef = useRef(onOpenPreview);
@@ -130,16 +136,18 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const createPty = useCallback(() => {
     const term = termRef.current;
     if (!term) return;
+    if (sessionId === "__draft__") return;
     liveRef.current = true;
     setStatus({ kind: "running" });
     vscode.postMessage({
       command: "desktopTerminalCreate",
       termId,
+      workdir: workdirRef.current,
       ...(paneId ? { paneId } : {}),
       cols: term.cols,
       rows: term.rows,
     });
-  }, [vscode, termId, paneId]);
+  }, [vscode, termId, paneId, sessionId]);
   const createPtyRef = useRef(createPty);
   createPtyRef.current = createPty;
 
@@ -277,17 +285,32 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     // vscode is a module singleton, so this still only re-runs on bootNonce.
   }, [bootNonce, vscode]);
 
-  // Visibility / session-context changes. A hidden terminal is kept
-  // alive; a session switch kills it (rebuilt with the new cwd if visible).
+  // Visibility / session changes. Each session keeps its own host PTY
+  // (termId = term-<sessionId>). Switching sessions detaches the UI and
+  // reattaches to the target session's PTY (host replays scrollback) — it
+  // must NOT kill the previous session's shell.
   const prevRef = useRef({ visible, sessionId, workdir });
   useEffect(() => {
     const prev = prevRef.current;
     prevRef.current = { visible, sessionId, workdir };
     const becameVisible = visible && !prev.visible;
-    const contextChanged =
-      prev.sessionId !== sessionId || prev.workdir !== workdir;
-    if (contextChanged) {
+    const sessionChanged = prev.sessionId !== sessionId;
+    const workdirChangedSameSession =
+      !sessionChanged && prev.workdir !== workdir && Boolean(prev.sessionId);
+
+    if (sessionChanged) {
+      liveRef.current = false;
+      termRef.current?.reset();
+      if (visible && sessionId !== "__draft__") {
+        createPty();
+        termRef.current?.focus();
+      } else if (sessionId === "__draft__") {
+        setStatus({ kind: "loading" });
+      }
+    } else if (workdirChangedSameSession) {
+      // Same session, cwd changed — rebuild this session's PTY only.
       killPty();
+      termRef.current?.reset();
       if (visible) createPty();
     } else if (becameVisible) {
       // 用户主动打开终端面板（勾选/快捷键）——聚焦终端，对齐 VS Code 行为。

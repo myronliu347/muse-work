@@ -131,10 +131,11 @@ export class MuseApiClient {
   }
 
   async createSession(
-    workdir: string,
+    workdir?: string,
     opts?: { model?: string },
   ): Promise<MuseSession> {
-    const body: { workdir: string; model?: string } = { workdir };
+    const body: { workdir?: string; model?: string } = {};
+    if (workdir) body.workdir = workdir;
     if (opts?.model) body.model = opts.model;
     const res = await this.request("/sessions", {
       method: "POST",

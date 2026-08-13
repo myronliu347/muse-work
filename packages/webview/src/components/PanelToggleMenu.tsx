@@ -1,24 +1,21 @@
 import React, { useEffect, useRef } from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../types";
+import { panelShortcutLabel } from "../muse/panelShortcuts";
 import "../styles/PanelToggleMenu.css";
 
 interface PanelToggleMenuProps extends PanelToggleProps {
   onClose: () => void;
 }
 
-const isMac =
-  typeof navigator !== "undefined" &&
-  navigator.platform.toLowerCase().includes("mac");
-
 const PANEL_ITEMS: Array<{
   kind: DesktopPanelKind;
   label: string;
   shortcut: string;
 }> = [
-  { kind: "preview", label: "预览", shortcut: isMac ? "⇧⌘P" : "Ctrl+Shift+P" },
-  { kind: "diff", label: "差异", shortcut: isMac ? "⇧⌘D" : "Ctrl+Shift+D" },
-  { kind: "terminal", label: "终端", shortcut: isMac ? "⌃`" : "Ctrl+`" },
-  { kind: "file", label: "文件", shortcut: isMac ? "⇧⌘F" : "Ctrl+Shift+F" },
+  { kind: "preview", label: "预览", shortcut: panelShortcutLabel("preview") },
+  { kind: "diff", label: "差异", shortcut: panelShortcutLabel("diff") },
+  { kind: "terminal", label: "终端", shortcut: panelShortcutLabel("terminal") },
+  { kind: "file", label: "文件", shortcut: panelShortcutLabel("file") },
 ];
 
 /**

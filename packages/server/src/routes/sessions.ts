@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { createDefaultProjectWorkdir } from "@muse-work/provider";
 import type { AppContext } from "../createAppContext.js";
 import { readJsonBody, sendError, sendJson } from "../http.js";
 
@@ -10,13 +11,13 @@ export async function handleCreateSession(
   const body = (await readJsonBody(req)) as
     | { workdir?: string; model?: string; permissionMode?: string }
     | undefined;
-  if (!body?.workdir || typeof body.workdir !== "string") {
-    sendError(res, 400, "workdir is required");
-    return;
-  }
+  const workdir =
+    typeof body?.workdir === "string" && body.workdir.trim().length > 0
+      ? body.workdir.trim()
+      : createDefaultProjectWorkdir(ctx.home);
   const active = ctx.registry.getActive();
   const model =
-    typeof body.model === "string" && body.model.length > 0
+    typeof body?.model === "string" && body.model.length > 0
       ? body.model
       : active.modelId;
   if (!model) {
@@ -24,7 +25,7 @@ export async function handleCreateSession(
     return;
   }
   const session = ctx.store.create({
-    workdir: body.workdir,
+    workdir,
     model,
   });
   sendJson(res, 200, session);

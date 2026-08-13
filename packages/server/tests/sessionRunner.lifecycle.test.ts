@@ -324,6 +324,56 @@ describe("sessionRunner lifecycle", () => {
     expect(store.get(session.id)).toBeDefined();
   });
 
+  it("keeps status running after assistant stage end while loading stays true", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    store.select(session.id);
+
+    type Callbacks = {
+      onLoadingChange?: (loading: boolean) => void;
+      onAssistantContentUpdated?: (p: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => void;
+    };
+    let cbs: Callbacks | undefined;
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        cbs = opts.callbacks as Callbacks;
+        return {
+          sendMessage: async () => {
+            cbs?.onLoadingChange?.(true);
+            cbs?.onAssistantContentUpdated?.({
+              messageId: "m1",
+              chunk: "working",
+              stage: "end",
+            });
+            // Tools still running — loading remains true; must NOT idle yet.
+            await new Promise((r) => setTimeout(r, 30));
+          },
+          dispose: async () => {},
+          getMessages: () => [],
+          sessionId: "wave-load",
+        };
+      },
+    });
+
+    await runner.sendMessage(session.id, "run tools");
+    await expect.poll(() => cbs).toBeTruthy();
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+    // Still loading after sendMessage settled + stage end.
+    expect(store.get(session.id)?.status).toBe("running");
+
+    cbs!.onLoadingChange?.(false);
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+  });
+
   it("idle TTL does not destroy while status is running", async () => {
     const { store, hub, registry } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });

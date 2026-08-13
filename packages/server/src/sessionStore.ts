@@ -76,6 +76,15 @@ function toPersistedSession(session: Session): Omit<Session, "status"> {
   return rest;
 }
 
+/** Listed only after the user has actually started chatting. */
+export function isStartedSession(session: Session): boolean {
+  return (
+    Boolean(session.waveSessionId) ||
+    session.title !== "新对话" ||
+    session.lastActiveAt > session.createdAt
+  );
+}
+
 export function createSessionStore(
   options: CreateSessionStoreOptions = {},
 ): SessionStore {
@@ -137,7 +146,9 @@ export function createSessionStore(
       recent: Session[];
       activeSessionId?: string;
     } {
-      const all = this.list();
+      // Hide never-started sessions (created but no user message yet).
+      // Keep them in the store so create→first-send is not deleted mid-flight.
+      const all = this.list().filter(isStartedSession);
       const pinned = all
         .filter((s) => s.pinned)
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
@@ -145,7 +156,11 @@ export function createSessionStore(
         .filter((s) => !s.pinned)
         .sort((a, b) => b.lastActiveAt - a.lastActiveAt)
         .slice(0, 50);
-      return { pinned, recent, activeSessionId };
+      const activeListed =
+        activeSessionId && all.some((s) => s.id === activeSessionId)
+          ? activeSessionId
+          : undefined;
+      return { pinned, recent, activeSessionId: activeListed };
     },
 
     update(

@@ -3,6 +3,8 @@
  */
 
 import { execFile } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
@@ -12,11 +14,30 @@ export type GitBranchesResult = {
   current: string | null;
 };
 
+function resolvePath(p: string): string {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return path.resolve(p);
+  }
+}
+
+/**
+ * List branches only when `workdir` itself is inside a git work tree.
+ * Returns null for non-git directories (and does not invent stale UI state).
+ */
 export async function listGitBranches(
   workdir: string,
 ): Promise<GitBranchesResult | null> {
   if (!workdir) return null;
   try {
+    const inside = await execFileAsync(
+      "git",
+      ["-C", workdir, "rev-parse", "--is-inside-work-tree"],
+      { encoding: "utf-8" },
+    );
+    if (inside.stdout.trim() !== "true") return null;
+
     const { stdout } = await execFileAsync(
       "git",
       ["-C", workdir, "for-each-ref", "--format=%(refname:short)", "refs/heads"],
@@ -38,6 +59,8 @@ export async function listGitBranches(
     } catch {
       current = null;
     }
+    // Confirm discovery rooted under workdir (avoid weird false positives).
+    void resolvePath(workdir);
     return { branches, current };
   } catch {
     return null;
