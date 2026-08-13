@@ -80,6 +80,9 @@
 .message.user {
   color: var(--vscode-foreground);
   overflow-wrap: break-word; /* 长词自动换行 */
+  position: relative;
+  align-self: stretch;
+  width: 100%;
 }
 
 .user-text-block {
@@ -87,14 +90,14 @@
   border-radius: var(--radius-3);
   padding: 8px 12px;
   transition: background-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .message.user:hover .user-text-block {
   background-color: var(--gray-4);
-}
-
-.message.user {
-  position: relative;
 }
 
 .message.user.queued {

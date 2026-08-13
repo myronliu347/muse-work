@@ -140,6 +140,9 @@ describe("AgentTranscriptPopup", () => {
     expect(screen.getByText("explore the repo")).toBeTruthy();
     expect(screen.getByTestId("tool-name")).toHaveTextContent("Read");
     expect(screen.getByText("final answer")).toBeTruthy();
+    expect(
+      screen.getByTestId("agent-transcript-popup").querySelector(".message-action-btn"),
+    ).toBeNull();
   });
 
   it("shows empty copy when the nested transcript is missing", () => {

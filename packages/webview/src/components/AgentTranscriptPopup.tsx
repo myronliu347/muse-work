@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Message } from "./Message";
+import { Tooltip } from "./Tooltip";
 import type { Message as MessageType, VsCodeApi } from "../types";
 import "../styles/AgentTranscriptPopup.css";
 
@@ -43,15 +44,17 @@ export const AgentTranscriptPopup: React.FC<AgentTranscriptPopupProps> = ({
       >
         <div className="agent-transcript-header">
           <div className="agent-transcript-title">{title}</div>
-          <button
-            type="button"
-            className="agent-transcript-close"
-            data-testid="agent-transcript-close"
-            aria-label="关闭"
-            onClick={onClose}
-          >
-            <i className="codicon codicon-close" aria-hidden="true" />
-          </button>
+          <Tooltip text="关闭" position="bottom">
+            <button
+              type="button"
+              className="agent-transcript-close"
+              data-testid="agent-transcript-close"
+              aria-label="关闭"
+              onClick={onClose}
+            >
+              <i className="codicon codicon-close" aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
         <div className="agent-transcript-body">
           {messages.length === 0 ? (

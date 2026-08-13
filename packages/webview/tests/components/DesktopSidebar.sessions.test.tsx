@@ -68,7 +68,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("renders Pin flat and 工作空间 grouped by workdir", () => {
+  it("renders 置顶 flat and 工作空间 grouped by workdir", () => {
     renderSidebar({
       pinnedSessions: [
         entry({
@@ -99,7 +99,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
 
     expect(screen.getByTestId("desktop-session-section-pin")).toHaveTextContent(
-      "Pin",
+      "置顶",
     );
     expect(
       screen.getByTestId("desktop-session-section-recent"),
@@ -124,6 +124,35 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-workdir-group-/repo/gamma"),
     ).toHaveTextContent("gamma");
+  });
+
+  it("shows tooltips on pin, delete, and workdir-add icon buttons", () => {
+    renderSidebar({
+      pinnedSessions: [
+        entry({ sessionId: "p1", pinned: true, workdir: "/repo/alpha" }),
+      ],
+      recentSessions: [
+        entry({ sessionId: "r1", workdir: "/repo/beta" }),
+      ],
+    });
+
+    const pinBtn = screen.getByTestId("desktop-session-pin-p1");
+    fireEvent.mouseEnter(pinBtn.closest(".tooltip-container") as HTMLElement);
+    expect(
+      pinBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
+    ).toHaveTextContent("取消置顶");
+
+    const deleteBtn = screen.getByTestId("desktop-session-delete-p1");
+    fireEvent.mouseEnter(deleteBtn.closest(".tooltip-container") as HTMLElement);
+    expect(
+      deleteBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
+    ).toHaveTextContent("删除会话");
+
+    const addBtn = screen.getByTestId("desktop-session-workdir-add-/repo/beta");
+    fireEvent.mouseEnter(addBtn.closest(".tooltip-container") as HTMLElement);
+    expect(
+      addBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
+    ).toHaveTextContent("在此目录新建对话");
   });
 
   it("calls onNewSessionInWorkdir from workdir group + button", () => {

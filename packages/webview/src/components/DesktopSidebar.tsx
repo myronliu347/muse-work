@@ -27,7 +27,7 @@ export interface DesktopSidebarProps {
    * `"pin"` / `"recent"` entries (Task 5 `buildSidebarModel`).
    */
   sessionTree?: DesktopSessionGroup[];
-  /** Sessions in the Pin section. */
+  /** Sessions in the 置顶 section. */
   pinnedSessions?: DesktopSessionEntry[];
   /** Sessions in the 工作空间 section. */
   recentSessions?: DesktopSessionEntry[];
@@ -273,35 +273,39 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             </span>
           ) : null}
         </span>
-        <button
-          className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
-          title={session.pinned ? "取消置顶" : "置顶"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePin(session.sessionId, !session.pinned);
-          }}
-          data-testid={`desktop-session-pin-${session.sessionId}`}
-        >
-          <span className="codicon codicon-pinned"></span>
-        </button>
-        <button
-          className="desktop-session-delete"
-          title="删除会话"
-          onClick={(e) => {
-            e.stopPropagation();
-            const label = session.title || "新对话";
-            setPendingDelete({
-              sessionId: session.sessionId,
-              title: `确定删除会话「${label}」？`,
-              description: session.hasWorktree
-                ? "该会话的 worktree 目录与临时分支将一并删除，未提交的改动将丢失。"
-                : undefined,
-            });
-          }}
-          data-testid={`desktop-session-delete-${session.sessionId}`}
-        >
-          <span className="codicon codicon-trash"></span>
-        </button>
+        <Tooltip text={session.pinned ? "取消置顶" : "置顶"} position="top">
+          <button
+            className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePin(session.sessionId, !session.pinned);
+            }}
+            data-testid={`desktop-session-pin-${session.sessionId}`}
+            aria-label={session.pinned ? "取消置顶" : "置顶"}
+          >
+            <span className="codicon codicon-pinned"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="删除会话" position="top">
+          <button
+            className="desktop-session-delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              const label = session.title || "新对话";
+              setPendingDelete({
+                sessionId: session.sessionId,
+                title: `确定删除会话「${label}」？`,
+                description: session.hasWorktree
+                  ? "该会话的 worktree 目录与临时分支将一并删除，未提交的改动将丢失。"
+                  : undefined,
+              });
+            }}
+            data-testid={`desktop-session-delete-${session.sessionId}`}
+            aria-label="删除会话"
+          >
+            <span className="codicon codicon-trash"></span>
+          </button>
+        </Tooltip>
       </li>
     );
   };
@@ -320,7 +324,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       className="desktop-session-section"
       data-testid="desktop-session-section-pin"
     >
-      <div className="desktop-session-section-header">Pin</div>
+      <div className="desktop-session-section-header">置顶</div>
       {pinnedSessions.length === 0 ? (
         <div className="desktop-session-empty">无会话</div>
       ) : (
@@ -370,18 +374,20 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     {group.label}
                   </span>
                   {group.workdir && onNewSessionInWorkdir ? (
-                    <button
-                      type="button"
-                      className="desktop-session-workdir-add"
-                      title="在此目录新建对话"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onNewSessionInWorkdir(group.workdir);
-                      }}
-                      data-testid={`desktop-session-workdir-add-${groupKey}`}
-                    >
-                      <span className="codicon codicon-add"></span>
-                    </button>
+                    <Tooltip text="在此目录新建对话" position="top">
+                      <button
+                        type="button"
+                        className="desktop-session-workdir-add"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNewSessionInWorkdir(group.workdir);
+                        }}
+                        data-testid={`desktop-session-workdir-add-${groupKey}`}
+                        aria-label="在此目录新建对话"
+                      >
+                        <span className="codicon codicon-add"></span>
+                      </button>
+                    </Tooltip>
                   ) : null}
                 </div>
                 {!collapsed ? (
