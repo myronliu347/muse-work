@@ -1,0 +1,49 @@
+packages/provider/tests/sign.test.ts
+  db26196a999da47a 58-64,114-117
+packages/provider/src/codemaker/sign.ts
+  db26196a999da47a 41-54,76,116-120,124-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0d3b5bc40c111aa1d3b399c6afd717646a5bccf0",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 11,
+      "accepted_lines": 209,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 31
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/Message.tsx": {
+          "accepted_lines": 28
+        },
+        "packages/provider/src/codemaker/sign.ts": {
+          "additions": 9,
+          "deletions": 6,
+          "accepted_lines": 74
+        },
+        "packages/provider/tests/sign.test.ts": {
+          "additions": 11,
+          "deletions": 5,
+          "accepted_lines": 11
+        },
+        "packages/webview/tests/components/userMessageImages.test.tsx": {
+          "accepted_lines": 61
+        }
+      }
+    }
+  }
+}
