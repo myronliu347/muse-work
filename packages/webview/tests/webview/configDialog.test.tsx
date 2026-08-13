@@ -65,7 +65,7 @@ describe("ConfigDialog", () => {
   it("renders provider settings only (no legacy tabs)", () => {
     renderDialog();
 
-    expect(screen.getByRole("heading", { name: "供应商设置" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "设置" })).toBeTruthy();
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "全局设置" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "直连设置" })).toBeNull();

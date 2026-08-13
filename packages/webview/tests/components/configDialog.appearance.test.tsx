@@ -1,0 +1,92 @@
+/** @vitest-environment jsdom */
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import ConfigDialog from "../../src/components/ConfigDialog";
+import { MuseTheme } from "../../src/ui/theme";
+import type { VsCodeApi } from "../../src/types";
+
+let dirty = false;
+
+vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));
+vi.mock("../../src/components/MuseProviderSettings", () => {
+  const React = require("react") as typeof import("react");
+  return {
+    MuseProviderSettings: React.forwardRef(
+      (
+        _props: { onSavingChange?: (saving: boolean) => void },
+        ref: React.ForwardedRef<{
+          save: () => Promise<boolean>;
+          isDirty: () => boolean;
+        }>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({
+          save: async () => true,
+          isDirty: () => dirty,
+        }));
+        return <div data-testid="muse-provider-settings">provider settings</div>;
+      },
+    ),
+  };
+});
+
+const vscode = {
+  postMessage: vi.fn(),
+  getState: vi.fn(),
+  setState: vi.fn(),
+} as unknown as VsCodeApi;
+
+function renderDialog(onCancel = vi.fn()) {
+  return {
+    onCancel,
+    ...render(
+      <MuseTheme>
+        <ConfigDialog
+          configurationData={{ language: "Chinese" }}
+          isLoading={false}
+          onSave={vi.fn()}
+          onCancel={onCancel}
+          vscode={vscode}
+        />
+      </MuseTheme>,
+    ),
+  };
+}
+
+describe("ConfigDialog appearance tab", () => {
+  beforeEach(() => {
+    cleanup();
+    dirty = false;
+    vi.clearAllMocks();
+  });
+
+  it("shows appearance first and provider after selecting its tab", () => {
+    renderDialog();
+
+    expect(screen.getByRole("heading", { name: "设置" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "外观" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
+
+    expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
+  });
+
+  it("does not treat a theme change as provider settings dirtiness", () => {
+    const { onCancel } = renderDialog();
+
+    fireEvent.click(screen.getByRole("button", { name: /深色/ }));
+    fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[1]);
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("prompts before closing when provider settings are dirty", () => {
+    dirty = true;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const { onCancel } = renderDialog();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[1]);
+
+    expect(confirm).toHaveBeenCalledWith("有未保存的修改，确定关闭？");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+});

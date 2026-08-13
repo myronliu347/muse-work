@@ -9,6 +9,7 @@ import {
   MuseProviderSettings,
   type MuseProviderSettingsHandle,
 } from "./MuseProviderSettings";
+import { AppearanceSettings } from "./AppearanceSettings";
 import "../styles/ConfigurationDialog.css";
 
 const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
@@ -17,6 +18,9 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"appearance" | "provider">(
+    "appearance",
+  );
   const savingRef = useRef(false);
   savingRef.current = saving;
 
@@ -71,7 +75,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
         data-testid="config-dialog"
       >
         <div className="configuration-dialog-header config-dialog-header">
-          <h3>供应商设置</h3>
+          <h3>设置</h3>
           <button
             type="button"
             className="configuration-close-btn"
@@ -83,12 +87,48 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           </button>
         </div>
 
+        <div className="config-tabs" role="tablist" aria-label="设置">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "appearance"}
+            aria-controls="config-appearance-panel"
+            className={`config-tab${activeTab === "appearance" ? " active" : ""}`}
+            onClick={() => setActiveTab("appearance")}
+          >
+            外观
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "provider"}
+            aria-controls="config-provider-panel"
+            className={`config-tab${activeTab === "provider" ? " active" : ""}`}
+            onClick={() => setActiveTab("provider")}
+          >
+            供应商
+          </button>
+        </div>
+
         <div className="configuration-form">
           <div className="configuration-fields-scroll-area">
-            <MuseProviderSettings
-              ref={settingsRef}
-              onSavingChange={setSaving}
-            />
+            <div
+              id="config-appearance-panel"
+              role="tabpanel"
+              hidden={activeTab !== "appearance"}
+            >
+              <AppearanceSettings />
+            </div>
+            <div
+              id="config-provider-panel"
+              role="tabpanel"
+              hidden={activeTab !== "provider"}
+            >
+              <MuseProviderSettings
+                ref={settingsRef}
+                onSavingChange={setSaving}
+              />
+            </div>
           </div>
 
           <div className="configuration-actions">
