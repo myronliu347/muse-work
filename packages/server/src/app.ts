@@ -9,6 +9,10 @@ import {
 } from "./routes/auth.js";
 import { handleHealth } from "./routes/health.js";
 import {
+  handleGetSettings,
+  handlePatchSettings,
+} from "./routes/settings.js";
+import {
   handleCodeMakerQuota,
   handleGetOpenAiCompatibleConfig,
   handleListModels,
@@ -91,6 +95,16 @@ async function routeRequest(
 
   if (method === "GET" && pathname === "/health") {
     await handleHealth(req, res);
+    return;
+  }
+
+  if (method === "GET" && pathname === "/settings") {
+    await handleGetSettings(req, res, ctx);
+    return;
+  }
+
+  if (method === "PATCH" && pathname === "/settings") {
+    await handlePatchSettings(req, res, ctx);
     return;
   }
 
