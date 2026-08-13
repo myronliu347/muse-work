@@ -1,0 +1,77 @@
+packages/webview/src/components/DesktopSidebar.tsx
+  2c9be225501a72c4 30,276-308,327,377-390
+packages/webview/src/components/Message.tsx
+  2c9be225501a72c4 1000
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  2c9be225501a72c4 71,102,129-157
+packages/webview/src/styles/MessageList.css
+  2c9be225501a72c4 35-37,54
+packages/webview/src/components/AgentTranscriptPopup.tsx
+  2c9be225501a72c4 3,47-57
+packages/webview/src/styles/AgentTranscriptPopup.css
+  2c9be225501a72c4 75
+packages/webview/tests/components/agentToolPopup.test.tsx
+  2c9be225501a72c4 143-145
+packages/webview/src/styles/Message.css
+  2c9be225501a72c4 83-85,93-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d1be4aa8c2985f2d858b14033979389cecdf5244",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 108,
+      "total_deletions": 69,
+      "accepted_lines": 108,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AgentTranscriptPopup.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/Message.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/agentToolPopup.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 4,
+          "deletions": 10,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/AgentTranscriptPopup.tsx": {
+          "additions": 12,
+          "deletions": 9,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 49,
+          "deletions": 43,
+          "accepted_lines": 49
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 31,
+          "deletions": 2,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
