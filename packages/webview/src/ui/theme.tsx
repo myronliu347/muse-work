@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import { Theme } from "@radix-ui/themes";
 import type { EffectiveTheme, ThemePreference } from "../types";
 import { resolveEffectiveTheme } from "./themeStorage";
 import {
-  detectSystemDark,
+  getSystemDark,
   getThemePreference,
   setThemePreference,
+  subscribeSystemDark,
   subscribeThemePreference,
 } from "./themePreference";
 
@@ -14,52 +15,7 @@ function applyDataTheme(effective: EffectiveTheme): void {
 }
 
 export function MuseTheme({ children }: { children: React.ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>(() =>
-    getThemePreference(),
-  );
-  const [systemDark, setSystemDark] = useState(() => detectSystemDark());
-
-  useEffect(
-    () =>
-      subscribeThemePreference(() => {
-        setPreferenceState(getThemePreference());
-      }),
-    [],
-  );
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onMedia = () => setSystemDark(detectSystemDark());
-    media.addEventListener("change", onMedia);
-    const observer = new MutationObserver(onMedia);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    const onHost = (event: MessageEvent) => {
-      const data = event.data as { command?: string; effective?: string };
-      if (data?.command !== "desktopThemeChange") return;
-      if (getThemePreference() !== "system") return;
-      if (data.effective === "light" || data.effective === "dark") {
-        setSystemDark(data.effective === "dark");
-      }
-    };
-    window.addEventListener("message", onHost);
-    return () => {
-      media.removeEventListener("change", onMedia);
-      observer.disconnect();
-      window.removeEventListener("message", onHost);
-    };
-  }, []);
-
-  const effective = useMemo(
-    () => resolveEffectiveTheme(preference, systemDark),
-    [preference, systemDark],
-  );
+  const { effective } = useMuseTheme();
 
   useEffect(() => {
     applyDataTheme(effective);
@@ -83,17 +39,17 @@ export function useMuseTheme(): {
   effective: EffectiveTheme;
   setPreference: (p: ThemePreference) => void;
 } {
-  const [preference, setPreferenceState] = useState<ThemePreference>(() =>
-    getThemePreference(),
+  const preference = useSyncExternalStore(
+    subscribeThemePreference,
+    getThemePreference,
+    getThemePreference,
   );
-  useEffect(
-    () =>
-      subscribeThemePreference(() => {
-        setPreferenceState(getThemePreference());
-      }),
-    [],
+  const systemDark = useSyncExternalStore(
+    subscribeSystemDark,
+    getSystemDark,
+    getSystemDark,
   );
-  const effective = resolveEffectiveTheme(preference, detectSystemDark());
+  const effective = resolveEffectiveTheme(preference, systemDark);
   return {
     preference,
     effective,

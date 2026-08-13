@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import {
+  detectSystemDark,
   getThemePreference,
   setThemePreference,
   subscribeThemePreference,
@@ -42,5 +43,25 @@ describe("themePreference store", () => {
     unsub();
     setThemePreference("light");
     expect(seen).toEqual(["dark"]);
+  });
+
+  it("uses host-specific signals when detecting system darkness", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: () => ({
+        matches: false,
+      }),
+    });
+    document.documentElement.setAttribute("data-theme", "dark");
+    window.waveHostType = "desktop";
+    expect(detectSystemDark()).toBe(false);
+
+    delete window.waveHostType;
+    expect(detectSystemDark()).toBe(true);
+
+    document.body.classList.add("vscode-light");
+    expect(detectSystemDark()).toBe(false);
+    document.body.classList.remove("vscode-light");
+    document.documentElement.removeAttribute("data-theme");
   });
 });
