@@ -1,0 +1,54 @@
+packages/desktop/src/main/preload.ts
+  e01389435c03681d 2,24-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4a3469f42f9812b8538d4751249a10e855556810",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2051,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-webview-ui-design.md": {
+          "accepted_lines": 183
+        },
+        "docs/superpowers/plans/2026-08-13-webview-ui.md": {
+          "accepted_lines": 1138
+        },
+        "docs/superpowers/prototypes/2026-08-13-webview-form-ds.html": {
+          "accepted_lines": 730
+        }
+      }
+    },
+    "e01389435c03681d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "54c41b09-015a-404d-b839-a67e3ed1b570",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 6,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 4,
+          "deletions": 6,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
