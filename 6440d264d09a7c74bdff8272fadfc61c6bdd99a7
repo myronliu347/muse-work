@@ -1,0 +1,84 @@
+packages/desktop/scripts/brandDevElectron.mjs
+  db26196a999da47a 37-52
+packages/webview/src/components/MoreMenu.tsx
+  db26196a999da47a 5,49,64-71
+packages/webview/src/components/ConfigDialog.tsx
+  db26196a999da47a 5,20-21,23-30,38,44,59,79,97
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  db26196a999da47a 10,90,93-95,110,119,130-131,134,137,139,141-142
+packages/webview/src/components/MuseProviderSettings.tsx
+  db26196a999da47a 7,18,28-29,90-97,115-116,118-130,132-153,157,160,164,178-181,192,205-215,219-221,224-225,229-240,246,251,259-265,283
+packages/webview/tests/webview/configDialog.test.tsx
+  db26196a999da47a 12-16,20
+packages/webview/src/components/MuseModelSelect.tsx
+  db26196a999da47a 7,53,55,59-62
+packages/webview/src/muse/providersEvents.ts
+  db26196a999da47a 1-7
+packages/provider/src/configStore.ts
+  db26196a999da47a 62-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6440d264d09a7c74bdff8272fadfc61c6bdd99a7",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 193,
+      "total_deletions": 80,
+      "accepted_lines": 187,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/providersEvents.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/MoreMenu.tsx": {
+          "additions": 10,
+          "deletions": 22,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 14,
+          "deletions": 5,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/desktop/scripts/brandDevElectron.mjs": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 17
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ConfigDialog.tsx": {
+          "additions": 22,
+          "deletions": 11,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/MuseProviderSettings.tsx": {
+          "additions": 97,
+          "deletions": 35,
+          "accepted_lines": 97
+        }
+      }
+    }
+  }
+}
