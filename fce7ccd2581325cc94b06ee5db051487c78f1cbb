@@ -1,0 +1,72 @@
+packages/webview/tests/muse/themeStorage.test.ts
+  e2bc06d133f005d0 1-72
+packages/webview/src/ui/themeStorage.ts
+  e2bc06d133f005d0 1-33
+packages/webview/src/types/index.ts
+  e2bc06d133f005d0 333,336-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fce7ccd2581325cc94b06ee5db051487c78f1cbb",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2416,
+      "total_deletions": 365,
+      "accepted_lines": 2051,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-webview-ui.md": {
+          "additions": 1140,
+          "deletions": 2,
+          "accepted_lines": 1138
+        },
+        "docs/superpowers/specs/2026-08-13-webview-ui-design.md": {
+          "additions": 190,
+          "deletions": 7,
+          "accepted_lines": 183
+        },
+        "docs/superpowers/prototypes/2026-08-13-webview-form-ds.html": {
+          "additions": 1086,
+          "deletions": 356,
+          "accepted_lines": 730
+        }
+      }
+    },
+    "e2bc06d133f005d0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7b5e1772-51f7-423c-aaa7-6af4553f8c51",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 108,
+      "total_deletions": 6,
+      "accepted_lines": 108,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/ui/themeStorage.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/tests/muse/themeStorage.test.ts": {
+          "additions": 72,
+          "accepted_lines": 72
+        }
+      }
+    }
+  }
+}
