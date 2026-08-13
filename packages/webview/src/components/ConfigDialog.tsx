@@ -29,6 +29,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   const panelTransition = reduceMotion
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 380, damping: 28 };
+  const tabUnderlineTransition = reduceMotion ? { duration: 0 } : undefined;
   savingRef.current = saving;
 
   const requestClose = useCallback(() => {
@@ -119,6 +120,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               <motion.span
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
+                transition={tabUnderlineTransition}
                 style={{
                   position: "absolute",
                   right: 0,
@@ -144,6 +146,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               <motion.span
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
+                transition={tabUnderlineTransition}
                 style={{
                   position: "absolute",
                   right: 0,

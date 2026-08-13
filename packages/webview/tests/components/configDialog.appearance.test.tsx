@@ -70,6 +70,27 @@ describe("ConfigDialog appearance tab", () => {
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
   });
 
+  it("renders tab underlines when prefers-reduced-motion is enabled", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-reduced-motion: reduce)",
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    renderDialog();
+
+    const appearanceTab = screen.getByRole("tab", { name: "外观" });
+    const providerTab = screen.getByRole("tab", { name: "供应商" });
+    expect(appearanceTab.querySelector(".settings-tab-underline")).toBeTruthy();
+
+    fireEvent.click(providerTab);
+
+    expect(providerTab.querySelector(".settings-tab-underline")).toBeTruthy();
+  });
+
   it("moves the active-tab underline to the selected tab", () => {
     renderDialog();
 
