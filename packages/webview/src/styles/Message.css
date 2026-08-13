@@ -24,7 +24,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--dot-color, #cccccc);
+  background: var(--dot-color, var(--gray-8));
   z-index: 1;
 }
 
@@ -114,8 +114,8 @@
 }
 
 .user-text-block {
-  background-color: var(--vscode-chat-requestBubbleBackground);
-  border-radius: 8px;
+  background-color: var(--gray-3);
+  border-radius: var(--radius-3);
   padding: 6px 10px;
   transition: background-color 0.2s ease;
 }

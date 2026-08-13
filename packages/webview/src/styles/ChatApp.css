@@ -9,12 +9,12 @@
        column match the message list. Hosts set body to editor-background
        (the editor-area chrome), which would otherwise bleed through the
        transparent wrappers around .messages-container. */
-  background-color: var(--vscode-panel-background);
+  background-color: var(--color-background);
 }
 
 .input-area-container {
   position: relative;
-  background-color: var(--vscode-panel-background);
+  background-color: var(--color-background);
   display: flex;
   flex-direction: column;
   padding: 0 10px;

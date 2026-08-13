@@ -25,23 +25,14 @@
   display: flex;
   flex-direction: column;
   background-color: var(--vscode-input-background);
-  /* Some themes (e.g. Visual Studio Light) don't define input.border, which would
-       invalidate the whole shorthand — fall back through other border vars. */
-  border: 1px solid
-    var(
-      --vscode-input-border,
-      var(
-        --vscode-panel-border,
-        var(--vscode-widget-border, rgba(128, 128, 128, 0.4))
-      )
-    );
-  border-radius: 6px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
   max-height: 176px;
 }
 
 /* Focus state: the whole box border turns brand red (设计稿 Focus state). */
 .input-content:focus-within {
-  border-color: var(--vscode-brand-primary, #c1292e);
+  border-color: var(--accent-9);
 }
 
 /* Desktop host, new-session state: workdir selector row at the top-left of
@@ -123,13 +114,12 @@
   background-color: transparent;
 }
 
-/* Figma design: red send/abort buttons, 28x28 rounded square, white glyph */
+/* Figma design: 28x28 rounded square action buttons with white glyphs. */
 .ai-send-btn,
 .ai-abort-btn {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
-  background: var(--vscode-brand-primary, #c1292e);
+  border-radius: var(--radius-2);
   color: #fff;
   display: flex;
   align-items: center;
@@ -140,10 +130,21 @@
   flex-shrink: 0;
 }
 
-.ai-send-btn:hover:not(:disabled),
+.ai-send-btn {
+  background: var(--accent-9);
+}
+
+.ai-abort-btn {
+  background: var(--gray-8);
+}
+
+.ai-send-btn:hover:not(:disabled) {
+  background: var(--accent-10);
+  filter: none;
+}
+
 .ai-abort-btn:hover {
-  background: var(--vscode-brand-primary, #c1292e);
-  background-color: var(--vscode-brand-primary, #c1292e);
+  background: var(--gray-9);
   filter: brightness(0.92);
 }
 
@@ -153,7 +154,7 @@
 }
 
 .ai-send-btn:disabled:hover {
-  background-color: var(--vscode-brand-primary, #c1292e);
+  background-color: var(--accent-9);
   filter: none;
 }
 

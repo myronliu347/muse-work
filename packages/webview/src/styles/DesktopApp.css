@@ -20,8 +20,8 @@
   min-width: 240px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
-  background: var(--vscode-sideBar-background, var(--vscode-panel-background));
+  border-right: 1px solid var(--gray-6);
+  background: var(--gray-2);
   overflow: hidden;
   /* Anchor the more menu (absolute, top/right matches the chat header values). */
   position: relative;
@@ -32,7 +32,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px 12px;
-  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  border-top: 1px solid var(--gray-6);
   position: relative;
   flex-shrink: 0;
 }
@@ -60,7 +60,7 @@
   background-color: transparent;
   color: var(--vscode-foreground);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -82,7 +82,7 @@
   margin: 12px 6px 8px;
   padding: 6px 6px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   background: transparent;
   color: var(--vscode-foreground);
   cursor: pointer;
@@ -96,7 +96,7 @@
 }
 
 .desktop-sidebar-new-chat:hover:not(:disabled) {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 .desktop-sidebar-new-chat:disabled {
@@ -135,7 +135,7 @@
   align-items: center;
   gap: 4px;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   cursor: pointer;
   font-size: 12px;
   color: var(--vscode-foreground);
@@ -171,7 +171,7 @@
   height: 20px;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   background: transparent;
   color: var(--vscode-foreground);
   opacity: 0;
@@ -212,19 +212,19 @@
   align-items: center;
   gap: 6px;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   cursor: pointer;
   font-size: 12px;
   color: var(--vscode-foreground);
 }
 
 .desktop-session-item:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 .desktop-session-item--current {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--gray-4);
+  color: inherit;
 }
 
 /* Weak counterpart of --current: the session is shown in a non-focused pane. */
@@ -245,7 +245,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--vscode-charts-blue, #59a4f9);
+  background: var(--accent-9);
   flex-shrink: 0;
 }
 
@@ -388,7 +388,7 @@
   gap: 6px;
   max-width: 100%;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   padding: 2px 6px;
   font-size: 12px;
   color: var(--vscode-foreground);
@@ -508,7 +508,7 @@
   gap: 6px;
   max-width: 140px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   padding: 2px 6px;
   font-size: 12px;
   color: var(--vscode-foreground);
@@ -657,7 +657,7 @@
 
 .desktop-remote-browser-retry {
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   padding: 4px 12px;
   font-size: 12px;
   cursor: pointer;
@@ -695,7 +695,7 @@
 
 .desktop-remote-browser-select {
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   padding: 4px 12px;
   font-size: 12px;
   cursor: pointer;
@@ -784,7 +784,7 @@ body.is-panel-resizing * {
   justify-content: center;
   padding: 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   background: transparent;
   color: var(--vscode-foreground);
   cursor: pointer;
@@ -988,7 +988,7 @@ body.is-panel-resizing * {
   justify-content: center;
   padding: 3px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   background: transparent;
   color: var(--vscode-foreground);
   opacity: 0.6;
