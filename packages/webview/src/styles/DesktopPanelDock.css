@@ -60,6 +60,14 @@
   padding: 0;
   cursor: pointer;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.desktop-panel-tab-icon {
+  font-size: 14px;
+  opacity: 0.85;
 }
 
 .desktop-panel-tab-close {
@@ -74,6 +82,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
+}
+
+.desktop-panel-tab:hover .desktop-panel-tab-close,
+.desktop-panel-tab:focus-within .desktop-panel-tab-close {
+  opacity: 1;
 }
 
 .desktop-panel-tab-close:hover {

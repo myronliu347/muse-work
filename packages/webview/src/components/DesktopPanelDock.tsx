@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../types";
-import { PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../muse/panelTabs";
+import { PANEL_TAB_ICONS, PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { PanelToggleControl } from "./PanelToggleControl";
 import "../styles/DesktopPanelDock.css";
 
@@ -76,6 +76,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                 className="desktop-panel-tab-label"
                 onClick={() => onSelect(kind)}
               >
+                <i
+                  className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
+                  aria-hidden
+                />
                 {PANEL_TAB_LABELS[kind]}
               </button>
               <button

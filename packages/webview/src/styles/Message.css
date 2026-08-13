@@ -92,8 +92,9 @@
   transition: background-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
-  max-height: 200px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .message.user:hover .user-text-block {
@@ -497,7 +498,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 8px;
 }
 
 .user-image-thumb {

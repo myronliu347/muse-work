@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { nextActivePanel, PANEL_TAB_LABELS } from "../../src/muse/panelTabs";
+import {
+  nextActivePanel,
+  PANEL_TAB_ICONS,
+  PANEL_TAB_LABELS,
+} from "../../src/muse/panelTabs";
 
 describe("PANEL_TAB_LABELS", () => {
   it("uses 浏览器 / 变更 for preview and diff", () => {
@@ -7,6 +11,15 @@ describe("PANEL_TAB_LABELS", () => {
     expect(PANEL_TAB_LABELS.diff).toBe("变更");
     expect(PANEL_TAB_LABELS.terminal).toBe("终端");
     expect(PANEL_TAB_LABELS.file).toBe("文件");
+  });
+});
+
+describe("PANEL_TAB_ICONS", () => {
+  it("maps each tab to a matching codicon", () => {
+    expect(PANEL_TAB_ICONS.preview).toBe("codicon-globe");
+    expect(PANEL_TAB_ICONS.diff).toBe("codicon-diff");
+    expect(PANEL_TAB_ICONS.terminal).toBe("codicon-terminal");
+    expect(PANEL_TAB_ICONS.file).toBe("codicon-file");
   });
 });
 

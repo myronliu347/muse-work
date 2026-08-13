@@ -14,6 +14,13 @@ export const PANEL_TAB_LABELS: Record<DesktopPanelKind, string> = {
   file: "文件",
 };
 
+export const PANEL_TAB_ICONS: Record<DesktopPanelKind, string> = {
+  preview: "codicon-globe",
+  diff: "codicon-diff",
+  terminal: "codicon-terminal",
+  file: "codicon-file",
+};
+
 export function firstPanelTab(
   checked: DesktopPanelKind[],
 ): DesktopPanelKind | null {

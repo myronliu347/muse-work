@@ -24,12 +24,12 @@ describe("DesktopPanelDock", () => {
       </MuseTheme>,
     );
 
-    expect(screen.getByTestId("desktop-panel-tab-preview")).toHaveTextContent(
-      "浏览器",
-    );
-    expect(screen.getByTestId("desktop-panel-tab-diff")).toHaveTextContent(
-      "变更",
-    );
+    const previewTab = screen.getByTestId("desktop-panel-tab-preview");
+    const diffTab = screen.getByTestId("desktop-panel-tab-diff");
+    expect(previewTab).toHaveTextContent("浏览器");
+    expect(diffTab).toHaveTextContent("变更");
+    expect(previewTab.querySelector(".codicon-globe")).toBeTruthy();
+    expect(diffTab.querySelector(".codicon-diff")).toBeTruthy();
     expect(screen.queryByTestId("desktop-panel-tab-terminal")).toBeNull();
     expect(screen.getByTestId("panel-toggle-btn")).toBeInTheDocument();
   });

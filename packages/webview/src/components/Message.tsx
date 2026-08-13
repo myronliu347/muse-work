@@ -213,7 +213,20 @@ export const Message: React.FC<MessageProps> = React.memo(
     const handleImagePreview = (url: string, name: string) => {
       const modal = document.createElement("div");
       modal.className = "image-preview-modal";
-      modal.onclick = () => document.body.removeChild(modal);
+
+      const close = () => {
+        document.removeEventListener("keydown", onKeyDown, true);
+        modal.remove();
+      };
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+      };
+
+      modal.onclick = close;
 
       const img = document.createElement("img");
       img.src = url;
@@ -223,10 +236,15 @@ export const Message: React.FC<MessageProps> = React.memo(
       const closeBtn = document.createElement("div");
       closeBtn.className = "image-preview-close";
       closeBtn.innerHTML = '<i class="codicon codicon-close"></i>';
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        close();
+      };
 
       modal.appendChild(img);
       modal.appendChild(closeBtn);
       document.body.appendChild(modal);
+      document.addEventListener("keydown", onKeyDown, true);
     };
 
     const getAttachedImages = () => {
@@ -904,8 +922,7 @@ export const Message: React.FC<MessageProps> = React.memo(
             const parts = parseMentions(content, attachedImages);
 
             return (
-              <div key={index} className="user-text-block">
-                <div className="message-content user-content">
+              <div key={index} className="message-content user-content">
                   {parts.map((part, pIndex) => {
                     if (part.type === "mention") {
                       const onClick = part.isImage
@@ -958,7 +975,6 @@ export const Message: React.FC<MessageProps> = React.memo(
                       return <span key={pIndex}>{part.content}</span>;
                     }
                   })}
-                </div>
               </div>
             );
           }
@@ -1013,13 +1029,35 @@ export const Message: React.FC<MessageProps> = React.memo(
       );
     };
 
+    const renderUserBubble = () => {
+      const indexed = (message.blocks ?? []).map((block, index) => ({
+        block,
+        index,
+      }));
+      const ordered = [
+        ...indexed.filter((item) => item.block.type === "text"),
+        ...indexed.filter((item) => item.block.type === "image"),
+        ...indexed.filter(
+          (item) => item.block.type !== "text" && item.block.type !== "image",
+        ),
+      ];
+      return (
+        <div className="user-text-block">
+          {ordered.map(({ block, index }) => renderBlock(block, index))}
+        </div>
+      );
+    };
+
     return (
       <div
         className={getMessageClassName()}
         data-message-id={message.id}
         data-role={message.role}
       >
-        {message.blocks?.map((block, index) => renderBlock(block, index))}
+        {message.role === "user" &&
+        !message.blocks?.some((b) => b.type === "bang")
+          ? renderUserBubble()
+          : message.blocks?.map((block, index) => renderBlock(block, index))}
         {isRewindTargetMessage(message) && !isQueued && onRewindToMessage && (
           <div className="message-actions">
             <Tooltip text="回滚到此消息" position="bottom">
