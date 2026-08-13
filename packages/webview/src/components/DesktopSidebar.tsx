@@ -468,7 +468,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">
           <img
             src={museM}
-            alt="Muse Work"
+            alt="Muse"
             className="desktop-sidebar-logo"
             draggable={false}
           />

@@ -1,7 +1,7 @@
 {
   "name": "@muse-work/webview",
   "private": true,
-  "description": "Muse Work webview (React IIFE) — forked from Wave, wired to Muse HTTP/WS",
+  "description": "Muse webview (React IIFE) — forked from Wave, wired to Muse HTTP/WS",
   "version": "0.1.0",
   "type": "module",
   "engines": {

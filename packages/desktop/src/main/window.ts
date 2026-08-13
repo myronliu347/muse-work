@@ -26,7 +26,7 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     height: 840,
     minWidth: 720,
     minHeight: 480,
-    title: opts.title ?? "Muse Work",
+    title: opts.title ?? "Muse",
     backgroundColor: opts.backgroundColor,
     icon: icon.isEmpty() ? undefined : icon,
     webPreferences: {

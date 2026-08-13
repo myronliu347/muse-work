@@ -1,5 +1,5 @@
 /**
- * LoadingLogo - Muse Work M mark with a light-sweep animation shown while the
+ * LoadingLogo - Muse M mark with a light-sweep animation shown while the
  * initial state (auth, sessions) is being loaded.
  */
 

@@ -6,7 +6,7 @@ import {
 } from "../src/museSystemPrompt.js";
 
 describe("museSystemPrompt", () => {
-  it("replaces NetEase identity with Muse Work and injects selected model", () => {
+  it("replaces NetEase identity with Muse and injects selected model", () => {
     const blocks = rewritePromptBlocksForMuse(
       [
         {
@@ -25,7 +25,7 @@ If asked about your model, model version, underlying architecture, or product na
       { modelDisplay: "DeepSeek V4 Flash (deepseek-v4-flash)" },
     );
     const text = blocks.map((b) => b.text ?? "").join("\n");
-    expect(text).toContain("Muse Work");
+    expect(text).toContain("Muse");
     expect(text).toContain("DeepSeek V4 Flash (deepseek-v4-flash)");
     expect(text).toContain("Do not invent, guess, or substitute");
     expect(text).not.toMatch(/coding agent developed by NetEase/i);
@@ -37,6 +37,6 @@ If asked about your model, model version, underlying architecture, or product na
   it("buildMuseIdentityPrompt names the selected model", () => {
     const prompt = buildMuseIdentityPrompt("Claude Opus 4.6 (claude-opus-4-6)");
     expect(prompt).toContain("Claude Opus 4.6 (claude-opus-4-6)");
-    expect(prompt).toContain("Muse Work");
+    expect(prompt).toContain("Muse");
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Muse Work Electron main-process entry.
+ * Muse Electron main-process entry.
  *
  * Starts the local Muse HTTP/WS server, then loads the webview with the
  * server base URL injected via preload (`window.museServerBaseUrl`).
@@ -34,10 +34,10 @@ function adoptLoginShellPath(): void {
 
 adoptLoginShellPath();
 
-/** Packaged: "Muse Work"; local `pnpm dev`: "Muse Work developing". */
+/** Packaged: "Muse"; local `pnpm dev`: "Muse developing". */
 const APP_DISPLAY_NAME = app.isPackaged
-  ? "Muse Work"
-  : "Muse Work developing";
+  ? "Muse"
+  : "Muse developing";
 
 app.setName(APP_DISPLAY_NAME);
 

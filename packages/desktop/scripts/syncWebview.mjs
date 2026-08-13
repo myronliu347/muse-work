@@ -71,7 +71,7 @@ const html = `<!DOCTYPE html>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${CSP}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Muse Work</title>
+  <title>Muse</title>
   <style>
 ${darkThemeCss}
 ${lightThemeCss}

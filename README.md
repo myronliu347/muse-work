@@ -1,13 +1,13 @@
-# Muse Work
+# Muse
 
-Muse Work 是一个 pnpm monorepo：精简 Electron 壳 + 本地 HTTP/WS server（包装 `wave-agent-sdk`）+ 可插拔 Provider（CodeMaker + OpenAI 兼容），支持多 model 选择与本地对话。
+Muse 是一个 pnpm monorepo：精简 Electron 壳 + 本地 HTTP/WS server（包装 `wave-agent-sdk`）+ 可插拔 Provider（CodeMaker + OpenAI 兼容），支持多 model 选择与本地对话。
 
 | 包 | 职责 |
 |---|---|
 | `@muse-work/provider` | Provider 接口、凭证、签名、`providers.json` 配置 |
 | `@muse-work/server` | 会话 / 消息流 / 权限；Agent 宿主；HTTP + WebSocket API |
 | `@muse-work/webview` | 对话 UI、model 选择、登录入口（fork 自 Wave，去除平台绑定） |
-| `@muse-work/desktop` | Electron 壳：冷启动拉起 server、加载 webview（`productName`: **Muse Work**，`appId`: `com.muse.work`） |
+| `@muse-work/desktop` | Electron 壳：冷启动拉起 server、加载 webview（`productName`: **Muse**，`appId`: `com.muse.work`） |
 
 ## 要求
 
@@ -64,7 +64,7 @@ chmod +x scripts/smoke-mvp.sh
 
 ### 手工 — 冷启动与对话
 
-- [ ] `pnpm dev:desktop` 冷启动：Electron 窗口标题为 **Muse Work**，侧边栏/欢迎页无 Wave 品牌文案
+- [ ] `pnpm dev:desktop` 冷启动：Electron 窗口标题为 **Muse**，侧边栏/欢迎页无 Wave 品牌文案
 - [ ] 主进程日志出现 `server ready at http://127.0.0.1:<port>`
 - [ ] 欢迎页可见，输入框可聚焦；发送消息后 UI 有流式/完成反馈（需已登录或 OpenAI-compat 已配置）
 

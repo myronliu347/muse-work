@@ -1,13 +1,13 @@
 {
   "name": "@muse-work/desktop",
   "private": true,
-  "description": "Muse Work desktop app (Electron)",
+  "description": "Muse desktop app (Electron)",
   "version": "0.1.0",
-  "productName": "Muse Work",
+  "productName": "Muse",
   "appId": "com.muse.work",
   "build": {
     "appId": "com.muse.work",
-    "productName": "Muse Work",
+    "productName": "Muse",
     "directories": {
       "output": "release"
     },
@@ -34,7 +34,7 @@
     "mac": {
       "icon": "assets/icon.png",
       "category": "public.app-category.developer-tools",
-      "executableName": "MuseWork",
+      "executableName": "Muse",
       "target": [
         "dir"
       ],

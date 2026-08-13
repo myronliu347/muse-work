@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const DESIRED_NAME = "Muse Work developing";
+const DESIRED_NAME = "Muse developing";
 
 if (process.platform !== "darwin") {
   process.exit(0);
