@@ -1,0 +1,75 @@
+packages/webview/src/styles/MessageList.css
+  db26196a999da47a 8-10
+packages/webview/src/components/ChatApp.tsx
+  db26196a999da47a 712,878
+packages/webview/tests/muse/assistantWorkSummary.test.ts
+  db26196a999da47a 1-58
+packages/webview/src/types/index.ts
+  db26196a999da47a 390-398
+packages/webview/src/styles/Message.css
+  db26196a999da47a 45-74
+packages/webview/src/components/Message.tsx
+  db26196a999da47a 167-174,817-825,978-980
+packages/webview/src/components/MessageList.tsx
+  db26196a999da47a 11-14,19-34,84-85,224-230,233-235,306-307,380-387,390,397-398,408,412-423,427-469,486
+packages/webview/src/components/AssistantWorkSummary.tsx
+  db26196a999da47a 1-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "33edee32d4c7d4ec42d8748d5c98c601f53c4cd1",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 374,
+      "total_deletions": 39,
+      "accepted_lines": 356,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MessageList.tsx": {
+          "additions": 107,
+          "deletions": 21,
+          "accepted_lines": 103
+        },
+        "packages/webview/src/components/AssistantWorkSummary.tsx": {
+          "additions": 145,
+          "deletions": 14,
+          "accepted_lines": 131
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/Message.tsx": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/assistantWorkSummary.test.ts": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
