@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MuseApiClient,
   type MuseProvidersResponse,
 } from "../muse/apiClient";
+import { DEFAULT_SESSION_MODEL_ID } from "../muse/defaultModel";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import { MUSE_PROVIDERS_CHANGED_EVENT } from "../muse/providersEvents";
 
@@ -28,6 +29,7 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
 }) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const userDrivenRef = useRef(false);
   const client = useMemo(
     () =>
       api ??
@@ -68,7 +70,13 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
     (p) => p.id === data.active.providerId,
   );
   const models = activeProvider?.models ?? [];
-  const value = modelId ?? data?.active.modelId ?? "";
+  const value =
+    modelId ??
+    (onModelChange && !syncGlobalActive
+      ? DEFAULT_SESSION_MODEL_ID
+      : data?.active.modelId) ??
+    data?.active.modelId ??
+    "";
 
   return (
     <select
@@ -82,9 +90,28 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
           ? `当前供应商：${activeProvider.displayName}`
           : undefined)
       }
+      onMouseDown={() => {
+        userDrivenRef.current = true;
+      }}
+      onPointerDown={() => {
+        userDrivenRef.current = true;
+      }}
+      onKeyDown={() => {
+        userDrivenRef.current = true;
+      }}
+      onBlur={() => {
+        userDrivenRef.current = false;
+      }}
       onChange={(e) => {
         if (!data?.active.providerId) return;
         const nextModelId = e.target.value;
+        if (!userDrivenRef.current) {
+          // Chromium fires change with models[0] when <option>s replace the
+          // loading placeholder. Restore the controlled value.
+          e.target.value = value;
+          return;
+        }
+        userDrivenRef.current = false;
         onModelChange?.(nextModelId);
         if (syncGlobalActive || !onModelChange) {
           void client

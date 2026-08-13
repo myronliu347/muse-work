@@ -265,12 +265,57 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     await flush();
     expect(api.createSession).toHaveBeenCalledTimes(1);
     // New session clears workdir; server mints ~/.muse-work/projects/...
-    expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
+    expect(api.createSession).toHaveBeenCalledWith(undefined, {
+      model: "deepseek-v4-flash",
+    });
     expect(api.sendMessage).toHaveBeenCalledWith(
       "sess-created",
       "first message",
       undefined,
     );
+  });
+
+  it("pins deepseek-v4-flash on a new draft and createSession", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      workdir: "/Users/demo/.muse-work/projects/x",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateCurrentSession",
+        session: expect.objectContaining({
+          id: "__draft__",
+          model: "deepseek-v4-flash",
+        }),
+      }),
+    );
+
+    messages.length = 0;
+    vi.mocked(api.createSession).mockClear();
+    bridge.postMessage({ command: "sendMessage", text: "hi" });
+    await flush();
+    expect(api.createSession).toHaveBeenCalledWith(undefined, {
+      model: "deepseek-v4-flash",
+    });
   });
 
   it("abortMessage calls API and ends streaming", async () => {
@@ -402,7 +447,9 @@ describe("createHostBridge desktop workdir bootstrap", () => {
 
     bridge.postMessage({ command: "sendMessage", text: "hi" });
     await flush();
-    expect(api.createSession).toHaveBeenCalledWith("/repo/beta", undefined);
+    expect(api.createSession).toHaveBeenCalledWith("/repo/beta", {
+      model: "deepseek-v4-flash",
+    });
   });
 
   it("desktopCreateWorktree creates session in worktree then sends", async () => {
@@ -543,7 +590,9 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     bridge.postMessage({ command: "sendMessage", text: "hello new workdir" });
     await flush();
 
-    expect(api.createSession).toHaveBeenCalledWith("/new-project", undefined);
+    expect(api.createSession).toHaveBeenCalledWith("/new-project", {
+      model: "deepseek-v4-flash",
+    });
     expect(api.selectSession).toHaveBeenCalledWith("sess-new");
     expect(api.selectSession).not.toHaveBeenCalledWith("sess-foreign");
     expect(api.sendMessage).toHaveBeenCalledWith(

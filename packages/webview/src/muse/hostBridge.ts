@@ -5,6 +5,7 @@ import {
   type MuseSessionsGrouped,
 } from "./apiClient.js";
 import { MuseWsClient, type MuseWsEvent } from "./wsClient.js";
+import { DEFAULT_SESSION_MODEL_ID } from "./defaultModel.js";
 
 export interface HostBridgeOptions {
   api: MuseApiClient;
@@ -197,7 +198,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         title: DEFAULT_TITLE,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        model: draftModel,
+        model: draftModel ?? DEFAULT_SESSION_MODEL_ID,
       },
     });
   };
@@ -454,6 +455,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     // Lazy create: do not POST /sessions until the first user message.
     pendingNewSession = true;
     sessionId = null;
+    draftModel = undefined;
     resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
     if (workdir) {
@@ -805,7 +807,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
       const session = await api.createSession(
         currentWorkdir || undefined,
-        draftModel ? { model: draftModel } : undefined,
+        { model: draftModel ?? DEFAULT_SESSION_MODEL_ID },
       );
       await api.selectSession(session.id);
       sessionId = session.id;
@@ -1076,7 +1078,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       await ensureWs();
       const session = await api.createSession(created.path, {
-        model: draftModel,
+        model: draftModel ?? DEFAULT_SESSION_MODEL_ID,
         worktreeName: created.name,
         worktreeBranch: created.branch,
         baseBranch: created.baseBranch,
@@ -1178,6 +1180,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         pendingNewSession = true;
         suppressWorkdirPush = true;
         sessionId = null;
+        draftModel = undefined;
         postToWebview({ command: "updateMessages", messages: [] });
         emitWorkdirState({ clearWorkdir: true });
         emitDraftSession();
