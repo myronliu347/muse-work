@@ -1,0 +1,70 @@
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  27b6574798429c4c 78,87,109,120,152,164,193,216,244,267,297,308,334,352,385,394,420,428,470,483,513,526,552,569,605,622
+packages/server/tests/sessionRunner.test.ts
+  27b6574798429c4c 16,79,168,249,321,402,435-580
+packages/server/src/sessionRunner.ts
+  27b6574798429c4c 17-20,102,143,248-253,263,506-515
+packages/server/src/createAppContext.ts
+  27b6574798429c4c 53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "34b94c6ffd2db874d0bf54bdfbcef5f29c357c9a",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        },
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "accepted_lines": 1285
+        }
+      }
+    },
+    "27b6574798429c4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "91004444-6354-4808-9e04-36b363e3f85e",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 202,
+      "total_deletions": 14,
+      "accepted_lines": 202,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 152,
+          "accepted_lines": 152
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 26,
+          "deletions": 13,
+          "accepted_lines": 26
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 23,
+          "deletions": 1,
+          "accepted_lines": 23
+        }
+      }
+    }
+  }
+}
