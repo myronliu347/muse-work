@@ -1,0 +1,94 @@
+packages/webview/src/styles/DesktopApp.css
+  db26196a999da47a 109-178,188-189,259-273,284-287,289-290,304
+packages/webview/src/components/ChatApp.tsx
+  db26196a999da47a 39,1047-1056,1465-1468,1474-1481,1485-1490,2180,2194
+packages/webview/src/muse/panelFit.ts
+  db26196a999da47a 1-69
+packages/webview/src/components/DesktopShell.tsx
+  db26196a999da47a 623-625,640
+packages/webview/src/components/DesktopApp.tsx
+  db26196a999da47a 161-171,213
+packages/webview/src/types/index.ts
+  db26196a999da47a 276-277
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  db26196a999da47a 5-8,36,74,89-100,109-110,114-124,127-188,250
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 248-335
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 394,401-417,452-465,953-958,960,981-987
+packages/webview/src/components/DesktopSidebar.tsx
+  db26196a999da47a 1,16-19,41,54-55,59,87-122,127,132,149,158-163,171-190,204,210,226,251-284,323-329,332,335,337-338,342,348-411,463-464
+packages/webview/tests/muse/panelFit.test.ts
+  db26196a999da47a 1-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8d42001de392cb59ac8a156aaaf831cc8e14cfc4",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 706,
+      "total_deletions": 49,
+      "accepted_lines": 700,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 88,
+          "accepted_lines": 88
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 95,
+          "deletions": 5,
+          "accepted_lines": 94
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 32,
+          "deletions": 9,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "additions": 60,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 46,
+          "deletions": 6,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 199,
+          "deletions": 23,
+          "accepted_lines": 197
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 99,
+          "deletions": 6,
+          "accepted_lines": 96
+        }
+      }
+    }
+  }
+}
