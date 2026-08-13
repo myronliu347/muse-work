@@ -80,6 +80,10 @@ export interface MuseWsClientOptions {
   reconnectBackoffMs?: number;
   /** Cap for exponential backoff (default 8000ms). */
   maxReconnectBackoffMs?: number;
+  /** Interval between application pings. Default 20s; 0 disables. */
+  pingIntervalMs?: number;
+  /** Close the socket if a pong does not arrive in time. Default 10s. */
+  pongTimeoutMs?: number;
   schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
   clearSchedule?: (id: ReturnType<typeof setTimeout>) => void;
 }
@@ -109,8 +113,12 @@ export class MuseWsClient {
   private closedByUser = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private pingTimer: ReturnType<typeof setTimeout> | null = null;
+  private pongTimer: ReturnType<typeof setTimeout> | null = null;
   private status: MuseWsStatus | null = null;
   private generation = 0;
+  private readonly pingIntervalMs: number;
+  private readonly pongTimeoutMs: number;
 
   constructor(opts: MuseWsClientOptions) {
     this.wsBase = toWsBase(opts.baseUrl);
@@ -118,6 +126,10 @@ export class MuseWsClient {
     this.reconnectEnabled = opts.reconnect !== false;
     this.reconnectBackoffMs = opts.reconnectBackoffMs ?? 500;
     this.maxReconnectBackoffMs = opts.maxReconnectBackoffMs ?? 8000;
+    this.pingIntervalMs =
+      opts.pingIntervalMs ??
+      (typeof process !== "undefined" && process.env.VITEST ? 0 : 20_000);
+    this.pongTimeoutMs = opts.pongTimeoutMs ?? 10_000;
     this.schedule = opts.schedule ?? setTimeout;
     this.clearSchedule = opts.clearSchedule ?? clearTimeout;
   }
@@ -167,6 +179,7 @@ export class MuseWsClient {
   close(): void {
     this.closedByUser = true;
     this.clearReconnectTimer();
+    this.stopPing();
     this.disposeSocket();
     this.sessionId = null;
     this.emitStatus("closed");
@@ -180,9 +193,17 @@ export class MuseWsClient {
     this.socket = socket;
     socket.addEventListener("message", (ev) => {
       try {
-        const data = JSON.parse(String(ev.data)) as MuseWsEvent;
+        const data = JSON.parse(String(ev.data)) as MuseWsEvent | { type: string };
+        if (data.type === "pong") {
+          this.clearPongTimer();
+          this.armPing();
+          return;
+        }
+        if (data.type === "ping") {
+          return;
+        }
         for (const handler of this.handlers) {
-          handler(data);
+          handler(data as MuseWsEvent);
         }
       } catch {
         // ignore malformed frames
@@ -194,6 +215,7 @@ export class MuseWsClient {
         socket.removeEventListener("open", onOpen);
         socket.removeEventListener("error", onError);
         this.reconnectAttempt = 0;
+        this.armPing();
         this.emitStatus("open");
         resolve();
       };
@@ -208,6 +230,7 @@ export class MuseWsClient {
         socket.removeEventListener("open", onOpen);
         socket.removeEventListener("error", onError);
         socket.removeEventListener("close", onClose);
+        this.stopPing();
         this.socket = null;
         this.connectPromise = null;
         if (this.status !== "open") {
@@ -251,6 +274,7 @@ export class MuseWsClient {
 
   private disposeSocket(): void {
     this.generation += 1;
+    this.stopPing();
     const socket = this.socket;
     this.socket = null;
     this.connectPromise = null;
@@ -260,6 +284,51 @@ export class MuseWsClient {
     } catch {
       // ignore
     }
+  }
+
+  private armPing(): void {
+    this.clearPingTimer();
+    if (this.pingIntervalMs <= 0) return;
+    this.pingTimer = this.schedule(() => {
+      this.pingTimer = null;
+      this.sendPing();
+    }, this.pingIntervalMs);
+  }
+
+  private sendPing(): void {
+    const socket = this.socket;
+    if (!socket || socket.readyState !== this.WebSocketImpl.OPEN) return;
+    try {
+      socket.send(JSON.stringify({ type: "ping" }));
+    } catch {
+      return;
+    }
+    this.clearPongTimer();
+    this.pongTimer = this.schedule(() => {
+      this.pongTimer = null;
+      try {
+        this.socket?.close();
+      } catch {
+        // ignore
+      }
+    }, this.pongTimeoutMs);
+  }
+
+  private stopPing(): void {
+    this.clearPingTimer();
+    this.clearPongTimer();
+  }
+
+  private clearPingTimer(): void {
+    if (this.pingTimer === null) return;
+    this.clearSchedule(this.pingTimer);
+    this.pingTimer = null;
+  }
+
+  private clearPongTimer(): void {
+    if (this.pongTimer === null) return;
+    this.clearSchedule(this.pongTimer);
+    this.pongTimer = null;
   }
 
   private clearReconnectTimer(): void {

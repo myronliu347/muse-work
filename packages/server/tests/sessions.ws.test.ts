@@ -746,6 +746,41 @@ describe("sessions + websocket streaming", () => {
       .poll(() => app.ctx.store.get(session.id)?.status)
       .toBe("idle");
   });
+
+  it("replies to application ping with pong", async () => {
+    const app = await listenSessionsApp({
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        dispose: async () => {},
+      }),
+    });
+    server = app.server;
+    home = app.home;
+
+    const wsUrl = app.baseUrl.replace(/^http/, "ws") + "/ws?sessionId=*";
+    const ws = new WebSocket(wsUrl);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        ws.once("open", () => resolve());
+        ws.once("error", reject);
+      });
+
+      const pong = new Promise<WsEvent>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("pong timeout")), 2000);
+        ws.on("message", (data) => {
+          const event = JSON.parse(String(data)) as WsEvent;
+          if (event.type === "pong") {
+            clearTimeout(timer);
+            resolve(event);
+          }
+        });
+      });
+      ws.send(JSON.stringify({ type: "ping" }));
+      await expect(pong).resolves.toEqual({ type: "pong" });
+    } finally {
+      ws.close();
+    }
+  });
 });
 
 function openWsCollector(

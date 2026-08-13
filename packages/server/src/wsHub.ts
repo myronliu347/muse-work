@@ -5,6 +5,37 @@ import type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
 export type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
+export type HeartbeatSocket = {
+  readyState: number;
+  OPEN?: number;
+  isAlive?: boolean;
+  ping: () => void;
+  terminate: () => void;
+};
+
+export function sweepWsHeartbeat(sockets: HeartbeatSocket[]): void {
+  for (const ws of sockets) {
+    const open = ws.OPEN ?? 1;
+    if (ws.readyState !== open) continue;
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    try {
+      ws.ping();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export type CreateWsHubOptions = {
+  pingIntervalMs?: number;
+  schedule?: typeof setInterval;
+  clearSchedule?: typeof clearInterval;
+};
+
 export interface WsHub {
   attach(server: HttpServer): void;
   broadcast(sessionId: string, event: WsEvent): void;
@@ -12,7 +43,7 @@ export interface WsHub {
   close(): void;
 }
 
-export function createWsHub(): WsHub {
+export function createWsHub(options: CreateWsHubOptions = {}): WsHub {
   const clients = new Map<string, Set<WebSocket>>();
   let wss: WebSocketServer | undefined;
   let attachedServer: HttpServer | undefined;
@@ -20,6 +51,11 @@ export function createWsHub(): WsHub {
     | ((req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void)
     | undefined;
   let getSnapshot: (() => WsBroadcastEvent[]) | undefined;
+  const pingIntervalMs =
+    options.pingIntervalMs ?? (process.env.VITEST ? 0 : 30_000);
+  const scheduleHeartbeat = options.schedule ?? setInterval;
+  const clearHeartbeat = options.clearSchedule ?? clearInterval;
+  let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
   function sendSnapshot(sessionId: string, ws: WebSocket): void {
     const events = getSnapshot?.() ?? [];
@@ -38,6 +74,21 @@ export function createWsHub(): WsHub {
       clients.set(sessionId, set);
     }
     set.add(ws);
+    const alive = ws as WebSocket & { isAlive: boolean };
+    alive.isAlive = true;
+    ws.on("pong", () => {
+      alive.isAlive = true;
+    });
+    ws.on("message", (raw) => {
+      try {
+        const data = JSON.parse(String(raw)) as { type?: string };
+        if (data?.type === "ping" && ws.readyState === ws.OPEN) {
+          ws.send(JSON.stringify({ type: "pong" }));
+        }
+      } catch {
+        // ignore non-JSON / unrelated frames
+      }
+    });
     getLogger().info("ws connected", { sessionId, clients: set.size });
     sendSnapshot(sessionId, ws);
     ws.on("close", () => {
@@ -78,6 +129,15 @@ export function createWsHub(): WsHub {
       };
 
       server.on("upgrade", upgradeHandler);
+      if (pingIntervalMs > 0 && !heartbeatTimer) {
+        heartbeatTimer = scheduleHeartbeat(() => {
+          const sockets: HeartbeatSocket[] = [];
+          for (const set of clients.values()) {
+            sockets.push(...set);
+          }
+          sweepWsHeartbeat(sockets);
+        }, pingIntervalMs);
+      }
     },
 
     broadcast(sessionId: string, event: WsEvent): void {
@@ -101,6 +161,10 @@ export function createWsHub(): WsHub {
     },
 
     close(): void {
+      if (heartbeatTimer !== undefined) {
+        clearHeartbeat(heartbeatTimer);
+        heartbeatTimer = undefined;
+      }
       if (attachedServer && upgradeHandler) {
         attachedServer.off("upgrade", upgradeHandler);
       }

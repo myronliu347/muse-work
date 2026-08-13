@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MuseWsClient } from "../../src/muse/wsClient.js";
 
 type Listener = (ev?: { data?: string }) => void;
@@ -12,6 +12,7 @@ class MockWebSocket {
 
   readonly url: string;
   readyState = MockWebSocket.CONNECTING;
+  sent: string[] = [];
   private listeners = new Map<string, Set<Listener>>();
 
   constructor(url: string) {
@@ -44,6 +45,10 @@ class MockWebSocket {
   close(): void {
     this.readyState = MockWebSocket.CLOSED;
     this.emit("close");
+  }
+
+  send(data: string): void {
+    this.sent.push(data);
   }
 }
 
@@ -196,5 +201,67 @@ describe("MuseWsClient", () => {
     expect(MockWebSocket.instances).toHaveLength(2);
     MockWebSocket.instances[1]!.open();
     await reopened;
+  });
+
+  describe("heartbeat", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("sends ping and does not surface pong to event handlers", async () => {
+      vi.useFakeTimers();
+      const client = new MuseWsClient({
+        baseUrl: "http://127.0.0.1:8787",
+        WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+        pingIntervalMs: 15,
+        pongTimeoutMs: 50,
+      });
+      const events: unknown[] = [];
+      client.onEvent((ev) => events.push(ev));
+
+      const pending = client.connect("*");
+      const socket = MockWebSocket.instances[0]!;
+      socket.open();
+      await pending;
+
+      await vi.advanceTimersByTimeAsync(15);
+      expect(socket.sent).toEqual([JSON.stringify({ type: "ping" })]);
+
+      socket.emit("message", {
+        data: JSON.stringify({ type: "pong" }),
+      });
+      expect(events).toEqual([]);
+      client.close();
+    });
+
+    it("closes and reconnects when pong does not arrive", async () => {
+      vi.useFakeTimers();
+      const client = new MuseWsClient({
+        baseUrl: "http://127.0.0.1:8787",
+        WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+        pingIntervalMs: 15,
+        pongTimeoutMs: 20,
+        reconnectBackoffMs: 10,
+      });
+      const statuses: string[] = [];
+      client.onStatus((status) => statuses.push(status));
+
+      const pending = client.connect("*");
+      MockWebSocket.instances[0]!.open();
+      await pending;
+
+      await vi.advanceTimersByTimeAsync(15);
+      expect(MockWebSocket.instances[0]!.sent).toEqual([
+        JSON.stringify({ type: "ping" }),
+      ]);
+      expect(MockWebSocket.instances).toHaveLength(1);
+
+      await vi.advanceTimersByTimeAsync(20);
+      expect(statuses).toContain("closed");
+
+      await vi.advanceTimersByTimeAsync(10);
+      expect(MockWebSocket.instances).toHaveLength(2);
+      client.close();
+    });
   });
 });
