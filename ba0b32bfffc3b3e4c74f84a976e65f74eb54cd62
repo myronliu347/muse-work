@@ -1,0 +1,84 @@
+packages/server/src/wsEvents.ts
+  db26196a999da47a 40-46
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 676-681,685-803
+packages/server/tests/sessions.ws.test.ts
+  db26196a999da47a 327,351-433
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 51,445-448,450-451,463-468,684-687,689-694
+packages/webview/src/muse/apiClient.ts
+  db26196a999da47a 205-213,215-224,230
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 95-150,186,239,244-249,592,596-601,823-831,835-869,871-876,993-1004
+packages/server/src/routes/sessions.ts
+  db26196a999da47a 188-194,196-209,213-229
+packages/webview/src/components/ConfirmationDialog.tsx
+  db26196a999da47a 254-256,603-605,624-627
+packages/webview/src/muse/wsClient.ts
+  db26196a999da47a 23-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ba0b32bfffc3b3e4c74f84a976e65f74eb54cd62",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 455,
+      "total_deletions": 47,
+      "accepted_lines": 451,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/wsEvents.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 38,
+          "deletions": 8,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/components/ConfirmationDialog.tsx": {
+          "additions": 10,
+          "deletions": 9,
+          "accepted_lines": 10
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 23,
+          "deletions": 5,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 134,
+          "deletions": 18,
+          "accepted_lines": 133
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 88,
+          "deletions": 2,
+          "accepted_lines": 86
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 129,
+          "deletions": 3,
+          "accepted_lines": 128
+        }
+      }
+    }
+  }
+}
