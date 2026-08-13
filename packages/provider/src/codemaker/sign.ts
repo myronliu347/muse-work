@@ -39,18 +39,37 @@ export function signCanonical(canonical: string, key = getSigningKey()): string 
 }
 
 /**
+ * Fallback when `CODEMAKER_CLI_VERSION` is unset. Keep in sync with a known
+ * working CodeMaker CLI release so the gateway does not rewrite models.
+ */
+const DEFAULT_CODEMAKER_CLI_VERSION = "1.18.9-prod-0.3.70-26.8.12";
+
+/** Prefer `CODEMAKER_CLI_VERSION` env; otherwise use the bundled default. */
+export function resolveCodeMakerCliVersion(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const fromEnv = env.CODEMAKER_CLI_VERSION?.trim();
+  return fromEnv && fromEnv.length > 0
+    ? fromEnv
+    : DEFAULT_CODEMAKER_CLI_VERSION;
+}
+
+/**
  * Client identity headers mirroring CodeMaker CLI (`netease-codemaker` fetch).
  * Without both `ide` and `codemaker-version`, the gateway may rewrite the
  * requested model (e.g. deepseek-v4-flash → kimi-k2.5).
  */
-const CODEMAKER_CLI_VERSION = "1.18.9-prod-0.3.70-26.8.12";
-
-export const CODEMAKER_CLIENT_HEADERS = {
-  ide: "cli",
-  "codemaker-version": CODEMAKER_CLI_VERSION,
-  "User-Agent": `opencode/${CODEMAKER_CLI_VERSION}`,
-  mode_type: "build",
-} as const;
+export function buildCodeMakerClientHeaders(
+  env: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
+  const version = resolveCodeMakerCliVersion(env);
+  return {
+    ide: "cli",
+    "codemaker-version": version,
+    "User-Agent": `opencode/${version}`,
+    mode_type: "build",
+  };
+}
 
 export function buildCodeMakerHeaders(
   creds: CodeMakerCreds,
@@ -73,7 +92,7 @@ export function buildCodeMakerHeaders(
     "X-Nonce": parts.nonce,
     "X-Sig-Version": "v1",
     "X-Signature": signCanonical(canonical),
-    ...CODEMAKER_CLIENT_HEADERS,
+    ...buildCodeMakerClientHeaders(),
   };
 }
 

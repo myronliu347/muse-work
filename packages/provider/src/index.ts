@@ -64,9 +64,11 @@ export {
 
 export {
   buildCanonicalString,
+  buildCodeMakerClientHeaders,
   buildCodeMakerHeaders,
   createCodeMakerFetch,
   getSigningKey,
+  resolveCodeMakerCliVersion,
   signCanonical,
   tokenHashPrefix,
 } from "./codemaker/sign.js";

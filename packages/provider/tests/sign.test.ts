@@ -2,9 +2,11 @@ import { createHash, createHmac } from "node:crypto";
 import { describe, it, expect, vi } from "vitest";
 import {
   buildCanonicalString,
+  buildCodeMakerClientHeaders,
   buildCodeMakerHeaders,
   createCodeMakerFetch,
   getSigningKey,
+  resolveCodeMakerCliVersion,
   signCanonical,
 } from "../src/codemaker/sign.js";
 
@@ -56,12 +58,31 @@ describe("buildCodeMakerHeaders", () => {
     expect(headers["X-Nonce"]).toBe("abc");
     expect(headers["X-Signature"]).toMatch(/^[a-f0-9]{64}$/);
     // Match CodeMaker CLI; missing ide/codemaker-version can rewrite → kimi-k2.5.
+    const version = resolveCodeMakerCliVersion();
     expect(headers["ide"]).toBe("cli");
-    expect(headers["codemaker-version"]).toBe("1.18.9-prod-0.3.70-26.8.12");
-    expect(headers["User-Agent"]).toBe(
-      "opencode/1.18.9-prod-0.3.70-26.8.12",
-    );
+    expect(headers["codemaker-version"]).toBe(version);
+    expect(headers["User-Agent"]).toBe(`opencode/${version}`);
     expect(headers["mode_type"]).toBe("build");
+  });
+
+  it("reads CODEMAKER_CLI_VERSION from env when set", () => {
+    expect(resolveCodeMakerCliVersion({ CODEMAKER_CLI_VERSION: "9.9.9" })).toBe(
+      "9.9.9",
+    );
+    expect(
+      resolveCodeMakerCliVersion({ CODEMAKER_CLI_VERSION: "  9.9.9  " }),
+    ).toBe("9.9.9");
+    expect(resolveCodeMakerCliVersion({ CODEMAKER_CLI_VERSION: "" })).toBe(
+      "1.18.9-prod-0.3.70-26.8.12",
+    );
+    expect(buildCodeMakerClientHeaders({ CODEMAKER_CLI_VERSION: "2.0.0" })).toEqual(
+      {
+        ide: "cli",
+        "codemaker-version": "2.0.0",
+        "User-Agent": "opencode/2.0.0",
+        mode_type: "build",
+      },
+    );
   });
 
   it("matches fixed vector for known timestamp/nonce/token", () => {
@@ -111,9 +132,10 @@ describe("createCodeMakerFetch", () => {
     expect(h.get("X-Timestamp")).toMatch(/^\d+$/);
     expect(h.get("X-Nonce")).toMatch(/^[a-f0-9]{16}$/);
     expect(h.get("X-Signature")).toMatch(/^[a-f0-9]{64}$/);
+    const version = resolveCodeMakerCliVersion();
     expect(h.get("ide")).toBe("cli");
-    expect(h.get("codemaker-version")).toBe("1.18.9-prod-0.3.70-26.8.12");
-    expect(h.get("User-Agent")).toBe("opencode/1.18.9-prod-0.3.70-26.8.12");
+    expect(h.get("codemaker-version")).toBe(version);
+    expect(h.get("User-Agent")).toBe(`opencode/${version}`);
     expect(h.get("mode_type")).toBe("build");
   });
 });
