@@ -1,0 +1,30 @@
+packages/webview/src/styles/Message.css
+  f8accb8c7f9dc4ad 27,124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6eb2a53e97bbe416057ed034f17e31efe00cbde7",
+  "prompts": {
+    "f8accb8c7f9dc4ad": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c11adef6-7656-49d2-9787-2caa2f6a2cd8",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
