@@ -1,0 +1,43 @@
+packages/webview/tests/components/userMessageImages.test.tsx
+  db26196a999da47a 1-61
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 873,880-881
+packages/webview/src/components/Message.tsx
+  db26196a999da47a 725,729-753
+packages/webview/src/styles/Message.css
+  db26196a999da47a 496-526
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7042a1ea9456a32cc322dbc8ac570148e2903005",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 124,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/Message.tsx": {
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/components/userMessageImages.test.tsx": {
+          "accepted_lines": 61
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 31
+        }
+      }
+    }
+  }
+}
