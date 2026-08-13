@@ -1,8 +1,11 @@
 import { BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
+import type { ThemePreference } from "./uiPrefs.js";
 
 export type CreateMainWindowOpts = {
   serverBaseUrl: string;
+  themePreference: ThemePreference;
+  backgroundColor: string;
   /** Absolute path to preload.cjs */
   preloadPath: string;
   /** Absolute path to webview/index.html */
@@ -26,14 +29,17 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     minWidth: 720,
     minHeight: 480,
     title: opts.title ?? "Muse Work",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: opts.backgroundColor,
     icon: icon.isEmpty() ? undefined : icon,
     webPreferences: {
       preload: opts.preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      additionalArguments: [`--muse-server-url=${opts.serverBaseUrl}`],
+      additionalArguments: [
+        `--muse-server-url=${opts.serverBaseUrl}`,
+        `--muse-theme-preference=${opts.themePreference}`,
+      ],
     },
   });
 

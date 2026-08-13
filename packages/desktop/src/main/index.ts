@@ -9,6 +9,8 @@ import { app, BrowserWindow, nativeImage } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
+import { installThemeHost } from "./themeHost";
+import { windowBackgroundFor } from "./uiPrefs";
 import { createMainWindow, desktopPaths } from "./window";
 import { installWorkdirHost, type WorkdirHost } from "./workdirHost";
 
@@ -50,6 +52,7 @@ let mainWindow: BrowserWindow | null = null;
 let stopServer: (() => Promise<void>) | null = null;
 let serverBaseUrl: string | null = null;
 let workdirHost: WorkdirHost | null = null;
+let themeHost: ReturnType<typeof installThemeHost> | null = null;
 
 function resolveDesktopPaths() {
   return desktopPaths(__dirname, {
@@ -59,10 +62,12 @@ function resolveDesktopPaths() {
 }
 
 function openMainWindow(): void {
-  if (!serverBaseUrl) return;
+  if (!serverBaseUrl || !themeHost) return;
   const paths = resolveDesktopPaths();
   mainWindow = createMainWindow({
     serverBaseUrl,
+    themePreference: themeHost.preference,
+    backgroundColor: windowBackgroundFor(themeHost.effective),
     preloadPath: paths.preloadPath,
     webviewHtmlPath: paths.webviewHtmlPath,
     title: APP_DISPLAY_NAME,
@@ -104,6 +109,9 @@ if (!gotLock) {
       getWindow: () => mainWindow,
       defaultWorkdir: process.cwd(),
     });
+    themeHost = installThemeHost({
+      getWindow: () => mainWindow,
+    });
 
     const paths = resolveDesktopPaths();
 
@@ -135,6 +143,8 @@ if (!gotLock) {
   app.on("before-quit", () => {
     workdirHost?.dispose();
     workdirHost = null;
+    themeHost?.dispose();
+    themeHost = null;
     void stopServer?.();
   });
 }

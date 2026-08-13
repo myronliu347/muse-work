@@ -20,6 +20,26 @@ contextBridge.exposeInMainWorld("__MUSE_SERVER_URL__", serverBaseUrl);
 contextBridge.exposeInMainWorld("waveHostType", "desktop");
 contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
 
+function readArg(prefix: string): string | undefined {
+  const arg = process.argv.find((a) => a.startsWith(prefix));
+  return arg ? arg.slice(prefix.length) : undefined;
+}
+
+const themePreference = readArg("--muse-theme-preference=") ?? "system";
+contextBridge.exposeInMainWorld("__MUSE_THEME_PREFERENCE__", themePreference);
+
+function applyBootTheme(): void {
+  const dark =
+    themePreference === "dark" ||
+    (themePreference === "system" &&
+      globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches);
+  const effective =
+    themePreference === "light" ? "light" : dark ? "dark" : "light";
+  document.documentElement?.setAttribute("data-theme", effective);
+}
+applyBootTheme();
+document.addEventListener("DOMContentLoaded", applyBootTheme);
+
 const FROM_WEBVIEW = "muse:from-webview";
 const TO_WEBVIEW = "muse:to-webview";
 
