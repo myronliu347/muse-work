@@ -1,6 +1,34 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 
+export type MuseServerLifecycle =
+  | {
+      state: "restarting";
+      restart: number;
+      maxRestarts: number;
+      code: number | null;
+      signal: NodeJS.Signals | null;
+    }
+  | {
+      state: "ready";
+      restart: number;
+      maxRestarts: number;
+      port: number;
+      host: string;
+    }
+  | {
+      state: "failed";
+      restart: number;
+      maxRestarts: number;
+      error: string;
+    }
+  | {
+      state: "dead";
+      maxRestarts: number;
+      code: number | null;
+      signal: NodeJS.Signals | null;
+    };
+
 export type StartMuseServerOpts = {
   entry: string;
   host?: string;
@@ -13,6 +41,7 @@ export type StartMuseServerOpts = {
   /** Override node binary (tests / custom PATH). */
   nodeBinary?: string;
   env?: NodeJS.ProcessEnv;
+  onLifecycle?: (event: MuseServerLifecycle) => void;
 };
 
 export type MuseServerHandle = {
@@ -174,6 +203,12 @@ export async function startMuseServer(
                 console.error(
                   `[muse-desktop] server exited (code=${code} signal=${signal}); max restarts reached`,
                 );
+                opts.onLifecycle?.({
+                  state: "dead",
+                  maxRestarts,
+                  code,
+                  signal,
+                });
                 return;
               }
               restarts += 1;
@@ -181,12 +216,32 @@ export async function startMuseServer(
               console.error(
                 `[muse-desktop] server exited (code=${code} signal=${signal}); restart ${restarts}/${maxRestarts} in ${delay}ms`,
               );
+              opts.onLifecycle?.({
+                state: "restarting",
+                restart: restarts,
+                maxRestarts,
+                code,
+                signal,
+              });
               await wait(delay);
               if (stopping) return;
               try {
-                await spawnOnce();
+                const next = await spawnOnce();
+                opts.onLifecycle?.({
+                  state: "ready",
+                  restart: restarts,
+                  maxRestarts,
+                  port: next.port,
+                  host: next.host,
+                });
               } catch (err) {
                 console.error("[muse-desktop] server restart failed:", err);
+                opts.onLifecycle?.({
+                  state: "failed",
+                  restart: restarts,
+                  maxRestarts,
+                  error: err instanceof Error ? err.message : String(err),
+                });
               }
             })();
           }

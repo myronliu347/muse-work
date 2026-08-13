@@ -52,4 +52,49 @@ describe("startMuseServer", () => {
     await handle.stop();
     fs.rmSync(marker, { force: true });
   });
+
+  it("emits restarting then ready lifecycle events after a crash", async () => {
+    const marker = path.join(os.tmpdir(), `muse-crash-life-${process.pid}.log`);
+    fs.rmSync(marker, { force: true });
+    const events: Array<{ state: string; restart?: number }> = [];
+
+    const handle = await startMuseServer({
+      entry: path.join(__dirname, "fixtures", "crash-restart-server.mjs"),
+      restartBackoffMs: 10,
+      readyTimeoutMs: 5000,
+      env: { ...process.env, CRASH_RESTART_MARKER: marker },
+      onLifecycle: (event) => {
+        events.push(event);
+      },
+    });
+
+    await expect
+      .poll(() => events.some((e) => e.state === "ready"))
+      .toBe(true);
+
+    expect(events.map((e) => e.state)).toEqual(["restarting", "ready"]);
+    expect(events[0]).toMatchObject({ state: "restarting", restart: 1 });
+    expect(events[1]).toMatchObject({ state: "ready", restart: 1, port: 19191 });
+
+    await handle.stop();
+    fs.rmSync(marker, { force: true });
+  });
+
+  it("emits dead when max restarts is zero", async () => {
+    const events: Array<{ state: string }> = [];
+    const handle = await startMuseServer({
+      entry: path.join(__dirname, "fixtures", "crash-restart-server.mjs"),
+      maxRestarts: 0,
+      restartBackoffMs: 10,
+      readyTimeoutMs: 5000,
+      onLifecycle: (event) => {
+        events.push(event);
+      },
+    });
+
+    await expect.poll(() => events.some((e) => e.state === "dead")).toBe(true);
+    expect(events.map((e) => e.state)).toEqual(["dead"]);
+
+    await handle.stop();
+  });
 });

@@ -12,7 +12,7 @@ import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
 import { createMainWindow, desktopPaths } from "./window";
-import { installWorkdirHost, type WorkdirHost } from "./workdirHost";
+import { installWorkdirHost, TO_WEBVIEW, type WorkdirHost } from "./workdirHost";
 
 function adoptLoginShellPath(): void {
   if (process.platform === "win32") return;
@@ -115,7 +115,15 @@ if (!gotLock) {
     const paths = resolveDesktopPaths();
 
     try {
-      const server = await startMuseServer({ entry: paths.serverEntry });
+      const server = await startMuseServer({
+        entry: paths.serverEntry,
+        onLifecycle: (event) => {
+          mainWindow?.webContents.send(TO_WEBVIEW, {
+            command: "museServerLifecycle",
+            ...event,
+          });
+        },
+      });
       stopServer = server.stop;
       serverBaseUrl = museServerBaseUrl(server.port, server.host);
       console.log(`[muse-desktop] server ready at ${serverBaseUrl}`);

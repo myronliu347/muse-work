@@ -105,4 +105,96 @@ describe("MuseWsClient", () => {
     });
     expect(events).toEqual([{ type: "message:delta", text: "hi" }]);
   });
+
+  it("reconnects after close and keeps delivering events", async () => {
+    const queued: Array<() => void> = [];
+    const statuses: string[] = [];
+    const client = new MuseWsClient({
+      baseUrl: "http://127.0.0.1:8787",
+      WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+      reconnectBackoffMs: 10,
+      schedule: (fn) => {
+        queued.push(fn);
+        return queued.length as unknown as ReturnType<typeof setTimeout>;
+      },
+      clearSchedule: () => {
+        queued.length = 0;
+      },
+    });
+    const events: unknown[] = [];
+    client.onEvent((ev) => events.push(ev));
+    client.onStatus((status) => statuses.push(status));
+
+    const pending = client.connect("sess-1");
+    MockWebSocket.instances[0]!.open();
+    await pending;
+    expect(statuses).toEqual(["open"]);
+
+    MockWebSocket.instances[0]!.close();
+    expect(statuses).toContain("closed");
+    expect(queued).toHaveLength(1);
+
+    queued.shift()!();
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    MockWebSocket.instances[1]!.open();
+    await Promise.resolve();
+    expect(statuses.at(-1)).toBe("open");
+
+    MockWebSocket.instances[1]!.emit("message", {
+      data: JSON.stringify({ type: "loading", loading: true }),
+    });
+    expect(events).toEqual([{ type: "loading", loading: true }]);
+  });
+
+  it("close() stops reconnect attempts", async () => {
+    const queued: Array<() => void> = [];
+    const client = new MuseWsClient({
+      baseUrl: "http://127.0.0.1:8787",
+      WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+      schedule: (fn) => {
+        queued.push(fn);
+        return queued.length as unknown as ReturnType<typeof setTimeout>;
+      },
+      clearSchedule: () => {
+        queued.length = 0;
+      },
+    });
+
+    const pending = client.connect("*");
+    MockWebSocket.instances[0]!.open();
+    await pending;
+
+    client.close();
+    MockWebSocket.instances[0]!.close();
+    expect(queued).toHaveLength(0);
+  });
+
+  it("reconnectNow opens immediately without waiting for backoff", async () => {
+    const queued: Array<() => void> = [];
+    const client = new MuseWsClient({
+      baseUrl: "http://127.0.0.1:8787",
+      WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+      reconnectBackoffMs: 10_000,
+      schedule: (fn) => {
+        queued.push(fn);
+        return queued.length as unknown as ReturnType<typeof setTimeout>;
+      },
+      clearSchedule: () => {
+        queued.length = 0;
+      },
+    });
+
+    const pending = client.connect("*");
+    MockWebSocket.instances[0]!.open();
+    await pending;
+    MockWebSocket.instances[0]!.close();
+    expect(queued).toHaveLength(1);
+
+    const reopened = client.reconnectNow();
+    expect(queued).toHaveLength(0);
+    expect(MockWebSocket.instances).toHaveLength(2);
+    MockWebSocket.instances[1]!.open();
+    await reopened;
+  });
 });

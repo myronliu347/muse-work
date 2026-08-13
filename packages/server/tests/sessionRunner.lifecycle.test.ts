@@ -407,4 +407,95 @@ describe("sessionRunner lifecycle", () => {
     // Retry arm from skipped TTL should destroy once idle again.
     await expect.poll(() => disposeCount).toBe(1);
   });
+
+  it("snapshotEvents includes running status and loading for an in-flight turn", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    const hang = Promise.withResolvers<void>();
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {
+          opts.callbacks?.onLoadingChange?.(true);
+          await hang.promise;
+        },
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-snap",
+      }),
+    });
+
+    void runner.sendMessage(session.id, "hello");
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+    await expect
+      .poll(() =>
+        runner.snapshotEvents().some(
+          (e) => e.type === "loading" && e.loading === true,
+        ),
+      )
+      .toBe(true);
+
+    const snap = runner.snapshotEvents();
+    expect(snap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "session:status",
+          status: "running",
+          sessionId: session.id,
+        }),
+        expect.objectContaining({
+          type: "loading",
+          loading: true,
+          sessionId: session.id,
+        }),
+      ]),
+    );
+    hang.resolve();
+  });
+
+  it("snapshotEvents includes a pending permission request", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    const permissionSeen = Promise.withResolvers<void>();
+    const original = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      if (event.type === "permission:request") permissionSeen.resolve();
+      return original(sessionId, event);
+    };
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {
+          await opts.canUseTool?.({
+            toolName: "Bash",
+            permissionMode: "default",
+            toolInput: { command: "ls" },
+          });
+        },
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-perm",
+      }),
+    });
+
+    void runner.sendMessage(session.id, "run ls");
+    await permissionSeen.promise;
+
+    const snap = runner.snapshotEvents();
+    expect(snap.some((e) => e.type === "permission:request")).toBe(true);
+    const perm = snap.find((e) => e.type === "permission:request");
+    expect(perm).toMatchObject({
+      type: "permission:request",
+      sessionId: session.id,
+      toolName: "Bash",
+    });
+  });
 });

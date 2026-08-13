@@ -657,6 +657,59 @@ describe("sessions + websocket streaming", () => {
       received.some((e) => e.type === "session:status" && e.status === "error"),
     ).toBe(true);
   });
+
+  it("new WS client receives runtime snapshot for a running session", async () => {
+    const hang = Promise.withResolvers<void>();
+    const createAgent: CreateAgent = async (opts) => ({
+      sendMessage: async () => {
+        opts.callbacks?.onLoadingChange?.(true);
+        await hang.promise;
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    void fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("running");
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 2,
+      filter: (e) => e.type === "session:status" || e.type === "loading",
+    });
+    await ready;
+    const received = await events;
+    expect(received).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "session:status",
+          status: "running",
+          sessionId: session.id,
+        }),
+        expect.objectContaining({
+          type: "loading",
+          loading: true,
+          sessionId: session.id,
+        }),
+      ]),
+    );
+    hang.resolve();
+  });
 });
 
 function openWsCollector(

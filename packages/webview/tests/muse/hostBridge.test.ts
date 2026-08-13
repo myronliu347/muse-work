@@ -51,7 +51,10 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
 function stubWs(): MuseWsClient {
   return {
     onEvent: vi.fn(),
+    onStatus: vi.fn(() => () => {}),
     connect: vi.fn(async () => {}),
+    reconnectNow: vi.fn(async () => {}),
+    close: vi.fn(),
   } as unknown as MuseWsClient;
 }
 
@@ -1302,6 +1305,189 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         session: expect.objectContaining({
           id: "sess-active",
           model: "m2",
+        }),
+      }),
+    );
+  });
+});
+
+describe("createHostBridge reconnect", () => {
+  const messages: unknown[] = [];
+  let nativeDispatch: typeof window.dispatchEvent;
+
+  beforeEach(() => {
+    messages.length = 0;
+    nativeDispatch = window.dispatchEvent.bind(window);
+    vi.spyOn(window, "dispatchEvent").mockImplementation((event) => {
+      if (event instanceof MessageEvent) {
+        messages.push(event.data);
+        const data = event.data as { command?: string } | null;
+        if (
+          data &&
+          typeof data === "object" &&
+          (data.command === "desktopWorkdirState" ||
+            data.command === "museServerLifecycle")
+        ) {
+          return nativeDispatch(event);
+        }
+      }
+      return true;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function stubWsStatus(): {
+    ws: MuseWsClient;
+    emitStatus: (status: "open" | "closed" | "reconnecting") => void;
+  } {
+    let statusHandler:
+      | ((status: "open" | "closed" | "reconnecting") => void)
+      | undefined;
+    const ws = {
+      onEvent: vi.fn(() => () => {}),
+      onStatus: vi.fn((h: (status: "open" | "closed" | "reconnecting") => void) => {
+        statusHandler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+      reconnectNow: vi.fn(async () => {}),
+      close: vi.fn(),
+    } as unknown as MuseWsClient;
+    return {
+      ws,
+      emitStatus: (status) => statusHandler?.(status),
+    };
+  }
+
+  it("reloads messages and ends streaming when WS reopens on an idle session", async () => {
+    const { ws, emitStatus } = stubWsStatus();
+    const api = stubApi();
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    expect(api.getMessages).toHaveBeenCalledTimes(1);
+
+    emitStatus("open");
+    await flush();
+    expect(api.getMessages).toHaveBeenCalledTimes(1);
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({ id: "muse-server" }),
+      }),
+    );
+
+    messages.length = 0;
+    emitStatus("closed");
+    await flush();
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          id: "muse-server",
+          message: "连接已断开，正在重连…",
+        }),
+      }),
+    );
+
+    vi.mocked(api.getMessages).mockClear();
+    vi.mocked(api.listSessionsGrouped).mockClear();
+    messages.length = 0;
+    emitStatus("open");
+    await flush();
+
+    expect(api.getMessages).toHaveBeenCalledWith("sess-active");
+    expect(api.listSessionsGrouped).toHaveBeenCalled();
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          id: "muse-server",
+          message: "已重新连接",
+        }),
+      }),
+    );
+    expect(messages).toContainEqual({ command: "endStreaming" });
+  });
+
+  it("keeps streaming when reconnected session is still running", async () => {
+    const { ws, emitStatus } = stubWsStatus();
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [{ ...baseSession, status: "running" as const }],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    emitStatus("open");
+    messages.length = 0;
+    emitStatus("closed");
+    emitStatus("open");
+    await flush();
+
+    expect(messages).not.toContainEqual({ command: "endStreaming" });
+    expect(api.getMessages).toHaveBeenCalledWith("sess-active");
+  });
+
+  it("shows a persistent toast and stops streaming when the local server is dead", async () => {
+    const { ws } = stubWsStatus();
+    const api = stubApi();
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    nativeDispatch(
+      new MessageEvent("message", {
+        data: { command: "museServerLifecycle", state: "dead" },
+      }),
+    );
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          id: "muse-server",
+          message: "本地服务无法恢复，请重启应用",
+        }),
+      }),
+    );
+    expect(messages).toContainEqual({ command: "endStreaming" });
+  });
+
+  it("reconnects immediately when desktop reports the server is ready again", async () => {
+    const { ws } = stubWsStatus();
+    const api = stubApi();
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.getMessages).mockClear();
+    messages.length = 0;
+
+    nativeDispatch(
+      new MessageEvent("message", {
+        data: { command: "museServerLifecycle", state: "ready" },
+      }),
+    );
+    await flush();
+
+    expect(ws.reconnectNow).toHaveBeenCalled();
+    expect(api.getMessages).toHaveBeenCalledWith("sess-active");
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          id: "muse-server",
+          message: "本地服务已恢复",
         }),
       }),
     );

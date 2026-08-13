@@ -8,6 +8,7 @@ export type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 export interface WsHub {
   attach(server: HttpServer): void;
   broadcast(sessionId: string, event: WsEvent): void;
+  setSnapshotProvider(provider: () => WsBroadcastEvent[]): void;
   close(): void;
 }
 
@@ -18,6 +19,17 @@ export function createWsHub(): WsHub {
   let upgradeHandler:
     | ((req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void)
     | undefined;
+  let getSnapshot: (() => WsBroadcastEvent[]) | undefined;
+
+  function sendSnapshot(sessionId: string, ws: WebSocket): void {
+    const events = getSnapshot?.() ?? [];
+    for (const event of events) {
+      if (sessionId !== "*" && event.sessionId !== sessionId) continue;
+      if (ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify(event));
+      }
+    }
+  }
 
   function addClient(sessionId: string, ws: WebSocket): void {
     let set = clients.get(sessionId);
@@ -27,6 +39,7 @@ export function createWsHub(): WsHub {
     }
     set.add(ws);
     getLogger().info("ws connected", { sessionId, clients: set.size });
+    sendSnapshot(sessionId, ws);
     ws.on("close", () => {
       set!.delete(ws);
       getLogger().info("ws disconnected", {
@@ -40,6 +53,10 @@ export function createWsHub(): WsHub {
   }
 
   return {
+    setSnapshotProvider(provider: () => WsBroadcastEvent[]): void {
+      getSnapshot = provider;
+    },
+
     attach(server: HttpServer): void {
       if (wss) {
         return;

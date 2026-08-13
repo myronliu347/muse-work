@@ -53,6 +53,7 @@ export function createSessionServices(
     createAgent: options.createAgent,
     idleTtlMs: options.idleTtlMs,
   });
+  hub.setSnapshotProvider(() => runner.snapshotEvents());
   return { store, hub, runner };
 }
 

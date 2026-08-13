@@ -5,7 +5,7 @@ import {
   type ProviderRegistry,
 } from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
-import type { WsHub } from "./wsHub.js";
+import type { WsBroadcastEvent, WsEvent, WsHub } from "./wsHub.js";
 import { getLogger } from "./logger.js";
 import {
   patchAgentSystemPrompt,
@@ -70,6 +70,8 @@ export interface SessionRunner {
    * agents with the current provider gateway settings.
    */
   invalidateAgentIdentities(): void;
+  /** Runtime events a newly connected WS client should replay. */
+  snapshotEvents(): WsBroadcastEvent[];
 }
 
 interface QueuedTurn {
@@ -80,6 +82,7 @@ interface QueuedTurn {
 interface PendingPermission {
   sessionId: string;
   resolve: (decision: PermissionDecision) => void;
+  request: Extract<WsEvent, { type: "permission:request" }>;
 }
 
 export interface CreateSessionRunnerOptions {
@@ -584,11 +587,7 @@ export function createSessionRunner(
             ? `${context.toolName}: ${safeJson(toolInput)}`
             : `Request to use ${context.toolName}`;
 
-        const decisionPromise = new Promise<PermissionDecision>((resolve) => {
-          pending.set(permissionId, { sessionId, resolve });
-        });
-
-        hub.broadcast(sessionId, {
+        const request: Extract<WsEvent, { type: "permission:request" }> = {
           type: "permission:request",
           permissionId,
           toolName: context.toolName,
@@ -599,7 +598,12 @@ export function createSessionRunner(
           hidePersistentOption: context.hidePersistentOption,
           permissionMode: context.permissionMode,
           toolCallId: context.toolCallId,
+        };
+        const decisionPromise = new Promise<PermissionDecision>((resolve) => {
+          pending.set(permissionId, { sessionId, resolve, request });
         });
+
+        hub.broadcast(sessionId, request);
 
         return decisionPromise;
       },
@@ -940,6 +944,38 @@ export function createSessionRunner(
 
     invalidateAgentIdentities() {
       agentIdentities.clear();
+    },
+
+    snapshotEvents() {
+      const events: WsBroadcastEvent[] = [];
+      for (const session of store.list()) {
+        if (disposed.has(session.id)) continue;
+        const loadingNow = agentLoading.get(session.id) === true;
+        const pendingReq = [...pending.values()].find(
+          (entry) => entry.sessionId === session.id,
+        );
+        if (session.status === "idle" && !loadingNow && !pendingReq) {
+          continue;
+        }
+        if (session.status !== "idle") {
+          events.push({
+            type: "session:status",
+            status: session.status,
+            sessionId: session.id,
+          });
+        }
+        if (loadingNow) {
+          events.push({
+            type: "loading",
+            loading: true,
+            sessionId: session.id,
+          });
+        }
+        if (pendingReq) {
+          events.push({ ...pendingReq.request, sessionId: session.id });
+        }
+      }
+      return events;
     },
   };
 }

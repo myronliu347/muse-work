@@ -4,7 +4,7 @@ import {
   type MuseSession,
   type MuseSessionsGrouped,
 } from "./apiClient.js";
-import { MuseWsClient, type MuseWsEvent } from "./wsClient.js";
+import { MuseWsClient, type MuseWsEvent, type MuseWsStatus } from "./wsClient.js";
 import { DEFAULT_SESSION_MODEL_ID } from "./defaultModel.js";
 
 export interface HostBridgeOptions {
@@ -182,6 +182,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let bootstrapped = false;
   let loading = false;
   let wsConnected = false;
+  let wsEverOpened = false;
   let pinned: TreeSession[] = [];
   let recent: TreeSession[] = [];
   const titledSessions = new Set<string>();
@@ -281,6 +282,39 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     knownAssistantIds.clear();
     loading = false;
     postToWebview({ command: "endStreaming" });
+  };
+
+  const showServerToast = (message: string): void => {
+    postToWebview({
+      command: "showToast",
+      toast: { id: "muse-server", message },
+    });
+  };
+
+  const resyncAfterReconnect = async (): Promise<void> => {
+    try {
+      const grouped = await refreshTree();
+      const runningIds = new Set(
+        [...grouped.pinned, ...grouped.recent]
+          .filter((s) => s.status === "running")
+          .map((s) => s.id),
+      );
+      for (const id of [...pendingPermissions.keys()]) {
+        if (!runningIds.has(id)) pendingPermissions.delete(id);
+      }
+      for (const session of [...grouped.pinned, ...grouped.recent]) {
+        if (!runningIds.has(session.id)) {
+          patchTreeSession(session.id, { waitingConfirmation: false });
+        }
+      }
+      if (!sessionId || pendingNewSession) return;
+      await loadMessages(sessionId);
+      if (!runningIds.has(sessionId)) {
+        resetChatStreaming();
+      }
+    } catch {
+      // Server may still be down; leave UI as-is until the next attempt.
+    }
   };
 
   const ensureAssistantMessage = (
@@ -393,6 +427,28 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         } else {
           pending.resolve({ ok: false, error: "创建 worktree 返回不完整" });
         }
+      }
+      return;
+    }
+    if (message?.command === "museServerLifecycle") {
+      const state = (message as { state?: string }).state;
+      if (state === "restarting") {
+        showServerToast("本地服务已退出，正在重新拉起…");
+        return;
+      }
+      if (state === "ready") {
+        showServerToast("本地服务已恢复");
+        void (async () => {
+          await (typeof ws.reconnectNow === "function"
+            ? ws.reconnectNow()
+            : ws.connect("*"));
+          await resyncAfterReconnect();
+        })();
+        return;
+      }
+      if (state === "dead" || state === "failed") {
+        showServerToast("本地服务无法恢复，请重启应用");
+        resetChatStreaming();
       }
       return;
     }
@@ -780,6 +836,19 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   };
 
   ws.onEvent(emitWs);
+  ws.onStatus?.((status: MuseWsStatus) => {
+    if (status === "closed") {
+      showServerToast("连接已断开，正在重连…");
+      return;
+    }
+    if (status !== "open") return;
+    if (!wsEverOpened) {
+      wsEverOpened = true;
+      return;
+    }
+    showServerToast("已重新连接");
+    void resyncAfterReconnect();
+  });
 
   async function ensureSession(): Promise<string> {
     await ensureWs();
