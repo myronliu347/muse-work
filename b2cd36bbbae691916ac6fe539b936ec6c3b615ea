@@ -1,0 +1,37 @@
+packages/webview/src/components/MuseProviderSettings.tsx
+  21872a0b403a5da4 11-16,26,295-296,299,301-309,311-315,350,355-357,359,368-369,377-379,392-398,406,415-417
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  21872a0b403a5da4 5,12,14-24,83-92,100,118,121,127-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b2cd36bbbae691916ac6fe539b936ec6c3b615ea",
+  "prompts": {
+    "21872a0b403a5da4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "519b54b1-a55a-4f5e-a498-65957ed0238b",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 77,
+      "total_deletions": 58,
+      "accepted_lines": 77,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 31,
+          "deletions": 5,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/MuseProviderSettings.tsx": {
+          "additions": 46,
+          "deletions": 53,
+          "accepted_lines": 46
+        }
+      }
+    }
+  }
+}
