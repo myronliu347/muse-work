@@ -1,0 +1,114 @@
+packages/provider/providers.json.example
+  db26196a999da47a 8-9
+packages/provider/src/index.ts
+  db26196a999da47a 25-29
+packages/provider/src/configStore.ts
+  db26196a999da47a 7-9,13,18-20
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  db26196a999da47a 170-217
+packages/webview/src/components/MuseProviderSettings.tsx
+  db26196a999da47a 28-30,251
+packages/provider/tests/configStore.test.ts
+  db26196a999da47a 6,23-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4dc5263b9f174272c5ee1971a6ec6bd8cf832229",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 553,
+      "total_deletions": 253,
+      "accepted_lines": 553,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/imageTagConsistency.test.tsx": {
+          "additions": 38,
+          "deletions": 49,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/components/messageInput.pasteImages.test.tsx": {
+          "additions": 168,
+          "accepted_lines": 168
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 21,
+          "deletions": 75,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/AttachedImages.tsx": {
+          "additions": 13,
+          "deletions": 35,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/MuseProviderSettings.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/AttachedImages.css": {
+          "additions": 30,
+          "deletions": 68,
+          "accepted_lines": 30
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/provider/tests/configStore.test.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 27,
+          "deletions": 4,
+          "accepted_lines": 27
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 44,
+          "deletions": 11,
+          "accepted_lines": 44
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 48,
+          "accepted_lines": 48
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 38,
+          "deletions": 4,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/provider/providers.json.example": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        }
+      }
+    }
+  }
+}
