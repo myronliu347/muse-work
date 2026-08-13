@@ -5,7 +5,7 @@
  * server base URL injected via preload (`window.museServerBaseUrl`).
  */
 
-import { app, BrowserWindow, nativeImage } from "electron";
+import { app, BrowserWindow, nativeImage, powerMonitor } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
@@ -50,6 +50,7 @@ if (!app.isPackaged) {
 
 let mainWindow: BrowserWindow | null = null;
 let stopServer: (() => Promise<void>) | null = null;
+let serverHandle: Awaited<ReturnType<typeof startMuseServer>> | null = null;
 let serverBaseUrl: string | null = null;
 let workdirHost: WorkdirHost | null = null;
 let themeHost: ReturnType<typeof installThemeHost> | null = null;
@@ -73,6 +74,24 @@ function openMainWindow(): void {
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+}
+
+async function recoverAfterResume(): Promise<void> {
+  if (!serverHandle || !serverBaseUrl) return;
+  const healthy = await serverHandle.probeHealth();
+  if (!healthy) {
+    serverHandle.killUnhealthy();
+    return;
+  }
+  try {
+    await fetch(`${serverBaseUrl}/control/resume`, { method: "POST" });
+  } catch {
+    // Server may still be coming back; WS reconnect below is best-effort.
+  }
+  mainWindow?.webContents.send(TO_WEBVIEW, {
+    command: "museServerLifecycle",
+    state: "resume",
   });
 }
 
@@ -125,9 +144,14 @@ if (!gotLock) {
         },
       });
       stopServer = server.stop;
+      serverHandle = server;
       serverBaseUrl = museServerBaseUrl(server.port, server.host);
       console.log(`[muse-desktop] server ready at ${serverBaseUrl}`);
       openMainWindow();
+
+      powerMonitor.on("resume", () => {
+        void recoverAfterResume();
+      });
     } catch (err) {
       console.error("[muse-desktop] failed to start:", err);
       app.quit();
@@ -153,5 +177,7 @@ if (!gotLock) {
     themeHost?.dispose();
     themeHost = null;
     void stopServer?.();
+    serverHandle = null;
+    serverBaseUrl = null;
   });
 }

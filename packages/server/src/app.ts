@@ -12,6 +12,7 @@ import {
   handleGetSettings,
   handlePatchSettings,
 } from "./routes/settings.js";
+import { handleControlResume } from "./routes/control.js";
 import {
   handleCodeMakerQuota,
   handleGetOpenAiCompatibleConfig,
@@ -105,6 +106,11 @@ async function routeRequest(
 
   if (method === "PATCH" && pathname === "/settings") {
     await handlePatchSettings(req, res, ctx);
+    return;
+  }
+
+  if (method === "POST" && pathname === "/control/resume") {
+    await handleControlResume(req, res, ctx);
     return;
   }
 

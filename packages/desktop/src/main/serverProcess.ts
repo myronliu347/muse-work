@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
+import { createHealthWatch, type CreateHealthWatchOpts } from "./healthWatch";
 
 export type MuseServerLifecycle =
   | {
@@ -42,12 +43,21 @@ export type StartMuseServerOpts = {
   nodeBinary?: string;
   env?: NodeJS.ProcessEnv;
   onLifecycle?: (event: MuseServerLifecycle) => void;
+  /**
+   * Poll GET /health and kill the child after consecutive failures so the
+   * existing restart path can recover a hung (but still alive) process.
+   * Default on, except under Vitest.
+   */
+  healthWatch?: boolean | Omit<CreateHealthWatchOpts, "getUrl" | "onUnhealthy">;
 };
 
 export type MuseServerHandle = {
   port: number;
   host: string;
   stop: () => Promise<void>;
+  probeHealth: () => Promise<boolean>;
+  /** SIGTERM the child without flipping `stopping`, so crash-restart still runs. */
+  killUnhealthy: () => void;
 };
 
 type ReadyPayload = {
@@ -106,6 +116,12 @@ export async function startMuseServer(
   const readyTimeoutMs = opts.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;
   const nodeBinary = resolveNodeBinary(opts.nodeBinary);
   const preferredHost = opts.host ?? "127.0.0.1";
+  const healthWatchEnabled =
+    opts.healthWatch === false
+      ? false
+      : opts.healthWatch === true || typeof opts.healthWatch === "object"
+        ? true
+        : process.env.VITEST === undefined;
 
   let child: ChildProcess | null = null;
   let stopping = false;
@@ -113,6 +129,19 @@ export async function startMuseServer(
   let currentPort = 0;
   let currentHost = preferredHost;
   let stdoutBuf = "";
+
+  const health = createHealthWatch({
+    ...(typeof opts.healthWatch === "object" ? opts.healthWatch : {}),
+    getUrl: () => `${museServerBaseUrl(currentPort, currentHost)}/health`,
+    onUnhealthy: () => {
+      if (stopping) return;
+      console.error("[muse-desktop] server health check failed; restarting");
+      health.stop();
+      if (child && child.exitCode === null && !child.killed) {
+        child.kill("SIGTERM");
+      }
+    },
+  });
 
   const stopChild = async (): Promise<void> => {
     const c = child;
@@ -223,10 +252,12 @@ export async function startMuseServer(
                 code,
                 signal,
               });
+              health.stop();
               await wait(delay);
               if (stopping) return;
               try {
                 const next = await spawnOnce();
+                if (healthWatchEnabled) health.start();
                 opts.onLifecycle?.({
                   state: "ready",
                   restart: restarts,
@@ -256,13 +287,23 @@ export async function startMuseServer(
     });
 
   const first = await spawnOnce();
+  if (healthWatchEnabled) health.start();
 
   return {
     port: first.port,
     host: first.host,
     stop: async () => {
       stopping = true;
+      health.stop();
       await stopChild();
+    },
+    probeHealth: () => health.probeNow(),
+    killUnhealthy: () => {
+      if (stopping) return;
+      health.stop();
+      if (child && child.exitCode === null && !child.killed) {
+        child.kill("SIGTERM");
+      }
     },
   };
 }

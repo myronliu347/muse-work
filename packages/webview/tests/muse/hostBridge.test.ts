@@ -1492,4 +1492,24 @@ describe("createHostBridge reconnect", () => {
       }),
     );
   });
+
+  it("resyncs after the host reports an OS resume", async () => {
+    const { ws } = stubWsStatus();
+    const api = stubApi();
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.getMessages).mockClear();
+    vi.mocked(ws.reconnectNow).mockClear();
+
+    nativeDispatch(
+      new MessageEvent("message", {
+        data: { command: "museServerLifecycle", state: "resume" },
+      }),
+    );
+    await flush();
+
+    expect(ws.reconnectNow).toHaveBeenCalled();
+    expect(api.getMessages).toHaveBeenCalledWith("sess-active");
+  });
 });

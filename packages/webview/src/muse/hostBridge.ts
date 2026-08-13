@@ -446,6 +446,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         })();
         return;
       }
+      if (state === "resume") {
+        void (async () => {
+          await (typeof ws.reconnectNow === "function"
+            ? ws.reconnectNow()
+            : ws.connect("*"));
+          await resyncAfterReconnect();
+        })();
+        return;
+      }
       if (state === "dead" || state === "failed") {
         showServerToast("本地服务无法恢复，请重启应用");
         resetChatStreaming();

@@ -710,6 +710,42 @@ describe("sessions + websocket streaming", () => {
     );
     hang.resolve();
   });
+
+  it("POST /control/resume aborts a hung running turn", async () => {
+    const hang = Promise.withResolvers<void>();
+    const createAgent: CreateAgent = async () => ({
+      sendMessage: async () => hang.promise,
+      abortMessage: () => hang.resolve(),
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    void fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("running");
+
+    const res = await fetch(`${app.baseUrl}/control/resume`, { method: "POST" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ aborted: 1 });
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+  });
 });
 
 function openWsCollector(

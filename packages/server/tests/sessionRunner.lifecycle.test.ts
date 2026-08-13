@@ -498,4 +498,94 @@ describe("sessionRunner lifecycle", () => {
       toolName: "Bash",
     });
   });
+
+  it("stall timer errors a hung turn and returns the session to idle", async () => {
+    const { store, hub, registry } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    const events: Array<{ type: string; status?: string; error?: string }> = [];
+    const original = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      events.push(event as { type: string; status?: string; error?: string });
+      return original(sessionId, event);
+    };
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      stallMs: 40,
+      createAgent: async () => ({
+        sendMessage: async () => new Promise(() => {}),
+        abortMessage: () => {},
+        dispose: async () => {},
+        sessionId: "wave-stall",
+      }),
+    });
+
+    void runner.sendMessage(session.id, "hang");
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+    expect(
+      events.some(
+        (e) =>
+          e.type === "session:status" &&
+          e.status === "error" &&
+          typeof e.error === "string" &&
+          /stalled/i.test(e.error),
+      ),
+    ).toBe(true);
+  });
+
+  it("abortRunningTurns stops in-flight sessions except permission waiters", async () => {
+    const { store, hub, registry } = setup();
+    const waiting = store.create({ workdir: "/tmp/wait", model: "m1" });
+    const running = store.create({ workdir: "/tmp/run", model: "m1" });
+    const permissionSeen = Promise.withResolvers<void>();
+    const original = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      if (event.type === "permission:request" && sessionId === waiting.id) {
+        permissionSeen.resolve();
+      }
+      return original(sessionId, event);
+    };
+
+    let agentsCreated = 0;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      stallMs: 60_000,
+      createAgent: async (opts) => {
+        agentsCreated += 1;
+        const isWaiting = agentsCreated === 1;
+        return {
+          sendMessage: async () => {
+            if (isWaiting) {
+              await opts.canUseTool?.({
+                toolName: "Bash",
+                permissionMode: "default",
+                toolInput: { command: "ls" },
+              });
+              return;
+            }
+            await new Promise(() => {});
+          },
+          abortMessage: () => {},
+          dispose: async () => {},
+        };
+      },
+    });
+
+    void runner.sendMessage(waiting.id, "need perm");
+    await permissionSeen.promise;
+    void runner.sendMessage(running.id, "hang");
+    await expect.poll(() => store.get(running.id)?.status).toBe("running");
+
+    const result = await runner.abortRunningTurns("Interrupted after sleep");
+    expect(result.aborted).toBe(1);
+    await expect.poll(() => store.get(running.id)?.status).toBe("idle");
+    expect(store.get(waiting.id)?.status).toBe("running");
+  });
 });

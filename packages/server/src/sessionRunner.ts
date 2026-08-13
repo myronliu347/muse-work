@@ -31,6 +31,8 @@ export function resolveModelDisplay(modelId: string | undefined): string {
 }
 
 export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
+/** Abort a running turn after this long with no SDK callbacks. */
+export const TURN_STALL_MS = 5 * 60 * 1000;
 const DEFAULT_TITLE = "新对话";
 const TITLE_MAX_LEN = 40;
 
@@ -72,6 +74,8 @@ export interface SessionRunner {
   invalidateAgentIdentities(): void;
   /** Runtime events a newly connected WS client should replay. */
   snapshotEvents(): WsBroadcastEvent[];
+  /** Abort running turns that are not waiting on a permission prompt. */
+  abortRunningTurns(reason: string): Promise<{ aborted: number }>;
 }
 
 interface QueuedTurn {
@@ -92,6 +96,8 @@ export interface CreateSessionRunnerOptions {
   createAgent?: CreateAgent;
   /** Idle TTL before destroying runtime (keeps store record). Default 10min. */
   idleTtlMs?: number;
+  /** Abort a running turn after this long with no SDK callbacks. Default 5min. */
+  stallMs?: number;
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
@@ -130,6 +136,7 @@ export function createSessionRunner(
   const { store, hub, registry } = options;
   const createAgent = options.createAgent ?? defaultCreateAgent;
   const idleTtlMs = options.idleTtlMs ?? AGENT_IDLE_TTL_MS;
+  const stallMs = options.stallMs ?? TURN_STALL_MS;
   const agents = new Map<string, SessionAgent>();
   /** Gateway identity used when the session agent was created (model switch → recreate). */
   const agentIdentities = new Map<string, string>();
@@ -143,6 +150,7 @@ export function createSessionRunner(
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
   const agentLoading = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const stallTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const subagentTranscripts = new Map<string, Map<string, unknown[]>>();
   const agentToolBinds = new Map<string, Map<string, string>>();
   const pendingAgentToolIds = new Map<string, string[]>();
@@ -250,6 +258,57 @@ export function createSessionRunner(
     }
   }
 
+  function clearStallTimer(sessionId: string): void {
+    const timer = stallTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      stallTimers.delete(sessionId);
+    }
+  }
+
+  function bumpActivity(sessionId: string): void {
+    clearStallTimer(sessionId);
+    if (!stallMs || stallMs <= 0) return;
+    if (disposed.has(sessionId) || store.get(sessionId)?.status !== "running") {
+      return;
+    }
+    if (hasPendingPermission(sessionId)) return;
+    const timer = setTimeout(() => {
+      stallTimers.delete(sessionId);
+      if (disposed.has(sessionId) || store.get(sessionId)?.status !== "running") {
+        return;
+      }
+      if (hasPendingPermission(sessionId)) return;
+      interruptTurn(sessionId, {
+        error: `Turn stalled after ${stallMs}ms with no activity`,
+      });
+    }, stallMs);
+    stallTimers.set(sessionId, timer);
+  }
+
+  function interruptTurn(
+    sessionId: string,
+    opts: { error?: string; denyMessage?: string } = {},
+  ): void {
+    denyPendingPermissions(
+      sessionId,
+      opts.denyMessage ?? opts.error ?? "Aborted",
+    );
+    clearStallTimer(sessionId);
+    agents.get(sessionId)?.abortMessage?.();
+    agentLoading.set(sessionId, false);
+    hub.broadcast(sessionId, { type: "loading", loading: false });
+    if (!turnEnded.get(sessionId)) {
+      hub.broadcast(sessionId, { type: "message:completed" });
+      turnEnded.set(sessionId, true);
+    }
+    if (opts.error) {
+      finishTurnError(sessionId, new Error(opts.error));
+    } else {
+      markIdle(sessionId);
+    }
+  }
+
   function hasPendingPermission(sessionId: string): boolean {
     for (const entry of pending.values()) {
       if (entry.sessionId === sessionId) {
@@ -332,6 +391,7 @@ export function createSessionRunner(
   }
 
   function markIdle(sessionId: string): void {
+    clearStallTimer(sessionId);
     if (disposed.has(sessionId) || !store.get(sessionId)) {
       return;
     }
@@ -436,6 +496,7 @@ export function createSessionRunner(
         },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
+          bumpActivity(sessionId);
           agentLoading.set(sessionId, loading);
           hub.broadcast(sessionId, { type: "loading", loading });
           // Sidebar / status must track the full agent turn (including tools),
@@ -454,12 +515,14 @@ export function createSessionRunner(
         },
         onAssistantMessageAdded: (messageId) => {
           if (disposed.has(sessionId)) return;
+          bumpActivity(sessionId);
           hub.broadcast(sessionId, { type: "assistant:message", messageId });
         },
         onAssistantContentUpdated: ({ messageId, chunk, stage }) => {
           if (disposed.has(sessionId)) {
             return;
           }
+          bumpActivity(sessionId);
           hub.broadcast(sessionId, {
             type: "message:delta",
             messageId,
@@ -486,6 +549,7 @@ export function createSessionRunner(
         },
         onToolBlockUpdated: (params) => {
           if (disposed.has(sessionId)) return;
+          bumpActivity(sessionId);
           rememberAgentTool(sessionId, params as Record<string, unknown>);
           hub.broadcast(sessionId, { type: "tool:update", params });
         },
@@ -577,6 +641,7 @@ export function createSessionRunner(
       },
       canUseTool: async (context) => {
         clearIdleTimer(sessionId);
+        clearStallTimer(sessionId);
         const permissionId = crypto.randomUUID();
         const toolInput =
           context.toolInput && typeof context.toolInput === "object"
@@ -605,7 +670,9 @@ export function createSessionRunner(
 
         hub.broadcast(sessionId, request);
 
-        return decisionPromise;
+        const decision = await decisionPromise;
+        bumpActivity(sessionId);
+        return decision;
       },
     });
 
@@ -761,6 +828,7 @@ export function createSessionRunner(
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
     agentLoading.set(sessionId, false);
+    bumpActivity(sessionId);
     getLogger().info("turn started", {
       sessionId,
       model: session.model,
@@ -854,21 +922,7 @@ export function createSessionRunner(
         });
       }
 
-      // Unblock canUseTool waiters so the in-flight turn can settle.
-      denyPendingPermissions(sessionId, "Aborted by user");
-
-      const agent = agents.get(sessionId);
-      agent?.abortMessage?.();
-
-      agentLoading.set(sessionId, false);
-      hub.broadcast(sessionId, { type: "loading", loading: false });
-      if (!turnEnded.get(sessionId)) {
-        hub.broadcast(sessionId, { type: "message:completed" });
-        turnEnded.set(sessionId, true);
-      }
-      // If the SDK already flipped loading via abort, markIdle is a no-op.
-      // If there is no agent yet (turn still creating), still clear running.
-      markIdle(sessionId);
+      interruptTurn(sessionId, { denyMessage: "Aborted by user" });
 
       return { ok: true };
     },
@@ -899,6 +953,7 @@ export function createSessionRunner(
     async disposeSession(sessionId) {
       disposed.add(sessionId);
       clearIdleTimer(sessionId);
+      clearStallTimer(sessionId);
       messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
       agentLoading.delete(sessionId);
@@ -976,6 +1031,17 @@ export function createSessionRunner(
         }
       }
       return events;
+    },
+
+    async abortRunningTurns(reason) {
+      let aborted = 0;
+      for (const session of store.list()) {
+        if (session.status !== "running") continue;
+        if (hasPendingPermission(session.id)) continue;
+        interruptTurn(session.id, { error: reason });
+        aborted += 1;
+      }
+      return { aborted };
     },
   };
 }
