@@ -329,15 +329,12 @@ export interface DesktopSessionEntry {
   unreadDone?: boolean;
 }
 
-/**
- * The resolved theme applied to the DOM via the `data-theme` attribute (FR-018).
- * The desktop host resolves the OS appearance to one of these before reaching
- * the renderer; desktop follows the OS only, no in-app preference (FR-016).
- */
 export type EffectiveTheme = "light" | "dark";
+export type ThemePreference = "system" | "light" | "dark";
 
-/** Theme snapshot pushed by the desktop host (effective only, no preference). */
 export interface ThemeState {
+  /** Present only when the in-app store owns the snapshot; host IPC may omit it. */
+  preference?: ThemePreference;
   effective: EffectiveTheme;
 }
 
