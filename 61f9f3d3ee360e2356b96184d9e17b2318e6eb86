@@ -1,0 +1,43 @@
+packages/provider/tests/sign.test.ts
+  db26196a999da47a 5,9,61,63-64,68-85,135,137-138
+packages/provider/src/index.ts
+  db26196a999da47a 67,71
+packages/provider/src/codemaker/sign.ts
+  db26196a999da47a 42-56,62-72,95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "61f9f3d3ee360e2356b96184d9e17b2318e6eb86",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 58,
+      "total_deletions": 15,
+      "accepted_lines": 58,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/codemaker/sign.ts": {
+          "additions": 28,
+          "deletions": 9,
+          "accepted_lines": 28
+        },
+        "packages/provider/tests/sign.test.ts": {
+          "additions": 28,
+          "deletions": 6,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
