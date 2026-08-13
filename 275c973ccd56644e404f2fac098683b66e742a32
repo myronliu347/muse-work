@@ -1,0 +1,35 @@
+packages/webview/src/components/ConfigDialog.tsx
+  deaee069b83b42e6 32,123,149
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  deaee069b83b42e6 73-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "275c973ccd56644e404f2fac098683b66e742a32",
+  "prompts": {
+    "deaee069b83b42e6": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4933e335-7681-4786-a04d-0b285018dd1e",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 0,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ConfigDialog.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 21,
+          "accepted_lines": 21
+        }
+      }
+    }
+  }
+}
