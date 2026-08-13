@@ -38,6 +38,20 @@ export function signCanonical(canonical: string, key = getSigningKey()): string 
   return createHmac("sha256", key).update(canonical, "utf8").digest("hex");
 }
 
+/**
+ * Client identity headers mirroring CodeMaker CLI (`netease-codemaker` fetch).
+ * Without both `ide` and `codemaker-version`, the gateway may rewrite the
+ * requested model (e.g. deepseek-v4-flash → kimi-k2.5).
+ */
+const CODEMAKER_CLI_VERSION = "1.18.9-prod-0.3.70-26.8.12";
+
+export const CODEMAKER_CLIENT_HEADERS = {
+  ide: "cli",
+  "codemaker-version": CODEMAKER_CLI_VERSION,
+  "User-Agent": `opencode/${CODEMAKER_CLI_VERSION}`,
+  mode_type: "build",
+} as const;
+
 export function buildCodeMakerHeaders(
   creds: CodeMakerCreds,
   parts: SignParts,
@@ -59,6 +73,7 @@ export function buildCodeMakerHeaders(
     "X-Nonce": parts.nonce,
     "X-Sig-Version": "v1",
     "X-Signature": signCanonical(canonical),
+    ...CODEMAKER_CLIENT_HEADERS,
   };
 }
 
@@ -98,6 +113,65 @@ export function createCodeMakerFetch(
       headers.set(key, value);
     }
 
+    // Debug: log outbound chat body model / image presence (no raw base64 dump).
+    if (process.env.MUSE_DEBUG_CODEMAKER_FETCH === "1") {
+      logOutboundBody(method, url, init?.body);
+    }
+
     return baseFetch(input, { ...init, headers });
   };
+}
+
+function bodyToString(body: BodyInit | null | undefined): string | null {
+  if (typeof body === "string") return body;
+  if (body instanceof Uint8Array) {
+    return Buffer.from(body).toString("utf8");
+  }
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(body)) {
+    return body.toString("utf8");
+  }
+  return null;
+}
+
+function logOutboundBody(
+  method: string,
+  url: URL,
+  body: BodyInit | null | undefined,
+): void {
+  const raw = bodyToString(body);
+  if (!raw) {
+    console.error(
+      `[muse-codemaker-fetch] ${method} ${url.pathname} (no string body)`,
+    );
+    return;
+  }
+  try {
+    const parsed = JSON.parse(raw) as {
+      model?: unknown;
+      messages?: unknown;
+      stream?: unknown;
+    };
+    const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+    let imageParts = 0;
+    for (const msg of messages) {
+      const content = (msg as { content?: unknown })?.content;
+      if (!Array.isArray(content)) continue;
+      for (const part of content) {
+        if (
+          part &&
+          typeof part === "object" &&
+          (part as { type?: string }).type === "image_url"
+        ) {
+          imageParts += 1;
+        }
+      }
+    }
+    console.error(
+      `[muse-codemaker-fetch] ${method} ${url.pathname} model=${String(parsed.model)} messages=${messages.length} image_url_parts=${imageParts} stream=${String(parsed.stream)} body_bytes=${Buffer.byteLength(raw)}`,
+    );
+  } catch {
+    console.error(
+      `[muse-codemaker-fetch] ${method} ${url.pathname} body_bytes=${Buffer.byteLength(raw)} (non-json)`,
+    );
+  }
 }

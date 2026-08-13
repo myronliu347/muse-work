@@ -55,6 +55,13 @@ describe("buildCodeMakerHeaders", () => {
     expect(headers["X-Timestamp"]).toBe("1");
     expect(headers["X-Nonce"]).toBe("abc");
     expect(headers["X-Signature"]).toMatch(/^[a-f0-9]{64}$/);
+    // Match CodeMaker CLI; missing ide/codemaker-version can rewrite → kimi-k2.5.
+    expect(headers["ide"]).toBe("cli");
+    expect(headers["codemaker-version"]).toBe("1.18.9-prod-0.3.70-26.8.12");
+    expect(headers["User-Agent"]).toBe(
+      "opencode/1.18.9-prod-0.3.70-26.8.12",
+    );
+    expect(headers["mode_type"]).toBe("build");
   });
 
   it("matches fixed vector for known timestamp/nonce/token", () => {
@@ -104,5 +111,9 @@ describe("createCodeMakerFetch", () => {
     expect(h.get("X-Timestamp")).toMatch(/^\d+$/);
     expect(h.get("X-Nonce")).toMatch(/^[a-f0-9]{16}$/);
     expect(h.get("X-Signature")).toMatch(/^[a-f0-9]{64}$/);
+    expect(h.get("ide")).toBe("cli");
+    expect(h.get("codemaker-version")).toBe("1.18.9-prod-0.3.70-26.8.12");
+    expect(h.get("User-Agent")).toBe("opencode/1.18.9-prod-0.3.70-26.8.12");
+    expect(h.get("mode_type")).toBe("build");
   });
 });
