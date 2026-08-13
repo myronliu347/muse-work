@@ -1,0 +1,61 @@
+/** @vitest-environment jsdom */
+import React from "react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { Message } from "../../src/components/Message";
+import type { Message as MessageType } from "../../src/types";
+
+vi.mock("../../src/styles/Message.css", () => ({}));
+
+afterEach(() => {
+  cleanup();
+  document.querySelectorAll(".image-preview-modal").forEach((el) => el.remove());
+});
+
+const TINY =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+describe("user message images", () => {
+  it("renders thumbnails for user image blocks", () => {
+    const message: MessageType = {
+      id: "u1",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [
+        { type: "image", imageUrls: [TINY, TINY] },
+        { type: "text", content: "see these" },
+      ],
+    };
+
+    render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    const block = screen.getByTestId("user-image-block");
+    expect(block.querySelectorAll("img")).toHaveLength(2);
+    expect(screen.getByText("see these")).toBeTruthy();
+  });
+
+  it("opens preview when clicking a user image thumbnail", () => {
+    const message: MessageType = {
+      id: "u2",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [{ type: "image", imageUrls: [TINY] }],
+    };
+
+    render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("user-image-block").querySelector("button")!);
+    expect(document.querySelector(".image-preview-modal")).toBeTruthy();
+    expect(document.querySelector(".image-preview-modal img")).toBeTruthy();
+  });
+});

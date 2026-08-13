@@ -493,6 +493,37 @@
   width: 16px;
   height: 16px;
 }
+.user-image-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.user-image-thumb {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 1px solid var(--gray-6, #3a3a3a);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--gray-3, #2a2a2a);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.user-image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.user-image-thumb:hover {
+  border-color: var(--accent-9, #c0392b);
+}
+
 .image-block {
   margin: 8px 0;
   display: flex;

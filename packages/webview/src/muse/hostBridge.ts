@@ -870,14 +870,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
     const userId = newId("user");
     const blocks: Array<Record<string, unknown>> = [];
-    if (text) {
-      blocks.push({ type: "text", content: text });
-    }
+    // Thumbnails first so the chat bubble matches the sender strip layout.
     if (images.length > 0) {
       blocks.push({
         type: "image",
         imageUrls: images.map((img) => img.data),
       });
+    }
+    if (text) {
+      blocks.push({ type: "text", content: text });
     }
     postToWebview({
       command: "appendMessage",

@@ -722,12 +722,35 @@ export const Message: React.FC<MessageProps> = React.memo(
     };
 
     const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
-      if (
-        !imageBlock.imageUrls ||
-        imageBlock.imageUrls.length === 0 ||
-        message.role === "user"
-      ) {
+      if (!imageBlock.imageUrls || imageBlock.imageUrls.length === 0) {
         return null;
+      }
+
+      // User paste/send path stores data URLs in image blocks (no [imageN] text
+      // placeholders). Show real thumbnails; click opens the preview modal.
+      if (message.role === "user") {
+        return (
+          <div
+            key={`image-${index}`}
+            className="user-image-block"
+            data-testid="user-image-block"
+          >
+            {imageBlock.imageUrls.map((imageUrl, imgIndex) => {
+              const name = `图片 ${imgIndex + 1}`;
+              return (
+                <button
+                  key={`img-${index}-${imgIndex}`}
+                  type="button"
+                  className="user-image-thumb"
+                  title={name}
+                  onClick={() => handleImagePreview(imageUrl, name)}
+                >
+                  <img src={imageUrl} alt={name} draggable={false} />
+                </button>
+              );
+            })}
+          </div>
+        );
       }
 
       const getImageTypeFromUrl = (url: string): string => {
