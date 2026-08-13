@@ -1,0 +1,78 @@
+packages/webview/tests/components/messageInput.pasteImages.test.tsx
+  db26196a999da47a 1-168
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 842-862,868-869,872-881,888,898-901
+packages/webview/src/components/MessageInput.tsx
+  db26196a999da47a 20,800-801,859-862,872-879,885,980-983,1036
+packages/webview/src/styles/AttachedImages.css
+  db26196a999da47a 1,6,11-12,14,16-17,20-25,29-34,36-39,41-42,47-49,52-53
+packages/server/src/routes/sessions.ts
+  db26196a999da47a 162-183,187-191
+packages/server/tests/sessionRunner.test.ts
+  db26196a999da47a 269-337
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 267-292
+packages/webview/tests/webview/imageTagConsistency.test.tsx
+  db26196a999da47a 81,86,100-101,104-108,119-123,125-132,136-137,141-146,149-151
+packages/webview/src/components/AttachedImages.tsx
+  db26196a999da47a 6-7,18,23,25-30,34,36-37
+packages/webview/src/muse/apiClient.ts
+  db26196a999da47a 235,237-243,249
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 36-37,39,51-52,54-58,74-76,104-105,115-120,136,378,733-737,745,760,805,813-819,822,829
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "32131046b36230e52430e49b359e1dc9ab727e82",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 483,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AttachedImages.css": {
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/AttachedImages.tsx": {
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/components/messageInput.pasteImages.test.tsx": {
+          "accepted_lines": 168
+        },
+        "packages/webview/tests/webview/imageTagConsistency.test.tsx": {
+          "accepted_lines": 38
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "accepted_lines": 38
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "accepted_lines": 44
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "accepted_lines": 21
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "accepted_lines": 26
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 27
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "accepted_lines": 69
+        }
+      }
+    }
+  }
+}
