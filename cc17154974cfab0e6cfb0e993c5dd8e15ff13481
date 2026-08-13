@@ -1,0 +1,73 @@
+packages/webview/src/ui/theme.tsx
+  c426ed386ac6d874 1,6,9,18,42-45,47-50,52
+packages/webview/tests/muse/themePreference.test.ts
+  c426ed386ac6d874 5,47-65
+packages/webview/src/ui/themePreference.ts
+  c426ed386ac6d874 10,13-15,29-31,37-104
+packages/webview/tests/muse/theme.test.tsx
+  c426ed386ac6d874 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cc17154974cfab0e6cfb0e993c5dd8e15ff13481",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2051,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-webview-ui-design.md": {
+          "accepted_lines": 183
+        },
+        "docs/superpowers/plans/2026-08-13-webview-ui.md": {
+          "accepted_lines": 1138
+        },
+        "docs/superpowers/prototypes/2026-08-13-webview-form-ds.html": {
+          "accepted_lines": 730
+        }
+      }
+    },
+    "c426ed386ac6d874": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "41b9b285-4afd-4512-804e-7dfe9d52f840",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 209,
+      "total_deletions": 58,
+      "accepted_lines": 208,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/themePreference.test.ts": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/ui/theme.tsx": {
+          "additions": 13,
+          "deletions": 57,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/ui/themePreference.ts": {
+          "additions": 78,
+          "deletions": 1,
+          "accepted_lines": 77
+        },
+        "packages/webview/tests/muse/theme.test.tsx": {
+          "additions": 97,
+          "accepted_lines": 97
+        }
+      }
+    }
+  }
+}
