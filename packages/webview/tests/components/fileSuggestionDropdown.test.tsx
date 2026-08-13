@@ -76,7 +76,9 @@ describe("FileSuggestionDropdown", () => {
     );
 
     expect(screen.queryByTestId("suggestion-breadcrumb")).not.toBeInTheDocument();
-    expect(screen.getByText("hello.ts")).toBeInTheDocument();
+    expect(
+      document.querySelector(".suggestion-name")?.textContent,
+    ).toBe("hello.ts");
     expect(screen.getByText("src/hello.ts")).toBeInTheDocument();
     expect(screen.queryByTestId("suggestion-enter-hello.ts")).not.toBeInTheDocument();
   });

@@ -107,7 +107,6 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
           <span className={`suggestion-icon codicon ${file.icon}`}></span>
           <div className="suggestion-content">
             <div className="suggestion-name">
-              {filterText ? <span hidden>{file.name}</span> : null}
               {highlightMatch(file.name, filterText)}
             </div>
             {!isBrowse && (
