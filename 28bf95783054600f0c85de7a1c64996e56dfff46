@@ -1,0 +1,48 @@
+packages/webview/src/components/MessageInput.tsx
+  e367ad1620684452 20-25,83-84,215-216,339-343,346,350-356,478-495,656-663,665-673,675-695,715,720-721,781-786,795,1089-1091,1100-1106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "28bf95783054600f0c85de7a1c64996e56dfff46",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1421,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-file-mention-cascader.md": {
+          "accepted_lines": 1421
+        }
+      }
+    },
+    "e367ad1620684452": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0b06eaed-d3d1-4045-8b88-7806942a1e30",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 32,
+      "accepted_lines": 99,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 99,
+          "deletions": 32,
+          "accepted_lines": 99
+        }
+      }
+    }
+  }
+}
