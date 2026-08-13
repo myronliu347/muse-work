@@ -1,0 +1,177 @@
+packages/webview/src/muse/hostBridge.ts
+  db26196a999da47a 111-119,135-148,248-251,253,256-257,259-262,269,272,277,288-291,297,322-323,327,343-346,349-351,358-362,386-391,510-518,571-582,592,594-611,614-637,639-641,749-750,786-799,848-851,855,878-885
+packages/webview/src/muse/panelShortcuts.ts
+  db26196a999da47a 1-77
+docs/superpowers/specs/2026-08-12-session-management-design.md
+  db26196a999da47a 151-153
+packages/server/src/sessionRunner.ts
+  db26196a999da47a 2-6,12,16-29,72,77-80,107-108,119,165,316,318-330,352,611,616-617,621,623-625,686
+packages/provider/src/defaultProject.ts
+  db26196a999da47a 1-21
+packages/webview/src/components/ChatApp.tsx
+  db26196a999da47a 38,228-236,238-239,243-245,249-257,407-410,412,416-419,422-423,426,429,433-448,463,1077-1080,1082,1502-1529,1648-1662,1901-1903,1919-1921,2160
+packages/server/src/sessionStore.ts
+  db26196a999da47a 79-87,149-151,159-163
+packages/provider/tests/defaultProject.test.ts
+  db26196a999da47a 1-18
+packages/webview/tests/webview/terminalPane.test.tsx
+  db26196a999da47a 225,231-237,239-244,247,260
+packages/webview/tests/muse/hostBridge.test.ts
+  db26196a999da47a 205-289,338,425-510,757,804,831-839
+packages/webview/tests/webview/desktopApp.test.tsx
+  db26196a999da47a 46-47,756,762,768-769,775,778-784,791,1933,1938,1942,1945-1946
+packages/webview/tests/muse/panelShortcuts.test.ts
+  db26196a999da47a 1-83
+packages/desktop/src/main/gitBranches.ts
+  db26196a999da47a 6-7,17-28,34-40,62-63
+packages/server/tests/sessionStore.persist.test.ts
+  db26196a999da47a 39-60
+packages/server/src/routes/sessions.ts
+  db26196a999da47a 2,14-17,20,28
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  db26196a999da47a 327-376
+packages/server/src/museSystemPrompt.ts
+  db26196a999da47a 9-10,12-14,16-17,21-25,37,44-51,57
+packages/webview/src/components/DesktopShell.tsx
+  db26196a999da47a 624
+packages/provider/src/index.ts
+  db26196a999da47a 20-24
+packages/webview/src/components/PanelToggleMenu.tsx
+  db26196a999da47a 3,15-18
+packages/webview/src/muse/apiClient.ts
+  db26196a999da47a 134,137-138
+packages/webview/src/components/TerminalPane.tsx
+  db26196a999da47a 116-120,123-124,139,145,150,288-291,297-311,313
+packages/desktop/src/main/workdirHost.ts
+  db26196a999da47a 306-307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f7ff523b164ab6920af5436a4d81803ce6fd3757",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1018,
+      "total_deletions": 353,
+      "accepted_lines": 934,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 16,
+          "deletions": 5,
+          "accepted_lines": 16
+        },
+        "docs/superpowers/specs/2026-08-12-session-management-design.md": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 184,
+          "deletions": 30,
+          "accepted_lines": 183
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "additions": 23,
+          "deletions": 41,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/PanelToggleMenu.tsx": {
+          "additions": 5,
+          "deletions": 8,
+          "accepted_lines": 5
+        },
+        "packages/server/src/museSystemPrompt.ts": {
+          "additions": 23,
+          "deletions": 10,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/provider/tests/defaultProject.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 77,
+          "accepted_lines": 77
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 118,
+          "deletions": 35,
+          "accepted_lines": 83
+        },
+        "packages/desktop/src/main/gitBranches.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/TerminalPane.tsx": {
+          "additions": 33,
+          "deletions": 10,
+          "accepted_lines": 30
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "packages/server/src/sessionStore.ts": {
+          "additions": 33,
+          "deletions": 18,
+          "accepted_lines": 17
+        },
+        "packages/provider/src/defaultProject.ts": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 165,
+          "deletions": 94,
+          "accepted_lines": 162
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 56,
+          "deletions": 10,
+          "accepted_lines": 53
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 130,
+          "deletions": 79,
+          "accepted_lines": 109
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
