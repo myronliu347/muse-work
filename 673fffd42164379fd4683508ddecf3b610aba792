@@ -1,0 +1,33 @@
+docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md
+  1d3d7fba23cca1e9 1-177
+docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md
+  1d3d7fba23cca1e9 1-1285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "673fffd42164379fd4683508ddecf3b610aba792",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "accepted_lines": 1285
+        },
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        }
+      }
+    }
+  }
+}
