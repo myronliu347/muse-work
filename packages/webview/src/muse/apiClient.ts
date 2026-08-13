@@ -50,6 +50,11 @@ export interface MuseOpenAiCompatibleConfigPatch {
   models?: MuseModelInfo[];
 }
 
+export interface MuseSettings {
+  version: 1;
+  plugins: { superpowers: boolean };
+}
+
 export interface MuseAuthStatus {
   state: "authenticated" | "unauthenticated" | "needs_config" | "expired";
   user?: string;
@@ -121,6 +126,22 @@ export class MuseApiClient {
 
   async getHealth(): Promise<{ ok: boolean }> {
     const res = await this.request("/health");
+    return parseJson(res);
+  }
+
+  async getSettings(): Promise<MuseSettings> {
+    const res = await this.request("/settings");
+    return parseJson(res);
+  }
+
+  async updateSettings(patch: {
+    plugins: { superpowers: boolean };
+  }): Promise<MuseSettings> {
+    const res = await this.request("/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
     return parseJson(res);
   }
 

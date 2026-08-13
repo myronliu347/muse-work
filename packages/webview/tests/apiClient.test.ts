@@ -79,4 +79,34 @@ describe("MuseApiClient", () => {
     expect(bodies[0]).toContain("/sessions/sess-1/permissions/perm-9");
     expect(bodies[0]).toContain('"decision":"allow"');
   });
+
+  it("getSettings GETs /settings and updateSettings PATCHes it", async () => {
+    const fetches: Array<{ method: string; url: string; body?: string }> = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push({
+          method: init?.method ?? "GET",
+          url,
+          body: typeof init?.body === "string" ? init.body : undefined,
+        });
+        return new Response(
+          JSON.stringify({ version: 1, plugins: { superpowers: false } }),
+          { status: 200 },
+        );
+      },
+    });
+    await client.getSettings();
+    expect(fetches[0]).toEqual({
+      method: "GET",
+      url: "http://127.0.0.1:9/settings",
+      body: undefined,
+    });
+    await client.updateSettings({ plugins: { superpowers: false } });
+    expect(fetches[1]?.method).toBe("PATCH");
+    expect(fetches[1]?.url).toBe("http://127.0.0.1:9/settings");
+    expect(JSON.parse(fetches[1]?.body ?? "{}")).toEqual({
+      plugins: { superpowers: false },
+    });
+  });
 });

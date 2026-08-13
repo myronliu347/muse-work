@@ -30,6 +30,10 @@ vi.mock("../../src/components/MuseProviderSettings", () => {
   };
 });
 
+vi.mock("../../src/components/PluginSettings", () => ({
+  PluginSettings: () => <div data-testid="plugin-settings">plugin settings</div>,
+}));
+
 const vscode = {
   postMessage: vi.fn(),
   getState: vi.fn(),
@@ -65,6 +69,9 @@ describe("ConfigDialog appearance tab", () => {
 
     expect(screen.getByRole("heading", { name: "设置" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "外观" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "插件" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "插件" }));
+    expect(screen.getByTestId("plugin-settings")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
 
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();

@@ -1,5 +1,5 @@
 /**
- * ConfigDialog — settings overlay. Currently only hosts provider settings.
+ * ConfigDialog — settings overlay hosts appearance, plugins, and provider.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import {
   type MuseProviderSettingsHandle,
 } from "./MuseProviderSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { PluginSettings } from "./PluginSettings";
 import "../styles/ConfigurationDialog.css";
 
 const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
@@ -20,9 +21,9 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"appearance" | "provider">(
-    "appearance",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "appearance" | "plugins" | "provider"
+  >("appearance");
   const savingRef = useRef(false);
   const reduceMotion =
     typeof window !== "undefined" &&
@@ -136,6 +137,32 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           <button
             type="button"
             role="tab"
+            aria-selected={activeTab === "plugins"}
+            aria-controls="config-plugins-panel"
+            className={`config-tab${activeTab === "plugins" ? " active" : ""}`}
+            onClick={() => setActiveTab("plugins")}
+            style={{ position: "relative", borderBottomColor: "transparent" }}
+          >
+            插件
+            {activeTab === "plugins" && (
+              <motion.span
+                className="settings-tab-underline"
+                layoutId="settings-tab-underline"
+                transition={tabUnderlineTransition}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: -1,
+                  left: 0,
+                  height: 2,
+                  backgroundColor: "var(--accent-9)",
+                }}
+              />
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={activeTab === "provider"}
             aria-controls="config-provider-panel"
             className={`config-tab${activeTab === "provider" ? " active" : ""}`}
@@ -169,6 +196,13 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               hidden={activeTab !== "appearance"}
             >
               <AppearanceSettings />
+            </div>
+            <div
+              id="config-plugins-panel"
+              role="tabpanel"
+              hidden={activeTab !== "plugins"}
+            >
+              <PluginSettings />
             </div>
             <div
               id="config-provider-panel"
