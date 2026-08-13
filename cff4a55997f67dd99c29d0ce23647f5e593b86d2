@@ -1,0 +1,44 @@
+packages/webview/src/components/ChatApp.tsx
+  2c9be225501a72c4 57-60,211,1379,2130
+packages/webview/tests/muse/subagentTranscript.test.ts
+  2c9be225501a72c4 3-6,239-302
+packages/webview/src/utils/subagentTranscript.ts
+  2c9be225501a72c4 16-27,62-74,76-95,105,114,116-133,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cff4a55997f67dd99c29d0ce23647f5e593b86d2",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 144,
+      "total_deletions": 21,
+      "accepted_lines": 144,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/subagentTranscript.ts": {
+          "additions": 69,
+          "deletions": 19,
+          "accepted_lines": 69
+        },
+        "packages/webview/tests/muse/subagentTranscript.test.ts": {
+          "additions": 68,
+          "deletions": 1,
+          "accepted_lines": 68
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
