@@ -1,0 +1,58 @@
+packages/server/tests/museSettings.test.ts
+  23c2f49fc43e65bd 1-70
+packages/server/src/museSettings.ts
+  23c2f49fc43e65bd 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2c82a55d07b74a2b539ca31cc5ae4ca82c658bae",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1286,
+      "total_deletions": 1,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "additions": 1286,
+          "deletions": 1,
+          "accepted_lines": 1285
+        },
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        }
+      }
+    },
+    "23c2f49fc43e65bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "10ab7388-8503-45c5-83d1-6b19418075c5",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 171,
+      "total_deletions": 0,
+      "accepted_lines": 171,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/museSettings.ts": {
+          "additions": 101,
+          "accepted_lines": 101
+        },
+        "packages/server/tests/museSettings.test.ts": {
+          "additions": 70,
+          "accepted_lines": 70
+        }
+      }
+    }
+  }
+}
