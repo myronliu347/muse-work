@@ -1,0 +1,100 @@
+packages/desktop/package.json
+  2c9be225501a72c4 4,6,10,37
+packages/desktop/src/main/index.ts
+  2c9be225501a72c4 2,37,39-40
+packages/desktop/scripts/syncWebview.mjs
+  2c9be225501a72c4 74
+packages/desktop/scripts/brandDevElectron.mjs
+  2c9be225501a72c4 26
+packages/desktop/src/main/window.ts
+  2c9be225501a72c4 29
+packages/webview/src/components/DesktopSidebar.tsx
+  2c9be225501a72c4 471
+packages/server/src/museSystemPrompt.ts
+  2c9be225501a72c4 2,7,10,16,33
+packages/server/tests/museSystemPrompt.test.ts
+  2c9be225501a72c4 9,28,40
+packages/webview/package.json
+  2c9be225501a72c4 4
+README.md
+  2c9be225501a72c4 1,3,10,67
+packages/webview/src/components/LoadingLogo.tsx
+  2c9be225501a72c4 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6734af022dd67ed8131a82d3f150017300329ac8",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 27,
+      "total_deletions": 27,
+      "accepted_lines": 26,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/scripts/brandDevElectron.mjs": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/museSystemPrompt.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/package.json": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "README.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/museSystemPrompt.test.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/LoadingLogo.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/scripts/syncWebview.mjs": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
