@@ -1,0 +1,133 @@
+packages/server/src/shutdown.ts
+  d7d6cce062073fd7 1-52
+packages/webview/src/muse/apiClient.ts
+  d7d6cce062073fd7 81-82
+packages/webview/src/muse/hostBridge.ts
+  d7d6cce062073fd7 185,1251-1257
+packages/desktop/src/main/window.ts
+  d7d6cce062073fd7 59,63-85
+packages/server/tests/shutdown.test.ts
+  d7d6cce062073fd7 1-65
+packages/server/src/index.ts
+  d7d6cce062073fd7 5,31-36
+packages/desktop/src/main/quitGate.ts
+  d7d6cce062073fd7 1-26
+packages/desktop/tests/rendererRecovery.test.ts
+  d7d6cce062073fd7 1-56
+packages/desktop/src/main/index.ts
+  d7d6cce062073fd7 15,175-191
+packages/server/src/sessionStore.ts
+  d7d6cce062073fd7 27-28,34,90-93,126,128-137,259
+packages/server/src/sessionRunner.ts
+  d7d6cce062073fd7 79-80,1048-1060
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  d7d6cce062073fd7 591-642
+packages/server/tests/sessionStore.persist.test.ts
+  d7d6cce062073fd7 32,61-86
+packages/desktop/tests/quitGate.test.ts
+  d7d6cce062073fd7 1-33
+packages/webview/tests/muse/hostBridge.test.ts
+  d7d6cce062073fd7 1515-1547
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2795bca77ffea171fb3580909adea6476366931e",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "accepted_lines": 1285
+        },
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        }
+      }
+    },
+    "d7d6cce062073fd7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "96b5cb27-a53f-4529-9164-a2426ef88b26",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 212,
+      "total_deletions": 41,
+      "accepted_lines": 450,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/window.ts": {
+          "additions": 28,
+          "deletions": 2,
+          "accepted_lines": 26
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 18,
+          "deletions": 8,
+          "accepted_lines": 18
+        },
+        "packages/desktop/src/main/quitGate.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/server/tests/shutdown.test.ts": {
+          "accepted_lines": 65
+        },
+        "packages/server/src/shutdown.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "accepted_lines": 27
+        },
+        "packages/server/src/sessionStore.ts": {
+          "additions": 42,
+          "deletions": 28,
+          "accepted_lines": 30
+        },
+        "packages/desktop/tests/rendererRecovery.test.ts": {
+          "additions": 14,
+          "deletions": 3,
+          "accepted_lines": 56
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "accepted_lines": 33
+        },
+        "packages/server/src/index.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "accepted_lines": 52
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/desktop/tests/quitGate.test.ts": {
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
