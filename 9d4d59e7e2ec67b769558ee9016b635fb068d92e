@@ -1,0 +1,119 @@
+packages/server/plugins/superpowers/.wave-plugin/plugin.json
+  b61d73b01202dce4 1-8
+packages/server/plugins/superpowers/hooks/hooks.json
+  b61d73b01202dce4 1-14
+packages/server/package.json
+  b61d73b01202dce4 5-8
+packages/desktop/scripts/prepareServer.mjs
+  b61d73b01202dce4 66-72
+packages/server/plugins/superpowers/scripts/session-start.js
+  b61d73b01202dce4 1-25
+packages/server/tests/superpowersPlugin.test.ts
+  b61d73b01202dce4 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9d4d59e7e2ec67b769558ee9016b635fb068d92e",
+  "prompts": {
+    "1d3d7fba23cca1e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0355c3c9-8849-43e6-a941-994f11f9133e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-13-builtin-superpowers-plugin-design.md": {
+          "accepted_lines": 177
+        },
+        "docs/superpowers/plans/2026-08-13-builtin-superpowers-plugin.md": {
+          "accepted_lines": 1285
+        }
+      }
+    },
+    "b61d73b01202dce4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "07cd7a12-e83a-4c1e-8721-69337ae04247",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 58,
+      "total_deletions": 0,
+      "accepted_lines": 103,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/plugins/superpowers/scripts/session-start.js": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/desktop/scripts/prepareServer.mjs": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/superpowersPlugin.test.ts": {
+          "accepted_lines": 45
+        },
+        "packages/server/plugins/superpowers/hooks/hooks.json": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/server/package.json": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/plugins/superpowers/.wave-plugin/plugin.json": {
+          "additions": 8,
+          "accepted_lines": 8
+        }
+      }
+    },
+    "d7d6cce062073fd7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "96b5cb27-a53f-4529-9164-a2426ef88b26",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 255,
+      "total_deletions": 1,
+      "accepted_lines": 255,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 27
+        },
+        "packages/desktop/tests/rendererRecovery.test.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/server/tests/shutdown.test.ts": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "packages/desktop/tests/quitGate.test.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
