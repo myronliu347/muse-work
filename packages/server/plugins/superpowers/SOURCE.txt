@@ -1,0 +1,2 @@
+obra/superpowers v6.3.0
+https://github.com/obra/superpowers/releases/tag/v6.3.0

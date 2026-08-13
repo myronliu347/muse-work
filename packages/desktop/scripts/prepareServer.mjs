@@ -63,4 +63,11 @@ if (!fs.existsSync(providerPkg)) {
   process.exit(1);
 }
 
+const pluginsSrc = path.join(workspaceRoot, "packages/server/plugins");
+const pluginsDest = path.join(out, "plugins");
+if (fs.existsSync(pluginsSrc) && !fs.existsSync(pluginsDest)) {
+  fs.cpSync(pluginsSrc, pluginsDest, { recursive: true });
+  console.log("[prepareServer] copied plugins to", pluginsDest);
+}
+
 console.log("[prepareServer] ready at", out);

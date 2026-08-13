@@ -2,6 +2,10 @@
   "name": "@muse-work/server",
   "version": "0.1.0",
   "private": true,
+  "files": [
+    "dist",
+    "plugins"
+  ],
   "type": "module",
   "bin": {
     "muse-server": "./dist/index.js"
