@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { loadUiPrefs } from "./uiPrefs.js";
 
 /**
  * Minimal preload: expose Muse server base URL + desktop host marker,
@@ -20,12 +21,9 @@ contextBridge.exposeInMainWorld("__MUSE_SERVER_URL__", serverBaseUrl);
 contextBridge.exposeInMainWorld("waveHostType", "desktop");
 contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
 
-function readArg(prefix: string): string | undefined {
-  const arg = process.argv.find((a) => a.startsWith(prefix));
-  return arg ? arg.slice(prefix.length) : undefined;
-}
-
-const themePreference = readArg("--muse-theme-preference=") ?? "system";
+// additionalArguments are fixed at window creation and stale after live updates.
+// Read ui.json on every preload execution so reloads receive the current preference.
+const themePreference = loadUiPrefs().themePreference;
 contextBridge.exposeInMainWorld("__MUSE_THEME_PREFERENCE__", themePreference);
 
 function applyBootTheme(): void {
