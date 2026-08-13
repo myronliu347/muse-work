@@ -1234,7 +1234,7 @@ describe("DesktopApp", () => {
       const checkbox = screen
         .getByTestId("desktop-worktree-checkbox")
         .querySelector("input");
-      expect(checkbox).toBeChecked();
+      expect(checkbox).not.toBeChecked();
     });
 
     it("stays hidden when the workdir is not a git repo (result null)", () => {
@@ -1310,7 +1310,10 @@ describe("DesktopApp", () => {
       });
       vscode.postMessage.mockClear();
 
-      // Pick dev as the base branch (the checkbox is on by default)
+      // Opt in to worktree and pick dev as the base branch
+      fireEvent.click(
+        screen.getByTestId("desktop-worktree-checkbox").querySelector("input")!,
+      );
       fireEvent.click(screen.getByTestId("desktop-branch-selector"));
       fireEvent.click(screen.getAllByTestId("desktop-branch-item")[1]);
 
@@ -1336,7 +1339,6 @@ describe("DesktopApp", () => {
         text: "hello worktree",
         images: undefined,
       });
-      // Checkbox stays at its checked default for the next session
       expect(
         screen.getByTestId("desktop-worktree-checkbox").querySelector("input"),
       ).toBeChecked();
@@ -1353,11 +1355,6 @@ describe("DesktopApp", () => {
         result: branches,
       });
       vscode.postMessage.mockClear();
-
-      // Untick the default-checked checkbox
-      fireEvent.click(
-        screen.getByTestId("desktop-worktree-checkbox").querySelector("input")!,
-      );
 
       const input = screen.getByTestId("message-input");
       input.textContent = "plain message";

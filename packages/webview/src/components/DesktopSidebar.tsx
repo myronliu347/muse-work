@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip } from "./Tooltip";
 import { ConfirmDialog } from "./ConfirmDialog";
 import museM from "../assets/muse-m.png";
@@ -44,6 +44,8 @@ export interface DesktopSidebarProps {
   onTogglePin: (sessionId: string, pinned: boolean) => void;
   /** Persist a renamed session title (double-click title to edit). */
   onRenameSession?: (sessionId: string, title: string) => void;
+  /** Open the workdir in VS Code via `code <workdir>`. */
+  onOpenInEditor?: (workdir: string) => void;
 }
 
 const dirName = (workdir: string): string =>
@@ -134,6 +136,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onDeleteSession,
   onTogglePin,
   onRenameSession,
+  onOpenInEditor,
 }) => {
   // Session awaiting delete confirmation; non-null shows the ConfirmDialog.
   const [pendingDelete, setPendingDelete] = useState<{
@@ -147,6 +150,25 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   );
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [workdirMenu, setWorkdirMenu] = useState<{
+    x: number;
+    y: number;
+    workdir: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!workdirMenu) return;
+    const close = () => setWorkdirMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [workdirMenu]);
 
   const { pinnedSessions, recentSessions } = resolveSidebarSessions({
     sessionTree,
@@ -357,6 +379,16 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <div
                   className="desktop-session-workdir-row"
                   onClick={() => toggleWorkdirCollapsed(group.workdir)}
+                  onContextMenu={(e) => {
+                    if (!group.workdir || !onOpenInEditor) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setWorkdirMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      workdir: group.workdir,
+                    });
+                  }}
                   data-testid={`desktop-session-workdir-row-${groupKey}`}
                 >
                   <span
@@ -463,6 +495,26 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           }}
           onCancel={() => setPendingDelete(null)}
         />
+      )}
+      {workdirMenu && (
+        <div
+          className="desktop-context-menu"
+          style={{ left: workdirMenu.x, top: workdirMenu.y }}
+          data-testid="desktop-workdir-context-menu"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="desktop-context-menu-item"
+            data-testid="desktop-workdir-open-in-editor"
+            onClick={() => {
+              onOpenInEditor?.(workdirMenu.workdir);
+              setWorkdirMenu(null);
+            }}
+          >
+            在编辑器打开
+          </button>
+        </div>
       )}
     </div>
   );

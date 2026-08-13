@@ -9,7 +9,15 @@ export async function handleCreateSession(
   ctx: AppContext,
 ): Promise<void> {
   const body = (await readJsonBody(req)) as
-    | { workdir?: string; model?: string; permissionMode?: string }
+    | {
+        workdir?: string;
+        model?: string;
+        permissionMode?: string;
+        worktreeName?: string;
+        worktreeBranch?: string;
+        baseBranch?: string;
+        worktreeRepoRoot?: string;
+      }
     | undefined;
   const workdir =
     typeof body?.workdir === "string" && body.workdir.trim().length > 0
@@ -27,6 +35,16 @@ export async function handleCreateSession(
   const session = ctx.store.create({
     workdir,
     model,
+    worktreeName:
+      typeof body?.worktreeName === "string" ? body.worktreeName : undefined,
+    worktreeBranch:
+      typeof body?.worktreeBranch === "string" ? body.worktreeBranch : undefined,
+    baseBranch:
+      typeof body?.baseBranch === "string" ? body.baseBranch : undefined,
+    worktreeRepoRoot:
+      typeof body?.worktreeRepoRoot === "string"
+        ? body.worktreeRepoRoot
+        : undefined,
   });
   sendJson(res, 200, session);
 }

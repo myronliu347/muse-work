@@ -15,6 +15,14 @@ export interface Session {
   pinned: boolean;
   createdAt: number;
   lastActiveAt: number;
+  /** Git worktree slug under `.wave/worktrees/<name>` when session is isolated. */
+  worktreeName?: string;
+  /** Branch created for the worktree (typically `worktree-<name>`). */
+  worktreeBranch?: string;
+  /** Base branch / ref used when creating the worktree. */
+  baseBranch?: string;
+  /** Main repo root; used to remove the worktree on session delete. */
+  worktreeRepoRoot?: string;
   /** runtime only — not required in file */
   status: SessionStatus;
 }
@@ -26,7 +34,14 @@ export type SessionsFile = {
 };
 
 export interface SessionStore {
-  create(options: { workdir: string; model: string }): Session;
+  create(options: {
+    workdir: string;
+    model: string;
+    worktreeName?: string;
+    worktreeBranch?: string;
+    baseBranch?: string;
+    worktreeRepoRoot?: string;
+  }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
   listGrouped(): {
@@ -114,7 +129,14 @@ export function createSessionStore(
   }
 
   return {
-    create({ workdir, model }): Session {
+    create({
+      workdir,
+      model,
+      worktreeName,
+      worktreeBranch,
+      baseBranch,
+      worktreeRepoRoot,
+    }): Session {
       const now = Date.now();
       const session: Session = {
         id: crypto.randomUUID(),
@@ -126,6 +148,10 @@ export function createSessionStore(
         createdAt: now,
         lastActiveAt: now,
         status: "idle",
+        ...(worktreeName ? { worktreeName } : {}),
+        ...(worktreeBranch ? { worktreeBranch } : {}),
+        ...(baseBranch ? { baseBranch } : {}),
+        ...(worktreeRepoRoot ? { worktreeRepoRoot } : {}),
       };
       sessions.set(session.id, session);
       persist();

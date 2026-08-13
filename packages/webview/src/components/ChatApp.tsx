@@ -36,6 +36,7 @@ import {
 } from "./DesktopSidebar";
 import { DesktopShell } from "./DesktopShell";
 import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
+import { DesktopGitContext } from "./DesktopGitContext";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
 import { matchPanelShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen } from "../muse/panelFit";
@@ -240,7 +241,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const btwSessionRef = useRef<string | undefined>(undefined);
   // Desktop new-session worktree controls (FR-022/FR-023).
   const [worktreeBranch, setWorktreeBranch] = useState<string>("");
-  const [worktreeChecked, setWorktreeChecked] = useState(true);
+  const [worktreeChecked, setWorktreeChecked] = useState(false);
   // Per-pane git branches for this pane's OWN workdir (FR-022). The host-level
   // workdir follows the focused pane — sharing it would bleed one pane's
   // directory/branch into a sibling new-session pane, so each new-session pane
@@ -519,10 +520,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [queueEditWarning]);
 
   // Desktop: reset the worktree controls when the branch list changes (i.e. the
-  // workdir was re-queried). Default to the repo's current branch, checked.
+  // workdir was re-queried). Default to the repo's current branch; worktree off.
   useEffect(() => {
     setWorktreeBranch(gitBranches?.current ?? "");
-    setWorktreeChecked(true);
+    setWorktreeChecked(false);
   }, [gitBranches]);
 
   // Handle messages from VS Code extension
@@ -2010,28 +2011,43 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             }
             onModelChange={handleSessionModelChange}
             workdirSelector={
-              host?.type === "desktop" && !hasVisibleMessages ? (
-                <>
-                  <DesktopWorkdirSelector
-                    host={effectiveHost}
-                    workdir={effectiveWorkdir}
-                    recentWorkdirs={host.recentWorkdirs}
-                    onSelectWorkdir={host.onSelectWorkdir}
-                    onSelectRecentWorkdir={host.onSelectRecentWorkdir}
-                    onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
-                  />
-                  {effectiveWorkdir &&
-                    gitBranches &&
-                    gitBranches.branches.length > 0 && (
-                    <DesktopWorktreeControls
-                      branches={gitBranches.branches}
-                      branch={worktreeBranch || gitBranches.current}
-                      worktreeChecked={worktreeChecked}
-                      onBranchChange={setWorktreeBranch}
-                      onWorktreeChange={setWorktreeChecked}
+              host?.type === "desktop" ? (
+                !hasVisibleMessages ? (
+                  <>
+                    <DesktopWorkdirSelector
+                      host={effectiveHost}
+                      workdir={effectiveWorkdir}
+                      recentWorkdirs={host.recentWorkdirs}
+                      onSelectWorkdir={host.onSelectWorkdir}
+                      onSelectRecentWorkdir={host.onSelectRecentWorkdir}
+                      onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
                     />
-                  )}
-                </>
+                    {effectiveWorkdir &&
+                      gitBranches &&
+                      gitBranches.branches.length > 0 && (
+                      <DesktopWorktreeControls
+                        branches={gitBranches.branches}
+                        branch={worktreeBranch || gitBranches.current}
+                        worktreeChecked={worktreeChecked}
+                        onBranchChange={setWorktreeBranch}
+                        onWorktreeChange={setWorktreeChecked}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <DesktopGitContext
+                    branch={
+                      (state.currentSession as { worktreeBranch?: string } | undefined)
+                        ?.worktreeBranch ||
+                      gitBranches?.current ||
+                      undefined
+                    }
+                    worktreeName={
+                      (state.currentSession as { worktreeName?: string } | undefined)
+                        ?.worktreeName
+                    }
+                  />
+                )
               ) : undefined
             }
             rewindPopup={
@@ -2311,6 +2327,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onDeleteSession={host.onDeleteSession}
           onTogglePin={host.onTogglePin}
           onRenameSession={host.onRenameSession}
+          onOpenInEditor={(workdir) =>
+            postToHost({ command: "desktopOpenInEditor", workdir })
+          }
         />
         {chatContainer}
         {dialogs}

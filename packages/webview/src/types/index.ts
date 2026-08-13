@@ -319,6 +319,10 @@ export interface DesktopSessionEntry {
   workdir?: string;
   /** True when this session lives in a worktree (delete also cleans up branch+dir). */
   hasWorktree: boolean;
+  /** Worktree slug under `.wave/worktrees/<name>` when isolated. */
+  worktreeName?: string;
+  /** Branch created for the worktree (e.g. `worktree-<name>`). */
+  worktreeBranch?: string;
   /** True while this session is generating — drives the per-session running dot (FR-031). */
   running?: boolean;
   /** True while a confirmation request (tool/plan/question) awaits the user — drives the waiting dot. */

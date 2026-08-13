@@ -47,7 +47,9 @@ function toEntry(session: TreeSession): DesktopSessionEntry {
     title: session.title || DEFAULT_TITLE,
     lastActiveAt: session.lastActiveAt ?? session.createdAt,
     workdir: session.workdir,
-    hasWorktree: false,
+    hasWorktree: Boolean(session.worktreeName),
+    worktreeName: session.worktreeName,
+    worktreeBranch: session.worktreeBranch,
     running: session.running ?? session.status === "running",
     waitingConfirmation: session.waitingConfirmation,
     pinned: session.pinned,
@@ -265,6 +267,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         createdAt: session.createdAt,
         updatedAt: session.lastActiveAt ?? session.createdAt,
         model: session.model,
+        workdir: session.workdir,
+        worktreeName: session.worktreeName,
+        worktreeBranch: session.worktreeBranch,
+        baseBranch: session.baseBranch,
       },
     });
   };
@@ -330,13 +336,65 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     syncChatWorkdir(workdir);
   };
 
+  type PendingWorktree = {
+    text: string;
+    images?: unknown;
+    resolve: (value: {
+      ok: true;
+      name: string;
+      path: string;
+      branch: string;
+      baseBranch: string;
+      repoRoot: string;
+    } | { ok: false; error: string }) => void;
+  };
+  const pendingWorktrees = new Map<string, PendingWorktree>();
+
   // Keep createSession workdir in sync when Electron main (or tests) push state.
   window.addEventListener("message", (event: MessageEvent) => {
     const message = event.data as {
       command?: string;
       workdir?: string;
       recentWorkdirs?: string[];
+      requestId?: string;
+      name?: string;
+      path?: string;
+      branch?: string;
+      baseBranch?: string;
+      repoRoot?: string;
+      error?: string;
     };
+    if (message?.command === "desktopWorktreeCreated") {
+      const reqId =
+        typeof message.requestId === "string" ? message.requestId : "";
+      const pending = reqId ? pendingWorktrees.get(reqId) : undefined;
+      if (pending) {
+        pendingWorktrees.delete(reqId);
+        if (typeof message.error === "string" && message.error) {
+          pending.resolve({ ok: false, error: message.error });
+        } else if (
+          typeof message.name === "string" &&
+          typeof message.path === "string" &&
+          typeof message.branch === "string" &&
+          typeof message.repoRoot === "string"
+        ) {
+          pending.resolve({
+            ok: true,
+            name: message.name,
+            path: message.path,
+            branch: message.branch,
+            baseBranch:
+              typeof message.baseBranch === "string"
+                ? message.baseBranch
+                : "HEAD",
+            repoRoot: message.repoRoot,
+          });
+        } else {
+          pending.resolve({ ok: false, error: "创建 worktree 返回不完整" });
+        }
+      }
+      return;
+    }
     if (message?.command !== "desktopWorkdirState") return;
     if (Array.isArray(message.recentWorkdirs)) {
       recentWorkdirs = message.recentWorkdirs;
@@ -422,11 +480,26 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const handleDeleteSession = async (id: string): Promise<void> => {
     const wasActive = sessionId === id;
     clearPendingPermission(id);
+    const existing =
+      pinned.find((s) => s.id === id) ?? recent.find((s) => s.id === id);
     // Drop the session-scoped PTY so deleted chats do not leak shells.
     opts.outer?.postMessage({
       command: "desktopTerminalKill",
       termId: `term-${id}`,
     });
+    if (
+      existing?.worktreeName &&
+      existing.worktreeBranch &&
+      existing.worktreeRepoRoot &&
+      existing.workdir
+    ) {
+      opts.outer?.postMessage({
+        command: "desktopRemoveWorktree",
+        path: existing.workdir,
+        branch: existing.worktreeBranch,
+        repoRoot: existing.worktreeRepoRoot,
+      });
+    }
     await api.deleteSession(id);
     if (!wasActive) {
       await refreshTree();
@@ -870,15 +943,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
     const userId = newId("user");
     const blocks: Array<Record<string, unknown>> = [];
-    // Thumbnails first so the chat bubble matches the sender strip layout.
+    // Text first, then images — the bubble renders prompt above 72px thumbs.
+    if (text) {
+      blocks.push({ type: "text", content: text });
+    }
     if (images.length > 0) {
       blocks.push({
         type: "image",
         imageUrls: images.map((img) => img.data),
       });
-    }
-    if (text) {
-      blocks.push({ type: "text", content: text });
     }
     postToWebview({
       command: "appendMessage",
@@ -933,6 +1006,94 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       await api.abortMessage(sessionId);
     } catch {
       // Server may already be idle; UI is already stopped.
+    }
+  }
+
+  async function handleDesktopCreateWorktree(msg: {
+    workdir?: string;
+    baseBranch?: string;
+    name?: string;
+    text?: string;
+    images?: unknown;
+  }): Promise<void> {
+    const workdir =
+      (typeof msg.workdir === "string" && msg.workdir) || currentWorkdir;
+    const text = (msg.text ?? "").trim();
+    const images = normalizeOutboundImages(msg.images);
+    if (!workdir) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: "创建 worktree 失败：未选择仓库目录",
+      });
+      return;
+    }
+    if (!text && images.length === 0) return;
+
+    const requestId = newId("wt");
+    const created = await new Promise<
+      | {
+          ok: true;
+          name: string;
+          path: string;
+          branch: string;
+          baseBranch: string;
+          repoRoot: string;
+        }
+      | { ok: false; error: string }
+    >((resolve) => {
+      pendingWorktrees.set(requestId, { text, images, resolve });
+      opts.outer?.postMessage({
+        command: "desktopCreateWorktree",
+        requestId,
+        workdir,
+        baseBranch: msg.baseBranch,
+        name: msg.name,
+        text,
+        images,
+      });
+      // If Electron is unavailable (tests without outer), fail fast.
+      if (!opts.outer) {
+        pendingWorktrees.delete(requestId);
+        resolve({ ok: false, error: "桌面宿主不可用" });
+      }
+    });
+
+    if (!created.ok) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: `创建 worktree 失败：${created.error}`,
+      });
+      return;
+    }
+
+    // Switch createSession into the new worktree path.
+    suppressWorkdirPush = false;
+    currentWorkdir = created.path;
+    syncChatWorkdir(created.path);
+    pendingNewSession = true;
+    sessionId = null;
+
+    try {
+      await ensureWs();
+      const session = await api.createSession(created.path, {
+        model: draftModel,
+        worktreeName: created.name,
+        worktreeBranch: created.branch,
+        baseBranch: created.baseBranch,
+        worktreeRepoRoot: created.repoRoot,
+      });
+      await api.selectSession(session.id);
+      sessionId = session.id;
+      pendingNewSession = false;
+      draftModel = undefined;
+      emitCurrentSession(session);
+      await refreshTree();
+      await handleSendMessage({ text, images });
+    } catch (err) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -1114,11 +1275,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           void handleAbortMessage();
           return;
         case "desktopCreateWorktree": {
-          // ChatApp routes the first empty-session message here when the
-          // worktree checkbox is on. Electron worktree creation is not wired
-          // yet — fall back to a normal send in the current workdir so the
-          // message is not silently dropped.
-          void handleSendMessage(msg as { text?: string; images?: unknown });
+          void handleDesktopCreateWorktree(
+            msg as {
+              workdir?: string;
+              baseBranch?: string;
+              name?: string;
+              text?: string;
+              images?: unknown;
+            },
+          );
           return;
         }
         case "confirmationResponse":

@@ -72,6 +72,10 @@ export interface MuseSession {
   pinned: boolean;
   permissionMode?: string;
   waveSessionId?: string;
+  worktreeName?: string;
+  worktreeBranch?: string;
+  baseBranch?: string;
+  worktreeRepoRoot?: string;
   /** Runtime-only unread-done flag; may be absent from list payloads. */
   unreadDone?: boolean;
 }
@@ -177,11 +181,28 @@ export class MuseApiClient {
 
   async createSession(
     workdir?: string,
-    opts?: { model?: string },
+    opts?: {
+      model?: string;
+      worktreeName?: string;
+      worktreeBranch?: string;
+      baseBranch?: string;
+      worktreeRepoRoot?: string;
+    },
   ): Promise<MuseSession> {
-    const body: { workdir?: string; model?: string } = {};
+    const body: {
+      workdir?: string;
+      model?: string;
+      worktreeName?: string;
+      worktreeBranch?: string;
+      baseBranch?: string;
+      worktreeRepoRoot?: string;
+    } = {};
     if (workdir) body.workdir = workdir;
     if (opts?.model) body.model = opts.model;
+    if (opts?.worktreeName) body.worktreeName = opts.worktreeName;
+    if (opts?.worktreeBranch) body.worktreeBranch = opts.worktreeBranch;
+    if (opts?.baseBranch) body.baseBranch = opts.baseBranch;
+    if (opts?.worktreeRepoRoot) body.worktreeRepoRoot = opts.worktreeRepoRoot;
     const res = await this.request("/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },

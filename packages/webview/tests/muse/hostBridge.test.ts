@@ -56,8 +56,18 @@ function stubWs(): MuseWsClient {
 }
 
 async function flush(): Promise<void> {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 20; i++) {
     await Promise.resolve();
+  }
+}
+
+async function flushUntil(
+  predicate: () => boolean,
+  attempts = 40,
+): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    await Promise.resolve();
+    if (predicate()) return;
   }
 }
 
@@ -82,12 +92,25 @@ describe("buildSidebarModel", () => {
 
 describe("createHostBridge desktop workdir bootstrap", () => {
   const messages: unknown[] = [];
+  let nativeDispatch: typeof window.dispatchEvent;
 
   beforeEach(() => {
     messages.length = 0;
+    nativeDispatch = window.dispatchEvent.bind(window);
     vi.spyOn(window, "dispatchEvent").mockImplementation((event) => {
       if (event instanceof MessageEvent) {
         messages.push(event.data);
+        // Still deliver inbound host events (e.g. desktopWorktreeCreated) to
+        // bridge listeners; outbound postToWebview events only need capture.
+        const data = event.data as { command?: string } | null;
+        if (
+          data &&
+          typeof data === "object" &&
+          (data.command === "desktopWorktreeCreated" ||
+            data.command === "desktopWorkdirState")
+        ) {
+          return nativeDispatch(event);
+        }
       }
       return true;
     });
@@ -243,7 +266,11 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(api.createSession).toHaveBeenCalledTimes(1);
     // New session clears workdir; server mints ~/.muse-work/projects/...
     expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
-    expect(api.sendMessage).toHaveBeenCalledWith("sess-created", "first message");
+    expect(api.sendMessage).toHaveBeenCalledWith(
+      "sess-created",
+      "first message",
+      undefined,
+    );
   });
 
   it("abortMessage calls API and ends streaming", async () => {
@@ -378,11 +405,16 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(api.createSession).toHaveBeenCalledWith("/repo/beta", undefined);
   });
 
-  it("desktopCreateWorktree falls back to create+send (MVP)", async () => {
+  it("desktopCreateWorktree creates session in worktree then sends", async () => {
     const created: MuseSession = {
       ...baseSession,
       id: "sess-wt",
       title: "新对话",
+      workdir: "/tmp/.wave/worktrees/gentle-pike-147",
+      worktreeName: "gentle-pike-147",
+      worktreeBranch: "worktree-gentle-pike-147",
+      baseBranch: "main",
+      worktreeRepoRoot: "/tmp",
     };
     const api = stubApi({
       listSessionsGrouped: vi.fn(async () => ({
@@ -393,10 +425,35 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       createSession: vi.fn(async () => created),
       selectSession: vi.fn(async () => ({ session: created })),
     });
+    const outer = {
+      postMessage: vi.fn((msg: Record<string, unknown>) => {
+        if (msg.command === "desktopCreateWorktree") {
+          // Match Electron→webview delivery (async relative to the request).
+          queueMicrotask(() => {
+            window.dispatchEvent(
+              new MessageEvent("message", {
+                data: {
+                  command: "desktopWorktreeCreated",
+                  requestId: msg.requestId,
+                  name: "gentle-pike-147",
+                  path: "/tmp/.wave/worktrees/gentle-pike-147",
+                  branch: "worktree-gentle-pike-147",
+                  baseBranch: "main",
+                  repoRoot: "/tmp",
+                },
+              }),
+            );
+          });
+        }
+      }),
+      getState: () => null,
+      setState: () => {},
+    };
     const bridge = createHostBridge({
       api,
       ws: stubWs(),
       workdir: "/tmp",
+      outer,
     });
 
     bridge.postMessage({ command: "desktopReady" });
@@ -413,11 +470,29 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       baseBranch: "main",
       text: "via worktree path",
     });
-    await flush();
+    await flushUntil(() => vi.mocked(api.sendMessage).mock.calls.length > 0);
 
-    expect(api.createSession).toHaveBeenCalledTimes(1);
-    expect(api.createSession).toHaveBeenCalledWith(undefined, undefined);
-    expect(api.sendMessage).toHaveBeenCalledWith("sess-wt", "via worktree path");
+    expect(outer.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "desktopCreateWorktree",
+        workdir: "/tmp",
+        baseBranch: "main",
+      }),
+    );
+    expect(api.createSession).toHaveBeenCalledWith(
+      "/tmp/.wave/worktrees/gentle-pike-147",
+      expect.objectContaining({
+        worktreeName: "gentle-pike-147",
+        worktreeBranch: "worktree-gentle-pike-147",
+        baseBranch: "main",
+        worktreeRepoRoot: "/tmp",
+      }),
+    );
+    expect(api.sendMessage).toHaveBeenCalledWith(
+      "sess-wt",
+      "via worktree path",
+      undefined,
+    );
   });
 
   it("ensureSession creates for new workdir instead of foreign activeSessionId", async () => {
@@ -471,7 +546,11 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(api.createSession).toHaveBeenCalledWith("/new-project", undefined);
     expect(api.selectSession).toHaveBeenCalledWith("sess-new");
     expect(api.selectSession).not.toHaveBeenCalledWith("sess-foreign");
-    expect(api.sendMessage).toHaveBeenCalledWith("sess-new", "hello new workdir");
+    expect(api.sendMessage).toHaveBeenCalledWith(
+      "sess-new",
+      "hello new workdir",
+      undefined,
+    );
   });
 
   it("mergeRuntimeFields prefers API status over sticky local running", async () => {

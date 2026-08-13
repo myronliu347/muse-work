@@ -169,6 +169,20 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(onNewSessionInWorkdir).toHaveBeenCalledWith("/repo/beta");
   });
 
+  it("opens workdir in editor from the group context menu", () => {
+    const onOpenInEditor = vi.fn();
+    renderSidebar({
+      recentSessions: [entry({ sessionId: "r1", workdir: "/repo/beta" })],
+      onOpenInEditor,
+    });
+
+    fireEvent.contextMenu(
+      screen.getByTestId("desktop-session-workdir-row-/repo/beta"),
+    );
+    fireEvent.click(screen.getByTestId("desktop-workdir-open-in-editor"));
+    expect(onOpenInEditor).toHaveBeenCalledWith("/repo/beta");
+  });
+
   it("double-click title renames via onRenameSession", () => {
     const onRenameSession = vi.fn();
     renderSidebar({

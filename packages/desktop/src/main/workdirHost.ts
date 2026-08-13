@@ -3,13 +3,16 @@
  */
 
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { spawn } from "node:child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
 import { listWorkspaceDir, searchWorkspaceFiles } from "./fileSearch.js";
 import { listGitBranches } from "./gitBranches.js";
 import { getWorkspaceDiff } from "./gitDiff.js";
+import { generateRandomName } from "./nameGenerator.js";
 import { TerminalManager } from "./terminal.js";
+import { createWorktree, removeWorktree } from "./worktree.js";
 
 export const FROM_WEBVIEW = "muse:from-webview";
 export const TO_WEBVIEW = "muse:to-webview";
@@ -33,7 +36,22 @@ export type WorkdirHostDeps = {
   showOpenDialog?: typeof dialog.showOpenDialog;
   fromWebContents?: typeof BrowserWindow.fromWebContents;
   openPath?: (filePath: string) => Promise<string>;
+  /** Open a folder in VS Code (`code <workdir>`). Injected in tests. */
+  openInEditor?: (workdir: string) => void;
 };
+
+function defaultOpenInEditor(workdir: string): void {
+  const child = spawn("code", [workdir], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    shell: process.platform === "win32",
+  });
+  child.on("error", () => {
+    // `code` CLI missing from PATH — ignore.
+  });
+  child.unref();
+}
 
 function persistPath(userDataPath: string): string {
   return path.join(userDataPath, "workdir-state.json");
@@ -122,6 +140,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     (typeof shell?.openPath === "function"
       ? shell.openPath.bind(shell)
       : async () => "shell.openPath unavailable");
+  const openInEditor = options.openInEditor ?? defaultOpenInEditor;
 
 
   const state = loadPersistedWorkdirState(options.userDataPath);
@@ -167,6 +186,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       filterText?: string;
       dir?: string;
       workdir?: string;
+      baseBranch?: string;
+      name?: string;
+      text?: string;
+      images?: unknown;
+      branch?: string;
+      repoRoot?: string;
     };
     const command = msg?.command;
     if (!command) return;
@@ -175,6 +200,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
 
     if (command === "desktopReady") {
       pushState(win, state);
+      return;
+    }
+
+    if (command === "desktopOpenInEditor") {
+      const workdir = typeof msg.workdir === "string" ? msg.workdir.trim() : "";
+      if (workdir) openInEditor(workdir);
       return;
     }
 
@@ -292,6 +323,67 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         paneId: msg.paneId,
         result,
       });
+      return;
+    }
+
+    if (command === "desktopCreateWorktree") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const requestId =
+        typeof msg.requestId === "string" ? msg.requestId : undefined;
+      const baseBranch =
+        typeof msg.baseBranch === "string" && msg.baseBranch
+          ? msg.baseBranch
+          : undefined;
+      const name =
+        typeof msg.name === "string" && msg.name.trim()
+          ? msg.name.trim()
+          : generateRandomName();
+      if (!cwd) {
+        pushToWebview(win, {
+          command: "desktopWorktreeCreated",
+          requestId,
+          paneId: msg.paneId,
+          error: "无法确定仓库目录",
+        });
+        return;
+      }
+      try {
+        const session = await createWorktree(name, cwd, { baseBranch });
+        rememberWorkdir(state, session.path);
+        savePersistedWorkdirState(options.userDataPath, state);
+        pushState(win, state);
+        pushToWebview(win, {
+          command: "desktopWorktreeCreated",
+          requestId,
+          paneId: msg.paneId,
+          name: session.name,
+          path: session.path,
+          branch: session.branch,
+          baseBranch: session.baseBranch,
+          repoRoot: session.repoRoot,
+          isNew: session.isNew,
+          text: typeof msg.text === "string" ? msg.text : undefined,
+          images: msg.images,
+        });
+      } catch (error) {
+        pushToWebview(win, {
+          command: "desktopWorktreeCreated",
+          requestId,
+          paneId: msg.paneId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
+    if (command === "desktopRemoveWorktree") {
+      const wtPath = typeof msg.path === "string" ? msg.path : "";
+      const branch = typeof msg.branch === "string" ? msg.branch : "";
+      const repoRoot = typeof msg.repoRoot === "string" ? msg.repoRoot : "";
+      if (wtPath && branch && repoRoot) {
+        await removeWorktree({ path: wtPath, branch, repoRoot });
+      }
       return;
     }
 

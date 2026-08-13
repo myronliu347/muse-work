@@ -459,4 +459,46 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+  it("desktopOpenInEditor runs code with the workdir", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-code-"));
+    const opened: string[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: { send: () => {} },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      openInEditor: (workdir) => {
+        opened.push(workdir);
+      },
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "desktopOpenInEditor", workdir: "/repo/beta" },
+    );
+    expect(opened).toEqual(["/repo/beta"]);
+
+    opened.length = 0;
+    await handler!({ sender: {} }, { command: "desktopOpenInEditor" });
+    expect(opened).toEqual([]);
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
 });
