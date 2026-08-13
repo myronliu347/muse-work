@@ -24,7 +24,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--dot-color, var(--gray-8));
+  background: var(--gray-8);
   z-index: 1;
 }
 
@@ -121,7 +121,7 @@
 }
 
 .message.user:hover .user-text-block {
-  background-color: var(--vscode-chat-requestBubbleHoverBackground);
+  background-color: var(--gray-4);
 }
 
 .message.user {
