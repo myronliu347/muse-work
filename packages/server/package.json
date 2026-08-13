@@ -15,6 +15,7 @@
   "dependencies": {
     "@muse-work/provider": "workspace:*",
     "wave-agent-sdk": "1.0.7",
+    "winston": "^3.19.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

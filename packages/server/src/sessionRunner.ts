@@ -6,6 +6,7 @@ import {
 } from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsHub } from "./wsHub.js";
+import { getLogger } from "./logger.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
@@ -345,6 +346,7 @@ export function createSessionRunner(
       return;
     }
     const message = err instanceof Error ? err.message : String(err);
+    getLogger().error("turn failed", { sessionId, error: message });
     store.updateStatus(sessionId, "error");
     hub.broadcast(sessionId, {
       type: "session:status",
@@ -683,6 +685,7 @@ export function createSessionRunner(
   }
 
   async function handleUnauthorized(sessionId: string): Promise<void> {
+    getLogger().warn("turn unauthorized", { sessionId });
     store.updateStatus(sessionId, "error");
     hub.broadcast(sessionId, {
       type: "session:status",
@@ -754,6 +757,12 @@ export function createSessionRunner(
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
     agentLoading.set(sessionId, false);
+    getLogger().info("turn started", {
+      sessionId,
+      model: session.model,
+      chars: content.length,
+      images: images?.length ?? 0,
+    });
 
     try {
       const agent = await ensureAgent(sessionId);
@@ -768,6 +777,7 @@ export function createSessionRunner(
         if (!turnEnded.get(sessionId)) {
           hub.broadcast(sessionId, { type: "message:completed" });
         }
+        getLogger().info("turn completed", { sessionId });
         markIdle(sessionId);
       }
     } catch (err) {
@@ -779,6 +789,7 @@ export function createSessionRunner(
         if (!turnEnded.get(sessionId)) {
           hub.broadcast(sessionId, { type: "message:completed" });
         }
+        getLogger().info("turn aborted", { sessionId });
         markIdle(sessionId);
         return;
       }

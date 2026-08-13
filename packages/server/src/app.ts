@@ -1,6 +1,7 @@
 import http from "node:http";
 import type { AppContext } from "./createAppContext.js";
 import { sendError } from "./http.js";
+import { getLogger } from "./logger.js";
 import {
   handleAuthLogin,
   handleAuthLogout,
@@ -28,10 +29,45 @@ import {
   handleSendMessage,
 } from "./routes/sessions.js";
 
+function attachAccessLog(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  pathname: string,
+): void {
+  // Health probes are noisy; keep them at debug.
+  if (pathname === "/health") {
+    const started = Date.now();
+    res.on("finish", () => {
+      getLogger().debug("http", {
+        method: req.method ?? "GET",
+        path: pathname,
+        status: res.statusCode,
+        ms: Date.now() - started,
+      });
+    });
+    return;
+  }
+
+  const started = Date.now();
+  res.on("finish", () => {
+    getLogger().info("http", {
+      method: req.method ?? "GET",
+      path: pathname,
+      status: res.statusCode,
+      ms: Date.now() - started,
+    });
+  });
+}
+
 export function createApp(ctx: AppContext): http.Server {
   const server = http.createServer((req, res) => {
     void routeRequest(req, res, ctx).catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
+      getLogger().error("request failed", {
+        method: req.method ?? "GET",
+        path: req.url ?? "/",
+        error: message,
+      });
       if (!res.headersSent) {
         sendError(res, 500, message);
       } else {
@@ -51,6 +87,7 @@ async function routeRequest(
   const method = req.method ?? "GET";
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const pathname = url.pathname;
+  attachAccessLog(req, res, pathname);
 
   if (method === "GET" && pathname === "/health") {
     await handleHealth(req, res);

@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
+import { getLogger } from "./logger.js";
 import type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
 export type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
@@ -25,8 +26,13 @@ export function createWsHub(): WsHub {
       clients.set(sessionId, set);
     }
     set.add(ws);
+    getLogger().info("ws connected", { sessionId, clients: set.size });
     ws.on("close", () => {
       set!.delete(ws);
+      getLogger().info("ws disconnected", {
+        sessionId,
+        clients: set!.size,
+      });
       if (set!.size === 0) {
         clients.delete(sessionId);
       }

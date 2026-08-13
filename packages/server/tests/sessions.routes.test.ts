@@ -77,6 +77,28 @@ describe("sessions HTTP routes", () => {
     expect(bGet.model).toBe("m2");
   });
 
+  it("POST /sessions without model uses deepseek-v4-flash not the global active", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    await fetch(`${app.baseUrl}/providers/active`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        providerId: "codemaker",
+        modelId: "claude-opus-4-6",
+      }),
+    });
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a" }),
+    }).then((r) => r.json());
+    expect(created.model).toBe("deepseek-v4-flash");
+  });
+
   it("POST /sessions/:id/abort returns ok", async () => {
     const app = await listenTestApp();
     server = app.server;

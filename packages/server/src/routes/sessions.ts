@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createDefaultProjectWorkdir } from "@muse-work/provider";
+import { createDefaultProjectWorkdir, DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { AppContext } from "../createAppContext.js";
 import { readJsonBody, sendError, sendJson } from "../http.js";
+import { getLogger } from "../logger.js";
 
 export async function handleCreateSession(
   req: IncomingMessage,
@@ -23,11 +24,10 @@ export async function handleCreateSession(
     typeof body?.workdir === "string" && body.workdir.trim().length > 0
       ? body.workdir.trim()
       : createDefaultProjectWorkdir(ctx.home);
-  const active = ctx.registry.getActive();
   const model =
     typeof body?.model === "string" && body.model.length > 0
       ? body.model
-      : active.modelId;
+      : DEFAULT_ACTIVE_MODEL_ID;
   if (!model) {
     sendError(res, 400, "no active model selected");
     return;
@@ -45,6 +45,12 @@ export async function handleCreateSession(
       typeof body?.worktreeRepoRoot === "string"
         ? body.worktreeRepoRoot
         : undefined,
+  });
+  getLogger().info("session created", {
+    sessionId: session.id,
+    model: session.model,
+    workdir: session.workdir,
+    worktreeName: session.worktreeName,
   });
   sendJson(res, 200, session);
 }
@@ -124,6 +130,7 @@ export async function handleSelectSession(
   }
   ctx.store.select(sessionId);
   ctx.store.setUnreadDone(sessionId, false);
+  getLogger().info("session selected", { sessionId });
   sendJson(res, 200, { session, clearedUnread: true });
 }
 
@@ -168,6 +175,7 @@ export async function handleDeleteSession(
     return;
   }
   await ctx.runner.disposeSession(sessionId);
+  getLogger().info("session deleted", { sessionId });
   sendJson(res, 200, { ok: true });
 }
 
@@ -207,6 +215,11 @@ export async function handleSendMessage(
       content,
       images.length > 0 ? images : undefined,
     );
+    getLogger().info("message accepted", {
+      sessionId,
+      chars: content.length,
+      images: images.length,
+    });
     sendJson(res, 200, result);
   } catch (err) {
     const statusCode =
@@ -214,6 +227,11 @@ export async function handleSendMessage(
         ? Number((err as { statusCode: number }).statusCode)
         : 500;
     const message = err instanceof Error ? err.message : String(err);
+    getLogger().warn("message rejected", {
+      sessionId,
+      status: statusCode || 500,
+      error: message,
+    });
     sendError(res, statusCode || 500, message);
   }
 }
@@ -226,6 +244,7 @@ export async function handleAbortMessage(
 ): Promise<void> {
   try {
     const result = await ctx.runner.abortMessage(sessionId);
+    getLogger().info("message aborted", { sessionId });
     sendJson(res, 200, result);
   } catch (err) {
     const statusCode =
@@ -233,6 +252,11 @@ export async function handleAbortMessage(
         ? Number((err as { statusCode: number }).statusCode)
         : 500;
     const message = err instanceof Error ? err.message : String(err);
+    getLogger().warn("abort failed", {
+      sessionId,
+      status: statusCode || 500,
+      error: message,
+    });
     sendError(res, statusCode || 500, message);
   }
 }

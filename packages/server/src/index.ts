@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createApp } from "./app.js";
 import { createAppContext } from "./createAppContext.js";
+import { configureLogger, resolveLogDir } from "./logger.js";
 
 const HOST = "127.0.0.1";
 
@@ -24,15 +25,22 @@ function parsePort(argv: string[]): number {
 
 const port = parsePort(process.argv.slice(2));
 const ctx = createAppContext();
+const log = configureLogger({ home: ctx.home });
 const server = createApp(ctx);
 
 server.listen(port, HOST, () => {
   const addr = server.address();
   if (!addr || typeof addr === "string") {
-    console.error("failed to bind server");
+    log.error("failed to bind server");
     process.exit(1);
   }
+  // Desktop parses this single JSON line from stdout for the ready port.
   process.stdout.write(
     `${JSON.stringify({ ready: true, port: addr.port, host: HOST })}\n`,
   );
+  log.info("server listening", {
+    host: HOST,
+    port: addr.port,
+    logDir: resolveLogDir(ctx.home),
+  });
 });
