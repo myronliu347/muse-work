@@ -467,18 +467,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     paneIdRef.current = paneId;
   }, [paneId]);
 
-  // Desktop only: keep <html data-theme> in sync with the resolved theme so the
-  // inlined --vscode-* variable set swaps without a reload (FR-018). VSCE/JB
-  // inject their own variables and never set state.theme, so this is inert there.
-  useEffect(() => {
-    if (state.theme) {
-      document.documentElement.setAttribute(
-        "data-theme",
-        state.theme.effective,
-      );
-    }
-  }, [state.theme]);
-
   // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
     if (!queueEditWarning) return;
@@ -768,10 +756,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           });
           break;
         case "desktopThemeChange":
-          document.documentElement.setAttribute(
-            "data-theme",
-            message.effective,
-          );
           break;
         case "showToast":
           // Toasts are window-global (no paneId) — only the root instance (the

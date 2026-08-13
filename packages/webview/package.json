@@ -39,6 +39,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@radix-ui/themes": "^3.3.0",
     "@vscode/codicons": "^0.0.43",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
@@ -48,6 +49,7 @@
     "highlight.js": "^11.11.1",
     "marked": "^9.1.6",
     "mermaid": "^11.12.2",
+    "motion": "^13.1.0",
     "wave-agent-sdk": "1.0.7"
   }
 }

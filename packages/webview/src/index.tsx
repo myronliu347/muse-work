@@ -1,10 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "@radix-ui/themes/styles.css";
 import { ChatApp } from "./components/ChatApp";
 import { DesktopApp } from "./components/DesktopApp";
 import { MuseApiClient } from "./muse/apiClient";
 import { MuseWsClient } from "./muse/wsClient";
 import { createHostBridge, resolveMuseServerUrl } from "./muse/hostBridge";
+import type { ThemePreference } from "./types";
+import { MuseTheme } from "./ui/theme";
 import "./styles/globals.css";
 import "@vscode/codicons/dist/codicon.css";
 
@@ -15,6 +18,7 @@ declare global {
     museServerBaseUrl?: string;
     museWorkdir?: string;
     waveHostType?: string;
+    __MUSE_THEME_PREFERENCE__?: ThemePreference;
   }
 }
 
@@ -40,9 +44,11 @@ const vscode = createHostBridge({
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 root.render(
-  window.waveHostType === "desktop" ? (
-    <DesktopApp vscode={vscode} />
-  ) : (
-    <ChatApp vscode={vscode} />
-  ),
+  <MuseTheme>
+    {window.waveHostType === "desktop" ? (
+      <DesktopApp vscode={vscode} />
+    ) : (
+      <ChatApp vscode={vscode} />
+    )}
+  </MuseTheme>,
 );
