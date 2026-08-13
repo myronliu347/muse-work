@@ -1,0 +1,44 @@
+packages/desktop/scripts/brandDevElectron.mjs
+  db26196a999da47a 1-184
+packages/desktop/package.json
+  db26196a999da47a 54,56
+packages/desktop/src/main/index.ts
+  db26196a999da47a 35-40,68,88-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "98ee76ad53103a9a18b573ba9160d08f08185cf8",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 251,
+      "total_deletions": 54,
+      "accepted_lines": 205,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/scripts/brandDevElectron.mjs": {
+          "additions": 230,
+          "deletions": 46,
+          "accepted_lines": 184
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 19,
+          "deletions": 7,
+          "accepted_lines": 19
+        },
+        "packages/desktop/package.json": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
