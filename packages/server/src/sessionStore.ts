@@ -23,14 +23,15 @@ export interface Session {
   baseBranch?: string;
   /** Main repo root; used to remove the worktree on session delete. */
   worktreeRepoRoot?: string;
-  /** runtime only — not required in file */
   status: SessionStatus;
+  /** Runtime-only: last process died mid-turn. Not written to disk. */
+  interrupted?: boolean;
 }
 
 export type SessionsFile = {
   version: 1;
   activeSessionId?: string;
-  sessions: Array<Omit<Session, "status">>;
+  sessions: Array<Omit<Session, "interrupted"> & { status?: SessionStatus }>;
 };
 
 export interface SessionStore {
@@ -86,8 +87,10 @@ function saveSessionsFile(file: SessionsFile, home: string): void {
   fs.renameSync(tmpPath, configPath);
 }
 
-function toPersistedSession(session: Session): Omit<Session, "status"> {
-  const { status: _status, ...rest } = session;
+function toPersistedSession(
+  session: Session,
+): Omit<Session, "interrupted"> {
+  const { interrupted: _interrupted, ...rest } = session;
   return rest;
 }
 
@@ -109,10 +112,6 @@ export function createSessionStore(
   const unreadDone = new Map<string, boolean>();
   let activeSessionId = file.activeSessionId;
 
-  for (const record of file.sessions) {
-    sessions.set(record.id, { ...record, status: "idle" });
-  }
-
   function persist(): void {
     saveSessionsFile(
       {
@@ -122,6 +121,20 @@ export function createSessionStore(
       },
       home,
     );
+  }
+
+  let recoveredRunning = false;
+  for (const record of file.sessions) {
+    const wasRunning = record.status === "running";
+    if (wasRunning) recoveredRunning = true;
+    sessions.set(record.id, {
+      ...record,
+      status: "idle",
+      ...(wasRunning ? { interrupted: true } : {}),
+    });
+  }
+  if (recoveredRunning) {
+    persist();
   }
 
   function toSession(session: Session): Session {
@@ -243,6 +256,7 @@ export function createSessionStore(
         return undefined;
       }
       session.status = status;
+      persist();
       return toSession(session);
     },
 

@@ -182,6 +182,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let bootstrapped = false;
   let loading = false;
   let wsConnected = false;
+  let toastedInterrupted = false;
   let wsEverOpened = false;
   let pinned: TreeSession[] = [];
   let recent: TreeSession[] = [];
@@ -1247,6 +1248,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       await ensureWs();
       const grouped = await refreshTree();
+      if (
+        !toastedInterrupted &&
+        [...grouped.pinned, ...grouped.recent].some((s) => s.interrupted)
+      ) {
+        toastedInterrupted = true;
+        showServerToast("上次对话被中断");
+      }
       const activeId = grouped.activeSessionId;
       const listed = activeId
         ? [...grouped.pinned, ...grouped.recent].some((s) => s.id === activeId)

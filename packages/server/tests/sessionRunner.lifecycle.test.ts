@@ -588,4 +588,56 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(running.id)?.status).toBe("idle");
     expect(store.get(waiting.id)?.status).toBe("running");
   });
+
+  it("shutdown aborts all running turns including permission waiters", async () => {
+    const { store, hub, registry } = setup();
+    const waiting = store.create({ workdir: "/tmp/wait", model: "m1" });
+    const running = store.create({ workdir: "/tmp/run", model: "m1" });
+    const permissionSeen = Promise.withResolvers<void>();
+    const original = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      if (event.type === "permission:request" && sessionId === waiting.id) {
+        permissionSeen.resolve();
+      }
+      return original(sessionId, event);
+    };
+
+    let agentsCreated = 0;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      idleTtlMs: 60_000,
+      stallMs: 60_000,
+      createAgent: async (opts) => {
+        agentsCreated += 1;
+        const isWaiting = agentsCreated === 1;
+        return {
+          sendMessage: async () => {
+            if (isWaiting) {
+              await opts.canUseTool?.({
+                toolName: "Bash",
+                permissionMode: "default",
+                toolInput: { command: "ls" },
+              });
+              return;
+            }
+            await new Promise(() => {});
+          },
+          abortMessage: () => {},
+          dispose: async () => {},
+        };
+      },
+    });
+
+    void runner.sendMessage(waiting.id, "need perm");
+    await permissionSeen.promise;
+    void runner.sendMessage(running.id, "hang");
+    await expect.poll(() => store.get(running.id)?.status).toBe("running");
+
+    const result = await runner.shutdown();
+    expect(result.aborted).toBe(2);
+    await expect.poll(() => store.get(running.id)?.status).toBe("idle");
+    await expect.poll(() => store.get(waiting.id)?.status).toBe("idle");
+  });
 });

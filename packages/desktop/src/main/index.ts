@@ -12,6 +12,7 @@ import { museServerBaseUrl, startMuseServer } from "./serverProcess";
 import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
 import { createMainWindow, desktopPaths } from "./window";
+import { createQuitGate } from "./quitGate";
 import { installWorkdirHost, TO_WEBVIEW, type WorkdirHost } from "./workdirHost";
 
 function adoptLoginShellPath(): void {
@@ -171,13 +172,22 @@ if (!gotLock) {
     }
   });
 
-  app.on("before-quit", () => {
-    workdirHost?.dispose();
-    workdirHost = null;
-    themeHost?.dispose();
-    themeHost = null;
-    void stopServer?.();
-    serverHandle = null;
-    serverBaseUrl = null;
+  const quitGate = createQuitGate({
+    dispose: () => {
+      workdirHost?.dispose();
+      workdirHost = null;
+      themeHost?.dispose();
+      themeHost = null;
+      serverHandle = null;
+      serverBaseUrl = null;
+    },
+    stopServer: async () => {
+      await stopServer?.();
+    },
+    quit: () => app.quit(),
+  });
+
+  app.on("before-quit", (event) => {
+    quitGate.handleBeforeQuit(event);
   });
 }

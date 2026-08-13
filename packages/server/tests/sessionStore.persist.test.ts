@@ -29,7 +29,7 @@ describe("sessionStore persistence", () => {
     expect(file.sessions[0].title).toBe("hello");
     expect(file.sessions[0].pinned).toBe(true);
     expect(file.sessions[0].model).toBe("deepseek-v4-flash");
-    expect(file.sessions[0].status).toBeUndefined();
+    expect(file.sessions[0].status).toBe("idle");
 
     const store2 = createSessionStore({ home });
     expect(store2.getActiveSessionId()).toBe(s.id);
@@ -57,5 +57,31 @@ describe("sessionStore persistence", () => {
     expect(grouped.recent).toHaveLength(1);
     expect(grouped.recent[0]?.id).toBe(draft.id);
     expect(grouped.activeSessionId).toBe(draft.id);
+  });
+
+  it("reloads a persisted running session as idle and marks it interrupted", () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sess-"));
+    const store1 = createSessionStore({ home });
+    const s = store1.create({
+      workdir: "/tmp/proj",
+      model: "deepseek-v4-flash",
+    });
+    store1.update(s.id, { lastActiveAt: s.createdAt + 1, title: "mid-turn" });
+    store1.updateStatus(s.id, "running");
+
+    const file = JSON.parse(
+      fs.readFileSync(getSessionsConfigPath(home), "utf8"),
+    ) as { sessions: Array<{ status?: string }> };
+    expect(file.sessions[0]?.status).toBe("running");
+
+    const store2 = createSessionStore({ home });
+    expect(store2.get(s.id)?.status).toBe("idle");
+    expect(store2.get(s.id)?.interrupted).toBe(true);
+    expect(store2.listGrouped().recent[0]?.interrupted).toBe(true);
+
+    const reloaded = JSON.parse(
+      fs.readFileSync(getSessionsConfigPath(home), "utf8"),
+    ) as { sessions: Array<{ status?: string }> };
+    expect(reloaded.sessions[0]?.status).toBe("idle");
   });
 });

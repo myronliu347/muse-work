@@ -2,6 +2,7 @@
 import { createApp } from "./app.js";
 import { createAppContext } from "./createAppContext.js";
 import { configureLogger, resolveLogDir } from "./logger.js";
+import { installGracefulShutdown } from "./shutdown.js";
 
 const HOST = "127.0.0.1";
 
@@ -27,6 +28,12 @@ const port = parsePort(process.argv.slice(2));
 const ctx = createAppContext();
 const log = configureLogger({ home: ctx.home });
 const server = createApp(ctx);
+installGracefulShutdown({
+  runner: ctx.runner,
+  hub: ctx.hub,
+  server,
+  log,
+});
 
 server.listen(port, HOST, () => {
   const addr = server.address();

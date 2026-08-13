@@ -1512,4 +1512,37 @@ describe("createHostBridge reconnect", () => {
     expect(ws.reconnectNow).toHaveBeenCalled();
     expect(api.getMessages).toHaveBeenCalledWith("sess-active");
   });
+
+  it("toasts once when desktopReady finds a session interrupted last run", async () => {
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [{ ...baseSession, interrupted: true }],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({
+          id: "muse-server",
+          message: "上次对话被中断",
+        }),
+      }),
+    );
+
+    messages.length = 0;
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: expect.objectContaining({ message: "上次对话被中断" }),
+      }),
+    );
+  });
 });

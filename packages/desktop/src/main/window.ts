@@ -56,7 +56,33 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
   });
 
   void win.loadFile(opts.webviewHtmlPath);
+  attachRendererRecovery(win);
   return win;
+}
+
+export function attachRendererRecovery(win: {
+  isDestroyed: () => boolean;
+  reload: () => void;
+  on?: (event: "unresponsive", listener: () => void) => void;
+  webContents: {
+    on: (
+      event: "render-process-gone",
+      listener: (
+        event: unknown,
+        details: { reason: string },
+      ) => void,
+    ) => void;
+  };
+}): void {
+  const reloadIfAlive = () => {
+    if (win.isDestroyed()) return;
+    win.reload();
+  };
+  win.webContents.on("render-process-gone", (_event, details) => {
+    if (details.reason === "clean-exit") return;
+    reloadIfAlive();
+  });
+  win.on?.("unresponsive", reloadIfAlive);
 }
 
 export type DesktopPathsOpts = {

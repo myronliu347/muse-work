@@ -78,6 +78,8 @@ export interface MuseSession {
   worktreeRepoRoot?: string;
   /** Runtime-only unread-done flag; may be absent from list payloads. */
   unreadDone?: boolean;
+  /** True when the previous process died mid-turn. */
+  interrupted?: boolean;
 }
 
 export interface MuseSessionsGrouped {

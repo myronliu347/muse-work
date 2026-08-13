@@ -76,6 +76,8 @@ export interface SessionRunner {
   snapshotEvents(): WsBroadcastEvent[];
   /** Abort running turns that are not waiting on a permission prompt. */
   abortRunningTurns(reason: string): Promise<{ aborted: number }>;
+  /** Abort every in-flight turn, including permission waiters. */
+  shutdown(): Promise<{ aborted: number }>;
 }
 
 interface QueuedTurn {
@@ -1039,6 +1041,19 @@ export function createSessionRunner(
         if (session.status !== "running") continue;
         if (hasPendingPermission(session.id)) continue;
         interruptTurn(session.id, { error: reason });
+        aborted += 1;
+      }
+      return { aborted };
+    },
+
+    async shutdown() {
+      let aborted = 0;
+      for (const session of store.list()) {
+        if (session.status !== "running") continue;
+        interruptTurn(session.id, {
+          error: "Server shutting down",
+          denyMessage: "Server shutting down",
+        });
         aborted += 1;
       }
       return { aborted };
