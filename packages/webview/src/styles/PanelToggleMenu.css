@@ -1,5 +1,10 @@
 /* Desktop header panel-toggle dropdown (anchored inside .chat-header, which is
    position:relative — same pattern as .more-menu). */
+.panel-toggle-control {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .panel-toggle-menu {
   position: absolute;
   top: 40px;

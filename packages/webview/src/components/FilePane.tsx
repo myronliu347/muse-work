@@ -208,7 +208,6 @@ export const FilePane: React.FC<FilePaneProps> = ({
   width,
   onWidthChange,
   maxWidth,
-  onClose,
   onOpenExternal,
   workdir,
 }) => {
@@ -309,14 +308,6 @@ export const FilePane: React.FC<FilePaneProps> = ({
               <i className="codicon codicon-open-external" />
             </button>
           )}
-          <button
-            className="preview-pane-button"
-            title="关闭"
-            data-testid="file-close"
-            onClick={onClose}
-          >
-            <i className="codicon codicon-close" />
-          </button>
         </div>
         <div className="preview-pane-body file-pane-body" ref={scrollRef}>
           {!fileView && (

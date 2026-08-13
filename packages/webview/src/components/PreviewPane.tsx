@@ -115,7 +115,6 @@ export interface PreviewPaneProps {
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
   url,
   vscode,
-  onClose,
   width,
   onWidthChange,
   maxWidth,
@@ -362,14 +361,6 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             onClick={handleOpenExternal}
           >
             <i className="codicon codicon-link-external" />
-          </button>
-          <button
-            className="preview-pane-button"
-            title="关闭"
-            data-testid="preview-close"
-            onClick={onClose}
-          >
-            <i className="codicon codicon-close" />
           </button>
         </div>
         {pickerUnsupported && (

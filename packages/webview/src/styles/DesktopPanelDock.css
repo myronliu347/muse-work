@@ -1,0 +1,112 @@
+.panel-toggle-control {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.desktop-panel-dock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  flex-shrink: 0;
+  border-left: 1px solid var(--gray-6);
+  background: var(--color-background);
+}
+
+.desktop-panel-dock-header {
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--gray-6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.desktop-panel-dock-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.desktop-panel-tab {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 2px 0 8px;
+  border-radius: var(--radius-1);
+  color: var(--gray-11);
+  flex-shrink: 0;
+}
+
+.desktop-panel-tab--active {
+  color: var(--gray-12);
+  background: var(--gray-4);
+}
+
+.desktop-panel-tab-label {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.desktop-panel-tab-close {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-panel-tab-close:hover {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.desktop-panel-tab-close .codicon {
+  font-size: 12px;
+}
+
+.desktop-panel-dock-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.desktop-panel-dock-body .preview-pane,
+.desktop-panel-dock-body .desktop-panel-slot {
+  width: 100% !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-panel-dock-body .preview-pane-drag-handle {
+  display: none;
+}
+
+.desktop-pane--closable .desktop-panel-dock-header {
+  padding-right: 34px;
+}
+
+.desktop-pane--closable:has(.desktop-panel-dock) .chat-header {
+  padding-right: 12px;
+}

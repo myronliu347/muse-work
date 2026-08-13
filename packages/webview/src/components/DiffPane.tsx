@@ -85,7 +85,6 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   width,
   onWidthChange,
   maxWidth,
-  onClose,
   paneId,
   visible,
   isStreaming,
@@ -485,7 +484,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
-          <span className="preview-pane-url">差异</span>
+          <span className="preview-pane-url">变更</span>
           <button
             className="preview-pane-button"
             title="刷新"
@@ -495,14 +494,6 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             <i
               className={`codicon codicon-refresh${refreshing ? " codicon-modifier-spin" : ""}`}
             />
-          </button>
-          <button
-            className="preview-pane-button"
-            title="关闭"
-            data-testid="diff-close"
-            onClick={onClose}
-          >
-            <i className="codicon codicon-close" />
           </button>
         </div>
         <div className="diff-pane-body">

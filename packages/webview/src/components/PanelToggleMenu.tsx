@@ -1,22 +1,18 @@
 import React, { useEffect, useRef } from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../types";
 import { panelShortcutLabel } from "../muse/panelShortcuts";
+import { PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../muse/panelTabs";
 import "../styles/PanelToggleMenu.css";
 
 interface PanelToggleMenuProps extends PanelToggleProps {
   onClose: () => void;
 }
 
-const PANEL_ITEMS: Array<{
-  kind: DesktopPanelKind;
-  label: string;
-  shortcut: string;
-}> = [
-  { kind: "preview", label: "预览", shortcut: panelShortcutLabel("preview") },
-  { kind: "diff", label: "差异", shortcut: panelShortcutLabel("diff") },
-  { kind: "terminal", label: "终端", shortcut: panelShortcutLabel("terminal") },
-  { kind: "file", label: "文件", shortcut: panelShortcutLabel("file") },
-];
+const PANEL_ITEMS = PANEL_TAB_ORDER.map((kind) => ({
+  kind,
+  label: PANEL_TAB_LABELS[kind],
+  shortcut: panelShortcutLabel(kind),
+}));
 
 /**
  * Desktop header panel-toggle dropdown: multi-select checkboxes for the

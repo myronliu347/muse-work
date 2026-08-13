@@ -99,7 +99,6 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   width,
   onWidthChange,
   maxWidth,
-  onClose,
   paneId,
   visible,
   sessionId,
@@ -359,14 +358,6 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             onClick={restart}
           >
             <i className="codicon codicon-debug-restart" />
-          </button>
-          <button
-            className="preview-pane-button"
-            title="关闭"
-            data-testid="terminal-close"
-            onClick={onClose}
-          >
-            <i className="codicon codicon-close" />
           </button>
         </div>
         <div

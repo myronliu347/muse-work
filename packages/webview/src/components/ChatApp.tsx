@@ -11,6 +11,7 @@ import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import type { MessageInputHandle } from "./MessageInput";
 import { ChatHeader } from "./ChatHeader";
+import { DesktopPanelDock } from "./DesktopPanelDock";
 import { TaskList } from "./TaskList";
 import { QueuedMessageList } from "./QueuedMessageList";
 import { ConfirmationDialog } from "./ConfirmationDialog";
@@ -38,6 +39,11 @@ import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
 import { matchPanelShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen } from "../muse/panelFit";
+import {
+  firstPanelTab,
+  nextActivePanel,
+  PANEL_TAB_ORDER,
+} from "../muse/panelTabs";
 import { PreviewPane } from "./PreviewPane";
 import { DiffPane } from "./DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./TerminalPane";
@@ -60,8 +66,8 @@ import {
 } from "../utils/subagentTranscript";
 import "../styles/ChatApp.css";
 
-/** Desktop conversation-level panels: fixed left→right order regardless of check order. */
-const PANEL_ORDER: DesktopPanelKind[] = ["preview", "diff", "terminal", "file"];
+/** Desktop conversation-level panels: tab order in the shared dock. */
+const PANEL_ORDER = PANEL_TAB_ORDER;
 const PANEL_DEFAULT_WIDTH = 420;
 const PANEL_MIN_WIDTH = 320;
 /** The conversation (message) area never shrinks below this when opening/dragging panels. */
@@ -119,6 +125,8 @@ function canonicalForwardUrl(raw: string): string {
 interface PanelGroupState {
   checked: DesktopPanelKind[];
   mounted: DesktopPanelKind[];
+  /** Currently selected tab in the dock; null when no panels are open. */
+  active: DesktopPanelKind | null;
   widths: Record<DesktopPanelKind, number>;
   previewUrl: string | null;
   /** File panel state (which file is open + content); null = never opened. */
@@ -157,6 +165,7 @@ function emptyPanelGroup(): PanelGroupState {
   return {
     checked: [],
     mounted: [],
+    active: null,
     widths: {
       preview: PANEL_DEFAULT_WIDTH,
       diff: PANEL_DEFAULT_WIDTH,
@@ -332,6 +341,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [mountedPanels, setMountedPanels] = useState<DesktopPanelKind[]>(
     () => (groupKey ? panelGroupCache.get(groupKey)?.mounted : undefined) ?? [],
   );
+  const [activePanel, setActivePanel] = useState<DesktopPanelKind | null>(
+    () => {
+      const group = groupKey ? panelGroupCache.get(groupKey) : undefined;
+      const checked = group?.checked ?? [];
+      if (group?.active && checked.includes(group.active)) return group.active;
+      return firstPanelTab(checked);
+    },
+  );
   const [panelWidths, setPanelWidths] = useState<
     Record<DesktopPanelKind, number>
   >(
@@ -345,6 +362,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const checkedPanelsRef = useRef(checkedPanels);
+  const activePanelRef = useRef(activePanel);
   const panelWidthsRef = useRef(panelWidths);
   // Mirrors so the stable message listener can reach the panel toggle logic
   // (defined below) without re-subscribing.
@@ -385,6 +403,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [checkedPanels]);
 
   useEffect(() => {
+    activePanelRef.current = activePanel;
+  }, [activePanel]);
+
+  useEffect(() => {
     panelWidthsRef.current = panelWidths;
   }, [panelWidths]);
 
@@ -397,6 +419,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     panelGroupCache.set(groupKey, {
       checked: checkedPanels,
       mounted: mountedPanels,
+      active: activePanel,
       widths: panelWidths,
       // A forwarded URL's tunnel is session-scoped (scenario 18) — it survives
       // pane remounts and session switches, so the URL is cached like a local
@@ -411,6 +434,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     groupKey,
     checkedPanels,
     mountedPanels,
+    activePanel,
     panelWidths,
     previewUrl,
     fileView,
@@ -452,6 +476,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       setCurrentForward(null);
       setCheckedPanels([]);
       setMountedPanels([]);
+      setActivePanel(null);
       setPanelWidths({
         preview: PANEL_DEFAULT_WIDTH,
         diff: PANEL_DEFAULT_WIDTH,
@@ -466,6 +491,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     setCurrentForward(group?.forward ?? null);
     setCheckedPanels(group?.checked ?? []);
     setMountedPanels(group?.mounted ?? []);
+    setActivePanel(
+      group?.active && (group.checked ?? []).includes(group.active)
+        ? group.active
+        : firstPanelTab(group?.checked ?? []),
+    );
     setPanelWidths(
       group?.widths ?? {
         preview: PANEL_DEFAULT_WIDTH,
@@ -1524,32 +1554,36 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     };
   }, [isDesktop]);
 
-  // Check a panel on: it shares its row with the message area. When default
-  // widths would squeeze the conversation below its minimum, shrink sibling
-  // panels toward PANEL_MIN_WIDTH first; only refuse when even all-min widths
-  // do not fit. Mounting is sticky — unchecking only hides.
+  // Open a panel as a tab in the shared dock. First open must fit beside the
+  // conversation; later tabs reuse the same column. Mounting is sticky.
   const tryOpenPanel = useCallback(
     (kind: DesktopPanelKind): boolean => {
-      const containerW =
-        chatContainerRef.current?.getBoundingClientRect().width;
-      if (containerW) {
-        const planned = planPanelWidthsForOpen(
-          containerW,
-          checkedPanelsRef.current,
-          panelWidthsRef.current,
-          kind,
-          { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
-        );
-        if (!planned.ok) {
-          showPanelHint("空间不足，无法开启面板");
-          return false;
-        }
-        const changed = PANEL_ORDER.some(
-          (k) => planned.widths[k] !== panelWidthsRef.current[k],
-        );
-        if (changed) {
-          panelWidthsRef.current = planned.widths;
-          setPanelWidths(planned.widths);
+      if (checkedPanelsRef.current.includes(kind)) {
+        setActivePanel(kind);
+        return true;
+      }
+      if (checkedPanelsRef.current.length === 0) {
+        const containerW =
+          chatContainerRef.current?.getBoundingClientRect().width;
+        if (containerW) {
+          const planned = planPanelWidthsForOpen(
+            containerW,
+            [],
+            panelWidthsRef.current,
+            kind,
+            { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
+          );
+          if (!planned.ok) {
+            showPanelHint("空间不足，无法开启面板");
+            return false;
+          }
+          const changed = PANEL_ORDER.some(
+            (k) => planned.widths[k] !== panelWidthsRef.current[k],
+          );
+          if (changed) {
+            panelWidthsRef.current = planned.widths;
+            setPanelWidths(planned.widths);
+          }
         }
       }
       setCheckedPanels((prev) =>
@@ -1558,6 +1592,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       setMountedPanels((prev) =>
         prev.includes(kind) ? prev : [...prev, kind],
       );
+      setActivePanel(kind);
       return true;
     },
     [showPanelHint],
@@ -1567,6 +1602,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     (kind: DesktopPanelKind) => {
       if (panelDisabledRef.current.includes(kind)) return;
       if (checkedPanelsRef.current.includes(kind)) {
+        setActivePanel(
+          nextActivePanel(
+            checkedPanelsRef.current,
+            kind,
+            activePanelRef.current,
+          ),
+        );
         setCheckedPanels((prev) => prev.filter((k) => k !== kind));
         // Closing the preview hides the pane but never releases a remote tunnel
         // (scenario 18): the URL stays cached so re-checking shows the same page,
@@ -1655,32 +1697,29 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   // Authoritative clamp at drag time: keep the panel within [320, container -
   // other checked panels - conversation minimum].
-  const handlePanelWidthChange = useCallback(
-    (kind: DesktopPanelKind, width: number) => {
-      let clamped = Math.max(width, PANEL_MIN_WIDTH);
-      const containerW =
-        chatContainerRef.current?.getBoundingClientRect().width;
-      if (containerW) {
-        const others = checkedPanelsRef.current
-          .filter((k) => k !== kind)
-          .reduce((sum, k) => sum + panelWidthsRef.current[k], 0);
-        clamped = Math.min(clamped, containerW - others - CHAT_MAIN_MIN_WIDTH);
-      }
-      setPanelWidths((prev) => ({ ...prev, [kind]: clamped }));
-    },
-    [],
-  );
+  const handleDockWidthChange = useCallback((width: number) => {
+    let clamped = Math.max(width, PANEL_MIN_WIDTH);
+    const containerW =
+      chatContainerRef.current?.getBoundingClientRect().width;
+    if (containerW) {
+      clamped = Math.min(clamped, containerW - CHAT_MAIN_MIN_WIDTH);
+    }
+    const next = {
+      preview: clamped,
+      diff: clamped,
+      terminal: clamped,
+      file: clamped,
+    };
+    panelWidthsRef.current = next;
+    setPanelWidths(next);
+  }, []);
 
   // Desktop only: open/re-target the preview panel. Clicking a localhost link
   // checks the preview item (refused with a hint when space runs out) and loads
   // the URL. Message.tsx gates on waveHostType, so this never fires in IDE hosts.
   const handleOpenPreview = useCallback(
     (url: string) => {
-      if (
-        !checkedPanelsRef.current.includes("preview") &&
-        !tryOpenPanel("preview")
-      )
-        return;
+      if (!tryOpenPanel("preview")) return;
       setPreviewUrl(url);
     },
     [tryOpenPanel],
@@ -1694,11 +1733,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // and only die when the session is deleted (scenario 18).
   const handleOpenRemotePreview = useCallback(
     (url: string) => {
-      if (
-        !checkedPanelsRef.current.includes("preview") &&
-        !tryOpenPanel("preview")
-      )
-        return;
+      if (!tryOpenPanel("preview")) return;
       // Read the refs, not the state values: this callback is captured by the
       // memoized Message component at mount, so closing over state would freeze
       // the first render's values and break the same-link dedup below.
@@ -1755,24 +1790,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     postToHost({ command: "desktopPanelState", checked: checkedPanels });
   }, [checkedPanels, isDesktop, postToHost]);
 
-  // Width ceiling for one panel: container minus the other checked panels and
-  // the conversation-area minimum. Render-time estimate — the drag handler
-  // re-clamps authoritatively on every mousemove.
-  const panelMaxWidth = (kind: DesktopPanelKind): number => {
-    const containerW =
-      chatContainerRef.current?.getBoundingClientRect().width ??
-      window.innerWidth;
-    const others = checkedPanels
-      .filter((k) => k !== kind)
-      .reduce((sum, k) => sum + panelWidths[k], 0);
-    return containerW - others - CHAT_MAIN_MIN_WIDTH;
-  };
+  const dockMaxWidth =
+    (chatContainerRef.current?.getBoundingClientRect().width ??
+      window.innerWidth) - CHAT_MAIN_MIN_WIDTH;
 
   const renderPanelSlot = (kind: DesktopPanelKind) => {
+    const dockWidth =
+      panelWidths[activePanel ?? kind] ?? PANEL_DEFAULT_WIDTH;
     const common = {
-      width: panelWidths[kind],
-      onWidthChange: (w: number) => handlePanelWidthChange(kind, w),
-      maxWidth: panelMaxWidth(kind),
+      width: dockWidth,
+      onWidthChange: handleDockWidthChange,
+      maxWidth: dockMaxWidth,
       onClose: () => handleTogglePanel(kind),
     };
 
@@ -1823,15 +1851,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           />
           <div className="preview-pane-inner">
             <div className="preview-pane-toolbar">
-              <span className="preview-pane-url">预览</span>
-              <button
-                className="preview-pane-button"
-                title="关闭"
-                data-testid="preview-close"
-                onClick={common.onClose}
-              >
-                <i className="codicon codicon-close" />
-              </button>
+              <span className="preview-pane-url">浏览器</span>
             </div>
             <div className="desktop-panel-placeholder">
               {previewForwardError ? (
@@ -2150,6 +2170,37 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     </>
   );
 
+  const chatChrome = (
+    <>
+      <ChatHeader
+        onNewSession={handleClearChat}
+        newSessionDisabled={false}
+        onAbortMessage={handleAbortMessage}
+        messages={state.messages}
+        sessions={state.sessions}
+        currentSession={state.currentSession}
+        onSessionSelect={handleSessionSelect}
+        sessionsLoading={state.sessionsLoading}
+        onOpenSettings={handleOpenSettings}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        isAuthenticated={state.isAuthenticated}
+        hideSessionButtons={isDesktop}
+        hideMoreButton={isDesktop}
+        panelToggle={
+          isDesktop && checkedPanels.length === 0
+            ? {
+                checked: checkedPanels,
+                onToggle: handleTogglePanel,
+                disabled: panelDisabled,
+              }
+            : undefined
+        }
+      />
+      {chatBodyContent}
+    </>
+  );
+
   const chatContainer = (
     <div
       className="chat-container"
@@ -2172,50 +2223,45 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           </button>
         </div>
       )}
-      <ChatHeader
-        onNewSession={handleClearChat}
-        newSessionDisabled={false}
-        onAbortMessage={handleAbortMessage}
-        messages={state.messages}
-        sessions={state.sessions}
-        currentSession={state.currentSession}
-        onSessionSelect={handleSessionSelect}
-        sessionsLoading={state.sessionsLoading}
-        onOpenSettings={handleOpenSettings}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        isAuthenticated={state.isAuthenticated}
-        hideSessionButtons={isDesktop}
-        hideMoreButton={isDesktop}
-        panelToggle={
-          isDesktop
-            ? {
+      {isDesktop ? (
+        <div className="desktop-chat-body">
+          <div className="desktop-chat-main">{chatChrome}</div>
+          {checkedPanels.length > 0 && activePanel && (
+            <DesktopPanelDock
+              checked={checkedPanels}
+              active={activePanel}
+              onSelect={setActivePanel}
+              onCloseTab={handleTogglePanel}
+              panelToggle={{
                 checked: checkedPanels,
                 onToggle: handleTogglePanel,
                 disabled: panelDisabled,
-              }
-            : undefined
-        }
-      />
-      {isDesktop ? (
-        <div className="desktop-chat-body">
-          <div className="desktop-chat-main">{chatBodyContent}</div>
-          {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
-            (kind) => (
-              <div
-                key={kind}
-                className="desktop-panel-slot"
-                style={{
-                  display: checkedPanels.includes(kind) ? undefined : "none",
-                }}
-              >
-                {renderPanelSlot(kind)}
-              </div>
-            ),
+              }}
+              width={panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH}
+              onWidthChange={handleDockWidthChange}
+              maxWidth={dockMaxWidth}
+            >
+              {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
+                (kind) => (
+                  <div
+                    key={kind}
+                    className="desktop-panel-slot"
+                    style={{
+                      display:
+                        checkedPanels.includes(kind) && kind === activePanel
+                          ? undefined
+                          : "none",
+                    }}
+                  >
+                    {renderPanelSlot(kind)}
+                  </div>
+                ),
+              )}
+            </DesktopPanelDock>
           )}
         </div>
       ) : (
-        chatBodyContent
+        chatChrome
       )}
     </div>
   );
