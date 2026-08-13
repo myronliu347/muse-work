@@ -1,0 +1,184 @@
+packages/webview/src/styles/AgentTranscriptPopup.css
+  2c9be225501a72c4 1-83
+packages/webview/src/types/index.ts
+  2c9be225501a72c4 377-378,391-392,602-607,848-871
+packages/webview/src/styles/Message.css
+  2c9be225501a72c4 15,20-21,68-69,71,178,189-191,195-232,235-240
+packages/webview/src/muse/wsClient.ts
+  2c9be225501a72c4 58-62
+packages/webview/src/components/Message.tsx
+  2c9be225501a72c4 17,173,356-358,368-379,385,404-429,1021
+packages/server/tests/sessions.ws.test.ts
+  2c9be225501a72c4 268-346
+packages/server/src/sessionRunner.ts
+  2c9be225501a72c4 15,116-201,458,534-543,808-812,842-845
+packages/webview/src/utils/subagentTranscript.ts
+  2c9be225501a72c4 1-86
+packages/server/src/messageMapper.ts
+  2c9be225501a72c4 9-12,16-19,21,28
+packages/webview/tests/muse/hostBridge.test.ts
+  2c9be225501a72c4 1045-1057,1068-1102
+packages/webview/tests/setup.ts
+  2c9be225501a72c4 4-14
+packages/webview/tests/components/agentToolPopup.test.tsx
+  2c9be225501a72c4 1-158
+packages/webview/src/reducers/chatReducer.ts
+  2c9be225501a72c4 9,12-13,15-177,211-214,224-227,419-424,616-627,739-796
+packages/webview/src/styles/globals.css
+  2c9be225501a72c4 36-68
+packages/webview/tests/muse/subagentTranscript.test.ts
+  2c9be225501a72c4 1-266
+packages/webview/src/muse/hostBridge.ts
+  2c9be225501a72c4 591-622,625-631
+packages/webview/tests/components/messageInput.enter.test.tsx
+  2c9be225501a72c4 1-62
+packages/server/src/wsEvents.ts
+  2c9be225501a72c4 81-85
+packages/webview/src/components/FileToolHeader.tsx
+  2c9be225501a72c4 29-38
+packages/webview/tests/components/thinkingHint.test.tsx
+  2c9be225501a72c4 1-36
+packages/webview/src/components/ChatApp.tsx
+  2c9be225501a72c4 9,51-52,57,203-208,944-985,1328-1330,1365-1381,1925,2115-2130
+packages/webview/src/components/MessageList.tsx
+  2c9be225501a72c4 72,398,494,497-505
+packages/webview/src/components/MessageInput.tsx
+  2c9be225501a72c4 554,593,660
+packages/webview/src/components/AgentTranscriptPopup.tsx
+  2c9be225501a72c4 1-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0ee7998b4d85ae7553e75f7fc3cc0ae722f2e128",
+  "prompts": {
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1763,
+      "total_deletions": 167,
+      "accepted_lines": 1617,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 109,
+          "deletions": 3,
+          "accepted_lines": 107
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/agentToolPopup.test.tsx": {
+          "additions": 166,
+          "deletions": 8,
+          "accepted_lines": 158
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 60
+        },
+        "packages/webview/tests/components/messageInput.enter.test.tsx": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 56,
+          "deletions": 44,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/components/MessageList.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/src/messageMapper.ts": {
+          "additions": 10,
+          "deletions": 3,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/muse/subagentTranscript.test.ts": {
+          "additions": 267,
+          "deletions": 1,
+          "accepted_lines": 266
+        },
+        "packages/webview/src/components/Message.tsx": {
+          "additions": 57,
+          "deletions": 14,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/FileToolHeader.tsx": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/styles/AgentTranscriptPopup.css": {
+          "additions": 83,
+          "accepted_lines": 83
+        },
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 48,
+          "deletions": 16,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 263,
+          "deletions": 16,
+          "accepted_lines": 251
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 36,
+          "deletions": 2,
+          "accepted_lines": 34
+        },
+        "packages/webview/tests/setup.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 143,
+          "deletions": 53,
+          "accepted_lines": 95
+        },
+        "packages/webview/src/utils/subagentTranscript.ts": {
+          "additions": 86,
+          "accepted_lines": 86
+        },
+        "packages/webview/src/components/AgentTranscriptPopup.tsx": {
+          "additions": 73,
+          "deletions": 3,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 48,
+          "accepted_lines": 48
+        }
+      }
+    }
+  }
+}
