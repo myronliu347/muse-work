@@ -229,9 +229,9 @@ describe("sessionRunner control plane", () => {
         captured = opts;
         return stubAgent({
           sendMessage: async () => {
-            captured?.callbacks?.onBackgroundTasksChange?.([
-              { id: "w1", type: "workflow", status: "running" },
-            ]);
+              captured?.callbacks?.onBackgroundTasksChange?.([
+                { id: "w1", type: "workflow", status: "running", runId: "r1" },
+              ]);
           },
           getWorkflowRuns: async () => runs,
         });
@@ -258,7 +258,7 @@ describe("sessionRunner control plane", () => {
     const { store, hub, registry, home: dir } = setup();
     let currentRuns: unknown[] = [];
     let captured: {
-      callbacks?: { onNotificationMessageAdded?: () => void };
+      callbacks?: { onBackgroundTasksChange?: (tasks: unknown[]) => void };
     } | undefined;
     const runner = createSessionRunner({
       store,
@@ -270,7 +270,14 @@ describe("sessionRunner control plane", () => {
         captured = opts;
         return stubAgent({
           sendMessage: async () => {
-            captured?.callbacks?.onNotificationMessageAdded?.();
+            captured?.callbacks?.onBackgroundTasksChange?.([
+              {
+                id: "w1",
+                type: "workflow",
+                status: "running",
+                runId: "r1",
+              },
+            ]);
           },
           getWorkflowRuns: async () => currentRuns,
         });
@@ -291,6 +298,58 @@ describe("sessionRunner control plane", () => {
         phases: [],
       },
     ]);
+  });
+
+  it("does not return another session's workflow runs from the shared SDK list", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    const sharedRuns = [
+      { runId: "r1", meta: { name: "from-a" }, status: "running" },
+      { runId: "r-disk", meta: { name: "stale-disk" }, status: "completed" },
+    ];
+    let created = 0;
+    let capturedA: {
+      callbacks?: { onBackgroundTasksChange?: (tasks: unknown[]) => void };
+    } | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        created += 1;
+        const isA = created === 1;
+        if (isA) capturedA = opts;
+        return stubAgent({
+          sendMessage: async () => {
+            if (isA) {
+              capturedA?.callbacks?.onBackgroundTasksChange?.([
+                {
+                  id: "w1",
+                  type: "workflow",
+                  status: "running",
+                  runId: "r1",
+                },
+              ]);
+            }
+          },
+          getWorkflowRuns: async () => sharedRuns,
+        });
+      },
+    });
+    const sessionA = store.create({ workdir: dir, model: "m1" });
+    const sessionB = store.create({ workdir: dir, model: "m1" });
+    await runner.sendMessage(sessionA.id, "run workflow");
+    await expect
+      .poll(async () =>
+        ((await runner.getWorkflowRuns(sessionA.id)) as Array<{ runId: string }>)
+          .map((run) => run.runId),
+      )
+      .toEqual(["r1"]);
+
+    await runner.sendMessage(sessionB.id, "other chat");
+    await expect.poll(() => created).toBe(2);
+    expect(await runner.getWorkflowRuns(sessionB.id)).toEqual([]);
   });
 
   it("reconciles a completed workflow into background-tasks:update on notification", async () => {

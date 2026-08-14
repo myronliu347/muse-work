@@ -40,6 +40,27 @@
   color: var(--gray-12);
 }
 
+.workflow-script-path {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  word-break: break-all;
+  text-align: left;
+}
+
+.workflow-script-path:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+}
+
 /* ConfigDialog (design-restored) - scoped overrides, does not affect
    plugin/mcp/status dialogs which reuse the base .configuration-dialog. */
 .config-dialog {

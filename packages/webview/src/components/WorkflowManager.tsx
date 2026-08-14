@@ -39,8 +39,9 @@ const WorkflowManager: React.FC<
   WorkflowManagerProps & {
     runs: SerializableWorkflowRun[];
     vscode: { postMessage: (msg: unknown) => void };
+    onOpenFile?: (path: string) => void;
   }
-> = ({ onCancel, runs, vscode }) => {
+> = ({ onCancel, runs, vscode, onOpenFile }) => {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -65,6 +66,12 @@ const WorkflowManager: React.FC<
   const handleStop = (runId: string) => {
     setStoppingId(runId);
     vscode.postMessage({ command: "stopWorkflowRun", runId });
+  };
+
+  const handleOpenScript = (path: string) => {
+    if (!path) return;
+    if (onOpenFile) onOpenFile(path);
+    else vscode.postMessage({ command: "openFile", path });
   };
 
   useEffect(() => {
@@ -169,17 +176,26 @@ const WorkflowManager: React.FC<
               <span style={{ color: "#569cd6" }}>Tokens:</span>{" "}
               {formatTokens(selectedRun.totalTokens)}
             </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--vscode-descriptionForeground)",
-                fontFamily: "var(--vscode-editor-font-family, monospace)",
-                wordBreak: "break-all",
-              }}
-            >
-              <span style={{ color: "#569cd6" }}>Script:</span>{" "}
-              {selectedRun.scriptPath}
-            </div>
+            {selectedRun.scriptPath && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--vscode-descriptionForeground)",
+                  wordBreak: "break-all",
+                }}
+              >
+                <span style={{ color: "#569cd6" }}>Script:</span>{" "}
+                <button
+                  type="button"
+                  className="workflow-script-path"
+                  data-testid="workflow-script-path"
+                  title="打开脚本"
+                  onClick={() => handleOpenScript(selectedRun.scriptPath)}
+                >
+                  {selectedRun.scriptPath}
+                </button>
+              </div>
+            )}
             {selectedRun.error && (
               <div
                 style={{

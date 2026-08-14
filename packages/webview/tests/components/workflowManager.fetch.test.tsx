@@ -63,4 +63,38 @@ describe("WorkflowManager fetch", () => {
     expect(screen.getByText("Phases:")).toBeInTheDocument();
     expect(screen.getByText("Scan")).toBeInTheDocument();
   });
+
+  it("opens the script path when clicked", () => {
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    } as unknown as VsCodeApi;
+    const onOpenFile = vi.fn();
+
+    render(
+      <WorkflowManager
+        runs={[
+          {
+            runId: "wf_abc12345",
+            meta: { name: "Icap-ide-analysis", description: "审查" },
+            status: "completed",
+            scriptPath: "/tmp/script.js",
+            startTime: Date.now() - 60_000,
+            endTime: Date.now(),
+            phases: [],
+            totalAgents: 1,
+            totalTokens: 10,
+          },
+        ]}
+        vscode={vscode}
+        onCancel={() => {}}
+        onOpenFile={onOpenFile}
+      />,
+    );
+
+    fireEvent.click(screen.getByText(/Icap-ide-analysis/));
+    fireEvent.click(screen.getByTestId("workflow-script-path"));
+    expect(onOpenFile).toHaveBeenCalledWith("/tmp/script.js");
+  });
 });

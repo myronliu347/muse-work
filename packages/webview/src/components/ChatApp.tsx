@@ -2213,6 +2213,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           runs={state.workflowRuns}
           vscode={vscode}
           onCancel={handleDialogClose}
+          onOpenFile={(path) => {
+            handleOpenFile(path);
+            handleDialogClose();
+          }}
         />
       )}
       {state.activeDialog === "agents" && (

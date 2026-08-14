@@ -64,6 +64,7 @@ export interface SessionAgent {
   getBackgroundTaskOutput?: (id: string, filter?: string) => unknown;
   stopBackgroundTask?: (id: string) => boolean;
   getWorkflowRuns?: () => Promise<unknown[]> | unknown[];
+  getWorkflowRun?: (runId: string) => unknown;
   stopWorkflowRun?: (runId: string) => void;
   latestTotalTokens?: number;
 }
@@ -186,6 +187,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
         agent.getBackgroundTaskOutput(id, filter),
       stopBackgroundTask: (id) => agent.stopBackgroundTask(id),
       getWorkflowRuns: () => agent.getWorkflowRuns(),
+      getWorkflowRun: (runId) => agent.getWorkflowRun(runId),
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
       get latestTotalTokens() {
         return agent.latestTotalTokens;
@@ -237,6 +239,69 @@ export function createSessionRunner(
   const latestWorkflowRuns = new Map<string, unknown[]>();
   const latestMcp = new Map<string, unknown[]>();
   const latestTokens = new Map<string, number>();
+
+  function runIdOf(value: unknown): string | undefined {
+    if (!value || typeof value !== "object") return undefined;
+    const id = (value as { runId?: unknown }).runId;
+    return typeof id === "string" && id ? id : undefined;
+  }
+
+  function workflowRunIdsFor(sessionId: string): Set<string> {
+    const ids = new Set<string>();
+    for (const task of latestBackgroundTasks.get(sessionId) ?? []) {
+      const id = runIdOf(task);
+      if (id) ids.add(id);
+    }
+    for (const run of latestWorkflowRuns.get(sessionId) ?? []) {
+      const id = runIdOf(run);
+      if (id) ids.add(id);
+    }
+    return ids;
+  }
+
+  async function snapshotWorkflowRuns(sessionId: string): Promise<unknown[]> {
+    const ids = workflowRunIdsFor(sessionId);
+    if (ids.size === 0) {
+      return latestWorkflowRuns.get(sessionId) ?? [];
+    }
+    const agent = agents.get(sessionId);
+    let serialized: unknown[] = [];
+    if (agent?.getWorkflowRun) {
+      serialized = toSerializableWorkflowRuns(
+        [...ids].map((id) => agent.getWorkflowRun?.(id)).filter(Boolean),
+      );
+    } else if (agent?.getWorkflowRuns) {
+      const raw = (await agent.getWorkflowRuns()) ?? [];
+      serialized = toSerializableWorkflowRuns(raw).filter((run) => {
+        const id = runIdOf(run);
+        return Boolean(id && ids.has(id));
+      });
+    } else {
+      serialized = (latestWorkflowRuns.get(sessionId) ?? []).filter((run) => {
+        const id = runIdOf(run);
+        return Boolean(id && ids.has(id));
+      });
+    }
+    const have = new Set(
+      serialized.map(runIdOf).filter((id): id is string => Boolean(id)),
+    );
+    for (const prev of latestWorkflowRuns.get(sessionId) ?? []) {
+      const id = runIdOf(prev);
+      if (id && ids.has(id) && !have.has(id)) serialized.push(prev);
+    }
+    latestWorkflowRuns.set(sessionId, serialized);
+    return serialized;
+  }
+
+  function publishWorkflowRuns(sessionId: string): void {
+    void snapshotWorkflowRuns(sessionId).then((runs) => {
+      if (disposed.has(sessionId)) return;
+      hub.broadcast(sessionId, {
+        type: "workflow-runs:update",
+        runs,
+      });
+    });
+  }
 
   async function reconcileBackgroundTasks(sessionId: string): Promise<unknown[]> {
     const cached = latestBackgroundTasks.get(sessionId) ?? [];
@@ -816,16 +881,7 @@ export function createSessionRunner(
             type: "background-tasks:update",
             tasks: summaries,
           });
-          const agent = agentBox.current ?? agents.get(sessionId);
-          void Promise.resolve(agent?.getWorkflowRuns?.()).then((runs) => {
-            if (disposed.has(sessionId) || !runs) return;
-            const serialized = toSerializableWorkflowRuns(runs);
-            latestWorkflowRuns.set(sessionId, serialized);
-            hub.broadcast(sessionId, {
-              type: "workflow-runs:update",
-              runs: serialized,
-            });
-          });
+          publishWorkflowRuns(sessionId);
         },
         onMcpServersChange: (servers) => {
           if (disposed.has(sessionId)) return;
@@ -852,16 +908,7 @@ export function createSessionRunner(
         },
         onNotificationMessageAdded: () => {
           if (disposed.has(sessionId)) return;
-          const agent = agentBox.current ?? agents.get(sessionId);
-          void Promise.resolve(agent?.getWorkflowRuns?.()).then((runs) => {
-            if (disposed.has(sessionId) || !runs) return;
-            const serialized = toSerializableWorkflowRuns(runs);
-            latestWorkflowRuns.set(sessionId, serialized);
-            hub.broadcast(sessionId, {
-              type: "workflow-runs:update",
-              runs: serialized,
-            });
-          });
+          publishWorkflowRuns(sessionId);
           void reconcileBackgroundTasks(sessionId).then((tasks) => {
             if (disposed.has(sessionId) || tasks.length === 0) return;
             hub.broadcast(sessionId, {
@@ -1446,20 +1493,7 @@ export function createSessionRunner(
           statusCode: 404,
         });
       }
-      const existing = agents.get(sessionId);
-      if (existing?.getWorkflowRuns) {
-        const raw = (await existing.getWorkflowRuns()) ?? [];
-        const runs = toSerializableWorkflowRuns(raw);
-        latestWorkflowRuns.set(sessionId, runs);
-        return runs;
-      }
-      const cached = latestWorkflowRuns.get(sessionId);
-      if (cached) return cached;
-      const agent = await ensureAgent(sessionId);
-      const raw = (await agent.getWorkflowRuns?.()) ?? [];
-      const runs = toSerializableWorkflowRuns(raw);
-      latestWorkflowRuns.set(sessionId, runs);
-      return runs;
+      return snapshotWorkflowRuns(sessionId);
     },
 
     async stopWorkflowRun(sessionId, runId) {
@@ -1595,6 +1629,7 @@ function toBackgroundTaskSummary(task: {
   exitCode?: number;
   runtime?: number;
   outputPath?: string;
+  runId?: string;
 }): Record<string, unknown> {
   return {
     id: task.id,
@@ -1607,6 +1642,7 @@ function toBackgroundTaskSummary(task: {
     ...(task.exitCode !== undefined ? { exitCode: task.exitCode } : {}),
     ...(task.runtime !== undefined ? { runtime: task.runtime } : {}),
     ...(task.outputPath !== undefined ? { outputPath: task.outputPath } : {}),
+    ...(task.runId !== undefined ? { runId: task.runId } : {}),
   };
 }
 
