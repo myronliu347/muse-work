@@ -2,6 +2,17 @@ import type { Message, SessionMetadata } from "wave-agent-sdk";
 
 const DEFAULT_SESSION_TITLE = "新对话";
 
+/** Muse persists an explicit title (auto or user-renamed) on the session. */
+type SessionWithTitle = SessionMetadata & { title?: string };
+
+const customSessionTitle = (session: SessionMetadata): string | undefined => {
+  const title = (session as SessionWithTitle).title;
+  if (typeof title !== "string") return undefined;
+  const trimmed = title.trim();
+  if (!trimmed || trimmed === DEFAULT_SESSION_TITLE) return undefined;
+  return trimmed;
+};
+
 const truncate = (content: string): string => {
   const trimmed = content.trim();
   return trimmed.length > 30 ? trimmed.substring(0, 30) + "..." : trimmed;
@@ -54,16 +65,20 @@ export const pinSessionTitle = (
 };
 
 /**
- * Resolve the header title for the active session. The backend pushes a
- * currentSession without a firstMessage on creation, so once the user sends a
- * message we derive the title from the message list instead of leaving it stuck
- * on the default. Only applies when a session is actually active.
+ * Resolve the header title for the active session.
+ *
+ * Preference: explicit session.title (sidebar rename / auto-title) → pinned
+ * firstMessage → first user message in the list → default. Title "新对话" is
+ * treated as unset so a just-created session still picks up the first message
+ * before the host finishes patching the stored title.
  */
 export const getSessionTitle = (
   currentSession: SessionMetadata | undefined,
   messages?: Message[],
 ): string => {
   if (!currentSession) return DEFAULT_SESSION_TITLE;
+  const renamed = customSessionTitle(currentSession);
+  if (renamed) return renamed;
   if (currentSession.firstMessage && currentSession.firstMessage.trim()) {
     return truncate(currentSession.firstMessage);
   }

@@ -1,14 +1,29 @@
 /* Messages */
+.messages-shell {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .messages-container {
   flex: 1;
+  min-height: 0;
+  width: 100%;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-4) var(--space-4) min(36vh, var(--space-9));
-  /* Cap the conversation column at 800px and center it, mirroring .input-wrapper
-       so messages line up with the input box instead of spanning the full pane
-       width. The panel-background gutters come from .chat-container (see
-       ChatApp.css) so they match this list exactly. */
+  background-color: var(--color-background);
+  position: relative;
+}
+
+/* Conversation column stays 800px and centered; the scrollport above is the
+   full panel so the scrollbar sits on the pane edge, not the column edge. */
+.messages-column {
+  box-sizing: border-box;
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
@@ -16,8 +31,6 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-3);
-  background-color: var(--color-background);
-  position: relative;
 }
 
 /* Sticky user message pinned at the top of the viewport (设计稿 2248-9471).

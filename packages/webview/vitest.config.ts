@@ -12,6 +12,7 @@ export default defineConfig({
       "tests/muse/**/*.test.ts",
       "tests/muse/**/*.test.tsx",
       "tests/components/**/*.test.tsx",
+      "tests/utils/**/*.test.ts",
     ],
     exclude: ["node_modules"],
     setupFiles: ["tests/setup.ts"],

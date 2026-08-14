@@ -14,6 +14,11 @@ import {
 } from "./AssistantWorkSummary";
 import type { MessageListProps } from "../types";
 import type { Message as MessageType } from "wave-agent-sdk";
+import {
+  UserMessageNav,
+  navEntriesFromMessages,
+  pickActiveUserMessageId,
+} from "./UserMessageNav";
 import "../styles/MessageList.css";
 
 /** Locate the last non-empty text block in an assistant group. */
@@ -117,6 +122,11 @@ export const MessageList = forwardRef<
     id: string;
     text: string;
   } | null>(null);
+  const [activeNavId, setActiveNavId] = useState<string | undefined>();
+  const navEntries = useMemo(
+    () => navEntriesFromMessages(messages),
+    [messages],
+  );
 
   const computeSticky = useCallback(() => {
     const container = containerRef.current;
@@ -153,12 +163,30 @@ export const MessageList = forwardRef<
     );
   }, []);
 
+  const computeActiveNav = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const nodes = container.querySelectorAll<HTMLElement>(
+      '[data-role="user"][data-message-id]',
+    );
+    const items: Array<{ id: string; top: number }> = [];
+    nodes.forEach((node) => {
+      const id = node.getAttribute("data-message-id") || "";
+      if (id) items.push({ id, top: node.offsetTop });
+    });
+    const next = pickActiveUserMessageId(items, {
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight,
+    });
+    setActiveNavId((prev) => (prev === next ? prev : next));
+  }, []);
+
   const scrollToMessage = useCallback((id: string) => {
     const container = containerRef.current;
     const node = container?.querySelector<HTMLElement>(
       `[data-message-id="${id}"]`,
     );
-    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    node?.scrollIntoView({ behavior: "auto", block: "center" });
   }, []);
 
   // Perform a programmatic scroll-to-bottom, guarding it with the
@@ -278,6 +306,7 @@ export const MessageList = forwardRef<
       prevScrollHeightRef.current = container.scrollHeight;
       prevClientHeightRef.current = container.clientHeight;
       computeSticky();
+      computeActiveNav();
     };
 
     container.addEventListener("scroll", handleScroll);
@@ -296,6 +325,7 @@ export const MessageList = forwardRef<
       prevScrollHeightRef.current = container.scrollHeight;
       prevClientHeightRef.current = container.clientHeight;
       computeSticky();
+      computeActiveNav();
     });
 
     resizeObserver.observe(container);
@@ -308,12 +338,20 @@ export const MessageList = forwardRef<
       isNewMessage || isInitialLoad || isSessionSwap,
     );
     computeSticky();
+    computeActiveNav();
 
     return () => {
       resizeObserver.disconnect();
       container.removeEventListener("scroll", handleScroll);
     };
-  }, [messages, queuedMessages, isStreaming, scrollToBottom, computeSticky]);
+  }, [
+    messages,
+    queuedMessages,
+    isStreaming,
+    scrollToBottom,
+    computeSticky,
+    computeActiveNav,
+  ]);
 
   // Re-pin to the true bottom after async content finishes loading (image
   // decode, webfont reflow, mermaid render). 'load' doesn't bubble, so listen in
@@ -350,12 +388,14 @@ export const MessageList = forwardRef<
   }, [stickyMessage, doScrollToBottom]);
 
   return (
-    <div
-      ref={containerRef}
-      id="messagesContainer"
-      className={`messages-container${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
-      data-testid="messages-container"
-    >
+    <div className="messages-shell">
+      <div
+        ref={containerRef}
+        id="messagesContainer"
+        className={`messages-container${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
+        data-testid="messages-container"
+      >
+        <div className="messages-column">
       {stickyMessage && (
         <div className="sticky-user-wrapper">
           <div
@@ -510,8 +550,15 @@ export const MessageList = forwardRef<
         </div>
       )}
 
-      {/* Invisible div to scroll to */}
-      <div ref={messagesEndRef} />
+        {/* Invisible div to scroll to */}
+        <div ref={messagesEndRef} />
+        </div>
+      </div>
+      <UserMessageNav
+        entries={navEntries}
+        activeId={activeNavId}
+        onSelect={scrollToMessage}
+      />
     </div>
   );
 });

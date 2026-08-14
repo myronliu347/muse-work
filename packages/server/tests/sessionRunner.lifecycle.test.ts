@@ -293,6 +293,47 @@ describe("sessionRunner lifecycle", () => {
     ).toBe(true);
   });
 
+  it("does not set unreadDone when an already-idle background session gets loading false", async () => {
+    const { store, hub, registry, home } = setup();
+    const active = store.create({ workdir: "/tmp", model: "m1" });
+    const background = store.create({ workdir: "/tmp", model: "m1" });
+    store.select(active.id);
+
+    const unreadCalls: Array<{ id: string; value: boolean }> = [];
+    const originalSetUnread = store.setUnreadDone.bind(store);
+    store.setUnreadDone = (id, value) => {
+      unreadCalls.push({ id, value });
+      return originalSetUnread(id, value);
+    };
+
+    let onLoadingChange: ((loading: boolean) => void) | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        onLoadingChange = opts.callbacks?.onLoadingChange;
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {},
+          getMessages: () => [],
+          sessionId: "wave-idle-bg",
+        };
+      },
+    });
+
+    await runner.getMessages(background.id);
+    expect(store.get(background.id)?.status).toBe("idle");
+    expect(onLoadingChange).toBeTypeOf("function");
+
+    onLoadingChange?.(false);
+
+    expect(unreadCalls).toEqual([]);
+    expect(store.get(background.id)?.status).toBe("idle");
+  });
+
   it("getMessages re-arms idle TTL after clear; agent destroyed, waveSessionId kept", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });

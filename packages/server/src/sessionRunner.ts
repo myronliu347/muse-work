@@ -409,12 +409,14 @@ export function createSessionRunner(
     if (disposed.has(sessionId) || !store.get(sessionId)) {
       return;
     }
-    if (store.get(sessionId)?.status === "running") {
+    const wasRunning = store.get(sessionId)?.status === "running";
+    if (wasRunning) {
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
+      // Only a finished turn is unread — idle loading=false (TTL dispose,
+      // ensureAgent, SDK flicker) must not light the sidebar dot.
+      markUnreadDoneIfInactive(sessionId);
     }
-
-    markUnreadDoneIfInactive(sessionId);
     scheduleIdleDestroy(sessionId);
   }
 

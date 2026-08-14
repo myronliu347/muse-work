@@ -138,7 +138,7 @@ describe("sticky user message", () => {
     act(() => {
       fireEvent.click(screen.getByTestId("sticky-user-message"));
     });
-    expect(spy).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+    expect(spy).toHaveBeenCalledWith({ behavior: "auto", block: "center" });
   });
 
   it("renders sticky content with the 3-line clamp class", async () => {
