@@ -109,8 +109,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         disabled={disabled}
         title={
           isMacPlatform()
-            ? "新对话（Cmd+Click 并排打开）"
-            : "新对话（Ctrl+Click 并排打开）"
+            ? "新对话（⌘N，⌘+点击并排打开）"
+            : "新对话（Ctrl+N，Ctrl+点击并排打开）"
         }
         data-testid="desktop-new-session"
       >

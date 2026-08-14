@@ -1,4 +1,4 @@
-import { renderChatApp, screen, waitFor, fireEvent } from "./test-utils";
+import { renderChatApp, screen, waitFor, fireEvent, sendCommand } from "./test-utils";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 describe("Input toolbar buttons (+ and /)", () => {
@@ -44,6 +44,14 @@ describe("Input toolbar buttons (+ and /)", () => {
 
   it('should open the slash commands popup when clicking the "/" button', async () => {
     const { vscode } = renderChatApp();
+    sendCommand("updateCurrentSession", {
+      session: {
+        id: "sess-1",
+        title: "已有对话",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    });
 
     // Ensure a valid selection inside the editor so handleSlashButtonClick can insert "/".
     const input = screen.getByTestId("message-input");

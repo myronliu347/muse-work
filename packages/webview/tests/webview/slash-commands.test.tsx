@@ -47,6 +47,34 @@ describe("Slash Commands", () => {
     vi.clearAllMocks();
   });
 
+  it("does not show the slash toolbar button on a draft session", () => {
+    renderChatApp();
+    sendCommand("updateCurrentSession", {
+      session: {
+        id: "__draft__",
+        title: "新对话",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    });
+
+    expect(screen.queryByLabelText("快捷指令")).not.toBeInTheDocument();
+  });
+
+  it("shows the slash toolbar button once a real session is active", () => {
+    renderChatApp();
+    sendCommand("updateCurrentSession", {
+      session: {
+        id: "sess-1",
+        title: "已有对话",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    });
+
+    expect(screen.getByLabelText("快捷指令")).toBeInTheDocument();
+  });
+
   it("should insert slash command with a space when selected via Enter", async () => {
     const { vscode } = renderChatApp();
 

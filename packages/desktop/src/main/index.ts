@@ -5,7 +5,7 @@
  * server base URL injected via preload (`window.museServerBaseUrl`).
  */
 
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, powerMonitor } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerMonitor } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
@@ -66,6 +66,33 @@ function resolveDesktopPaths() {
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
   });
+}
+
+function installAppMenu(getWindow: () => BrowserWindow | null): void {
+  const isMac = process.platform === "darwin";
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: "appMenu" as const }] : []),
+    {
+      label: isMac ? "文件" : "File",
+      submenu: [
+        {
+          label: "新对话",
+          accelerator: "CommandOrControl+N",
+          click: () => {
+            getWindow()?.webContents.send(TO_WEBVIEW, {
+              command: "desktopNewSessionShortcut",
+            });
+          },
+        },
+        { type: "separator" },
+        isMac ? { role: "close" } : { role: "quit" },
+      ],
+    },
+    { role: "editMenu" },
+    { role: "viewMenu" },
+    { role: "windowMenu" },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function openMainWindow(quitGate: ReturnType<typeof createQuitGate>): void {
@@ -193,6 +220,8 @@ if (!gotLock) {
     themeHost = installThemeHost({
       getWindow: () => mainWindow,
     });
+
+    installAppMenu(() => mainWindow);
 
     const paths = resolveDesktopPaths();
 

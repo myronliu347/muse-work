@@ -81,3 +81,57 @@ describe("matchPanelShortcut", () => {
     ).toBe("terminal");
   });
 });
+
+describe("matchNewSessionShortcut", () => {
+  const platform = navigator.platform;
+
+  afterEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  it("matches Cmd+N on mac and ignores Shift/Ctrl variants", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchNewSessionShortcut } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchNewSessionShortcut(keyEvent({ key: "n", metaKey: true })),
+    ).toBe(true);
+    expect(
+      matchNewSessionShortcut(keyEvent({ key: "N", metaKey: true })),
+    ).toBe(true);
+    expect(
+      matchNewSessionShortcut(
+        keyEvent({ key: "n", metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(false);
+    expect(
+      matchNewSessionShortcut(keyEvent({ key: "n", ctrlKey: true })),
+    ).toBe(false);
+  });
+
+  it("matches Ctrl+N on Windows", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "Win32",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchNewSessionShortcut } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchNewSessionShortcut(keyEvent({ key: "n", ctrlKey: true })),
+    ).toBe(true);
+    expect(
+      matchNewSessionShortcut(keyEvent({ key: "n", metaKey: true })),
+    ).toBe(false);
+  });
+});

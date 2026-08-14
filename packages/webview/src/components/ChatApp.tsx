@@ -38,7 +38,7 @@ import { DesktopShell } from "./DesktopShell";
 import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopGitContext } from "./DesktopGitContext";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
-import { matchPanelShortcut } from "../muse/panelShortcuts";
+import { matchPanelShortcut, matchNewSessionShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen } from "../muse/panelFit";
 import {
   firstPanelTab,
@@ -811,6 +811,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             ...prev.filter((t) => t.id !== message.toast.id),
             message.toast,
           ]);
+          break;
+        case "desktopNewSessionShortcut":
+          // Menu accelerator is window-global; the shell / single-pane instance
+          // owns newSession so split panes do not spawn duplicates.
+          if (myPane !== undefined) break;
+          vscode.postMessage({ command: "newSession" });
           break;
         case "desktopTogglePanel":
           if (!forThisPane(message)) break;
@@ -1693,6 +1699,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       ) {
         return;
       }
+      if (matchNewSessionShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        postToHost({ command: "newSession" });
+        return;
+      }
       const kind = matchPanelShortcut(event);
       if (!kind) return;
       event.preventDefault();
@@ -1703,7 +1715,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     // Capture so contenteditable / xterm do not swallow the chord first.
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isDesktop, host?.panes?.length, host?.focusedPaneId, paneId]);
+  }, [isDesktop, host?.panes?.length, host?.focusedPaneId, paneId, postToHost]);
 
   // Desktop file panel (spec: 文件面板): a file path clicked in a message or
   // terminal opens here instead of the OS. Show the panel immediately with a
@@ -2058,6 +2070,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             disabled={
               host?.type === "desktop" && !effectiveWorkdir && !isDraftSession
             }
+            showSlashButton={!isDraftSession}
             modelId={
               (state.currentSession as { model?: string } | undefined)?.model
             }

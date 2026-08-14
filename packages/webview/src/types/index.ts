@@ -498,6 +498,8 @@ export interface MessageInputProps {
   btwPopup?: React.ReactNode;
   /** Disable the whole input area (e.g. desktop host without a workdir). */
   disabled?: boolean;
+  /** Toolbar "/" button. Hidden on draft/new sessions. Defaults to true. */
+  showSlashButton?: boolean;
   /** Per-session model id shown in the sender toolbar. */
   modelId?: string;
   /** Called when the user picks a model in the sender toolbar. */

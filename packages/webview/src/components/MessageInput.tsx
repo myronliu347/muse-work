@@ -115,6 +115,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modelId,
       onModelChange,
       modelSelectApi,
+      showSlashButton = true,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -1307,15 +1308,17 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                   {workdirSelector}
                 </div>
               ) : null}
-              <button
-                type="button"
-                className="toolbar-icon-button"
-                aria-label="快捷指令"
-                disabled={disabled}
-                onClick={handleSlashButtonClick}
-              >
-                <SlashBoxIcon className="toolbar-icon" />
-              </button>
+              {showSlashButton ? (
+                <button
+                  type="button"
+                  className="toolbar-icon-button"
+                  aria-label="快捷指令"
+                  disabled={disabled}
+                  onClick={handleSlashButtonClick}
+                >
+                  <SlashBoxIcon className="toolbar-icon" />
+                </button>
+              ) : null}
               <div className="button-spacer" />
               <div className="permission-mode-container" ref={permMenuRef}>
                 <button
