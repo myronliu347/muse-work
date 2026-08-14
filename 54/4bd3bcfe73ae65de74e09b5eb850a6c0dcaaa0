@@ -1,0 +1,78 @@
+packages/webview/tests/muse/hostBridge.control.test.ts
+  9189a3b1614d1eca 479-593
+packages/desktop/src/main/index.ts
+  9189a3b1614d1eca 181-183
+packages/webview/src/muse/hostBridge.ts
+  9189a3b1614d1eca 193-196,200-223,248-251,575,587,995-1001,1435,1489
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "544bd3bcfe73ae65de74e09b5eb850a6c0dcaaa0",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 195,
+      "total_deletions": 9,
+      "accepted_lines": 189,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/logger.ts": {
+          "additions": 82,
+          "deletions": 2,
+          "accepted_lines": 82
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 73,
+          "deletions": 5,
+          "accepted_lines": 68
+        },
+        "packages/server/tests/logger.test.ts": {
+          "additions": 36,
+          "deletions": 1,
+          "accepted_lines": 35
+        }
+      }
+    },
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 161,
+      "total_deletions": 4,
+      "accepted_lines": 161,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 43,
+          "deletions": 1,
+          "accepted_lines": 43
+        },
+        "packages/webview/tests/muse/hostBridge.control.test.ts": {
+          "additions": 115,
+          "accepted_lines": 115
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
