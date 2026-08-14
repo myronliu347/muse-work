@@ -1,0 +1,49 @@
+packages/webview/src/reducers/chatReducer.ts
+  9189a3b1614d1eca 15-29,309,329-334
+packages/webview/tests/muse/hostBridge.control.test.ts
+  9189a3b1614d1eca 320-417
+packages/webview/tests/reducers/chatReducer.test.ts
+  9189a3b1614d1eca 1113,1131
+packages/webview/src/muse/hostBridge.ts
+  9189a3b1614d1eca 540,543,549,554,560,1378-1379,1381-1382,1428-1429,1434-1435,1438
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6675fa9cb51f264e83fdecba6b080d7341411999",
+  "prompts": {
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 136,
+      "total_deletions": 5,
+      "accepted_lines": 136,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 22,
+          "deletions": 1,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/muse/hostBridge.control.test.ts": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 14,
+          "deletions": 4,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
