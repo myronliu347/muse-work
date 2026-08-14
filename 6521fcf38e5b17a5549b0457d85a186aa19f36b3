@@ -1,0 +1,102 @@
+packages/webview/src/types/index.ts
+  9189a3b1614d1eca 501-502
+packages/webview/tests/webview/inputToolbarButtons.test.tsx
+  9189a3b1614d1eca 1,47-54
+packages/webview/src/components/ChatApp.tsx
+  9189a3b1614d1eca 2073
+  25874284e31bf936 41,815-820,1702-1707,1718
+packages/webview/src/components/DesktopSidebar.tsx
+  25874284e31bf936 112-113
+packages/webview/tests/muse/panelShortcuts.test.ts
+  25874284e31bf936 84-137
+packages/desktop/src/main/index.ts
+  25874284e31bf936 8,71-97,224-225
+packages/webview/tests/webview/slash-commands.test.tsx
+  9189a3b1614d1eca 50-77
+packages/webview/src/muse/panelShortcuts.ts
+  25874284e31bf936 54-61
+packages/webview/src/components/MessageInput.tsx
+  9189a3b1614d1eca 118,1311-1321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6521fcf38e5b17a5549b0457d85a186aa19f36b3",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 108,
+      "total_deletions": 5,
+      "accepted_lines": 108,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 30,
+          "deletions": 1,
+          "accepted_lines": 30
+        }
+      }
+    },
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 10,
+      "accepted_lines": 52,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 12,
+          "deletions": 9,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "additions": 28,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
