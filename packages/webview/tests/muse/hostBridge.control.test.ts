@@ -317,6 +317,104 @@ describe("hostBridge control plane", () => {
     });
   });
 
+  it("ignores workflow-runs:update from another session", async () => {
+    let emit: ((e: unknown) => void) | undefined;
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [
+          baseSession,
+          { ...baseSession, id: "sess-b", title: "other" },
+        ],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs((h) => {
+        emit = h;
+      }),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+    });
+    await flush();
+    messages.length = 0;
+
+    emit?.({
+      type: "workflow-runs:update",
+      sessionId: "sess-active",
+      runs: [{ runId: "from-a", status: "running" }],
+    });
+    await flush();
+
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({
+        command: "updateWorkflowRuns",
+        runs: [{ runId: "from-a", status: "running" }],
+      }),
+    );
+  });
+
+  it("drops a stale getWorkflowRuns response after switching sessions", async () => {
+    let releaseA: (() => void) | undefined;
+    const api = stubApi({
+      getWorkflowRuns: vi.fn(async (id: string) => {
+        if (id === "sess-active") {
+          await new Promise<void>((resolve) => {
+            releaseA = resolve;
+          });
+          return { runs: [{ runId: "from-a", status: "running" }] };
+        }
+        return { runs: [] };
+      }),
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [
+          baseSession,
+          { ...baseSession, id: "sess-b", title: "other" },
+        ],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "getWorkflowRuns" });
+    await flush();
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+    });
+    await flush();
+    messages.length = 0;
+
+    releaseA?.();
+    await flush();
+
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({
+        command: "updateWorkflowRuns",
+        runs: [{ runId: "from-a", status: "running" }],
+      }),
+    );
+  });
+
   it("getBackgroundTaskOutput posts nested output for the dialog", async () => {
     const output = {
       stdout: "build ok\n",

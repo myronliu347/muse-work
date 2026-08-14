@@ -12,6 +12,21 @@ import { pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 
+const SESSION_SCOPED_DIALOGS = new Set([
+  "mcp",
+  "status",
+  "tasks",
+  "workflows",
+  "agents",
+]);
+
+function dialogAfterSessionSwitch(
+  activeDialog: ChatState["activeDialog"],
+): ChatState["activeDialog"] {
+  if (activeDialog && SESSION_SCOPED_DIALOGS.has(activeDialog)) return null;
+  return activeDialog;
+}
+
 function emptyAssistant(messageId: string): Message {
   return {
     id: messageId,
@@ -291,6 +306,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           backgroundTasks: [],
           workflowRuns: [],
           tasks: [],
+          activeDialog: dialogAfterSessionSwitch(state.activeDialog),
         };
       }
       // The backend pushes a currentSession without firstMessage on session
@@ -310,7 +326,12 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         currentSession,
         ...(switched
-          ? { backgroundTasks: [], workflowRuns: [], tasks: [] }
+          ? {
+              backgroundTasks: [],
+              workflowRuns: [],
+              tasks: [],
+              activeDialog: dialogAfterSessionSwitch(state.activeDialog),
+            }
           : {}),
       };
     }

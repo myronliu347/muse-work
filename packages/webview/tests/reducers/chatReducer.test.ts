@@ -1110,6 +1110,7 @@ describe("chatReducer", () => {
         ],
         workflowRuns: [{ runId: "r1" } as never],
         tasks: [{ id: "t1" } as never],
+        activeDialog: "workflows",
       };
 
       const newState = chatReducer(state, {
@@ -1127,6 +1128,7 @@ describe("chatReducer", () => {
       expect(newState.backgroundTasks).toEqual([]);
       expect(newState.workflowRuns).toEqual([]);
       expect(newState.tasks).toEqual([]);
+      expect(newState.activeDialog).toBeNull();
     });
 
     it("keeps background tasks when the same session is patched", () => {

@@ -537,22 +537,27 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   };
 
   const pushSessionControlState = async (id: string): Promise<void> => {
+    const stillHere = () => sessionId === id && !pendingNewSession;
     try {
       const { tasks } = await api.getBackgroundTasks(id);
+      if (!stillHere()) return;
       postToWebview({
         command: "updateBackgroundTasks",
         tasks: Array.isArray(tasks) ? tasks : [],
       });
     } catch {
+      if (!stillHere()) return;
       postToWebview({ command: "updateBackgroundTasks", tasks: [] });
     }
     try {
       const { runs } = await api.getWorkflowRuns(id);
+      if (!stillHere()) return;
       postToWebview({
         command: "updateWorkflowRuns",
         runs: Array.isArray(runs) ? runs : [],
       });
     } catch {
+      if (!stillHere()) return;
       postToWebview({ command: "updateWorkflowRuns", runs: [] });
     }
   };
@@ -1370,9 +1375,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   }
 
   async function handleGetBackgroundTasks(): Promise<void> {
-    if (!sessionId || pendingNewSession) return;
+    const id = sessionId;
+    if (!id || pendingNewSession) return;
     try {
-      const { tasks } = await api.getBackgroundTasks(sessionId);
+      const { tasks } = await api.getBackgroundTasks(id);
+      if (sessionId !== id || pendingNewSession) return;
       postToWebview({ command: "updateBackgroundTasks", tasks });
     } catch {
       // Keep the WS snapshot; opening /tasks should not wipe a live list.
@@ -1418,14 +1425,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   }
 
   async function handleGetWorkflowRuns(): Promise<void> {
-    if (!sessionId || pendingNewSession) {
+    const id = sessionId;
+    if (!id || pendingNewSession) {
       postToWebview({ command: "updateWorkflowRuns", runs: [] });
       return;
     }
     try {
-      const { runs } = await api.getWorkflowRuns(sessionId);
+      const { runs } = await api.getWorkflowRuns(id);
+      if (sessionId !== id || pendingNewSession) return;
       postToWebview({ command: "updateWorkflowRuns", runs });
     } catch {
+      if (sessionId !== id || pendingNewSession) return;
       postToWebview({ command: "updateWorkflowRuns", runs: [] });
     }
   }
