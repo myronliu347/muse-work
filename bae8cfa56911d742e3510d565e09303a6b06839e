@@ -1,0 +1,212 @@
+packages/webview/src/muse/apiClient.ts
+  9189a3b1614d1eca 78,252,340-482
+packages/webview/src/components/ConfirmationDialog.tsx
+  9189a3b1614d1eca 233
+packages/webview/tests/webview/rewindPopup.test.tsx
+  9189a3b1614d1eca 1
+packages/webview/tests/muse/hostBridge.test.ts
+  25874284e31bf936 444-452
+  9189a3b1614d1eca 47-48
+packages/server/tests/sessionRunner.control.test.ts
+  9189a3b1614d1eca 1-408
+packages/webview/tests/components/statusDialog.tokens.test.tsx
+  9189a3b1614d1eca 1-29
+packages/webview/src/components/MessageInput.tsx
+  9189a3b1614d1eca 17,19,22,31-36,47,52-69,71-85,108,121-148,155-160,162,164,169,288-290,312-322,413-450,492,495,519-528,616-620,739-824,876-894,912-938,1002-1006,1015,1081-1092,1097,1099,1102,1310-1318,1320-1351,1418-1426
+packages/webview/tests/webview/enterPlanModeConfirmation.test.tsx
+  9189a3b1614d1eca 77
+packages/webview/tests/webview/permissionModeDropdown.test.tsx
+  9189a3b1614d1eca 1,22,31,41,49,54,57,60,66,84,109,132,140,145,148
+packages/webview/src/components/StatusDialog.tsx
+  9189a3b1614d1eca 21,36-40,125-130
+docs/superpowers/plans/2026-08-14-sdk-control-plane.md
+  9189a3b1614d1eca 1-309
+packages/webview/src/reducers/chatReducer.ts
+  9189a3b1614d1eca 288-294,308-315
+packages/webview/src/components/HeaderIcons.tsx
+  9189a3b1614d1eca 154,165-170
+packages/webview/tests/components/backgroundTaskManager.fetch.test.tsx
+  9189a3b1614d1eca 1-80
+packages/webview/tests/webview/slash-commands.test.tsx
+  9189a3b1614d1eca 1
+packages/webview/src/muse/hostBridge.ts
+  9189a3b1614d1eca 184,539-559,572,588-590,852-876,1195-1443,1721-1765
+packages/server/src/routes/sessions.ts
+  9189a3b1614d1eca 86,99,113-117,125-128,335-545
+packages/server/src/app.ts
+  9189a3b1614d1eca 26-30,33-34,37-38,42,45-48,239-391
+packages/server/src/sessionStore.ts
+  9189a3b1614d1eca 7,9-11,18,137
+packages/webview/tests/components/permissionModeTwoOptions.test.tsx
+  9189a3b1614d1eca 1-45
+packages/webview/tests/webview/clearChat.test.tsx
+  9189a3b1614d1eca 1,32,143-144,165,171,205,230
+packages/server/tests/sessions.control.routes.test.ts
+  9189a3b1614d1eca 1-200
+packages/webview/src/components/WorkflowManager.tsx
+  9189a3b1614d1eca 51-53,111,130,209,237,248-249,261,269,295
+packages/webview/tests/webview/rewind.test.tsx
+  9189a3b1614d1eca 1
+packages/webview/tests/components/workflowManager.fetch.test.tsx
+  9189a3b1614d1eca 1-66
+packages/server/src/wsEvents.ts
+  9189a3b1614d1eca 86-95
+packages/webview/tests/muse/hostBridge.control.test.ts
+  9189a3b1614d1eca 1-381
+packages/webview/tests/fixtures/waveWebviewFixtures.ts
+  9189a3b1614d1eca 1-13
+packages/webview/tests/reducers/chatReducer.test.ts
+  9189a3b1614d1eca 1089-1157
+docs/superpowers/specs/2026-08-14-sdk-control-plane-design.md
+  9189a3b1614d1eca 1-180
+packages/webview/src/components/BackgroundTaskManager.tsx
+  9189a3b1614d1eca 54-57
+packages/webview/tests/webview/permissionModeCycle.test.tsx
+  9189a3b1614d1eca 1,17,23,56,60,62,71,79,82,85-86
+packages/webview/src/muse/wsClient.ts
+  9189a3b1614d1eca 63-72
+packages/webview/src/components/ChatApp.tsx
+  9189a3b1614d1eca 1156-1207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bae8cfa56911d742e3510d565e09303a6b06839e",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "accepted_lines": 9
+        }
+      }
+    },
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3194,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/HeaderIcons.tsx": {
+          "accepted_lines": 7
+        },
+        "docs/superpowers/plans/2026-08-14-sdk-control-plane.md": {
+          "accepted_lines": 309
+        },
+        "packages/webview/tests/components/backgroundTaskManager.fetch.test.tsx": {
+          "accepted_lines": 80
+        },
+        "packages/server/tests/sessions.control.routes.test.ts": {
+          "accepted_lines": 200
+        },
+        "packages/webview/src/components/StatusDialog.tsx": {
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 52
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "accepted_lines": 362
+        },
+        "packages/server/src/app.ts": {
+          "accepted_lines": 167
+        },
+        "packages/webview/src/components/ConfirmationDialog.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/rewind.test.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "accepted_lines": 145
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/wsEvents.ts": {
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/webview/permissionModeCycle.test.tsx": {
+          "accepted_lines": 11
+        },
+        "packages/server/src/sessionStore.ts": {
+          "accepted_lines": 7
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "accepted_lines": 408
+        },
+        "packages/webview/src/components/WorkflowManager.tsx": {
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/components/workflowManager.fetch.test.tsx": {
+          "accepted_lines": 66
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "accepted_lines": 223
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "accepted_lines": 15
+        },
+        "docs/superpowers/specs/2026-08-14-sdk-control-plane-design.md": {
+          "accepted_lines": 180
+        },
+        "packages/webview/tests/webview/clearChat.test.tsx": {
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/webview/enterPlanModeConfirmation.test.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "accepted_lines": 345
+        },
+        "packages/webview/tests/fixtures/waveWebviewFixtures.ts": {
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/BackgroundTaskManager.tsx": {
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/webview/permissionModeDropdown.test.tsx": {
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "accepted_lines": 69
+        },
+        "packages/webview/tests/components/statusDialog.tokens.test.tsx": {
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/webview/rewindPopup.test.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/permissionModeTwoOptions.test.tsx": {
+          "accepted_lines": 45
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/muse/hostBridge.control.test.ts": {
+          "accepted_lines": 381
+        }
+      }
+    }
+  }
+}
