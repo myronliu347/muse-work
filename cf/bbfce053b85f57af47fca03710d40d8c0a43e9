@@ -1,0 +1,121 @@
+packages/webview/tests/muse/hostBridge.test.ts
+  3f40d39bb955e3df 428-480
+packages/webview/tests/components/museModelSelect.session.test.tsx
+  3f40d39bb955e3df 71-99
+packages/webview/src/components/MuseModelSelect.tsx
+  3f40d39bb955e3df 73,75
+packages/webview/src/muse/hostBridge.ts
+  3f40d39bb955e3df 1149,1151-1152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cfbbfce053b85f57af47fca03710d40d8c0a43e9",
+  "prompts": {
+    "3f40d39bb955e3df": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4757638c-ee73-4e41-95d4-f2c93839a4be",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 87,
+      "total_deletions": 15,
+      "accepted_lines": 87,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 3,
+          "deletions": 14,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/museModelSelect.session.test.tsx": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "7309f11e88da7c9c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "62f35b5b-0b9d-4e3a-822d-9d6d98afb23d",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 2,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    },
+    "c4bebde8d75da52f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "25569d39-fd89-4757-b14b-e0b00b53375e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 16,
+      "accepted_lines": 25,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/assets/icon.svg": {
+          "additions": 9,
+          "deletions": 11,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/assets/muse-m.svg": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/LoadingLogo.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/WelcomeView.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
