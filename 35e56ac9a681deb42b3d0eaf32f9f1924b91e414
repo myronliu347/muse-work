@@ -1,0 +1,37 @@
+packages/server/src/sessionRunner.ts
+  25874284e31bf936 40-41,222-225,409-427,432-452,669,675,683,702,712,721,1065,1085,1196-1197
+packages/server/tests/sessions.ws.test.ts
+  25874284e31bf936 637-683,703-708,719-726
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "35e56ac9a681deb42b3d0eaf32f9f1924b91e414",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 120,
+      "total_deletions": 19,
+      "accepted_lines": 117,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 64,
+          "deletions": 3,
+          "accepted_lines": 61
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 56,
+          "deletions": 16,
+          "accepted_lines": 56
+        }
+      }
+    }
+  }
+}
