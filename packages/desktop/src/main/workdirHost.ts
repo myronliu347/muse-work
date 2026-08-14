@@ -5,6 +5,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { spawn } from "node:child_process";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
 import { listWorkspaceDir, searchWorkspaceFiles } from "./fileSearch.js";
@@ -61,6 +62,40 @@ function escapeForAppleScriptString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+const ITERM_BUNDLE_NAMES = ["iTerm.app", "iTerm2.app"] as const;
+
+/** Prefer iTerm2 when installed; otherwise Terminal.app. */
+export function resolveDarwinTerminalApp(
+  existsSync: (filePath: string) => boolean = fs.existsSync,
+  homedir: () => string = os.homedir,
+): "iTerm" | "Terminal" {
+  const dirs = ["/Applications", path.join(homedir(), "Applications")];
+  for (const dir of dirs) {
+    for (const bundle of ITERM_BUNDLE_NAMES) {
+      if (existsSync(path.join(dir, bundle))) {
+        return "iTerm";
+      }
+    }
+  }
+  return "Terminal";
+}
+
+function darwinTerminalScript(workdir: string): string {
+  const escaped = escapeForAppleScriptString(workdir);
+  if (resolveDarwinTerminalApp() === "iTerm") {
+    return [
+      'tell application "iTerm"',
+      "activate",
+      "set newWindow to (create window with default profile)",
+      "tell current session of newWindow",
+      `write text "cd \\"${escaped}\\""`,
+      "end tell",
+      "end tell",
+    ].join("\n");
+  }
+  return `tell application "Terminal" to do script "cd \\"${escaped}\\"; clear"`;
+}
+
 function defaultOpenInTerminal(workdir: string): void {
   const platform = process.platform;
   const spawnOpts = {
@@ -71,13 +106,9 @@ function defaultOpenInTerminal(workdir: string): void {
   let child: ReturnType<typeof spawn> | null = null;
 
   if (platform === "darwin") {
-    const escaped = escapeForAppleScriptString(workdir);
     child = spawn(
       "/usr/bin/osascript",
-      [
-        "-e",
-        `tell application "Terminal" to do script "cd \\"${escaped}\\"; clear"`,
-      ],
+      ["-e", darwinTerminalScript(workdir)],
       spawnOpts,
     );
   } else if (platform === "win32") {

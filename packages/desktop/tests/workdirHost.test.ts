@@ -7,6 +7,7 @@ import {
   installWorkdirHost,
   loadPersistedWorkdirState,
   rememberWorkdir,
+  resolveDarwinTerminalApp,
   savePersistedWorkdirState,
   TO_WEBVIEW,
   type WorkdirHostState,
@@ -542,5 +543,29 @@ describe("installWorkdirHost", () => {
 
     host.dispose();
     fs.rmSync(userData, { recursive: true, force: true });
+  });
+});
+
+describe("resolveDarwinTerminalApp", () => {
+  it("prefers iTerm when /Applications/iTerm.app exists", () => {
+    expect(
+      resolveDarwinTerminalApp((p) => p === "/Applications/iTerm.app"),
+    ).toBe("iTerm");
+  });
+
+  it("prefers iTerm when iTerm2.app is in ~/Applications", () => {
+    const home = "/Users/me";
+    expect(
+      resolveDarwinTerminalApp(
+        (p) => p === path.join(home, "Applications", "iTerm2.app"),
+        () => home,
+      ),
+    ).toBe("iTerm");
+  });
+
+  it("falls back to Terminal when iTerm is not installed", () => {
+    expect(resolveDarwinTerminalApp(() => false, () => "/Users/me")).toBe(
+      "Terminal",
+    );
   });
 });
