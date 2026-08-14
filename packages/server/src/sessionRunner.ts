@@ -37,6 +37,8 @@ export function resolveModelDisplay(modelId: string | undefined): string {
 export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
 /** Abort a running turn after this long with no SDK callbacks. */
 export const TURN_STALL_MS = 5 * 60 * 1000;
+/** Shown when the SDK finishes a turn without assistant text, tools, or errors. */
+export const EMPTY_TURN_ERROR = "模型没有产生输出";
 const DEFAULT_TITLE = "新对话";
 const TITLE_MAX_LEN = 40;
 
@@ -217,6 +219,10 @@ export function createSessionRunner(
   const messageQueues = new Map<string, QueuedTurn[]>();
   /** Per-session flag: current turn already received assistant stage "end". */
   const turnEnded = new Map<string, boolean>();
+  /** True once this turn emitted assistant / tool / reasoning / error output. */
+  const turnHadOutput = new Map<string, boolean>();
+  /** True while interruptTurn is aborting the SDK (skip empty-turn errors). */
+  const aborting = new Set<string>();
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
   const agentLoading = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -400,26 +406,50 @@ export function createSessionRunner(
     stallTimers.set(sessionId, timer);
   }
 
+  function markTurnOutput(sessionId: string): void {
+    turnHadOutput.set(sessionId, true);
+  }
+
+  function reportEmptyTurnIfNeeded(sessionId: string): void {
+    if (disposed.has(sessionId) || aborting.has(sessionId)) {
+      return;
+    }
+    if (turnEnded.get(sessionId) || turnHadOutput.get(sessionId)) {
+      return;
+    }
+    turnHadOutput.set(sessionId, true);
+    getLogger().warn("empty turn", { sessionId });
+    hub.broadcast(sessionId, {
+      type: "error:block",
+      error: EMPTY_TURN_ERROR,
+    });
+  }
+
   function interruptTurn(
     sessionId: string,
     opts: { error?: string; denyMessage?: string } = {},
   ): void {
-    denyPendingPermissions(
-      sessionId,
-      opts.denyMessage ?? opts.error ?? "Aborted",
-    );
-    clearStallTimer(sessionId);
-    agents.get(sessionId)?.abortMessage?.();
-    agentLoading.set(sessionId, false);
-    hub.broadcast(sessionId, { type: "loading", loading: false });
-    if (!turnEnded.get(sessionId)) {
-      hub.broadcast(sessionId, { type: "message:completed" });
-      turnEnded.set(sessionId, true);
-    }
-    if (opts.error) {
-      finishTurnError(sessionId, new Error(opts.error));
-    } else {
-      markIdle(sessionId);
+    aborting.add(sessionId);
+    try {
+      denyPendingPermissions(
+        sessionId,
+        opts.denyMessage ?? opts.error ?? "Aborted",
+      );
+      clearStallTimer(sessionId);
+      agents.get(sessionId)?.abortMessage?.();
+      agentLoading.set(sessionId, false);
+      hub.broadcast(sessionId, { type: "loading", loading: false });
+      if (!turnEnded.get(sessionId)) {
+        hub.broadcast(sessionId, { type: "message:completed" });
+        turnEnded.set(sessionId, true);
+      }
+      if (opts.error) {
+        finishTurnError(sessionId, new Error(opts.error));
+      } else {
+        markIdle(sessionId);
+      }
+    } finally {
+      aborting.delete(sessionId);
     }
   }
 
@@ -636,11 +666,13 @@ export function createSessionRunner(
               });
             }
           } else {
+            reportEmptyTurnIfNeeded(sessionId);
             markIdle(sessionId);
           }
         },
         onAssistantMessageAdded: (messageId) => {
           if (disposed.has(sessionId)) return;
+          markTurnOutput(sessionId);
           bumpActivity(sessionId);
           hub.broadcast(sessionId, { type: "assistant:message", messageId });
         },
@@ -648,6 +680,7 @@ export function createSessionRunner(
           if (disposed.has(sessionId)) {
             return;
           }
+          markTurnOutput(sessionId);
           bumpActivity(sessionId);
           hub.broadcast(sessionId, {
             type: "message:delta",
@@ -666,6 +699,7 @@ export function createSessionRunner(
         },
         onAssistantReasoningUpdated: ({ messageId, chunk, stage }) => {
           if (disposed.has(sessionId)) return;
+          markTurnOutput(sessionId);
           hub.broadcast(sessionId, {
             type: "reasoning:delta",
             messageId,
@@ -675,6 +709,7 @@ export function createSessionRunner(
         },
         onToolBlockUpdated: (params) => {
           if (disposed.has(sessionId)) return;
+          markTurnOutput(sessionId);
           bumpActivity(sessionId);
           rememberAgentTool(sessionId, params as Record<string, unknown>);
           hub.broadcast(sessionId, { type: "tool:update", params });
@@ -683,6 +718,7 @@ export function createSessionRunner(
           if (disposed.has(sessionId)) return;
           // User-initiated abort surfaces as "Request was aborted" — not a session error.
           if (isAbortError(error)) return;
+          markTurnOutput(sessionId);
           // Compact / LLM errors are transcript blocks, not a dead session.
           // Ending the turn here would drop follow-up sends into the queue
           // while the SDK is still running (or hung on oversized context).
@@ -1026,6 +1062,7 @@ export function createSessionRunner(
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
+    turnHadOutput.set(sessionId, false);
     agentLoading.set(sessionId, false);
     bumpActivity(sessionId);
     getLogger().info("turn started", {
@@ -1045,6 +1082,7 @@ export function createSessionRunner(
         store.get(sessionId)?.status === "running" &&
         agentLoading.get(sessionId) !== true
       ) {
+        reportEmptyTurnIfNeeded(sessionId);
         if (!turnEnded.get(sessionId)) {
           hub.broadcast(sessionId, { type: "message:completed" });
         }
@@ -1155,6 +1193,8 @@ export function createSessionRunner(
       clearStallTimer(sessionId);
       messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
+      turnHadOutput.delete(sessionId);
+      aborting.delete(sessionId);
       agentLoading.delete(sessionId);
       subagentTranscripts.delete(sessionId);
       agentToolBinds.delete(sessionId);

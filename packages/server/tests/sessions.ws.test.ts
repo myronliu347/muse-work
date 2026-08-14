@@ -634,6 +634,53 @@ describe("sessions + websocket streaming", () => {
     await expect.poll(() => seen.slice()).toEqual(["first", "second"]);
   });
 
+  it("surfaces an error when SDK loading ends with no assistant output", async () => {
+    const createAgent: CreateAgent = async (opts) => ({
+      sendMessage: async () => {
+        // Real SDK path: InteractionService setIsLoading(true/false) after an
+        // empty/swallowed generation — no assistant, no error block.
+        opts.callbacks?.onLoadingChange?.(true);
+        opts.callbacks?.onLoadingChange?.(false);
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 1,
+      filter: (e) => e.type === "error:block",
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "改了么" }),
+    });
+
+    const received = await events;
+    expect(received).toEqual([
+      expect.objectContaining({
+        type: "error:block",
+        error: expect.stringMatching(/没有产生输出/),
+        sessionId: session.id,
+      }),
+    ]);
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+  });
+
   it("sendMessage that returns without stage end still releases busy", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {
@@ -653,6 +700,12 @@ describe("sessions + websocket streaming", () => {
     });
     const session = (await sessionRes.json()) as { id: string };
 
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 1,
+      filter: (e) => e.type === "error:block",
+    });
+    await ready;
+
     const first = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -663,6 +716,14 @@ describe("sessions + websocket streaming", () => {
     await expect
       .poll(() => app.ctx.store.get(session.id)?.status)
       .toBe("idle");
+    const received = await events;
+    expect(received).toEqual([
+      expect.objectContaining({
+        type: "error:block",
+        error: expect.stringMatching(/没有产生输出/),
+        sessionId: session.id,
+      }),
+    ]);
 
     const second = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
       method: "POST",
