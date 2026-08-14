@@ -119,15 +119,7 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
             .then(refresh);
         }
       }}
-      style={{
-        maxWidth: 220,
-        fontSize: 12,
-        height: 24,
-        borderRadius: 4,
-        border: "1px solid var(--vscode-dropdown-border, #555)",
-        background: "var(--vscode-dropdown-background, #1e1e1e)",
-        color: "var(--vscode-dropdown-foreground, #ccc)",
-      }}
+      className="muse-model-select"
     >
       {models.length === 0 ? (
         <option value="">{error ? "模型不可用" : "加载模型…"}</option>
