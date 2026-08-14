@@ -1,0 +1,45 @@
+packages/webview/src/styles/MessageInput.css
+  45e5fa4bf78099d3 27-28,47,57-58,61-62,88,121,126,179,183-185,195,200-222
+packages/webview/src/components/MuseModelSelect.tsx
+  45e5fa4bf78099d3 122
+packages/webview/src/styles/AttachedImages.css
+  45e5fa4bf78099d3 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fe85bdf178ccdaf4caeb671c822fdc236c241af8",
+  "prompts": {
+    "45e5fa4bf78099d3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bf54800a-4d7a-41b9-8213-559009f777ad",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 54,
+      "total_deletions": 32,
+      "accepted_lines": 42,
+      "overriden_lines": 2,
+      "per_file_stats": {
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 1,
+          "deletions": 9,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AttachedImages.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 52,
+          "deletions": 22,
+          "accepted_lines": 40,
+          "overriden_lines": 2
+        }
+      }
+    }
+  }
+}
