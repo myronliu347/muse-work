@@ -1167,6 +1167,65 @@ describe("chatReducer", () => {
       expect(newState.activeDialog).toBeNull();
     });
 
+    it("clears a stale compaction hint when switching to another session", () => {
+      // Desktop session switches use updateCurrentSession, not setInitialState.
+      // The compaction flag is session-scoped UI; leaking it makes every
+      // conversation show "正在压缩对话…".
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const state = {
+        ...initialState,
+        currentSession,
+        isCompacting: true,
+      };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: {
+          id: "s2",
+          sessionType: "main",
+          workdir: "/w",
+          createdAt: new Date(0),
+          lastActiveAt: new Date(0),
+          latestTotalTokens: 0,
+        },
+      });
+
+      expect(newState.isCompacting).toBe(false);
+    });
+
+    it("keeps the compaction hint when the same session is patched", () => {
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const state = {
+        ...initialState,
+        currentSession,
+        isCompacting: true,
+      };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: {
+          ...currentSession,
+          model: "m2",
+        },
+      });
+
+      expect(newState.isCompacting).toBe(true);
+    });
+
     it("keeps background tasks when the same session is patched", () => {
       const currentSession: SessionMetadata = {
         id: "s1",

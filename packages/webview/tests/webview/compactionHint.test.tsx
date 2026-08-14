@@ -53,6 +53,34 @@ describe("Compaction hint", () => {
     );
   });
 
+  it("hides the hint when switching to another session via updateCurrentSession", () => {
+    renderChatApp();
+    addUserMessage();
+    sendCommand("compactionStateChange", { isCompacting: true });
+    expect(screen.getByTestId("compaction-hint")).toBeInTheDocument();
+
+    sendCommand("updateCurrentSession", {
+      session: {
+        id: "sess-other",
+        title: "另一个会话",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    });
+    sendCommand("updateMessages", {
+      messages: [
+        {
+          id: "msg_other",
+          role: "user",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          blocks: [{ type: "text", content: "hi" }],
+        },
+      ],
+    });
+
+    expect(screen.queryByTestId("compaction-hint")).not.toBeInTheDocument();
+  });
+
   it("does not add a system message to the list when compaction state changes", () => {
     renderChatApp();
     addUserMessage();

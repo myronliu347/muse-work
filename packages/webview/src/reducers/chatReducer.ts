@@ -307,6 +307,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           workflowRuns: [],
           tasks: [],
           activeDialog: dialogAfterSessionSwitch(state.activeDialog),
+          isCompacting: false,
         };
       }
       // The backend pushes a currentSession without firstMessage on session
@@ -331,6 +332,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
               workflowRuns: [],
               tasks: [],
               activeDialog: dialogAfterSessionSwitch(state.activeDialog),
+              isCompacting: false,
             }
           : {}),
       };

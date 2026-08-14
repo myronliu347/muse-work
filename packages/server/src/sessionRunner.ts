@@ -748,6 +748,10 @@ export function createSessionRunner(
             type: "messages:replace",
             messages: mapSdkMessages(messages),
           });
+          hub.broadcast(sessionId, {
+            type: "compaction:state",
+            isCompacting: false,
+          });
         },
         onSubagentAssistantMessageAdded: (subagentId, messageId) => {
           if (disposed.has(sessionId)) return;
@@ -1260,8 +1264,15 @@ export function createSessionRunner(
           statusCode: 501,
         });
       }
-      await agent.compact();
-      return { ok: true as const };
+      try {
+        await agent.compact();
+        return { ok: true as const };
+      } finally {
+        hub.broadcast(sessionId, {
+          type: "compaction:state",
+          isCompacting: false,
+        });
+      }
     },
 
     async clear(sessionId) {

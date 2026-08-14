@@ -1489,6 +1489,92 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("does not leak the compaction hint to other sessions; restores it when switching back", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [
+          baseSession,
+          { ...baseSession, id: "sess-b", title: "B" },
+        ],
+        activeSessionId: "sess-active",
+      })),
+    });
+
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "compaction:state",
+      sessionId: "sess-active",
+      isCompacting: true,
+    });
+    expect(messages).toContainEqual({
+      command: "compactionStateChange",
+      isCompacting: true,
+    });
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+      workdir: "/tmp",
+    });
+    await flush();
+    expect(messages).toContainEqual({
+      command: "compactionStateChange",
+      isCompacting: false,
+    });
+    messages.length = 0;
+
+    // Compact finishes on the background session — must not re-show the hint.
+    handler!({
+      type: "compaction:state",
+      sessionId: "sess-active",
+      isCompacting: false,
+    });
+    expect(messages).not.toContainEqual({
+      command: "compactionStateChange",
+      isCompacting: true,
+    });
+    messages.length = 0;
+
+    handler!({
+      type: "compaction:state",
+      sessionId: "sess-active",
+      isCompacting: true,
+    });
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "compactionStateChange" }),
+    );
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-active",
+      workdir: "/tmp",
+    });
+    await flush();
+    expect(messages).toContainEqual({
+      command: "compactionStateChange",
+      isCompacting: true,
+    });
+  });
+
   it("setSessionModel patches session model and emits current session", async () => {
     const api = stubApi();
     const bridge = createHostBridge({

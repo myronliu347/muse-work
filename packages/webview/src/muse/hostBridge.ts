@@ -191,6 +191,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const titledSessions = new Set<string>();
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   const pendingPermissions = new Map<string, PendingPermission>();
+  /** Sessions whose SDK currently reports isCompacting. Used so a session switch
+   *  does not leak the hint, and switching back restores it if still compacting. */
+  const compactingSessions = new Set<string>();
   const runningWorkBySession = new Map<
     string,
     { tasks: boolean; workflows: boolean }
@@ -340,6 +343,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     knownAssistantIds.clear();
     setLoading(false);
     postToWebview({ command: "endStreaming" });
+  };
+
+  const emitCompacting = (isCompacting: boolean) => {
+    postToWebview({
+      command: "compactionStateChange",
+      isCompacting,
+    });
   };
 
   const showServerToast = (message: string): void => {
@@ -615,6 +625,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     resetChatStreaming();
     emitCurrentSession(session);
     emitPermissionMode(session.permissionMode);
+    emitCompacting(compactingSessions.has(session.id));
     await loadMessages(session.id);
     await pushSessionControlState(session.id);
     await refreshTree();
@@ -636,6 +647,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     postToWebview({ command: "updateBackgroundTasks", tasks: [] });
     postToWebview({ command: "updateWorkflowRuns", runs: [] });
     postToWebview({ command: "updateTasks", tasks: [] });
+    emitCompacting(false);
     if (workdir) {
       // Workdir-group "+": draft session with that directory pre-selected.
       suppressWorkdirPush = false;
@@ -839,22 +851,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "error:block") {
+      compactingSessions.delete(event.sessionId);
       postToWebview({
         command: "updateErrorBlock",
         error: event.error?.trim() || "Session error",
       });
-      postToWebview({
-        command: "compactionStateChange",
-        isCompacting: false,
-      });
+      emitCompacting(false);
       return;
     }
 
     if (event.type === "compaction:state") {
-      postToWebview({
-        command: "compactionStateChange",
-        isCompacting: event.isCompacting,
-      });
+      emitCompacting(event.isCompacting);
       return;
     }
 
@@ -996,6 +1003,23 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       patchTreeSession(event.sessionId, {
         running: event.loading || hasPending,
       });
+      if (event.sessionId === sessionId) {
+        emitChatWs(event);
+      }
+      return;
+    }
+
+    if (event.type === "compaction:state") {
+      if (event.isCompacting) compactingSessions.add(event.sessionId);
+      else compactingSessions.delete(event.sessionId);
+      if (event.sessionId === sessionId) {
+        emitChatWs(event);
+      }
+      return;
+    }
+
+    if (event.type === "error:block") {
+      compactingSessions.delete(event.sessionId);
       if (event.sessionId === sessionId) {
         emitChatWs(event);
       }
@@ -1304,6 +1328,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       if (loading) await handleAbortMessage();
       await api.compact(sessionId);
     } catch (err) {
+      compactingSessions.delete(sessionId);
+      emitCompacting(false);
       postToWebview({
         command: "updateErrorBlock",
         error: err instanceof Error ? err.message : String(err),
