@@ -1,0 +1,62 @@
+packages/webview/tests/muse/hostBridge.test.ts
+  c4bebde8d75da52f 1492-1575
+packages/webview/src/muse/hostBridge.ts
+  c4bebde8d75da52f 194-196,348-354,628,650,854,859,864,1012-1028,1331-1332
+packages/webview/tests/reducers/chatReducer.test.ts
+  c4bebde8d75da52f 1170-1228
+packages/webview/tests/webview/compactionHint.test.tsx
+  c4bebde8d75da52f 56-83
+packages/server/src/sessionRunner.ts
+  c4bebde8d75da52f 751-754,1267-1275
+packages/webview/src/reducers/chatReducer.ts
+  c4bebde8d75da52f 310,335
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "180237e425bcee068216d9c7de952663566f5912",
+  "prompts": {
+    "c4bebde8d75da52f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "25569d39-fd89-4757-b14b-e0b00b53375e",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 326,
+      "total_deletions": 114,
+      "accepted_lines": 326,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/compactionHint.test.tsx": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 34,
+          "deletions": 8,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 13,
+          "deletions": 2,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 59,
+          "accepted_lines": 59
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 190,
+          "deletions": 104,
+          "accepted_lines": 190
+        }
+      }
+    }
+  }
+}
