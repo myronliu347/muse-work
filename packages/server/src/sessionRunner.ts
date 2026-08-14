@@ -6,7 +6,7 @@ import {
 } from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "./wsHub.js";
-import { getLogger } from "./logger.js";
+import { closeAgentLogger, createAgentLogger, getLogger } from "./logger.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
@@ -488,6 +488,7 @@ export function createSessionRunner(
     }
     clearIdleTimer(sessionId);
     agentLoading.delete(sessionId);
+    closeAgentLogger(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);
     agentIdentities.delete(sessionId);
@@ -628,6 +629,7 @@ export function createSessionRunner(
       defaultHeaders: gateway.defaultHeaders,
       fetch: gateway.fetch,
       model: gateway.model,
+      logger: createAgentLogger({ home, sessionId }),
       // SDK requires fastModel (used for lightweight sub-tasks). Fall back to main model.
       fastModel: gateway.fastModel ?? gateway.model,
       workdir,
@@ -1196,6 +1198,7 @@ export function createSessionRunner(
       turnHadOutput.delete(sessionId);
       aborting.delete(sessionId);
       agentLoading.delete(sessionId);
+      closeAgentLogger(sessionId);
       subagentTranscripts.delete(sessionId);
       agentToolBinds.delete(sessionId);
       pendingAgentToolIds.delete(sessionId);

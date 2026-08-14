@@ -19,6 +19,18 @@ export type CreateLoggerOptions = {
   disableFile?: boolean;
   /** Silence all transports (tests). Default true under `VITEST`. */
   silent?: boolean;
+  /** Log file name under `logs/` (default: `server.log`). */
+  fileName?: string;
+  /** Fields attached to every line (e.g. sessionId). */
+  defaultMeta?: Record<string, unknown>;
+};
+
+/** SDK `Logger` surface (`wave-agent-sdk`). */
+export type AgentLogger = {
+  error: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
 };
 
 function resolveLevel(override?: string): string {
@@ -90,10 +102,11 @@ export function createLogger(options?: CreateLoggerOptions): winston.Logger {
 
   if (!disableFile) {
     const dir = resolveLogDir(options?.home);
-    fs.mkdirSync(dir, { recursive: true });
+    const filename = path.join(dir, options?.fileName ?? "server.log");
+    fs.mkdirSync(path.dirname(filename), { recursive: true });
     transports.push(
       new winston.transports.File({
-        filename: path.join(dir, "server.log"),
+        filename,
         maxsize: MAX_SIZE_BYTES,
         maxFiles: MAX_FILES,
         tailable: true,
@@ -103,6 +116,7 @@ export function createLogger(options?: CreateLoggerOptions): winston.Logger {
 
   return winston.createLogger({
     level: resolveLevel(options?.level),
+    defaultMeta: options?.defaultMeta,
     format: textFormat,
     transports,
   });
@@ -124,4 +138,70 @@ export function configureLogger(options?: CreateLoggerOptions): winston.Logger {
   }
   shared = createLogger(options);
   return shared;
+}
+
+const agentLoggers = new Map<string, winston.Logger>();
+
+function formatSdkMessage(args: unknown[]): string {
+  return args
+    .map((value) => {
+      if (value instanceof Error) {
+        return value.stack ?? value.message;
+      }
+      if (typeof value === "string") {
+        return value;
+      }
+      return formatValue(value);
+    })
+    .join(" ")
+    .trim();
+}
+
+/**
+ * Per-session logger passed into `Agent.create({ logger })`.
+ * Writes SDK runtime logs to `logs/sessions/<sessionId>.log` (debug+)
+ * and mirrors info/warn/error onto the process logger.
+ */
+export function createAgentLogger(options: {
+  home: string;
+  sessionId: string;
+  disableFile?: boolean;
+  silent?: boolean;
+  level?: string;
+}): AgentLogger {
+  closeAgentLogger(options.sessionId);
+  const sessionId = options.sessionId;
+  const fileLog = createLogger({
+    home: options.home,
+    silent: options.silent ?? true,
+    disableFile: options.disableFile,
+    fileName: path.join("sessions", `${sessionId}.log`),
+    defaultMeta: { sessionId, source: "agent" },
+    level: options.level ?? process.env.MUSE_AGENT_LOG_LEVEL ?? "debug",
+  });
+  agentLoggers.set(sessionId, fileLog);
+
+  const emit =
+    (level: "error" | "warn" | "info" | "debug") =>
+    (...args: unknown[]): void => {
+      const message = formatSdkMessage(args);
+      if (!message) return;
+      fileLog[level](message);
+      if (level === "debug") return;
+      getLogger()[level](message, { sessionId, source: "agent" });
+    };
+
+  return {
+    error: emit("error"),
+    warn: emit("warn"),
+    info: emit("info"),
+    debug: emit("debug"),
+  };
+}
+
+export function closeAgentLogger(sessionId: string): void {
+  const log = agentLoggers.get(sessionId);
+  if (!log) return;
+  agentLoggers.delete(sessionId);
+  log.close();
 }

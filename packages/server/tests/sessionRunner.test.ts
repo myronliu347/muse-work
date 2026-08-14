@@ -578,4 +578,72 @@ describe("sessionRunner concurrency / dispose", () => {
     expect(pluginSnapshots[1]).toBeUndefined();
     expect(disposeCount).toBe(1);
   });
+
+  it("passes a per-session logger into createAgent", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-agent-log-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    let called = false;
+    let seenLogger: { error?: unknown; info?: unknown; debug?: unknown } | undefined;
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async (options) => {
+        called = true;
+        seenLogger = options.logger;
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {},
+        };
+      },
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => called).toBe(true);
+    expect(seenLogger?.error).toBeTypeOf("function");
+    expect(seenLogger?.info).toBeTypeOf("function");
+    expect(seenLogger?.debug).toBeTypeOf("function");
+  });
 });
