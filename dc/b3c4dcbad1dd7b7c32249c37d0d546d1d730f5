@@ -1,0 +1,35 @@
+packages/desktop/tests/packaging.test.ts
+  9189a3b1614d1eca 1-32
+packages/desktop/package.json
+  9189a3b1614d1eca 31-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "dcb3c4dcbad1dd7b7c32249c37d0d546d1d730f5",
+  "prompts": {
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/package.json": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/tests/packaging.test.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        }
+      }
+    }
+  }
+}
