@@ -1,0 +1,62 @@
+packages/webview/tests/components/workflowManager.fetch.test.tsx
+  9189a3b1614d1eca 66-99
+packages/server/src/sessionRunner.ts
+  9189a3b1614d1eca 67,190,243-305,884,911,1496,1632,1645
+packages/server/tests/sessionRunner.control.test.ts
+  9189a3b1614d1eca 232-234,261,273-280,303-354
+packages/webview/src/components/WorkflowManager.tsx
+  9189a3b1614d1eca 42,44,71-76,179-198
+packages/webview/src/styles/ConfigurationDialog.css
+  9189a3b1614d1eca 43-63
+packages/webview/src/components/ChatApp.tsx
+  9189a3b1614d1eca 2216-2219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c16d2509883ab6208d02858fc5c0a1fc97688e87",
+  "prompts": {
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 231,
+      "total_deletions": 61,
+      "accepted_lines": 221,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 70,
+          "deletions": 34,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/components/workflowManager.fetch.test.tsx": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/WorkflowManager.tsx": {
+          "additions": 28,
+          "deletions": 12,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 74,
+          "deletions": 15,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 21,
+          "accepted_lines": 21
+        }
+      }
+    }
+  }
+}
