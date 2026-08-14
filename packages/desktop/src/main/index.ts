@@ -178,9 +178,9 @@ if (!gotLock) {
           buttons: ["取消", "退出并中断"],
           defaultId: 0,
           cancelId: 0,
-          title: "AI 正在运行",
-          message: "AI 正在处理任务",
-          detail: "关闭应用将中断当前对话中的生成。确定要退出吗？",
+          title: "仍有任务在运行",
+          message: "有对话或后台任务正在运行",
+          detail: "关闭应用将中断当前生成和后台任务。确定要退出吗？",
         };
         const result = win
           ? await dialog.showMessageBox(win, options)

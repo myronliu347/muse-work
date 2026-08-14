@@ -190,8 +190,36 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const titledSessions = new Set<string>();
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   const pendingPermissions = new Map<string, PendingPermission>();
+  const runningWorkBySession = new Map<
+    string,
+    { tasks: boolean; workflows: boolean }
+  >();
 
   const DRAFT_SESSION_ID = "__draft__";
+
+  const hasRunningStatus = (items: unknown): boolean =>
+    Array.isArray(items) &&
+    items.some(
+      (item) =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        (item as { status?: unknown }).status === "running",
+    );
+
+  const setRunningWork = (
+    id: string,
+    kind: "tasks" | "workflows",
+    items: unknown,
+  ): void => {
+    const prev = runningWorkBySession.get(id) ?? {
+      tasks: false,
+      workflows: false,
+    };
+    const next = { ...prev, [kind]: hasRunningStatus(items) };
+    if (!next.tasks && !next.workflows) runningWorkBySession.delete(id);
+    else runningWorkBySession.set(id, next);
+    publishAgentBusy();
+  };
 
   const emitDraftSession = () => {
     postToWebview({
@@ -217,7 +245,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     const anyRunning =
       loading ||
       pinned.some((s) => s.running) ||
-      recent.some((s) => s.running);
+      recent.some((s) => s.running) ||
+      [...runningWorkBySession.values()].some(
+        (flags) => flags.tasks || flags.workflows,
+      );
     opts.outer?.postMessage({
       command: "desktopAgentBusy",
       busy: anyRunning,
@@ -541,6 +572,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const { tasks } = await api.getBackgroundTasks(id);
       if (!stillHere()) return;
+      setRunningWork(id, "tasks", tasks);
       postToWebview({
         command: "updateBackgroundTasks",
         tasks: Array.isArray(tasks) ? tasks : [],
@@ -552,6 +584,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const { runs } = await api.getWorkflowRuns(id);
       if (!stillHere()) return;
+      setRunningWork(id, "workflows", runs);
       postToWebview({
         command: "updateWorkflowRuns",
         runs: Array.isArray(runs) ? runs : [],
@@ -957,6 +990,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         emitChatWs(event);
       }
       return;
+    }
+
+    if (event.type === "background-tasks:update") {
+      setRunningWork(event.sessionId, "tasks", event.tasks);
+    }
+    if (event.type === "workflow-runs:update") {
+      setRunningWork(event.sessionId, "workflows", event.runs);
     }
 
     // Chat / streaming events only drive ChatApp for the active session.
@@ -1392,6 +1432,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const { tasks } = await api.getBackgroundTasks(id);
       if (sessionId !== id || pendingNewSession) return;
+      setRunningWork(id, "tasks", tasks);
       postToWebview({ command: "updateBackgroundTasks", tasks });
     } catch {
       // Keep the WS snapshot; opening /tasks should not wipe a live list.
@@ -1445,6 +1486,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     try {
       const { runs } = await api.getWorkflowRuns(id);
       if (sessionId !== id || pendingNewSession) return;
+      setRunningWork(id, "workflows", runs);
       postToWebview({ command: "updateWorkflowRuns", runs });
     } catch {
       if (sessionId !== id || pendingNewSession) return;

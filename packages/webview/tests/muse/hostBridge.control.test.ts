@@ -476,4 +476,119 @@ describe("hostBridge control plane", () => {
       taskId: "bt-1",
     });
   });
+
+  it("marks the app busy when a background task is running after the turn ends", async () => {
+    let emit: ((e: unknown) => void) | undefined;
+    const outer = { postMessage: vi.fn(), getState: () => null, setState: () => {} };
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws: stubWs((h) => {
+        emit = h;
+      }),
+      workdir: "/tmp",
+      outer,
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    outer.postMessage.mockClear();
+
+    emit?.({
+      type: "session:status",
+      sessionId: "sess-active",
+      status: "idle",
+    });
+    emit?.({
+      type: "background-tasks:update",
+      sessionId: "sess-active",
+      tasks: [{ id: "bt-1", type: "workflow", status: "running" }],
+    });
+    await flush();
+
+    expect(outer.postMessage).toHaveBeenCalledWith({
+      command: "desktopAgentBusy",
+      busy: true,
+    });
+  });
+
+  it("keeps the app busy for another session's running workflow", async () => {
+    let emit: ((e: unknown) => void) | undefined;
+    const outer = { postMessage: vi.fn(), getState: () => null, setState: () => {} };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [
+          baseSession,
+          { ...baseSession, id: "sess-b", title: "other" },
+        ],
+        activeSessionId: "sess-active",
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs((h) => {
+        emit = h;
+      }),
+      workdir: "/tmp",
+      outer,
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+    });
+    await flush();
+    outer.postMessage.mockClear();
+
+    emit?.({
+      type: "workflow-runs:update",
+      sessionId: "sess-active",
+      runs: [{ runId: "wf-1", status: "running" }],
+    });
+    await flush();
+
+    expect(outer.postMessage).toHaveBeenCalledWith({
+      command: "desktopAgentBusy",
+      busy: true,
+    });
+  });
+
+  it("clears busy when background work finishes", async () => {
+    let emit: ((e: unknown) => void) | undefined;
+    const outer = { postMessage: vi.fn(), getState: () => null, setState: () => {} };
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws: stubWs((h) => {
+        emit = h;
+      }),
+      workdir: "/tmp",
+      outer,
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    emit?.({
+      type: "background-tasks:update",
+      sessionId: "sess-active",
+      tasks: [{ id: "bt-1", type: "shell", status: "running" }],
+    });
+    await flush();
+    outer.postMessage.mockClear();
+
+    emit?.({
+      type: "background-tasks:update",
+      sessionId: "sess-active",
+      tasks: [{ id: "bt-1", type: "shell", status: "completed" }],
+    });
+    await flush();
+
+    expect(outer.postMessage).toHaveBeenCalledWith({
+      command: "desktopAgentBusy",
+      busy: false,
+    });
+  });
 });
