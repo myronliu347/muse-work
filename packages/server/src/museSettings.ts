@@ -80,13 +80,51 @@ export function patchMuseSettings(
   return next;
 }
 
-/** `packages/server/src/*.ts` 与 `dist/*.js` 的 `../plugins/superpowers`。 */
+const SERVER_PACKAGE_NAME = "@muse-work/server";
+
+/** Walk up from `fromDir` until `package.json` name is `@muse-work/server`. */
+export function findServerPackageRoot(fromDir: string): string | undefined {
+  let dir = path.resolve(fromDir);
+  for (;;) {
+    const pkgFile = path.join(dir, "package.json");
+    try {
+      const raw = JSON.parse(fs.readFileSync(pkgFile, "utf8")) as {
+        name?: unknown;
+      };
+      if (raw.name === SERVER_PACKAGE_NAME) return dir;
+    } catch {
+      // Missing or invalid package.json: keep walking.
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+function hasSuperpowersManifest(dir: string): boolean {
+  return fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json"));
+}
+
+export function resolveSuperpowersPluginDirFrom(fromDir: string): string {
+  const root = findServerPackageRoot(fromDir);
+  const candidates = [
+    root ? path.join(root, "plugins", "superpowers") : "",
+    path.join(fromDir, "plugins", "superpowers"),
+    path.resolve(fromDir, "..", "plugins", "superpowers"),
+  ].filter((dir, i, all) => dir && all.indexOf(dir) === i);
+
+  for (const dir of candidates) {
+    if (hasSuperpowersManifest(dir)) return dir;
+  }
+  return (
+    candidates[0] ?? path.resolve(fromDir, "..", "plugins", "superpowers")
+  );
+}
+
+/** Plugin dir next to the server package root, or `dist/plugins` after tsc. */
 export function resolveSuperpowersPluginDir(): string {
-  return path.resolve(
+  return resolveSuperpowersPluginDirFrom(
     path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "plugins",
-    "superpowers",
   );
 }
 

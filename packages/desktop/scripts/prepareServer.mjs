@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureServerPlugins } from "./ensureServerPlugins.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = path.resolve(desktopRoot, "../..");
@@ -65,9 +66,11 @@ if (!fs.existsSync(providerPkg)) {
 
 const pluginsSrc = path.join(workspaceRoot, "packages/server/plugins");
 const pluginsDest = path.join(out, "plugins");
-if (fs.existsSync(pluginsSrc) && !fs.existsSync(pluginsDest)) {
-  fs.cpSync(pluginsSrc, pluginsDest, { recursive: true });
-  console.log("[prepareServer] copied plugins to", pluginsDest);
+try {
+  ensureServerPlugins(pluginsSrc, pluginsDest, { force: true });
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
 }
 
 console.log("[prepareServer] ready at", out);

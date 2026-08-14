@@ -49,7 +49,7 @@
   },
   "scripts": {
     "build": "pnpm run compile",
-    "compile": "pnpm run sync:webview && tsup",
+    "compile": "pnpm run sync:webview && tsup && node scripts/copyServerPlugins.mjs",
     "sync:webview": "node scripts/syncWebview.mjs",
     "brand:dev-electron": "node scripts/brandDevElectron.mjs",
     "prepare:server": "node scripts/prepareServer.mjs",
