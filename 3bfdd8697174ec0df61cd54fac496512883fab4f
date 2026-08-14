@@ -1,0 +1,133 @@
+packages/webview/src/index.tsx
+  45e5fa4bf78099d3 9-15,28-31
+packages/desktop/tests/uiPrefs.test.ts
+  45e5fa4bf78099d3 17-20,23,27,29-45
+packages/desktop/src/main/preload.ts
+  45e5fa4bf78099d3 26-37,40
+packages/webview/src/styles/AppearanceSettings.css
+  45e5fa4bf78099d3 125-279
+packages/webview/src/ui/themeStorage.ts
+  45e5fa4bf78099d3 1-18,21-30,61-142
+packages/webview/src/components/AppearanceSettings.tsx
+  45e5fa4bf78099d3 4-12,25-33,36-40,76-87,90,115-191,193-218
+packages/webview/tests/components/appearanceSettings.test.tsx
+  45e5fa4bf78099d3 7,21-24,76-134
+packages/desktop/tests/themeHost.test.ts
+  45e5fa4bf78099d3 1-144
+packages/desktop/src/main/uiPrefs.ts
+  45e5fa4bf78099d3 7-49,53-56,67-130,135-156,161-168
+packages/webview/src/types/index.ts
+  45e5fa4bf78099d3 338-378
+packages/webview/src/ui/theme.tsx
+  45e5fa4bf78099d3 3-10,14-15,17-20,22-23,25-26,28-29,37,45-46,48-49,61-68,80-99,105-112
+packages/webview/src/ui/themeOptions.ts
+  45e5fa4bf78099d3 1-105
+packages/webview/src/styles/ConfigurationDialog.css
+  45e5fa4bf78099d3 51-53
+packages/webview/tests/muse/themePreference.test.ts
+  45e5fa4bf78099d3 7-10,12-15,17-20,22-25,28-34,48-55,57-60,103-164
+packages/webview/src/ui/themePreference.ts
+  45e5fa4bf78099d3 1,5,7-10,12-15,17,136-139,149-294
+packages/desktop/src/main/themeHost.ts
+  45e5fa4bf78099d3 12-13,15-17,20-89,98-99,102-105,107-109,121-134,137-158,167,169-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3bfdd8697174ec0df61cd54fac496512883fab4f",
+  "prompts": {
+    "45e5fa4bf78099d3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bf54800a-4d7a-41b9-8213-559009f777ad",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1500,
+      "total_deletions": 139,
+      "accepted_lines": 1410,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/appearanceSettings.test.tsx": {
+          "additions": 67,
+          "deletions": 4,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/ui/themeStorage.ts": {
+          "additions": 126,
+          "deletions": 17,
+          "accepted_lines": 110
+        },
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 15,
+          "deletions": 4,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "additions": 155,
+          "accepted_lines": 155
+        },
+        "packages/desktop/src/main/uiPrefs.ts": {
+          "additions": 141,
+          "deletions": 4,
+          "accepted_lines": 141
+        },
+        "packages/webview/src/ui/themeOptions.ts": {
+          "additions": 107,
+          "deletions": 2,
+          "accepted_lines": 105
+        },
+        "packages/webview/src/components/AppearanceSettings.tsx": {
+          "additions": 158,
+          "deletions": 15,
+          "accepted_lines": 146
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/themeHost.ts": {
+          "additions": 164,
+          "deletions": 44,
+          "accepted_lines": 135
+        },
+        "packages/webview/src/ui/theme.tsx": {
+          "additions": 64,
+          "deletions": 8,
+          "accepted_lines": 61
+        },
+        "packages/webview/tests/muse/themePreference.test.ts": {
+          "additions": 99,
+          "deletions": 3,
+          "accepted_lines": 97
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/ui/themePreference.ts": {
+          "additions": 174,
+          "deletions": 24,
+          "accepted_lines": 161
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/desktop/tests/themeHost.test.ts": {
+          "additions": 145,
+          "deletions": 1,
+          "accepted_lines": 144
+        },
+        "packages/desktop/tests/uiPrefs.test.ts": {
+          "additions": 28,
+          "deletions": 9,
+          "accepted_lines": 23
+        }
+      }
+    }
+  }
+}
