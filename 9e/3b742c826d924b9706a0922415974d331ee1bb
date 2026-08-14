@@ -1,0 +1,43 @@
+packages/server/tests/sessionRunner.test.ts
+  25874284e31bf936 581-648
+packages/server/src/logger.ts
+  25874284e31bf936 22-33,105-106,109,119,142-207
+packages/server/tests/logger.test.ts
+  25874284e31bf936 6,8,66-98
+packages/server/src/sessionRunner.ts
+  25874284e31bf936 9,491,632,1201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9e3b742c826d924b9706a0922415974d331ee1bb",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 189,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionRunner.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "accepted_lines": 68
+        },
+        "packages/server/tests/logger.test.ts": {
+          "accepted_lines": 35
+        },
+        "packages/server/src/logger.ts": {
+          "accepted_lines": 82
+        }
+      }
+    }
+  }
+}
