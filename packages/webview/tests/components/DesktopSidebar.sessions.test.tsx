@@ -4,7 +4,10 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import {
   DesktopSidebar,
+  formatRelativeActiveAt,
   groupRecentSessionsByWorkdir,
+  isTaskProjectWorkdir,
+  partitionRecentSessions,
 } from "../../src/components/DesktopSidebar";
 import type { DesktopSessionEntry } from "../../src/types";
 
@@ -68,7 +71,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("renders 置顶 flat and 工作空间 grouped by workdir", () => {
+  it("renders 置顶 flat and splits 工作空间 vs 任务 by workdir", () => {
     renderSidebar({
       pinnedSessions: [
         entry({
@@ -95,6 +98,12 @@ describe("DesktopSidebar pin/recent sessions", () => {
           workdir: "/repo/gamma",
           lastActiveAt: Date.now() - 5000,
         }),
+        entry({
+          sessionId: "t1",
+          title: "hi",
+          workdir: "/Users/demo/.muse-work/projects/20260813-28ba6a54",
+          lastActiveAt: Date.now() - 10 * 24 * 60 * 60 * 1000,
+        }),
       ],
     });
 
@@ -104,26 +113,124 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-section-recent"),
     ).toHaveTextContent("工作空间");
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toHaveTextContent("任务");
     // Pin keeps workdir subtitle.
     expect(screen.getByTestId("desktop-session-item-p1")).toHaveTextContent(
       "alpha",
     );
-    // Recent: workdir is the group header; nested sessions omit subtitle.
+    // Workspace: workdir is the group header; nested sessions omit subtitle.
     expect(
       screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
     ).toHaveTextContent("beta");
     expect(
-      screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
+      screen.getByTestId("desktop-session-section-recent"),
     ).toContainElement(screen.getByTestId("desktop-session-item-r1"));
     expect(
-      screen.getByTestId("desktop-session-workdir-group-/repo/beta"),
-    ).toContainElement(screen.getByTestId("desktop-session-item-r2"));
-    expect(screen.getByTestId("desktop-session-item-r1")).not.toHaveTextContent(
-      "beta",
-    );
+      screen.getByTestId("desktop-session-section-recent"),
+    ).not.toContainElement(screen.getByTestId("desktop-session-item-t1"));
     expect(
-      screen.getByTestId("desktop-session-workdir-group-/repo/gamma"),
-    ).toHaveTextContent("gamma");
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toContainElement(screen.getByTestId("desktop-session-item-t1"));
+    expect(
+      screen.queryByTestId(
+        "desktop-session-workdir-group-/Users/demo/.muse-work/projects/20260813-28ba6a54",
+      ),
+    ).toBeNull();
+    expect(screen.getByTestId("desktop-session-item-t1")).not.toHaveTextContent(
+      "20260813-28ba6a54",
+    );
+    expect(screen.getByTestId("desktop-session-active-at-t1")).toHaveTextContent(
+      "10天前",
+    );
+    // 任务 appears before 工作空间 in the tree.
+    const tree = screen.getByTestId("desktop-session-tree");
+    const tasksIdx = tree.innerHTML.indexOf('data-testid="desktop-session-section-tasks"');
+    const workspaceIdx = tree.innerHTML.indexOf(
+      'data-testid="desktop-session-section-recent"',
+    );
+    expect(tasksIdx).toBeGreaterThan(-1);
+    expect(workspaceIdx).toBeGreaterThan(-1);
+    expect(tasksIdx).toBeLessThan(workspaceIdx);
+  });
+
+  it("collapses 置顶 / 任务 / 工作空间 top-level sections", () => {
+    renderSidebar({
+      pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
+      recentSessions: [
+        entry({ sessionId: "r1", workdir: "/repo/beta" }),
+        entry({
+          sessionId: "t1",
+          workdir: "/home/u/.muse-work/projects/20260813-aaaa",
+        }),
+      ],
+    });
+
+    const pinToggle = screen.getByTestId("desktop-session-section-pin-toggle");
+    const tasksToggle = screen.getByTestId(
+      "desktop-session-section-tasks-toggle",
+    );
+    const workspaceToggle = screen.getByTestId(
+      "desktop-session-section-recent-toggle",
+    );
+
+    expect(pinToggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(pinToggle);
+    expect(pinToggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen
+        .getByTestId("desktop-session-section-pin")
+        .querySelector(".desktop-session-collapse--closed"),
+    ).toBeTruthy();
+
+    fireEvent.click(tasksToggle);
+    expect(tasksToggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(workspaceToggle);
+    expect(workspaceToggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows workdir chevron over folder icon on hover", () => {
+    renderSidebar({
+      recentSessions: [entry({ sessionId: "r1", workdir: "/repo/beta" })],
+    });
+    const row = screen.getByTestId("desktop-session-workdir-row-/repo/beta");
+    expect(row.querySelector(".codicon-folder-opened")).toBeTruthy();
+    expect(row.querySelector(".desktop-session-workdir-chevron")).toBeTruthy();
+    fireEvent.click(row);
+    expect(row.querySelector(".codicon-folder")).toBeTruthy();
+    expect(
+      row.querySelector(".desktop-session-workdir-chevron--collapsed"),
+    ).toBeTruthy();
+  });
+
+  it("formatRelativeActiveAt covers minute/day buckets", () => {
+    const now = Date.parse("2026-08-14T00:00:00.000Z");
+    expect(formatRelativeActiveAt(now - 30_000, now)).toBe("刚刚");
+    expect(formatRelativeActiveAt(now - 5 * 60_000, now)).toBe("5分钟前");
+    expect(formatRelativeActiveAt(now - 10 * 24 * 60 * 60_000, now)).toBe(
+      "10天前",
+    );
+  });
+
+  it("isTaskProjectWorkdir detects .muse-work/projects paths", () => {
+    expect(
+      isTaskProjectWorkdir("/Users/a/.muse-work/projects/20260813-28ba6a54"),
+    ).toBe(true);
+    expect(isTaskProjectWorkdir("/repo/beta")).toBe(false);
+    expect(
+      partitionRecentSessions([
+        entry({ sessionId: "a", workdir: "/repo/beta" }),
+        entry({
+          sessionId: "b",
+          workdir: "C:\\Users\\a\\.muse-work\\projects\\x",
+        }),
+      ]),
+    ).toEqual({
+      workspace: [expect.objectContaining({ sessionId: "a" })],
+      tasks: [expect.objectContaining({ sessionId: "b" })],
+    });
   });
 
   it("shows tooltips on pin, delete, and workdir-add icon buttons", () => {

@@ -124,6 +124,67 @@
   user-select: none;
 }
 
+.desktop-session-section-header--toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-2);
+}
+
+.desktop-session-section-header--toggle:hover {
+  background: transparent;
+  color: var(--gray-12);
+}
+
+.desktop-session-section-title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.desktop-session-section-chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  opacity: 0;
+  transform: rotate(0deg);
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s ease;
+}
+
+.desktop-session-section-header--toggle:hover .desktop-session-section-chevron,
+.desktop-session-section-header--toggle:focus-visible .desktop-session-section-chevron {
+  opacity: 0.75;
+}
+
+.desktop-session-section-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.desktop-session-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.desktop-session-collapse--closed {
+  grid-template-rows: 0fr;
+}
+
+.desktop-session-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .desktop-session-workdir-groups {
   display: flex;
   flex-direction: column;
@@ -146,11 +207,55 @@
   background: var(--gray-4);
 }
 
-.desktop-session-workdir-chevron,
-.desktop-session-workdir-folder {
-  font-size: 12px;
-  opacity: 0.75;
+.desktop-session-workdir-icon-slot {
+  position: relative;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-session-workdir-folder,
+.desktop-session-workdir-chevron {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.75;
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s ease;
+}
+
+.desktop-session-workdir-folder {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-session-workdir-chevron {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: rotate(0deg);
+  pointer-events: none;
+}
+
+.desktop-session-workdir-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.desktop-session-workdir-row:hover .desktop-session-workdir-folder {
+  opacity: 0;
+}
+
+.desktop-session-workdir-row:hover .desktop-session-workdir-chevron {
+  opacity: 0.85;
 }
 
 .desktop-session-workdir-label {
@@ -241,6 +346,7 @@
 }
 
 .desktop-session-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -331,11 +437,43 @@
   opacity: 0.65;
 }
 
+.desktop-session-active-at {
+  flex-shrink: 0;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--gray-11);
+  white-space: nowrap;
+  user-select: none;
+  text-align: right;
+}
+
+.desktop-session-actions {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: 0;
+  padding-left: 6px;
+  /* Match row hover so the time underneath is fully covered. */
+  background: var(--gray-4);
+  border-radius: var(--radius-2);
+}
+
+.desktop-session-item:hover .desktop-session-actions,
+.desktop-session-item:focus-within .desktop-session-actions {
+  display: inline-flex;
+}
+
+.desktop-session-item:hover .desktop-session-active-at,
+.desktop-session-item:focus-within .desktop-session-active-at {
+  visibility: hidden;
+}
+
 .desktop-session-pin,
 .desktop-session-delete {
-  /* Reserve width always — visibility toggles on hover to avoid layout jump. */
   display: inline-flex;
-  visibility: hidden;
   align-items: center;
   flex-shrink: 0;
   width: 18px;
@@ -344,16 +482,14 @@
   border: none;
   background: none;
   color: var(--vscode-foreground);
-  opacity: 0.6;
+  opacity: 0.75;
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
 }
 
-.desktop-session-item:hover .desktop-session-pin,
-.desktop-session-item:hover .desktop-session-delete,
 .desktop-session-pin--active {
-  visibility: visible;
+  opacity: 1;
 }
 
 .desktop-session-pin:hover,
