@@ -36,7 +36,7 @@
       "category": "public.app-category.developer-tools",
       "executableName": "Muse",
       "target": [
-        "dir"
+        "dmg"
       ],
       "identity": null
     },
@@ -54,7 +54,7 @@
     "brand:dev-electron": "node scripts/brandDevElectron.mjs",
     "prepare:server": "node scripts/prepareServer.mjs",
     "dev": "pnpm -F @muse-work/provider build && pnpm -F @muse-work/server build && pnpm -F @muse-work/webview build && pnpm run compile && pnpm run brand:dev-electron && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox",
-    "dist:mac": "pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && electron-builder --mac dir",
+    "dist:mac": "pnpm -F @muse-work/webview build && pnpm run prepare:server && pnpm run compile && electron-builder --mac dmg",
     "clean": "node -e \"import('fs').then(fs => ['dist', 'release', 'webview'].forEach(d => {try{fs.rmSync(d, {recursive:true, force:true})}catch(e){}}))\"",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
