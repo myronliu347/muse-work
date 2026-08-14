@@ -1,0 +1,63 @@
+packages/webview/src/styles/DesktopApp.css
+  db26196a999da47a 130,197,345-347,354,378-380,396,402-403,445,455-458,461-462,483-484,486,494,511-512
+packages/webview/src/components/MessageInput.tsx
+  45e5fa4bf78099d3 1000,1002
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2ba1baf33a43f53422a515e4b0de5ae3a2624735",
+  "prompts": {
+    "45e5fa4bf78099d3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bf54800a-4d7a-41b9-8213-559009f777ad",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 15,
+      "accepted_lines": 2,
+      "overriden_lines": 12,
+      "per_file_stats": {
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AttachedImages.css": {
+          "additions": 1,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 15,
+          "deletions": 12,
+          "overriden_lines": 11
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 59,
+      "total_deletions": 45,
+      "accepted_lines": 25,
+      "overriden_lines": 2,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 59,
+          "deletions": 45,
+          "accepted_lines": 25,
+          "overriden_lines": 2
+        }
+      }
+    }
+  }
+}
