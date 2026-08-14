@@ -4,7 +4,7 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px 16px min(36vh, 240px);
+  padding: var(--space-4) var(--space-4) min(36vh, var(--space-9));
   /* Cap the conversation column at 800px and center it, mirroring .input-wrapper
        so messages line up with the input box instead of spanning the full pane
        width. The panel-background gutters come from .chat-container (see
@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: var(--space-3);
   background-color: var(--color-background);
   position: relative;
 }
@@ -25,7 +25,7 @@
   position: sticky;
   top: 0;
   align-self: stretch;
-  margin-bottom: -14px;
+  margin-bottom: -var(--space-3);
   z-index: 20;
 }
 
@@ -36,7 +36,7 @@
   background-color: var(--gray-3);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -44,9 +44,9 @@
 .sticky-user-cap {
   position: relative;
   z-index: 19;
-  margin-top: -16px;
+  margin-top: -var(--space-4);
   height: 16px;
-  margin-bottom: -6px;
+  margin-bottom: -var(--space-1);
   background-color: var(--color-background);
 }
 
@@ -69,7 +69,7 @@
 .sticky-user-scrim {
   position: relative;
   z-index: 19;
-  margin-top: -6px;
+  margin-top: -var(--space-1);
   height: 16px;
   background: var(--color-background);
   pointer-events: none;

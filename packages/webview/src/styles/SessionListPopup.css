@@ -5,22 +5,22 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   width: 320px;
   max-width: calc(100% - 24px);
-  padding: 8px;
+  padding: var(--space-2);
   box-sizing: border-box;
   background-color: var(--color-panel);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.36);
+  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.36);
 }
 
 .session-list-search {
   height: 32px;
   box-sizing: border-box;
-  padding: 0 10px;
-  font-size: 12px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-1);
   background-color: var(--color-background);
   color: var(--gray-12);
   border: 1px solid var(--gray-7);
@@ -33,10 +33,10 @@
 }
 
 .session-list-label {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--gray-11);
-  padding: 6px 8px;
+  padding: var(--space-1) var(--space-2);
 }
 
 .session-list-results {
@@ -50,16 +50,16 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .session-list-item {
-  padding: 6px 8px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .session-list-item:hover,
@@ -68,9 +68,9 @@
 }
 
 .session-list-item-title {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--gray-12);
   white-space: nowrap;
   overflow: hidden;
@@ -83,20 +83,20 @@
 }
 
 .session-list-item-time {
-  font-size: 11px;
-  line-height: 14px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 
 .session-list-loading,
 .session-list-empty {
-  padding: 20px;
+  padding: var(--space-4);
   text-align: center;
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }

@@ -1,12 +1,12 @@
 .rewind-popup {
   position: absolute;
   bottom: 100%; /* Anchor to the top of .input-wrapper (= top of the input box) */
-  margin-bottom: 8px; /* Gap above the input */
+  margin-bottom: var(--space-2); /* Gap above the input */
   z-index: 1000;
   background-color: var(--vscode-dropdown-background);
   border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-2);
+  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 600px;
   min-width: 200px;
@@ -20,11 +20,11 @@
 }
 
 .rewind-popup-header {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--vscode-dropdown-border);
   background-color: var(--vscode-editor-background);
   color: var(--vscode-descriptionForeground);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .rewind-popup-list {
@@ -36,10 +36,10 @@
 }
 
 .rewind-popup-item {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
   border-bottom: 1px solid var(--vscode-dropdown-border);
-  font-size: 13px;
+  font-size: var(--font-size-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -56,14 +56,14 @@
 
 .rewind-popup-loading,
 .rewind-popup-empty {
-  padding: 20px;
+  padding: var(--space-4);
   text-align: center;
   color: var(--vscode-descriptionForeground);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rewind-popup-loading .codicon-modifier-spin {

@@ -3,11 +3,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 12px 12px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
   background-color: var(--vscode-menu-background);
   border: 1px solid var(--vscode-widget-border);
-  border-radius: 8px;
+  border-radius: var(--radius-4);
   box-sizing: border-box;
   max-width: 800px;
   margin: 0 auto;
@@ -26,13 +26,13 @@
 .task-list-plan-left {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .task-list-title {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--vscode-foreground);
   white-space: nowrap;
 }
@@ -40,13 +40,13 @@
 .task-list-stats {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .task-list-stat {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .task-list-stat-dot {
@@ -57,9 +57,9 @@
 }
 
 .task-list-stat-text {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 400;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--vscode-editor-foreground);
   white-space: nowrap;
 }
@@ -78,7 +78,7 @@
 .task-list-items {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
   /* 最多同时显示 4 个任务（行高 18px + 10px 间距），其余滚动查看 */
   max-height: 102px;
   overflow-y: auto;
@@ -87,7 +87,7 @@
 .task-row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .task-status {
@@ -105,7 +105,7 @@
   display: block;
   width: 14px;
   height: 14px;
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 
 .task-status-spin {
@@ -115,15 +115,15 @@
 .task-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1 0 0;
 }
 
 .task-title {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 400;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   word-break: break-word;
   color: var(--vscode-editor-foreground);
 }
@@ -139,9 +139,9 @@
 }
 
 .task-dep {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-weight: 600;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--vscode-textLink-foreground, #48a0c7);
 }
 

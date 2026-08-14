@@ -13,7 +13,7 @@
 
 .input-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-end;
 }
 
@@ -40,8 +40,8 @@
 .input-workdir-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) 0;
   min-width: 0;
 }
 
@@ -51,9 +51,9 @@
   background-color: transparent;
   color: var(--gray-12);
   border: none;
-  padding: 12px;
+  padding: var(--space-3);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
   min-height: 44px;
   max-height: 112px;
@@ -80,8 +80,8 @@
   background-color: transparent;
   color: var(--vscode-foreground);
   border: none;
-  padding: 4px;
-  border-radius: 3px;
+  padding: var(--space-1);
+  border-radius: var(--radius-1);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -97,7 +97,7 @@
   justify-content: center;
   line-height: 1;
   opacity: 1;
-  font-size: 16px;
+  font-size: var(--font-size-3);
 }
 
 .send-button:hover,
@@ -168,7 +168,7 @@
 .abort-glyph {
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: var(--radius-1);
   background: #fff;
 }
 
@@ -176,9 +176,9 @@
 .input-buttons-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   height: 40px;
-  padding: 0 10px 0 12px;
+  padding: 0 var(--space-2) 0 var(--space-3);
 }
 
 .button-spacer {
@@ -195,7 +195,7 @@
 .context-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .permission-mode-container {
@@ -206,14 +206,14 @@
 .permission-mode-select {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   background-color: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-2);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--gray-11);
   cursor: pointer;
-  padding: 4px 6px;
+  padding: var(--space-1) var(--space-1);
   outline: none;
   font-family: inherit;
   transition:
@@ -229,7 +229,7 @@
 }
 
 .permission-mode-caret {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   opacity: 0.8;
 }
 
@@ -264,23 +264,23 @@
   position: absolute;
   bottom: 100%;
   left: 0;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   list-style: none;
   margin-top: 0;
-  padding: 2px 0;
+  padding: var(--space-1) 0;
   background: var(--color-panel);
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
   z-index: 10000;
   min-width: 140px;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .permission-mode-item {
-  padding: 6px 12px;
+  padding: var(--space-1) var(--space-3);
   cursor: pointer;
   color: var(--gray-12);
 }
@@ -333,15 +333,15 @@
   position: absolute;
   bottom: 100%;
   left: 0;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   margin-top: 0;
   list-style: none;
-  padding: 8px;
+  padding: var(--space-2);
   background: var(--color-panel);
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
   z-index: 10000;
   width: 160px;
   white-space: nowrap;
@@ -351,10 +351,10 @@
   display: flex;
   align-items: center;
   height: 24px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-2);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--gray-12);
 }
@@ -367,12 +367,12 @@
 .selection-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-1);
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   user-select: none;
   max-width: 100%;
   overflow: hidden;
@@ -396,7 +396,7 @@
 .selection-tag:focus-visible {
   opacity: 0.9;
   outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: 1px;
+  outline-offset: var(--space-1);
 }
 
 /* Image Preview Modal */
@@ -418,7 +418,7 @@
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 var(--space-4) rgba(0, 0, 0, 0.5);
   cursor: default;
 }
 
@@ -427,7 +427,7 @@
   top: 20px;
   right: 20px;
   color: white;
-  font-size: 24px;
+  font-size: var(--font-size-6);
   cursor: pointer;
   width: 40px;
   height: 40px;
@@ -445,7 +445,7 @@
 
 .queued-edit-chip {
   color: var(--vscode-textLink-foreground);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   user-select: none;
   cursor: default;

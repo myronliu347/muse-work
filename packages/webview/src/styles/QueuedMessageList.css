@@ -2,11 +2,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 12px 12px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
   background-color: var(--vscode-menu-background);
   border: 1px solid var(--vscode-widget-border);
-  border-radius: 8px;
+  border-radius: var(--radius-4);
   box-sizing: border-box;
   max-width: 800px;
   margin: 0 auto;
@@ -17,7 +17,7 @@
   height: 24px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   cursor: pointer;
   user-select: none;
 }
@@ -34,7 +34,7 @@
 }
 
 .queued-message-list-title {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--vscode-foreground);
 }
@@ -42,7 +42,7 @@
 .queued-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .queued-items.expanded {
@@ -68,8 +68,8 @@
   height: 24px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  border-radius: 4px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-2);
   box-sizing: border-box;
 }
 
@@ -84,7 +84,7 @@
 .queued-item-text {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 400;
   color: var(--vscode-editor-foreground);
   overflow: hidden;
@@ -95,7 +95,7 @@
 .queued-item-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   flex-shrink: 0;
   opacity: 0;
 }
@@ -109,11 +109,11 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px;
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: var(--radius-1);
   color: var(--vscode-icon-foreground);
 }
 

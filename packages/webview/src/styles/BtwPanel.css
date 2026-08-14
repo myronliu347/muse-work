@@ -1,12 +1,12 @@
 .btw-panel {
   position: absolute;
   bottom: 100%; /* Anchor to the top of .input-wrapper (= top of the input box) */
-  margin-bottom: 8px; /* Gap above the input */
+  margin-bottom: var(--space-2); /* Gap above the input */
   z-index: 1000;
   background-color: var(--vscode-dropdown-background);
   border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-2);
+  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 600px;
   min-width: 200px;
@@ -21,11 +21,11 @@
 .btw-panel-header {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--vscode-dropdown-border);
   background-color: var(--vscode-editor-background);
-  font-size: 13px;
+  font-size: var(--font-size-1);
 }
 
 .btw-panel-prefix {
@@ -45,12 +45,12 @@
 .btw-panel-close {
   background: none;
   border: none;
-  padding: 2px;
+  padding: var(--space-1);
   cursor: pointer;
   color: var(--vscode-descriptionForeground);
   display: flex;
   align-items: center;
-  border-radius: 3px;
+  border-radius: var(--radius-1);
 }
 
 .btw-panel-close:hover {
@@ -59,12 +59,12 @@
 }
 
 .btw-panel-loading {
-  padding: 12px;
+  padding: var(--space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--vscode-descriptionForeground);
-  font-size: 13px;
+  font-size: var(--font-size-1);
 }
 
 .btw-loading-indicator {
@@ -78,15 +78,15 @@
 }
 
 .btw-panel-answer {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   overflow-y: auto;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
   word-break: break-word;
 }
 
 .btw-panel-answer p {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--space-2) 0;
 }
 
 .btw-panel-answer p:last-child {
@@ -96,8 +96,8 @@
 .btw-panel-answer pre {
   background-color: var(--vscode-textCodeBlock-background);
   border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: var(--radius-2);
+  padding: var(--space-2);
   overflow-x: auto;
 }
 
@@ -111,6 +111,6 @@
 
 .btw-panel-answer ul,
 .btw-panel-answer ol {
-  padding-left: 20px;
-  margin: 0 0 8px 0;
+  padding-left: var(--space-4);
+  margin: 0 0 var(--space-2) 0;
 }

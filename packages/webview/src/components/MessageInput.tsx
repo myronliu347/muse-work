@@ -997,8 +997,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               data-placeholder="@提及文件，粘贴图片，Enter发送..."
             />
 
-            {/* Buttons row */}
+            {/* Buttons row: model select sits to the left of the send/abort button */}
             <div className="input-buttons-row">
+              <div className="button-spacer" />
               {onModelChange && (
                 <div
                   className="input-model-select"
@@ -1011,7 +1012,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                   />
                 </div>
               )}
-              <div className="button-spacer" />
 
               {isStreaming ? (
                 <Tooltip text="停止" position="top">

@@ -18,23 +18,23 @@
   max-width: calc(100vw - 64px);
   background-color: var(--vscode-panel-background, #131415);
   border: 1px solid var(--vscode-widget-border, #1f2021);
-  border-radius: 6px;
-  box-shadow: 0 4px 9px rgba(0, 0, 0, 0.42);
-  padding: 16px;
+  border-radius: var(--radius-3);
+  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.42);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .confirm-dialog-message-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-start;
 }
 
 .confirm-dialog-icon {
-  font-size: 16px;
-  line-height: 16px;
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-1);
   color: #ffcc00;
   flex-shrink: 0;
 }
@@ -44,9 +44,9 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-  line-height: 16px;
+  gap: var(--space-2);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   word-break: break-word;
 }
 
@@ -61,18 +61,18 @@
 
 .confirm-dialog-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .confirm-dialog-btn {
   height: 28px;
   min-width: 64px;
-  padding: 0 12px;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-3);
+  font-size: var(--font-size-1);
   font-weight: 600;
-  line-height: 18px;
+  line-height: var(--line-height-1);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

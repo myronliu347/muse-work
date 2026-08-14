@@ -1,17 +1,17 @@
 /* Todo List Component Styles */
 .todo-list {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   border: 1px solid var(--vscode-textBlockQuote-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   overflow: hidden;
 }
 
 .todo-item {
   display: flex;
   align-items: flex-start;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border-bottom: 1px solid var(--vscode-textBlockQuote-border);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.2;
   background-color: var(--vscode-textCodeBlock-background);
 }
@@ -21,7 +21,7 @@
 }
 
 .todo-status-icon {
-  margin-right: 8px;
+  margin-right: var(--space-2);
   flex-shrink: 0;
   width: 16px;
   text-align: center;

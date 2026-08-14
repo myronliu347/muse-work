@@ -15,10 +15,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  padding: 1px 6px;
-  margin-right: 6px;
-  border-radius: 3px;
+  font-size: var(--font-size-1);
+  padding: var(--space-1) var(--space-1);
+  margin-right: var(--space-1);
+  border-radius: var(--radius-1);
   background: var(--vscode-badge-background, rgba(90, 93, 94, 0.31));
   color: var(--vscode-badge-foreground, #fff);
 }
@@ -30,17 +30,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .file-pane-body .desktop-panel-placeholder {
   flex: 1;
   min-height: 100%;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .file-pane-placeholder-icon {
-  font-size: 22px;
+  font-size: var(--font-size-5);
 }
 
 /* Code view: one row per line; the gutter is sticky so long lines scroll
@@ -48,14 +48,14 @@
 .file-pane-code {
   flex: 1;
   min-width: max-content;
-  padding-bottom: 12px;
+  padding-bottom: var(--space-3);
 }
 
 .file-pane-line {
   display: flex;
   align-items: flex-start;
   min-height: 20px;
-  line-height: 20px;
+  line-height: var(--line-height-2);
   font-family: var(
     --vscode-editor-font-family,
     "SF Mono",
@@ -63,7 +63,7 @@
     "Courier New",
     monospace
   );
-  font-size: 12px;
+  font-size: var(--font-size-1);
   white-space: pre;
 }
 
@@ -76,7 +76,7 @@
   left: 0;
   flex-shrink: 0;
   min-width: 52px;
-  padding: 0 10px 0 8px;
+  padding: 0 var(--space-2) 0 var(--space-2);
   text-align: right;
   color: var(--vscode-editorLineNumber-foreground, #858585);
   background: var(--vscode-sideBar-background, var(--vscode-panel-background));
@@ -88,21 +88,21 @@
 }
 
 .file-pane-line-code {
-  padding-right: 24px;
+  padding-right: var(--space-5);
 }
 
 .file-pane-truncated-hint {
   flex: 1;
   min-width: max-content;
-  padding: 8px 16px;
-  font-size: 12px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground, #999);
   background: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.2));
 }
 
 /* Markdown files reuse the message markdown look, padded for the panel. */
 .file-pane-markdown {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .file-pane-markdown pre {
@@ -115,22 +115,22 @@
   display: block;
   max-width: 100%;
   height: auto;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   box-sizing: border-box;
 }
 
 .file-pane-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: auto;
-  padding: 24px 16px;
-  font-size: 12px;
+  padding: var(--space-5) var(--space-4);
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground, #999);
 }
 
 .file-pane-status-icon {
-  font-size: 18px;
+  font-size: var(--font-size-4);
   color: var(--vscode-errorForeground, #f14c4c);
 }
 

@@ -2,9 +2,9 @@
 
 /* Main container */
 .diff-viewer-container {
-  margin: 4px 0;
+  margin: var(--space-1) 0;
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   overflow: hidden;
   background-color: var(--vscode-editor-background);
   max-height: 300px;
@@ -22,13 +22,13 @@
     "Monaco",
     monospace
   );
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.2;
 }
 
 .diff-viewer-content:focus {
   outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: -1px;
+  outline-offset: -var(--space-1);
 }
 
 /* Diff changes container */
@@ -55,12 +55,12 @@
   text-align: center;
   font-weight: bold;
   user-select: none;
-  padding: 2px 0;
+  padding: var(--space-1) 0;
 }
 
 .diff-content {
   flex: 1;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-2);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -118,17 +118,17 @@
 
 /* Error state */
 .diff-error {
-  padding: 12px;
+  padding: var(--space-3);
   color: var(--vscode-errorForeground);
   background-color: var(--vscode-inputValidation-errorBackground);
   border: 1px solid var(--vscode-inputValidation-errorBorder);
-  border-radius: 4px;
-  margin: 4px;
+  border-radius: var(--radius-2);
+  margin: var(--space-1);
 }
 
 /* Empty diff message */
 .diff-empty {
-  padding: 20px;
+  padding: var(--space-4);
   text-align: center;
   color: var(--vscode-descriptionForeground);
   font-style: italic;
@@ -137,10 +137,10 @@
 /* Ellipsis line for truncated context */
 .diff-line-ellipsis {
   color: var(--vscode-descriptionForeground);
-  padding: 2px 28px;
+  padding: var(--space-1) var(--space-5);
   font-style: italic;
   user-select: none;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 /* Scrollbar styling */
@@ -154,7 +154,7 @@
 
 .diff-viewer-content::-webkit-scrollbar-thumb {
   background: var(--vscode-scrollbarSlider-background);
-  border-radius: 5px;
+  border-radius: var(--radius-2);
 }
 
 .diff-viewer-content::-webkit-scrollbar-thumb:hover {
@@ -174,12 +174,12 @@
   text-align: center;
   font-weight: bold;
   user-select: none;
-  padding-top: 2px;
+  padding-top: var(--space-1);
 }
 
 .diff-chunk-content {
   flex: 1;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-2);
   white-space: pre-wrap;
   word-break: break-word;
 }

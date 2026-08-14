@@ -16,11 +16,11 @@
 
 .desktop-panel-dock-header {
   height: 36px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border-bottom: 1px solid var(--gray-6);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   position: relative;
   flex-shrink: 0;
 }
@@ -30,7 +30,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   overflow: hidden;
 }
 
@@ -39,7 +39,7 @@
   align-items: center;
   max-width: 100%;
   height: 24px;
-  padding: 0 2px 0 8px;
+  padding: 0 var(--space-1) 0 var(--space-2);
   border-radius: var(--radius-1);
   color: var(--gray-11);
   flex-shrink: 0;
@@ -55,18 +55,18 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   padding: 0;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .desktop-panel-tab-icon {
-  font-size: 14px;
+  font-size: var(--font-size-2);
   opacity: 0.85;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .desktop-panel-tab-close .codicon {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .desktop-panel-dock-body {
@@ -118,9 +118,9 @@
 }
 
 .desktop-pane--closable .desktop-panel-dock-header {
-  padding-right: 34px;
+  padding-right: var(--space-6);
 }
 
 .desktop-pane--closable:has(.desktop-panel-dock) .chat-header {
-  padding-right: 12px;
+  padding-right: var(--space-3);
 }

@@ -17,25 +17,25 @@
   background-color: var(--vscode-dropdown-background);
   color: var(--vscode-dropdown-foreground);
   border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 4px;
-  padding: 16px;
+  border-radius: var(--radius-2);
+  padding: var(--space-4);
   width: 90%;
   max-width: 400px;
   height: 500px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.3);
 }
 
 .configuration-dialog-header {
-  margin-bottom: 16px;
-  padding-bottom: 8px;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
 .configuration-dialog-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-2);
   font-weight: 600;
   color: var(--gray-12);
 }
@@ -59,7 +59,7 @@
   height: 40px;
   box-sizing: border-box;
   margin-bottom: 0;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border-bottom: 1px solid var(--gray-6);
 }
 
@@ -69,10 +69,10 @@
   justify-content: center;
   background: none;
   border: none;
-  padding: 2px;
+  padding: var(--space-1);
   cursor: pointer;
   color: var(--vscode-icon-foreground);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 .configuration-close-btn:hover {
@@ -88,7 +88,7 @@
 /* Tab row */
 .config-tabs {
   display: flex;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border-bottom: 1px solid var(--gray-6);
   flex-shrink: 0;
 }
@@ -98,11 +98,11 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--gray-11);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-family: var(--vscode-font-family);
-  margin-bottom: -1px;
+  margin-bottom: -var(--space-1);
 }
 
 .config-tab.active {
@@ -114,8 +114,8 @@
 .config-model-hint {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
   flex-shrink: 0;
 }
@@ -133,18 +133,18 @@
 }
 
 .config-dialog .configuration-fields-scroll-area {
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .config-dialog .configuration-field label {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
 }
 
 .config-dialog .configuration-actions {
   margin-top: 0;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   height: 48px;
   box-sizing: border-box;
   align-items: center;
@@ -156,13 +156,13 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 0;
 }
 
 .plugin-tabs {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   border-bottom: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
@@ -171,15 +171,15 @@
   background: none;
   border: none;
   color: var(--vscode-descriptionForeground);
-  padding: 6px 8px;
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .plugin-tab.active {
   color: var(--vscode-button-background);
   background-color: var(--vscode-button-secondaryBackground);
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius-2) var(--radius-2) 0 0;
 }
 
 .plugin-content {
@@ -192,11 +192,11 @@
 .marketplace-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .plugin-search {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -205,8 +205,8 @@
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  padding: 4px 8px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
   box-sizing: border-box;
 }
 
@@ -218,14 +218,14 @@
 .empty-state {
   text-align: center;
   color: var(--vscode-descriptionForeground);
-  padding: 20px;
+  padding: var(--space-4);
   font-style: italic;
 }
 
 .add-marketplace {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .add-marketplace input {
@@ -233,16 +233,16 @@
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  padding: 4px 8px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
 }
 
 .add-btn {
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
-  padding: 4px 12px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
   cursor: pointer;
 }
 
@@ -252,10 +252,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
+  padding: var(--space-2);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 .plugin-item.clickable {
@@ -268,50 +268,50 @@
 }
 
 .plugin-chevron {
-  font-size: 20px;
+  font-size: var(--font-size-5);
   color: var(--vscode-descriptionForeground);
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .plugin-info,
 .marketplace-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   flex: 1;
 }
 
 .plugin-name,
 .marketplace-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-1);
 }
 
 .plugin-version {
   font-weight: normal;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 
 .plugin-scope {
   font-weight: normal;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-badge-foreground);
   background-color: var(--vscode-badge-background);
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-left: 6px;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-1);
+  margin-left: var(--space-1);
 }
 
 .plugin-desc,
 .marketplace-url {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
 }
 
 .plugin-market {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   font-style: italic;
   color: var(--vscode-descriptionForeground);
 }
@@ -321,10 +321,10 @@
   background-color: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
   border: 1px solid var(--vscode-button-border, transparent);
-  padding: 4px 8px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-size-1);
 }
 
 .install-btn:hover,
@@ -334,13 +334,13 @@
 
 .marketplace-actions {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .plugin-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .update-btn,
@@ -348,10 +348,10 @@
   background-color: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
   border: 1px solid var(--vscode-button-border, transparent);
-  padding: 4px 8px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   transition: background-color 0.15s ease;
 }
 
@@ -362,12 +362,12 @@
 
 .plugin-status-tag {
   font-weight: normal;
-  font-size: 10px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
   background-color: var(--vscode-badge-background);
-  padding: 1px 4px;
-  border-radius: 2px;
-  margin-left: 6px;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-1);
+  margin-left: var(--space-1);
   vertical-align: middle;
 }
 
@@ -412,7 +412,7 @@ input:checked + .slider {
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px var(--vscode-button-background);
+  box-shadow: 0 0 var(--space-1) var(--vscode-button-background);
 }
 
 input:checked + .slider:before {
@@ -420,7 +420,7 @@ input:checked + .slider:before {
 }
 
 .slider.round {
-  border-radius: 20px;
+  border-radius: var(--radius-6);
 }
 
 .slider.round:before {
@@ -431,14 +431,14 @@ input:checked + .slider:before {
 .config-project-field {
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .config-project-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .config-project-title {
@@ -446,12 +446,12 @@ input:checked + .slider:before {
 }
 
 .config-project-desc {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   opacity: 0.7;
 }
 
 .config-project-hint {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 /* Configuration Form */
@@ -459,7 +459,7 @@ input:checked + .slider:before {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 0;
 }
 
@@ -468,33 +468,33 @@ input:checked + .slider:before {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-right: 4px; /* Space for scrollbar */
+  gap: var(--space-3);
+  padding-right: var(--space-1); /* Space for scrollbar */
 }
 
 .configuration-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
 .configuration-field label {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--vscode-editor-foreground);
 }
 
 .required-star {
   color: var(--vscode-errorForeground);
-  margin-left: 2px;
+  margin-left: var(--space-1);
 }
 
 .muse-quota-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .muse-quota-header label {
@@ -502,22 +502,22 @@ input:checked + .slider:before {
 }
 
 .muse-quota-user {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground, rgba(204, 204, 204, 0.7));
 }
 
 .muse-quota-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 12px;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  font-size: var(--font-size-1);
 }
 
 .muse-quota-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .muse-quota-label {
@@ -525,21 +525,21 @@ input:checked + .slider:before {
 }
 
 .muse-quota-progress {
-  margin-top: 6px;
+  margin-top: var(--space-1);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .muse-quota-progress-meta {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .muse-quota-progress-track {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-6);
   background: var(--vscode-input-background, rgba(255, 255, 255, 0.08));
   overflow: hidden;
 }
@@ -564,17 +564,17 @@ input:checked + .slider:before {
     Menlo,
     monospace
   );
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .configuration-textarea {
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border);
-  padding: 6px 8px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
   font-family: var(--vscode-font-family);
-  font-size: 13px;
+  font-size: var(--font-size-1);
   resize: vertical;
   min-height: 60px;
   line-height: 1.4;
@@ -582,16 +582,16 @@ input:checked + .slider:before {
 
 .auth-method-radio-group {
   display: flex;
-  gap: 16px;
-  margin-top: 4px;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
 }
 
 .radio-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   color: var(--vscode-editor-foreground);
 }
 
@@ -607,19 +607,19 @@ input:checked + .slider:before {
   background-color: var(--vscode-inputValidation-errorBackground);
   color: var(--vscode-inputValidation-errorForeground);
   border: 1px solid var(--vscode-inputValidation-errorBorder);
-  padding: 8px;
-  border-radius: 3px;
-  font-size: 12px;
-  margin-top: 8px;
+  padding: var(--space-2);
+  border-radius: var(--radius-1);
+  font-size: var(--font-size-1);
+  margin-top: var(--space-2);
 }
 
 /* Configuration Actions */
 .configuration-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: var(--space-3);
   border-top: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
@@ -627,10 +627,10 @@ input:checked + .slider:before {
 .configuration-cancel-btn,
 .configuration-save-btn {
   border: none;
-  padding: 6px 12px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   min-width: 50px;
   height: 28px;
 }
@@ -663,7 +663,7 @@ input:checked + .slider:before {
 .plugin-detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .back-button {
@@ -671,12 +671,12 @@ input:checked + .slider:before {
   background-color: transparent;
   color: var(--vscode-foreground);
   border: none;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .back-button:hover {
@@ -686,27 +686,27 @@ input:checked + .slider:before {
 .plugin-detail-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .plugin-detail-header .plugin-name {
-  font-size: 18px;
+  font-size: var(--font-size-4);
   font-weight: 600;
 }
 
 .plugin-detail-header .plugin-version {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
 }
 
 .plugin-description {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   line-height: 1.6;
   color: var(--vscode-foreground);
 }
 
 .plugin-marketplace {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
   font-style: italic;
 }
@@ -714,12 +714,12 @@ input:checked + .slider:before {
 .install-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .install-options h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--vscode-foreground);
 }
@@ -728,11 +728,11 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  padding: 12px;
+  gap: var(--space-1);
+  padding: var(--space-3);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -744,13 +744,13 @@ input:checked + .slider:before {
 }
 
 .install-option-title {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--vscode-foreground);
 }
 
 .install-option-desc {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
   line-height: 1.4;
 }
@@ -759,16 +759,16 @@ input:checked + .slider:before {
 .sso-auth-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
-  padding: 8px;
+  padding: var(--space-2);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 .sso-auth-section > label {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--vscode-editor-foreground);
 }
@@ -782,17 +782,17 @@ input:checked + .slider:before {
 .sso-user-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .sso-email {
-  font-size: 13px;
+  font-size: var(--font-size-1);
   color: var(--vscode-editor-foreground);
   font-weight: 500;
 }
 
 .sso-user-id {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
 }
 
@@ -800,10 +800,10 @@ input:checked + .slider:before {
   background-color: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
   border: 1px solid var(--vscode-button-border, transparent);
-  padding: 4px 12px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .sso-logout-btn:hover {
@@ -813,17 +813,17 @@ input:checked + .slider:before {
 .sso-not-authenticated {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .sso-login-btn {
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
-  padding: 6px 12px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   align-self: flex-start;
 }
 
@@ -837,7 +837,7 @@ input:checked + .slider:before {
 }
 
 .sso-message {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
 }
 
@@ -854,14 +854,14 @@ input:checked + .slider:before {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 0;
 }
 
 .mcp-server-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -871,16 +871,16 @@ input:checked + .slider:before {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 10px;
+  padding: var(--space-2);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 .mcp-server-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
@@ -888,11 +888,11 @@ input:checked + .slider:before {
 .mcp-server-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .mcp-status-icon {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   flex-shrink: 0;
 }
 
@@ -914,41 +914,41 @@ input:checked + .slider:before {
 
 .mcp-server-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-1);
 }
 
 .mcp-tool-count {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-testing-iconPassed);
   background-color: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-1);
 }
 
 .mcp-server-command {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family, monospace);
   word-break: break-all;
 }
 
 .mcp-server-error {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-errorForeground);
   word-break: break-all;
 }
 
 .mcp-server-last-connected {
-  font-size: 11px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
 }
 
 .mcp-server-actions {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .mcp-connect-btn,
@@ -956,10 +956,10 @@ input:checked + .slider:before {
   background-color: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
   border: 1px solid var(--vscode-button-border, transparent);
-  padding: 4px 10px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-size-1);
   transition: background-color 0.15s ease;
   white-space: nowrap;
 }
@@ -976,15 +976,15 @@ input:checked + .slider:before {
 }
 
 .mcp-hint {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--vscode-descriptionForeground);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .mcp-hint code {
   background-color: var(--vscode-textCodeBlock-background);
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-1);
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }

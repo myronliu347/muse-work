@@ -1,18 +1,18 @@
 .muse-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .muse-field > label {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--gray-12);
 }
 
 .muse-settings-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }

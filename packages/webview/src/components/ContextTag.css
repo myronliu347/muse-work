@@ -1,12 +1,12 @@
 .context-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-1);
   background-color: var(--vscode-editor-inactiveSelectionBackground);
   color: var(--vscode-foreground);
-  margin: 2px;
+  margin: var(--space-1);
   user-select: none;
   max-width: 200px;
   overflow: hidden;
@@ -16,9 +16,9 @@
 
 .context-tag .tag-at {
   font-weight: bold;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   opacity: 0.9;
-  margin-right: 4px;
+  margin-right: var(--space-1);
 }
 
 .context-tag.clickable {
@@ -30,7 +30,7 @@
   background-color: var(--vscode-editor-selectionBackground);
   color: var(--vscode-button-foreground);
   text-decoration: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 var(--space-1) var(--space-1) rgba(0, 0, 0, 0.2);
 }
 
 .context-tag.clickable:active {

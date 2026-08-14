@@ -1,7 +1,7 @@
 /* Header */
 .chat-header {
   height: 36px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border-bottom: 1px solid var(--gray-6);
   background-color: var(--color-background);
   display: flex;
@@ -13,9 +13,9 @@
 .header-title {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-1);
   font-weight: 600;
-  line-height: 18px;
+  line-height: var(--line-height-1);
   color: var(--gray-12);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -24,7 +24,7 @@
 
 .header-buttons {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   align-items: center;
 }
 
@@ -64,14 +64,14 @@
   right: -2px;
   background-color: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  font-size: 9px;
+  font-size: var(--font-size-1);
   min-width: 12px;
   height: 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   font-weight: bold;
 }
 
@@ -87,15 +87,15 @@
 /* Desktop panel toggle: icon + caret, slightly wider than the square buttons. */
 .header-panel-toggle {
   width: auto;
-  padding: 0 4px;
-  gap: 2px;
+  padding: 0 var(--space-1);
+  gap: var(--space-1);
 }
 
 .header-panel-toggle .codicon {
-  font-size: 14px;
+  font-size: var(--font-size-2);
 }
 
 .header-panel-toggle-caret {
-  font-size: 10px !important;
+  font-size: var(--font-size-1) !important;
   opacity: 0.7;
 }

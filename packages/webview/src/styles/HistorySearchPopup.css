@@ -2,7 +2,7 @@
   background-color: var(--color-panel);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 600px;
   min-width: 200px;
@@ -12,15 +12,15 @@
   flex-direction: column;
   overflow: hidden;
   transform: translateY(-100%);
-  margin-top: -8px;
+  margin-top: -var(--space-2);
   left: 0 !important;
 }
 
 .history-search-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--gray-6);
   background-color: var(--color-background);
 }
@@ -36,9 +36,9 @@
   color: var(--gray-12);
   border: 1px solid var(--gray-7);
   border-radius: var(--radius-3);
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 16px;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   outline: none;
 }
 
@@ -55,16 +55,16 @@
 .history-search-list {
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: var(--space-1);
 }
 
 .history-search-item {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
   border-radius: var(--radius-2);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .history-search-item:hover,
@@ -74,16 +74,16 @@
 }
 
 .history-item-prompt {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .history-item-time {
-  font-size: 11px;
-  line-height: 14px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 
@@ -94,15 +94,15 @@
 
 .history-search-loading,
 .history-search-empty {
-  padding: 20px;
+  padding: var(--space-4);
   text-align: center;
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.45;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .codicon-modifier-spin {
