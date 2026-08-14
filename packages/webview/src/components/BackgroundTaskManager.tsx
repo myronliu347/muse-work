@@ -49,7 +49,9 @@ const BackgroundTaskManager: React.FC<
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const selectedTask = tasks.find((t) => t.id === selectedTaskId) || null;
+  const runningTasks = tasks.filter((task) => task.status === "running");
+  const selectedTask =
+    runningTasks.find((t) => t.id === selectedTaskId) || null;
 
   useEffect(() => {
     vscode?.postMessage({ command: "getBackgroundTasks" });
@@ -164,7 +166,7 @@ const BackgroundTaskManager: React.FC<
         </div>
 
         <div className="mcp-container">
-          {tasks.length === 0 ? (
+          {runningTasks.length === 0 ? (
             <div className="empty-state">
               <p>暂无后台任务</p>
             </div>
@@ -316,7 +318,7 @@ const BackgroundTaskManager: React.FC<
             </div>
           ) : (
             <div className="mcp-server-list">
-              {tasks.map((task) => (
+              {runningTasks.map((task) => (
                 <div
                   key={task.id}
                   className="mcp-server-item"

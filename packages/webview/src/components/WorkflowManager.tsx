@@ -46,7 +46,9 @@ const WorkflowManager: React.FC<
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const selectedRun = runs.find((r) => r.runId === selectedRunId) || null;
+  const runningRuns = runs.filter((run) => run.status === "running");
+  const selectedRun =
+    runningRuns.find((r) => r.runId === selectedRunId) || null;
 
   useEffect(() => {
     vscode?.postMessage({ command: "getWorkflowRuns" });
@@ -257,7 +259,7 @@ const WorkflowManager: React.FC<
 
   const renderList = () => (
     <div className="mcp-server-list">
-      {runs.map((run) => {
+      {runningRuns.map((run) => {
         const elapsed = run.endTime
           ? run.endTime - run.startTime
           : Date.now() - run.startTime;
@@ -350,7 +352,7 @@ const WorkflowManager: React.FC<
         </div>
 
         <div className="mcp-container">
-          {runs.length === 0 ? (
+          {runningRuns.length === 0 ? (
             <div className="empty-state">
               <p>暂无工作流运行</p>
             </div>

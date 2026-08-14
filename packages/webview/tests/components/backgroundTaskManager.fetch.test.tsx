@@ -77,4 +77,39 @@ describe("BackgroundTaskManager fetch", () => {
 
     expect(screen.getByText(/built in 3.2s/)).toBeInTheDocument();
   });
+
+  it("hides completed background tasks", () => {
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    } as unknown as VsCodeApi;
+
+    render(
+      <BackgroundTaskManager
+        tasks={[
+          {
+            id: "bt-done",
+            type: "shell",
+            status: "completed",
+            startTime: Date.now() - 60_000,
+            command: "npm test",
+          },
+          {
+            id: "bt-live",
+            type: "shell",
+            status: "running",
+            startTime: Date.now(),
+            command: "npm run build",
+          },
+        ]}
+        vscode={vscode}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("[bt-live] shell")).toBeInTheDocument();
+    expect(screen.queryByText("[bt-done] shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("npm test")).not.toBeInTheDocument();
+  });
 });
