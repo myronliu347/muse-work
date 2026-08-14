@@ -1,0 +1,64 @@
+packages/webview/tests/components/workflowManager.fetch.test.tsx
+  9189a3b1614d1eca 40,66-106,121
+packages/webview/tests/components/backgroundTaskManager.fetch.test.tsx
+  9189a3b1614d1eca 80-114
+packages/webview/src/components/BackgroundTaskManager.tsx
+  9189a3b1614d1eca 52-54,169,321
+packages/webview/src/components/WorkflowManager.tsx
+  9189a3b1614d1eca 49-51,262,355
+packages/server/src/sessionRunner.ts
+  9189a3b1614d1eca 819-828,855-864,1449-1462
+packages/server/tests/sessionRunner.control.test.ts
+  9189a3b1614d1eca 232-234,261,273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e5cd28459f2f376edd0a758d66b3a30d28708a82",
+  "prompts": {
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 127,
+      "total_deletions": 144,
+      "accepted_lines": 127,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 34,
+          "deletions": 70,
+          "accepted_lines": 34
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 5,
+          "deletions": 64,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/backgroundTaskManager.fetch.test.tsx": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/WorkflowManager.tsx": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/BackgroundTaskManager.tsx": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/workflowManager.fetch.test.tsx": {
+          "additions": 43,
+          "deletions": 4,
+          "accepted_lines": 43
+        }
+      }
+    }
+  }
+}
