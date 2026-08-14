@@ -1,0 +1,256 @@
+packages/webview/src/styles/MessageList.css
+  25874284e31bf936 2-10,13-14,19-26
+packages/webview/src/components/MessageList.tsx
+  25874284e31bf936 17-21,125-129,166-183,189,309,328,341,347-354,391-398,553-561
+packages/webview/tests/components/UserMessageNav.test.tsx
+  25874284e31bf936 1-108
+packages/webview/tests/utils/session.test.ts
+  25874284e31bf936 1-53
+packages/webview/src/components/UserMessageNav.tsx
+  25874284e31bf936 1-65
+packages/webview/src/styles/UserMessageNav.css
+  25874284e31bf936 1-70
+packages/webview/src/utils/session.ts
+  25874284e31bf936 5-15,68-73,80-81
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  25874284e31bf936 296-336
+packages/webview/tests/webview/stickyUserMessage.test.tsx
+  25874284e31bf936 141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b8704569de10a23752fa2c5aba8517a32451b322",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 446,
+      "total_deletions": 25,
+      "accepted_lines": 444,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "packages/webview/tests/utils/session.test.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        },
+        "packages/webview/src/styles/UserMessageNav.css": {
+          "additions": 71,
+          "deletions": 1,
+          "accepted_lines": 70
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 21,
+          "deletions": 8,
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/MessageList.tsx": {
+          "additions": 58,
+          "deletions": 11,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/components/UserMessageNav.tsx": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/utils/session.ts": {
+          "additions": 19,
+          "deletions": 4,
+          "accepted_lines": 19
+        },
+        "packages/webview/tests/components/UserMessageNav.test.tsx": {
+          "additions": 108,
+          "accepted_lines": 108
+        }
+      }
+    },
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 3207,
+      "total_deletions": 165,
+      "accepted_lines": 3194,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/sessionStore.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 145,
+          "deletions": 2,
+          "accepted_lines": 145
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/ConfirmationDialog.tsx": {
+          "additions": 2,
+          "deletions": 6,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/permissionModeTwoOptions.test.tsx": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 223,
+          "deletions": 1,
+          "accepted_lines": 223
+        },
+        "packages/server/tests/sessions.control.routes.test.ts": {
+          "additions": 200,
+          "accepted_lines": 200
+        },
+        "packages/webview/src/components/HeaderIcons.tsx": {
+          "additions": 7,
+          "deletions": 11,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/webview/rewindPopup.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/permissionModeDropdown.test.tsx": {
+          "additions": 16,
+          "deletions": 27,
+          "accepted_lines": 16
+        },
+        "packages/server/src/app.ts": {
+          "additions": 167,
+          "accepted_lines": 167
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 410,
+          "deletions": 2,
+          "accepted_lines": 408
+        },
+        "packages/webview/tests/webview/clearChat.test.tsx": {
+          "additions": 8,
+          "deletions": 26,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 362,
+          "deletions": 3,
+          "accepted_lines": 362
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/StatusDialog.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/components/WorkflowManager.tsx": {
+          "additions": 13,
+          "deletions": 8,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/components/statusDialog.tokens.test.tsx": {
+          "additions": 32,
+          "deletions": 3,
+          "accepted_lines": 29
+        },
+        "docs/superpowers/specs/2026-08-14-sdk-control-plane-design.md": {
+          "additions": 180,
+          "accepted_lines": 180
+        },
+        "docs/superpowers/plans/2026-08-14-sdk-control-plane.md": {
+          "additions": 309,
+          "accepted_lines": 309
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 15,
+          "deletions": 2,
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/components/workflowManager.fetch.test.tsx": {
+          "additions": 67,
+          "deletions": 1,
+          "accepted_lines": 66
+        },
+        "packages/webview/tests/muse/hostBridge.control.test.ts": {
+          "additions": 381,
+          "accepted_lines": 381
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 350,
+          "deletions": 5,
+          "accepted_lines": 345
+        },
+        "packages/webview/tests/webview/permissionModeCycle.test.tsx": {
+          "additions": 11,
+          "deletions": 62,
+          "accepted_lines": 11
+        },
+        "packages/webview/tests/webview/enterPlanModeConfirmation.test.tsx": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/BackgroundTaskManager.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/backgroundTaskManager.fetch.test.tsx": {
+          "additions": 81,
+          "deletions": 1,
+          "accepted_lines": 80
+        },
+        "packages/webview/tests/webview/rewind.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/fixtures/waveWebviewFixtures.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
