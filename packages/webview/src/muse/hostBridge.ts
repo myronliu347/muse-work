@@ -176,6 +176,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
    */
   let suppressWorkdirPush = false;
   let draftModel: string | undefined;
+  let draftPermissionMode: "acceptEdits" | "bypassPermissions" = "acceptEdits";
   let streamingMessageId: string | null = null;
   const knownAssistantIds = new Set<string>();
   let state: unknown = null;
@@ -221,6 +222,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     publishAgentBusy();
   };
 
+  const emitPermissionMode = (mode: string | undefined): void => {
+    const normalized =
+      mode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
+    postToWebview({ command: "updatePermissionMode", mode: normalized });
+  };
+
   const emitDraftSession = () => {
     postToWebview({
       command: "updateCurrentSession",
@@ -232,6 +239,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         model: draftModel ?? DEFAULT_SESSION_MODEL_ID,
       },
     });
+    emitPermissionMode(draftPermissionMode);
   };
 
   const treeById = (): Map<string, TreeSession> => {
@@ -606,6 +614,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
     resetChatStreaming();
     emitCurrentSession(session);
+    emitPermissionMode(session.permissionMode);
     await loadMessages(session.id);
     await pushSessionControlState(session.id);
     await refreshTree();
@@ -621,6 +630,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     pendingNewSession = true;
     sessionId = null;
     draftModel = undefined;
+    draftPermissionMode = "acceptEdits";
     resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
     postToWebview({ command: "updateBackgroundTasks", tasks: [] });
@@ -1045,13 +1055,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
       const session = await api.createSession(
         currentWorkdir || undefined,
-        { model: draftModel ?? DEFAULT_SESSION_MODEL_ID },
+        {
+          model: draftModel ?? DEFAULT_SESSION_MODEL_ID,
+          permissionMode: draftPermissionMode,
+        },
       );
       await api.selectSession(session.id);
       sessionId = session.id;
       pendingNewSession = false;
       suppressWorkdirPush = false;
       draftModel = undefined;
+      draftPermissionMode = "acceptEdits";
       // Server may have minted ~/.muse-work/projects/<date>-<uid>.
       if (session.workdir) {
         const nextRecent = [
@@ -1346,8 +1360,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   async function handleSetPermissionMode(msg: { mode?: string }): Promise<void> {
     const mode =
       msg.mode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
-    postToWebview({ command: "updatePermissionMode", mode });
-    if (!sessionId || pendingNewSession) return;
+    emitPermissionMode(mode);
+    if (!sessionId || pendingNewSession) {
+      draftPermissionMode = mode;
+      return;
+    }
     try {
       await api.patchSession(sessionId, { permissionMode: mode });
     } catch {
@@ -1573,6 +1590,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       await ensureWs();
       const session = await api.createSession(created.path, {
         model: draftModel ?? DEFAULT_SESSION_MODEL_ID,
+        permissionMode: draftPermissionMode,
         worktreeName: created.name,
         worktreeBranch: created.branch,
         baseBranch: created.baseBranch,
@@ -1582,6 +1600,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       sessionId = session.id;
       pendingNewSession = false;
       draftModel = undefined;
+      draftPermissionMode = "acceptEdits";
       emitCurrentSession(session);
       await refreshTree();
       await handleSendMessage({ text, images });
@@ -1681,6 +1700,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         suppressWorkdirPush = true;
         sessionId = null;
         draftModel = undefined;
+        draftPermissionMode = "acceptEdits";
         postToWebview({ command: "updateMessages", messages: [] });
         emitWorkdirState({ clearWorkdir: true });
         emitDraftSession();

@@ -301,12 +301,84 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     // New session clears workdir; server mints ~/.muse-work/projects/...
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
       model: "deepseek-v4-flash",
+      permissionMode: "acceptEdits",
     });
     expect(api.sendMessage).toHaveBeenCalledWith(
       "sess-created",
       "first message",
       undefined,
     );
+  });
+
+  it("newSession resets permission mode to acceptEdits", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "updatePermissionMode",
+      mode: "acceptEdits",
+    });
+  });
+
+  it("draft bypassPermissions is passed to createSession on first send", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      title: "新对话",
+      lastActiveAt: 1,
+      createdAt: 1,
+      permissionMode: "bypassPermissions",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+    vi.mocked(api.patchSession).mockClear();
+
+    bridge.postMessage({
+      command: "setPermissionMode",
+      mode: "bypassPermissions",
+    });
+    await flush();
+
+    expect(api.patchSession).not.toHaveBeenCalled();
+    expect(messages).toContainEqual({
+      command: "updatePermissionMode",
+      mode: "bypassPermissions",
+    });
+
+    bridge.postMessage({ command: "sendMessage", text: "first message" });
+    await flush();
+
+    expect(api.createSession).toHaveBeenCalledWith(undefined, {
+      model: "deepseek-v4-flash",
+      permissionMode: "bypassPermissions",
+    });
   });
 
   it("pins deepseek-v4-flash on a new draft and createSession", async () => {
@@ -349,6 +421,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     await flush();
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
       model: "deepseek-v4-flash",
+      permissionMode: "acceptEdits",
     });
   });
 
@@ -492,6 +565,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     await flush();
     expect(api.createSession).toHaveBeenCalledWith("/repo/beta", {
       model: "deepseek-v4-flash",
+      permissionMode: "acceptEdits",
     });
   });
 
@@ -635,6 +709,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
 
     expect(api.createSession).toHaveBeenCalledWith("/new-project", {
       model: "deepseek-v4-flash",
+      permissionMode: "acceptEdits",
     });
     expect(api.selectSession).toHaveBeenCalledWith("sess-new");
     expect(api.selectSession).not.toHaveBeenCalledWith("sess-foreign");

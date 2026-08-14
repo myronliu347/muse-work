@@ -43,6 +43,7 @@ export interface SessionStore {
   create(options: {
     workdir: string;
     model: string;
+    permissionMode?: MusePermissionMode;
     worktreeName?: string;
     worktreeBranch?: string;
     baseBranch?: string;
@@ -151,6 +152,7 @@ export function createSessionStore(
     create({
       workdir,
       model,
+      permissionMode,
       worktreeName,
       worktreeBranch,
       baseBranch,
@@ -161,7 +163,7 @@ export function createSessionStore(
         id: crypto.randomUUID(),
         title: "新对话",
         workdir,
-        permissionMode: "acceptEdits",
+        permissionMode: normalizePermissionMode(permissionMode),
         model,
         pinned: false,
         createdAt: now,

@@ -206,6 +206,45 @@ describe("hostBridge control plane", () => {
     });
   });
 
+  it("selecting a session applies its stored permissionMode", async () => {
+    const bypassSession: MuseSession = {
+      ...baseSession,
+      id: "sess-b",
+      title: "other",
+      permissionMode: "bypassPermissions",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [baseSession, bypassSession],
+        activeSessionId: "sess-active",
+      })),
+      selectSession: vi.fn(async (id: string) => ({
+        session: id === "sess-b" ? bypassSession : baseSession,
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "updatePermissionMode",
+      mode: "bypassPermissions",
+    });
+  });
+
   it("getWorkflowRuns fetches runs and posts updateWorkflowRuns", async () => {
     const runs = [
       {

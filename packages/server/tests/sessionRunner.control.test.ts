@@ -89,6 +89,16 @@ describe("sessionRunner control plane", () => {
     expect(session.permissionMode).toBe("acceptEdits");
   });
 
+  it("create honors permissionMode option", () => {
+    const { store, home: dir } = setup();
+    const session = store.create({
+      workdir: dir,
+      model: "m1",
+      permissionMode: "bypassPermissions",
+    });
+    expect(session.permissionMode).toBe("bypassPermissions");
+  });
+
   it("passes session permissionMode into Agent.create", async () => {
     const { store, hub, registry, home: dir } = setup();
     const seen: string[] = [];

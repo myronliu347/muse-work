@@ -206,6 +206,7 @@ export class MuseApiClient {
     workdir?: string,
     opts?: {
       model?: string;
+      permissionMode?: "acceptEdits" | "bypassPermissions";
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -215,6 +216,7 @@ export class MuseApiClient {
     const body: {
       workdir?: string;
       model?: string;
+      permissionMode?: "acceptEdits" | "bypassPermissions";
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -222,6 +224,7 @@ export class MuseApiClient {
     } = {};
     if (workdir) body.workdir = workdir;
     if (opts?.model) body.model = opts.model;
+    if (opts?.permissionMode) body.permissionMode = opts.permissionMode;
     if (opts?.worktreeName) body.worktreeName = opts.worktreeName;
     if (opts?.worktreeBranch) body.worktreeBranch = opts.worktreeBranch;
     if (opts?.baseBranch) body.baseBranch = opts.baseBranch;

@@ -99,6 +99,28 @@ describe("sessions HTTP routes", () => {
     expect(created.model).toBe("deepseek-v4-flash");
   });
 
+  it("POST /sessions honors permissionMode", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workdir: "/tmp/a",
+        model: "m1",
+        permissionMode: "bypassPermissions",
+      }),
+    }).then((r) => r.json());
+    expect(created.permissionMode).toBe("bypassPermissions");
+
+    const loaded = await fetch(`${app.baseUrl}/sessions/${created.id}`).then(
+      (r) => r.json(),
+    );
+    expect(loaded.permissionMode).toBe("bypassPermissions");
+  });
+
   it("POST /sessions/:id/abort returns ok", async () => {
     const app = await listenTestApp();
     server = app.server;

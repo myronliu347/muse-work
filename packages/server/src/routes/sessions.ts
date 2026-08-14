@@ -35,6 +35,11 @@ export async function handleCreateSession(
   const session = ctx.store.create({
     workdir,
     model,
+    permissionMode:
+      body?.permissionMode === "bypassPermissions" ||
+      body?.permissionMode === "acceptEdits"
+        ? body.permissionMode
+        : undefined,
     worktreeName:
       typeof body?.worktreeName === "string" ? body.worktreeName : undefined,
     worktreeBranch:

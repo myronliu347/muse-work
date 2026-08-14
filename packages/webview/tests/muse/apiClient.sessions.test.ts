@@ -148,4 +148,22 @@ describe("MuseApiClient session APIs", () => {
     expect(bodies[0]).toContain('"workdir":"/tmp/proj"');
     expect(bodies[0]).toContain('"model":"m2"');
   });
+
+  it("createSession posts optional permissionMode", async () => {
+    const bodies: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        bodies.push(`${init?.method} ${url} ${String(init?.body)}`);
+        return new Response(JSON.stringify(sampleSession), { status: 200 });
+      },
+    });
+
+    await client.createSession("/tmp/proj", {
+      model: "m2",
+      permissionMode: "bypassPermissions",
+    });
+    expect(bodies[0]).toContain("POST http://127.0.0.1:9/sessions");
+    expect(bodies[0]).toContain('"permissionMode":"bypassPermissions"');
+  });
 });
