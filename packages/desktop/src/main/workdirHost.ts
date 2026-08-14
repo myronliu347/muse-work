@@ -38,6 +38,8 @@ export type WorkdirHostDeps = {
   openPath?: (filePath: string) => Promise<string>;
   /** Open a folder in VS Code (`code <workdir>`). Injected in tests. */
   openInEditor?: (workdir: string) => void;
+  /** Webview reports whether any agent turn is in flight. */
+  onAgentBusyChange?: (busy: boolean) => void;
 };
 
 function defaultOpenInEditor(workdir: string): void {
@@ -192,6 +194,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       images?: unknown;
       branch?: string;
       repoRoot?: string;
+      busy?: boolean;
     };
     const command = msg?.command;
     if (!command) return;
@@ -200,6 +203,11 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
 
     if (command === "desktopReady") {
       pushState(win, state);
+      return;
+    }
+
+    if (command === "desktopAgentBusy") {
+      options.onAgentBusyChange?.(Boolean(msg.busy));
       return;
     }
 

@@ -5,7 +5,7 @@
  * server base URL injected via preload (`window.museServerBaseUrl`).
  */
 
-import { app, BrowserWindow, nativeImage, powerMonitor } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, powerMonitor } from "electron";
 import { execFileSync } from "child_process";
 import * as path from "path";
 import { museServerBaseUrl, startMuseServer } from "./serverProcess";
@@ -13,7 +13,12 @@ import { installThemeHost } from "./themeHost";
 import { windowBackgroundFor } from "./uiPrefs";
 import { createMainWindow, desktopPaths } from "./window";
 import { createQuitGate } from "./quitGate";
-import { installWorkdirHost, TO_WEBVIEW, type WorkdirHost } from "./workdirHost";
+import {
+  FROM_WEBVIEW,
+  installWorkdirHost,
+  TO_WEBVIEW,
+  type WorkdirHost,
+} from "./workdirHost";
 
 function adoptLoginShellPath(): void {
   if (process.platform === "win32") return;
@@ -63,7 +68,7 @@ function resolveDesktopPaths() {
   });
 }
 
-function openMainWindow(): void {
+function openMainWindow(quitGate: ReturnType<typeof createQuitGate>): void {
   if (!serverBaseUrl || !themeHost) return;
   const paths = resolveDesktopPaths();
   mainWindow = createMainWindow({
@@ -72,6 +77,9 @@ function openMainWindow(): void {
     preloadPath: paths.preloadPath,
     webviewHtmlPath: paths.webviewHtmlPath,
     title: APP_DISPLAY_NAME,
+  });
+  mainWindow.on("close", (event) => {
+    quitGate.handleWindowClose(event);
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -123,10 +131,64 @@ if (!gotLock) {
       app.dock?.setIcon(appIcon);
     }
 
+    const quitGate = createQuitGate({
+      dispose: () => {
+        workdirHost?.dispose();
+        workdirHost = null;
+        themeHost?.dispose();
+        themeHost = null;
+        serverHandle = null;
+        serverBaseUrl = null;
+      },
+      stopServer: async () => {
+        await stopServer?.();
+      },
+      quit: () => app.quit(),
+      confirmQuitWhileBusy: async () => {
+        const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+        const options: Electron.MessageBoxOptions = {
+          type: "warning",
+          buttons: ["取消", "退出并中断"],
+          defaultId: 0,
+          cancelId: 0,
+          title: "AI 正在运行",
+          message: "AI 正在处理任务",
+          detail: "关闭应用将中断当前对话中的生成。确定要退出吗？",
+        };
+        const result = win
+          ? await dialog.showMessageBox(win, options)
+          : await dialog.showMessageBox(options);
+        return result.response === 1;
+      },
+      prepareQuit: async () => {
+        const win = mainWindow;
+        if (!win || win.isDestroyed()) return;
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            resolve();
+          }, 2500);
+          const onDone = (_event: Electron.IpcMainEvent, raw: unknown) => {
+            const msg = raw as { command?: string } | null;
+            if (msg?.command !== "desktopPrepareQuitDone") return;
+            cleanup();
+            resolve();
+          };
+          const cleanup = () => {
+            clearTimeout(timeout);
+            ipcMain.removeListener(FROM_WEBVIEW, onDone);
+          };
+          ipcMain.on(FROM_WEBVIEW, onDone);
+          win.webContents.send(TO_WEBVIEW, { command: "desktopPrepareQuit" });
+        });
+      },
+    });
+
     workdirHost = installWorkdirHost({
       userDataPath: app.getPath("userData"),
       getWindow: () => mainWindow,
       defaultWorkdir: process.cwd(),
+      onAgentBusyChange: (busy) => quitGate.setAgentBusy(busy),
     });
     themeHost = installThemeHost({
       getWindow: () => mainWindow,
@@ -148,7 +210,7 @@ if (!gotLock) {
       serverHandle = server;
       serverBaseUrl = museServerBaseUrl(server.port, server.host);
       console.log(`[muse-desktop] server ready at ${serverBaseUrl}`);
-      openMainWindow();
+      openMainWindow(quitGate);
 
       powerMonitor.on("resume", () => {
         void recoverAfterResume();
@@ -161,8 +223,12 @@ if (!gotLock) {
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        openMainWindow();
+        openMainWindow(quitGate);
       }
+    });
+
+    app.on("before-quit", (event) => {
+      quitGate.handleBeforeQuit(event);
     });
   });
 
@@ -170,24 +236,5 @@ if (!gotLock) {
     if (process.platform !== "darwin") {
       app.quit();
     }
-  });
-
-  const quitGate = createQuitGate({
-    dispose: () => {
-      workdirHost?.dispose();
-      workdirHost = null;
-      themeHost?.dispose();
-      themeHost = null;
-      serverHandle = null;
-      serverBaseUrl = null;
-    },
-    stopServer: async () => {
-      await stopServer?.();
-    },
-    quit: () => app.quit(),
-  });
-
-  app.on("before-quit", (event) => {
-    quitGate.handleBeforeQuit(event);
   });
 }

@@ -8,3 +8,4 @@ coverage
 webview/dist
 packages/desktop/webview/
 .pnpm-store/
+.tmp-desktop-tests/

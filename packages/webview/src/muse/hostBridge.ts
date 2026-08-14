@@ -212,11 +212,28 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     return map;
   };
 
+  const publishAgentBusy = (): void => {
+    const anyRunning =
+      loading ||
+      pinned.some((s) => s.running) ||
+      recent.some((s) => s.running);
+    opts.outer?.postMessage({
+      command: "desktopAgentBusy",
+      busy: anyRunning,
+    });
+  };
+
+  const setLoading = (next: boolean): void => {
+    loading = next;
+    publishAgentBusy();
+  };
+
   const emitSessionTree = () => {
     postToWebview({
       command: "desktopSessionTree",
       groups: buildSidebarModel({ pinned, recent }),
     });
+    publishAgentBusy();
   };
 
   const applyGrouped = (grouped: MuseSessionsGrouped) => {
@@ -281,7 +298,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const resetChatStreaming = () => {
     streamingMessageId = null;
     knownAssistantIds.clear();
-    loading = false;
+    setLoading(false);
     postToWebview({ command: "endStreaming" });
   };
 
@@ -429,6 +446,28 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           pending.resolve({ ok: false, error: "创建 worktree 返回不完整" });
         }
       }
+      return;
+    }
+    if (message?.command === "desktopPrepareQuit") {
+      void (async () => {
+        const ids = new Set<string>();
+        if (sessionId && !pendingNewSession) ids.add(sessionId);
+        for (const s of [...pinned, ...recent]) {
+          if (s.running) ids.add(s.id);
+        }
+        await handleAbortMessage();
+        for (const id of ids) {
+          if (id === sessionId) continue;
+          try {
+            await api.abortMessage(id);
+          } catch {
+            // best-effort
+          }
+        }
+        setLoading(false);
+        publishAgentBusy();
+        opts.outer?.postMessage({ command: "desktopPrepareQuitDone" });
+      })();
       return;
     }
     if (message?.command === "museServerLifecycle") {
@@ -626,7 +665,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const emitChatWs = (event: MuseWsEvent) => {
     if (event.type === "loading") {
-      loading = event.loading;
+      setLoading(event.loading);
       postToWebview({
         command: event.loading ? "startStreaming" : "endStreaming",
       });
@@ -640,6 +679,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (event.type === "assistant:message") {
       ensureAssistantMessage(event.messageId);
       if (!loading) {
+        setLoading(true);
         postToWebview({ command: "startStreaming" });
       }
       return;
@@ -649,6 +689,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       const messageId = event.messageId || streamingMessageId || newId("asst");
       ensureAssistantMessage(messageId);
       if (!loading) {
+        setLoading(true);
         postToWebview({ command: "startStreaming" });
       }
       postToWebview({
@@ -663,6 +704,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (event.type === "reasoning:delta") {
       ensureAssistantMessage(event.messageId);
       if (!loading) {
+        setLoading(true);
         postToWebview({ command: "startStreaming" });
       }
       postToWebview({
@@ -682,6 +724,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           : streamingMessageId || newId("asst");
       ensureAssistantMessage(messageId);
       if (!loading) {
+        setLoading(true);
         postToWebview({ command: "startStreaming" });
       }
       postToWebview({
@@ -717,7 +760,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       postToWebview({ command: "endStreaming" });
       streamingMessageId = null;
       knownAssistantIds.clear();
-      loading = false;
+      setLoading(false);
       return;
     }
 
@@ -1056,7 +1099,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       const sid = await ensureSession();
       streamingMessageId = null;
       knownAssistantIds.clear();
-      loading = false;
+      setLoading(true);
       postToWebview({ command: "startStreaming" });
       await api.sendMessage(sid, text, images.length > 0 ? images : undefined);
       if (text) {
@@ -1070,7 +1113,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         error: err instanceof Error ? err.message : String(err),
       });
       postToWebview({ command: "endStreaming" });
-      loading = false;
+      setLoading(false);
       streamingMessageId = null;
     }
   }
@@ -1085,7 +1128,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         stage: "end",
       });
     }
-    loading = false;
+    setLoading(false);
     streamingMessageId = null;
     knownAssistantIds.clear();
     postToWebview({ command: "endStreaming" });
