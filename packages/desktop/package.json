@@ -28,6 +28,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "dist/muse-server/node_modules",
+        "to": "muse-server/node_modules"
       }
     ],
     "afterPack": "./scripts/afterPack.cjs",
