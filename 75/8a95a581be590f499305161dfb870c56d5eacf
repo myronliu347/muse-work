@@ -1,0 +1,118 @@
+packages/webview/src/assets/muse-m.svg
+  c4bebde8d75da52f 1-11
+packages/webview/src/components/ChatApp.tsx
+  7309f11e88da7c9c 42,72,367,409-411,1634-1648,1652
+packages/webview/src/components/DesktopSidebar.tsx
+  c4bebde8d75da52f 3
+packages/desktop/assets/icon.svg
+  c4bebde8d75da52f 2-10
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  7309f11e88da7c9c 3-4,210-222
+packages/webview/src/components/WelcomeView.tsx
+  c4bebde8d75da52f 11
+packages/webview/tests/webview/chatAppPanels.test.tsx
+  7309f11e88da7c9c 1,120-122,129-130,144-197,300-302,322
+packages/webview/src/svg.d.ts
+  c4bebde8d75da52f 1-4
+packages/webview/src/muse/panelFit.ts
+  7309f11e88da7c9c 5-17
+packages/webview/src/styles/DesktopApp.css
+  c4bebde8d75da52f 51
+  7309f11e88da7c9c 196,217-223,360
+packages/webview/src/components/LoadingLogo.tsx
+  c4bebde8d75da52f 8
+packages/webview/tests/muse/panelFit.test.ts
+  7309f11e88da7c9c 2-5,15-24
+packages/webview/esbuild.config.mjs
+  c4bebde8d75da52f 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "758a95a581be590f499305161dfb870c56d5eacf",
+  "prompts": {
+    "7309f11e88da7c9c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "62f35b5b-0b9d-4e3a-822d-9d6d98afb23d",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 128,
+      "total_deletions": 20,
+      "accepted_lines": 139,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/vitest.config.ts": {
+          "additions": 1
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 64,
+          "deletions": 5,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 35,
+          "deletions": 14,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    },
+    "c4bebde8d75da52f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "25569d39-fd89-4757-b14b-e0b00b53375e",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 29,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/esbuild.config.mjs": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/desktop/assets/icon.svg": {
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/LoadingLogo.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/assets/muse-m.svg": {
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/svg.d.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
