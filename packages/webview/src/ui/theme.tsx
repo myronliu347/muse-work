@@ -1,13 +1,32 @@
 import React, { useEffect, useSyncExternalStore } from "react";
 import { Theme } from "@radix-ui/themes";
-import type { EffectiveTheme, ThemePreference } from "../types";
+import type {
+  EffectiveTheme,
+  ThemeAccentColor,
+  ThemeGrayColor,
+  ThemePreference,
+  ThemeRadius,
+  ThemeScaling,
+} from "../types";
 import { resolveEffectiveTheme } from "./themeStorage";
 import {
   getSystemDark,
+  getThemeAccentColor,
+  getThemeGrayColor,
   getThemePreference,
+  getThemeRadius,
+  getThemeScaling,
+  setThemeAccentColor,
+  setThemeGrayColor,
   setThemePreference,
+  setThemeRadius,
+  setThemeScaling,
   subscribeSystemDark,
+  subscribeThemeAccentColor,
+  subscribeThemeGrayColor,
   subscribeThemePreference,
+  subscribeThemeRadius,
+  subscribeThemeScaling,
 } from "./themePreference";
 
 function applyDataTheme(effective: EffectiveTheme): void {
@@ -15,7 +34,7 @@ function applyDataTheme(effective: EffectiveTheme): void {
 }
 
 export function MuseTheme({ children }: { children: React.ReactNode }) {
-  const { effective } = useMuseTheme();
+  const { effective, scaling, accentColor, radius, grayColor } = useMuseTheme();
 
   useEffect(() => {
     applyDataTheme(effective);
@@ -23,10 +42,11 @@ export function MuseTheme({ children }: { children: React.ReactNode }) {
 
   return (
     <Theme
-      accentColor="red"
-      grayColor="gray"
+      accentColor={accentColor}
+      grayColor={grayColor}
       panelBackground="solid"
-      radius="large"
+      radius={radius}
+      scaling={scaling}
       appearance={effective}
     >
       {children}
@@ -38,6 +58,14 @@ export function useMuseTheme(): {
   preference: ThemePreference;
   effective: EffectiveTheme;
   setPreference: (p: ThemePreference) => void;
+  scaling: ThemeScaling;
+  setScaling: (s: ThemeScaling) => void;
+  accentColor: ThemeAccentColor;
+  setAccentColor: (c: ThemeAccentColor) => void;
+  radius: ThemeRadius;
+  setRadius: (r: ThemeRadius) => void;
+  grayColor: ThemeGrayColor;
+  setGrayColor: (g: ThemeGrayColor) => void;
 } {
   const preference = useSyncExternalStore(
     subscribeThemePreference,
@@ -49,10 +77,38 @@ export function useMuseTheme(): {
     getSystemDark,
     getSystemDark,
   );
+  const scaling = useSyncExternalStore(
+    subscribeThemeScaling,
+    getThemeScaling,
+    getThemeScaling,
+  );
+  const accentColor = useSyncExternalStore(
+    subscribeThemeAccentColor,
+    getThemeAccentColor,
+    getThemeAccentColor,
+  );
+  const radius = useSyncExternalStore(
+    subscribeThemeRadius,
+    getThemeRadius,
+    getThemeRadius,
+  );
+  const grayColor = useSyncExternalStore(
+    subscribeThemeGrayColor,
+    getThemeGrayColor,
+    getThemeGrayColor,
+  );
   const effective = resolveEffectiveTheme(preference, systemDark);
   return {
     preference,
     effective,
     setPreference: setThemePreference,
+    scaling,
+    setScaling: setThemeScaling,
+    accentColor,
+    setAccentColor: setThemeAccentColor,
+    radius,
+    setRadius: setThemeRadius,
+    grayColor,
+    setGrayColor: setThemeGrayColor,
   };
 }

@@ -6,7 +6,13 @@ import { DesktopApp } from "./components/DesktopApp";
 import { MuseApiClient } from "./muse/apiClient";
 import { MuseWsClient } from "./muse/wsClient";
 import { createHostBridge, resolveMuseServerUrl } from "./muse/hostBridge";
-import type { ThemePreference } from "./types";
+import type {
+  ThemePreference,
+  ThemeScaling,
+  ThemeAccentColor,
+  ThemeRadius,
+  ThemeGrayColor,
+} from "./types";
 import { MuseTheme } from "./ui/theme";
 import "./styles/globals.css";
 import "@vscode/codicons/dist/codicon.css";
@@ -19,6 +25,10 @@ declare global {
     museWorkdir?: string;
     waveHostType?: string;
     __MUSE_THEME_PREFERENCE__?: ThemePreference;
+    __MUSE_THEME_SCALING__?: ThemeScaling;
+    __MUSE_THEME_ACCENT__?: ThemeAccentColor;
+    __MUSE_THEME_RADIUS__?: ThemeRadius;
+    __MUSE_THEME_GRAY__?: ThemeGrayColor;
   }
 }
 

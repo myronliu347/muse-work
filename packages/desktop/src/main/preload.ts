@@ -23,10 +23,21 @@ contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
 
 // additionalArguments are fixed at window creation and stale after live updates.
 // Read ui.json on every preload execution so reloads receive the current preference.
-const themePreference = loadUiPrefs().themePreference;
-contextBridge.exposeInMainWorld("__MUSE_THEME_PREFERENCE__", themePreference);
+const uiPrefs = loadUiPrefs();
+contextBridge.exposeInMainWorld(
+  "__MUSE_THEME_PREFERENCE__",
+  uiPrefs.themePreference,
+);
+contextBridge.exposeInMainWorld("__MUSE_THEME_SCALING__", uiPrefs.themeScaling);
+contextBridge.exposeInMainWorld(
+  "__MUSE_THEME_ACCENT__",
+  uiPrefs.themeAccentColor,
+);
+contextBridge.exposeInMainWorld("__MUSE_THEME_RADIUS__", uiPrefs.themeRadius);
+contextBridge.exposeInMainWorld("__MUSE_THEME_GRAY__", uiPrefs.themeGrayColor);
 
 function applyBootTheme(): void {
+  const themePreference = uiPrefs.themePreference;
   const dark =
     themePreference === "dark" ||
     (themePreference === "system" &&

@@ -48,7 +48,9 @@
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   padding: 0;
-  height: 500px;
+  width: min(92vw, 560px);
+  max-width: 560px;
+  height: min(90vh, 560px);
   max-height: 90%;
 }
 

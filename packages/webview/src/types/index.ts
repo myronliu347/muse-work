@@ -335,6 +335,47 @@ export interface DesktopSessionEntry {
 
 export type EffectiveTheme = "light" | "dark";
 export type ThemePreference = "system" | "light" | "dark";
+/** Radix Theme `scaling` — scales --space-* and --font-size-* together. */
+export type ThemeScaling = "90%" | "95%" | "100%" | "105%" | "110%";
+/** Radix Theme `accentColor`. */
+export type ThemeAccentColor =
+  | "gray"
+  | "gold"
+  | "bronze"
+  | "brown"
+  | "yellow"
+  | "amber"
+  | "orange"
+  | "tomato"
+  | "red"
+  | "ruby"
+  | "crimson"
+  | "pink"
+  | "plum"
+  | "purple"
+  | "violet"
+  | "iris"
+  | "indigo"
+  | "blue"
+  | "cyan"
+  | "teal"
+  | "jade"
+  | "green"
+  | "grass"
+  | "lime"
+  | "mint"
+  | "sky";
+/** Radix Theme `radius`. */
+export type ThemeRadius = "none" | "small" | "medium" | "large" | "full";
+/** Radix Theme `grayColor`. */
+export type ThemeGrayColor =
+  | "auto"
+  | "gray"
+  | "mauve"
+  | "slate"
+  | "sage"
+  | "olive"
+  | "sand";
 
 export interface ThemeState {
   /** Present only when the in-app store owns the snapshot; host IPC may omit it. */
