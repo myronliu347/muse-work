@@ -39,7 +39,7 @@ import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
 import { DesktopGitContext } from "./DesktopGitContext";
 import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut } from "../muse/panelShortcuts";
-import { planPanelWidthsForOpen } from "../muse/panelFit";
+import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import {
   firstPanelTab,
   nextActivePanel,
@@ -69,6 +69,7 @@ import "../styles/ChatApp.css";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
+/** Placeholder until the dock's first open seeds half the window width. */
 const PANEL_DEFAULT_WIDTH = 420;
 const PANEL_MIN_WIDTH = 320;
 /** The conversation (message) area never shrinks below this when opening/dragging panels. */
@@ -363,6 +364,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const checkedPanelsRef = useRef(checkedPanels);
+  const mountedPanelsRef = useRef(mountedPanels);
   const activePanelRef = useRef(activePanel);
   const panelWidthsRef = useRef(panelWidths);
   // Mirrors so the stable message listener can reach the panel toggle logic
@@ -402,6 +404,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   useEffect(() => {
     checkedPanelsRef.current = checkedPanels;
   }, [checkedPanels]);
+
+  useEffect(() => {
+    mountedPanelsRef.current = mountedPanels;
+  }, [mountedPanels]);
 
   useEffect(() => {
     activePanelRef.current = activePanel;
@@ -1625,10 +1631,25 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         const containerW =
           chatContainerRef.current?.getBoundingClientRect().width;
         if (containerW) {
+          // First open of this session's dock: 50% of the window. Later
+          // reopen after close keeps the last dragged width.
+          const desired = defaultDockWidth(
+            window.innerWidth,
+            PANEL_MIN_WIDTH,
+          );
+          const baseWidths =
+            mountedPanelsRef.current.length === 0
+              ? {
+                  preview: desired,
+                  diff: desired,
+                  terminal: desired,
+                  file: desired,
+                }
+              : panelWidthsRef.current;
           const planned = planPanelWidthsForOpen(
             containerW,
             [],
-            panelWidthsRef.current,
+            baseWidths,
             kind,
             { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
           );

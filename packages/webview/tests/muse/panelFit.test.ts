@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { planPanelWidthsForOpen } from "../../src/muse/panelFit";
+import {
+  defaultDockWidth,
+  planPanelWidthsForOpen,
+} from "../../src/muse/panelFit";
 import type { DesktopPanelKind } from "../../src/types";
 
 const defaults: Record<DesktopPanelKind, number> = {
@@ -8,6 +11,17 @@ const defaults: Record<DesktopPanelKind, number> = {
   terminal: 420,
   file: 420,
 };
+
+describe("defaultDockWidth", () => {
+  it("returns half the window width", () => {
+    expect(defaultDockWidth(1400)).toBe(700);
+    expect(defaultDockWidth(1024)).toBe(512);
+  });
+
+  it("never goes below the panel minimum", () => {
+    expect(defaultDockWidth(500, 320)).toBe(320);
+  });
+});
 
 describe("planPanelWidthsForOpen", () => {
   it("refuses when even min widths cannot fit", () => {

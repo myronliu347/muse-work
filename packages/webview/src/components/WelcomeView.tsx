@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import museM from "../assets/muse-m.png";
+import museM from "../assets/muse-m.svg";
 
 export interface WelcomeViewProps {
   isAuthenticated: boolean;

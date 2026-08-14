@@ -18,6 +18,7 @@ const frontendConfig = {
     ".woff": "dataurl",
     ".woff2": "dataurl",
     ".png": "dataurl",
+    ".svg": "dataurl",
   },
   define: {
     "process.env.NODE_ENV": production ? '"production"' : '"development"',

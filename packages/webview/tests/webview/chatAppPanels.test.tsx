@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
@@ -116,13 +117,17 @@ describe("ChatApp desktop panel framework", () => {
     const rectSpy = vi
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockReturnValue({ width: 1024, right: 1024, left: 0 } as DOMRect);
+    const innerWidthSpy = vi
+      .spyOn(window, "innerWidth", "get")
+      .mockReturnValue(1024);
     try {
       renderDesktop({ workdir: "/work/a" });
       fireEvent.click(screen.getByTestId("panel-toggle-btn"));
       fireEvent.click(screen.getByTestId("panel-toggle-item-preview"));
 
       const empty = screen.getByTestId("preview-pane-empty");
-      expect(empty.style.width).toBe("420px"); // default width, no URL loaded yet
+      // First open defaults to 50% of the window width.
+      expect(empty.style.width).toBe("512px");
       // The empty state must carry the same drag affordance as loaded panels.
       expect(empty.querySelector(".preview-pane-drag-handle")).not.toBeNull();
 
@@ -136,6 +141,60 @@ describe("ChatApp desktop panel framework", () => {
       fireEvent.mouseUp(window);
     } finally {
       rectSpy.mockRestore();
+      innerWidthSpy.mockRestore();
+    }
+  });
+
+  it("opens the dock at half the window width on first open", () => {
+    window.waveHostType = "desktop";
+    const rectSpy = vi
+      .spyOn(Element.prototype, "getBoundingClientRect")
+      .mockReturnValue({ width: 1200, right: 1200, left: 0 } as DOMRect);
+    const innerWidthSpy = vi
+      .spyOn(window, "innerWidth", "get")
+      .mockReturnValue(1400);
+    try {
+      renderDesktop({ workdir: "/work/a" });
+      fireEvent.click(screen.getByTestId("panel-toggle-btn"));
+      fireEvent.click(screen.getByTestId("panel-toggle-item-diff"));
+      expect(screen.getByTestId("diff-pane").style.width).toBe("700px");
+    } finally {
+      rectSpy.mockRestore();
+      innerWidthSpy.mockRestore();
+    }
+  });
+
+  it("remembers dock width after close instead of resetting to 50%", () => {
+    window.waveHostType = "desktop";
+    const rectSpy = vi
+      .spyOn(Element.prototype, "getBoundingClientRect")
+      .mockReturnValue({ width: 1200, right: 1200, left: 0 } as DOMRect);
+    const innerWidthSpy = vi
+      .spyOn(window, "innerWidth", "get")
+      .mockReturnValue(1400);
+    try {
+      renderDesktop({ workdir: "/work/a" });
+      fireEvent.click(screen.getByTestId("panel-toggle-btn"));
+      fireEvent.click(screen.getByTestId("panel-toggle-item-diff"));
+      const pane = screen.getByTestId("diff-pane");
+      expect(pane.style.width).toBe("700px");
+
+      const handle = pane
+        .closest(".desktop-panel-dock")
+        ?.querySelector(
+          '[data-testid="desktop-panel-dock-resize"]',
+        ) as HTMLElement;
+      fireEvent.mouseDown(handle);
+      fireEvent.mouseMove(window, { clientX: 750 }); // 1200 - 750 = 450
+      fireEvent.mouseUp(window);
+      expect(pane.style.width).toBe("450px");
+
+      fireEvent.click(screen.getByTestId("panel-toggle-item-diff"));
+      fireEvent.click(screen.getByTestId("panel-toggle-item-diff"));
+      expect(screen.getByTestId("diff-pane").style.width).toBe("450px");
+    } finally {
+      rectSpy.mockRestore();
+      innerWidthSpy.mockRestore();
     }
   });
 
@@ -238,9 +297,9 @@ describe("ChatApp desktop panel framework", () => {
 
   it("refuses to open a panel when it would squeeze the conversation below its minimum", () => {
     window.waveHostType = "desktop";
-    // 500px fits the 420px default panel width only without the 360px
-    // conversation minimum beside it — there is no second row to overflow
-    // into, so the panel is rejected with a hint.
+    // 500px cannot fit half-window (or even panelMin 320) beside the 360px
+    // conversation minimum — there is no second row to overflow into, so the
+    // panel is rejected with a hint.
     const rectSpy = vi
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockReturnValue({ width: 500, right: 500 } as DOMRect);
@@ -260,7 +319,7 @@ describe("ChatApp desktop panel framework", () => {
 
   it("refuses to open a panel narrower than its own minimum width", () => {
     window.waveHostType = "desktop";
-    // 300px is below the 420px default panel width even on the full pane
+    // 300px is below the panel minimum even on the full pane
     // → the panel cannot open at all.
     const rectSpy = vi
       .spyOn(Element.prototype, "getBoundingClientRect")

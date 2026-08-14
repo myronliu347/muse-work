@@ -48,8 +48,7 @@
 .desktop-sidebar-logo {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -194,7 +193,7 @@
 .desktop-session-workdir-row {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   cursor: pointer;
@@ -215,6 +214,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+/* Beat `.codicon[class*="codicon-"]` (16px) so the glyph fits the 14px slot
+   instead of overflowing into the label gap. */
+.desktop-session-workdir-icon-slot .codicon {
+  font-size: 14px;
 }
 
 .desktop-session-workdir-folder,
@@ -351,7 +357,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   cursor: pointer;

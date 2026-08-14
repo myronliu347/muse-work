@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip } from "./Tooltip";
-import museM from "../assets/muse-m.png";
+import museM from "../assets/muse-m.svg";
 import {
   SessionTree,
   SESSION_DRAG_MIME,

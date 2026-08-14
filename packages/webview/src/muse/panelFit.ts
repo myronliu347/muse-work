@@ -2,6 +2,19 @@ import type { DesktopPanelKind } from "../types";
 
 export type PanelWidthMap = Record<DesktopPanelKind, number>;
 
+/** Fraction of the window width used when the dock first opens. */
+export const PANEL_DEFAULT_RATIO = 0.5;
+
+/**
+ * Default dock width for a first open: half the window, floored at `panelMin`.
+ */
+export function defaultDockWidth(
+  windowWidth: number,
+  panelMin = 320,
+): number {
+  return Math.max(panelMin, Math.round(windowWidth * PANEL_DEFAULT_RATIO));
+}
+
 /**
  * Plan widths so `kind` can open beside `checked` panels without squeezing
  * the conversation below `chatMin`. Shrinks existing panels toward `panelMin`

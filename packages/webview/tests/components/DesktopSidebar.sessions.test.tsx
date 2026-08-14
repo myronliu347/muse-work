@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import {
@@ -203,6 +205,19 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       row.querySelector(".desktop-session-workdir-chevron--collapsed"),
     ).toBeTruthy();
+  });
+
+  it("keeps space between workdir folder icon and name", () => {
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/DesktopApp.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.desktop-session-workdir-icon-slot\s+\.codicon\s*\{[^}]*font-size:\s*14px/s,
+    );
+    expect(css).toMatch(
+      /\.desktop-session-workdir-row\s*\{[^}]*gap:\s*var\(--space-2\)/s,
+    );
   });
 
   it("formatRelativeActiveAt covers minute/day buckets", () => {

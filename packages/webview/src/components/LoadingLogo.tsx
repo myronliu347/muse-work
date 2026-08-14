@@ -5,7 +5,7 @@
 
 import React from "react";
 import "../styles/LoadingLogo.css";
-import museM from "../assets/muse-m.png";
+import museM from "../assets/muse-m.svg";
 
 const MMark: React.FC<{ size: number }> = ({ size }) => (
   <img
