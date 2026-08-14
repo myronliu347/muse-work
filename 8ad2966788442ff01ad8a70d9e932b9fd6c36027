@@ -1,0 +1,117 @@
+packages/desktop/tests/workdirHost.test.ts
+  45e5fa4bf78099d3 504-545
+packages/webview/src/components/DesktopWorktreeControls.tsx
+  45e5fa4bf78099d3 16,59
+packages/webview/src/styles/MessageInput.css
+  45e5fa4bf78099d3 41-43,48-99,230,236,238-239,244
+packages/desktop/src/main/workdirHost.ts
+  45e5fa4bf78099d3 41-42,60-102,191,266-271
+packages/webview/src/styles/MessageList.css
+  45e5fa4bf78099d3 24-27,35,41,49,57-58
+packages/webview/src/components/DesktopSidebar.tsx
+  45e5fa4bf78099d3 70-71,95,134
+packages/webview/src/styles/DesktopApp.css
+  45e5fa4bf78099d3 518,578,706-707
+packages/webview/src/components/ChatApp.tsx
+  45e5fa4bf78099d3 2333-2335
+packages/webview/src/components/MessageInput.tsx
+  45e5fa4bf78099d3 991,993-1000
+packages/webview/src/components/DesktopShell.tsx
+  45e5fa4bf78099d3 630-632
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  45e5fa4bf78099d3 293-306
+packages/webview/src/components/SessionTree.tsx
+  45e5fa4bf78099d3 138,175,483-487,584-609
+packages/webview/src/styles/Message.css
+  45e5fa4bf78099d3 285,287-294
+packages/webview/src/components/DesktopWorkdirSelector.tsx
+  45e5fa4bf78099d3 242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8ad2966788442ff01ad8a70d9e932b9fd6c36027",
+  "prompts": {
+    "45e5fa4bf78099d3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bf54800a-4d7a-41b9-8213-559009f777ad",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 253,
+      "total_deletions": 68,
+      "accepted_lines": 249,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/DesktopWorktreeControls.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 13,
+          "deletions": 14,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/SessionTree.tsx": {
+          "additions": 33,
+          "deletions": 12,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 9,
+          "deletions": 19,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/DesktopWorkdirSelector.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 9,
+          "deletions": 8,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 64,
+          "deletions": 9,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/components/MessageList.tsx": {
+          "deletions": 1
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
