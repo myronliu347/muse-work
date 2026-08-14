@@ -1,0 +1,73 @@
+packages/webview/tests/muse/hostBridge.test.ts
+  25874284e31bf936 1187-1229
+packages/server/tests/sessions.ws.test.ts
+  25874284e31bf936 268-328
+packages/webview/tests/reducers/chatReducer.test.ts
+  25874284e31bf936 719-754
+packages/server/src/sessionRunner.ts
+  25874284e31bf936 686-688,690-691,693
+packages/webview/src/reducers/chatReducer.ts
+  25874284e31bf936 666,668-670,685-689
+packages/webview/src/muse/wsClient.ts
+  25874284e31bf936 33
+packages/webview/src/muse/hostBridge.ts
+  25874284e31bf936 798-809
+packages/server/src/wsEvents.ts
+  25874284e31bf936 57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fe9c19178452cb41560aa7246a81653b14ff1334",
+  "prompts": {
+    "25874284e31bf936": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e7bb6f75-d847-4391-ba76-7a6c5f42b29a",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 170,
+      "total_deletions": 27,
+      "accepted_lines": 170,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 61,
+          "accepted_lines": 61
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 43,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 10,
+          "deletions": 24,
+          "accepted_lines": 10
+        },
+        "packages/server/src/wsEvents.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
