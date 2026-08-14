@@ -683,11 +683,14 @@ export function createSessionRunner(
           if (disposed.has(sessionId)) return;
           // User-initiated abort surfaces as "Request was aborted" — not a session error.
           if (isAbortError(error)) return;
+          // Compact / LLM errors are transcript blocks, not a dead session.
+          // Ending the turn here would drop follow-up sends into the queue
+          // while the SDK is still running (or hung on oversized context).
           hub.broadcast(sessionId, {
-            type: "session:status",
-            status: "error",
-            error,
+            type: "compaction:state",
+            isCompacting: false,
           });
+          hub.broadcast(sessionId, { type: "error:block", error });
         },
         onCompactionStateChange: (isCompacting) => {
           if (disposed.has(sessionId)) return;

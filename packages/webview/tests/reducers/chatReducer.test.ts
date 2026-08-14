@@ -716,6 +716,42 @@ describe("chatReducer", () => {
       expect(newState.messages[0].blocks).toHaveLength(1);
     });
 
+    it("should open a new assistant message when the latest turn is a user follow-up", () => {
+      const assistantMessage: Message = {
+        id: "msg-1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "working", stage: "end" }],
+      };
+      const userFollowUp: Message = {
+        id: "msg-2",
+        role: "user",
+        timestamp: "1",
+        blocks: [{ type: "text", content: "改了么", stage: "end" }],
+      };
+      const state = {
+        ...initialState,
+        messages: [assistantMessage, userFollowUp],
+      };
+
+      const newState = chatReducer(state, {
+        type: "APPEND_ERROR_BLOCK",
+        payload: {
+          error:
+            "Failed to compact conversation history: Compaction failed: the model produced no summary output.",
+        },
+      });
+
+      expect(newState.messages).toHaveLength(3);
+      expect(newState.messages[0].blocks).toHaveLength(1);
+      expect(newState.messages[1]).toBe(userFollowUp);
+      const errorMessage = newState.messages[2];
+      expect(errorMessage.role).toBe("assistant");
+      const errorBlock = errorMessage.blocks[0] as ErrorBlock;
+      expect(errorBlock.type).toBe("error");
+      expect(errorBlock.content).toContain("Failed to compact");
+    });
+
     it("should create a new assistant message with error block if no assistant message exists", () => {
       const userMessage: Message = {
         id: "msg-1",

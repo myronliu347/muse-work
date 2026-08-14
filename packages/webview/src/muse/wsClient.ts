@@ -30,6 +30,7 @@ export type MuseWsEventPayload =
   | { type: "session:status"; status: string; error?: string }
   | { type: "auth:changed"; status: unknown }
   | { type: "compaction:state"; isCompacting: boolean }
+  | { type: "error:block"; error: string }
   | { type: "messages:replace"; messages: unknown[] }
   | {
       type: "subagent:assistant:message";

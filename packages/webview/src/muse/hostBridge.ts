@@ -795,6 +795,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "error:block") {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: event.error?.trim() || "Session error",
+      });
+      postToWebview({
+        command: "compactionStateChange",
+        isCompacting: false,
+      });
+      return;
+    }
+
     if (event.type === "compaction:state") {
       postToWebview({
         command: "compactionStateChange",

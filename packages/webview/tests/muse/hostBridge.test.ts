@@ -1184,6 +1184,49 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).not.toContainEqual({ command: "startStreaming" });
   });
 
+  it("surfaces error:block without ending the in-flight turn", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({ type: "loading", sessionId: "sess-active", loading: true });
+    expect(messages).toContainEqual({ command: "startStreaming" });
+    messages.length = 0;
+
+    const compactError =
+      "Failed to compact conversation history: Compaction failed: the model produced no summary output.";
+    handler!({
+      type: "error:block",
+      sessionId: "sess-active",
+      error: compactError,
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "updateErrorBlock",
+      error: compactError,
+    });
+    expect(messages).toContainEqual({
+      command: "compactionStateChange",
+      isCompacting: false,
+    });
+    expect(messages).not.toContainEqual({ command: "endStreaming" });
+  });
+
   it("forwards compaction; does not promote subagent events to top-level messages", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

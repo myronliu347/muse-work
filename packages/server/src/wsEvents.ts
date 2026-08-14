@@ -54,6 +54,7 @@ export type WsEvent =
   | { type: "session:unread"; sessionId: string; unreadDone: boolean }
   | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus }
   | { type: "compaction:state"; isCompacting: boolean }
+  | { type: "error:block"; error: string }
   | { type: "messages:replace"; messages: unknown[] }
   | {
       type: "subagent:assistant:message";

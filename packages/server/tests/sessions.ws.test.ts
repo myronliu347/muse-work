@@ -265,6 +265,67 @@ describe("sessions + websocket streaming", () => {
     );
   });
 
+  it("forwards SDK error blocks without treating them as a fatal session error", async () => {
+    const compactError =
+      "Failed to compact conversation history: Compaction failed: the model produced no summary output. You may encounter context limit issues.";
+    const createAgent: CreateAgent = async (opts) => ({
+      sendMessage: async () => {
+        opts.callbacks?.onLoadingChange?.(true);
+        opts.callbacks?.onCompactionStateChange?.(true);
+        opts.callbacks?.onErrorBlockAdded?.(compactError);
+        opts.callbacks?.onCompactionStateChange?.(false);
+        opts.callbacks?.onLoadingChange?.(false);
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 3,
+      filter: (e) =>
+        e.type === "error:block" ||
+        e.type === "compaction:state" ||
+        (e.type === "session:status" && e.status === "error"),
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "continue" }),
+    });
+
+    const received = await events;
+    expect(received).toEqual(
+      expect.arrayContaining([
+        {
+          type: "compaction:state",
+          isCompacting: true,
+          sessionId: session.id,
+        },
+        { type: "error:block", error: compactError, sessionId: session.id },
+        {
+          type: "compaction:state",
+          isCompacting: false,
+          sessionId: session.id,
+        },
+      ]),
+    );
+    expect(
+      received.some((e) => e.type === "session:status" && e.status === "error"),
+    ).toBe(false);
+  });
+
   it("attaches nested Agent transcripts on GET messages", async () => {
     const nested = [
       {

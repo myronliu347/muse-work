@@ -663,19 +663,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case "APPEND_ERROR_BLOCK": {
       const { error } = action.payload;
       const newErrorBlock: ErrorBlock = { type: "error", content: error };
+      const last = state.messages[state.messages.length - 1];
 
-      // Find the last assistant message
-      let targetIndex = -1;
-      for (let i = state.messages.length - 1; i >= 0; i--) {
-        if (state.messages[i].role === "assistant") {
-          targetIndex = i;
-          break;
-        }
-      }
-
-      // No assistant message yet (e.g. API error before any streaming chunk).
-      // Create one to carry the error block instead of silently dropping it.
-      if (targetIndex === -1) {
+      // Compact / LLM errors must appear after the latest user send. Attaching
+      // them to an older assistant bubble hides the failure above the follow-up.
+      if (!last || last.role !== "assistant") {
         const errorMessage: Message = {
           id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
           role: "assistant",
@@ -688,19 +680,13 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         };
       }
 
-      const message = state.messages[targetIndex];
-      const newBlocks = [...message.blocks, newErrorBlock];
-
-      const newMessages = state.messages.map((m, idx) => {
-        if (idx === targetIndex) {
-          return { ...m, blocks: newBlocks };
-        }
-        return m;
-      });
-
       return {
         ...state,
-        messages: newMessages,
+        messages: state.messages.map((m, idx) =>
+          idx === state.messages.length - 1
+            ? { ...m, blocks: [...m.blocks, newErrorBlock] }
+            : m,
+        ),
       };
     }
     // Bang message incremental updates (keyed by messageId). Mirrors the CLI's
