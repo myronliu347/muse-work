@@ -4,13 +4,18 @@ import path from "node:path";
 import { getSessionsConfigPath } from "@muse-work/provider";
 
 export type SessionStatus = "idle" | "running" | "error";
+export type MusePermissionMode = "acceptEdits" | "bypassPermissions";
+
+export function normalizePermissionMode(value: unknown): MusePermissionMode {
+  return value === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
+}
 
 export interface Session {
   id: string;
   waveSessionId?: string;
   title: string;
   workdir: string;
-  permissionMode: "acceptEdits";
+  permissionMode: MusePermissionMode;
   model: string;
   pinned: boolean;
   createdAt: number;
@@ -129,6 +134,7 @@ export function createSessionStore(
     if (wasRunning) recoveredRunning = true;
     sessions.set(record.id, {
       ...record,
+      permissionMode: normalizePermissionMode(record.permissionMode),
       status: "idle",
       ...(wasRunning ? { interrupted: true } : {}),
     });

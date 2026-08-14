@@ -1086,6 +1086,75 @@ describe("chatReducer", () => {
 
       expect(newState.currentSession).toBeUndefined();
     });
+
+    it("clears background tasks when switching to another session", () => {
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const state = {
+        ...initialState,
+        currentSession,
+        backgroundTasks: [
+          {
+            id: "task_138_1",
+            type: "workflow" as const,
+            status: "running" as const,
+            startTime: 1,
+            description: "Workflow: Icap-ide-analysis",
+          },
+        ],
+        workflowRuns: [{ runId: "r1" } as never],
+        tasks: [{ id: "t1" } as never],
+      };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: {
+          id: "s2",
+          sessionType: "main",
+          workdir: "/w",
+          createdAt: new Date(0),
+          lastActiveAt: new Date(0),
+          latestTotalTokens: 0,
+        },
+      });
+
+      expect(newState.backgroundTasks).toEqual([]);
+      expect(newState.workflowRuns).toEqual([]);
+      expect(newState.tasks).toEqual([]);
+    });
+
+    it("keeps background tasks when the same session is patched", () => {
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const backgroundTasks = [
+        {
+          id: "task_138_1",
+          type: "workflow" as const,
+          status: "running" as const,
+          startTime: 1,
+        },
+      ];
+      const state = { ...initialState, currentSession, backgroundTasks };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: { ...currentSession, firstMessage: "same session" },
+      });
+
+      expect(newState.backgroundTasks).toEqual(backgroundTasks);
+    });
   });
 
   describe("SET_INITIAL_STATE", () => {

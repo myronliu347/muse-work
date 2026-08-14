@@ -44,6 +44,8 @@ function stubApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
     sendMessage: vi.fn(async () => ({ accepted: true as const })),
     abortMessage: vi.fn(async () => ({ ok: true as const })),
     respondPermission: vi.fn(async () => ({ ok: true as const })),
+    getBackgroundTasks: vi.fn(async () => ({ tasks: [] })),
+    getWorkflowRuns: vi.fn(async () => ({ runs: [] })),
     ...overrides,
   } as unknown as MuseApiClient;
 }
@@ -439,6 +441,15 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       ?.flatMap((g) => g.sessions)
       .find((s) => s.sessionId === "sess-active");
     expect(entry?.title).toBe("Renamed");
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateCurrentSession",
+        session: expect.objectContaining({
+          id: "sess-active",
+          title: "Renamed",
+        }),
+      }),
+    );
   });
 
   it("newSession with workdir preselects directory for createSession", async () => {

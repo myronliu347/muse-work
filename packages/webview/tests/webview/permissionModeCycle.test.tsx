@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   renderChatApp,
@@ -13,13 +14,13 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     vi.clearAllMocks();
   });
 
-  it("should cycle forward: default -> acceptEdits -> bypassPermissions -> plan", async () => {
+  it("should cycle acceptEdits <-> bypassPermissions", async () => {
     const { vscode } = renderChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
         messages: [],
-        permissionMode: "default",
+        permissionMode: "acceptEdits",
         configurationData: {},
       });
     });
@@ -28,25 +29,8 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     const select = document.querySelector(
       ".permission-mode-select",
     ) as HTMLElement;
-    expect(select.className).toContain("mode-default");
-
-    // default -> acceptEdits
-    vscode.postMessage.mockClear();
-    await act(async () => {
-      fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
-    });
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "setPermissionMode",
-        mode: "acceptEdits",
-      });
-    });
-    await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "acceptEdits" });
-    });
     expect(select.className).toContain("mode-acceptEdits");
 
-    // acceptEdits -> bypassPermissions
     vscode.postMessage.mockClear();
     await act(async () => {
       fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
@@ -62,7 +46,6 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     });
     expect(select.className).toContain("mode-bypassPermissions");
 
-    // bypassPermissions -> plan
     vscode.postMessage.mockClear();
     await act(async () => {
       fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
@@ -70,46 +53,13 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     await waitFor(() => {
       expect(vscode.postMessage).toHaveBeenCalledWith({
         command: "setPermissionMode",
-        mode: "plan",
+        mode: "acceptEdits",
       });
     });
     await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "plan" });
+      sendCommand("updatePermissionMode", { mode: "acceptEdits" });
     });
-    expect(select.className).toContain("mode-plan");
-  });
-
-  it("should wrap around from plan back to default", async () => {
-    const { vscode } = renderChatApp();
-
-    await act(async () => {
-      sendCommand("setInitialState", {
-        messages: [],
-        permissionMode: "plan",
-        configurationData: {},
-      });
-    });
-
-    const input = screen.getByTestId("message-input");
-    const select = document.querySelector(
-      ".permission-mode-select",
-    ) as HTMLElement;
-    expect(select.className).toContain("mode-plan");
-
-    vscode.postMessage.mockClear();
-    await act(async () => {
-      fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
-    });
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "setPermissionMode",
-        mode: "default",
-      });
-    });
-    await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "default" });
-    });
-    expect(select.className).toContain("mode-default");
+    expect(select.className).toContain("mode-acceptEdits");
   });
 
   it("should update the select visual style when mode changes via extension update", async () => {
@@ -118,7 +68,7 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     await act(async () => {
       sendCommand("setInitialState", {
         messages: [],
-        permissionMode: "default",
+        permissionMode: "acceptEdits",
         configurationData: {},
       });
     });
@@ -126,14 +76,13 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
     const select = document.querySelector(
       ".permission-mode-select",
     ) as HTMLElement;
-    expect(select.className).toContain("mode-default");
+    expect(select.className).toContain("mode-acceptEdits");
 
-    // Simulate extension sending a different mode (e.g. from external change)
     await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "plan" });
+      sendCommand("updatePermissionMode", { mode: "bypassPermissions" });
     });
 
-    expect(select.className).toContain("mode-plan");
-    expect(select.className).not.toContain("mode-default");
+    expect(select.className).toContain("mode-bypassPermissions");
+    expect(select.className).not.toContain("mode-acceptEdits");
   });
 });

@@ -181,6 +181,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let state: unknown = null;
   let bootstrapped = false;
   let loading = false;
+  let latestTokens = 0;
   let wsConnected = false;
   let toastedInterrupted = false;
   let wsEverOpened = false;
@@ -535,6 +536,27 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     postToWebview({ command: "updateMessages", messages });
   };
 
+  const pushSessionControlState = async (id: string): Promise<void> => {
+    try {
+      const { tasks } = await api.getBackgroundTasks(id);
+      postToWebview({
+        command: "updateBackgroundTasks",
+        tasks: Array.isArray(tasks) ? tasks : [],
+      });
+    } catch {
+      postToWebview({ command: "updateBackgroundTasks", tasks: [] });
+    }
+    try {
+      const { runs } = await api.getWorkflowRuns(id);
+      postToWebview({
+        command: "updateWorkflowRuns",
+        runs: Array.isArray(runs) ? runs : [],
+      });
+    } catch {
+      postToWebview({ command: "updateWorkflowRuns", runs: [] });
+    }
+  };
+
   const activateSession = async (id: string): Promise<MuseSession> => {
     pendingNewSession = false;
     suppressWorkdirPush = false;
@@ -547,6 +569,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     resetChatStreaming();
     emitCurrentSession(session);
     await loadMessages(session.id);
+    await pushSessionControlState(session.id);
     await refreshTree();
     const pending = pendingPermissions.get(session.id);
     if (pending) {
@@ -562,6 +585,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     draftModel = undefined;
     resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
+    postToWebview({ command: "updateBackgroundTasks", tasks: [] });
+    postToWebview({ command: "updateWorkflowRuns", runs: [] });
+    postToWebview({ command: "updateTasks", tasks: [] });
     if (workdir) {
       // Workdir-group "+": draft session with that directory pre-selected.
       suppressWorkdirPush = false;
@@ -821,6 +847,31 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         subagentId: event.subagentId,
         messages: event.messages,
       });
+      return;
+    }
+
+    if (event.type === "tasks:update") {
+      postToWebview({ command: "updateTasks", tasks: event.tasks });
+      return;
+    }
+    if (event.type === "background-tasks:update") {
+      postToWebview({ command: "updateBackgroundTasks", tasks: event.tasks });
+      return;
+    }
+    if (event.type === "workflow-runs:update") {
+      postToWebview({ command: "updateWorkflowRuns", runs: event.runs });
+      return;
+    }
+    if (event.type === "mcp:update") {
+      postToWebview({ command: "mcpServersUpdate", servers: event.servers });
+      return;
+    }
+    if (event.type === "permission-mode") {
+      postToWebview({ command: "updatePermissionMode", mode: event.mode });
+      return;
+    }
+    if (event.type === "tokens:update") {
+      latestTokens = event.latestTotalTokens;
       return;
     }
   };
@@ -1141,6 +1192,255 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  const FALLBACK_SLASH_COMMANDS = [
+    { id: "compact", name: "compact", description: "压缩会话上下文" },
+    { id: "clear", name: "clear", description: "清空当前会话" },
+    { id: "rewind", name: "rewind", description: "回滚到检查点" },
+    { id: "mcp", name: "mcp", description: "MCP 服务器" },
+    { id: "status", name: "status", description: "会话状态" },
+    { id: "tasks", name: "tasks", description: "后台任务" },
+    { id: "workflows", name: "workflows", description: "工作流" },
+  ];
+
+  async function handleRequestSlashCommands(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({
+        command: "slashCommandsResponse",
+        commands: FALLBACK_SLASH_COMMANDS,
+      });
+      return;
+    }
+    try {
+      const { commands } = await api.getSlashCommands(sessionId);
+      postToWebview({ command: "slashCommandsResponse", commands });
+    } catch {
+      postToWebview({
+        command: "slashCommandsResponse",
+        commands: FALLBACK_SLASH_COMMANDS,
+      });
+    }
+  }
+
+  async function handleClearChat(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({ command: "updateMessages", messages: [] });
+      return;
+    }
+    try {
+      await api.clear(sessionId);
+      const { messages } = await api.getMessages(sessionId);
+      postToWebview({ command: "updateMessages", messages });
+    } catch (err) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async function handleCompactChat(): Promise<void> {
+    if (!sessionId || pendingNewSession) return;
+    try {
+      if (loading) await handleAbortMessage();
+      await api.compact(sessionId);
+    } catch (err) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async function handleListRewindCheckpoints(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({ command: "rewindCheckpoints", checkpoints: [] });
+      return;
+    }
+    try {
+      const { checkpoints } = await api.listRewindCheckpoints(sessionId);
+      postToWebview({ command: "rewindCheckpoints", checkpoints });
+    } catch {
+      postToWebview({ command: "rewindCheckpoints", checkpoints: [] });
+    }
+  }
+
+  async function handleRewindToMessage(msg: {
+    messageId?: string;
+  }): Promise<void> {
+    const messageId = typeof msg.messageId === "string" ? msg.messageId : "";
+    if (!messageId || !sessionId || pendingNewSession) return;
+    try {
+      if (loading) await handleAbortMessage();
+      const result = await api.rewind(sessionId, messageId);
+      const { messages } = await api.getMessages(sessionId);
+      postToWebview({
+        command: "setInitialState",
+        messages,
+        inputContent: result.inputContent,
+      });
+    } catch (err) {
+      postToWebview({
+        command: "updateErrorBlock",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async function handleSetPermissionMode(msg: { mode?: string }): Promise<void> {
+    const mode =
+      msg.mode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
+    postToWebview({ command: "updatePermissionMode", mode });
+    if (!sessionId || pendingNewSession) return;
+    try {
+      await api.patchSession(sessionId, { permissionMode: mode });
+    } catch {
+      // Keep optimistic UI; next session load will reconcile.
+    }
+  }
+
+  async function handleGetMcpServers(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({ command: "mcpServersResponse", servers: [] });
+      return;
+    }
+    try {
+      const { servers } = await api.getMcpServers(sessionId);
+      postToWebview({ command: "mcpServersResponse", servers });
+    } catch {
+      postToWebview({ command: "mcpServersResponse", servers: [] });
+    }
+  }
+
+  async function handleConnectMcpServer(msg: {
+    serverName?: string;
+  }): Promise<void> {
+    const name = typeof msg.serverName === "string" ? msg.serverName : "";
+    if (!name || !sessionId || pendingNewSession) return;
+    try {
+      await api.connectMcpServer(sessionId, name);
+      const { servers } = await api.getMcpServers(sessionId);
+      postToWebview({ command: "mcpServersUpdate", servers });
+    } catch {
+      // McpDialog stays on previous list.
+    }
+  }
+
+  async function handleDisconnectMcpServer(msg: {
+    serverName?: string;
+  }): Promise<void> {
+    const name = typeof msg.serverName === "string" ? msg.serverName : "";
+    if (!name || !sessionId || pendingNewSession) return;
+    try {
+      await api.disconnectMcpServer(sessionId, name);
+      const { servers } = await api.getMcpServers(sessionId);
+      postToWebview({ command: "mcpServersUpdate", servers });
+    } catch {
+      // McpDialog stays on previous list.
+    }
+  }
+
+  async function handleGetStatus(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({
+        command: "statusResponse",
+        sessionId: "",
+        workdir: currentWorkdir,
+        latestTotalTokens: latestTokens,
+      });
+      return;
+    }
+    try {
+      const status = await api.getSessionStatus(sessionId);
+      latestTokens = status.latestTotalTokens;
+      postToWebview({
+        command: "statusResponse",
+        sessionId: status.sessionId,
+        workdir: status.workdir,
+        latestTotalTokens: status.latestTotalTokens,
+        permissionMode: status.permissionMode,
+      });
+    } catch {
+      postToWebview({
+        command: "statusResponse",
+        sessionId,
+        workdir: currentWorkdir,
+        latestTotalTokens: latestTokens,
+      });
+    }
+  }
+
+  async function handleGetBackgroundTasks(): Promise<void> {
+    if (!sessionId || pendingNewSession) return;
+    try {
+      const { tasks } = await api.getBackgroundTasks(sessionId);
+      postToWebview({ command: "updateBackgroundTasks", tasks });
+    } catch {
+      // Keep the WS snapshot; opening /tasks should not wipe a live list.
+    }
+  }
+
+  async function handleGetBackgroundTaskOutput(msg: {
+    taskId?: string;
+  }): Promise<void> {
+    const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
+    if (!taskId || !sessionId || pendingNewSession) return;
+    try {
+      const { output } = await api.getBackgroundTaskOutput(sessionId, taskId);
+      postToWebview({
+        command: "backgroundTaskOutput",
+        taskId,
+        output:
+          output && typeof output === "object"
+            ? output
+            : { stdout: "", stderr: "", status: "failed" },
+      });
+    } catch {
+      postToWebview({
+        command: "backgroundTaskOutput",
+        taskId,
+        output: { stdout: "", stderr: "", status: "failed" },
+      });
+    }
+  }
+
+  async function handleStopBackgroundTask(msg: {
+    taskId?: string;
+  }): Promise<void> {
+    const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
+    if (!taskId || !sessionId || pendingNewSession) return;
+    try {
+      await api.stopBackgroundTask(sessionId, taskId);
+    } catch {
+      // Still release the dialog stop spinner.
+    }
+    postToWebview({ command: "backgroundTaskStopped", taskId });
+    await handleGetBackgroundTasks();
+  }
+
+  async function handleGetWorkflowRuns(): Promise<void> {
+    if (!sessionId || pendingNewSession) {
+      postToWebview({ command: "updateWorkflowRuns", runs: [] });
+      return;
+    }
+    try {
+      const { runs } = await api.getWorkflowRuns(sessionId);
+      postToWebview({ command: "updateWorkflowRuns", runs });
+    } catch {
+      postToWebview({ command: "updateWorkflowRuns", runs: [] });
+    }
+  }
+
+  async function handleStopWorkflowRun(msg: { runId?: string }): Promise<void> {
+    const runId = typeof msg.runId === "string" ? msg.runId : "";
+    if (!runId || !sessionId || pendingNewSession) return;
+    try {
+      await api.stopWorkflowRun(sessionId, runId);
+      postToWebview({ command: "workflowRunStopped", runId });
+    } catch {
+      postToWebview({ command: "workflowRunStopped", runId });
+    }
+  }
+
   async function handleDesktopCreateWorktree(msg: {
     workdir?: string;
     baseBranch?: string;
@@ -1417,6 +1717,51 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "abortMessage":
           void handleAbortMessage();
+          return;
+        case "requestSlashCommands":
+          void handleRequestSlashCommands();
+          return;
+        case "clearChat":
+          void handleClearChat();
+          return;
+        case "compactChat":
+          void handleCompactChat();
+          return;
+        case "listRewindCheckpoints":
+          void handleListRewindCheckpoints();
+          return;
+        case "rewindToMessage":
+          void handleRewindToMessage(msg as { messageId?: string });
+          return;
+        case "setPermissionMode":
+          void handleSetPermissionMode(msg as { mode?: string });
+          return;
+        case "getMcpServers":
+          void handleGetMcpServers();
+          return;
+        case "connectMcpServer":
+          void handleConnectMcpServer(msg as { serverName?: string });
+          return;
+        case "disconnectMcpServer":
+          void handleDisconnectMcpServer(msg as { serverName?: string });
+          return;
+        case "getStatus":
+          void handleGetStatus();
+          return;
+        case "getBackgroundTaskOutput":
+          void handleGetBackgroundTaskOutput(msg as { taskId?: string });
+          return;
+        case "getBackgroundTasks":
+          void handleGetBackgroundTasks();
+          return;
+        case "stopBackgroundTask":
+          void handleStopBackgroundTask(msg as { taskId?: string });
+          return;
+        case "getWorkflowRuns":
+          void handleGetWorkflowRuns();
+          return;
+        case "stopWorkflowRun":
+          void handleStopWorkflowRun(msg as { runId?: string });
           return;
         case "desktopCreateWorktree": {
           void handleDesktopCreateWorktree(

@@ -285,7 +285,13 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case "SET_CURRENT_SESSION": {
       const session = action.payload;
       if (!session) {
-        return { ...state, currentSession: undefined };
+        return {
+          ...state,
+          currentSession: undefined,
+          backgroundTasks: [],
+          workflowRuns: [],
+          tasks: [],
+        };
       }
       // The backend pushes a currentSession without firstMessage on session
       // switch, but the sessions list carries the authoritative firstMessage
@@ -299,7 +305,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           currentSession = { ...session, firstMessage: existing.firstMessage };
         }
       }
-      return { ...state, currentSession };
+      const switched = state.currentSession?.id !== currentSession.id;
+      return {
+        ...state,
+        currentSession,
+        ...(switched
+          ? { backgroundTasks: [], workflowRuns: [], tasks: [] }
+          : {}),
+      };
     }
     case "SET_SESSIONS_LOADING":
       return {

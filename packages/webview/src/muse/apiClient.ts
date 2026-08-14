@@ -75,7 +75,7 @@ export interface MuseSession {
   title: string;
   model: string;
   pinned: boolean;
-  permissionMode?: string;
+  permissionMode?: "acceptEdits" | "bypassPermissions";
   waveSessionId?: string;
   worktreeName?: string;
   worktreeBranch?: string;
@@ -249,7 +249,7 @@ export class MuseApiClient {
 
   async patchSession(
     id: string,
-    patch: Partial<Pick<MuseSession, "title" | "pinned" | "model">>,
+    patch: Partial<Pick<MuseSession, "title" | "pinned" | "model" | "permissionMode">>,
   ): Promise<MuseSession> {
     const res = await this.request(`/sessions/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -334,6 +334,149 @@ export class MuseApiClient {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       },
+    );
+    return parseJson(res);
+  }
+
+  async compact(sessionId: string): Promise<{ ok: true }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/compact`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async clear(sessionId: string): Promise<{ ok: true }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/clear`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async listRewindCheckpoints(
+    sessionId: string,
+  ): Promise<{ checkpoints: Array<{ id: string; content: string }> }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/rewind-checkpoints`,
+    );
+    return parseJson(res);
+  }
+
+  async rewind(
+    sessionId: string,
+    messageId: string,
+  ): Promise<{ ok: true; inputContent: string }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/rewind`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      },
+    );
+    return parseJson(res);
+  }
+
+  async getSlashCommands(
+    sessionId: string,
+  ): Promise<{ commands: Array<{ id: string; name: string; description: string }> }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/slash-commands`,
+    );
+    return parseJson(res);
+  }
+
+  async getSessionStatus(sessionId: string): Promise<{
+    sessionId: string;
+    workdir: string;
+    permissionMode: string;
+    latestTotalTokens: number;
+    waveSessionId?: string;
+  }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/status`,
+    );
+    return parseJson(res);
+  }
+
+  async getMcpServers(
+    sessionId: string,
+  ): Promise<{ servers: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/mcp`,
+    );
+    return parseJson(res);
+  }
+
+  async connectMcpServer(
+    sessionId: string,
+    name: string,
+  ): Promise<{ ok: boolean }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/mcp/${encodeURIComponent(name)}/connect`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async disconnectMcpServer(
+    sessionId: string,
+    name: string,
+  ): Promise<{ ok: boolean }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/mcp/${encodeURIComponent(name)}/disconnect`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async getBackgroundTaskOutput(
+    sessionId: string,
+    taskId: string,
+  ): Promise<{ output: unknown }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/background-tasks/${encodeURIComponent(taskId)}/output`,
+    );
+    return parseJson(res);
+  }
+
+  async getBackgroundTasks(
+    sessionId: string,
+  ): Promise<{ tasks: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/background-tasks`,
+    );
+    return parseJson(res);
+  }
+
+  async stopBackgroundTask(
+    sessionId: string,
+    taskId: string,
+  ): Promise<{ ok: boolean }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/background-tasks/${encodeURIComponent(taskId)}/stop`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async getWorkflowRuns(
+    sessionId: string,
+  ): Promise<{ runs: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/workflows`,
+    );
+    return parseJson(res);
+  }
+
+  async stopWorkflowRun(
+    sessionId: string,
+    runId: string,
+  ): Promise<{ ok: true }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/workflows/${encodeURIComponent(runId)}/stop`,
+      { method: "POST" },
     );
     return parseJson(res);
   }

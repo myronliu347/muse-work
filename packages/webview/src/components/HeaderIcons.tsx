@@ -151,7 +151,7 @@ export const PlusIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-// Toolbar "/" (slash inside a rounded square) — Figma 13x13 glyph centered in a padded 16x16 box.
+// Toolbar slash command — a plain "/" so it is not read as a boxed null glyph.
 export const SlashBoxIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (
@@ -162,16 +162,12 @@ export const SlashBoxIcon: React.FC<IconProps> = ({
     fill="none"
     className={className}
   >
-    <g transform="translate(1.5 1.5)">
-      <path
-        d="M4.82275 10.3555H3.72607L8.16748 2.64453H9.27393L4.82275 10.3555Z"
-        fill="currentColor"
-      />
-      <path
-        d="M0.5 0H12.5L13 0.5V12.5L12.5 13H0.5L0 12.5V0.5L0.5 0ZM1 12H12V1H1V12Z"
-        fill="currentColor"
-      />
-    </g>
+    <path
+      d="M10.75 3.25L5.25 12.75"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
   </svg>
 );
 

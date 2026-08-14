@@ -60,7 +60,16 @@ export type MuseWsEventPayload =
       subagentId: string;
       messages: unknown[];
     }
-  | { type: "session:unread"; unreadDone: boolean };
+  | { type: "session:unread"; unreadDone: boolean }
+  | { type: "tasks:update"; tasks: unknown[] }
+  | { type: "background-tasks:update"; tasks: unknown[] }
+  | { type: "workflow-runs:update"; runs: unknown[] }
+  | { type: "mcp:update"; servers: unknown[] }
+  | {
+      type: "permission-mode";
+      mode: "acceptEdits" | "bypassPermissions";
+    }
+  | { type: "tokens:update"; latestTotalTokens: number };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

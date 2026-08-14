@@ -83,7 +83,16 @@ export type WsEvent =
       type: "subagent:messages";
       subagentId: string;
       messages: unknown[];
-    };
+    }
+  | { type: "tasks:update"; tasks: unknown[] }
+  | { type: "background-tasks:update"; tasks: unknown[] }
+  | { type: "workflow-runs:update"; runs: unknown[] }
+  | { type: "mcp:update"; servers: unknown[] }
+  | {
+      type: "permission-mode";
+      mode: "acceptEdits" | "bypassPermissions";
+    }
+  | { type: "tokens:update"; latestTotalTokens: number };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };
 

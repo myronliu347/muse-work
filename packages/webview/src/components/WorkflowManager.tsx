@@ -48,6 +48,10 @@ const WorkflowManager: React.FC<
   const selectedRun = runs.find((r) => r.runId === selectedRunId) || null;
 
   useEffect(() => {
+    vscode?.postMessage({ command: "getWorkflowRuns" });
+  }, [vscode]);
+
+  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
       if (message.command === "workflowRunStopped") {
@@ -104,7 +108,7 @@ const WorkflowManager: React.FC<
           <div className="mcp-server-info">
             <div className="mcp-server-header">
               <span style={{ color: statusColor(selectedRun.status) }}>●</span>
-              <span className="mcp-server-name">{selectedRun.meta.name}</span>
+              <span className="mcp-server-name">{selectedRun.meta?.name}</span>
               <span
                 style={{
                   color: statusColor(selectedRun.status),
@@ -123,7 +127,7 @@ const WorkflowManager: React.FC<
               <span style={{ color: "#569cd6" }}>Run ID:</span>{" "}
               {selectedRun.runId}
             </div>
-            {selectedRun.meta.description && (
+            {selectedRun.meta?.description && (
               <div
                 style={{
                   fontSize: "12px",
@@ -202,7 +206,7 @@ const WorkflowManager: React.FC<
           </div>
         </div>
 
-        {selectedRun.phases.length > 0 && (
+        {selectedRun.phases?.length ? (
           <div style={{ marginTop: "12px" }}>
             <div
               style={{
@@ -230,7 +234,7 @@ const WorkflowManager: React.FC<
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     );
   };
@@ -241,7 +245,8 @@ const WorkflowManager: React.FC<
         const elapsed = run.endTime
           ? run.endTime - run.startTime
           : Date.now() - run.startTime;
-        const phaseText = run.phases.map((p) => p.title).join(" → ");
+        const phases = run.phases ?? [];
+        const phaseText = phases.map((p) => p.title).join(" → ");
         return (
           <div
             key={run.runId}
@@ -253,7 +258,7 @@ const WorkflowManager: React.FC<
               <div className="mcp-server-header">
                 <span style={{ color: statusColor(run.status) }}>●</span>
                 <span className="mcp-server-name">
-                  [{run.runId.slice(0, 8)}] {run.meta.name}
+                  [{run.runId.slice(0, 8)}] {run.meta?.name}
                 </span>
                 <span
                   style={{ color: statusColor(run.status), fontSize: "12px" }}
@@ -261,7 +266,7 @@ const WorkflowManager: React.FC<
                   {run.status}
                 </span>
               </div>
-              {run.meta.description && (
+              {run.meta?.description && (
                 <div
                   style={{
                     fontSize: "12px",
@@ -287,7 +292,7 @@ const WorkflowManager: React.FC<
                     color: "var(--vscode-descriptionForeground)",
                   }}
                 >
-                  {run.phases.map((p, pi) => (
+                  {phases.map((p, pi) => (
                     <React.Fragment key={pi}>
                       {pi > 0 && " → "}
                       {p.title}

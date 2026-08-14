@@ -14,9 +14,12 @@ import ReactDOM from "react-dom/client";
 import type {
   MessageInputProps,
   FileItem,
+  SlashCommand,
   AttachedImage,
+  PermissionMode,
 } from "../types";
 import { FileSuggestionDropdown } from "./FileSuggestionDropdown";
+import { SlashCommandsPopup, orderSlashCommands } from "./SlashCommandsPopup";
 import { AttachedImages } from "./AttachedImages";
 import {
   dirFromRelativePath,
@@ -25,7 +28,12 @@ import {
   parentBrowsePath,
   resolveFileMentionKey,
 } from "../utils/fileMentionBrowse";
-import { QueueSendIcon } from "./HeaderIcons";
+import {
+  QueueSendIcon,
+  SlashBoxIcon,
+  PermModeAcceptIcon,
+  PermModeBypassIcon,
+} from "./HeaderIcons";
 import { MuseModelSelect } from "./MuseModelSelect";
 import "../styles/MessageInput.css";
 
@@ -35,6 +43,46 @@ interface AtMentionState {
   startPos: number;
   endPos: number;
 }
+
+interface SlashCommandState {
+  isActive: boolean;
+  filterText: string;
+  startPos: number;
+  endPos: number;
+}
+
+function findTextOffset(
+  container: Node,
+  offset: number,
+): { node: Text; offset: number } | null {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let acc = 0;
+  let textNode = walker.nextNode() as Text | null;
+  while (textNode) {
+    const len = textNode.textContent?.length ?? 0;
+    if (acc + len >= offset) {
+      return { node: textNode, offset: offset - acc };
+    }
+    acc += len;
+    textNode = walker.nextNode() as Text | null;
+  }
+  return null;
+}
+
+const PERMISSION_MODES: { value: PermissionMode; label: string }[] = [
+  { value: "acceptEdits", label: "自动接受修改" },
+  { value: "bypassPermissions", label: "跳过权限确认" },
+];
+
+const permissionModeLabel = (m?: PermissionMode): string =>
+  PERMISSION_MODES.find((x) => x.value === m)?.label ?? "自动接受修改";
+
+const permissionModeIcon = (m?: PermissionMode): React.ReactNode => {
+  if (m === "bypassPermissions") {
+    return <PermModeBypassIcon className="permission-mode-icon" />;
+  }
+  return <PermModeAcceptIcon className="permission-mode-icon" />;
+};
 
 export interface MessageInputHandle {
   focus: () => void;
@@ -57,6 +105,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       vscode,
       inputContent,
       sessionId,
+      permissionMode,
       initialAttachedImages,
       workdirSelector,
       rewindPopup,
@@ -69,15 +118,55 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     } = props;
     const [message, setMessage] = useState("");
 
+    const [permMenuOpen, setPermMenuOpen] = useState(false);
+    const permMenuRef = useRef<HTMLDivElement>(null);
+
+    const handlePermissionModeSelect = useCallback(
+      (mode: PermissionMode) => {
+        vscode.postMessage({
+          command: "setPermissionMode",
+          mode: mode,
+        });
+        setPermMenuOpen(false);
+      },
+      [vscode],
+    );
+
+    useEffect(() => {
+      if (!permMenuOpen) return;
+      const onMouseDown = (e: MouseEvent) => {
+        if (
+          permMenuRef.current &&
+          !permMenuRef.current.contains(e.target as Node)
+        ) {
+          setPermMenuOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", onMouseDown);
+      return () => document.removeEventListener("mousedown", onMouseDown);
+    }, [permMenuOpen]);
+
     const [atMention, setAtMention] = useState<AtMentionState>({
       isActive: false,
       filterText: "",
       startPos: 0,
       endPos: 0,
     });
+    const [slashCommand, setSlashCommand] = useState<SlashCommandState>({
+      isActive: false,
+      filterText: "",
+      startPos: 0,
+      endPos: 0,
+    });
     const [suggestions, setSuggestions] = useState<FileItem[]>([]);
+    const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
     const [dropdownPosition, setDropdownPosition] = useState({
+      top: 0,
+      left: 0,
+    });
+    const [slashPopupPosition, setSlashPopupPosition] = useState({
       top: 0,
       left: 0,
     });
@@ -196,7 +285,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         inputContentRef.current = inputContent ?? "";
         setMessage(inputContent ?? "");
         if (textareaRef.current) {
-          textareaRef.current.innerText = inputContent ?? "";
+          const next = inputContent ?? "";
+          textareaRef.current.innerText = next;
+          textareaRef.current.textContent = next;
         }
       }
     }, [inputContent, sessionId, vscode]);
@@ -216,6 +307,17 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       setIsLoadingSuggestions(false);
       browsePathRef.current = "";
       setBrowsePath("");
+    }, []);
+
+    const closeSlashCommandPopup = useCallback(() => {
+      setSlashCommand({
+        isActive: false,
+        filterText: "",
+        startPos: 0,
+        endPos: 0,
+      });
+      setSlashCommands([]);
+      setSelectedSlashIndex(0);
     }, []);
 
     // Load content for editing a queued message.
@@ -308,6 +410,44 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [],
     );
 
+    const detectSlashCommand = useCallback(
+      (text: string, cursorPos: number): SlashCommandState => {
+        let slashPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+          if (text[i] === "/") {
+            slashPos = i;
+            break;
+          }
+          if (text[i] === " " || text[i] === "\n") {
+            break;
+          }
+        }
+
+        if (slashPos === -1) {
+          return { isActive: false, filterText: "", startPos: 0, endPos: 0 };
+        }
+
+        const isValidPosition =
+          slashPos === 0 || /\s/.test(text[slashPos - 1] ?? "");
+        if (!isValidPosition) {
+          return { isActive: false, filterText: "", startPos: 0, endPos: 0 };
+        }
+
+        const afterSlash = text.slice(slashPos + 1, cursorPos);
+        if (/\s/.test(afterSlash)) {
+          return { isActive: false, filterText: "", startPos: 0, endPos: 0 };
+        }
+
+        return {
+          isActive: true,
+          filterText: afterSlash,
+          startPos: slashPos,
+          endPos: cursorPos,
+        };
+      },
+      [],
+    );
+
     const readLiveAtMention = useCallback((): AtMentionState | null => {
       if (!textareaRef.current) return null;
 
@@ -349,9 +489,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         });
         setAttachedImages([]);
         closeDropdown();
+        closeSlashCommandPopup();
         onInputCleared?.();
       }
-    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, sessionId]);
+    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, closeSlashCommandPopup, sessionId]);
 
     const setBrowsePathBoth = useCallback((next: string) => {
       browsePathRef.current = next;
@@ -371,6 +512,16 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             requestId,
           ),
         );
+      },
+      [vscode],
+    );
+
+    const requestSlashCommands = useCallback(
+      (filterText: string) => {
+        vscode.postMessage({
+          command: "requestSlashCommands",
+          filterText,
+        });
       },
       [vscode],
     );
@@ -462,6 +613,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             setIsLoadingSuggestions(false);
             console.error("File suggestions error:", data.error);
           }
+        } else if (data.command === "slashCommandsResponse") {
+          setSlashCommands(data.commands || []);
+          setSelectedSlashIndex(0);
+        } else if (data.command === "slashCommandsError") {
+          setSlashCommands([]);
         } else if (data.command === "addSelectionToInput") {
           insertSelectionTag(data.selection);
         }
@@ -580,6 +736,92 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [closeDropdown, vscode],
     );
 
+    const handleSlashButtonClick = useCallback(() => {
+      if (!textareaRef.current) return;
+      textareaRef.current.focus();
+      const selection = window.getSelection();
+      if (!selection) return;
+
+      let range: Range;
+      if (
+        selection.rangeCount > 0 &&
+        textareaRef.current.contains(selection.getRangeAt(0).startContainer)
+      ) {
+        range = selection.getRangeAt(0);
+      } else {
+        range = document.createRange();
+        range.selectNodeContents(textareaRef.current);
+        range.collapse(false);
+      }
+
+      const slashNode = document.createTextNode("/");
+      range.insertNode(slashNode);
+      range.setStartAfter(slashNode);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const inputEvent = new Event("input", { bubbles: true });
+      textareaRef.current.dispatchEvent(inputEvent);
+    }, []);
+
+    const handleSlashCommandSelect = useCallback(
+      (command: SlashCommand) => {
+        if (!textareaRef.current) return;
+
+        const localCommands = [
+          "config",
+          "plugin",
+          "mcp",
+          "status",
+          "tasks",
+          "workflows",
+          "agents",
+          "clear",
+          "compact",
+          "rewind",
+          "model",
+        ];
+        if (localCommands.includes(command.name)) {
+          textareaRef.current.innerHTML = "";
+          setMessage("");
+          vscode.postMessage({ command: "updateInputContent", content: "" });
+          closeSlashCommandPopup();
+          onSendMessage(`/${command.name}`);
+          return;
+        }
+
+        textareaRef.current.focus();
+        const start = findTextOffset(
+          textareaRef.current,
+          slashCommand.startPos,
+        );
+        const end = findTextOffset(textareaRef.current, slashCommand.endPos);
+        if (start && end) {
+          const range = document.createRange();
+          range.setStart(start.node, start.offset);
+          range.setEnd(end.node, end.offset);
+          range.deleteContents();
+
+          const commandText = `/${command.name} `;
+          const newNode = document.createTextNode(commandText);
+          range.insertNode(newNode);
+
+          range.setStartAfter(newNode);
+          range.collapse(true);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+
+          const inputEvent = new Event("input", { bubbles: true });
+          textareaRef.current.dispatchEvent(inputEvent);
+        }
+
+        closeSlashCommandPopup();
+      },
+      [closeSlashCommandPopup, onSendMessage, vscode, slashCommand],
+    );
+
     const handleSend = useCallback(() => {
       if (disabled || isStreaming) return;
       if (!textareaRef.current) return;
@@ -631,6 +873,25 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
     const handleKeyDown = useCallback(
       (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Tab" && event.shiftKey && !isComposing) {
+          event.preventDefault();
+          const modes: PermissionMode[] = [
+            "acceptEdits",
+            "bypassPermissions",
+          ];
+          const currentMode =
+            permissionMode === "bypassPermissions"
+              ? "bypassPermissions"
+              : "acceptEdits";
+          const currentIndex = modes.indexOf(currentMode);
+          const nextMode = modes[(currentIndex + 1) % modes.length];
+          vscode.postMessage({
+            command: "setPermissionMode",
+            mode: nextMode,
+          });
+          return;
+        }
+
         // Handle Ctrl+B to background the current foreground task (same as CLI).
         // Only intercepted while a turn is running — when idle the key falls
         // through so the host keeps its own Ctrl+B binding (e.g. VS Code's
@@ -645,6 +906,33 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             event.stopPropagation();
             vscode.postMessage({ command: "backgroundCurrentTask" });
             return;
+          }
+        }
+
+        if (slashCommand.isActive && slashCommands.length > 0) {
+          const orderedCommands = orderSlashCommands(slashCommands);
+          switch (event.key) {
+            case "ArrowUp":
+              event.preventDefault();
+              setSelectedSlashIndex((prev: number) => Math.max(0, prev - 1));
+              return;
+            case "ArrowDown":
+              event.preventDefault();
+              setSelectedSlashIndex((prev: number) =>
+                Math.min(orderedCommands.length - 1, prev + 1),
+              );
+              return;
+            case "Tab":
+            case "Enter":
+              event.preventDefault();
+              if (orderedCommands[selectedSlashIndex]) {
+                handleSlashCommandSelect(orderedCommands[selectedSlashIndex]);
+              }
+              return;
+            case "Escape":
+              event.preventDefault();
+              closeSlashCommandPopup();
+              return;
           }
         }
 
@@ -711,6 +999,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       },
       [
         atMention.isActive,
+        slashCommand.isActive,
+        slashCommands,
+        selectedSlashIndex,
+        handleSlashCommandSelect,
+        closeSlashCommandPopup,
         suggestions,
         selectedIndex,
         handleFileSelect,
@@ -719,6 +1012,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         goUpDirectory,
         handleSend,
         isComposing,
+        permissionMode,
         vscode,
         isStreaming,
         onAbortMessage,
@@ -784,13 +1078,28 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             requestFileSuggestions("", browsePathRef.current);
           }
         }
+
+        const slashCommandState = detectSlashCommand(
+          textBeforeCursor,
+          textBeforeCursor.length,
+        );
+        if (!slashCommandState.isActive) {
+          closeSlashCommandPopup();
+        } else {
+          setSlashCommand(slashCommandState);
+          setSlashPopupPosition(calculateDropdownPosition());
+          requestSlashCommands(slashCommandState.filterText);
+        }
         selectionChangeTimerRef.current = null;
       }, 200);
     }, [
       detectAtMention,
+      detectSlashCommand,
       closeDropdown,
+      closeSlashCommandPopup,
       calculateDropdownPosition,
       requestFileSuggestions,
+      requestSlashCommands,
       setBrowsePathBoth,
     ]);
 
@@ -998,7 +1307,48 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                   {workdirSelector}
                 </div>
               ) : null}
+              <button
+                type="button"
+                className="toolbar-icon-button"
+                aria-label="快捷指令"
+                disabled={disabled}
+                onClick={handleSlashButtonClick}
+              >
+                <SlashBoxIcon className="toolbar-icon" />
+              </button>
               <div className="button-spacer" />
+              <div className="permission-mode-container" ref={permMenuRef}>
+                <button
+                  type="button"
+                  className={`permission-mode-select mode-${permissionMode || "acceptEdits"}`}
+                  aria-label="权限模式"
+                  aria-expanded={permMenuOpen}
+                  disabled={disabled}
+                  onClick={() => setPermMenuOpen((o) => !o)}
+                >
+                  {permissionModeIcon(permissionMode)}
+                  {permissionModeLabel(permissionMode)}
+                  <i className="codicon codicon-chevron-down permission-mode-caret" />
+                </button>
+                {permMenuOpen && (
+                  <ul className="permission-mode-menu" role="listbox">
+                    {PERMISSION_MODES.map((m) => (
+                      <li
+                        key={m.value}
+                        role="option"
+                        data-value={m.value}
+                        aria-selected={
+                          m.value === (permissionMode || "acceptEdits")
+                        }
+                        className={`permission-mode-item${m.value === (permissionMode || "acceptEdits") ? " selected" : ""}`}
+                        onClick={() => handlePermissionModeSelect(m.value)}
+                      >
+                        {m.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               {onModelChange && (
                 <div
                   className="input-model-select"
@@ -1063,6 +1413,15 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               setSelectedIndex(0);
               requestFileSuggestions("", path);
             }}
+          />
+
+          <SlashCommandsPopup
+            commands={slashCommands}
+            isVisible={slashCommand.isActive && slashCommands.length > 0}
+            selectedIndex={selectedSlashIndex}
+            onSelect={handleSlashCommandSelect}
+            onClose={closeSlashCommandPopup}
+            position={slashPopupPosition}
           />
 
           {/* /rewind 检查点弹窗，与历史记录弹窗共用 .input-wrapper 定位上下文 */}

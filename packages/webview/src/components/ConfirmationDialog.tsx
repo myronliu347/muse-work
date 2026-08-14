@@ -216,7 +216,6 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
     if (confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME) {
       onConfirm(confirmation.confirmationId, {
         behavior: "allow",
-        newPermissionMode: "plan",
       });
     } else if (
       confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
@@ -231,10 +230,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       } else {
         onConfirm(confirmation.confirmationId, {
           behavior: "allow",
-          newPermissionMode:
-            confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME
-              ? "default"
-              : undefined,
+          newPermissionMode: undefined,
         });
       }
     } else if (confirmation.toolName.startsWith("mcp__")) {

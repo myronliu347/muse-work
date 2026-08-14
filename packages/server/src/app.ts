@@ -23,15 +23,29 @@ import {
 } from "./routes/providers.js";
 import {
   handleAbortMessage,
+  handleBackgroundTaskOutput,
+  handleGetBackgroundTasks,
+  handleClear,
+  handleCompact,
+  handleConnectMcpServer,
   handleCreateSession,
   handleDeleteSession,
+  handleDisconnectMcpServer,
+  handleGetMcpServers,
   handleGetMessages,
   handleGetSession,
+  handleGetWorkflowRuns,
+  handleListRewindCheckpoints,
   handleListSessions,
   handlePatchSession,
   handleRespondPermission,
+  handleRewind,
   handleSelectSession,
   handleSendMessage,
+  handleSessionStatus,
+  handleSlashCommands,
+  handleStopBackgroundTask,
+  handleStopWorkflowRun,
 } from "./routes/sessions.js";
 
 function attachAccessLog(
@@ -218,6 +232,159 @@ async function routeRequest(
       res,
       ctx,
       decodeURIComponent(abortMatch[1]!),
+    );
+    return;
+  }
+
+  const compactMatch = pathname.match(/^\/sessions\/([^/]+)\/compact$/);
+  if (method === "POST" && compactMatch) {
+    await handleCompact(req, res, ctx, decodeURIComponent(compactMatch[1]!));
+    return;
+  }
+
+  const clearMatch = pathname.match(/^\/sessions\/([^/]+)\/clear$/);
+  if (method === "POST" && clearMatch) {
+    await handleClear(req, res, ctx, decodeURIComponent(clearMatch[1]!));
+    return;
+  }
+
+  const rewindListMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/rewind-checkpoints$/,
+  );
+  if (method === "GET" && rewindListMatch) {
+    await handleListRewindCheckpoints(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(rewindListMatch[1]!),
+    );
+    return;
+  }
+
+  const rewindMatch = pathname.match(/^\/sessions\/([^/]+)\/rewind$/);
+  if (method === "POST" && rewindMatch) {
+    await handleRewind(req, res, ctx, decodeURIComponent(rewindMatch[1]!));
+    return;
+  }
+
+  const slashMatch = pathname.match(/^\/sessions\/([^/]+)\/slash-commands$/);
+  if (method === "GET" && slashMatch) {
+    await handleSlashCommands(req, res);
+    return;
+  }
+
+  const statusMatch = pathname.match(/^\/sessions\/([^/]+)\/status$/);
+  if (method === "GET" && statusMatch) {
+    await handleSessionStatus(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(statusMatch[1]!),
+    );
+    return;
+  }
+
+  const mcpListMatch = pathname.match(/^\/sessions\/([^/]+)\/mcp$/);
+  if (method === "GET" && mcpListMatch) {
+    await handleGetMcpServers(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(mcpListMatch[1]!),
+    );
+    return;
+  }
+
+  const mcpConnectMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/mcp\/([^/]+)\/connect$/,
+  );
+  if (method === "POST" && mcpConnectMatch) {
+    await handleConnectMcpServer(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(mcpConnectMatch[1]!),
+      decodeURIComponent(mcpConnectMatch[2]!),
+    );
+    return;
+  }
+
+  const mcpDisconnectMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/mcp\/([^/]+)\/disconnect$/,
+  );
+  if (method === "POST" && mcpDisconnectMatch) {
+    await handleDisconnectMcpServer(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(mcpDisconnectMatch[1]!),
+      decodeURIComponent(mcpDisconnectMatch[2]!),
+    );
+    return;
+  }
+
+  const bgListMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/background-tasks$/,
+  );
+  if (method === "GET" && bgListMatch) {
+    await handleGetBackgroundTasks(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(bgListMatch[1]!),
+    );
+    return;
+  }
+
+  const bgOutputMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/background-tasks\/([^/]+)\/output$/,
+  );
+  if (method === "GET" && bgOutputMatch) {
+    await handleBackgroundTaskOutput(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(bgOutputMatch[1]!),
+      decodeURIComponent(bgOutputMatch[2]!),
+    );
+    return;
+  }
+
+  const bgStopMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/background-tasks\/([^/]+)\/stop$/,
+  );
+  if (method === "POST" && bgStopMatch) {
+    await handleStopBackgroundTask(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(bgStopMatch[1]!),
+      decodeURIComponent(bgStopMatch[2]!),
+    );
+    return;
+  }
+
+  const workflowListMatch = pathname.match(/^\/sessions\/([^/]+)\/workflows$/);
+  if (method === "GET" && workflowListMatch) {
+    await handleGetWorkflowRuns(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(workflowListMatch[1]!),
+    );
+    return;
+  }
+
+  const workflowStopMatch = pathname.match(
+    /^\/sessions\/([^/]+)\/workflows\/([^/]+)\/stop$/,
+  );
+  if (method === "POST" && workflowStopMatch) {
+    await handleStopWorkflowRun(
+      req,
+      res,
+      ctx,
+      decodeURIComponent(workflowStopMatch[1]!),
+      decodeURIComponent(workflowStopMatch[2]!),
     );
     return;
   }

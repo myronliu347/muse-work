@@ -1,0 +1,66 @@
+/** @vitest-environment jsdom */
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import WorkflowManager from "../../src/components/WorkflowManager";
+import type { VsCodeApi } from "../../src/types";
+
+vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));
+
+describe("WorkflowManager fetch", () => {
+  it("requests workflow runs when the dialog opens", () => {
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    } as unknown as VsCodeApi;
+
+    render(
+      <WorkflowManager runs={[]} vscode={vscode} onCancel={() => {}} />,
+    );
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "getWorkflowRuns",
+    });
+  });
+
+  it("shows phase output for a fetched workflow run", () => {
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    } as unknown as VsCodeApi;
+
+    render(
+      <WorkflowManager
+        runs={[
+          {
+            runId: "wf_abc12345",
+            meta: { name: "Icap-ide-analysis", description: "审查" },
+            status: "completed",
+            scriptPath: "/tmp/script.js",
+            startTime: Date.now() - 60_000,
+            endTime: Date.now(),
+            phases: [
+              {
+                title: "Scan",
+                agentCount: 2,
+                tokens: 1200,
+                elapsed: 1000,
+                startTime: Date.now() - 60_000,
+              },
+            ],
+            totalAgents: 2,
+            totalTokens: 1200,
+          },
+        ]}
+        vscode={vscode}
+        onCancel={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByText(/Icap-ide-analysis/));
+    expect(screen.getByText("Phases:")).toBeInTheDocument();
+    expect(screen.getByText("Scan")).toBeInTheDocument();
+  });
+});

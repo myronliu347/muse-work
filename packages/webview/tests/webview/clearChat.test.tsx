@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect } from "vitest";
 import {
   renderChatApp,
@@ -28,7 +29,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify welcome view is shown (empty + authenticated)
-    expect(screen.getByText("Hi~ 欢迎使用 Wave 代码智聊")).toBeInTheDocument();
+    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
   });
 
   it("should request clear chat via header button", () => {
@@ -139,8 +140,8 @@ describe("Clear Chat Functionality", () => {
     expect(screen.queryByTestId("abort-btn")).not.toBeInTheDocument();
   });
 
-  it("should disable new session button during streaming while extension can still clear", () => {
-    const { vscode } = renderChatApp();
+  it("should keep new session available during streaming while extension can still clear", () => {
+    renderChatApp();
 
     // Start streaming and add a message
     act(() => {
@@ -157,38 +158,19 @@ describe("Clear Chat Functionality", () => {
       });
     });
 
-    // Verify abort button is visible (streaming active)
     const abortBtn = screen.getByTestId("abort-btn");
     expect(abortBtn).toBeInTheDocument();
 
-    // New session button is disabled during streaming (prevents clearing an in-progress generation)
     const newSessionBtn = screen.getByTestId("new-session-btn");
-    expect(newSessionBtn).toBeDisabled();
+    expect(newSessionBtn).not.toBeDisabled();
 
-    // Clear message log
-    vscode.postMessage.mockClear();
-
-    // Clicking the disabled button during streaming does nothing
-    act(() => {
-      fireEvent.click(newSessionBtn);
-    });
-    expect(vscode.postMessage).not.toHaveBeenCalled();
-    expect(
-      document.querySelectorAll(".messages-container .message").length,
-    ).toBe(1);
-
-    // But extension can still clear messages via command
     act(() => {
       sendCommand("updateMessages", { messages: [] });
     });
 
-    // Verify chat is cleared (welcome view shown) but streaming state is preserved
-    expect(screen.getByText("Hi~ 欢迎使用 Wave 代码智聊")).toBeInTheDocument();
-
-    // Streaming state should still be active (abort button still present)
+    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
     expect(abortBtn).toBeInTheDocument();
 
-    // End streaming separately
     act(() => {
       sendCommand("endStreaming");
     });
@@ -220,7 +202,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify welcome view is shown
-    expect(screen.getByText("Hi~ 欢迎使用 Wave 代码智聊")).toBeInTheDocument();
+    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
 
     // Error message should no longer be visible
     expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
@@ -245,7 +227,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify cleared (welcome view shown)
-    expect(screen.getByText("Hi~ 欢迎使用 Wave 代码智聊")).toBeInTheDocument();
+    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
 
     // Clear message log
     vscode.postMessage.mockClear();

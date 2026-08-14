@@ -83,6 +83,7 @@ export async function handlePatchSession(
         pinned?: boolean;
         model?: string;
         lastActiveAt?: number;
+        permissionMode?: string;
       }
     | undefined;
   if (!body || typeof body !== "object") {
@@ -95,6 +96,7 @@ export async function handlePatchSession(
     pinned?: boolean;
     model?: string;
     lastActiveAt?: number;
+    permissionMode?: "acceptEdits" | "bypassPermissions";
   } = {};
   if (typeof body.title === "string") {
     patch.title = body.title;
@@ -108,13 +110,22 @@ export async function handlePatchSession(
   if (typeof body.lastActiveAt === "number") {
     patch.lastActiveAt = body.lastActiveAt;
   }
+  if (
+    body.permissionMode === "acceptEdits" ||
+    body.permissionMode === "bypassPermissions"
+  ) {
+    patch.permissionMode = body.permissionMode;
+  }
 
   const session = ctx.store.update(sessionId, patch);
   if (!session) {
     sendError(res, 404, `session not found: ${sessionId}`);
     return;
   }
-  sendJson(res, 200, session);
+  if (patch.permissionMode) {
+    await ctx.runner.setPermissionMode(sessionId, patch.permissionMode);
+  }
+  sendJson(res, 200, ctx.store.get(sessionId) ?? session);
 }
 
 export async function handleSelectSession(
@@ -319,5 +330,216 @@ export async function handleRespondPermission(
         : 500;
     const message = err instanceof Error ? err.message : String(err);
     sendError(res, statusCode || 500, message);
+  }
+}
+
+function sendRunnerError(res: ServerResponse, err: unknown): void {
+  const statusCode =
+    err && typeof err === "object" && "statusCode" in err
+      ? Number((err as { statusCode: number }).statusCode)
+      : 500;
+  const message = err instanceof Error ? err.message : String(err);
+  sendError(res, statusCode || 500, message);
+}
+
+export const SYSTEM_SLASH_COMMANDS = [
+  { id: "compact", name: "compact", description: "压缩会话上下文" },
+  { id: "clear", name: "clear", description: "清空当前会话" },
+  { id: "rewind", name: "rewind", description: "回滚到检查点" },
+  { id: "mcp", name: "mcp", description: "MCP 服务器" },
+  { id: "status", name: "status", description: "会话状态" },
+  { id: "tasks", name: "tasks", description: "后台任务" },
+  { id: "workflows", name: "workflows", description: "工作流" },
+] as const;
+
+export async function handleCompact(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.compact(sessionId));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleClear(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.clear(sessionId));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleListRewindCheckpoints(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const checkpoints = await ctx.runner.listRewindCheckpoints(sessionId);
+    sendJson(res, 200, { checkpoints });
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleRewind(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  const body = (await readJsonBody(req)) as { messageId?: string } | undefined;
+  const messageId = typeof body?.messageId === "string" ? body.messageId : "";
+  if (!messageId) {
+    sendError(res, 400, "messageId is required");
+    return;
+  }
+  try {
+    sendJson(res, 200, await ctx.runner.rewind(sessionId, messageId));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleSlashCommands(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJson(res, 200, { commands: [...SYSTEM_SLASH_COMMANDS] });
+}
+
+export async function handleSessionStatus(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.getStatus(sessionId));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleGetMcpServers(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const servers = await ctx.runner.getMcpServers(sessionId);
+    sendJson(res, 200, { servers });
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleConnectMcpServer(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+  name: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.connectMcpServer(sessionId, name));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleDisconnectMcpServer(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+  name: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.disconnectMcpServer(sessionId, name));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleGetBackgroundTasks(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const tasks = await ctx.runner.getBackgroundTasks(sessionId);
+    sendJson(res, 200, { tasks });
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleBackgroundTaskOutput(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+  taskId: string,
+): Promise<void> {
+  try {
+    const output = await ctx.runner.getBackgroundTaskOutput(sessionId, taskId);
+    sendJson(res, 200, { output });
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleStopBackgroundTask(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+  taskId: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.stopBackgroundTask(sessionId, taskId));
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleGetWorkflowRuns(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const runs = await ctx.runner.getWorkflowRuns(sessionId);
+    sendJson(res, 200, { runs });
+  } catch (err) {
+    sendRunnerError(res, err);
+  }
+}
+
+export async function handleStopWorkflowRun(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  ctx: AppContext,
+  sessionId: string,
+  runId: string,
+): Promise<void> {
+  try {
+    sendJson(res, 200, await ctx.runner.stopWorkflowRun(sessionId, runId));
+  } catch (err) {
+    sendRunnerError(res, err);
   }
 }

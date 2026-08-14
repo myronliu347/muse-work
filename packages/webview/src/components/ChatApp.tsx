@@ -1153,6 +1153,58 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       const trimmedText = text.trim();
       if (!trimmedText && (!images || images.length === 0)) return;
 
+      const slashMatch = trimmedText.match(
+        /^\/(clear|compact|rewind|mcp|status|tasks|workflows|plugin|config)(\s|$)/,
+      );
+      if (slashMatch) {
+        const name = slashMatch[1];
+        if (name === "clear") {
+          handleClearChat();
+          return;
+        }
+        if (name === "compact") {
+          postToHost({ command: "compactChat" });
+          return;
+        }
+        if (name === "rewind") {
+          setRewindPopupOpen(true);
+          setRewindCheckpointsLoading(true);
+          postToHost({ command: "listRewindCheckpoints" });
+          return;
+        }
+        if (name === "mcp") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "mcp" } });
+          return;
+        }
+        if (name === "status") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "status" } });
+          return;
+        }
+        if (name === "tasks") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "tasks" } });
+          return;
+        }
+        if (name === "workflows") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "workflows" } });
+          return;
+        }
+        if (name === "plugin") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "plugin" } });
+          return;
+        }
+        if (name === "config") {
+          dispatch({
+            type: "SHOW_DIALOG",
+            payload: {
+              type: "config",
+              data: stateRef.current.configurationData || {},
+            },
+          });
+          vscode.postMessage({ command: "getConfiguration" });
+          return;
+        }
+      }
+
       // Desktop worktree flow (FR-023): on the first message of a new session
       // with the worktree checkbox on, create the worktree first — the main
       // process switches into it and forwards this message.

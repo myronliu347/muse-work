@@ -51,6 +51,19 @@ export interface SessionAgent {
   getMessages?: () => unknown[];
   /** Wave session id when available (SDK agent or test stub). */
   sessionId?: string;
+  compact?: (instructions?: string) => Promise<void>;
+  clearMessages?: () => Promise<void>;
+  truncateHistory?: (index: number) => Promise<void>;
+  setPermissionMode?: (mode: "acceptEdits" | "bypassPermissions") => void;
+  getPermissionMode?: () => "acceptEdits" | "bypassPermissions";
+  getMcpServers?: () => unknown[];
+  connectMcpServer?: (name: string) => Promise<boolean>;
+  disconnectMcpServer?: (name: string) => Promise<boolean>;
+  getBackgroundTaskOutput?: (id: string, filter?: string) => unknown;
+  stopBackgroundTask?: (id: string) => boolean;
+  getWorkflowRuns?: () => Promise<unknown[]> | unknown[];
+  stopWorkflowRun?: (runId: string) => void;
+  latestTotalTokens?: number;
 }
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
@@ -82,6 +95,37 @@ export interface SessionRunner {
   abortRunningTurns(reason: string): Promise<{ aborted: number }>;
   /** Abort every in-flight turn, including permission waiters. */
   shutdown(): Promise<{ aborted: number }>;
+  compact(sessionId: string): Promise<{ ok: true }>;
+  clear(sessionId: string): Promise<{ ok: true }>;
+  listRewindCheckpoints(
+    sessionId: string,
+  ): Promise<Array<{ id: string; content: string }>>;
+  rewind(
+    sessionId: string,
+    messageId: string,
+  ): Promise<{ ok: true; inputContent: string }>;
+  setPermissionMode(
+    sessionId: string,
+    mode: "acceptEdits" | "bypassPermissions",
+  ): Promise<{ ok: true; mode: "acceptEdits" | "bypassPermissions" }>;
+  getStatus(sessionId: string): Promise<{
+    sessionId: string;
+    workdir: string;
+    permissionMode: "acceptEdits" | "bypassPermissions";
+    latestTotalTokens: number;
+    waveSessionId?: string;
+  }>;
+  getMcpServers(sessionId: string): Promise<unknown[]>;
+  connectMcpServer(sessionId: string, name: string): Promise<{ ok: boolean }>;
+  disconnectMcpServer(sessionId: string, name: string): Promise<{ ok: boolean }>;
+  getBackgroundTaskOutput(
+    sessionId: string,
+    taskId: string,
+  ): Promise<unknown>;
+  getBackgroundTasks(sessionId: string): Promise<unknown[]>;
+  stopBackgroundTask(sessionId: string, taskId: string): Promise<{ ok: boolean }>;
+  getWorkflowRuns(sessionId: string): Promise<unknown[]>;
+  stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
 }
 
 interface QueuedTurn {
@@ -125,6 +169,25 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       dispose: () => agent.destroy(),
       getMessages: () => agent.messages,
       sessionId: agent.sessionId,
+      compact: (instructions) => agent.compact(instructions),
+      clearMessages: () => agent.clearMessages(),
+      truncateHistory: (index) => agent.truncateHistory(index),
+      setPermissionMode: (mode) => agent.setPermissionMode(mode),
+      getPermissionMode: () =>
+        agent.getPermissionMode() === "bypassPermissions"
+          ? "bypassPermissions"
+          : "acceptEdits",
+      getMcpServers: () => agent.getMcpServers(),
+      connectMcpServer: (name) => agent.connectMcpServer(name),
+      disconnectMcpServer: (name) => agent.disconnectMcpServer(name),
+      getBackgroundTaskOutput: (id, filter) =>
+        agent.getBackgroundTaskOutput(id, filter),
+      stopBackgroundTask: (id) => agent.stopBackgroundTask(id),
+      getWorkflowRuns: () => agent.getWorkflowRuns(),
+      stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
+      get latestTotalTokens() {
+        return agent.latestTotalTokens;
+      },
     };
   });
 }
@@ -163,6 +226,43 @@ export function createSessionRunner(
   const pendingAgentToolIds = new Map<string, string[]>();
   const unboundSubagentIds = new Map<string, string[]>();
   const knownAgentToolIds = new Map<string, Set<string>>();
+  const latestTasks = new Map<string, unknown[]>();
+  const latestBackgroundTasks = new Map<string, unknown[]>();
+  const latestWorkflowRuns = new Map<string, unknown[]>();
+  const latestMcp = new Map<string, unknown[]>();
+  const latestTokens = new Map<string, number>();
+
+  async function reconcileBackgroundTasks(sessionId: string): Promise<unknown[]> {
+    const cached = latestBackgroundTasks.get(sessionId) ?? [];
+    const agent = agents.get(sessionId);
+    if (!agent?.getBackgroundTaskOutput || cached.length === 0) {
+      return cached;
+    }
+    const next = await Promise.all(
+      cached.map(async (task) => {
+        if (!task || typeof task !== "object") return task;
+        const summary = task as Record<string, unknown>;
+        if (summary.status !== "running" || typeof summary.id !== "string") {
+          return task;
+        }
+        const output = await Promise.resolve(
+          agent.getBackgroundTaskOutput?.(summary.id),
+        );
+        if (!output || typeof output !== "object") return task;
+        const status = (output as { status?: unknown }).status;
+        if (typeof status !== "string" || status === "running") return task;
+        const exitCode = (output as { exitCode?: unknown }).exitCode;
+        return {
+          ...summary,
+          status,
+          endTime: Date.now(),
+          ...(exitCode !== undefined ? { exitCode } : {}),
+        };
+      }),
+    );
+    latestBackgroundTasks.set(sessionId, next);
+    return next;
+  }
 
   function bindAgentTools(sessionId: string): void {
     const pending = pendingAgentToolIds.get(sessionId) ?? [];
@@ -502,8 +602,8 @@ export function createSessionRunner(
       fastModel: gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
-      // MVP: auto-accept file edits; UI selector is hidden for now.
-      permissionMode: "acceptEdits",
+      permissionMode:
+        store.get(sessionId)?.permissionMode ?? "acceptEdits",
       restoreSessionId,
       ...(superpowersFlag() === "superpowers:on"
         ? {
@@ -664,8 +764,78 @@ export function createSessionRunner(
             messages: snapshot,
           });
         },
+        onTasksChange: (tasks) => {
+          if (disposed.has(sessionId)) return;
+          latestTasks.set(sessionId, tasks);
+          hub.broadcast(sessionId, { type: "tasks:update", tasks });
+        },
+        onBackgroundTasksChange: (tasks) => {
+          if (disposed.has(sessionId)) return;
+          const summaries = tasks.map(toBackgroundTaskSummary);
+          latestBackgroundTasks.set(sessionId, summaries);
+          hub.broadcast(sessionId, {
+            type: "background-tasks:update",
+            tasks: summaries,
+          });
+          const agent = agentBox.current ?? agents.get(sessionId);
+          void Promise.resolve(agent?.getWorkflowRuns?.()).then((runs) => {
+            if (disposed.has(sessionId) || !runs) return;
+            const serialized = toSerializableWorkflowRuns(runs);
+            latestWorkflowRuns.set(sessionId, serialized);
+            hub.broadcast(sessionId, {
+              type: "workflow-runs:update",
+              runs: serialized,
+            });
+          });
+        },
+        onMcpServersChange: (servers) => {
+          if (disposed.has(sessionId)) return;
+          latestMcp.set(sessionId, servers);
+          hub.broadcast(sessionId, { type: "mcp:update", servers });
+        },
+        onPermissionModeChange: (mode) => {
+          if (disposed.has(sessionId)) return;
+          const normalized =
+            mode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
+          store.update(sessionId, { permissionMode: normalized });
+          hub.broadcast(sessionId, {
+            type: "permission-mode",
+            mode: normalized,
+          });
+        },
+        onLatestTotalTokensChange: (latestTotalTokens) => {
+          if (disposed.has(sessionId)) return;
+          latestTokens.set(sessionId, latestTotalTokens);
+          hub.broadcast(sessionId, {
+            type: "tokens:update",
+            latestTotalTokens,
+          });
+        },
+        onNotificationMessageAdded: () => {
+          if (disposed.has(sessionId)) return;
+          const agent = agentBox.current ?? agents.get(sessionId);
+          void Promise.resolve(agent?.getWorkflowRuns?.()).then((runs) => {
+            if (disposed.has(sessionId) || !runs) return;
+            const serialized = toSerializableWorkflowRuns(runs);
+            latestWorkflowRuns.set(sessionId, serialized);
+            hub.broadcast(sessionId, {
+              type: "workflow-runs:update",
+              runs: serialized,
+            });
+          });
+          void reconcileBackgroundTasks(sessionId).then((tasks) => {
+            if (disposed.has(sessionId) || tasks.length === 0) return;
+            hub.broadcast(sessionId, {
+              type: "background-tasks:update",
+              tasks,
+            });
+          });
+        },
       },
       canUseTool: async (context) => {
+        if (store.get(sessionId)?.permissionMode === "bypassPermissions") {
+          return { behavior: "allow" as const };
+        }
         clearIdleTimer(sessionId);
         clearStallTimer(sessionId);
         const permissionId = crypto.randomUUID();
@@ -988,6 +1158,11 @@ export function createSessionRunner(
       pendingAgentToolIds.delete(sessionId);
       unboundSubagentIds.delete(sessionId);
       knownAgentToolIds.delete(sessionId);
+      latestTasks.delete(sessionId);
+      latestBackgroundTasks.delete(sessionId);
+      latestWorkflowRuns.delete(sessionId);
+      latestMcp.delete(sessionId);
+      latestTokens.delete(sessionId);
       for (const [id, entry] of pending) {
         if (entry.sessionId === sessionId) {
           pending.delete(id);
@@ -1023,6 +1198,233 @@ export function createSessionRunner(
       );
     },
 
+    async compact(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      if (session.status === "running") {
+        interruptTurn(sessionId, { denyMessage: "Aborted for compact" });
+      }
+      const agent = await ensureAgent(sessionId);
+      if (!agent.compact) {
+        throw Object.assign(new Error("compact is not supported"), {
+          statusCode: 501,
+        });
+      }
+      await agent.compact();
+      return { ok: true as const };
+    },
+
+    async clear(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      if (session.status === "running") {
+        throw Object.assign(new Error("session is running"), {
+          statusCode: 409,
+        });
+      }
+      const agent = await ensureAgent(sessionId);
+      if (!agent.clearMessages) {
+        throw Object.assign(new Error("clear is not supported"), {
+          statusCode: 501,
+        });
+      }
+      await agent.clearMessages();
+      hub.broadcast(sessionId, {
+        type: "messages:replace",
+        messages: [],
+      });
+      return { ok: true as const };
+    },
+
+    async listRewindCheckpoints(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = await ensureAgent(sessionId);
+      const messages = agent.getMessages?.() ?? [];
+      return messages.flatMap((message) => {
+        if (!isRewindTargetMessage(message)) return [];
+        const id = (message as { id: string }).id;
+        return [{ id, content: userMessageText(message) }];
+      });
+    },
+
+    async rewind(sessionId, messageId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      if (session.status === "running") {
+        interruptTurn(sessionId, { denyMessage: "Aborted for rewind" });
+      }
+      const agent = await ensureAgent(sessionId);
+      const messages = agent.getMessages?.() ?? [];
+      const index = messages.findIndex(
+        (message) =>
+          isRewindTargetMessage(message) &&
+          (message as { id: string }).id === messageId,
+      );
+      if (index < 0) {
+        throw Object.assign(new Error(`checkpoint not found: ${messageId}`), {
+          statusCode: 404,
+        });
+      }
+      if (!agent.truncateHistory) {
+        throw Object.assign(new Error("rewind is not supported"), {
+          statusCode: 501,
+        });
+      }
+      const inputContent = userMessageText(messages[index]);
+      await agent.truncateHistory(index);
+      const next = mapSdkMessages(agent.getMessages?.() ?? []);
+      hub.broadcast(sessionId, { type: "messages:replace", messages: next });
+      return { ok: true as const, inputContent };
+    },
+
+    async setPermissionMode(sessionId, mode) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const normalized =
+        mode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits";
+      store.update(sessionId, { permissionMode: normalized });
+      const existing = agents.get(sessionId);
+      existing?.setPermissionMode?.(normalized);
+      hub.broadcast(sessionId, {
+        type: "permission-mode",
+        mode: normalized,
+      });
+      return { ok: true as const, mode: normalized };
+    },
+
+    async getStatus(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = agents.get(sessionId);
+      const latestTotalTokens =
+        latestTokens.get(sessionId) ?? agent?.latestTotalTokens ?? 0;
+      return {
+        sessionId: session.id,
+        workdir: session.workdir,
+        permissionMode: session.permissionMode,
+        latestTotalTokens,
+        waveSessionId: session.waveSessionId,
+      };
+    },
+
+    async getMcpServers(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const cached = latestMcp.get(sessionId);
+      if (cached) return cached;
+      const existing = agents.get(sessionId);
+      if (existing?.getMcpServers) {
+        const servers = existing.getMcpServers() ?? [];
+        latestMcp.set(sessionId, servers);
+        return servers;
+      }
+      try {
+        const agent = await ensureAgent(sessionId);
+        const servers = agent.getMcpServers?.() ?? [];
+        latestMcp.set(sessionId, servers);
+        return servers;
+      } catch {
+        return [];
+      }
+    },
+
+    async connectMcpServer(sessionId, name) {
+      const agent = await ensureAgent(sessionId);
+      const ok = (await agent.connectMcpServer?.(name)) ?? false;
+      const servers = agent.getMcpServers?.() ?? [];
+      latestMcp.set(sessionId, servers);
+      hub.broadcast(sessionId, { type: "mcp:update", servers });
+      return { ok };
+    },
+
+    async disconnectMcpServer(sessionId, name) {
+      const agent = await ensureAgent(sessionId);
+      const ok = (await agent.disconnectMcpServer?.(name)) ?? false;
+      const servers = agent.getMcpServers?.() ?? [];
+      latestMcp.set(sessionId, servers);
+      hub.broadcast(sessionId, { type: "mcp:update", servers });
+      return { ok };
+    },
+
+    async getBackgroundTaskOutput(sessionId, taskId) {
+      const agent = await ensureAgent(sessionId);
+      return agent.getBackgroundTaskOutput?.(taskId) ?? null;
+    },
+
+    async getBackgroundTasks(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      return reconcileBackgroundTasks(sessionId);
+    },
+
+    async stopBackgroundTask(sessionId, taskId) {
+      const agent = await ensureAgent(sessionId);
+      const ok = agent.stopBackgroundTask?.(taskId) ?? false;
+      return { ok };
+    },
+
+    async getWorkflowRuns(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const existing = agents.get(sessionId);
+      if (existing?.getWorkflowRuns) {
+        const raw = (await existing.getWorkflowRuns()) ?? [];
+        const runs = toSerializableWorkflowRuns(raw);
+        latestWorkflowRuns.set(sessionId, runs);
+        return runs;
+      }
+      const cached = latestWorkflowRuns.get(sessionId);
+      if (cached) return cached;
+      const agent = await ensureAgent(sessionId);
+      const raw = (await agent.getWorkflowRuns?.()) ?? [];
+      const runs = toSerializableWorkflowRuns(raw);
+      latestWorkflowRuns.set(sessionId, runs);
+      return runs;
+    },
+
+    async stopWorkflowRun(sessionId, runId) {
+      const agent = await ensureAgent(sessionId);
+      agent.stopWorkflowRun?.(runId);
+      return { ok: true as const };
+    },
+
     invalidateAgentIdentities() {
       agentIdentities.clear();
     },
@@ -1055,6 +1457,43 @@ export function createSessionRunner(
         if (pendingReq) {
           events.push({ ...pendingReq.request, sessionId: session.id });
         }
+        const tasks = latestTasks.get(session.id);
+        if (tasks && tasks.length > 0) {
+          events.push({ type: "tasks:update", tasks, sessionId: session.id });
+        }
+        const background = latestBackgroundTasks.get(session.id);
+        if (background && background.length > 0) {
+          events.push({
+            type: "background-tasks:update",
+            tasks: background,
+            sessionId: session.id,
+          });
+        }
+        const runs = latestWorkflowRuns.get(session.id);
+        if (runs && runs.length > 0) {
+          events.push({
+            type: "workflow-runs:update",
+            runs,
+            sessionId: session.id,
+          });
+        }
+        const mcp = latestMcp.get(session.id);
+        if (mcp && mcp.length > 0) {
+          events.push({ type: "mcp:update", servers: mcp, sessionId: session.id });
+        }
+        const tokens = latestTokens.get(session.id);
+        if (typeof tokens === "number") {
+          events.push({
+            type: "tokens:update",
+            latestTotalTokens: tokens,
+            sessionId: session.id,
+          });
+        }
+        events.push({
+          type: "permission-mode",
+          mode: session.permissionMode,
+          sessionId: session.id,
+        });
       }
       return events;
     },
@@ -1083,6 +1522,81 @@ export function createSessionRunner(
       return { aborted };
     },
   };
+}
+
+function toSerializableWorkflowRuns(runs: unknown): unknown[] {
+  const list = Array.isArray(runs) ? runs : [];
+  return list.map((run) => {
+    if (!run || typeof run !== "object") return run;
+    const { completionPromise: _drop, ...rest } = run as Record<
+      string,
+      unknown
+    >;
+    const phases = Array.isArray(rest.phases) ? rest.phases : [];
+    const meta =
+      rest.meta && typeof rest.meta === "object"
+        ? rest.meta
+        : { name: "", description: "" };
+    return { ...rest, phases, meta };
+  });
+}
+
+function toBackgroundTaskSummary(task: {
+  id?: string;
+  type?: string;
+  status?: string;
+  startTime?: number;
+  endTime?: number;
+  command?: string;
+  description?: string;
+  exitCode?: number;
+  runtime?: number;
+  outputPath?: string;
+}): Record<string, unknown> {
+  return {
+    id: task.id,
+    type: task.type,
+    status: task.status,
+    startTime: task.startTime,
+    ...(task.endTime !== undefined ? { endTime: task.endTime } : {}),
+    ...(task.command !== undefined ? { command: task.command } : {}),
+    ...(task.description !== undefined ? { description: task.description } : {}),
+    ...(task.exitCode !== undefined ? { exitCode: task.exitCode } : {}),
+    ...(task.runtime !== undefined ? { runtime: task.runtime } : {}),
+    ...(task.outputPath !== undefined ? { outputPath: task.outputPath } : {}),
+  };
+}
+
+function isRewindTargetMessage(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const m = message as {
+    role?: string;
+    isMeta?: boolean;
+    id?: string;
+    blocks?: Array<{ type?: string; source?: string }>;
+  };
+  if (m.role !== "user" || m.isMeta || typeof m.id !== "string" || !m.id) {
+    return false;
+  }
+  const blocks = Array.isArray(m.blocks) ? m.blocks : [];
+  if (blocks.some((block) => block.type === "bang")) return false;
+  if (blocks.some((block) => block.type === "task_notification")) return false;
+  if (blocks.some((block) => block.type === "text" && block.source === "hook")) {
+    return false;
+  }
+  return true;
+}
+
+function userMessageText(message: unknown): string {
+  if (!message || typeof message !== "object") return "";
+  const blocks = (message as { blocks?: Array<{ type?: string; content?: string }> })
+    .blocks;
+  if (!Array.isArray(blocks)) return "";
+  return blocks
+    .filter((block) => block.type === "text" || block.type === "compact")
+    .map((block) => block.content || "")
+    .join("")
+    .trim();
 }
 
 function isUnauthorized(err: unknown): boolean {

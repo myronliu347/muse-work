@@ -74,7 +74,7 @@ describe("EnterPlanMode Confirmation Dialog", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("should send plan mode permission on approve", async () => {
+  it("should approve EnterPlanMode without switching to plan mode", async () => {
     const { vscode } = renderChatApp();
     vscode.postMessage.mockClear();
 
@@ -109,7 +109,6 @@ describe("EnterPlanMode Confirmation Dialog", () => {
       approved: true,
       decision: {
         behavior: "allow",
-        newPermissionMode: "plan",
       },
     });
   });

@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   renderChatApp,
@@ -15,11 +16,10 @@ describe("Permission Mode Select", () => {
   it("should select a different mode and update the UI", async () => {
     const { vscode } = renderChatApp();
 
-    // Initial state: Default mode
     await act(async () => {
       sendCommand("setInitialState", {
         messages: [],
-        permissionMode: "default",
+        permissionMode: "acceptEdits",
         configurationData: {},
       });
     });
@@ -28,46 +28,42 @@ describe("Permission Mode Select", () => {
       ".permission-mode-select",
     ) as HTMLElement;
     expect(select).toBeInTheDocument();
-    expect(select.className).toContain("mode-default");
+    expect(select.className).toContain("mode-acceptEdits");
 
-    // Clear mock to focus on new messages sent after change
     vscode.postMessage.mockClear();
 
-    // Change to acceptEdits (open menu, then click the option)
     await act(async () => {
       fireEvent.click(select);
     });
     await act(async () => {
       fireEvent.click(
         document.querySelector(
-          '.permission-mode-item[data-value="acceptEdits"]',
+          '.permission-mode-item[data-value="bypassPermissions"]',
         ) as HTMLElement,
       );
     });
 
-    // Verify the extension is notified
     await waitFor(() => {
       expect(vscode.postMessage).toHaveBeenCalledWith({
         command: "setPermissionMode",
-        mode: "acceptEdits",
+        mode: "bypassPermissions",
       });
     });
 
-    // Simulate extension confirming the mode change
     await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "acceptEdits" });
+      sendCommand("updatePermissionMode", { mode: "bypassPermissions" });
     });
 
-    expect(select.className).toContain("mode-acceptEdits");
+    expect(select.className).toContain("mode-bypassPermissions");
   });
 
-  it("should include bypassPermissions option in dropdown and support selecting it", async () => {
+  it("should include only acceptEdits and bypassPermissions", async () => {
     const { vscode } = renderChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
         messages: [],
-        permissionMode: "default",
+        permissionMode: "acceptEdits",
         configurationData: {},
       });
     });
@@ -77,22 +73,16 @@ describe("Permission Mode Select", () => {
     ) as HTMLElement;
     expect(select).toBeInTheDocument();
 
-    // Open the menu to reveal the options
     await act(async () => {
       fireEvent.click(select);
     });
 
-    // Verify all options are present
     const options = Array.from(
       document.querySelectorAll(".permission-mode-item"),
     );
     const optionValues = options.map((o) => o.getAttribute("data-value"));
-    expect(optionValues).toContain("default");
-    expect(optionValues).toContain("plan");
-    expect(optionValues).toContain("acceptEdits");
-    expect(optionValues).toContain("bypassPermissions");
+    expect(optionValues).toEqual(["acceptEdits", "bypassPermissions"]);
 
-    // Select bypassPermissions
     vscode.postMessage.mockClear();
     await act(async () => {
       fireEvent.click(
@@ -109,7 +99,6 @@ describe("Permission Mode Select", () => {
       });
     });
 
-    // Simulate extension confirming
     await act(async () => {
       sendCommand("updatePermissionMode", { mode: "bypassPermissions" });
     });
@@ -117,7 +106,7 @@ describe("Permission Mode Select", () => {
     expect(select.className).toContain("mode-bypassPermissions");
   });
 
-  it("should cycle back to default mode from bypassPermissions", async () => {
+  it("should switch back to acceptEdits from bypassPermissions", async () => {
     const { vscode } = renderChatApp();
 
     await act(async () => {
@@ -140,7 +129,7 @@ describe("Permission Mode Select", () => {
     await act(async () => {
       fireEvent.click(
         document.querySelector(
-          '.permission-mode-item[data-value="default"]',
+          '.permission-mode-item[data-value="acceptEdits"]',
         ) as HTMLElement,
       );
     });
@@ -148,14 +137,14 @@ describe("Permission Mode Select", () => {
     await waitFor(() => {
       expect(vscode.postMessage).toHaveBeenCalledWith({
         command: "setPermissionMode",
-        mode: "default",
+        mode: "acceptEdits",
       });
     });
 
     await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "default" });
+      sendCommand("updatePermissionMode", { mode: "acceptEdits" });
     });
 
-    expect(select.className).toContain("mode-default");
+    expect(select.className).toContain("mode-acceptEdits");
   });
 });

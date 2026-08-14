@@ -18,6 +18,7 @@ const StatusDialog: React.FC<
   const [version, setVersion] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [workdir, setWorkdir] = useState("");
+  const [latestTotalTokens, setLatestTotalTokens] = useState<number | "">("");
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +33,11 @@ const StatusDialog: React.FC<
           setVersion(message.version || "");
           setSessionId(message.sessionId || "");
           setWorkdir(message.workdir || "");
+          setLatestTotalTokens(
+            typeof message.latestTotalTokens === "number"
+              ? message.latestTotalTokens
+              : "",
+          );
           break;
       }
     };
@@ -116,6 +122,12 @@ const StatusDialog: React.FC<
             </div>
             <StatusRow label="Session ID" value={sessionId} />
             <StatusRow label="工作目录" value={workdir} />
+            <StatusRow
+              label="上下文用量"
+              value={
+                latestTotalTokens === "" ? undefined : String(latestTotalTokens)
+              }
+            />
           </div>
 
           <div className="configuration-actions">

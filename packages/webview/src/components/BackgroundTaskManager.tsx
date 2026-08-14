@@ -51,6 +51,10 @@ const BackgroundTaskManager: React.FC<
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) || null;
 
+  useEffect(() => {
+    vscode?.postMessage({ command: "getBackgroundTasks" });
+  }, [vscode]);
+
   // Fetch output when a task is selected
   useEffect(() => {
     if (!selectedTaskId) {
