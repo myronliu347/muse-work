@@ -1,0 +1,83 @@
+packages/desktop/tests/ensureServerPlugins.test.ts
+  f8f9d86464d5d6f2 1-100
+packages/server/src/museSettings.ts
+  f8f9d86464d5d6f2 83-124,126
+packages/desktop/scripts/ensureServerPlugins.mjs
+  f8f9d86464d5d6f2 1-26
+packages/server/scripts/copyPlugins.mjs
+  f8f9d86464d5d6f2 1-15
+packages/desktop/scripts/prepareServer.mjs
+  f8f9d86464d5d6f2 14,69-73
+packages/desktop/package.json
+  f8f9d86464d5d6f2 52
+packages/desktop/scripts/copyServerPlugins.mjs
+  f8f9d86464d5d6f2 1-10
+packages/server/tests/museSettings.test.ts
+  f8f9d86464d5d6f2 5,7,12,61-66,68-123,125-129
+packages/server/package.json
+  f8f9d86464d5d6f2 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "96f6aac5f515de067815882bf3fe5a906e80be45",
+  "prompts": {
+    "f8f9d86464d5d6f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "495917f3-1afa-48f7-a7b6-4ecdf14577cf",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 295,
+      "total_deletions": 42,
+      "accepted_lines": 275,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/copyServerPlugins.mjs": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/tests/museSettings.test.ts": {
+          "additions": 78,
+          "deletions": 17,
+          "accepted_lines": 71
+        },
+        "packages/desktop/scripts/ensureServerPlugins.mjs": {
+          "additions": 29,
+          "deletions": 3,
+          "accepted_lines": 26
+        },
+        "packages/desktop/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/ensureServerPlugins.test.ts": {
+          "additions": 100,
+          "accepted_lines": 100
+        },
+        "packages/desktop/scripts/prepareServer.mjs": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 6
+        },
+        "packages/server/src/museSettings.ts": {
+          "additions": 54,
+          "deletions": 16,
+          "accepted_lines": 45
+        },
+        "packages/server/scripts/copyPlugins.mjs": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
