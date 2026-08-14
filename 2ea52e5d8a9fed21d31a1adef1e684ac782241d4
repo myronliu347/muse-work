@@ -1,0 +1,50 @@
+packages/webview/src/styles/DesktopApp.css
+  db26196a999da47a 127-187,210-221,223,225-258,349,440-473,485,492
+packages/webview/src/components/DesktopSidebar.tsx
+  db26196a999da47a 1,4-12,16-30,53,73,83-84,117-131
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  db26196a999da47a 7,9-10,74,101-106,116-118,123,128,131-172,174-202,204-213,215-217,219-233
+packages/webview/src/components/SessionTree.tsx
+  db26196a999da47a 1-595
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2ea52e5d8a9fed21d31a1adef1e684ac782241d4",
+  "prompts": {
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1190,
+      "total_deletions": 718,
+      "accepted_lines": 900,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/SessionTree.tsx": {
+          "additions": 595,
+          "accepted_lines": 595
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 307,
+          "deletions": 673,
+          "accepted_lines": 44
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 125,
+          "deletions": 18,
+          "accepted_lines": 116
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 163,
+          "deletions": 27,
+          "accepted_lines": 145
+        }
+      }
+    }
+  }
+}
