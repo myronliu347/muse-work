@@ -20,13 +20,21 @@
   position: relative;
 }
 
-/* Sticky user message pinned at the top of the viewport (设计稿 2248-9471) */
+/* Sticky user message pinned at the top of the viewport (设计稿 2248-9471).
+   padding-top + matching negative margin: in-flow the bar sits in the list's
+   top padding; when stuck, the padding stays inside the scrollport so the
+   bubble's rounded corners are not clipped by the header / overflow edge.
+   `-var(--token)` is invalid CSS — always use calc(-1 * var(--token)). */
 .sticky-user-wrapper {
   position: sticky;
   top: 0;
   align-self: stretch;
-  margin-bottom: -var(--space-3);
   z-index: 20;
+  box-sizing: border-box;
+  padding-top: var(--space-4);
+  margin-top: calc(-1 * var(--space-4));
+  margin-bottom: calc(-1 * var(--space-3));
+  background-color: var(--color-background);
 }
 
 .sticky-user-message {
@@ -39,15 +47,6 @@
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.sticky-user-cap {
-  position: relative;
-  z-index: 19;
-  margin-top: -var(--space-4);
-  height: 16px;
-  margin-bottom: -var(--space-1);
-  background-color: var(--color-background);
 }
 
 .sticky-user-message:hover {
@@ -69,8 +68,8 @@
 .sticky-user-scrim {
   position: relative;
   z-index: 19;
-  margin-top: -var(--space-1);
-  height: 16px;
+  margin-top: calc(-1 * var(--space-1));
+  height: var(--space-4);
   background: var(--color-background);
   pointer-events: none;
 }

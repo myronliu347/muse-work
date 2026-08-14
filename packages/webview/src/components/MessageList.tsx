@@ -358,7 +358,6 @@ export const MessageList = forwardRef<
     >
       {stickyMessage && (
         <div className="sticky-user-wrapper">
-          <div className="sticky-user-cap" />
           <div
             className="sticky-user-message"
             data-testid="sticky-user-message"
