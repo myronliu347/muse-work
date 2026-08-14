@@ -68,6 +68,35 @@ describe("MuseModelSelect controlled session mode", () => {
     expect(api.setActive).not.toHaveBeenCalled();
   });
 
+  it("treats empty modelId as unset and keeps the session default", async () => {
+    const api = stubProvidersApi({
+      listProviders: vi.fn(async () => ({
+        ...providersBody,
+        providers: [
+          {
+            ...providersBody.providers[0],
+            models: [
+              { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+            ],
+          },
+        ],
+        active: { providerId: "codemaker", modelId: "claude-opus-4-6" },
+      })),
+    });
+
+    render(
+      <MuseModelSelect
+        api={api}
+        modelId=""
+        onModelChange={() => {}}
+      />,
+    );
+
+    const select = await screen.findByTestId("muse-model-select");
+    expect(select).toHaveValue("deepseek-v4-flash");
+  });
+
   it("defaults to deepseek-v4-flash in session mode even if global active is opus", async () => {
     const api = stubProvidersApi({
       listProviders: vi.fn(async () => ({

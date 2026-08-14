@@ -425,6 +425,59 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("first send keeps session model after auto-titling a new session", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      title: "新对话",
+      model: "deepseek-v4-flash",
+      workdir: "/Users/demo/.muse-work/projects/x",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+      patchSession: vi.fn(async (id: string, patch: Partial<MuseSession>) => ({
+        ...created,
+        id,
+        ...patch,
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "sendMessage", text: "hello world" });
+    await flush();
+
+    const currentSessions = messages.filter(
+      (m): m is { command: string; session: { model?: string; title?: string } } =>
+        Boolean(
+          m &&
+            typeof m === "object" &&
+            (m as { command?: string }).command === "updateCurrentSession",
+        ),
+    );
+    expect(currentSessions.length).toBeGreaterThan(0);
+    expect(currentSessions.at(-1)?.session).toEqual(
+      expect.objectContaining({
+        id: "sess-created",
+        model: "deepseek-v4-flash",
+        title: "hello world",
+      }),
+    );
+  });
+
   it("abortMessage calls API and ends streaming", async () => {
     const api = stubApi();
     const bridge = createHostBridge({

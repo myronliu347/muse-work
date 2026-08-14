@@ -1146,21 +1146,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
     const title = truncateTitle(text);
     try {
-      await api.patchSession(sid, { title });
+      const session = await api.patchSession(sid, { title });
       titledSessions.add(sid);
-      patchTreeSession(sid, { title });
-      emitCurrentSession({
-        ...(existing ?? {
-          id: sid,
-          workdir: currentWorkdir,
-          createdAt: Date.now(),
-          lastActiveAt: Date.now(),
-          status: "idle",
-          model: "",
-          pinned: false,
-        }),
-        title,
-      });
+      patchTreeSession(sid, { title: session.title || title, model: session.model });
+      emitCurrentSession(session);
     } catch {
       // Title is best-effort; server also auto-titles.
     }

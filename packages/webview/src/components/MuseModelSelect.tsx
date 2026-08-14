@@ -70,8 +70,9 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
     (p) => p.id === data.active.providerId,
   );
   const models = activeProvider?.models ?? [];
+  const resolvedModelId = modelId?.trim() ? modelId : undefined;
   const value =
-    modelId ??
+    resolvedModelId ??
     (onModelChange && !syncGlobalActive
       ? DEFAULT_SESSION_MODEL_ID
       : data?.active.modelId) ??
