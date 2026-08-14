@@ -501,4 +501,46 @@ describe("installWorkdirHost", () => {
     host.dispose();
     fs.rmSync(userData, { recursive: true, force: true });
   });
+
+  it("desktopOpenInTerminal runs openInTerminal with the workdir", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-term-"));
+    const opened: string[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: { send: () => {} },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      openInTerminal: (workdir) => {
+        opened.push(workdir);
+      },
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "desktopOpenInTerminal", workdir: "/repo/beta" },
+    );
+    expect(opened).toEqual(["/repo/beta"]);
+
+    opened.length = 0;
+    await handler!({ sender: {} }, { command: "desktopOpenInTerminal" });
+    expect(opened).toEqual([]);
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
 });

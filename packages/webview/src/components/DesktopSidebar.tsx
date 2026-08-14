@@ -67,6 +67,8 @@ export interface DesktopSidebarProps {
   onRenameSession?: (sessionId: string, title: string) => void;
   /** Open the workdir in VS Code via `code <workdir>`. */
   onOpenInEditor?: (workdir: string) => void;
+  /** Open the workdir in the system terminal. */
+  onOpenInTerminal?: (workdir: string) => void;
 }
 
 /**
@@ -90,6 +92,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onTogglePin,
   onRenameSession,
   onOpenInEditor,
+  onOpenInTerminal,
 }) => {
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
@@ -128,6 +131,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onRenameSession={onRenameSession}
         onNewSessionInWorkdir={onNewSessionInWorkdir}
         onOpenInEditor={onOpenInEditor}
+        onOpenInTerminal={onOpenInTerminal}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

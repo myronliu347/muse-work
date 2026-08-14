@@ -13,7 +13,7 @@ export interface DesktopWorktreeControlsProps {
 
 /**
  * Branch selector + worktree checkbox shown next to the workdir selector on
- * the new-session page (FR-022/FR-023). Only rendered when the current workdir
+ * the input toolbar row (FR-022/FR-023). Only rendered when the current workdir
  * is a git repo. Same dropdown pattern as DesktopWorkdirSelector: relative
  * container, menu expands upward, click-outside closes.
  */
@@ -56,6 +56,7 @@ export const DesktopWorktreeControls: React.FC<
       <div className="desktop-workdir-container" ref={menuRef}>
         <div
           className="desktop-workdir-trigger"
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setMenuOpen((o) => !o)}
           title={`基准分支：${branch}`}
           data-testid="desktop-branch-selector"

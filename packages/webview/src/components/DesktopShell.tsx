@@ -627,6 +627,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onOpenInEditor={(workdir) =>
           vscode.postMessage({ command: "desktopOpenInEditor", workdir })
         }
+        onOpenInTerminal={(workdir) =>
+          vscode.postMessage({ command: "desktopOpenInTerminal", workdir })
+        }
       />
       <div
         className="desktop-pane-rows"

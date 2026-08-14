@@ -968,15 +968,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           {/* Single bordered box wrapping the text area and toolbar (设计稿 2237-5088).
             Focus turns the whole box's border red via :focus-within. */}
           <div className="input-content">
-            {/* Desktop host, new-session state: workdir selector at the top-left */}
-            {workdirSelector && (
-              <div
-                className="input-workdir-row"
-                data-testid="input-workdir-row"
-              >
-                {workdirSelector}
-              </div>
-            )}
             <AttachedImages
               images={attachedImages}
               onRemove={handleRemoveAttachedImage}
@@ -997,8 +988,16 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               data-placeholder="@提及文件，粘贴图片，Enter发送..."
             />
 
-            {/* Buttons row: model select sits to the left of the send/abort button */}
+            {/* Toolbar row: workdir/git on the left, model select + send on the right */}
             <div className="input-buttons-row">
+              {workdirSelector ? (
+                <div
+                  className="input-toolbar-left"
+                  data-testid="input-workdir-row"
+                >
+                  {workdirSelector}
+                </div>
+              ) : null}
               <div className="button-spacer" />
               {onModelChange && (
                 <div

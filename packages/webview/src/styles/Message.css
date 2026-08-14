@@ -282,15 +282,16 @@
   line-height: 1.45;
 }
 
-/* User message content styling - make pre look like normal text */
+/* User message content styling - match assistant .message-content sizing. */
 .message-content.user-content {
-  font-family: inherit; /* Use same font as parent */
-  font-size: inherit; /* Use same size as parent */
-  margin: 0; /* Remove default margins */
-  padding: 0; /* Remove default padding */
-  background: none; /* Remove background */
-  border: none; /* Remove border */
-  white-space: pre-wrap; /* Preserve whitespace and line breaks */
+  font-family: inherit;
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   display: block;
   width: 100%;

@@ -21,25 +21,24 @@
 }
 
 /* Sticky user message pinned at the top of the viewport (设计稿 2248-9471).
-   padding-top + matching negative margin: in-flow the bar sits in the list's
-   top padding; when stuck, the padding stays inside the scrollport so the
-   bubble's rounded corners are not clipped by the header / overflow edge.
-   `-var(--token)` is invalid CSS — always use calc(-1 * var(--token)). */
+   Sits as the first in-flow child; negative margin-bottom cancels the list
+   flex gap so no blank band appears between the stuck bubble and content
+   scrolling up beneath it. Avoid extra padding/scrim height — those extend
+   the sticky box and read as empty space while stuck. */
 .sticky-user-wrapper {
   position: sticky;
   top: 0;
   align-self: stretch;
   z-index: 20;
   box-sizing: border-box;
-  padding-top: var(--space-4);
-  margin-top: calc(-1 * var(--space-4));
   margin-bottom: calc(-1 * var(--space-3));
-  background-color: var(--color-background);
+  pointer-events: none;
 }
 
 .sticky-user-message {
   position: relative;
   z-index: 20;
+  pointer-events: auto;
   /* Match .user-text-block so the sticky bar keeps the bubble background. */
   background-color: var(--gray-3);
   border: 1px solid var(--gray-6);
@@ -47,6 +46,7 @@
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   transition: background-color 0.2s ease;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--gray-1) 40%, transparent);
 }
 
 .sticky-user-message:hover {
@@ -54,22 +54,12 @@
 }
 
 .sticky-user-content {
+  font-size: var(--font-size-1);
+  line-height: 1.45;
   color: var(--vscode-foreground);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: break-word;
-}
-
-/* Scrim sits below the card inside the sticky wrapper. Peaks upward (negative
-   margin) to cover the rounded-corner gap at the card's bottom, then fades to
-   transparent below. z-index lower than the card so it sits beneath it. */
-.sticky-user-scrim {
-  position: relative;
-  z-index: 19;
-  margin-top: calc(-1 * var(--space-1));
-  height: var(--space-4);
-  background: var(--color-background);
-  pointer-events: none;
 }

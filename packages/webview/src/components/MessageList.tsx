@@ -365,7 +365,6 @@ export const MessageList = forwardRef<
           >
             <div className="sticky-user-content">{stickyMessage.text}</div>
           </div>
-          <div className="sticky-user-scrim" />
         </div>
       )}
       {/* Chat messages - filter out user meta messages */}

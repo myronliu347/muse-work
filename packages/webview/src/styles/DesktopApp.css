@@ -515,7 +515,7 @@
 }
 
 /* ---- Worktree controls: branch selector + checkbox (FR-022/FR-023) ----
-   Rendered next to the workdir selector in the input-workdir-row. The branch
+   Rendered next to the workdir selector on the input toolbar row. The branch
    dropdown reuses the .desktop-workdir-* classes; only the row layout and the
    checkbox need their own styles. */
 
@@ -575,7 +575,7 @@
   flex-shrink: 0;
 }
 
-/* ---- Workdir dropdown (inside the message input, top-left) ----
+/* ---- Workdir dropdown (inside the message input toolbar, bottom-left) ----
    Custom dropdown mirroring the permission-mode dropdown in MessageInput:
    a relative container holds the trigger + an absolutely-positioned menu.
    Expands upward (bottom:100%) since the input sits at the bottom of the
@@ -703,8 +703,8 @@
 
 /* ---- Host dropdown (SSH 远程主机) ----
    Same pattern as the workdir dropdown above — relative container, trigger,
-   menu expanding upward. Rendered left of the workdir selector in the
-   input-workdir-row. */
+   menu expanding upward. Rendered left of the workdir selector on the input
+   toolbar row. */
 
 .desktop-host-container {
   position: relative;

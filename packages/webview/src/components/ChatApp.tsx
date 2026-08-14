@@ -2330,6 +2330,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenInEditor={(workdir) =>
             postToHost({ command: "desktopOpenInEditor", workdir })
           }
+          onOpenInTerminal={(workdir) =>
+            postToHost({ command: "desktopOpenInTerminal", workdir })
+          }
         />
         {chatContainer}
         {dialogs}

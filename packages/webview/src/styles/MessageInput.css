@@ -38,14 +38,65 @@
   border-color: var(--accent-9);
 }
 
-/* Desktop host, new-session state: workdir selector row at the top-left of
-   the input box. Sits above the text area; its dropdown expands upward. */
-.input-workdir-row {
+/* Desktop host: workdir / branch / worktree controls on the toolbar left,
+   same row as the model selector. Dropdowns expand upward from the bottom row. */
+.input-toolbar-left {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0;
   min-width: 0;
+  flex: 0 1 auto;
+  overflow: visible;
+}
+
+.input-toolbar-left .desktop-workdir-container,
+.input-toolbar-left .desktop-worktree-controls,
+.input-toolbar-left .desktop-git-context {
+  min-width: 0;
+}
+
+/* Match MuseModelSelect: transparent pill, gray capsule on hover. */
+.input-toolbar-left .desktop-workdir-trigger {
+  position: relative;
+  box-sizing: border-box;
+  height: 28px;
+  max-width: 180px;
+  padding: 0 28px 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  line-height: 26px;
+}
+
+.input-toolbar-left .desktop-workdir-trigger:hover {
+  background-color: var(--gray-3);
+  color: var(--gray-12);
+}
+
+.input-toolbar-left .desktop-workdir-trigger .codicon-folder-opened,
+.input-toolbar-left .desktop-workdir-trigger .codicon-git-branch {
+  font-size: var(--font-size-1);
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+
+.input-toolbar-left .desktop-workdir-name {
+  max-width: 120px;
+}
+
+.input-toolbar-left .desktop-workdir-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.72;
+}
+
+.input-toolbar-left .desktop-worktree-checkbox {
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
 }
 
 .message-input {
@@ -176,17 +227,21 @@
   background: #fff;
 }
 
-/* Toolbar row: model select + send sit on the right, inset by .input-content padding. */
+/* Toolbar row: workdir/git on the left, model select + send on the right. */
 .input-buttons-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   height: 28px;
+  margin-top: var(--space-2);
   padding: 0;
+  min-width: 0;
+  overflow: visible;
 }
 
 .button-spacer {
   flex: 1;
+  min-width: var(--space-2);
 }
 
 .input-model-select {

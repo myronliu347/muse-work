@@ -135,6 +135,7 @@ export interface SessionTreeProps {
   onRenameSession?: (sessionId: string, title: string) => void;
   onNewSessionInWorkdir?: (workdir: string) => void;
   onOpenInEditor?: (workdir: string) => void;
+  onOpenInTerminal?: (workdir: string) => void;
 }
 
 function CollapsibleBody({
@@ -171,6 +172,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onRenameSession,
   onNewSessionInWorkdir,
   onOpenInEditor,
+  onOpenInTerminal,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
@@ -478,7 +480,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       className="desktop-session-workdir-row"
                       onClick={() => toggleWorkdirCollapsed(group.workdir)}
                       onContextMenu={(e) => {
-                        if (!group.workdir || !onOpenInEditor) return;
+                        if (
+                          !group.workdir ||
+                          (!onOpenInEditor && !onOpenInTerminal)
+                        )
+                          return;
                         e.preventDefault();
                         e.stopPropagation();
                         setWorkdirMenu({
@@ -575,17 +581,32 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           data-testid="desktop-workdir-context-menu"
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            className="desktop-context-menu-item"
-            data-testid="desktop-workdir-open-in-editor"
-            onClick={() => {
-              onOpenInEditor?.(workdirMenu.workdir);
-              setWorkdirMenu(null);
-            }}
-          >
-            在编辑器打开
-          </button>
+          {onOpenInEditor ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="desktop-workdir-open-in-editor"
+              onClick={() => {
+                onOpenInEditor(workdirMenu.workdir);
+                setWorkdirMenu(null);
+              }}
+            >
+              在编辑器打开
+            </button>
+          ) : null}
+          {onOpenInTerminal ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="desktop-workdir-open-in-terminal"
+              onClick={() => {
+                onOpenInTerminal(workdirMenu.workdir);
+                setWorkdirMenu(null);
+              }}
+            >
+              在终端打开
+            </button>
+          ) : null}
         </div>
       )}
     </div>

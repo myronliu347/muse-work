@@ -38,6 +38,8 @@ export type WorkdirHostDeps = {
   openPath?: (filePath: string) => Promise<string>;
   /** Open a folder in VS Code (`code <workdir>`). Injected in tests. */
   openInEditor?: (workdir: string) => void;
+  /** Open a folder in the system terminal. Injected in tests. */
+  openInTerminal?: (workdir: string) => void;
   /** Webview reports whether any agent turn is in flight. */
   onAgentBusyChange?: (busy: boolean) => void;
 };
@@ -51,6 +53,49 @@ function defaultOpenInEditor(workdir: string): void {
   });
   child.on("error", () => {
     // `code` CLI missing from PATH — ignore.
+  });
+  child.unref();
+}
+
+function escapeForAppleScriptString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function defaultOpenInTerminal(workdir: string): void {
+  const platform = process.platform;
+  const spawnOpts = {
+    detached: true,
+    stdio: "ignore" as const,
+    windowsHide: true,
+  };
+  let child: ReturnType<typeof spawn> | null = null;
+
+  if (platform === "darwin") {
+    const escaped = escapeForAppleScriptString(workdir);
+    child = spawn(
+      "/usr/bin/osascript",
+      [
+        "-e",
+        `tell application "Terminal" to do script "cd \\"${escaped}\\"; clear"`,
+      ],
+      spawnOpts,
+    );
+  } else if (platform === "win32") {
+    child = spawn(
+      "cmd.exe",
+      ["/c", "start", "cmd.exe", "/K", `cd /d "${workdir}"`],
+      { ...spawnOpts, shell: true },
+    );
+  } else {
+    child = spawn(
+      "x-terminal-emulator",
+      ["--working-directory", workdir],
+      spawnOpts,
+    );
+  }
+
+  child.on("error", () => {
+    // Terminal app / emulator missing — ignore.
   });
   child.unref();
 }
@@ -143,6 +188,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       ? shell.openPath.bind(shell)
       : async () => "shell.openPath unavailable");
   const openInEditor = options.openInEditor ?? defaultOpenInEditor;
+  const openInTerminal = options.openInTerminal ?? defaultOpenInTerminal;
 
 
   const state = loadPersistedWorkdirState(options.userDataPath);
@@ -214,6 +260,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     if (command === "desktopOpenInEditor") {
       const workdir = typeof msg.workdir === "string" ? msg.workdir.trim() : "";
       if (workdir) openInEditor(workdir);
+      return;
+    }
+
+    if (command === "desktopOpenInTerminal") {
+      const workdir = typeof msg.workdir === "string" ? msg.workdir.trim() : "";
+      if (workdir) openInTerminal(workdir);
       return;
     }
 

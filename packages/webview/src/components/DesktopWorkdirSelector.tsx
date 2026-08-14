@@ -239,6 +239,7 @@ export const DesktopWorkdirSelector: React.FC<DesktopWorkdirSelectorProps> = ({
     <div className="desktop-workdir-container" ref={menuRef}>
       <div
         className="desktop-workdir-trigger"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => setMenuOpen((o) => !o)}
         title={workdir ?? (isRemote ? "选择远程目录…" : "选择工作目录…")}
         data-testid="desktop-workdir"
