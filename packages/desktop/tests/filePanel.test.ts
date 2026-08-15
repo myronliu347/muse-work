@@ -20,4 +20,37 @@ describe("readLocalFileForPanel", () => {
     const view = await readLocalFileForPanel("/tmp/muse-does-not-exist-xyz");
     expect(view.error).toMatch(/不存在/);
   });
+
+  it("marks files larger than 1MB as too-large", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
+    const file = path.join(dir, "big.txt");
+    fs.writeFileSync(file, Buffer.alloc(1 * 1024 * 1024 + 1, 0x61));
+    const view = await readLocalFileForPanel(file);
+    expect(view.unsupported).toBe("too-large");
+    expect(view.content).toBeUndefined();
+    expect(view.sizeBytes).toBe(1 * 1024 * 1024 + 1);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("marks binary files as binary", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
+    const file = path.join(dir, "blob.bin");
+    fs.writeFileSync(file, Buffer.from([0, 1, 2, 3, 0, 4]));
+    const view = await readLocalFileForPanel(file);
+    expect(view.unsupported).toBe("binary");
+    expect(view.content).toBeUndefined();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("rejects oversized images", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
+    const file = path.join(dir, "big.png");
+    const buf = Buffer.alloc(1 * 1024 * 1024 + 10, 0);
+    buf.write("\x89PNG\r\n\x1a\n", 0);
+    fs.writeFileSync(file, buf);
+    const view = await readLocalFileForPanel(file);
+    expect(view.unsupported).toBe("too-large");
+    expect(view.imageBase64).toBeUndefined();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 });

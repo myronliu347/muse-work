@@ -5,7 +5,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_BYTES = 1 * 1024 * 1024;
 const MAX_LINES = 2000;
 
 const IMAGE_EXTS = new Set([
@@ -36,6 +36,8 @@ export type FilePanelView = {
   content?: string;
   imageBase64?: string;
   error?: string;
+  unsupported?: "binary" | "too-large";
+  sizeBytes?: number;
   truncated?: boolean;
   totalLines?: number;
   startLine?: number;
@@ -54,6 +56,17 @@ export async function readLocalFileForPanel(
     }
     if (stat.isDirectory()) {
       return { path: filePath, host, error: "无法在面板中显示目录" };
+    }
+
+    if (stat.size > MAX_BYTES) {
+      return {
+        path: filePath,
+        host,
+        unsupported: "too-large",
+        sizeBytes: stat.size,
+        startLine: opts?.startLine,
+        endLine: opts?.endLine,
+      };
     }
 
     const ext = path.extname(filePath).toLowerCase().replace(/^\./, "");
@@ -79,7 +92,14 @@ export async function readLocalFileForPanel(
       await handle.close();
     }
     if (buf.subarray(0, Math.min(bytesRead, 8192)).includes(0)) {
-      return { path: filePath, host, error: "二进制文件无法在面板中显示" };
+      return {
+        path: filePath,
+        host,
+        unsupported: "binary",
+        sizeBytes: stat.size,
+        startLine: opts?.startLine,
+        endLine: opts?.endLine,
+      };
     }
     const rawContent = buf
       .subarray(0, Math.min(bytesRead, MAX_BYTES))
