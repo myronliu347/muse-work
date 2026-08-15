@@ -1,0 +1,114 @@
+packages/webview/src/types/index.ts
+  88b2909908d5ac36 199,345
+packages/webview/src/components/DesktopApp.tsx
+  88b2909908d5ac36 157
+packages/webview/src/components/DesktopWorkdirSelector.tsx
+  88b2909908d5ac36 7,34,42,46,75,84,132,136
+packages/webview/tests/webview/rewind.test.tsx
+  88b2909908d5ac36 7,16-19,42,97,137,177-179,200,241,272
+packages/webview/e2e/demo/product-spec-confirmations.demo.ts
+  88b2909908d5ac36 223,227,237,239,242,247,250,252,255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "925d5abdb3ac6a39ce61c8478630a3f1cc880352",
+  "prompts": {
+    "88b2909908d5ac36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c9abb29-87c7-4691-aa7a-1a73e8e1df1e",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 1738,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/HeaderIcons.tsx": {
+          "deletions": 96
+        },
+        "packages/webview/src/components/DesktopHostSelector.tsx": {
+          "deletions": 159
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "deletions": 62,
+          "accepted_lines": 2
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/HistorySearchPopup.tsx": {
+          "deletions": 189
+        },
+        "packages/provider/src/codemaker/login.ts": {
+          "deletions": 3
+        },
+        "packages/webview/src/styles/TodoList.css": {
+          "deletions": 57
+        },
+        "packages/webview/src/components/DesktopWorkdirSelector.tsx": {
+          "additions": 8,
+          "deletions": 304,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/HistorySearchPopup.css": {
+          "deletions": 119
+        },
+        "packages/webview/tests/webview/rewind.test.tsx": {
+          "additions": 15,
+          "deletions": 10,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "deletions": 90,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "deletions": 1
+        },
+        "packages/webview/tests/webview/planModeInit.test.tsx": {
+          "deletions": 39
+        },
+        "packages/webview/src/components/TodoList.tsx": {
+          "deletions": 56
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 1,
+          "deletions": 40,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "deletions": 2
+        },
+        "packages/provider/src/index.ts": {
+          "deletions": 1
+        },
+        "packages/webview/e2e/demo/desktop-remote-ssh.demo.ts": {
+          "deletions": 226
+        },
+        "packages/webview/src/styles/DiffViewer.css": {
+          "deletions": 52
+        },
+        "packages/webview/e2e/demo/product-spec-confirmations.demo.ts": {
+          "additions": 9,
+          "deletions": 22,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/webview/historySearch.test.tsx": {
+          "deletions": 200
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "deletions": 8
+        }
+      }
+    }
+  }
+}
