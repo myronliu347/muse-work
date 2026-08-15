@@ -284,8 +284,9 @@
 }
 
 .permission-mode-container {
+  /* Temporarily hidden in the sender toolbar; keep DOM for mode cycle tests. */
+  display: none;
   position: relative;
-  display: flex;
 }
 
 .permission-mode-select {
