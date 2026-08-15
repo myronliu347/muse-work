@@ -63,9 +63,34 @@ describe("workdir-level panel groups", () => {
   };
 
   const openPanel = (kind: string) => {
-    fireEvent.click(screen.getByTestId("panel-toggle-btn"));
-    fireEvent.click(screen.getByTestId(`panel-toggle-item-${kind}`));
-    fireEvent.mouseDown(document.body);
+    // Prefer the dock toggle for the default 变更 open; other kinds use
+    // the same keyboard shortcuts the app still binds (single-panel toggle).
+    if (kind === "diff" && !screen.queryByTestId("desktop-panel-dock")) {
+      fireEvent.click(screen.getByTestId("panel-toggle-btn"));
+      return;
+    }
+    const isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    if (kind === "terminal") {
+      fireEvent.keyDown(window, {
+        key: "`",
+        code: "Backquote",
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: false,
+        bubbles: true,
+      });
+      return;
+    }
+    const key =
+      kind === "preview" ? "p" : kind === "diff" ? "d" : kind === "file" ? "f" : null;
+    if (!key) throw new Error(`unknown panel kind: ${kind}`);
+    fireEvent.keyDown(window, {
+      key,
+      ctrlKey: !isMac,
+      metaKey: isMac,
+      shiftKey: true,
+      bubbles: true,
+    });
   };
 
   const pushTree = (entries: { sessionId: string; workdir: string }[]) =>

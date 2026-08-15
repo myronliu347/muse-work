@@ -5,7 +5,7 @@ const isMac =
   /mac|iphone|ipad|ipod/i.test(navigator.platform);
 
 /**
- * Map a keydown to a desktop panel toggle, matching PanelToggleMenu labels:
+ * Map a keydown to a desktop panel toggle, matching PanelAddMenu labels:
  * - Preview: ⇧⌘P / Ctrl+Shift+P
  * - Diff: ⇧⌘D / Ctrl+Shift+D
  * - Terminal: ⌃` / Ctrl+`

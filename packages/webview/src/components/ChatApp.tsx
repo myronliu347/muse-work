@@ -1781,7 +1781,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     togglePanelRef.current = handleTogglePanel;
   }, [handleTogglePanel]);
 
-  // Desktop panel shortcuts (labels in PanelToggleMenu). Shell host instance
+  // Desktop panel shortcuts (labels in PanelAddMenu). Shell host instance
   // must not bind — only the focused pane ChatApp (or single-pane layout).
   useEffect(() => {
     if (!isDesktop) return;
