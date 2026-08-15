@@ -331,14 +331,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     return () => clearTimeout(timer);
   }, [queueEditWarning, patchPane]);
 
-  // Desktop: reset the worktree controls when the branch list changes (i.e. the
-  // workdir was re-queried). Default to the repo's current branch; worktree off.
+  // Desktop: reset worktree opt-in when the workdir changes. Do not depend on
+  // `gitBranches` — silent poll / visibility refresh rewrite paneGitBranches
+  // every ~3s and must not clear the user's checkbox or base-branch pick.
   useEffect(() => {
     patchPane({
-      worktreeBranch: gitBranches?.current ?? "",
+      worktreeBranch: "",
       worktreeChecked: false,
     });
-  }, [gitBranches, patchPane]);
+  }, [effectiveWorkdir, patchPane]);
 
   // Handle messages from VS Code extension
   useEffect(() => {
@@ -1197,7 +1198,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       if (!trimmedText && (!images || images.length === 0)) return;
 
       const slashMatch = trimmedText.match(
-        /^\/(clear|compact|rewind|mcp|status|tasks|workflows|plugin|config)(\s|$)/,
+        /^\/(clear|compact|rewind|mcp|status|tasks|workflows|plugin|config|agents)(\s|$)/,
       );
       if (slashMatch) {
         const name = slashMatch[1];
@@ -1235,6 +1236,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         }
         if (name === "plugin") {
           dispatch({ type: "SHOW_DIALOG", payload: { type: "plugin" } });
+          return;
+        }
+        if (name === "agents") {
+          dispatch({ type: "SHOW_DIALOG", payload: { type: "agents" } });
           return;
         }
         if (name === "config") {
