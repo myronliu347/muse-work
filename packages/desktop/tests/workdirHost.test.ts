@@ -405,6 +405,65 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("requestFileSuggestions uses msg.workdir when host state has none", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-sug-wd-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sug-wd-"));
+    fs.writeFileSync(path.join(dir, "a.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      // no defaultWorkdir → state.workdir undefined
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "requestFileSuggestions",
+        filterText: "",
+        dir: "",
+        requestId: "req-wd",
+        workdir: dir,
+      },
+    );
+
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "fileSuggestionsResponse",
+        requestId: "req-wd",
+        suggestions: expect.arrayContaining([
+          expect.objectContaining({ name: "a.ts" }),
+        ]),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("requestFileSuggestions with query ignores dir and searches globally", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-q-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-q-host-"));

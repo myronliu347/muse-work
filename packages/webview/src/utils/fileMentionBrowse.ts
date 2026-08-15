@@ -25,19 +25,28 @@ export function fileSuggestionsRequestPayload(
   filterText: string,
   browsePath: string,
   requestId: string,
+  workdir?: string,
 ): {
   command: "requestFileSuggestions";
   filterText: string;
   requestId: string;
   dir?: string;
+  workdir?: string;
 } {
-  const payload = {
-    command: "requestFileSuggestions" as const,
+  const payload: {
+    command: "requestFileSuggestions";
+    filterText: string;
+    requestId: string;
+    dir?: string;
+    workdir?: string;
+  } = {
+    command: "requestFileSuggestions",
     filterText,
     requestId,
   };
+  if (workdir) payload.workdir = workdir;
   if (filterText.trim() === "") {
-    return { ...payload, dir: browsePath };
+    payload.dir = browsePath;
   }
   return payload;
 }

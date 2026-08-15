@@ -342,7 +342,8 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       const filterText =
         typeof msg.filterText === "string" ? msg.filterText : "";
       const dir = typeof msg.dir === "string" ? msg.dir : "";
-      const cwd = state.workdir;
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       try {
         const query = filterText.trim();
         const suggestions = cwd

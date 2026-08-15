@@ -444,6 +444,8 @@ export interface MessageInputProps {
   onModelChange?: (modelId: string) => void;
   /** Optional MuseApiClient for the embedded model select (tests / injection). */
   modelSelectApi?: import("../muse/apiClient").MuseApiClient;
+  /** Absolute workdir for @ file mentions (desktop). */
+  workdir?: string;
 }
 
 /**

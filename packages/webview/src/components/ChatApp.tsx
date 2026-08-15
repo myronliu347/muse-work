@@ -1914,6 +1914,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         (state.currentSession as { model?: string } | undefined)?.model
       }
       onModelChange={handleSessionModelChange}
+      workdir={effectiveWorkdir ?? panelWorkdir}
       workdirSelector={
         host?.type === "desktop" ? (
           isDraftSession ? (

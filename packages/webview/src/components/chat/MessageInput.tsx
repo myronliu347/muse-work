@@ -114,6 +114,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modelId,
       onModelChange,
       modelSelectApi,
+      workdir,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -509,10 +510,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             filterText,
             dir ?? browsePathRef.current,
             requestId,
+            workdir,
           ),
         );
       },
-      [vscode],
+      [vscode, workdir],
     );
 
     const requestSlashCommands = useCallback(

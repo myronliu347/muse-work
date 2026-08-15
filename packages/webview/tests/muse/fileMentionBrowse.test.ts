@@ -42,6 +42,18 @@ describe("fileSuggestionsRequestPayload", () => {
       requestId: "2",
     });
   });
+
+  it("includes workdir when provided", () => {
+    expect(
+      fileSuggestionsRequestPayload("", "", "3", "/work/proj"),
+    ).toEqual({
+      command: "requestFileSuggestions",
+      filterText: "",
+      requestId: "3",
+      dir: "",
+      workdir: "/work/proj",
+    });
+  });
 });
 
 describe("isFileMentionDropdownVisible", () => {
