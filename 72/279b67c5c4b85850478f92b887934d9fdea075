@@ -1,0 +1,48 @@
+packages/desktop/src/main/workdirHost.ts
+  9b08060a306bdaeb 368-388
+packages/desktop/tests/fileSearch.test.ts
+  9b08060a306bdaeb 77-91
+packages/desktop/tests/workdirHost.test.ts
+  9b08060a306bdaeb 229-281
+packages/desktop/src/main/fileSearch.ts
+  9b08060a306bdaeb 8,47-51,74-90,99,128,134-135,137-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "72279b67c5c4b85850478f92b887934d9fdea075",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 130,
+      "total_deletions": 2,
+      "accepted_lines": 129,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "additions": 39,
+          "deletions": 2,
+          "accepted_lines": 38
+        },
+        "packages/desktop/tests/fileSearch.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
