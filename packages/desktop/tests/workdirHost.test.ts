@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -188,6 +188,42 @@ describe("installWorkdirHost", () => {
     host.dispose();
     fs.rmSync(userData, { recursive: true, force: true });
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("revealInFinder calls showItemInFolder", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-reveal-"));
+    const showItemInFolder = vi.fn();
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: { send: () => {} },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      showItemInFolder,
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "revealInFinder", path: "/tmp/a.ts" },
+    );
+    expect(showItemInFolder).toHaveBeenCalledWith("/tmp/a.ts");
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
   });
 
   it("requestFileSuggestions replies with matching workspace files", async () => {

@@ -37,6 +37,8 @@ export type WorkdirHostDeps = {
   showOpenDialog?: typeof dialog.showOpenDialog;
   fromWebContents?: typeof BrowserWindow.fromWebContents;
   openPath?: (filePath: string) => Promise<string>;
+  /** Reveal a file in the OS file manager. Injected in tests. */
+  showItemInFolder?: (filePath: string) => void;
   /** Open a folder in VS Code (`code <workdir>`). Injected in tests. */
   openInEditor?: (workdir: string) => void;
   /** Open a folder in the system terminal. Injected in tests. */
@@ -217,6 +219,11 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     (typeof shell?.openPath === "function"
       ? shell.openPath.bind(shell)
       : async () => "shell.openPath unavailable");
+  const showItemInFolder =
+    options.showItemInFolder ??
+    (typeof shell?.showItemInFolder === "function"
+      ? shell.showItemInFolder.bind(shell)
+      : () => {});
   const openInEditor = options.openInEditor ?? defaultOpenInEditor;
   const openInTerminal = options.openInTerminal ?? defaultOpenInTerminal;
 
@@ -370,6 +377,11 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         paneId: msg.paneId,
         fileView,
       });
+      return;
+    }
+
+    if (command === "revealInFinder" && typeof msg.path === "string" && msg.path) {
+      showItemInFolder(msg.path);
       return;
     }
 
