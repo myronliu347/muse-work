@@ -1,0 +1,30 @@
+packages/webview/src/styles/DesktopApp.css
+  4f59b11387b272ed 1059,1064
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1b75164ba959e13e7bde2d7a632bb6733f8c00ac",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
