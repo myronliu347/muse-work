@@ -1,8 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { FileTreeState, FileViewState } from "../../types";
+import type {
+  ContentSearchState,
+  FileSidebarMode,
+  FileTreeState,
+  FileViewState,
+} from "../../types";
 import {
   ensureExpandedForFile,
   emptyFileTreeState,
+  emptyContentSearchState,
 } from "../../stores/panelGroupStore";
 import { FilePathBar } from "./FilePathBar";
 import { FilePreview } from "./FilePreview";
@@ -24,6 +30,10 @@ export interface FilePaneProps {
   vscode: { postMessage: (msg: unknown) => void };
   fileTree?: FileTreeState;
   onFileTreeChange?: (next: FileTreeState) => void;
+  fileSidebarMode?: FileSidebarMode;
+  onFileSidebarModeChange?: (mode: FileSidebarMode) => void;
+  contentSearch?: ContentSearchState;
+  onContentSearchChange?: (next: ContentSearchState) => void;
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   onRevealInFinder?: (path: string) => void;
 }
@@ -37,6 +47,10 @@ export const FilePane: React.FC<FilePaneProps> = ({
   vscode,
   fileTree = emptyFileTreeState(),
   onFileTreeChange,
+  fileSidebarMode = "tree",
+  onFileSidebarModeChange,
+  contentSearch = emptyContentSearchState(),
+  onContentSearchChange,
   onOpenFile,
   onRevealInFinder,
 }) => {
@@ -139,6 +153,11 @@ export const FilePane: React.FC<FilePaneProps> = ({
             tree={fileTree}
             onTreeChange={onFileTreeChange}
             onOpenFile={(path) => onOpenFile(path)}
+            sidebarMode={fileSidebarMode}
+            onSidebarModeChange={onFileSidebarModeChange}
+            contentSearch={contentSearch}
+            onContentSearchChange={onContentSearchChange}
+            onOpenMatch={(path, line) => onOpenFile(path, line)}
           />
         )}
       </div>

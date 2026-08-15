@@ -5,6 +5,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { FileTree } from "../../src/components/panels/FileTree";
 import {
   emptyFileTreeState,
+  emptyContentSearchState,
   type FileTreeState,
 } from "../../src/stores/panelGroupStore";
 
@@ -125,5 +126,25 @@ describe("FileTree", () => {
         expanded: expect.arrayContaining(["src"]),
       }),
     );
+  });
+
+  it("switches between tree and search modes", () => {
+    const onMode = vi.fn();
+    render(
+      <FileTree
+        workdir="/w"
+        vscode={{ postMessage }}
+        tree={emptyFileTreeState()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+        sidebarMode="tree"
+        onSidebarModeChange={onMode}
+        contentSearch={emptyContentSearchState()}
+        onContentSearchChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
+    expect(onMode).toHaveBeenCalledWith("search");
   });
 });

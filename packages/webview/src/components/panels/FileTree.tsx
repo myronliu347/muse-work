@@ -1,11 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { FileTreeDirEntry, FileTreeState } from "../../types";
+import type {
+  ContentSearchState,
+  FileSidebarMode,
+  FileTreeDirEntry,
+  FileTreeState,
+} from "../../types";
 import {
   clampFileTreeWidth,
+  emptyContentSearchState,
   FILE_TREE_WIDTH_DEFAULT,
 } from "../../stores/panelGroupStore";
 import { FileIcon } from "./FileIcon";
+import { FileContentSearch } from "./FileContentSearch";
 
 const ROW_HEIGHT = 22;
 
@@ -15,6 +22,11 @@ export type FileTreeProps = {
   tree: FileTreeState;
   onTreeChange: (next: FileTreeState) => void;
   onOpenFile: (absPath: string) => void;
+  sidebarMode?: FileSidebarMode;
+  onSidebarModeChange?: (mode: FileSidebarMode) => void;
+  contentSearch?: ContentSearchState;
+  onContentSearchChange?: (next: ContentSearchState) => void;
+  onOpenMatch?: (absPath: string, line: number) => void;
 };
 
 type FlatRow = FileTreeDirEntry & { depth: number };
@@ -44,6 +56,11 @@ export const FileTree: React.FC<FileTreeProps> = ({
   tree,
   onTreeChange,
   onOpenFile,
+  sidebarMode = "tree",
+  onSidebarModeChange,
+  contentSearch = emptyContentSearchState(),
+  onContentSearchChange,
+  onOpenMatch,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [pendingDirs, setPendingDirs] = useState<Set<string>>(new Set());
@@ -157,8 +174,41 @@ export const FileTree: React.FC<FileTreeProps> = ({
           <span className="file-tree-workdir" title="">
             无工作目录
           </span>
+          {onSidebarModeChange && (
+            <div className="file-tree-mode-toggles">
+              <button
+                type="button"
+                className="file-tree-mode-btn"
+                data-testid="file-sidebar-mode-tree"
+                aria-pressed={sidebarMode === "tree"}
+                title="文件树"
+                onClick={() => onSidebarModeChange("tree")}
+              >
+                <i className="codicon codicon-list-tree" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="file-tree-mode-btn"
+                data-testid="file-sidebar-mode-search"
+                aria-pressed={sidebarMode === "search"}
+                title="搜索"
+                onClick={() => onSidebarModeChange("search")}
+              >
+                <i className="codicon codicon-search" aria-hidden />
+              </button>
+            </div>
+          )}
         </div>
-        <div className="file-tree-empty">选择工作目录后显示文件</div>
+        {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
+          <FileContentSearch
+            workdir={undefined}
+            state={contentSearch}
+            onStateChange={onContentSearchChange}
+            onOpenMatch={onOpenMatch}
+          />
+        ) : (
+          <div className="file-tree-empty">选择工作目录后显示文件</div>
+        )}
       </div>
     );
   }
@@ -166,6 +216,31 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const workdirName =
     workdir.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ||
     workdir;
+
+  const modeToggles = onSidebarModeChange ? (
+    <div className="file-tree-mode-toggles">
+      <button
+        type="button"
+        className="file-tree-mode-btn"
+        data-testid="file-sidebar-mode-tree"
+        aria-pressed={sidebarMode === "tree"}
+        title="文件树"
+        onClick={() => onSidebarModeChange("tree")}
+      >
+        <i className="codicon codicon-list-tree" aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="file-tree-mode-btn"
+        data-testid="file-sidebar-mode-search"
+        aria-pressed={sidebarMode === "search"}
+        title="搜索"
+        onClick={() => onSidebarModeChange("search")}
+      >
+        <i className="codicon codicon-search" aria-hidden />
+      </button>
+    </div>
+  ) : null;
 
   return (
     <div className="file-tree" style={{ width }} data-testid="file-tree">
@@ -182,7 +257,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
           className="file-tree-icon"
         />
         <span className="file-tree-workdir">{workdirName}</span>
+        {modeToggles}
       </div>
+      {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
+        <FileContentSearch
+          workdir={workdir}
+          state={contentSearch}
+          onStateChange={onContentSearchChange}
+          onOpenMatch={onOpenMatch}
+        />
+      ) : (
       <div className="file-tree-scroll" ref={parentRef}>
         <div
           className="file-tree-virtual"
@@ -240,6 +324,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
