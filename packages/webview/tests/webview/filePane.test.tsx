@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
-import { FilePane } from "../../src/components/FilePane";
+import { FilePane } from "../../src/components/panels/FilePane";
 import type { FileViewState } from "../../src/types";
 
 function makeFileView(overrides: Partial<FileViewState> = {}): FileViewState {

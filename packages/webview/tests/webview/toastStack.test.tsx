@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ToastStack } from "../../src/components/ToastStack";
+import { ToastStack } from "../../src/components/shared/ToastStack";
 import type { UpdateToast } from "../../src/types";
 
 const toast = (overrides: Partial<UpdateToast> = {}): UpdateToast => ({

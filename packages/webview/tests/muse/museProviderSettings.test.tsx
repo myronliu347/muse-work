@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import {
   MuseProviderSettings,
   type MuseProviderSettingsHandle,
-} from "../../src/components/MuseProviderSettings";
+} from "../../src/components/settings/MuseProviderSettings";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 import { MUSE_PROVIDERS_CHANGED_EVENT } from "../../src/muse/providersEvents";
 import { MuseTheme } from "../../src/ui/theme";

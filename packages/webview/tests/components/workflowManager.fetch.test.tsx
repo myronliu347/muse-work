@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import WorkflowManager from "../../src/components/WorkflowManager";
+import WorkflowManager from "../../src/components/settings/WorkflowManager";
 import type { VsCodeApi } from "../../src/types";
 
 vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));

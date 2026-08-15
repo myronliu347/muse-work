@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import React from "react";
 import mermaid from "mermaid";
-import { MermaidRenderer } from "../../src/components/MermaidRenderer";
+import { MermaidRenderer } from "../../src/components/message/MermaidRenderer";
 
 vi.mock("mermaid", () => ({
   default: {

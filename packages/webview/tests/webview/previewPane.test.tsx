@@ -5,8 +5,8 @@ import {
   PreviewPane,
   formatPreviewComment,
   rewriteCommentUrl,
-} from "../../src/components/PreviewPane";
-import type { WebviewTagElement } from "../../src/components/PreviewPane";
+} from "../../src/components/panels/PreviewPane";
+import type { WebviewTagElement } from "../../src/components/panels/PreviewPane";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { convertToMarkdown } from "../../src/utils/messageUtils";
 import { createMockVscode, sendCommand } from "./test-utils";

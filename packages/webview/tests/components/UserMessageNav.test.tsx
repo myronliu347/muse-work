@@ -7,7 +7,7 @@ import {
   UserMessageNav,
   navEntriesFromMessages,
   pickActiveUserMessageId,
-} from "../../src/components/UserMessageNav";
+} from "../../src/components/message/UserMessageNav";
 
 afterEach(() => {
   cleanup();

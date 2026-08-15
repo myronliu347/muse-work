@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { DesktopPanelDock } from "../../src/components/DesktopPanelDock";
+import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import { MuseTheme } from "../../src/ui/theme";
 
 describe("DesktopPanelDock", () => {

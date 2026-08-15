@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
-import { PanelToggleMenu } from "../../src/components/PanelToggleMenu";
+import { PanelToggleMenu } from "../../src/components/panels/PanelToggleMenu";
 
 function renderMenu(overrides?: {
   checked?: Array<"preview" | "diff" | "terminal" | "file">;

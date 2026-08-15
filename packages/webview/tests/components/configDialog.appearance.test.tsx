@@ -2,14 +2,14 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import ConfigDialog from "../../src/components/ConfigDialog";
+import ConfigDialog from "../../src/components/dialogs/ConfigDialog";
 import { MuseTheme } from "../../src/ui/theme";
 import type { VsCodeApi } from "../../src/types";
 
 let dirty = false;
 
 vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));
-vi.mock("../../src/components/MuseProviderSettings", () => {
+vi.mock("../../src/components/settings/MuseProviderSettings", () => {
   const React = require("react") as typeof import("react");
   return {
     MuseProviderSettings: React.forwardRef(
@@ -30,7 +30,7 @@ vi.mock("../../src/components/MuseProviderSettings", () => {
   };
 });
 
-vi.mock("../../src/components/PluginSettings", () => ({
+vi.mock("../../src/components/settings/PluginSettings", () => ({
   PluginSettings: () => <div data-testid="plugin-settings">plugin settings</div>,
 }));
 

@@ -8,7 +8,7 @@ import {
   act,
   sendCommand,
 } from "./test-utils";
-import { Tooltip } from "../../src/components/Tooltip";
+import { Tooltip } from "../../src/components/shared/Tooltip";
 
 describe("Tooltip Component", () => {
   beforeEach(() => {

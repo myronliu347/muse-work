@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import BackgroundTaskManager from "../../src/components/BackgroundTaskManager";
+import BackgroundTaskManager from "../../src/components/settings/BackgroundTaskManager";
 import type { VsCodeApi } from "../../src/types";
 
 vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));

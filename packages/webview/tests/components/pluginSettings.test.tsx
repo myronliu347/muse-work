@@ -2,7 +2,7 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { PluginSettings } from "../../src/components/PluginSettings";
+import { PluginSettings } from "../../src/components/settings/PluginSettings";
 import { MuseTheme } from "../../src/ui/theme";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 

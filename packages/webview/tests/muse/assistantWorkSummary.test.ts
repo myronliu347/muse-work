@@ -3,7 +3,7 @@ import type { Message } from "wave-agent-sdk";
 import {
   estimateAssistantWorkMs,
   shouldCollapseAssistantGroup,
-} from "../../src/components/AssistantWorkSummary";
+} from "../../src/components/message/AssistantWorkSummary";
 
 function msg(
   id: string,

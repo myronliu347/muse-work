@@ -2,8 +2,8 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { Message } from "../../src/components/Message";
-import { AgentTranscriptPopup } from "../../src/components/AgentTranscriptPopup";
+import { Message } from "../../src/components/message/Message";
+import { AgentTranscriptPopup } from "../../src/components/dialogs/AgentTranscriptPopup";
 import { MuseTheme } from "../../src/ui/theme";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 import type { Message as MessageType, VsCodeApi } from "../../src/types";

@@ -6,38 +6,38 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AgentTranscriptPopup } from "./AgentTranscriptPopup";
-import { MessageList } from "./MessageList";
-import { MessageInput } from "./MessageInput";
-import type { MessageInputHandle } from "./MessageInput";
-import { ChatHeader } from "./ChatHeader";
-import { DesktopPanelDock } from "./DesktopPanelDock";
-import { TaskList } from "./TaskList";
-import { QueuedMessageList } from "./QueuedMessageList";
-import { ConfirmationDialog } from "./ConfirmationDialog";
-import { ConfirmDialog } from "./ConfirmDialog";
-import { RewindPopup } from "./RewindPopup";
-import type { RewindCheckpoint } from "./RewindPopup";
-import { ModelPopup } from "./ModelPopup";
-import { ToastStack } from "./ToastStack";
-import { BtwPanel } from "./BtwPanel";
-import ConfigDialog from "./ConfigDialog";
-import PluginDialog from "./PluginDialog";
-import McpDialog from "./McpDialog";
-import StatusDialog from "./StatusDialog";
-import BackgroundTaskManager from "./BackgroundTaskManager";
-import WorkflowManager from "./WorkflowManager";
-import AgentsDialog from "./AgentsDialog";
-import WelcomeView from "./WelcomeView";
-import LoadingLogo from "./LoadingLogo";
+import { AgentTranscriptPopup } from "./dialogs/AgentTranscriptPopup";
+import { MessageList } from "./chat/MessageList";
+import { MessageInput } from "./chat/MessageInput";
+import type { MessageInputHandle } from "./chat/MessageInput";
+import { ChatHeader } from "./chat/ChatHeader";
+import { DesktopPanelDock } from "./desktop/DesktopPanelDock";
+import { TaskList } from "./chat/TaskList";
+import { QueuedMessageList } from "./chat/QueuedMessageList";
+import { ConfirmationDialog } from "./dialogs/ConfirmationDialog";
+import { ConfirmDialog } from "./dialogs/ConfirmDialog";
+import { RewindPopup } from "./dialogs/RewindPopup";
+import type { RewindCheckpoint } from "./dialogs/RewindPopup";
+import { ModelPopup } from "./dialogs/ModelPopup";
+import { ToastStack } from "./shared/ToastStack";
+import { BtwPanel } from "./chat/BtwPanel";
+import ConfigDialog from "./dialogs/ConfigDialog";
+import PluginDialog from "./dialogs/PluginDialog";
+import McpDialog from "./dialogs/McpDialog";
+import StatusDialog from "./dialogs/StatusDialog";
+import BackgroundTaskManager from "./settings/BackgroundTaskManager";
+import WorkflowManager from "./settings/WorkflowManager";
+import AgentsDialog from "./dialogs/AgentsDialog";
+import WelcomeView from "./chat/WelcomeView";
+import LoadingLogo from "./chat/LoadingLogo";
 import {
   DesktopSidebar,
   resolveSidebarSessions,
-} from "./DesktopSidebar";
-import { DesktopShell } from "./DesktopShell";
-import { DesktopWorkdirSelector } from "./DesktopWorkdirSelector";
-import { DesktopGitContext } from "./DesktopGitContext";
-import { DesktopWorktreeControls } from "./DesktopWorktreeControls";
+} from "./desktop/DesktopSidebar";
+import { DesktopShell } from "./desktop/DesktopShell";
+import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
+import { DesktopGitContext } from "./desktop/DesktopGitContext";
+import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import {
@@ -45,10 +45,10 @@ import {
   nextActivePanel,
   PANEL_TAB_ORDER,
 } from "../muse/panelTabs";
-import { PreviewPane } from "./PreviewPane";
-import { DiffPane } from "./DiffPane";
-import { TerminalPane, prefetchTerminalLib } from "./TerminalPane";
-import { FilePane } from "./FilePane";
+import { PreviewPane } from "./panels/PreviewPane";
+import { DiffPane } from "./panels/DiffPane";
+import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
+import { FilePane } from "./panels/FilePane";
 import type {
   ChatAppProps,
   ConfigurationData,

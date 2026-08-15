@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FileSuggestionDropdown } from "../../src/components/FileSuggestionDropdown";
+import { FileSuggestionDropdown } from "../../src/components/shared/FileSuggestionDropdown";
 import type { FileItem } from "../../src/types";
 
 const srcDir: FileItem = {

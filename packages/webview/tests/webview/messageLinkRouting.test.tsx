@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import React from "react";
-import { Message } from "../../src/components/Message";
+import { Message } from "../../src/components/message/Message";
 import { createMockVscode } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 

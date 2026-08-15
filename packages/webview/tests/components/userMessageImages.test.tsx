@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { Message } from "../../src/components/Message";
+import { Message } from "../../src/components/message/Message";
 import type { Message as MessageType } from "../../src/types";
 
 vi.mock("../../src/styles/Message.css", () => ({}));

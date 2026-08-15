@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import ConfigDialog from "../../src/components/ConfigDialog";
+import ConfigDialog from "../../src/components/dialogs/ConfigDialog";
 import type { ConfigurationData, VsCodeApi } from "../../src/types";
 
 vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));
-vi.mock("../../src/components/MuseProviderSettings", () => {
+vi.mock("../../src/components/settings/MuseProviderSettings", () => {
   const React = require("react") as typeof import("react");
   return {
     MuseProviderSettings: React.forwardRef(

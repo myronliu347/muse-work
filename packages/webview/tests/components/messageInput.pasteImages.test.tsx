@@ -9,7 +9,7 @@ import {
   cleanup,
   act,
 } from "@testing-library/react";
-import { MessageInput } from "../../src/components/MessageInput";
+import { MessageInput } from "../../src/components/chat/MessageInput";
 import type { VsCodeApi } from "../../src/types";
 
 vi.mock("../../src/styles/MessageInput.css", () => ({}));

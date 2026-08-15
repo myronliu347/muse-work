@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { ReasoningBlockView } from "../../src/components/ReasoningBlockView";
+import { ReasoningBlockView } from "../../src/components/message/ReasoningBlockView";
 import type { ReasoningBlock } from "../../src/types";
 
 const renderContent = (content: string) => <div className="rc">{content}</div>;

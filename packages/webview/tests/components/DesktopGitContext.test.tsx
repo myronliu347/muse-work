@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { DesktopGitContext } from "../../src/components/DesktopGitContext";
+import { DesktopGitContext } from "../../src/components/desktop/DesktopGitContext";
 
 describe("DesktopGitContext", () => {
   it("renders branch and worktree name", () => {

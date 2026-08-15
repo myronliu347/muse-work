@@ -3,7 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import {
   SlashCommandsPopup,
   orderSlashCommands,
-} from "../../src/components/SlashCommandsPopup";
+} from "../../src/components/dialogs/SlashCommandsPopup";
 
 // Component imports its CSS directly; stub it so jsdom doesn't need to parse styles.
 vi.mock("../../src/styles/SlashCommandsPopup.css", () => ({}));

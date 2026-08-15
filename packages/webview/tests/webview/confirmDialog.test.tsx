@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ConfirmDialog } from "../../src/components/ConfirmDialog";
+import { ConfirmDialog } from "../../src/components/dialogs/ConfirmDialog";
 
 describe("ConfirmDialog", () => {
   it("renders title, description and both buttons", () => {

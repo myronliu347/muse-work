@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
-import { DiffPane, formatDiffComment } from "../../src/components/DiffPane";
-import type { WorkspaceDiffFile } from "../../src/components/DiffPane";
+import { DiffPane, formatDiffComment } from "../../src/components/panels/DiffPane";
+import type { WorkspaceDiffFile } from "../../src/components/panels/DiffPane";
 import { createMockVscode, sendCommand } from "./test-utils";
 
 function makeFile(

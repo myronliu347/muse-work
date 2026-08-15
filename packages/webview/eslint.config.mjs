@@ -59,7 +59,7 @@ export default [
       ...pluginReactHooks.configs.recommended.rules,
       "react/no-unescaped-entities": "off",
       "react/react-in-jsx-scope": "off",
-      // VS Code <webview> custom attributes (src/components/PreviewPane.tsx)
+      // VS Code <webview> custom attributes (src/components/panels/PreviewPane.tsx)
       "react/no-unknown-property": [
         "error",
         { ignore: ["preload", "webpreferences"] },

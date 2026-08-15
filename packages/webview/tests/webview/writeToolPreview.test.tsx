@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { WRITE_TOOL_NAME } from "wave-agent-sdk";
-import { WriteToolPreview } from "../../src/components/WriteToolPreview";
+import { WriteToolPreview } from "../../src/components/message/WriteToolPreview";
 import type { ToolBlock } from "../../src/types";
 
 function makeBlock(parameters: string): ToolBlock {

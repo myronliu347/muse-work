@@ -2,7 +2,7 @@
 import React from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { AppearanceSettings } from "../../src/components/AppearanceSettings";
+import { AppearanceSettings } from "../../src/components/settings/AppearanceSettings";
 import { MuseTheme } from "../../src/ui/theme";
 import { setThemePreference, setThemeScaling, setThemeAccentColor, setThemeRadius, setThemeGrayColor } from "../../src/ui/themePreference";
 

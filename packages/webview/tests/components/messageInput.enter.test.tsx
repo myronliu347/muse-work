@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MessageInput } from "../../src/components/MessageInput";
+import { MessageInput } from "../../src/components/chat/MessageInput";
 import { MuseTheme } from "../../src/ui/theme";
 import type { VsCodeApi } from "../../src/types";
 

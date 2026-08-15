@@ -2,8 +2,8 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { MuseModelSelect } from "../../src/components/MuseModelSelect";
-import { MessageInput } from "../../src/components/MessageInput";
+import { MuseModelSelect } from "../../src/components/shared/MuseModelSelect";
+import { MessageInput } from "../../src/components/chat/MessageInput";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 
 vi.mock("../../src/styles/MessageInput.css", () => ({}));

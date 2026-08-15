@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
-import { TerminalPane } from "../../src/components/TerminalPane";
+import { TerminalPane } from "../../src/components/panels/TerminalPane";
 import { createMockVscode, sendCommand } from "./test-utils";
 
 class MockTerminal {

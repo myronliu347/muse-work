@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MessageList } from "../../src/components/MessageList";
+import { MessageList } from "../../src/components/chat/MessageList";
 import { MuseTheme } from "../../src/ui/theme";
 import type { VsCodeApi } from "../../src/types";
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import React from "react";
-import { Message } from "../../src/components/Message";
+import { Message } from "../../src/components/message/Message";
 import { MockDataGenerator } from "../fixtures/mockData";
 
 // Mermaid is heavy and irrelevant here; stub it out. DOMPurify must stay REAL so

@@ -10,7 +10,7 @@ import {
   groupRecentSessionsByWorkdir,
   isTaskProjectWorkdir,
   partitionRecentSessions,
-} from "../../src/components/DesktopSidebar";
+} from "../../src/components/desktop/DesktopSidebar";
 import type { DesktopSessionEntry } from "../../src/types";
 
 afterEach(() => {

@@ -4,7 +4,7 @@ import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { ChatApp, prunePanelGroupCache } from "../../src/components/ChatApp";
-import type { WebviewTagElement } from "../../src/components/PreviewPane";
+import type { WebviewTagElement } from "../../src/components/panels/PreviewPane";
 import { READ_TOOL_NAME } from "wave-agent-sdk";
 import {
   createMockVscode,
