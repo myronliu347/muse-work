@@ -1,0 +1,29 @@
+docs/superpowers/plans/2026-08-15-desktop-dock-chrome.md
+  4f59b11387b272ed 1-1142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c85391dc86efcb7d05d1938c83db306f0cc97a3f",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1142,
+      "total_deletions": 0,
+      "accepted_lines": 1142,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-15-desktop-dock-chrome.md": {
+          "additions": 1142,
+          "accepted_lines": 1142
+        }
+      }
+    }
+  }
+}
