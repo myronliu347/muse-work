@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { loadUiPrefs } from "./uiPrefs.js";
 
 /**
@@ -20,6 +20,14 @@ contextBridge.exposeInMainWorld("museServerUrl", serverBaseUrl);
 contextBridge.exposeInMainWorld("__MUSE_SERVER_URL__", serverBaseUrl);
 contextBridge.exposeInMainWorld("waveHostType", "desktop");
 contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
+/** Electron 32+: resolve File → absolute path (replaces removed File.path). */
+contextBridge.exposeInMainWorld("museGetPathForFile", (file: File) => {
+  try {
+    return webUtils.getPathForFile(file) || "";
+  } catch {
+    return "";
+  }
+});
 
 // additionalArguments are fixed at window creation and stale after live updates.
 // Read ui.json on every preload execution so reloads receive the current preference.

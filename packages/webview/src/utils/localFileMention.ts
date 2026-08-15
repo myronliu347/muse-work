@@ -7,6 +7,22 @@ export function isImageFileName(name: string): boolean {
   return IMAGE_EXT.test(name);
 }
 
+/** Absolute path for a clipboard/drop File (Electron museGetPathForFile, else legacy File.path). */
+export function resolveClipboardFilePath(file: File): string {
+  try {
+    const fromHost =
+      typeof globalThis !== "undefined" &&
+      typeof (globalThis as unknown as Window).museGetPathForFile === "function"
+        ? (globalThis as unknown as Window).museGetPathForFile!(file)
+        : "";
+    if (fromHost) return fromHost;
+  } catch {
+    // ignore
+  }
+  const legacy = (file as File & { path?: string }).path;
+  return typeof legacy === "string" ? legacy : "";
+}
+
 export function fileItemFromAbsolutePath(
   absolutePath: string,
   workdir?: string,
@@ -50,6 +66,19 @@ function looksLikeDirectoryPath(p: string): boolean {
   return /[/\\]$/.test(p);
 }
 
+export function clipboardHasLocalFiles(
+  clipboardData: DataTransfer | null | undefined,
+): boolean {
+  if (!clipboardData) return false;
+  if ((clipboardData.files?.length ?? 0) > 0) return true;
+  const types = clipboardData.types;
+  if (!types) return false;
+  for (let i = 0; i < types.length; i++) {
+    if (types[i] === "Files" || types[i] === "text/uri-list") return true;
+  }
+  return false;
+}
+
 export function parseClipboardLocalFiles(
   clipboardData: DataTransfer | null | undefined,
 ): Array<{ absolutePath: string; file?: File; isImage: boolean }> {
@@ -63,10 +92,7 @@ export function parseClipboardLocalFiles(
   if (files?.length) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const abs =
-        typeof (file as File & { path?: string }).path === "string"
-          ? (file as File & { path?: string }).path!
-          : "";
+      const abs = resolveClipboardFilePath(file);
       if (!abs || looksLikeDirectoryPath(abs)) continue;
       byPath.set(abs, {
         absolutePath: abs,

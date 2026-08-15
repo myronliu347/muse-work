@@ -34,7 +34,7 @@ import {
   parseFileSelectionClipboard,
   parseFileTreeDrag,
 } from "../../utils/filePanelDnD";
-import { fileItemFromAbsolutePath, parseClipboardLocalFiles } from "../../utils/localFileMention";
+import { fileItemFromAbsolutePath, parseClipboardLocalFiles, clipboardHasLocalFiles } from "../../utils/localFileMention";
 import {
   QueueSendIcon,
   PermModeAcceptIcon,
@@ -1293,6 +1293,29 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             const fileList = new DataTransfer();
             imageFiles.forEach((f) => fileList.items.add(f));
             void handleImagePaste(fileList.files);
+          }
+          return;
+        }
+
+        // Electron 32+ without museGetPathForFile (or pathless Files): default
+        // paste inserts a ghost file icon into contenteditable — block it.
+        if (clipboardHasLocalFiles(event.clipboardData)) {
+          event.preventDefault();
+          const items = event.clipboardData?.items;
+          if (items) {
+            const imageFiles: File[] = [];
+            for (let i = 0; i < items.length; i++) {
+              const item = items[i];
+              if (item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                if (file) imageFiles.push(file);
+              }
+            }
+            if (imageFiles.length > 0) {
+              const fileList = new DataTransfer();
+              imageFiles.forEach((f) => fileList.items.add(f));
+              void handleImagePaste(fileList.files);
+            }
           }
           return;
         }

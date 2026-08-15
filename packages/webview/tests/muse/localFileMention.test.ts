@@ -65,4 +65,25 @@ describe("localFileMention", () => {
     } as unknown as DataTransfer;
     expect(parseClipboardLocalFiles(uriDt)).toEqual([]);
   });
+
+  it("parseClipboardLocalFiles uses museGetPathForFile when File.path is absent", () => {
+    const file = new File([""], "note.md", { type: "text/markdown" });
+    const g = globalThis as typeof globalThis & {
+      museGetPathForFile?: (f: File) => string;
+    };
+    const prev = g.museGetPathForFile;
+    g.museGetPathForFile = () => "/proj/note.md";
+    try {
+      const dt = {
+        files: [file],
+        types: ["Files"],
+        getData: () => "",
+      } as unknown as DataTransfer;
+      expect(parseClipboardLocalFiles(dt)).toEqual([
+        { absolutePath: "/proj/note.md", file, isImage: false },
+      ]);
+    } finally {
+      g.museGetPathForFile = prev;
+    }
+  });
 });
