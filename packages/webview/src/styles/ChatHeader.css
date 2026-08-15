@@ -22,6 +22,12 @@
   white-space: nowrap;
 }
 
+.chat-header > .desktop-git-context {
+  flex-shrink: 1;
+  min-width: 0;
+  margin-inline-end: var(--space-2);
+}
+
 .header-buttons {
   display: flex;
   gap: var(--space-1);

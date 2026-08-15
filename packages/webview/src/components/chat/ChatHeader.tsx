@@ -4,6 +4,7 @@ import { NewSessionIcon, HistoryIcon, MoreIcon } from "../shared/HeaderIcons";
 import { SessionListPopup } from "../dialogs/SessionListPopup";
 import { MoreMenu } from "../shared/MoreMenu";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
+import { DesktopGitContext } from "../desktop/DesktopGitContext";
 import { getSessionTitle } from "../../utils/session";
 import type { ChatHeaderProps } from "../../types";
 import "../../styles/ChatHeader.css";
@@ -23,6 +24,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hideSessionButtons = false,
   hideMoreButton = false,
   panelToggle,
+  gitContext,
 }) => {
   const [showSessionList, setShowSessionList] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -32,6 +34,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <div className="chat-header" data-testid="chat-header">
       <div className="header-title">{title}</div>
+      {gitContext ? (
+        <DesktopGitContext
+          branch={gitContext.branch}
+          worktreeName={gitContext.worktreeName}
+        />
+      ) : null}
       <div className="header-buttons">
         {!hideSessionButtons && (
           <>

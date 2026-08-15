@@ -585,6 +585,8 @@ export interface ChatHeaderProps {
   hideMoreButton?: boolean;
   // Desktop host: conversation-level panel toggle (preview/diff/terminal).
   panelToggle?: PanelToggleProps;
+  /** Desktop: read-only branch / worktree badge in the title bar. */
+  gitContext?: { branch?: string; worktreeName?: string };
 }
 
 // Matches wave-agent-sdk's QueuedMessage type
