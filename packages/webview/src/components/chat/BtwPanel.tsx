@@ -12,8 +12,8 @@ interface BtwPanelProps {
 
 // Escape closes only the panel (spec scenario 9). A capture-phase listener with
 // stopPropagation runs before React's synthetic onKeyDown (attached at the root
-// container), so the keypress never reaches MessageInput's onAbortMessage and
-// the in-flight agent loop keeps running.
+// container), so the keypress never reaches MessageInput's handler and the
+// in-flight agent loop keeps running.
 const renderMarkdown = (content: string): string => {
   const html = marked.parse(content, { gfm: true, breaks: true });
   const sanitized = DOMPurify.sanitize(html as string, {

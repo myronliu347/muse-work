@@ -115,32 +115,6 @@ describe("Message Queuing", () => {
     expect(itemText("q1")).toBe("Queued message 1");
   });
 
-  it("should NOT clear queue when pressing Escape", () => {
-    const { vscode } = renderChatApp();
-
-    const input = screen.getByTestId("message-input");
-    input.focus();
-
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Queued message 1" }],
-    });
-
-    const queuePanel = screen.getByTestId("queued-message-list");
-    expect(queuePanel).toBeInTheDocument();
-
-    fireEvent.keyDown(input, { key: "Escape" });
-
-    const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
-    const abortMessageSent = sentMessages.some(
-      (m: Record<string, unknown>) => m.command === "abortMessage",
-    );
-    expect(abortMessageSent).toBe(true);
-
-    expect(queuePanel).toBeInTheDocument();
-    expect(itemText("q1")).toBe("Queued message 1");
-  });
-
   it("should delete a specific queued message by id when clicking the delete icon", () => {
     const { vscode } = renderChatApp();
 

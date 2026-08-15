@@ -1045,13 +1045,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           closeDropdown();
         }
 
-        // Handle Esc key for interruption when focused and streaming
-        if (event.key === "Escape" && isStreaming) {
-          event.preventDefault();
-          onAbortMessage();
-          return;
-        }
-
         // Normal behavior for Enter key
         if (event.key === "Enter" && !event.shiftKey && !isComposing) {
           event.preventDefault();
