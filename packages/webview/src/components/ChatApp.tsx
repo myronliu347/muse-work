@@ -192,6 +192,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     widths: panelWidths,
     previewUrl,
     fileView,
+    fileTree,
     forward: currentForward,
     forwardError: previewForwardError,
     previewEpoch,
@@ -418,6 +419,28 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             }
           }
           break;
+        case "desktopListDirResult": {
+          const key = groupKeyRef.current;
+          if (!key) break;
+          const cacheDir = typeof message.dir === "string" ? message.dir : "";
+          const entries = Array.isArray(message.entries)
+            ? (message.entries as import("../types").FileTreeDirEntry[])
+            : [];
+          usePanelGroupStore.getState().patchGroup(key, (group) => ({
+            fileTree: {
+              ...(group.fileTree ?? {
+                expanded: [],
+                width: 240,
+                childrenCache: {},
+              }),
+              childrenCache: {
+                ...(group.fileTree?.childrenCache ?? {}),
+                [cacheDir]: entries,
+              },
+            },
+          }));
+          break;
+        }
         case "updateQueue":
           if (!forThisPane(message)) break;
           dispatch({ type: "SET_QUEUED_MESSAGES", payload: message.queue });
@@ -1607,14 +1630,30 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     [isDesktop, tryOpenPanel, effectiveHost, postToHost, vscode, updatePanelGroup],
   );
 
-  // Local sessions only: leave the panel and open the file in the OS default
-  // app (remote hosts have no local file — the button is hidden).
-  const handleOpenFileExternal = useCallback(
+  const handleRevealInFinder = useCallback(
     (path: string) => {
       if (!isDesktop || !path) return;
-      postToHost({ command: "desktopOpenFileExternal", path });
+      postToHost({ command: "revealInFinder", path });
     },
     [isDesktop, postToHost],
+  );
+
+  const handleFileTreeChange = useCallback(
+    (next: import("../types").FileTreeState) => {
+      updatePanelGroup((group) => ({
+        fileTree: {
+          ...group.fileTree,
+          expanded: next.expanded,
+          selected: next.selected,
+          width: next.width,
+          childrenCache: {
+            ...group.fileTree.childrenCache,
+            ...next.childrenCache,
+          },
+        },
+      }));
+    },
+    [updatePanelGroup],
   );
 
   // Authoritative clamp at drag time: keep the panel within [320, container -
@@ -1827,8 +1866,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       return (
         <FilePane
           fileView={fileView}
-          onOpenExternal={handleOpenFileExternal}
           workdir={effectiveWorkdir}
+          vscode={vscode}
+          fileTree={fileTree}
+          onFileTreeChange={handleFileTreeChange}
+          onOpenFile={handleOpenFile}
+          onRevealInFinder={handleRevealInFinder}
           {...common}
         />
       );

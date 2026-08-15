@@ -3,7 +3,13 @@
 
 .file-pane-body {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.file-pane-preview-body {
+  height: 100%;
   overflow: auto;
 }
 
@@ -130,71 +136,16 @@
 
 /* Syntax-highlight palette (GitHub Dark / VS Code Dark+ style hues) driven by
    --vscode semantic colors where available, static fallbacks otherwise. */
-.file-pane .hljs-comment,
-.file-pane .hljs-quote {
-  color: var(--gray-11);
-  font-style: italic;
-}
 
-.file-pane .hljs-keyword,
-.file-pane .hljs-selector-tag,
-.file-pane .hljs-literal,
-.file-pane .hljs-type,
-.file-pane .hljs-section,
-.file-pane .hljs-meta {
-  color: #569cd6;
-}
 
-.file-pane .hljs-string,
-.file-pane .hljs-regexp,
-.file-pane .hljs-addition {
-  color: #ce9178;
-}
 
-.file-pane .hljs-number,
-.file-pane .hljs-symbol,
-.file-pane .hljs-bullet {
-  color: #b5cea8;
-}
 
-.file-pane .hljs-title,
-.file-pane .hljs-title.function_,
-.file-pane .hljs-function .hljs-title {
-  color: #dcdcaa;
-}
 
-.file-pane .hljs-attr,
-.file-pane .hljs-attribute,
-.file-pane .hljs-variable,
-.file-pane .hljs-template-variable,
-.file-pane .hljs-name {
-  color: #9cdcfe;
-}
 
-.file-pane .hljs-built_in,
-.file-pane .hljs-builtin-name {
-  color: #4ec9b0;
-}
 
-.file-pane .hljs-tag,
-.file-pane .hljs-selector-id,
-.file-pane .hljs-selector-class,
-.file-pane .hljs-selector-attr,
-.file-pane .hljs-selector-pseudo {
-  color: #d7ba7d;
-}
 
-.file-pane .hljs-deletion {
-  color: #f14c4c;
-}
 
-.file-pane .hljs-emphasis {
-  font-style: italic;
-}
 
-.file-pane .hljs-strong {
-  font-weight: bold;
-}
 
 .file-icon {
   flex-shrink: 0;

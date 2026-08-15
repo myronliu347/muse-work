@@ -267,6 +267,7 @@ describe("installWorkdirHost", () => {
       expect.objectContaining({
         command: "desktopListDirResult",
         requestId: "r1",
+        dir: "",
         entries: expect.arrayContaining([
           expect.objectContaining({
             name: "a.ts",

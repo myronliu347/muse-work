@@ -381,6 +381,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       pushToWebview(win, {
         command: "desktopListDirResult",
         requestId,
+        dir,
         entries,
       });
       return;
