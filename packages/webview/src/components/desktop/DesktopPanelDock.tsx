@@ -128,28 +128,31 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </button>
             </div>
           ))}
-          {canAdd && (
-            <div className="desktop-panel-add">
-              <button
-                type="button"
-                className="desktop-panel-add-btn"
-                data-testid="desktop-panel-add-btn"
-                aria-label="添加面板"
-                onClick={() => setShowAddMenu((v) => !v)}
-              >
-                <i className="codicon codicon-add" />
-              </button>
-              {showAddMenu && (
-                <PanelAddMenu
-                  checked={checked}
-                  disabled={disabledPanels}
-                  onAdd={onAddPanel}
-                  onClose={() => setShowAddMenu(false)}
-                />
-              )}
-            </div>
-          )}
         </div>
+        {canAdd && (
+          <div className="desktop-panel-add">
+            <button
+              type="button"
+              className="desktop-panel-add-btn"
+              data-testid="desktop-panel-add-btn"
+              aria-label="添加面板"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAddMenu((v) => !v);
+              }}
+            >
+              <i className="codicon codicon-add" />
+            </button>
+            {showAddMenu && (
+              <PanelAddMenu
+                checked={checked}
+                disabled={disabledPanels}
+                onAdd={onAddPanel}
+                onClose={() => setShowAddMenu(false)}
+              />
+            )}
+          </div>
+        )}
         <div className="desktop-panel-dock-actions">
           <Tooltip
             text={fullscreen ? "退出全屏" : "全屏"}

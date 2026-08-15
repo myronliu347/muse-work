@@ -90,6 +90,19 @@ describe("DesktopPanelDock", () => {
     expect(screen.queryByTestId("desktop-panel-add-btn")).toBeNull();
   });
 
+  it("opens the add menu when clicking +", () => {
+    render(
+      <MuseTheme>
+        <DesktopPanelDock {...baseProps} checked={["diff"]} active="diff">
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    fireEvent.click(screen.getByTestId("desktop-panel-add-btn"));
+    expect(screen.getByTestId("panel-add-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-add-item-file")).toBeInTheDocument();
+  });
+
   it("toggles fullscreen via header button", () => {
     const onToggleFullscreen = vi.fn();
     render(
