@@ -1,0 +1,51 @@
+packages/webview/tests/muse/filePathDisplay.test.ts
+  9b08060a306bdaeb 1-23
+packages/webview/src/components/panels/FileIcon.tsx
+  9b08060a306bdaeb 1-52
+packages/webview/src/utils/filePathDisplay.ts
+  9b08060a306bdaeb 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b6b267a849c1b389735bada750321a1c5d85223f",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 440,
+      "total_deletions": 6,
+      "accepted_lines": 434,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/FileIcon.tsx": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 214,
+          "deletions": 1,
+          "accepted_lines": 213
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 127,
+          "deletions": 5,
+          "accepted_lines": 122
+        },
+        "packages/webview/tests/muse/filePathDisplay.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        }
+      }
+    }
+  }
+}
