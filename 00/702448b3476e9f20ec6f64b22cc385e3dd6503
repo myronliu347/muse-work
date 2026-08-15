@@ -1,0 +1,59 @@
+packages/webview/tests/muse/panelShortcuts.test.ts
+  9b08060a306bdaeb 138-187
+packages/desktop/src/main/workdirHost.ts
+  9b08060a306bdaeb 278-282,358,361-366
+packages/webview/tests/components/quickOpenPalette.test.tsx
+  9b08060a306bdaeb 1-80
+packages/webview/src/muse/panelShortcuts.ts
+  9b08060a306bdaeb 62-70
+packages/webview/src/components/panels/QuickOpenPalette.tsx
+  9b08060a306bdaeb 1-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "00702448b3476e9f20ec6f64b22cc385e3dd6503",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 354,
+      "total_deletions": 3,
+      "accepted_lines": 354,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/QuickOpenPalette.tsx": {
+          "additions": 177,
+          "accepted_lines": 177
+        },
+        "packages/webview/tests/components/quickOpenPalette.test.tsx": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 26,
+          "deletions": 2,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
