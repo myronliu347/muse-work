@@ -1,0 +1,79 @@
+packages/desktop/src/main/workdirHost.ts
+  9b08060a306bdaeb 384
+packages/webview/src/styles/FilePane.css
+  9b08060a306bdaeb 6-12
+packages/desktop/tests/workdirHost.test.ts
+  9b08060a306bdaeb 270
+packages/webview/src/components/panels/FilePane.tsx
+  9b08060a306bdaeb 1-9,24-28,37-41,44-57,79,92,96-113,116-119,121-122,125-140
+packages/webview/src/utils/shikiHighlighter.ts
+  9b08060a306bdaeb 1-175
+packages/webview/src/components/panels/FilePathBar.tsx
+  9b08060a306bdaeb 1-26
+packages/webview/src/components/panels/FilePreview.tsx
+  9b08060a306bdaeb 1-229
+packages/webview/src/components/ChatApp.tsx
+  9b08060a306bdaeb 195,422-443,1633,1636,1641-1658,1870-1874
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "15382a4640ed616519efd170c02a4ef7013d0140",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 730,
+      "total_deletions": 605,
+      "accepted_lines": 568,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/panels/FilePathBar.tsx": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 252,
+          "deletions": 23,
+          "accepted_lines": 229
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 75,
+          "deletions": 319,
+          "accepted_lines": 75
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 102,
+          "deletions": 59,
+          "accepted_lines": 54
+        },
+        "packages/webview/src/utils/shikiHighlighter.ts": {
+          "additions": 175,
+          "accepted_lines": 175
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/filePane.test.tsx": {
+          "additions": 91,
+          "deletions": 203
+        }
+      }
+    }
+  }
+}
