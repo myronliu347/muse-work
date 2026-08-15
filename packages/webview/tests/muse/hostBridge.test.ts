@@ -168,6 +168,23 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("desktopSelectFiles is forwarded to outer (Electron file pick)", () => {
+    const outer = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    };
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws: stubWs(),
+      outer,
+    });
+    bridge.postMessage({ command: "desktopSelectFiles" });
+    expect(outer.postMessage).toHaveBeenCalledWith({
+      command: "desktopSelectFiles",
+    });
+  });
+
   it("desktopReady connects WS once to * and loads session tree", async () => {
     const ws = stubWs();
     const api = stubApi();
