@@ -1921,73 +1921,19 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       onClose: () => handleTogglePanel(kind),
     };
 
-    // Empty preview (no URL yet) reuses the same left-edge resize handle so it
-    // can be widened like the loaded preview/diff/terminal panels.
-    const onEmptyPreviewDragStart = (e: React.MouseEvent) => {
-      e.preventDefault();
-      const handle = e.currentTarget as HTMLElement;
-      handle.style.background = "var(--accent-9)";
-      document.body.classList.add("is-panel-resizing");
-      const rect = handle.parentElement?.getBoundingClientRect();
-      const onMove = (ev: MouseEvent) => {
-        const next = (rect?.right ?? 0) - ev.clientX;
-        common.onWidthChange(
-          Math.min(Math.max(next, PANEL_MIN_WIDTH), common.maxWidth),
-        );
-      };
-      const onUp = () => {
-        handle.style.background = "";
-        document.body.classList.remove("is-panel-resizing");
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    };
-
     if (kind === "preview") {
-      return previewUrl ? (
+      return (
         <PreviewPane
           key={previewEpoch}
           url={previewUrl}
           originalUrl={currentForward?.originalUrl}
           onRetry={currentForward ? handleRemotePreviewRetry : undefined}
+          forwardError={previewForwardError}
+          onNavigate={openPreviewHandler}
           vscode={vscode}
           onAddComment={handleAddComment}
           {...common}
         />
-      ) : (
-        <aside
-          className="preview-pane"
-          style={{ width: common.width }}
-          data-testid="preview-pane-empty"
-        >
-          <div
-            className="preview-pane-drag-handle"
-            onMouseDown={onEmptyPreviewDragStart}
-          />
-          <div className="preview-pane-inner">
-            <div className="preview-pane-toolbar">
-              <span className="preview-pane-url">浏览器</span>
-            </div>
-            <div className="desktop-panel-placeholder">
-              {previewForwardError ? (
-                <>
-                  <span>远程预览加载失败：{previewForwardError}</span>
-                  <button
-                    className="preview-pane-button"
-                    data-testid="preview-forward-retry"
-                    onClick={handleRemotePreviewRetry}
-                  >
-                    重试
-                  </button>
-                </>
-              ) : (
-                <>点击消息或终端中的 localhost 链接加载预览</>
-              )}
-            </div>
-          </div>
-        </aside>
       );
     }
     if (kind === "diff") {

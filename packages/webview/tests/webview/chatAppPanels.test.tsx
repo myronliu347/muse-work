@@ -102,7 +102,7 @@ describe("ChatApp desktop panel framework", () => {
     const slots = document.querySelectorAll(".desktop-panel-slot");
     expect(slots).toHaveLength(3);
     expect(
-      slots[0].querySelector('[data-testid="preview-pane-empty"]'),
+      slots[0].querySelector('[data-testid="preview-empty"]'),
     ).not.toBeNull();
     expect(slots[1].querySelector('[data-testid="diff-pane"]')).not.toBeNull();
     expect(
@@ -125,7 +125,7 @@ describe("ChatApp desktop panel framework", () => {
       fireEvent.click(screen.getByTestId("panel-toggle-btn"));
       fireEvent.click(screen.getByTestId("panel-toggle-item-preview"));
 
-      const empty = screen.getByTestId("preview-pane-empty");
+      const empty = screen.getByTestId("preview-empty");
       // First open defaults to 50% of the window width.
       expect(empty.style.width).toBe("512px");
       // The empty state must carry the same drag affordance as loaded panels.
@@ -608,9 +608,9 @@ describe("remote preview port forwarding", () => {
         sessionId: "s1",
       },
     ]);
-    expect(screen.getByTestId("preview-pane-empty")).toBeInTheDocument();
-    expect(screen.getByTestId("preview-pane-empty")).toHaveTextContent(
-      "点击消息或终端中的 localhost 链接加载预览",
+    expect(screen.getByTestId("preview-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("preview-empty")).toHaveTextContent(
+      "输入地址回车访问，或点击消息/终端中的链接",
     );
   });
 
@@ -638,7 +638,7 @@ describe("remote preview port forwarding", () => {
     expect(pane.querySelector("webview")?.getAttribute("src")).toBe(
       "http://127.0.0.1:5173/app",
     );
-    expect(screen.queryByTestId("preview-pane-empty")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-empty")).not.toBeInTheDocument();
     // The forwarded URL is cached against the session: the tunnel is
     // session-scoped and survives remounts, so switching away and back
     // restores this same address (spec 场景 9).
@@ -810,7 +810,7 @@ describe("remote preview port forwarding", () => {
       error: "转发建立超时：无法连接远端主机 prod",
     });
 
-    const empty = screen.getByTestId("preview-pane-empty");
+    const empty = screen.getByTestId("preview-empty");
     expect(empty).toHaveTextContent(
       "远程预览加载失败：转发建立超时：无法连接远端主机 prod",
     );
@@ -833,7 +833,7 @@ describe("remote preview port forwarding", () => {
     expect(pane.querySelector("webview")?.getAttribute("src")).toBe(
       "http://127.0.0.1:5173/app",
     );
-    expect(screen.queryByTestId("preview-pane-empty")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-empty")).not.toBeInTheDocument();
   });
 
   it("closing the preview panel keeps the tunnel alive (session-scoped)", () => {
@@ -849,7 +849,7 @@ describe("remote preview port forwarding", () => {
     pushRemotePane();
     openLink();
 
-    fireEvent.click(screen.getByTestId("preview-close"));
+    fireEvent.click(screen.getByTestId("desktop-panel-tab-close-preview"));
 
     // The tunnel is scoped to the session, not the pane (scenario 18):
     // closing the preview panel must not release the forward, and must not
@@ -908,7 +908,7 @@ describe("remote preview port forwarding", () => {
     expect(screen.getByTestId("preview-pane")).toBeInTheDocument();
 
     // Close the panel, then re-open it from the 面板 menu.
-    fireEvent.click(screen.getByTestId("preview-close"));
+    fireEvent.click(screen.getByTestId("desktop-panel-tab-close-preview"));
     expect(screen.getByTestId("preview-pane").parentElement).toHaveStyle({
       display: "none",
     });
@@ -1075,8 +1075,8 @@ describe("remote preview port forwarding", () => {
       originalUrl: "http://localhost:5173/app",
     });
     expect(screen.queryByTestId("preview-pane")).not.toBeInTheDocument();
-    expect(screen.getByTestId("preview-pane-empty")).toHaveTextContent(
-      "点击消息或终端中的 localhost 链接加载预览",
+    expect(screen.getByTestId("preview-empty")).toHaveTextContent(
+      "输入地址回车访问，或点击消息/终端中的链接",
     );
   });
 

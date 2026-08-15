@@ -20,6 +20,10 @@ export interface WebviewTagElement extends HTMLElement {
    * server's stale cache headers can't hide the latest build. */
   reloadIgnoringCache(): void;
   getURL(): string;
+  goBack(): void;
+  goForward(): void;
+  canGoBack(): boolean;
+  canGoForward(): boolean;
 }
 
 export interface PreviewComment {
@@ -73,6 +77,24 @@ export function rewriteCommentUrl(
   }
 }
 
+/** Normalize address-bar input into an absolute http(s) URL, or null. */
+export function normalizePreviewAddress(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    // Only treat as absolute when a real scheme:// is present. `host:port`
+    // must NOT be mistaken for a scheme (e.g. localhost:5173).
+    const withProto = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)
+      ? trimmed
+      : `http://${trimmed}`;
+    const u = new URL(withProto);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.href;
+  } catch {
+    return null;
+  }
+}
+
 const MIN_WIDTH = 320;
 
 /** Colors the guest picker can't read cross-origin — sampled from the host theme. */
@@ -98,7 +120,8 @@ const readPalette = (el?: Element | null): Record<string, string> => {
 };
 
 export interface PreviewPaneProps {
-  url: string;
+  /** Guest URL; omit/empty to show toolbar + empty placeholder only. */
+  url?: string | null;
   vscode: VsCodeApi;
   onClose: () => void;
   /** Controlled width (px); the parent enforces the conversation-area minimum. */
@@ -114,6 +137,10 @@ export interface PreviewPaneProps {
   /** Remote sessions: re-establish the port forward on error retry (scenario
    * 16). Undefined for local URLs, where the retry reloads the guest instead. */
   onRetry?: () => void;
+  /** Address-bar Enter: parent opens / forwards the URL (sets previewUrl). */
+  onNavigate?: (url: string) => void;
+  /** Empty-body hint when no page is loaded. */
+  forwardError?: string | null;
 }
 
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
@@ -125,15 +152,22 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   onAddComment,
   originalUrl,
   onRetry,
+  onNavigate,
+  forwardError,
 }) => {
-  const [displayUrl, setDisplayUrl] = useState(url);
+  const initialUrl = url ?? "";
+  const [displayUrl, setDisplayUrl] = useState(initialUrl);
+  const [addressDraft, setAddressDraft] = useState(initialUrl);
+  const [addressFocused, setAddressFocused] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pickerActive, setPickerActive] = useState(false);
   const [pickerUnsupported, setPickerUnsupported] = useState(false);
   const webviewRef = useRef<WebviewTagElement | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
   // URL the guest is currently showing — follows in-guest navigation.
-  const currentUrlRef = useRef(url);
+  const currentUrlRef = useRef(initialUrl);
   // webview.send() before dom-ready is silently dropped, so gate on it.
   const domReadyRef = useRef(false);
   // Guest preload announces { type: 'ready' }; if it never arrives the page
@@ -146,10 +180,28 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   // Prop mirrors for the []-deps wiring effect below: the ipc handler runs
   // long after the effect captured its closures, so it reads current values
   // from refs (same pattern as onAddCommentRef).
-  const urlPropRef = useRef(url);
-  urlPropRef.current = url;
+  const urlPropRef = useRef(url ?? "");
+  urlPropRef.current = url ?? "";
   const originalUrlRef = useRef(originalUrl);
   originalUrlRef.current = originalUrl;
+
+  const hasPage = Boolean(displayUrl);
+
+  const syncHistoryButtons = useCallback(() => {
+    const wv = webviewRef.current;
+    if (!wv) {
+      setCanGoBack(false);
+      setCanGoForward(false);
+      return;
+    }
+    try {
+      setCanGoBack(Boolean(wv.canGoBack?.()));
+      setCanGoForward(Boolean(wv.canGoForward?.()));
+    } catch {
+      setCanGoBack(false);
+      setCanGoForward(false);
+    }
+  }, []);
 
   const sendPicker = useCallback((action: "activate" | "deactivate") => {
     const wv = webviewRef.current;
@@ -176,6 +228,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
     const onDomReady = () => {
       domReadyRef.current = true;
+      syncHistoryButtons();
       // Manual refresh keeps the picker on: the fresh guest preload starts
       // inactive, so re-send. (Real navigations already reset the toggle.)
       if (pickerActiveRef.current) sendPicker("activate");
@@ -187,6 +240,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         setDisplayUrl(navUrl);
       }
       setLoadError(null);
+      syncHistoryButtons();
       // Fresh document → guest preload restarts inactive.
       pickerReadyRef.current = false;
       pickerActiveRef.current = false;
@@ -199,6 +253,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         currentUrlRef.current = navUrl;
         setDisplayUrl(navUrl);
       }
+      syncHistoryButtons();
       // SPA navigation keeps the SAME preload alive — tell it to stand down.
       deactivatePicker();
     };
@@ -245,7 +300,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     wv.addEventListener("did-navigate-in-page", onDidNavigateInPage);
     wv.addEventListener("did-fail-load", onDidFailLoad);
     wv.addEventListener("ipc-message", onIpcMessage);
-    wv.setAttribute("src", urlPropRef.current);
+    if (urlPropRef.current) {
+      wv.setAttribute("src", urlPropRef.current);
+    }
     return () => {
       wv.removeEventListener("dom-ready", onDomReady);
       wv.removeEventListener("did-navigate", onDidNavigate);
@@ -255,27 +312,38 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     };
     // deactivatePicker/sendPicker are stable useCallbacks, so this still only
     // runs once per mount.
-  }, [deactivatePicker, sendPicker]);
+  }, [deactivatePicker, sendPicker, syncHistoryButtons]);
+
+  // Keep address draft in sync with navigations unless the user is editing.
+  useEffect(() => {
+    if (!addressFocused) setAddressDraft(displayUrl);
+  }, [displayUrl, addressFocused]);
 
   // Navigate when a different localhost link is clicked while the panel is open.
-  const lastUrlRef = useRef(url);
+  const lastUrlRef = useRef(url ?? "");
   useEffect(() => {
-    if (url === lastUrlRef.current) return;
-    lastUrlRef.current = url;
-    currentUrlRef.current = url;
-    setDisplayUrl(url);
+    const next = url ?? "";
+    if (next === lastUrlRef.current) return;
+    lastUrlRef.current = next;
+    currentUrlRef.current = next;
+    setDisplayUrl(next);
     setLoadError(null);
+    if (!next) {
+      syncHistoryButtons();
+      return;
+    }
     const wv = webviewRef.current;
     if (!wv) return;
     if (domReadyRef.current) {
-      void wv.loadURL(url);
+      void wv.loadURL(next);
     } else {
       // Guest hasn't finished its first load yet — retarget the initial src.
-      wv.setAttribute("src", url);
+      wv.setAttribute("src", next);
     }
-  }, [url]);
+  }, [url, syncHistoryButtons]);
 
   const togglePicker = () => {
+    if (!hasPage) return;
     const next = !pickerActiveRef.current;
     if (next && (!domReadyRef.current || !pickerReadyRef.current)) {
       // Guest preload never announced itself — injection failed.
@@ -296,6 +364,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   }, [pickerUnsupported]);
 
   const handleRefresh = () => {
+    if (!hasPage) return;
     setLoadError(null);
     // Force-refresh: plain reload() honors the HTTP cache, which can hide a
     // dev server's latest output behind stale cache headers.
@@ -303,7 +372,27 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   };
 
   const handleOpenExternal = () => {
-    vscode.postMessage({ command: "openExternal", url: currentUrlRef.current });
+    const target = currentUrlRef.current || displayUrl;
+    if (!target) return;
+    vscode.postMessage({ command: "openExternal", url: target });
+  };
+
+  const handleAddressSubmit = () => {
+    const normalized = normalizePreviewAddress(addressDraft);
+    if (!normalized) return;
+    setAddressDraft(normalized);
+    if (onNavigate) {
+      onNavigate(normalized);
+      return;
+    }
+    // Fallback: navigate in-place when parent does not manage URL state.
+    currentUrlRef.current = normalized;
+    setDisplayUrl(normalized);
+    setLoadError(null);
+    const wv = webviewRef.current;
+    if (!wv) return;
+    if (domReadyRef.current) void wv.loadURL(normalized);
+    else wv.setAttribute("src", normalized);
   };
 
   // Dragging the left edge resizes this panel: the panels to the right keep
@@ -340,33 +429,74 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
-          <span className="preview-pane-url" title={displayUrl}>
-            {displayUrl}
-          </span>
           <button
-            className={`preview-pane-button${pickerActive ? " active" : ""}`}
-            title="选择元素并评论"
-            aria-pressed={pickerActive}
-            data-testid="preview-picker-toggle"
-            onClick={togglePicker}
+            type="button"
+            className="preview-pane-button"
+            title="后退"
+            data-testid="preview-back"
+            disabled={!canGoBack}
+            onClick={() => webviewRef.current?.goBack()}
           >
-            <i className="codicon codicon-inspect" />
+            <i className="codicon codicon-arrow-left" />
           </button>
           <button
+            type="button"
+            className="preview-pane-button"
+            title="前进"
+            data-testid="preview-forward"
+            disabled={!canGoForward}
+            onClick={() => webviewRef.current?.goForward()}
+          >
+            <i className="codicon codicon-arrow-right" />
+          </button>
+          <button
+            type="button"
             className="preview-pane-button"
             title="刷新"
             data-testid="preview-refresh"
+            disabled={!hasPage}
             onClick={handleRefresh}
           >
             <i className="codicon codicon-refresh" />
           </button>
+          <input
+            type="text"
+            className="preview-pane-address"
+            data-testid="preview-address"
+            value={addressDraft}
+            placeholder="输入地址后回车访问"
+            spellCheck={false}
+            onFocus={() => setAddressFocused(true)}
+            onBlur={() => setAddressFocused(false)}
+            onChange={(e) => setAddressDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddressSubmit();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          />
           <button
+            type="button"
             className="preview-pane-button"
             title="在浏览器中打开"
             data-testid="preview-open-external"
+            disabled={!hasPage}
             onClick={handleOpenExternal}
           >
             <i className="codicon codicon-link-external" />
+          </button>
+          <button
+            type="button"
+            className={`preview-pane-button${pickerActive ? " active" : ""}`}
+            title="选择元素并评论"
+            aria-pressed={pickerActive}
+            data-testid="preview-picker-toggle"
+            disabled={!hasPage}
+            onClick={togglePicker}
+          >
+            <i className="codicon codicon-inspect" />
           </button>
         </div>
         {pickerUnsupported && (
@@ -384,10 +514,35 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             preload={window.wavePickerPreloadPath}
             webpreferences="sandbox=yes, contextIsolation=yes"
           />
+          {!hasPage && !loadError && (
+            <div
+              className="desktop-panel-placeholder"
+              data-testid="preview-empty"
+            >
+              {forwardError ? (
+                <>
+                  <span>远程预览加载失败：{forwardError}</span>
+                  {onRetry && (
+                    <button
+                      type="button"
+                      className="preview-pane-button"
+                      data-testid="preview-forward-retry"
+                      onClick={onRetry}
+                    >
+                      重试
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>输入地址回车访问，或点击消息/终端中的链接</>
+              )}
+            </div>
+          )}
           {loadError && (
             <div className="preview-pane-error" data-testid="preview-error">
               <span>页面加载失败：{loadError}</span>
               <button
+                type="button"
                 className="preview-pane-button"
                 data-testid="preview-retry"
                 onClick={() => {

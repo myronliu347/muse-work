@@ -1,9 +1,11 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
 import {
   PreviewPane,
   formatPreviewComment,
+  normalizePreviewAddress,
   rewriteCommentUrl,
 } from "../../src/components/panels/PreviewPane";
 import type { WebviewTagElement } from "../../src/components/panels/PreviewPane";
@@ -16,30 +18,44 @@ vi.mock("../../src/styles/DesktopApp.css", () => ({}));
 
 type MockWebview = Omit<
   WebviewTagElement,
-  "send" | "loadURL" | "reload" | "reloadIgnoringCache" | "getURL"
+  | "send"
+  | "loadURL"
+  | "reload"
+  | "reloadIgnoringCache"
+  | "getURL"
+  | "goBack"
+  | "goForward"
+  | "canGoBack"
+  | "canGoForward"
 > & {
   send: ReturnType<typeof vi.fn>;
   loadURL: ReturnType<typeof vi.fn>;
   reload: ReturnType<typeof vi.fn>;
   reloadIgnoringCache: ReturnType<typeof vi.fn>;
   getURL: ReturnType<typeof vi.fn>;
+  goBack: ReturnType<typeof vi.fn>;
+  goForward: ReturnType<typeof vi.fn>;
+  canGoBack: ReturnType<typeof vi.fn>;
+  canGoForward: ReturnType<typeof vi.fn>;
 };
 
 function renderPane(options?: {
-  url?: string;
+  url?: string | null;
   onClose?: () => void;
   onAddComment?: (text: string) => void;
   originalUrl?: string;
   onRetry?: () => void;
+  onNavigate?: (url: string) => void;
 }) {
   const vscode = createMockVscode();
-  const url = options?.url ?? "http://localhost:5173/app";
+  const url = options?.url === undefined ? "http://localhost:5173/app" : options.url;
   const onClose = options?.onClose ?? vi.fn();
   const onAddComment = options?.onAddComment ?? vi.fn();
+  const onNavigate = options?.onNavigate;
   const originalUrl = options?.originalUrl;
   const onRetry = options?.onRetry;
   // Controlled-width harness: PreviewPane no longer owns its width state.
-  const Harness = ({ url: u }: { url: string }) => {
+  const Harness = ({ url: u }: { url: string | null | undefined }) => {
     const [width, setWidth] = React.useState(420);
     return (
       <PreviewPane
@@ -52,6 +68,7 @@ function renderPane(options?: {
         onAddComment={onAddComment}
         originalUrl={originalUrl}
         onRetry={onRetry}
+        onNavigate={onNavigate}
       />
     );
   };
@@ -63,9 +80,14 @@ function renderPane(options?: {
   wv.loadURL = vi.fn().mockResolvedValue(undefined);
   wv.reload = vi.fn();
   wv.reloadIgnoringCache = vi.fn();
-  wv.getURL = vi.fn(() => url);
-  const rerenderWithUrl = (u: string) => result.rerender(<Harness url={u} />);
-  return { ...result, rerenderWithUrl, vscode, wv, url, onClose, onAddComment };
+  wv.getURL = vi.fn(() => url ?? "");
+  wv.goBack = vi.fn();
+  wv.goForward = vi.fn();
+  wv.canGoBack = vi.fn(() => false);
+  wv.canGoForward = vi.fn(() => false);
+  const rerenderWithUrl = (u: string | null | undefined) =>
+    result.rerender(<Harness url={u} />);
+  return { ...result, rerenderWithUrl, vscode, wv, url, onClose, onAddComment, onNavigate };
 }
 
 const fireDomReady = (wv: MockWebview) => fireEvent(wv, new Event("dom-ready"));
@@ -91,10 +113,29 @@ const firePickerSubmit = (wv: MockWebview, payload: Record<string, unknown>) =>
   );
 
 describe("PreviewPane", () => {
-  it("loads the URL into the guest and shows it in the toolbar", () => {
+  it("loads the URL into the guest and shows it in the address bar", () => {
     const { wv, url } = renderPane();
     expect(wv.getAttribute("src")).toBe(url);
-    expect(screen.getByText(url)).toBeInTheDocument();
+    expect(screen.getByTestId("preview-address")).toHaveValue(url as string);
+  });
+
+  it("shows toolbar and empty hint when url is missing", () => {
+    renderPane({ url: null });
+    expect(screen.getByTestId("preview-address")).toBeInTheDocument();
+    expect(screen.getByTestId("preview-empty")).toHaveTextContent(
+      "输入地址回车访问",
+    );
+    expect(screen.getByTestId("preview-refresh")).toBeDisabled();
+    expect(screen.getByTestId("preview-picker-toggle")).toBeDisabled();
+  });
+
+  it("submits address bar via onNavigate on Enter", () => {
+    const onNavigate = vi.fn();
+    renderPane({ url: null, onNavigate });
+    const input = screen.getByTestId("preview-address");
+    fireEvent.change(input, { target: { value: "localhost:3000/app" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onNavigate).toHaveBeenCalledWith("http://localhost:3000/app");
   });
 
   it("toggles the picker: activate sends palette, second click deactivates", () => {
@@ -166,7 +207,9 @@ describe("PreviewPane", () => {
 
     fireDidNavigate(wv, "http://localhost:5173/other");
 
-    expect(screen.getByText("http://localhost:5173/other")).toBeInTheDocument();
+    expect(screen.getByTestId("preview-address")).toHaveValue(
+      "http://localhost:5173/other",
+    );
     expect(screen.getByTestId("preview-picker-toggle")).toHaveAttribute(
       "aria-pressed",
       "false",
@@ -184,9 +227,9 @@ describe("PreviewPane", () => {
 
     fireInPageNavigate(wv, "http://localhost:5173/app#section");
 
-    expect(
-      screen.getByText("http://localhost:5173/app#section"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("preview-address")).toHaveValue(
+      "http://localhost:5173/app#section",
+    );
     expect(wv.send).toHaveBeenCalledWith("wave-picker", {
       action: "deactivate",
     });
@@ -252,13 +295,6 @@ describe("PreviewPane", () => {
       command: "openExternal",
       url: "http://localhost:5173/deep/page",
     });
-  });
-
-  it("close button calls onClose", () => {
-    const onClose = vi.fn();
-    renderPane({ onClose });
-    fireEvent.click(screen.getByTestId("preview-close"));
-    expect(onClose).toHaveBeenCalled();
   });
 
   it("navigates via loadURL when a different URL arrives after dom-ready", () => {
@@ -414,6 +450,19 @@ describe("formatPreviewComment", () => {
   });
 });
 
+describe("normalizePreviewAddress", () => {
+  it("adds http:// when protocol is missing", () => {
+    expect(normalizePreviewAddress("localhost:5173")).toBe(
+      "http://localhost:5173/",
+    );
+  });
+
+  it("rejects empty and non-http schemes", () => {
+    expect(normalizePreviewAddress("")).toBeNull();
+    expect(normalizePreviewAddress("file:///tmp/x")).toBeNull();
+  });
+});
+
 describe("rewriteCommentUrl", () => {
   const tunnelBase = "http://127.0.0.1:5173/app";
   const originalBase = "http://localhost:5173/app";
@@ -490,7 +539,7 @@ describe("PreviewPane integration (DesktopApp)", () => {
       "http://localhost:5173/proto",
     );
 
-    fireEvent.click(screen.getByTestId("preview-close"));
+    fireEvent.click(screen.getByTestId("desktop-panel-tab-close-preview"));
     // Close = uncheck: the panel stays mounted (guest not reloaded), just hidden.
     const slot = screen.getByTestId("preview-pane").parentElement;
     expect(slot).toHaveClass("desktop-panel-slot");

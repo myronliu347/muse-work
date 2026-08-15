@@ -774,6 +774,24 @@ body.is-panel-resizing * {
   opacity: 0.8;
 }
 
+.preview-pane-address {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-1);
+  background: var(--gray-1);
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  outline: none;
+}
+
+.preview-pane-address:focus {
+  border-color: var(--accent-9);
+}
+
 .preview-pane-button {
   display: flex;
   align-items: center;
@@ -789,6 +807,15 @@ body.is-panel-resizing * {
 
 .preview-pane-button:hover {
   background: var(--gray-4);
+}
+
+.preview-pane-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.preview-pane-button:disabled:hover {
+  background: transparent;
 }
 
 .preview-pane-button.active {
