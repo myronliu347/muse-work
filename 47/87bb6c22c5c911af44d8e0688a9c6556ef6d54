@@ -1,0 +1,30 @@
+docs/superpowers/specs/2026-08-15-diff-pane-revert-design.md
+  7cfc5350e2475b47 1,4-6,10,12,14-16,22,24-31,38,41-47,49-51,67,69,78,97,108,117-124,128-129,134,142,147-148,150-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4787bb6c22c5c911af44d8e0688a9c6556ef6d54",
+  "prompts": {
+    "7cfc5350e2475b47": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3514b386-0b4d-4ef9-986a-151cc5727d56",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 53,
+      "total_deletions": 29,
+      "accepted_lines": 53,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-diff-pane-revert-design.md": {
+          "additions": 53,
+          "deletions": 29,
+          "accepted_lines": 53
+        }
+      }
+    }
+  }
+}
