@@ -1,0 +1,35 @@
+packages/webview/tests/muse/panelTabs.test.ts
+  4f59b11387b272ed 4,7-8,46-87
+packages/webview/src/muse/panelTabs.ts
+  4f59b11387b272ed 24-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8fce758face7dcc374bbd7da6f9ead78424357b4",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 0,
+      "accepted_lines": 81,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/webview/src/muse/panelTabs.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        }
+      }
+    }
+  }
+}
