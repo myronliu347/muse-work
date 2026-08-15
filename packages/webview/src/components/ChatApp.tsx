@@ -38,13 +38,14 @@ import { DesktopShell } from "./desktop/DesktopShell";
 import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
 import { DesktopGitContext } from "./desktop/DesktopGitContext";
 import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
-import { matchPanelShortcut, matchNewSessionShortcut } from "../muse/panelShortcuts";
+import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { PreviewPane } from "./panels/PreviewPane";
 import { DiffPane } from "./panels/DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
 import { FilePane } from "./panels/FilePane";
+import { QuickOpenPalette } from "./panels/QuickOpenPalette";
 import type {
   ChatAppProps,
   ConfigurationData,
@@ -230,6 +231,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [chatColumnWidth, setChatColumnWidth] = useState(
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
   );
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const checkedPanelsRef = useRef(checkedPanels);
   const mountedPanelsRef = useRef(mountedPanels);
   const activePanelRef = useRef(activePanel);
@@ -1695,6 +1697,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         postToHost({ command: "newSession" });
         return;
       }
+      if (!isDraftSession && matchQuickOpenShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        setQuickOpenOpen(true);
+        return;
+      }
       const kind = matchPanelShortcut(event);
       if (!kind) return;
       event.preventDefault();
@@ -1705,7 +1713,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     // Capture so contenteditable / xterm do not swallow the chord first.
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isDesktop, host?.panes?.length, host?.focusedPaneId, paneId, postToHost]);
+  }, [
+    isDesktop,
+    isDraftSession,
+    host?.panes?.length,
+    host?.focusedPaneId,
+    paneId,
+    postToHost,
+  ]);
 
   // Desktop file panel (spec: 文件面板): a file path clicked in a message or
   // terminal opens here instead of the OS. Show the panel immediately with a
@@ -2320,6 +2335,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         onDismiss={handleToastDismiss}
         onAction={handleToastAction}
       />
+      {isDesktop && (
+        <QuickOpenPalette
+          open={quickOpenOpen}
+          workdir={effectiveWorkdir}
+          vscode={vscode}
+          onClose={() => setQuickOpenOpen(false)}
+          onOpenFile={(path) => handleOpenFile(path)}
+        />
+      )}
     </>
   );
 
