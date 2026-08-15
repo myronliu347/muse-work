@@ -1,0 +1,26 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "741217b809a98a9d27601cb5fa6ca9b19a7b909e",
+  "prompts": {
+    "88b2909908d5ac36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c9abb29-87c7-4691-aa7a-1a73e8e1df1e",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 228,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/scripts/reorganize-components.mjs": {
+          "additions": 228
+        }
+      }
+    }
+  }
+}
