@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
 import { TerminalPane } from "../../src/components/panels/TerminalPane";
+import { workdirTermId } from "../../src/stores/panelGroupStore";
 import { createMockVscode, sendCommand } from "./test-utils";
 
 class MockTerminal {
@@ -51,18 +52,24 @@ class MockWebLinksAddon {
 }
 
 const mockTerminals: MockTerminal[] = [];
+const DEFAULT_WD = "/tmp/work";
+const defaultTermId = workdirTermId(DEFAULT_WD);
 
 function renderPane(options?: {
   paneId?: string;
   visible?: boolean;
-  sessionId?: string;
-  workdir?: string;
+  workdir?: string | undefined;
   onClose?: () => void;
   onOpenPreview?: (url: string) => void;
+  /** When true, omit workdir entirely (no default). */
+  noWorkdir?: boolean;
 }) {
   const vscode = createMockVscode();
   const onClose = options?.onClose ?? vi.fn();
   const onOpenPreview = options?.onOpenPreview ?? vi.fn();
+  const workdir = options?.noWorkdir
+    ? undefined
+    : (options?.workdir ?? DEFAULT_WD);
   const result = render(
     <TerminalPane
       vscode={vscode}
@@ -72,15 +79,13 @@ function renderPane(options?: {
       onClose={onClose}
       paneId={options?.paneId}
       visible={options?.visible ?? true}
-      sessionId={options?.sessionId}
-      workdir={options?.workdir}
+      workdir={workdir}
       onOpenPreview={onOpenPreview}
     />,
   );
   const rerenderWith = (props: {
     visible?: boolean;
-    sessionId?: string;
-    workdir?: string;
+    workdir?: string | undefined;
   }) =>
     result.rerender(
       <TerminalPane
@@ -91,12 +96,11 @@ function renderPane(options?: {
         onClose={onClose}
         paneId={options?.paneId}
         visible={props.visible ?? true}
-        sessionId={props.sessionId}
-        workdir={props.workdir}
+        workdir={"workdir" in props ? props.workdir : workdir}
         onOpenPreview={onOpenPreview}
       />,
     );
-  return { ...result, rerenderWith, vscode, onClose, onOpenPreview };
+  return { ...result, rerenderWith, vscode, onClose, onOpenPreview, workdir };
 }
 
 const postsOf = (
@@ -125,14 +129,17 @@ afterEach(() => {
 });
 
 describe("TerminalPane", () => {
-  it("builds the xterm terminal and creates the PTY on mount", async () => {
-    const { vscode } = renderPane({ paneId: "pane-1" });
+  it("uses term-wd encoded workdir as termId", async () => {
+    const { vscode } = renderPane({
+      paneId: "pane-1",
+      workdir: "/w/a",
+    });
     await act(async () => {});
-    expect(mockTerminals).toHaveLength(1);
     expect(postsOf(vscode, "desktopTerminalCreate")).toEqual([
       {
         command: "desktopTerminalCreate",
-        termId: "term-pane-1",
+        termId: workdirTermId("/w/a"),
+        workdir: "/w/a",
         paneId: "pane-1",
         cols: 80,
         rows: 24,
@@ -140,18 +147,16 @@ describe("TerminalPane", () => {
     ]);
   });
 
-  it("uses term-main when no paneId is given", async () => {
-    const { vscode } = renderPane();
+  it("does not create a PTY without workdir", async () => {
+    const { vscode } = renderPane({ noWorkdir: true });
     await act(async () => {});
-    expect(postsOf(vscode, "desktopTerminalCreate")[0]).toMatchObject({
-      termId: "term-main",
-    });
+    expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(0);
   });
 
   it("hidden mount keeps the PTY unstarted; re-show creates it", async () => {
     const { vscode, rerenderWith } = renderPane({ visible: false });
     await act(async () => {});
-    expect(mockTerminals).toHaveLength(1); // xterm built, PTY not started
+    expect(mockTerminals).toHaveLength(1);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(0);
     rerenderWith({ visible: true });
     await act(async () => {});
@@ -177,27 +182,37 @@ describe("TerminalPane", () => {
     const { vscode } = renderPane();
     await act(async () => {});
     sendCommand("desktopTerminalData", {
-      termId: "term-main",
+      termId: defaultTermId,
       data: "hello$ ",
     });
     expect(mockTerminals[0].written).toContain("hello$ ");
     act(() => mockTerminals[0].simulateInput("ls\n"));
     expect(postsOf(vscode, "desktopTerminalInput")).toEqual([
-      { command: "desktopTerminalInput", termId: "term-main", data: "ls\n" },
+      {
+        command: "desktopTerminalInput",
+        termId: defaultTermId,
+        data: "ls\n",
+      },
     ]);
   });
 
   it("ignores terminal messages addressed to another termId", async () => {
-    renderPane({ paneId: "pane-1" });
+    renderPane({ paneId: "pane-1", workdir: "/w/a" });
     await act(async () => {});
-    sendCommand("desktopTerminalData", { termId: "term-pane-2", data: "nope" });
+    sendCommand("desktopTerminalData", {
+      termId: workdirTermId("/w/other"),
+      data: "nope",
+    });
     expect(mockTerminals[0].written).toHaveLength(0);
   });
 
   it("shows the exited state with restart on desktopTerminalExit", async () => {
     renderPane();
     await act(async () => {});
-    sendCommand("desktopTerminalExit", { termId: "term-main", exitCode: 137 });
+    sendCommand("desktopTerminalExit", {
+      termId: defaultTermId,
+      exitCode: 137,
+    });
     expect(screen.getByText("进程已退出（退出码 137）")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-retry")).toBeInTheDocument();
   });
@@ -206,7 +221,7 @@ describe("TerminalPane", () => {
     renderPane();
     await act(async () => {});
     sendCommand("desktopTerminalExit", {
-      termId: "term-main",
+      termId: defaultTermId,
       error: "终端启动失败：boom",
     });
     expect(screen.getByText("终端启动失败：boom")).toBeInTheDocument();
@@ -217,47 +232,52 @@ describe("TerminalPane", () => {
     await act(async () => {});
     fireEvent.click(screen.getByTestId("terminal-restart"));
     expect(postsOf(vscode, "desktopTerminalKill")).toEqual([
-      { command: "desktopTerminalKill", termId: "term-main" },
+      { command: "desktopTerminalKill", termId: defaultTermId },
     ]);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(2);
     expect(mockTerminals[0].resetCount).toBe(1);
   });
 
-  it("session switch reattaches without killing the previous session PTY", async () => {
-    const { vscode, rerenderWith } = renderPane({
-      sessionId: "s1",
-      workdir: "/w/a",
-    });
+  it("same workdir session switch does not reset or recreate PTY", async () => {
+    const { vscode, rerenderWith } = renderPane({ workdir: "/w/a" });
     await act(async () => {});
-    expect(postsOf(vscode, "desktopTerminalCreate")).toEqual([
-      expect.objectContaining({
-        command: "desktopTerminalCreate",
-        termId: "term-s1",
-        workdir: "/w/a",
-      }),
-    ]);
-    rerenderWith({ sessionId: "s2", workdir: "/w/b" });
+    expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
+    // Rerender with same workdir (session would have changed in ChatApp).
+    rerenderWith({ workdir: "/w/a" });
+    expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(0);
+    expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
+    expect(mockTerminals[0].resetCount).toBe(0);
+  });
+
+  it("workdir switch reattaches a different PTY without killing the old one", async () => {
+    const { vscode, rerenderWith } = renderPane({ workdir: "/w/a" });
+    await act(async () => {});
+    rerenderWith({ workdir: "/w/b" });
     expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(0);
     expect(postsOf(vscode, "desktopTerminalCreate")).toEqual([
-      expect.objectContaining({ termId: "term-s1" }),
-      expect.objectContaining({ termId: "term-s2", workdir: "/w/b" }),
+      expect.objectContaining({
+        termId: workdirTermId("/w/a"),
+        workdir: "/w/a",
+      }),
+      expect.objectContaining({
+        termId: workdirTermId("/w/b"),
+        workdir: "/w/b",
+      }),
     ]);
     expect(mockTerminals[0].resetCount).toBe(1);
   });
 
-  it("session switch on a hidden terminal does not kill or create", async () => {
+  it("workdir switch on a hidden terminal does not kill or create", async () => {
     const { vscode, rerenderWith } = renderPane({
       visible: false,
-      sessionId: "s1",
       workdir: "/w/a",
     });
     await act(async () => {});
-    // Simulate a PTY having been created earlier (visible phase), then hidden.
-    rerenderWith({ visible: true, sessionId: "s1", workdir: "/w/a" });
+    rerenderWith({ visible: true, workdir: "/w/a" });
     await act(async () => {});
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
-    rerenderWith({ visible: false, sessionId: "s1", workdir: "/w/a" });
-    rerenderWith({ visible: false, sessionId: "s2", workdir: "/w/b" });
+    rerenderWith({ visible: false, workdir: "/w/a" });
+    rerenderWith({ visible: false, workdir: "/w/b" });
     expect(postsOf(vscode, "desktopTerminalKill")).toHaveLength(0);
     expect(postsOf(vscode, "desktopTerminalCreate")).toHaveLength(1);
   });
@@ -266,15 +286,11 @@ describe("TerminalPane", () => {
     const { vscode, unmount } = renderPane();
     await act(async () => {});
     unmount();
-    // The host owns the PTY lifecycle: a remount (e.g. the pane moving
-    // across window rows) reattaches to the live PTY instead of a respawn.
     expect(postsOf(vscode, "desktopTerminalKill")).toEqual([]);
     expect(mockTerminals[0].disposed).toBe(true);
   });
 
   it("samples xterm theme from the pane, not :root light tokens", async () => {
-    // Radix keeps light tokens on :root and dark tokens on .radix-themes —
-    // reading documentElement always yields the light background (#f9f9f9).
     document.documentElement.style.setProperty("--gray-2", "#f9f9f9");
     document.documentElement.style.setProperty("--gray-12", "#202020");
     renderPane();
@@ -294,8 +310,6 @@ describe("TerminalPane", () => {
     document.documentElement.style.removeProperty("--gray-12");
   });
 
-  // Clicking a URL printed in the terminal routes the same way Message.tsx
-  // does: localhost → preview pane, everything else → the system browser.
   const linkHandlerOf = (term: MockTerminal) =>
     (
       term.addons.find((a) => a instanceof MockWebLinksAddon) as
@@ -334,8 +348,6 @@ describe("TerminalPane", () => {
   });
 
   it("falls back to the system browser for localhost when no onOpenPreview", async () => {
-    // renderPane always wires onOpenPreview, so exercise the fallback by
-    // rendering without the prop — mirrors Message.tsx's no-handler path.
     const vscode = createMockVscode();
     render(
       <TerminalPane
@@ -345,6 +357,7 @@ describe("TerminalPane", () => {
         maxWidth={716}
         onClose={vi.fn()}
         visible={true}
+        workdir={DEFAULT_WD}
       />,
     );
     await act(async () => {});
@@ -371,9 +384,9 @@ describe("TerminalPane", () => {
         maxWidth={716}
         onClose={vi.fn()}
         visible={true}
+        workdir={DEFAULT_WD}
       />,
     );
-    // The injected script tag never loads in jsdom — fire its error.
     await act(async () => {});
     const script = document.head.querySelector('script[src="./terminal.js"]');
     expect(script).not.toBeNull();
@@ -382,7 +395,6 @@ describe("TerminalPane", () => {
     });
     expect(screen.getByText("terminal.js 加载失败")).toBeInTheDocument();
 
-    // Retry with the chunk now available rebuilds the terminal.
     window.WaveTerminal = {
       Terminal: MockTerminal,
       FitAddon: class {

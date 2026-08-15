@@ -698,11 +698,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     clearPendingPermission(id);
     const existing =
       pinned.find((s) => s.id === id) ?? recent.find((s) => s.id === id);
-    // Drop the session-scoped PTY so deleted chats do not leak shells.
-    opts.outer?.postMessage({
-      command: "desktopTerminalKill",
-      termId: `term-${id}`,
-    });
+    // Terminal PTY is workdir-scoped — deleting a chat must not kill the shell.
     if (
       existing?.worktreeName &&
       existing.worktreeBranch &&

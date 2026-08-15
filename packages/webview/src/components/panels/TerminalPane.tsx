@@ -4,6 +4,7 @@ import type { Terminal as XtermTerminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebLinksAddon } from "@xterm/addon-web-links";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
+import { workdirTermId } from "../../stores/panelGroupStore";
 import { useMuseTheme } from "../../ui/theme";
 import "../../styles/TerminalPane.css";
 
@@ -80,8 +81,7 @@ type PaneStatus =
 
 export interface TerminalPaneProps {
   vscode: VsCodeApi;
-  /** Effective cwd of the owning pane's session — a change signal only; the
-   * host resolves the actual cwd from paneId. */
+  /** Absolute workdir — scopes the host PTY id and create cwd. */
   workdir?: string;
   width: number;
   onWidthChange: (width: number) => void;
@@ -91,8 +91,6 @@ export interface TerminalPaneProps {
   paneId?: string;
   /** Hidden panels stay mounted; the PTY survives hiding. */
   visible: boolean;
-  /** Session identity change → rebuild (visible) or kill (hidden). */
-  sessionId?: string;
   /** Desktop only: route localhost links printed in the terminal into the
    * preview pane, mirroring Message.tsx. Non-localhost links open externally. */
   onOpenPreview?: (url: string) => void;
@@ -106,7 +104,6 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   maxWidth,
   paneId,
   visible,
-  sessionId,
   workdir,
   onOpenPreview,
 }) => {
@@ -118,11 +115,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const fitRef = useRef<FitAddon | null>(null);
   // Whether a PTY for this pane is believed alive in the host.
   const liveRef = useRef(false);
-  // Per-session PTY id so switching chats reattaches instead of wiping history.
-  const termId =
-    sessionId && sessionId !== "__draft__"
-      ? `term-${sessionId}`
-      : `term-${paneId ?? "main"}`;
+  // Per-workdir PTY so switching sessions in the same directory reattaches.
+  const termId = workdir ? workdirTermId(workdir) : `term-${paneId ?? "main"}`;
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
   const workdirRef = useRef(workdir);
@@ -141,7 +135,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const createPty = useCallback(() => {
     const term = termRef.current;
     if (!term) return;
-    if (sessionId === "__draft__") return;
+    if (!workdirRef.current) return;
     liveRef.current = true;
     setStatus({ kind: "running" });
     vscode.postMessage({
@@ -152,7 +146,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       cols: term.cols,
       rows: term.rows,
     });
-  }, [vscode, termId, paneId, sessionId]);
+  }, [vscode, termId, paneId]);
   const createPtyRef = useRef(createPty);
   createPtyRef.current = createPty;
 
@@ -293,30 +287,29 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     termRef.current.options.theme = readTerminalTheme(containerRef.current);
   }, [effective]);
 
-  // Visibility / session changes. Each session keeps its own host PTY
-  // (termId = term-<sessionId>). Switching sessions detaches the UI and
-  // reattaches to the target session's PTY (host replays scrollback) — it
-  // must NOT kill the previous session's shell.
-  const prevRef = useRef({ visible, sessionId, workdir });
+  // Visibility / workdir (termId) changes. Each workdir keeps its own host PTY.
+  // Switching sessions in the same directory must NOT reset or recreate.
+  // Switching workdir reattaches to the other PTY without killing the old one.
+  const prevRef = useRef({ visible, termId, workdir });
   useEffect(() => {
     const prev = prevRef.current;
-    prevRef.current = { visible, sessionId, workdir };
+    prevRef.current = { visible, termId, workdir };
     const becameVisible = visible && !prev.visible;
-    const sessionChanged = prev.sessionId !== sessionId;
-    const workdirChangedSameSession =
-      !sessionChanged && prev.workdir !== workdir && Boolean(prev.sessionId);
+    const termChanged = prev.termId !== termId;
+    const workdirChangedSameTerm =
+      !termChanged && prev.workdir !== workdir && Boolean(prev.workdir);
 
-    if (sessionChanged) {
+    if (termChanged) {
       liveRef.current = false;
       termRef.current?.reset();
-      if (visible && sessionId !== "__draft__") {
+      if (visible && workdir) {
         createPty();
         termRef.current?.focus();
-      } else if (sessionId === "__draft__") {
+      } else if (!workdir) {
         setStatus({ kind: "loading" });
       }
-    } else if (workdirChangedSameSession) {
-      // Same session, cwd changed — rebuild this session's PTY only.
+    } else if (workdirChangedSameTerm) {
+      // Same termId string but cwd text changed — rebuild this PTY only.
       killPty();
       termRef.current?.reset();
       if (visible) createPty();
@@ -325,7 +318,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (!liveRef.current) createPty();
       termRef.current?.focus();
     }
-  }, [visible, sessionId, workdir, killPty, createPty]);
+  }, [visible, termId, workdir, killPty, createPty]);
 
   const onDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
