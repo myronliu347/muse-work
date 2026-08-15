@@ -1,0 +1,50 @@
+packages/webview/src/components/panels/DiffPane.tsx
+  0648f6718593b9a9 38-45,449-454
+packages/webview/tests/webview/diffPane.test.tsx
+  0648f6718593b9a9 1,110-119
+packages/webview/vitest.config.ts
+  0648f6718593b9a9 36
+packages/webview/src/styles/DiffPane.css
+  0648f6718593b9a9 50-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0e57b83a59d1632e2acc4c8f01aacff8ac4d4876",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 33,
+      "total_deletions": 8,
+      "accepted_lines": 33,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/vitest.config.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
