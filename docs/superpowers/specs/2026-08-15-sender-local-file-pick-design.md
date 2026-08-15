@@ -40,8 +40,9 @@
 
 1. File 预览 Selection MIME → Selection 标签（现有）  
 2. 剪贴板本地文件路径（Electron `File.path` / `text/uri-list` 的 `file://`）  
-   - 图片扩展名（png/jpg/jpeg/gif/webp/svg）→ AttachedImages  
-   - 其它 → `@file`（多文件按序插入，标签间空格）  
+   - 按文件分流：图片扩展名 → AttachedImages（优先用 clipboard `File` 读 data URL；仅有路径无 blob 时跳过该图或经 host 读，实现选前者）  
+   - 非图片 → `@file`（多文件按序插入，标签间空格）  
+   - 同一次粘贴可同时产生若干 `@file` 与若干附件  
 3. 无路径的 `image/*` → AttachedImages  
 4. 纯文本（现有）
 
@@ -58,9 +59,9 @@
 
 ## 4. UI
 
-- 仅 desktop：在 `input-toolbar-left` 右侧、spacer 之前放按钮（workdir/git 旁）  
+- 仅 desktop：工具栏左侧固定渲染「添加文件」按钮（在 `input-toolbar-left` 内；有 workdir/git 时放在其右侧，无 workdir 选择器时左侧仍只显示该按钮）  
 - Tooltip：「添加文件」；与输入框同 `disabled` 态  
-- 图标：`codicon-new-file` 或 `codicon-add`（与现有 toolbar 尺寸对齐）
+- 图标：`codicon-new-file`（与现有 toolbar 尺寸对齐）
 
 ## 5. 组件落点
 
