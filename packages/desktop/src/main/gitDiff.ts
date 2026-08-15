@@ -196,3 +196,96 @@ export async function getWorkspaceDiff(cwd: string): Promise<WorkspaceDiffResult
   }
   return { kind: "ok", files };
 }
+
+export type RevertWorkspaceDiffResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+function resolveInsideRepo(repoRoot: string, rel: string): string | null {
+  const root = path.resolve(repoRoot);
+  const abs = path.resolve(root, rel);
+  const prefix = root.endsWith(path.sep) ? root : root + path.sep;
+  if (abs !== root && !abs.startsWith(prefix)) return null;
+  return abs;
+}
+
+export async function revertWorkspaceDiff(
+  cwd: string,
+  paths?: string[],
+): Promise<RevertWorkspaceDiffResult> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { ok: false, error: "非 git 仓库" };
+  }
+
+  const root =
+    (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
+    cwd;
+
+  const status = await git(root, [
+    "status",
+    "--porcelain=v1",
+    "-z",
+    "--untracked-files=all",
+  ]).catch(() => "");
+  let entries = parsePorcelain(status);
+
+  if (paths && paths.length > 0) {
+    for (const p of paths) {
+      if (!resolveInsideRepo(root, p)) {
+        return { ok: false, error: `非法路径：${p}` };
+      }
+    }
+    const want = new Set(paths);
+    entries = entries.filter((e) => want.has(e.path));
+  }
+
+  if (entries.length === 0) return { ok: true };
+
+  const hasHead = await git(root, ["rev-parse", "--verify", "HEAD"]).then(
+    () => true,
+    () => false,
+  );
+
+  const trackedArgs: string[] = [];
+  for (const entry of entries) {
+    if (entry.status === "untracked") {
+      const abs = resolveInsideRepo(root, entry.path);
+      if (!abs) return { ok: false, error: `非法路径：${entry.path}` };
+      try {
+        await fs.promises.rm(abs, { recursive: true, force: true });
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+      continue;
+    }
+    const abs = resolveInsideRepo(root, entry.path);
+    if (!abs) return { ok: false, error: `非法路径：${entry.path}` };
+    trackedArgs.push(entry.path);
+    if (entry.oldPath) {
+      const oldAbs = resolveInsideRepo(root, entry.oldPath);
+      if (!oldAbs) return { ok: false, error: `非法路径：${entry.oldPath}` };
+      trackedArgs.push(entry.oldPath);
+    }
+  }
+
+  if (trackedArgs.length > 0) {
+    const restore = hasHead
+      ? ["restore", "--source=HEAD", "--staged", "--worktree", "--", ...trackedArgs]
+      : ["restore", "--staged", "--worktree", "--", ...trackedArgs];
+    try {
+      await git(root, restore);
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  return { ok: true };
+}

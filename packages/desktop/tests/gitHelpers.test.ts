@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { listGitBranches } from "../src/main/gitBranches.js";
-import { getWorkspaceDiff } from "../src/main/gitDiff.js";
+import { getWorkspaceDiff, revertWorkspaceDiff } from "../src/main/gitDiff.js";
 
 function initRepo(dir: string): void {
   execFileSync("git", ["-c", "init.templateDir=", "init"], { cwd: dir });
@@ -47,6 +47,63 @@ describe("getWorkspaceDiff", () => {
     if (result.kind === "ok") {
       expect(result.files.some((f) => f.path === "a.txt")).toBe(true);
     }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("revertWorkspaceDiff", () => {
+  it("restores a modified tracked file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    const result = await revertWorkspaceDiff(dir, ["a.txt"]);
+    expect(result).toEqual({ ok: true });
+    expect(fs.readFileSync(path.join(dir, "a.txt"), "utf8")).toBe("hello\n");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("deletes an untracked file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-u-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "new.txt"), "x\n");
+    const result = await revertWorkspaceDiff(dir, ["new.txt"]);
+    expect(result).toEqual({ ok: true });
+    expect(fs.existsSync(path.join(dir, "new.txt"))).toBe(false);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("reverts only the requested path", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-1-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "a.txt"), "changed\n");
+    fs.writeFileSync(path.join(dir, "b.txt"), "only-b\n");
+    await revertWorkspaceDiff(dir, ["a.txt"]);
+    expect(fs.readFileSync(path.join(dir, "a.txt"), "utf8")).toBe("hello\n");
+    expect(fs.existsSync(path.join(dir, "b.txt"))).toBe(true);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("rejects path traversal", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-x-"));
+    initRepo(dir);
+    const result = await revertWorkspaceDiff(dir, ["../outside.txt"]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.length).toBeGreaterThan(0);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("returns error for non-repo", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-nr-"));
+    const result = await revertWorkspaceDiff(dir);
+    expect(result).toEqual({ ok: false, error: "非 git 仓库" });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("no-ops ok when path set intersects nothing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-empty-"));
+    initRepo(dir);
+    const result = await revertWorkspaceDiff(dir, ["missing.txt"]);
+    expect(result).toEqual({ ok: true });
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
