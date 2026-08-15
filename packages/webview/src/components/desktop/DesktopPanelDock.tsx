@@ -1,7 +1,14 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../../types";
-import { PANEL_TAB_ICONS, PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../../muse/panelTabs";
+import {
+  PANEL_ADD_ORDER,
+  PANEL_TAB_ICONS,
+  PANEL_TAB_LABELS,
+  PANEL_TAB_ORDER,
+} from "../../muse/panelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
+import { PanelAddMenu } from "../panels/PanelAddMenu";
+import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 
 export interface DesktopPanelDockProps {
@@ -9,7 +16,11 @@ export interface DesktopPanelDockProps {
   active: DesktopPanelKind;
   onSelect: (kind: DesktopPanelKind) => void;
   onCloseTab: (kind: DesktopPanelKind) => void;
+  onAddPanel: (kind: DesktopPanelKind) => void;
+  disabledPanels?: DesktopPanelKind[];
   panelToggle: PanelToggleProps;
+  fullscreen: boolean;
+  onToggleFullscreen: () => void;
   width: number;
   onWidthChange: (width: number) => void;
   maxWidth: number;
@@ -21,15 +32,21 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   active,
   onSelect,
   onCloseTab,
+  onAddPanel,
+  disabledPanels = [],
   panelToggle,
+  fullscreen,
+  onToggleFullscreen,
   width,
   onWidthChange,
   maxWidth,
   children,
 }) => {
-  const dockRef = useRef<HTMLElement | null>(null);
+  const dockRef = React.useRef<HTMLElement | null>(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const onDragStart = (e: React.MouseEvent) => {
+    if (fullscreen) return;
     e.preventDefault();
     const handle = e.currentTarget as HTMLElement;
     handle.style.background = "var(--accent-9)";
@@ -50,6 +67,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   };
 
   const tabs = PANEL_TAB_ORDER.filter((kind) => checked.includes(kind));
+  const canAdd = PANEL_ADD_ORDER.some(
+    (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
+  );
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
   const clampedWidth = Math.max(
@@ -60,7 +80,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   return (
     <aside
       ref={dockRef}
-      className="desktop-panel-dock"
+      className={`desktop-panel-dock${fullscreen ? " desktop-panel-dock--fullscreen" : ""}`}
       style={
         {
           "--dock-width": `${clampedWidth}px`,
@@ -68,11 +88,13 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       }
       data-testid="desktop-panel-dock"
     >
-      <div
-        className="preview-pane-drag-handle"
-        onMouseDown={onDragStart}
-        data-testid="desktop-panel-dock-resize"
-      />
+      {!fullscreen && (
+        <div
+          className="preview-pane-drag-handle"
+          onMouseDown={onDragStart}
+          data-testid="desktop-panel-dock-resize"
+        />
+      )}
       <div className="desktop-panel-dock-header">
         <div className="desktop-panel-dock-tabs">
           {tabs.map((kind) => (
@@ -106,8 +128,47 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </button>
             </div>
           ))}
+          {canAdd && (
+            <div className="desktop-panel-add">
+              <button
+                type="button"
+                className="desktop-panel-add-btn"
+                data-testid="desktop-panel-add-btn"
+                aria-label="添加面板"
+                onClick={() => setShowAddMenu((v) => !v)}
+              >
+                <i className="codicon codicon-add" />
+              </button>
+              {showAddMenu && (
+                <PanelAddMenu
+                  checked={checked}
+                  disabled={disabledPanels}
+                  onAdd={onAddPanel}
+                  onClose={() => setShowAddMenu(false)}
+                />
+              )}
+            </div>
+          )}
         </div>
-        <PanelToggleControl {...panelToggle} />
+        <div className="desktop-panel-dock-actions">
+          <Tooltip
+            text={fullscreen ? "退出全屏" : "全屏"}
+            position="bottom"
+          >
+            <button
+              type="button"
+              className="header-button"
+              data-testid="desktop-panel-fullscreen-btn"
+              aria-label={fullscreen ? "退出全屏" : "全屏"}
+              onClick={onToggleFullscreen}
+            >
+              <i
+                className={`codicon ${fullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`}
+              />
+            </button>
+          </Tooltip>
+          <PanelToggleControl {...panelToggle} />
+        </div>
       </div>
       <div className="desktop-panel-dock-body">{children}</div>
     </aside>

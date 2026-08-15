@@ -2417,6 +2417,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               panelToggle={{
                 onToggleDock: () => {},
               }}
+              onAddPanel={() => {}}
+              fullscreen={false}
+              onToggleFullscreen={() => {}}
               width={Math.min(
                 panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
                 Math.max(PANEL_MIN_WIDTH, dockMaxWidth),

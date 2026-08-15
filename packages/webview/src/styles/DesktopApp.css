@@ -1056,6 +1056,11 @@ body.is-panel-resizing * {
   height: 100%;
 }
 
+/* Dock fullscreen covers the conversation column. */
+.desktop-chat-body:has(.desktop-panel-dock--fullscreen) .desktop-chat-main {
+  display: none;
+}
+
 /* Wrapper that keeps an unchecked panel mounted (display:none) so its content
    — preview guest, terminal session — survives toggling. */
 .desktop-panel-slot {
