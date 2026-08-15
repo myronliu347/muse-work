@@ -1,0 +1,63 @@
+packages/webview/tests/webview/previewPane.test.tsx
+  9b08060a306bdaeb 132,134,139-153,527-529
+packages/webview/src/components/panels/PreviewPane.tsx
+  9b08060a306bdaeb 384-386,388,392-399
+packages/webview/src/components/ChatApp.tsx
+  9b08060a306bdaeb 75,84,1915-1928,1992
+packages/webview/src/styles/DesktopPanelDock.css
+  9b08060a306bdaeb 12,16
+packages/webview/src/styles/DesktopApp.css
+  9b08060a306bdaeb 845-853,1051
+packages/webview/tests/webview/chatAppPanels.test.tsx
+  9b08060a306bdaeb 300,343
+packages/webview/vitest.config.ts
+  9b08060a306bdaeb 38
+docs/superpowers/specs/2026-08-15-browser-toolbar-design.md
+  9b08060a306bdaeb 30-31,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "220e58d6fe8ebcb5cb74425fcb1d2dccb5129383",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 67,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "accepted_lines": 20
+        },
+        "docs/superpowers/specs/2026-08-15-browser-toolbar-design.md": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/vitest.config.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
