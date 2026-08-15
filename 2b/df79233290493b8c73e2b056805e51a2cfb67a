@@ -1,0 +1,35 @@
+packages/webview/tests/muse/toPierrePatch.test.ts
+  0648f6718593b9a9 1-66
+packages/webview/src/utils/toPierrePatch.ts
+  0648f6718593b9a9 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2bdf79233290493b8c73e2b056805e51a2cfb67a",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 129,
+      "total_deletions": 0,
+      "accepted_lines": 129,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/toPierrePatch.test.ts": {
+          "additions": 66,
+          "accepted_lines": 66
+        },
+        "packages/webview/src/utils/toPierrePatch.ts": {
+          "additions": 63,
+          "accepted_lines": 63
+        }
+      }
+    }
+  }
+}
