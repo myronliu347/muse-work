@@ -140,7 +140,9 @@ describe("DiffPane", () => {
     expect(vscode.postMessage).toHaveBeenCalledWith({
       command: "desktopGetWorkspaceDiff",
     });
-    expect(screen.getByText("加载中…")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("加载中…");
   });
 
   it("renders file blocks with status, path and +/- stats", () => {
@@ -212,13 +214,17 @@ describe("DiffPane", () => {
   it("shows the not-a-repo state", () => {
     renderPane();
     sendCommand("desktopWorkspaceDiff", { result: { kind: "not-a-repo" } });
-    expect(screen.getByText("非 git 仓库")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("非 git 仓库");
   });
 
   it("shows the no-changes state for an empty file list", () => {
     renderPane();
     sendDiffResult([]);
-    expect(screen.getByText("无改动")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("无改动");
   });
 
   it("collapses and expands a file block via its header", () => {
@@ -324,6 +330,46 @@ describe("DiffPane", () => {
     expect(screen.queryByTestId("confirm-dialog-overlay")).not.toBeInTheDocument();
   });
 
+  it("disables commit and revert-all together when unavailable", () => {
+    renderPane();
+    expect(screen.getByTestId("diff-commit")).toBeDisabled();
+    expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
+
+    sendCommand("desktopWorkspaceDiff", { result: { kind: "not-a-repo" } });
+    expect(screen.getByTestId("diff-commit")).toBeDisabled();
+    expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
+
+    sendDiffResult([]);
+    expect(screen.getByTestId("diff-commit")).toBeDisabled();
+    expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
+
+    sendDiffResult([makeFile()]);
+    expect(screen.getByTestId("diff-commit")).toBeEnabled();
+    expect(screen.getByTestId("diff-revert-all")).toBeEnabled();
+  });
+
+  it("shows disabled-reason tooltips for commit and revert-all", () => {
+    renderPane();
+    sendCommand("desktopWorkspaceDiff", { result: { kind: "not-a-repo" } });
+
+    const commitTip = screen
+      .getByTestId("diff-commit")
+      .closest(".tooltip-container") as HTMLElement;
+    fireEvent.mouseEnter(commitTip);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
+      "非 git 仓库",
+    );
+    fireEvent.mouseLeave(commitTip);
+
+    const revertTip = screen
+      .getByTestId("diff-revert-all")
+      .closest(".tooltip-container") as HTMLElement;
+    fireEvent.mouseEnter(revertTip);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
+      "非 git 仓库",
+    );
+  });
+
   it("tags requests with paneId and ignores responses for other panes", () => {
     const { vscode } = renderPane({ paneId: "pane-1" });
     expect(vscode.postMessage).toHaveBeenCalledWith({
@@ -331,9 +377,13 @@ describe("DiffPane", () => {
       paneId: "pane-1",
     });
     sendDiffResult([makeFile()], "pane-2");
-    expect(screen.getByText("加载中…")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("加载中…");
     sendDiffResult([], "pane-1");
-    expect(screen.getByText("无改动")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("无改动");
   });
 
   it("re-showing a hidden panel triggers a fresh load", () => {
@@ -385,7 +435,9 @@ describe("DiffPane", () => {
     const { rerenderWith } = renderPane({ sessionId: "s1", workdir: "/w/a" });
     sendDiffResult([makeFile()]);
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    expect(screen.getByText("加载中…")).toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("加载中…");
     expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
   });
 
@@ -583,6 +635,7 @@ describe("DiffPane", () => {
       renderPane();
       sendDiffResult([]);
       expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
+      expect(screen.getByTestId("diff-commit")).toBeDisabled();
     });
 
     it("opens confirm for revert-all and posts paths on confirm", () => {

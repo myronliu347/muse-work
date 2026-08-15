@@ -8,6 +8,7 @@ import {
 } from "../../utils/toPierrePatch";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
+import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
 
@@ -497,6 +498,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     );
   };
 
+  const toolbarActionsDisabled =
+    state.kind !== "ok" || state.files.length === 0 || reverting;
+  const toolbarActionsTip =
+    reverting
+      ? "正在丢弃改动…"
+      : state.kind === "loading"
+        ? "加载中…"
+        : state.kind === "not-a-repo"
+          ? "非 git 仓库"
+          : state.kind === "ok" && state.files.length === 0
+            ? "无改动"
+            : null;
+
   return (
     <aside
       ref={asideRef}
@@ -508,31 +522,36 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
           <span className="preview-pane-url">变更</span>
-          <button
-            type="button"
-            className="preview-pane-button"
-            title="提交改动"
-            aria-label="提交改动"
-            data-testid="diff-commit"
-            onClick={() => onSendMessage?.("git commit")}
+          <Tooltip
+            text={toolbarActionsTip ?? "提交改动"}
+            position="bottom"
           >
-            <i className="codicon codicon-git-commit" />
-          </button>
-          <button
-            type="button"
-            className="preview-pane-button"
-            title="丢弃全部改动"
-            aria-label="丢弃全部改动"
-            data-testid="diff-revert-all"
-            disabled={
-              state.kind !== "ok" ||
-              state.files.length === 0 ||
-              reverting
-            }
-            onClick={() => setPendingRevert({ scope: "all" })}
+            <button
+              type="button"
+              className="preview-pane-button"
+              aria-label="提交改动"
+              data-testid="diff-commit"
+              disabled={toolbarActionsDisabled}
+              onClick={() => onSendMessage?.("git commit")}
+            >
+              <i className="codicon codicon-git-commit" />
+            </button>
+          </Tooltip>
+          <Tooltip
+            text={toolbarActionsTip ?? "丢弃全部改动"}
+            position="bottom"
           >
-            <i className="codicon codicon-discard" />
-          </button>
+            <button
+              type="button"
+              className="preview-pane-button"
+              aria-label="丢弃全部改动"
+              data-testid="diff-revert-all"
+              disabled={toolbarActionsDisabled}
+              onClick={() => setPendingRevert({ scope: "all" })}
+            >
+              <i className="codicon codicon-discard" />
+            </button>
+          </Tooltip>
           <button
             className="preview-pane-button"
             title="刷新"
