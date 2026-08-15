@@ -1,0 +1,37 @@
+packages/webview/src/styles/DesktopApp.css
+  9b08060a306bdaeb 93-97
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  9b08060a306bdaeb 3,118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f50948ca72cd104b2d977007cb4a4be8e99feb2b",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 3,
+      "accepted_lines": 7,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
