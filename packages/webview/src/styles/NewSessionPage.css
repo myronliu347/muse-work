@@ -1,0 +1,31 @@
+/* NewSessionPage — centered welcome + composer for desktop draft sessions */
+
+.new-session-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: var(--space-5) var(--space-4);
+}
+
+.new-session-page-column {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-5);
+}
+
+.new-session-page-welcome {
+  display: flex;
+  justify-content: center;
+}
+
+.new-session-page-composer {
+  width: 100%;
+}

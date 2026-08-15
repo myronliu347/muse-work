@@ -14,6 +14,8 @@ export interface WelcomeViewProps {
   isAuthenticated: boolean;
   hasDirectConnectConfig: boolean;
   onLogin: () => void;
+  /** When true, skip the full-height flex shell (parent owns centering). */
+  embedded?: boolean;
 }
 
 const FONT_FAMILY = '"PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
@@ -22,22 +24,10 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
   isAuthenticated,
   hasDirectConnectConfig,
   onLogin,
+  embedded = false,
 }) => {
   const showLogin = !isAuthenticated && !hasDirectConnectConfig;
-  return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-        height: "100%",
-        minWidth: 0,
-        minHeight: 0,
-        overflow: "auto",
-      }}
-    >
+  const inner = (
       <div
         style={{
           width: "400px",
@@ -139,6 +129,25 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
           </button>
         )}
       </div>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        minHeight: 0,
+        overflow: "auto",
+      }}
+    >
+      {inner}
     </div>
   );
 };

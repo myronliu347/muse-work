@@ -13,7 +13,7 @@ const defaults: Record<DesktopPanelKind, number> = {
 };
 
 describe("defaultDockWidth", () => {
-  it("returns half the window width", () => {
+  it("returns half the column width", () => {
     expect(defaultDockWidth(1400)).toBe(700);
     expect(defaultDockWidth(1024)).toBe(512);
   });

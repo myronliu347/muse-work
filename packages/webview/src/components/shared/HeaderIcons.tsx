@@ -110,26 +110,6 @@ export const MoreIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-// Toolbar slash command — a plain "/" so it is not read as a boxed null glyph.
-export const SlashBoxIcon: React.FC<IconProps> = ({
-  className = "header-icon",
-}) => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 16 16"
-    fill="none"
-    className={className}
-  >
-    <path
-      d="M10.75 3.25L5.25 12.75"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 // Queue header chevron — Figma content-tight right arrow (5.28539 x 9.95205) centered
 // in a padded 16x16 box. Points right by default; rotate via CSS for expanded state.
 export const QueueChevronIcon: React.FC<IconProps> = ({

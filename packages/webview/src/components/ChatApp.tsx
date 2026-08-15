@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { AgentTranscriptPopup } from "./dialogs/AgentTranscriptPopup";
 import { MessageList } from "./chat/MessageList";
@@ -27,6 +28,7 @@ import BackgroundTaskManager from "./settings/BackgroundTaskManager";
 import WorkflowManager from "./settings/WorkflowManager";
 import AgentsDialog from "./dialogs/AgentsDialog";
 import WelcomeView from "./chat/WelcomeView";
+import { NewSessionPage } from "./chat/NewSessionPage";
 import LoadingLogo from "./chat/LoadingLogo";
 import {
   DesktopSidebar,
@@ -232,6 +234,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const previewUrlRef = useRef(previewUrl);
   const fileViewRef = useRef<FileViewState | null>(fileView);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [chatColumnWidth, setChatColumnWidth] = useState(
+    () => (typeof window !== "undefined" ? window.innerWidth : 1280),
+  );
   const checkedPanelsRef = useRef(checkedPanels);
   const mountedPanelsRef = useRef(mountedPanels);
   const activePanelRef = useRef(activePanel);
@@ -273,6 +278,25 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   useEffect(() => {
     checkedPanelsRef.current = checkedPanels;
   }, [checkedPanels]);
+
+  // Track the chat column width so dock maxWidth stays correct across
+  // window resizes and split-pane changes (ref reads alone do not re-render).
+  useEffect(() => {
+    if (!isDesktop) return;
+    const el = chatContainerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const apply = () => {
+      // clientWidth is the CSS-constrained layout width (requires min-width:0
+      // on .chat-container). getBoundingClientRect can report an overflowed
+      // content size and feed a too-large dockMaxWidth, worsening the spill.
+      const width = el.clientWidth;
+      if (width > 0) setChatColumnWidth(width);
+    };
+    apply();
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isDesktop, paneId, host?.panes?.length]);
 
   useEffect(() => {
     mountedPanelsRef.current = mountedPanels;
@@ -1206,8 +1230,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   // A message counts as chat content only when the UI renders it — hidden meta
   // user messages (e.g. SessionStart hook additionalContext, isMeta: true) do
-  // not, so they must not suppress the welcome page, the desktop new-session
-  // pickers, or the desktop worktree trigger.
+  // not, so they must not suppress the welcome page.
   const hasVisibleMessages = state.messages.some(
     (m) => !(m.role === "user" && m.isMeta),
   );
@@ -1465,14 +1488,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }
       if (checkedPanelsRef.current.length === 0) {
         const containerW =
+          chatContainerRef.current?.clientWidth ||
           chatContainerRef.current?.getBoundingClientRect().width;
         if (containerW) {
-          // First open of this session's dock: 50% of the window. Later
-          // reopen after close keeps the last dragged width.
-          const desired = defaultDockWidth(
-            window.innerWidth,
-            PANEL_MIN_WIDTH,
-          );
+          // First open of this session's dock: ~50% of the chat column (not
+          // the full window — sidebar already ate space). Later reopen after
+          // close keeps the last dragged width.
+          const desired = defaultDockWidth(containerW, PANEL_MIN_WIDTH);
           const baseWidths =
             mountedPanelsRef.current.length === 0
               ? {
@@ -1639,6 +1661,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const handleDockWidthChange = useCallback((width: number) => {
     let clamped = Math.max(width, PANEL_MIN_WIDTH);
     const containerW =
+      chatContainerRef.current?.clientWidth ||
       chatContainerRef.current?.getBoundingClientRect().width;
     if (containerW) {
       clamped = Math.min(clamped, containerW - CHAT_MAIN_MIN_WIDTH);
@@ -1728,9 +1751,31 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     postToHost({ command: "desktopPanelState", checked: checkedPanels });
   }, [checkedPanels, isDesktop, postToHost]);
 
-  const dockMaxWidth =
-    (chatContainerRef.current?.getBoundingClientRect().width ??
-      window.innerWidth) - CHAT_MAIN_MIN_WIDTH;
+  const dockMaxWidth = chatColumnWidth - CHAT_MAIN_MIN_WIDTH;
+
+  // Persist a clamp when the pane shrinks (window resize / split) so the next
+  // drag/open starts from a width that still fits beside the conversation.
+  useEffect(() => {
+    if (!isDesktop || checkedPanels.length === 0) return;
+    if (!(dockMaxWidth > 0)) return;
+    const current = panelWidthsRef.current[activePanel ?? "preview"];
+    if (!(current > dockMaxWidth)) return;
+    const clamped = Math.max(PANEL_MIN_WIDTH, dockMaxWidth);
+    const next = {
+      preview: clamped,
+      diff: clamped,
+      terminal: clamped,
+      file: clamped,
+    };
+    panelWidthsRef.current = next;
+    updatePanelGroup({ widths: next });
+  }, [
+    isDesktop,
+    checkedPanels.length,
+    activePanel,
+    dockMaxWidth,
+    updatePanelGroup,
+  ]);
 
   const renderPanelSlot = (kind: DesktopPanelKind) => {
     const dockWidth =
@@ -1848,6 +1893,127 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     );
   };
 
+  const showNewSessionPage = isDesktop && isDraftSession && state.initialized;
+
+  const messageInput = (
+    <MessageInput
+      ref={messageInputRef}
+      onSendMessage={handleSendMessage}
+      isStreaming={state.isStreaming}
+      onAbortMessage={handleAbortMessage}
+      onSubmitQueuedEdit={handleSubmitQueuedEdit}
+      editingQueuedId={state.editingQueuedId}
+      onCancelQueuedEdit={handleCancelQueuedEdit}
+      shouldClearInput={state.shouldClearInput}
+      onInputCleared={handleInputCleared}
+      vscode={vscode}
+      selection={state.selection}
+      inputContent={state.inputContent}
+      sessionId={state.currentSession?.id}
+      permissionMode={state.permissionMode}
+      initialAttachedImages={state.attachedImages}
+      disabled={
+        host?.type === "desktop" && !effectiveWorkdir && !isDraftSession
+      }
+      modelId={
+        (state.currentSession as { model?: string } | undefined)?.model
+      }
+      onModelChange={handleSessionModelChange}
+      workdirSelector={
+        host?.type === "desktop" ? (
+          isDraftSession ? (
+            <>
+              <DesktopWorkdirSelector
+                host={effectiveHost}
+                workdir={effectiveWorkdir}
+                recentWorkdirs={host.recentWorkdirs}
+                onSelectWorkdir={host.onSelectWorkdir}
+                onSelectRecentWorkdir={host.onSelectRecentWorkdir}
+                onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
+              />
+              {effectiveWorkdir &&
+                gitBranches &&
+                gitBranches.branches.length > 0 && (
+                <DesktopWorktreeControls
+                  branches={gitBranches.branches}
+                  branch={worktreeBranch || gitBranches.current}
+                  worktreeChecked={worktreeChecked}
+                  onBranchChange={(branch) =>
+                    patchPane({ worktreeBranch: branch })
+                  }
+                  onWorktreeChange={(checked) =>
+                    patchPane({ worktreeChecked: checked })
+                  }
+                />
+              )}
+            </>
+          ) : (
+            <DesktopGitContext
+              branch={
+                (state.currentSession as { worktreeBranch?: string } | undefined)
+                  ?.worktreeBranch ||
+                gitBranches?.current ||
+                undefined
+              }
+              worktreeName={
+                (state.currentSession as { worktreeName?: string } | undefined)
+                  ?.worktreeName
+              }
+            />
+          )
+        ) : undefined
+      }
+      rewindPopup={
+        <RewindPopup
+          isVisible={rewindPopupOpen}
+          isLoading={rewindCheckpointsLoading}
+          checkpoints={rewindCheckpoints}
+          onSelect={handleRewindCheckpointSelect}
+          onClose={handleRewindPopupClose}
+        />
+      }
+      modelPopup={
+        <ModelPopup
+          isVisible={modelPopupOpen}
+          isLoading={modelLoading}
+          models={configuredModels}
+          currentModel={currentModel}
+          onSelect={handleModelSelect}
+          onClose={handleModelPopupClose}
+        />
+      }
+      btwPopup={
+        btwPanel ? (
+          <BtwPanel
+            question={btwPanel.question}
+            answer={btwPanel.answer}
+            isLoading={btwPanel.loading}
+            onClose={handleBtwClose}
+          />
+        ) : undefined
+      }
+    />
+  );
+
+  const newSessionPage = (
+    <NewSessionPage
+      welcome={
+        <WelcomeView
+          embedded
+          isAuthenticated={state.isAuthenticated}
+          hasDirectConnectConfig={
+            !!(
+              state.configurationData?.apiKey &&
+              state.configurationData?.baseURL
+            )
+          }
+          onLogin={handleLogin}
+        />
+      }
+      composer={messageInput}
+    />
+  );
+
   const chatBodyContent = state.isRestoring ? (
     // Desktop restore in progress: the pane already switched to the target
     // session — show the sweep animation over the message + input area until
@@ -1924,104 +2090,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             display: state.pendingConfirmations.length === 0 ? "block" : "none",
           }}
         >
-          <MessageInput
-            ref={messageInputRef}
-            onSendMessage={handleSendMessage}
-            isStreaming={state.isStreaming}
-            onAbortMessage={handleAbortMessage}
-            onSubmitQueuedEdit={handleSubmitQueuedEdit}
-            editingQueuedId={state.editingQueuedId}
-            onCancelQueuedEdit={handleCancelQueuedEdit}
-            shouldClearInput={state.shouldClearInput}
-            onInputCleared={handleInputCleared}
-            vscode={vscode}
-            selection={state.selection}
-            inputContent={state.inputContent}
-            sessionId={state.currentSession?.id}
-            permissionMode={state.permissionMode}
-            initialAttachedImages={state.attachedImages}
-            disabled={
-              host?.type === "desktop" && !effectiveWorkdir && !isDraftSession
-            }
-            showSlashButton={!isDraftSession}
-            modelId={
-              (state.currentSession as { model?: string } | undefined)?.model
-            }
-            onModelChange={handleSessionModelChange}
-            workdirSelector={
-              host?.type === "desktop" ? (
-                !hasVisibleMessages ? (
-                  <>
-                    <DesktopWorkdirSelector
-                      host={effectiveHost}
-                      workdir={effectiveWorkdir}
-                      recentWorkdirs={host.recentWorkdirs}
-                      onSelectWorkdir={host.onSelectWorkdir}
-                      onSelectRecentWorkdir={host.onSelectRecentWorkdir}
-                      onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
-                    />
-                    {effectiveWorkdir &&
-                      gitBranches &&
-                      gitBranches.branches.length > 0 && (
-                      <DesktopWorktreeControls
-                        branches={gitBranches.branches}
-                        branch={worktreeBranch || gitBranches.current}
-                        worktreeChecked={worktreeChecked}
-                        onBranchChange={(branch) =>
-                          patchPane({ worktreeBranch: branch })
-                        }
-                        onWorktreeChange={(checked) =>
-                          patchPane({ worktreeChecked: checked })
-                        }
-                      />
-                    )}
-                  </>
-                ) : (
-                  <DesktopGitContext
-                    branch={
-                      (state.currentSession as { worktreeBranch?: string } | undefined)
-                        ?.worktreeBranch ||
-                      gitBranches?.current ||
-                      undefined
-                    }
-                    worktreeName={
-                      (state.currentSession as { worktreeName?: string } | undefined)
-                        ?.worktreeName
-                    }
-                  />
-                )
-              ) : undefined
-            }
-            rewindPopup={
-              <RewindPopup
-                isVisible={rewindPopupOpen}
-                isLoading={rewindCheckpointsLoading}
-                checkpoints={rewindCheckpoints}
-                onSelect={handleRewindCheckpointSelect}
-                onClose={handleRewindPopupClose}
-              />
-            }
-            modelPopup={
-              <ModelPopup
-                isVisible={modelPopupOpen}
-                isLoading={modelLoading}
-                models={configuredModels}
-                currentModel={currentModel}
-                onSelect={handleModelSelect}
-                onClose={handleModelPopupClose}
-              />
-            }
-            btwPopup={
-              btwPanel ? (
-                <BtwPanel
-                  question={btwPanel.question}
-                  answer={btwPanel.answer}
-                  isLoading={btwPanel.loading}
-                  onClose={handleBtwClose}
-                />
-              ) : undefined
-            }
-          />
+          {messageInput}
         </div>
 
         {state.pendingConfirmations.length > 0 && (
@@ -2187,8 +2256,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       {isDesktop ? (
         <div className="desktop-chat-body">
-          <div className="desktop-chat-main">{chatChrome}</div>
-          {checkedPanels.length > 0 && activePanel && (
+          <div className="desktop-chat-main">
+            {isDraftSession && !state.initialized ? (
+              <LoadingLogo />
+            ) : showNewSessionPage ? (
+              newSessionPage
+            ) : (
+              chatChrome
+            )}
+          </div>
+          {!isDraftSession && checkedPanels.length > 0 && activePanel && (
             <DesktopPanelDock
               checked={checkedPanels}
               active={activePanel}
@@ -2199,9 +2276,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
                 onToggle: handleTogglePanel,
                 disabled: panelDisabled,
               }}
-              width={panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH}
+              width={Math.min(
+                panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
+                Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
+              )}
               onWidthChange={handleDockWidthChange}
-              maxWidth={dockMaxWidth}
+              maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
             >
               {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
                 (kind) => (

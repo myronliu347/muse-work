@@ -372,7 +372,7 @@
   background: var(--gray-4);
 }
 
-/* Toolbar icon buttons ("+" and "/") — 22px square, 16px icon */
+/* Toolbar icon buttons ("+") — 22px square, 16px icon */
 .toolbar-icon-button {
   width: 22px;
   height: 22px;

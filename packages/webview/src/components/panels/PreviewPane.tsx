@@ -76,8 +76,12 @@ export function rewriteCommentUrl(
 const MIN_WIDTH = 320;
 
 /** Colors the guest picker can't read cross-origin — sampled from the host theme. */
-const readPalette = (): Record<string, string> => {
-  const styles = getComputedStyle(document.documentElement);
+const readPalette = (el?: Element | null): Record<string, string> => {
+  const sample =
+    el ??
+    document.querySelector(".radix-themes") ??
+    document.documentElement;
+  const styles = getComputedStyle(sample);
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
   return {
@@ -127,6 +131,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const [pickerActive, setPickerActive] = useState(false);
   const [pickerUnsupported, setPickerUnsupported] = useState(false);
   const webviewRef = useRef<WebviewTagElement | null>(null);
+  const asideRef = useRef<HTMLElement | null>(null);
   // URL the guest is currently showing — follows in-guest navigation.
   const currentUrlRef = useRef(url);
   // webview.send() before dom-ready is silently dropped, so gate on it.
@@ -151,7 +156,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     if (!wv || !domReadyRef.current) return;
     wv.send(
       "wave-picker",
-      action === "activate" ? { action, palette: readPalette() } : { action },
+      action === "activate"
+        ? { action, palette: readPalette(asideRef.current) }
+        : { action },
     );
   }, []);
 
@@ -299,7 +306,6 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     vscode.postMessage({ command: "openExternal", url: currentUrlRef.current });
   };
 
-  const asideRef = useRef<HTMLElement | null>(null);
   // Dragging the left edge resizes this panel: the panels to the right keep
   // their widths, so the aside's right edge is fixed for the drag.
   const onDragStart = (e: React.MouseEvent) => {

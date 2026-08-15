@@ -1,6 +1,10 @@
 /* Chat Layout */
 .chat-container {
   flex: 1;
+  /* Flex item default min-width:auto prevents shrinking below content
+     (e.g. a fixed-width dock). Without this the column grows past the
+     sidebar sibling and the dock is clipped by .desktop-layout overflow. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;

@@ -4,6 +4,7 @@ import type { Terminal as XtermTerminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebLinksAddon } from "@xterm/addon-web-links";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
+import { useMuseTheme } from "../../ui/theme";
 import "../../styles/TerminalPane.css";
 
 declare global {
@@ -48,9 +49,17 @@ export function prefetchTerminalLib(): void {
   loadTerminalLib().catch(() => {});
 }
 
-/** Terminal colors follow the Muse Radix theme tokens. */
-const readTerminalTheme = () => {
-  const styles = getComputedStyle(document.documentElement);
+/**
+ * Sample Radix tokens from a themed element — never `:root` alone.
+ * Radix keeps light `--gray-*` on `:root` and dark tokens on `.radix-themes.dark`,
+ * so `getComputedStyle(document.documentElement)` always returns the light palette.
+ */
+const readTerminalTheme = (el?: Element | null) => {
+  const sample =
+    el ??
+    document.querySelector(".radix-themes") ??
+    document.documentElement;
+  const styles = getComputedStyle(sample);
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
   const background = pick("--gray-2", "") || pick("--gray-1", "#1e1e1e");
@@ -102,6 +111,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   onOpenPreview,
 }) => {
   const [status, setStatus] = useState<PaneStatus>({ kind: "loading" });
+  const { effective } = useMuseTheme();
   const asideRef = useRef<HTMLElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<XtermTerminal | null>(null);
@@ -193,9 +203,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           detail: msg.error ?? `进程已退出（退出码 ${msg.exitCode ?? "未知"}）`,
         });
       } else if (msg?.command === "desktopThemeChange") {
-        // Follow the app theme live.
+        // Host OS / preference paint — re-sample after Radix tokens settle.
         if (termRef.current)
-          termRef.current.options.theme = readTerminalTheme();
+          termRef.current.options.theme = readTerminalTheme(containerRef.current);
       }
     };
     window.addEventListener("message", onMessage);
@@ -207,7 +217,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           fontFamily: 'Menlo, Monaco, "Courier New", monospace',
           fontSize: 12,
           cursorBlink: true,
-          theme: readTerminalTheme(),
+          theme: readTerminalTheme(containerRef.current),
         });
         const fit = new lib.FitAddon();
         term.loadAddon(fit);
@@ -276,6 +286,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
     // vscode is a module singleton, so this still only re-runs on bootNonce.
   }, [bootNonce, vscode]);
+
+  // Keep the canvas in sync with Muse light/dark (in-app preference or system).
+  useEffect(() => {
+    if (!termRef.current) return;
+    termRef.current.options.theme = readTerminalTheme(containerRef.current);
+  }, [effective]);
 
   // Visibility / session changes. Each session keeps its own host PTY
   // (termId = term-<sessionId>). Switching sessions detaches the UI and

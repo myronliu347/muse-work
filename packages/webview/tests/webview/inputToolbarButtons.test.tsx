@@ -1,7 +1,7 @@
-import { renderChatApp, screen, waitFor, fireEvent, sendCommand } from "./test-utils";
+import { renderChatApp, screen, fireEvent } from "./test-utils";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-describe("Input toolbar buttons (+ and /)", () => {
+describe("Input toolbar buttons (+)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -40,40 +40,5 @@ describe("Input toolbar buttons (+ and /)", () => {
     fireEvent.click(uploadItem);
 
     expect(clickSpy).toHaveBeenCalled();
-  });
-
-  it('should open the slash commands popup when clicking the "/" button', async () => {
-    const { vscode } = renderChatApp();
-    sendCommand("updateCurrentSession", {
-      session: {
-        id: "sess-1",
-        title: "已有对话",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-    });
-
-    // Ensure a valid selection inside the editor so handleSlashButtonClick can insert "/".
-    const input = screen.getByTestId("message-input");
-    input.focus();
-    const range = document.createRange();
-    range.selectNodeContents(input);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-
-    const slashButton = screen.getByLabelText("快捷指令");
-    fireEvent.click(slashButton);
-
-    // handleSelectionChange is debounced ~200ms — wait for the request to fire.
-    await waitFor(
-      () => {
-        expect(vscode.postMessage).toHaveBeenCalledWith(
-          expect.objectContaining({ command: "requestSlashCommands" }),
-        );
-      },
-      { timeout: 3000 },
-    );
   });
 });

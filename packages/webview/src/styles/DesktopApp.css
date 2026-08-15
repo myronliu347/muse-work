@@ -712,9 +712,10 @@
 .preview-pane {
   position: relative;
   flex-shrink: 0;
-  border-left: 1px solid var(--gray-6));
+  border-left: 1px solid var(--gray-6);
   background: var(--gray-2);
-  overflow: visible;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .preview-pane-drag-handle {
@@ -931,7 +932,7 @@ body.is-panel-resizing * {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--gray-6));
+  border-right: 1px solid var(--gray-6);
 }
 
 /* The pane fills the chat-container's parent; chat-container is flex:1 already,
@@ -1000,14 +1001,18 @@ body.is-panel-resizing * {
   position: relative;
   display: flex;
   flex: 1;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .desktop-chat-main {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 0;
+  /* Keep the conversation usable when the dock is open; matches
+     CHAT_MAIN_MIN_WIDTH in ChatApp.tsx. */
+  min-width: 360px;
   min-height: 0;
   height: 100%;
 }

@@ -50,12 +50,22 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   };
 
   const tabs = PANEL_TAB_ORDER.filter((kind) => checked.includes(kind));
+  // Never paint wider than the live max — persisted widths from a larger
+  // window would otherwise overflow past the pane edge.
+  const clampedWidth = Math.max(
+    320,
+    Math.min(width, Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : width),
+  );
 
   return (
     <aside
       ref={dockRef}
       className="desktop-panel-dock"
-      style={{ width }}
+      style={
+        {
+          "--dock-width": `${clampedWidth}px`,
+        } as React.CSSProperties
+      }
       data-testid="desktop-panel-dock"
     >
       <div

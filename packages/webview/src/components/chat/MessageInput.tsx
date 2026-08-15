@@ -30,7 +30,6 @@ import {
 } from "../../utils/fileMentionBrowse";
 import {
   QueueSendIcon,
-  SlashBoxIcon,
   PermModeAcceptIcon,
   PermModeBypassIcon,
 } from "../shared/HeaderIcons";
@@ -115,7 +114,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modelId,
       onModelChange,
       modelSelectApi,
-      showSlashButton = true,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -737,35 +735,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [closeDropdown, vscode],
     );
 
-    const handleSlashButtonClick = useCallback(() => {
-      if (!textareaRef.current) return;
-      textareaRef.current.focus();
-      const selection = window.getSelection();
-      if (!selection) return;
-
-      let range: Range;
-      if (
-        selection.rangeCount > 0 &&
-        textareaRef.current.contains(selection.getRangeAt(0).startContainer)
-      ) {
-        range = selection.getRangeAt(0);
-      } else {
-        range = document.createRange();
-        range.selectNodeContents(textareaRef.current);
-        range.collapse(false);
-      }
-
-      const slashNode = document.createTextNode("/");
-      range.insertNode(slashNode);
-      range.setStartAfter(slashNode);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      const inputEvent = new Event("input", { bubbles: true });
-      textareaRef.current.dispatchEvent(inputEvent);
-    }, []);
-
     const handleSlashCommandSelect = useCallback(
       (command: SlashCommand) => {
         if (!textareaRef.current) return;
@@ -1307,17 +1276,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                 >
                   {workdirSelector}
                 </div>
-              ) : null}
-              {showSlashButton ? (
-                <button
-                  type="button"
-                  className="toolbar-icon-button"
-                  aria-label="快捷指令"
-                  disabled={disabled}
-                  onClick={handleSlashButtonClick}
-                >
-                  <SlashBoxIcon className="toolbar-icon" />
-                </button>
               ) : null}
               <div className="button-spacer" />
               <div className="permission-mode-container" ref={permMenuRef}>

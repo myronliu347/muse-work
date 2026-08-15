@@ -47,21 +47,7 @@ describe("Slash Commands", () => {
     vi.clearAllMocks();
   });
 
-  it("does not show the slash toolbar button on a draft session", () => {
-    renderChatApp();
-    sendCommand("updateCurrentSession", {
-      session: {
-        id: "__draft__",
-        title: "新对话",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-    });
-
-    expect(screen.queryByLabelText("快捷指令")).not.toBeInTheDocument();
-  });
-
-  it("shows the slash toolbar button once a real session is active", () => {
+  it("does not show a slash toolbar button (commands are typed with /)", () => {
     renderChatApp();
     sendCommand("updateCurrentSession", {
       session: {
@@ -72,7 +58,7 @@ describe("Slash Commands", () => {
       },
     });
 
-    expect(screen.getByLabelText("快捷指令")).toBeInTheDocument();
+    expect(screen.queryByLabelText("快捷指令")).not.toBeInTheDocument();
   });
 
   it("should insert slash command with a space when selected via Enter", async () => {

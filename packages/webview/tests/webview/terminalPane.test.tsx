@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
@@ -271,27 +272,26 @@ describe("TerminalPane", () => {
     expect(mockTerminals[0].disposed).toBe(true);
   });
 
-  it("close button calls onClose", async () => {
-    const onClose = vi.fn();
-    renderPane({ onClose });
-    await act(async () => {});
-    fireEvent.click(screen.getByTestId("terminal-close"));
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it("follows the app theme on desktopThemeChange", async () => {
+  it("samples xterm theme from the pane, not :root light tokens", async () => {
+    // Radix keeps light tokens on :root and dark tokens on .radix-themes —
+    // reading documentElement always yields the light background (#f9f9f9).
+    document.documentElement.style.setProperty("--gray-2", "#f9f9f9");
+    document.documentElement.style.setProperty("--gray-12", "#202020");
     renderPane();
     await act(async () => {});
-    const before = mockTerminals[0].options.theme;
-    document.documentElement.style.setProperty(
-      "--gray-2",
-      "#112233",
-    );
+    const body = screen.getByTestId("terminal-body");
+    body.style.setProperty("--gray-2", "#191919");
+    body.style.setProperty("--gray-12", "#eeeeee");
+    body.style.setProperty("--accent-9", "#e5484d");
     sendCommand("desktopThemeChange", {});
-    const after = mockTerminals[0].options.theme as { background: string };
-    expect(after.background).toBe("#112233");
-    expect(after).not.toBe(before);
+    const after = mockTerminals[0].options.theme as {
+      background: string;
+      foreground: string;
+    };
+    expect(after.background).toBe("#191919");
+    expect(after.foreground).toBe("#eeeeee");
     document.documentElement.style.removeProperty("--gray-2");
+    document.documentElement.style.removeProperty("--gray-12");
   });
 
   // Clicking a URL printed in the terminal routes the same way Message.tsx

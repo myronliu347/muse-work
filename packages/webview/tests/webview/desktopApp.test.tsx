@@ -125,23 +125,59 @@ describe("DesktopApp", () => {
     });
   });
 
-  it("should hide the workdir selector once the conversation starts", () => {
+  it("should hide the workdir selector once a real session is bound", () => {
     renderDesktopApp();
     sendCommand("desktopWorkdirState", {
       workdir: "/home/user/project",
       recentWorkdirs: [],
     });
 
-    // New-session state: selector visible inside the input
+    // New-session (draft) state: selector visible inside the input
     expect(screen.getByTestId("input-workdir-row")).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-workdir")).toBeInTheDocument();
 
-    sendCommand("updateMessages", {
+    sendCommand("setInitialState", {
       messages: [MockDataGenerator.createUserMessage("hi")],
+      isAuthenticated: true,
+      session: {
+        id: "sess-1",
+        sessionType: "main",
+        workdir: "/home/user/project",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
     });
 
-    // Conversation started: selector gone, session list stays out of the sidebar
-    expect(screen.queryByTestId("input-workdir-row")).not.toBeInTheDocument();
+    // Bound session: folder picker gone (git context may remain).
     expect(screen.queryByTestId("desktop-workdir")).not.toBeInTheDocument();
+  });
+
+  it("does not bring back the workdir picker after clearing a bound session", () => {
+    renderDesktopApp();
+    sendCommand("desktopWorkdirState", {
+      workdir: "/home/user/project",
+      recentWorkdirs: [],
+    });
+    sendCommand("setInitialState", {
+      messages: [MockDataGenerator.createUserMessage("hi")],
+      isAuthenticated: true,
+      session: {
+        id: "sess-1",
+        sessionType: "main",
+        workdir: "/home/user/project",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+    expect(screen.queryByTestId("desktop-workdir")).not.toBeInTheDocument();
+
+    // /clear keeps the session id and empties messages — still not a draft.
+    sendCommand("updateMessages", { messages: [] });
+
+    expect(screen.queryByTestId("desktop-workdir")).not.toBeInTheDocument();
+    expect(screen.queryByText("选择工作目录…")).not.toBeInTheDocument();
   });
 
   it("should render ChatApp with sidebar and hidden header session buttons when workdir is set", () => {
