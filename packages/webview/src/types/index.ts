@@ -489,6 +489,10 @@ export interface FileViewState {
   loading?: boolean;
   /** User-facing error when the file could not be read (no content). */
   error?: string;
+  /** Present when the file cannot be rendered (binary or over size cap). */
+  unsupported?: "binary" | "too-large";
+  /** On-disk size when known (e.g. unsupported too-large). */
+  sizeBytes?: number;
   /** File content, present for text/markdown files. */
   content?: string;
   /** Lines to jump to (1-based) — from read tool offset/limit or a selection. */
