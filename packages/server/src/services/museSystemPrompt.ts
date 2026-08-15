@@ -4,10 +4,12 @@
  * disabled via AgentOptions).
  */
 
-export const MUSE_BASE_SYSTEM_PROMPT = `You are Muse, an AI coding assistant that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.`;
+import {
+  MUSE_BASE_SYSTEM_PROMPT,
+  MUSE_IDENTITY_REV,
+} from "../constants/musePrompt.js";
 
-/** Bump when identity wording changes so sessionRunner recreates agents. */
-export const MUSE_IDENTITY_REV = "3";
+export { MUSE_BASE_SYSTEM_PROMPT, MUSE_IDENTITY_REV };
 
 export function buildMuseIdentityPrompt(modelDisplay: string): string {
   const name = modelDisplay.trim() || "unknown";

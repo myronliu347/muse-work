@@ -12,7 +12,7 @@ import {
   resolveSuperpowersPluginDirFrom,
   saveMuseSettings,
   superpowersPluginDirIfPresent,
-} from "../src/museSettings.js";
+} from "../src/services/museSettings.js";
 
 describe("museSettings", () => {
   const homes: string[] = [];

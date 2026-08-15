@@ -1,4 +1,3 @@
-import os from "node:os";
 import {
   createCodeMakerProvider,
   createOpenAiCompatibleProvider,
@@ -6,6 +5,7 @@ import {
   loadProvidersConfig,
   type ProviderRegistry,
 } from "@muse-work/provider";
+import { resolveHome } from "../utils/paths.js";
 import {
   createSessionRunner,
   type CreateAgent,
@@ -14,6 +14,8 @@ import {
 } from "./sessionRunner.js";
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
+
+export { resolveHome };
 
 export type { CreateAgent, SessionAgent };
 
@@ -58,19 +60,10 @@ export function createSessionServices(
   return { store, hub, runner };
 }
 
-/**
- * Resolve config home: explicit option → `MUSE_HOME` env → `os.homedir()`.
- * `MUSE_HOME` is the parent directory that contains `.muse-work/` (same as
- * `os.homedir()` semantics), so tests can point at a temp dir.
- */
-export function resolveHome(options?: CreateAppContextOptions): string {
-  return options?.home ?? process.env.MUSE_HOME ?? os.homedir();
-}
-
 export function createAppContext(
   options?: CreateAppContextOptions,
 ): AppContext {
-  const home = resolveHome(options);
+  const home = resolveHome(options?.home);
 
   const getConfig = () => loadProvidersConfig(home);
 

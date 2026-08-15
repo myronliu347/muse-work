@@ -10,10 +10,10 @@ import {
   type AuthStatus,
   type ModelInfo,
 } from "@muse-work/provider";
-import { createSessionRunner, type SessionAgent } from "../src/sessionRunner.js";
-import { createSessionStore } from "../src/sessionStore.js";
-import { createWsHub } from "../src/wsHub.js";
-import { saveMuseSettings } from "../src/museSettings.js";
+import { createSessionRunner, type SessionAgent } from "../src/services/sessionRunner.js";
+import { createSessionStore } from "../src/services/sessionStore.js";
+import { createWsHub } from "../src/services/wsHub.js";
+import { saveMuseSettings } from "../src/services/museSettings.js";
 
 describe("sessionRunner concurrency / dispose", () => {
   let home: string | undefined;

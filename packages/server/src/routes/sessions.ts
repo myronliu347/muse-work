@@ -1,15 +1,32 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import { createDefaultProjectWorkdir, DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
-import type { AppContext } from "../createAppContext.js";
-import { readJsonBody, sendError, sendJson } from "../http.js";
-import { getLogger } from "../logger.js";
+import { Hono } from "hono";
+import {
+  createDefaultProjectWorkdir,
+  DEFAULT_ACTIVE_MODEL_ID,
+} from "@muse-work/provider";
+import { SYSTEM_SLASH_COMMANDS } from "../constants/slashCommands.js";
+import type { HonoEnv } from "../honoEnv.js";
+import { getLogger } from "../utils/logger.js";
+import {
+  runnerErrorMessage,
+  runnerErrorStatus,
+} from "../utils/runnerError.js";
 
-export async function handleCreateSession(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
+export const sessionsRoutes = new Hono<HonoEnv>();
+
+sessionsRoutes.get("/sessions", (c) => {
+  const ctx = c.get("ctx");
+  if (c.req.query("grouped") === "1") {
+    return c.json(ctx.store.listGrouped());
+  }
+  return c.json({
+    sessions: ctx.store.list(),
+    activeSessionId: ctx.store.getActiveSessionId(),
+  });
+});
+
+sessionsRoutes.post("/sessions", async (c) => {
+  const ctx = c.get("ctx");
+  let body:
     | {
         workdir?: string;
         model?: string;
@@ -20,6 +37,11 @@ export async function handleCreateSession(
         worktreeRepoRoot?: string;
       }
     | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
   const workdir =
     typeof body?.workdir === "string" && body.workdir.trim().length > 0
       ? body.workdir.trim()
@@ -29,8 +51,7 @@ export async function handleCreateSession(
       ? body.model
       : DEFAULT_ACTIVE_MODEL_ID;
   if (!model) {
-    sendError(res, 400, "no active model selected");
-    return;
+    return c.json({ error: "no active model selected" }, 400);
   }
   const session = ctx.store.create({
     workdir,
@@ -57,32 +78,25 @@ export async function handleCreateSession(
     workdir: session.workdir,
     worktreeName: session.worktreeName,
   });
-  sendJson(res, 200, session);
-}
+  return c.json(session);
+});
 
-export async function handleListSessions(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
-  const url = new URL(req.url ?? "/", "http://127.0.0.1");
-  if (url.searchParams.get("grouped") === "1") {
-    sendJson(res, 200, ctx.store.listGrouped());
-    return;
+const session = new Hono<HonoEnv>();
+
+session.get("/", (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const s = ctx.store.get(sessionId);
+  if (!s) {
+    return c.json({ error: `session not found: ${sessionId}` }, 404);
   }
-  sendJson(res, 200, {
-    sessions: ctx.store.list(),
-    activeSessionId: ctx.store.getActiveSessionId(),
-  });
-}
+  return c.json(s);
+});
 
-export async function handlePatchSession(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
+session.patch("/", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  let body:
     | {
         title?: string;
         pinned?: boolean;
@@ -91,9 +105,13 @@ export async function handlePatchSession(
         permissionMode?: string;
       }
     | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
   if (!body || typeof body !== "object") {
-    sendError(res, 400, "request body is required");
-    return;
+    return c.json({ error: "request body is required" }, 400);
   }
 
   const patch: {
@@ -122,91 +140,66 @@ export async function handlePatchSession(
     patch.permissionMode = body.permissionMode;
   }
 
-  const session = ctx.store.update(sessionId, patch);
-  if (!session) {
-    sendError(res, 404, `session not found: ${sessionId}`);
-    return;
+  const updated = ctx.store.update(sessionId, patch);
+  if (!updated) {
+    return c.json({ error: `session not found: ${sessionId}` }, 404);
   }
   if (patch.permissionMode) {
     await ctx.runner.setPermissionMode(sessionId, patch.permissionMode);
   }
-  sendJson(res, 200, ctx.store.get(sessionId) ?? session);
-}
+  return c.json(ctx.store.get(sessionId) ?? updated);
+});
 
-export async function handleSelectSession(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const session = ctx.store.get(sessionId);
-  if (!session) {
-    sendError(res, 404, `session not found: ${sessionId}`);
-    return;
+session.delete("/", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const s = ctx.store.get(sessionId);
+  if (!s) {
+    return c.json({ error: `session not found: ${sessionId}` }, 404);
+  }
+  await ctx.runner.disposeSession(sessionId);
+  getLogger().info("session deleted", { sessionId });
+  return c.json({ ok: true });
+});
+
+session.post("/select", (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const s = ctx.store.get(sessionId);
+  if (!s) {
+    return c.json({ error: `session not found: ${sessionId}` }, 404);
   }
   ctx.store.select(sessionId);
   ctx.store.setUnreadDone(sessionId, false);
   getLogger().info("session selected", { sessionId });
-  sendJson(res, 200, { session, clearedUnread: true });
-}
+  return c.json({ session: s, clearedUnread: true });
+});
 
-export async function handleGetMessages(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const session = ctx.store.get(sessionId);
-  if (!session) {
-    sendError(res, 404, `session not found: ${sessionId}`);
-    return;
+session.get("/messages", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const s = ctx.store.get(sessionId);
+  if (!s) {
+    return c.json({ error: `session not found: ${sessionId}` }, 404);
   }
   const messages = await ctx.runner.getMessages(sessionId);
-  sendJson(res, 200, { messages });
-}
+  return c.json({ messages });
+});
 
-export async function handleGetSession(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const session = ctx.store.get(sessionId);
-  if (!session) {
-    sendError(res, 404, `session not found: ${sessionId}`);
-    return;
-  }
-  sendJson(res, 200, session);
-}
-
-export async function handleDeleteSession(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const session = ctx.store.get(sessionId);
-  if (!session) {
-    sendError(res, 404, `session not found: ${sessionId}`);
-    return;
-  }
-  await ctx.runner.disposeSession(sessionId);
-  getLogger().info("session deleted", { sessionId });
-  sendJson(res, 200, { ok: true });
-}
-
-export async function handleSendMessage(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
+session.post("/messages", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  let body:
     | {
         content?: string;
         images?: Array<{ data?: string; mediaType?: string }>;
       }
     | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
   const content = typeof body?.content === "string" ? body.content : "";
   const images: Array<{ data: string; mediaType: string }> = [];
   if (Array.isArray(body?.images)) {
@@ -222,8 +215,7 @@ export async function handleSendMessage(
     }
   }
   if (!content.trim() && images.length === 0) {
-    sendError(res, 400, "content or images is required");
-    return;
+    return c.json({ error: "content or images is required" }, 400);
   }
   try {
     const result = await ctx.runner.sendMessage(
@@ -236,55 +228,43 @@ export async function handleSendMessage(
       chars: content.length,
       images: images.length,
     });
-    sendJson(res, 200, result);
+    return c.json(result);
   } catch (err) {
-    const statusCode =
-      err && typeof err === "object" && "statusCode" in err
-        ? Number((err as { statusCode: number }).statusCode)
-        : 500;
-    const message = err instanceof Error ? err.message : String(err);
+    const status = runnerErrorStatus(err);
+    const message = runnerErrorMessage(err);
     getLogger().warn("message rejected", {
       sessionId,
-      status: statusCode || 500,
+      status,
       error: message,
     });
-    sendError(res, statusCode || 500, message);
+    return c.json({ error: message }, status as 400);
   }
-}
+});
 
-export async function handleAbortMessage(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.post("/abort", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
     const result = await ctx.runner.abortMessage(sessionId);
     getLogger().info("message aborted", { sessionId });
-    sendJson(res, 200, result);
+    return c.json(result);
   } catch (err) {
-    const statusCode =
-      err && typeof err === "object" && "statusCode" in err
-        ? Number((err as { statusCode: number }).statusCode)
-        : 500;
-    const message = err instanceof Error ? err.message : String(err);
+    const status = runnerErrorStatus(err);
+    const message = runnerErrorMessage(err);
     getLogger().warn("abort failed", {
       sessionId,
-      status: statusCode || 500,
+      status,
       error: message,
     });
-    sendError(res, statusCode || 500, message);
+    return c.json({ error: message }, status as 400);
   }
-}
+});
 
-export async function handleRespondPermission(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  permissionId: string,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
+session.post("/permissions/:permissionId", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const permissionId = c.req.param("permissionId");
+  let body:
     | {
         decision?: "allow" | "deny";
         behavior?: "allow" | "deny";
@@ -293,8 +273,12 @@ export async function handleRespondPermission(
         newPermissionRule?: string;
       }
     | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
 
-  // Prefer structured PermissionDecision fields; keep legacy { decision }.
   const behavior =
     body?.behavior === "allow" || body?.behavior === "deny"
       ? body.behavior
@@ -302,12 +286,10 @@ export async function handleRespondPermission(
         ? body.decision
         : undefined;
   if (behavior !== "allow" && behavior !== "deny") {
-    sendError(
-      res,
+    return c.json(
+      { error: 'behavior (or decision) must be "allow" or "deny"' },
       400,
-      'behavior (or decision) must be "allow" or "deny"',
     );
-    return;
   }
   try {
     const result = await ctx.runner.respondPermission(sessionId, permissionId, {
@@ -327,224 +309,208 @@ export async function handleRespondPermission(
           ? body.newPermissionRule
           : undefined,
     });
-    sendJson(res, 200, result);
+    return c.json(result);
   } catch (err) {
-    const statusCode =
-      err && typeof err === "object" && "statusCode" in err
-        ? Number((err as { statusCode: number }).statusCode)
-        : 500;
-    const message = err instanceof Error ? err.message : String(err);
-    sendError(res, statusCode || 500, message);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-function sendRunnerError(res: ServerResponse, err: unknown): void {
-  const statusCode =
-    err && typeof err === "object" && "statusCode" in err
-      ? Number((err as { statusCode: number }).statusCode)
-      : 500;
-  const message = err instanceof Error ? err.message : String(err);
-  sendError(res, statusCode || 500, message);
-}
-
-export const SYSTEM_SLASH_COMMANDS = [
-  { id: "compact", name: "compact", description: "压缩会话上下文" },
-  { id: "clear", name: "clear", description: "清空当前会话" },
-  { id: "rewind", name: "rewind", description: "回滚到检查点" },
-  { id: "mcp", name: "mcp", description: "MCP 服务器" },
-  { id: "status", name: "status", description: "会话状态" },
-  { id: "tasks", name: "tasks", description: "后台任务" },
-  { id: "workflows", name: "workflows", description: "工作流" },
-] as const;
-
-export async function handleCompact(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.post("/compact", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
-    sendJson(res, 200, await ctx.runner.compact(sessionId));
+    return c.json(await ctx.runner.compact(sessionId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleClear(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.post("/clear", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
-    sendJson(res, 200, await ctx.runner.clear(sessionId));
+    return c.json(await ctx.runner.clear(sessionId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleListRewindCheckpoints(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.get("/rewind-checkpoints", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
     const checkpoints = await ctx.runner.listRewindCheckpoints(sessionId);
-    sendJson(res, 200, { checkpoints });
+    return c.json({ checkpoints });
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleRewind(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as { messageId?: string } | undefined;
+session.post("/rewind", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  let body: { messageId?: string } | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
   const messageId = typeof body?.messageId === "string" ? body.messageId : "";
   if (!messageId) {
-    sendError(res, 400, "messageId is required");
-    return;
+    return c.json({ error: "messageId is required" }, 400);
   }
   try {
-    sendJson(res, 200, await ctx.runner.rewind(sessionId, messageId));
+    return c.json(await ctx.runner.rewind(sessionId, messageId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleSlashCommands(
-  _req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  sendJson(res, 200, { commands: [...SYSTEM_SLASH_COMMANDS] });
-}
+session.get("/slash-commands", (c) =>
+  c.json({ commands: [...SYSTEM_SLASH_COMMANDS] }),
+);
 
-export async function handleSessionStatus(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.get("/status", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
-    sendJson(res, 200, await ctx.runner.getStatus(sessionId));
+    return c.json(await ctx.runner.getStatus(sessionId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleGetMcpServers(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.get("/mcp", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
     const servers = await ctx.runner.getMcpServers(sessionId);
-    sendJson(res, 200, { servers });
+    return c.json({ servers });
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleConnectMcpServer(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  name: string,
-): Promise<void> {
+session.post("/mcp/:name/connect", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const name = c.req.param("name");
   try {
-    sendJson(res, 200, await ctx.runner.connectMcpServer(sessionId, name));
+    return c.json(await ctx.runner.connectMcpServer(sessionId, name));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleDisconnectMcpServer(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  name: string,
-): Promise<void> {
+session.post("/mcp/:name/disconnect", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const name = c.req.param("name");
   try {
-    sendJson(res, 200, await ctx.runner.disconnectMcpServer(sessionId, name));
+    return c.json(await ctx.runner.disconnectMcpServer(sessionId, name));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleGetBackgroundTasks(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.get("/background-tasks", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
     const tasks = await ctx.runner.getBackgroundTasks(sessionId);
-    sendJson(res, 200, { tasks });
+    return c.json({ tasks });
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleBackgroundTaskOutput(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  taskId: string,
-): Promise<void> {
+session.get("/background-tasks/:taskId/output", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const taskId = c.req.param("taskId");
   try {
     const output = await ctx.runner.getBackgroundTaskOutput(sessionId, taskId);
-    sendJson(res, 200, { output });
+    return c.json({ output });
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleStopBackgroundTask(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  taskId: string,
-): Promise<void> {
+session.post("/background-tasks/:taskId/stop", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const taskId = c.req.param("taskId");
   try {
-    sendJson(res, 200, await ctx.runner.stopBackgroundTask(sessionId, taskId));
+    return c.json(await ctx.runner.stopBackgroundTask(sessionId, taskId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleGetWorkflowRuns(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-): Promise<void> {
+session.get("/workflows", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
   try {
     const runs = await ctx.runner.getWorkflowRuns(sessionId);
-    sendJson(res, 200, { runs });
+    return c.json({ runs });
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
 
-export async function handleStopWorkflowRun(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  sessionId: string,
-  runId: string,
-): Promise<void> {
+session.post("/workflows/:runId/stop", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const runId = c.req.param("runId");
   try {
-    sendJson(res, 200, await ctx.runner.stopWorkflowRun(sessionId, runId));
+    return c.json(await ctx.runner.stopWorkflowRun(sessionId, runId));
   } catch (err) {
-    sendRunnerError(res, err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
   }
-}
+});
+
+sessionsRoutes.route("/sessions/:sessionId", session);
+
+export { SYSTEM_SLASH_COMMANDS };

@@ -3,7 +3,7 @@ import {
   rewritePromptBlocksForMuse,
   buildMuseIdentityPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
-} from "../src/museSystemPrompt.js";
+} from "../src/services/museSystemPrompt.js";
 
 describe("museSystemPrompt", () => {
   it("replaces NetEase identity with Muse and injects selected model", () => {

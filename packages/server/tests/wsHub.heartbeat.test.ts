@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sweepWsHeartbeat, type HeartbeatSocket } from "../src/wsHub.js";
+import { sweepWsHeartbeat, type HeartbeatSocket } from "../src/services/wsHub.js";
 
 function fakeSocket(
   overrides: Partial<HeartbeatSocket> = {},

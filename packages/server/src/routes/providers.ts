@@ -1,4 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import { Hono } from "hono";
 import {
   fetchCodeMakerQuotaUsage,
   loadCodeMakerCredentials,
@@ -6,14 +6,12 @@ import {
   saveProvidersConfig,
   type ModelInfo,
 } from "@muse-work/provider";
-import type { AppContext } from "../createAppContext.js";
-import { readJsonBody, sendError, sendJson } from "../http.js";
+import type { HonoEnv } from "../honoEnv.js";
 
-export async function handleListProviders(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+export const providersRoutes = new Hono<HonoEnv>();
+
+providersRoutes.get("/providers", async (c) => {
+  const ctx = c.get("ctx");
   const providers = await Promise.all(
     ctx.registry.list().map(async (provider) => ({
       id: provider.id,
@@ -21,115 +19,93 @@ export async function handleListProviders(
       models: await provider.listModels(),
     })),
   );
-  sendJson(res, 200, {
+  return c.json({
     providers,
     active: ctx.registry.getActive(),
   });
-}
+});
 
-export async function handleSetActive(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
-    | { providerId?: string; modelId?: string }
-    | undefined;
+providersRoutes.post("/providers/active", async (c) => {
+  const ctx = c.get("ctx");
+  let body: { providerId?: string; modelId?: string } | undefined;
+  try {
+    body = await c.req.json<{ providerId?: string; modelId?: string }>();
+  } catch {
+    body = undefined;
+  }
   const providerId = body?.providerId;
   const modelId = body?.modelId;
   if (!providerId || !modelId) {
-    sendError(res, 400, "providerId and modelId are required");
-    return;
+    return c.json({ error: "providerId and modelId are required" }, 400);
   }
   if (!ctx.registry.get(providerId)) {
-    sendError(res, 404, `unknown provider: ${providerId}`);
-    return;
+    return c.json({ error: `unknown provider: ${providerId}` }, 404);
   }
   ctx.registry.setActive(providerId, modelId);
-  // Next sendMessage must rebuild agents against the new gateway.
   ctx.runner.invalidateAgentIdentities();
-  sendJson(res, 200, {
+  return c.json({
     ok: true,
     active: ctx.registry.getActive(),
   });
-}
+});
 
-export async function handleListModels(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-  providerId: string,
-): Promise<void> {
-  const provider = ctx.registry.get(providerId);
-  if (!provider) {
-    sendError(res, 404, `unknown provider: ${providerId}`);
-    return;
-  }
-  sendJson(res, 200, { models: await provider.listModels() });
-}
-
-export async function handleCodeMakerQuota(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+providersRoutes.get("/providers/codemaker/quota", async (c) => {
+  const ctx = c.get("ctx");
   const provider = ctx.registry.get("codemaker");
   if (!provider) {
-    sendError(res, 404, "unknown provider: codemaker");
-    return;
+    return c.json({ error: "unknown provider: codemaker" }, 404);
   }
-  // Refresh credentials if needed before reading the auth file.
   const status = await provider.getAuthStatus();
   if (status.state !== "authenticated") {
-    sendError(res, 401, "CodeMaker 未登录");
-    return;
+    return c.json({ error: "CodeMaker 未登录" }, 401);
   }
   const creds = loadCodeMakerCredentials(ctx.home);
   if (!creds) {
-    sendError(res, 401, "CodeMaker 未登录");
-    return;
+    return c.json({ error: "CodeMaker 未登录" }, 401);
   }
   try {
     const usage = await fetchCodeMakerQuotaUsage({ creds });
-    sendJson(res, 200, usage);
+    return c.json(usage);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    sendError(res, 502, message);
+    return c.json({ error: message }, 502);
   }
-}
+});
 
-export async function handleGetOpenAiCompatibleConfig(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+providersRoutes.get("/providers/openai-compatible", (c) => {
+  const ctx = c.get("ctx");
   const cfg = loadProvidersConfig(ctx.home).providers["openai-compatible"];
   const envName = cfg.apiKeyEnv ?? "MUSE_OPENAI_API_KEY";
   const hasApiKey = Boolean(cfg.apiKey || process.env[envName]);
-  sendJson(res, 200, {
+  return c.json({
     baseURL: cfg.baseURL ?? "",
     apiKeyEnv: envName,
     hasApiKey,
     hasStoredApiKey: Boolean(cfg.apiKey),
     models: cfg.models,
   });
-}
+});
 
-export async function handlePatchOpenAiCompatibleConfig(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
-  const body = (await readJsonBody(req)) as
+providersRoutes.patch("/providers/openai-compatible", async (c) => {
+  const ctx = c.get("ctx");
+  let body:
     | {
         baseURL?: string;
         apiKey?: string;
         models?: ModelInfo[];
       }
     | undefined;
+  try {
+    body = await c.req.json<{
+      baseURL?: string;
+      apiKey?: string;
+      models?: ModelInfo[];
+    }>();
+  } catch {
+    body = undefined;
+  }
   if (!body || typeof body !== "object") {
-    sendError(res, 400, "JSON body required");
-    return;
+    return c.json({ error: "JSON body required" }, 400);
   }
 
   const file = loadProvidersConfig(ctx.home);
@@ -155,11 +131,9 @@ export async function handlePatchOpenAiCompatibleConfig(
       models.push({ id, label });
     }
     if (models.length === 0) {
-      sendError(res, 400, "models must contain at least one entry");
-      return;
+      return c.json({ error: "models must contain at least one entry" }, 400);
     }
     cfg.models = models;
-    // Keep active model valid when editing the openai list while it is active.
     if (
       file.activeProviderId === "openai-compatible" &&
       (!file.activeModelId ||
@@ -171,8 +145,18 @@ export async function handlePatchOpenAiCompatibleConfig(
 
   saveProvidersConfig(file, ctx.home);
   ctx.runner.invalidateAgentIdentities();
-  sendJson(res, 200, {
+  return c.json({
     ok: true,
     active: ctx.registry.getActive(),
   });
-}
+});
+
+providersRoutes.get("/providers/:providerId/models", async (c) => {
+  const ctx = c.get("ctx");
+  const providerId = c.req.param("providerId");
+  const provider = ctx.registry.get(providerId);
+  if (!provider) {
+    return c.json({ error: `unknown provider: ${providerId}` }, 404);
+  }
+  return c.json({ models: await provider.listModels() });
+});

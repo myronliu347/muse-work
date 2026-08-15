@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createApp } from "../src/app.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
-import { getSettingsPath } from "../src/museSettings.js";
+import { getSettingsPath } from "../src/services/museSettings.js";
 
 describe("settings routes", () => {
   let server: Server | undefined;

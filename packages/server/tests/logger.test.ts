@@ -8,7 +8,7 @@ import {
   createAgentLogger,
   createLogger,
   resolveLogDir,
-} from "../src/logger.js";
+} from "../src/utils/logger.js";
 
 describe("logger", () => {
   const homes: string[] = [];

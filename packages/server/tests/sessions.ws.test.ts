@@ -20,7 +20,7 @@ import {
   type AppContext,
   type CreateAgent,
   type SessionAgent,
-} from "../src/createAppContext.js";
+} from "../src/services/appContext.js";
 
 type WsEvent = Record<string, unknown> & { type: string };
 

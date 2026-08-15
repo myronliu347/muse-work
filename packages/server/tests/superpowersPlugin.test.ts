@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { resolveSuperpowersPluginDir } from "../src/museSettings.js";
+import { resolveSuperpowersPluginDir } from "../src/services/museSettings.js";
 
 const pluginDir = resolveSuperpowersPluginDir();
 

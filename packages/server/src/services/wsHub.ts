@@ -1,6 +1,6 @@
 import type { IncomingMessage, Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import { getLogger } from "./logger.js";
+import { getLogger } from "../utils/logger.js";
 import type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";
 
 export type { WsBroadcastEvent, WsEvent } from "./wsEvents.js";

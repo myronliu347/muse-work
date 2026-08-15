@@ -6,13 +6,20 @@ import {
 } from "@muse-work/provider";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "./wsHub.js";
-import { closeAgentLogger, createAgentLogger, getLogger } from "./logger.js";
+import {
+  AGENT_IDLE_TTL_MS,
+  DEFAULT_TITLE,
+  EMPTY_TURN_ERROR,
+  TITLE_MAX_LEN,
+  TURN_STALL_MS,
+} from "../constants/agent.js";
+import { closeAgentLogger, createAgentLogger, getLogger } from "../utils/logger.js";
+import { mapSdkMessages } from "../utils/messageMapper.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
   MUSE_IDENTITY_REV,
 } from "./museSystemPrompt.js";
-import { mapSdkMessages } from "./messageMapper.js";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 import {
   loadMuseSettings,
@@ -34,13 +41,11 @@ export function resolveModelDisplay(modelId: string | undefined): string {
   return modelId;
 }
 
-export const AGENT_IDLE_TTL_MS = 10 * 60 * 1000;
-/** Abort a running turn after this long with no SDK callbacks. */
-export const TURN_STALL_MS = 5 * 60 * 1000;
-/** Shown when the SDK finishes a turn without assistant text, tools, or errors. */
-export const EMPTY_TURN_ERROR = "模型没有产生输出";
-const DEFAULT_TITLE = "新对话";
-const TITLE_MAX_LEN = 40;
+export {
+  AGENT_IDLE_TTL_MS,
+  EMPTY_TURN_ERROR,
+  TURN_STALL_MS,
+} from "../constants/agent.js";
 
 export type SessionImage = { path: string; mimeType: string };
 

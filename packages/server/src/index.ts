@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { createApp } from "./app.js";
-import { createAppContext } from "./createAppContext.js";
-import { configureLogger, resolveLogDir } from "./logger.js";
-import { installGracefulShutdown } from "./shutdown.js";
+import { createAppContext } from "./services/appContext.js";
+import { configureLogger, resolveLogDir } from "./utils/logger.js";
+import { installGracefulShutdown } from "./utils/shutdown.js";
 
 const HOST = "127.0.0.1";
 

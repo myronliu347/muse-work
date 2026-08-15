@@ -18,7 +18,7 @@ import {
   type AppContext,
   type CreateAgent,
   type SessionAgent,
-} from "../src/createAppContext.js";
+} from "../src/services/appContext.js";
 
 function stubAgent(overrides: Partial<SessionAgent> = {}): SessionAgent {
   return {

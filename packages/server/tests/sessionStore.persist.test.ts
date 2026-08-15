@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createSessionStore } from "../src/sessionStore.js";
+import { createSessionStore } from "../src/services/sessionStore.js";
 import { getSessionsConfigPath } from "@muse-work/provider";
 
 describe("sessionStore persistence", () => {

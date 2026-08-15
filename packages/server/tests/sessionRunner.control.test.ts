@@ -13,9 +13,9 @@ import {
 import {
   createSessionRunner,
   type SessionAgent,
-} from "../src/sessionRunner.js";
-import { createSessionStore } from "../src/sessionStore.js";
-import { createWsHub } from "../src/wsHub.js";
+} from "../src/services/sessionRunner.js";
+import { createSessionStore } from "../src/services/sessionStore.js";
+import { createWsHub } from "../src/services/wsHub.js";
 
 function makeProvider(): AiProvider {
   return {

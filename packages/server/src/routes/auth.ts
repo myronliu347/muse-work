@@ -1,8 +1,7 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { AppContext } from "../createAppContext.js";
-import { readJsonBody, sendError, sendJson } from "../http.js";
+import { Hono } from "hono";
+import type { HonoEnv } from "../honoEnv.js";
 
-function getActiveProvider(ctx: AppContext) {
+function getActiveProvider(ctx: HonoEnv["Variables"]["ctx"]) {
   const { providerId } = ctx.registry.getActive();
   const provider = ctx.registry.get(providerId);
   if (!provider) {
@@ -11,68 +10,55 @@ function getActiveProvider(ctx: AppContext) {
   return provider;
 }
 
-export async function handleAuthStatus(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+export const authRoutes = new Hono<HonoEnv>();
+
+authRoutes.get("/auth/status", async (c) => {
+  const ctx = c.get("ctx");
   const provider = getActiveProvider(ctx);
   if (!provider) {
-    sendError(res, 404, "active provider not found");
-    return;
+    return c.json({ error: "active provider not found" }, 404);
   }
-  sendJson(res, 200, await provider.getAuthStatus());
-}
+  return c.json(await provider.getAuthStatus());
+});
 
-export async function handleAuthLogin(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+authRoutes.post("/auth/login", async (c) => {
+  const ctx = c.get("ctx");
   const provider = getActiveProvider(ctx);
   if (!provider) {
-    sendError(res, 404, "active provider not found");
-    return;
+    return c.json({ error: "active provider not found" }, 404);
   }
 
-  const body = (await readJsonBody(req)) as
-    | { wait?: boolean; complete?: boolean }
-    | undefined;
+  let body: { wait?: boolean; complete?: boolean } | undefined;
+  try {
+    body = await c.req.json<{ wait?: boolean; complete?: boolean }>();
+  } catch {
+    body = undefined;
+  }
   const wait = Boolean(body?.wait || body?.complete);
 
-  // Desktop/UI opens the browser; server only returns authUrl.
-  // wait:true must await the *existing* login session from a prior
-  // beginLogin — do not mint a second uuid via another beginLogin.
   if (wait) {
     try {
-      sendJson(res, 200, await provider.completeLogin({}));
-      return;
+      return c.json(await provider.completeLogin({}));
     } catch {
       // Single-shot wait:true (no prior authUrl call): begin then complete.
     }
     const start = await provider.beginLogin({ openBrowser: () => {} });
     if ("reused" in start && start.reused) {
-      sendJson(res, 200, await provider.getAuthStatus());
-      return;
+      return c.json(await provider.getAuthStatus());
     }
-    sendJson(res, 200, await provider.completeLogin({}));
-    return;
+    return c.json(await provider.completeLogin({}));
   }
 
   const start = await provider.beginLogin({ openBrowser: () => {} });
-  sendJson(res, 200, start);
-}
+  return c.json(start);
+});
 
-export async function handleAuthLogout(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+authRoutes.post("/auth/logout", async (c) => {
+  const ctx = c.get("ctx");
   const provider = getActiveProvider(ctx);
   if (!provider) {
-    sendError(res, 404, "active provider not found");
-    return;
+    return c.json({ error: "active provider not found" }, 404);
   }
   await provider.logout();
-  sendJson(res, 200, { ok: true });
-}
+  return c.json({ ok: true });
+});

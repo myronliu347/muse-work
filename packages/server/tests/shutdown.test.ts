@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import http from "node:http";
-import { gracefulShutdown, installGracefulShutdown } from "../src/shutdown.js";
+import { gracefulShutdown, installGracefulShutdown } from "../src/utils/shutdown.js";
 
 describe("gracefulShutdown", () => {
   it("aborts running turns, closes the hub and HTTP server, then exits", async () => {

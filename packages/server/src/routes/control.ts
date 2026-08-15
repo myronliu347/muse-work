@@ -1,14 +1,12 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { AppContext } from "../createAppContext.js";
-import { sendJson } from "../http.js";
-import { getLogger } from "../logger.js";
+import { Hono } from "hono";
+import type { HonoEnv } from "../honoEnv.js";
+import { getLogger } from "../utils/logger.js";
 
-export async function handleControlResume(
-  _req: IncomingMessage,
-  res: ServerResponse,
-  ctx: AppContext,
-): Promise<void> {
+export const controlRoutes = new Hono<HonoEnv>();
+
+controlRoutes.post("/control/resume", async (c) => {
+  const ctx = c.get("ctx");
   const result = await ctx.runner.abortRunningTurns("Interrupted after sleep");
   getLogger().info("resume recovered running turns", result);
-  sendJson(res, 200, result);
-}
+  return c.json(result);
+});

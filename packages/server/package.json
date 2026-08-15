@@ -17,7 +17,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
     "@muse-work/provider": "workspace:*",
+    "hono": "^4.13.2",
     "wave-agent-sdk": "1.0.7",
     "winston": "^3.19.0",
     "ws": "^8.18.0"

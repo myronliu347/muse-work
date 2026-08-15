@@ -14,7 +14,7 @@ import { closeTestApp, listenTestApp } from "./helpers.js";
 import {
   createSessionServices,
   type AppContext,
-} from "../src/createAppContext.js";
+} from "../src/services/appContext.js";
 
 describe("providers + auth routes", () => {
   let server: Server | undefined;

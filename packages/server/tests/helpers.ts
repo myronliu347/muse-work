@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createApp } from "../src/app.js";
-import { createAppContext, type AppContext } from "../src/createAppContext.js";
+import { createAppContext, type AppContext } from "../src/services/appContext.js";
 
 export async function listenTestApp(
   options?: { home?: string; ctx?: AppContext },
