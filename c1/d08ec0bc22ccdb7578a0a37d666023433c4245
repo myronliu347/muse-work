@@ -1,0 +1,51 @@
+packages/webview/src/components/panels/DiffPane.tsx
+  0648f6718593b9a9 2-3,5-8,76-84,106-111,149-152,166-167,170-171,186,193,233,258-303,305-310,312-316,318,320-328,330-367,369-370,423
+packages/webview/tests/webview/diffPane.test.tsx
+  0648f6718593b9a9 5-49,62,172-173,175-178,181,184,186,454,457-459,465,478,493,504,521,529,539,547,556-557,559
+packages/webview/e2e/demo/desktop-diff-comments.demo.ts
+  0648f6718593b9a9 130-132
+packages/webview/src/styles/DiffPane.css
+  0648f6718593b9a9 118-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c1d08ec0bc22ccdb7578a0a37d666023433c4245",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 225,
+      "total_deletions": 365,
+      "accepted_lines": 224,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 145,
+          "deletions": 218,
+          "accepted_lines": 145
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 71,
+          "deletions": 136,
+          "accepted_lines": 70
+        },
+        "packages/webview/e2e/demo/desktop-diff-comments.demo.ts": {
+          "additions": 3,
+          "deletions": 10,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
