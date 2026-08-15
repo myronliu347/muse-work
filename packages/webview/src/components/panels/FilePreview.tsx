@@ -191,11 +191,12 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
           )}
           {lines.map((line, i) => {
             const lineNo = i + 1;
+            const rangeEnd = fileView.endLine ?? fileView.startLine;
             const active =
               fileView.startLine !== undefined &&
+              rangeEnd !== undefined &&
               lineNo >= fileView.startLine &&
-              (fileView.endLine === undefined ||
-                lineNo <= fileView.endLine);
+              lineNo <= rangeEnd;
             return (
               <div
                 key={i}

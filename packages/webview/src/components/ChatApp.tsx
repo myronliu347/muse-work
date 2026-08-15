@@ -466,6 +466,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
                 results: Array.isArray(message.results)
                   ? (message.results as ContentSearchFileHit[])
                   : [],
+                expandedFiles: Array.isArray(message.results)
+                  ? (message.results as ContentSearchFileHit[]).map(
+                      (r) => r.relativePath,
+                    )
+                  : [],
                 truncated: Boolean(message.truncated) || undefined,
                 error:
                   typeof message.error === "string"
