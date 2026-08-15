@@ -15,7 +15,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    reporter: "dot",
+    reporters: ["dot"],
     environment: "node",
     include: [
       "tests/apiClient.test.ts",
@@ -35,6 +35,7 @@ export default defineConfig({
       "tests/webview/panelWorkdirScope.test.tsx",
       "tests/webview/diffPane.test.tsx",
       "tests/webview/sessionHeaderGitBranch.test.tsx",
+      "tests/webview/previewPane.test.tsx",
     ],
     exclude: ["node_modules"],
     setupFiles: ["tests/setup.ts"],

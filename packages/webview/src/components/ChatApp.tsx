@@ -72,6 +72,7 @@ import {
   type PanelGroupState,
 } from "../stores";
 import type { ContentSearchFileHit, ContentSearchState } from "../types";
+import { isLocalhostUrl } from "../utils/isLocalhostUrl";
 import "../styles/ChatApp.css";
 
 export { prunePanelGroupCache } from "../stores";
@@ -80,7 +81,7 @@ export { prunePanelGroupCache } from "../stores";
 const PANEL_ORDER = PANEL_TAB_ORDER;
 const PANEL_MIN_WIDTH = 320;
 /** The conversation (message) area never shrinks below this when opening/dragging panels. */
-const CHAT_MAIN_MIN_WIDTH = 360;
+const CHAT_MAIN_MIN_WIDTH = 520;
 
 /**
  * Hostname spellings that name the same remote service through an ssh tunnel:
@@ -1911,6 +1912,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const openPreviewHandler =
     effectiveHost !== "local" ? handleOpenRemotePreview : handleOpenPreview;
 
+  // Address-bar navigation: public http(s) always load directly. Only remote
+  // localhost needs an SSH port-forward (message/terminal clicks already gate
+  // on isLocalhostUrl before calling openPreviewHandler).
+  const handlePreviewNavigate = useCallback(
+    (url: string) => {
+      if (effectiveHostRef.current !== "local" && isLocalhostUrl(url)) {
+        handleOpenRemotePreview(url);
+        return;
+      }
+      handleOpenPreview(url);
+    },
+    [handleOpenPreview, handleOpenRemotePreview],
+  );
+
   // No workdir: all panels disabled. With a workdir (incl. draft + host
   // folder): all panel kinds available; state is shared per workdir.
   const panelDisabled: DesktopPanelKind[] = useMemo(() => {
@@ -1974,7 +1989,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           originalUrl={currentForward?.originalUrl}
           onRetry={currentForward ? handleRemotePreviewRetry : undefined}
           forwardError={previewForwardError}
-          onNavigate={openPreviewHandler}
+          onNavigate={handlePreviewNavigate}
           vscode={vscode}
           onAddComment={handleAddComment}
           {...common}

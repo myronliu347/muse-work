@@ -381,18 +381,22 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     const normalized = normalizePreviewAddress(addressDraft);
     if (!normalized) return;
     setAddressDraft(normalized);
-    if (onNavigate) {
-      onNavigate(normalized);
-      return;
-    }
-    // Fallback: navigate in-place when parent does not manage URL state.
+    // Always navigate in-pane first so the guest loads even if parent state
+    // is delayed / missing (e.g. draft without a workdir group key). Parent
+    // onNavigate only syncs previewUrl / triggers remote localhost forward.
     currentUrlRef.current = normalized;
+    lastUrlRef.current = normalized;
     setDisplayUrl(normalized);
     setLoadError(null);
     const wv = webviewRef.current;
-    if (!wv) return;
-    if (domReadyRef.current) void wv.loadURL(normalized);
-    else wv.setAttribute("src", normalized);
+    if (wv) {
+      if (domReadyRef.current || wv.getAttribute("src")) {
+        void wv.loadURL(normalized);
+      } else {
+        wv.setAttribute("src", normalized);
+      }
+    }
+    onNavigate?.(normalized);
   };
 
   // Dragging the left edge resizes this panel: the panels to the right keep

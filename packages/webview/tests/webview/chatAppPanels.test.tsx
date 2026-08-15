@@ -297,7 +297,7 @@ describe("ChatApp desktop panel framework", () => {
 
   it("refuses to open a panel when it would squeeze the conversation below its minimum", () => {
     window.waveHostType = "desktop";
-    // 500px cannot fit half-window (or even panelMin 320) beside the 360px
+    // 500px cannot fit half-window (or even panelMin 320) beside the 520px
     // conversation minimum — there is no second row to overflow into, so the
     // panel is rejected with a hint.
     const rectSpy = vi
@@ -340,7 +340,7 @@ describe("ChatApp desktop panel framework", () => {
 
   it("re-clicking another file path replaces the panel in place (spec 场景 6)", () => {
     window.waveHostType = "desktop";
-    // 1000px fits the 420px file panel beside the 360px conversation
+    // 1000px fits the 420px file panel beside the 520px conversation
     // minimum. tryOpenPanel used to double-count an already-open panel's
     // own width in the fit check, overflowing the space and silently
     // spilling the panel out of view on the second click.

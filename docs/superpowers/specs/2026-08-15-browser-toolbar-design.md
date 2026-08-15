@@ -27,14 +27,15 @@
 
 - 去掉 `ChatApp` 独立 empty aside；始终渲染 `PreviewPane`
 - `PreviewPane` 接受 `url?: string | null`；无 url 时不 `loadURL`，仅展示工具栏 + 占位
-- 地址栏回车：校验/补全协议后 `loadURL`，并经 `onNavigate`（或等价）回写 `previewUrl`
+- 地址栏回车：校验/补全协议后 **本地面板立即 `loadURL`/`src`**，并经 `onNavigate` 回写 `previewUrl`
+- 地址栏导航路由：公网 http(s) 直接设 `previewUrl`；仅远程会话的 **localhost** 走 port-forward
 - Electron `<webview>`：扩展 `goBack` / `goForward` / `canGoBack` / `canGoForward` 类型与事件（如 `did-navigate`）更新前进后退状态
 
 ## 4. 非目标
 
 - 书签 / 历史面板  
 - 多标签浏览器  
-- 改远程 forward 语义（非 localhost 仍走既有 forward）  
+- 消息/终端里非 localhost 链接的点击行为（仍不打开预览）
 
 ## 5. 测试
 

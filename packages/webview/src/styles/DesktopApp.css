@@ -842,6 +842,15 @@ body.is-panel-resizing * {
   background: #ffffff;
 }
 
+/* Empty hint overlays the guest area; must not sit in normal flow or it
+   pushes/collapses the webview when both are mounted. */
+.preview-pane-body > .desktop-panel-placeholder {
+  position: absolute;
+  inset: 0;
+  flex: unset;
+  background: var(--gray-1);
+}
+
 .preview-pane-error {
   position: absolute;
   inset: 0;
@@ -1039,7 +1048,7 @@ body.is-panel-resizing * {
   flex: 1 1 0;
   /* Keep the conversation usable when the dock is open; matches
      CHAT_MAIN_MIN_WIDTH in ChatApp.tsx. */
-  min-width: 360px;
+  min-width: 520px;
   min-height: 0;
   height: 100%;
 }

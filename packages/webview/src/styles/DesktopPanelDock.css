@@ -9,11 +9,11 @@
   flex-direction: column;
   box-sizing: border-box;
   /* Prefer the JS width, but shrink before overflowing past the chat column.
-     360px matches CHAT_MAIN_MIN_WIDTH reserved for .desktop-chat-main. */
+     520px matches CHAT_MAIN_MIN_WIDTH reserved for .desktop-chat-main. */
   flex: 0 1 auto;
   width: var(--dock-width, 420px);
   min-width: 320px;
-  max-width: calc(100% - 360px);
+  max-width: calc(100% - 520px);
   height: 100%;
   border-left: 1px solid var(--gray-6);
   background: var(--color-background);
