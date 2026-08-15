@@ -1,0 +1,36 @@
+packages/desktop/tests/gitHelpers.test.ts
+  130f0494a7a41ec0 7,53-109
+packages/desktop/src/main/gitDiff.ts
+  130f0494a7a41ec0 199-291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8021e8d353ce23c2c0152f8033b647c697e87ad7",
+  "prompts": {
+    "130f0494a7a41ec0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6057d53d-bf3b-41c5-bb7e-6f346f8d3ea5",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 151,
+      "total_deletions": 1,
+      "accepted_lines": 151,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 93,
+          "accepted_lines": 93
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 58,
+          "deletions": 1,
+          "accepted_lines": 58
+        }
+      }
+    }
+  }
+}
