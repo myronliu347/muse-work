@@ -286,7 +286,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       images?: unknown;
       branch?: string;
       repoRoot?: string;
-      workdir?: string;
+      paths?: string[];
       busy?: boolean;
     };
     const command = msg?.command;
@@ -447,9 +447,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     if (command === "openFile" || command === "previewImage") {
       const filePath = typeof msg.path === "string" ? msg.path : "";
       if (!filePath) return;
+      const workdir =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       const fileView = await readLocalFileForPanel(filePath, {
         startLine: msg.startLine,
         endLine: msg.endLine,
+        workdir,
       });
       pushToWebview(win, {
         command: "desktopFileContent",

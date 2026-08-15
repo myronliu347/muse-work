@@ -30,6 +30,40 @@ const IMAGE_MIME: Record<string, string> = {
   ico: "image/x-icon",
 };
 
+const isMarkdownPath = (p: string) =>
+  /\.(md|markdown|mdown|mkd)$/i.test(p);
+
+/**
+ * Rewrite workdir-relative images in markdown to inline data URIs so they
+ * render inside the webview (which has no base URL for relative paths).
+ * Remote URLs, absolute paths, and missing/oversized files are left alone.
+ */
+const embedMarkdownImages = (content: string, workdir: string): string => {
+  const dataUriFor = (url: string): string | null => {
+    if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/|\\)/i.test(url)) return null;
+    const abs = path.resolve(workdir, url);
+    const ext = path.extname(abs).toLowerCase().replace(/^\./, "");
+    if (!IMAGE_EXTS.has(ext)) return null;
+    try {
+      const stat = fs.statSync(abs);
+      if (!stat.isFile() || stat.size > MAX_BYTES) return null;
+      const mime = IMAGE_MIME[ext] ?? "application/octet-stream";
+      return `data:${mime};base64,${fs.readFileSync(abs).toString("base64")}`;
+    } catch {
+      return null;
+    }
+  };
+  // `![alt](url)` and `<img src="url">`; rewrite only the URL when resolvable.
+  return content.replace(
+    /!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)|<img[^>]*\bsrc="([^"]+)"/g,
+    (whole, mdUrl, imgSrc) => {
+      const url = mdUrl ?? imgSrc;
+      const uri = url ? dataUriFor(url) : null;
+      return uri ? whole.replace(url, uri) : whole;
+    },
+  );
+};
+
 export type FilePanelView = {
   path: string;
   host: string;
@@ -46,7 +80,7 @@ export type FilePanelView = {
 
 export async function readLocalFileForPanel(
   filePath: string,
-  opts?: { startLine?: number; endLine?: number },
+  opts?: { startLine?: number; endLine?: number; workdir?: string },
 ): Promise<FilePanelView> {
   const host = "local";
   try {
@@ -106,12 +140,14 @@ export async function readLocalFileForPanel(
       .toString("utf8");
     const allLines = rawContent.split("\n");
     const tooManyLines = allLines.length > MAX_LINES;
+    const content =
+      opts?.workdir && isMarkdownPath(filePath)
+        ? embedMarkdownImages(rawContent, opts.workdir)
+        : rawContent;
     return {
       path: filePath,
       host,
-      content: tooManyLines
-        ? allLines.slice(0, MAX_LINES).join("\n")
-        : rawContent,
+      content: tooManyLines ? allLines.slice(0, MAX_LINES).join("\n") : content,
       truncated: bytesRead > MAX_BYTES || tooManyLines,
       totalLines:
         bytesRead <= MAX_BYTES

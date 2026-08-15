@@ -54,3 +54,58 @@ describe("readLocalFileForPanel", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe("readLocalFileForPanel markdown images", () => {
+  it("embeds workdir-relative images as data URIs", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
+    fs.mkdirSync(path.join(dir, "docs"));
+    fs.writeFileSync(path.join(dir, "docs", "img.png"), Buffer.from([1, 2, 3]));
+    const file = path.join(dir, "README.md");
+    fs.writeFileSync(
+      file,
+      "# Hi\n\n![shot](docs/img.png)\n\n<img src=\"docs/img.png\" alt=\"x\">\n",
+      "utf8",
+    );
+    const view = await readLocalFileForPanel(file, { workdir: dir });
+    expect(view.error).toBeUndefined();
+    expect(view.content).toContain("![shot](data:image/png;base64,AQID)");
+    expect(view.content).toContain('<img src="data:image/png;base64,AQID"');
+    expect(view.content).not.toContain("docs/img.png");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("leaves remote URLs, absolute paths, and missing files untouched", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
+    const file = path.join(dir, "README.md");
+    fs.writeFileSync(
+      file,
+      "![remote](https://example.com/a.png)\n![abs](/etc/hosts)\n![missing](nope.png)\n",
+      "utf8",
+    );
+    const view = await readLocalFileForPanel(file, { workdir: dir });
+    expect(view.content).toBe(
+      "![remote](https://example.com/a.png)\n![abs](/etc/hosts)\n![missing](nope.png)\n",
+    );
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not rewrite non-markdown files", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
+    fs.writeFileSync(path.join(dir, "img.png"), Buffer.from([1, 2, 3]));
+    const file = path.join(dir, "notes.txt");
+    fs.writeFileSync(file, "![shot](img.png)\n", "utf8");
+    const view = await readLocalFileForPanel(file, { workdir: dir });
+    expect(view.content).toBe("![shot](img.png)\n");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("leaves images alone when no workdir is provided", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-md-"));
+    fs.writeFileSync(path.join(dir, "img.png"), Buffer.from([1, 2, 3]));
+    const file = path.join(dir, "README.md");
+    fs.writeFileSync(file, "![shot](img.png)\n", "utf8");
+    const view = await readLocalFileForPanel(file);
+    expect(view.content).toBe("![shot](img.png)\n");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});

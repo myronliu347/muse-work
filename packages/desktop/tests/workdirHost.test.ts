@@ -190,6 +190,63 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("openFile embeds workdir-relative markdown images", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-file-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sample-"));
+    fs.mkdirSync(path.join(dir, "docs"));
+    fs.writeFileSync(path.join(dir, "docs", "img.png"), Buffer.from([1, 2, 3]));
+    const md = path.join(dir, "README.md");
+    fs.writeFileSync(md, "![shot](docs/img.png)\n", "utf8");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: md, workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: md,
+          content: expect.stringContaining(
+            "![shot](data:image/png;base64,AQID)",
+          ),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("revealInFinder calls showItemInFolder", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-reveal-"));
     const showItemInFolder = vi.fn();

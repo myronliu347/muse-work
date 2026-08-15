@@ -1883,11 +1883,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         command: "openFile",
         path,
         host: effectiveHost,
+        workdir: effectiveWorkdir ?? undefined,
         startLine,
         endLine,
       });
     },
-    [isDesktop, tryOpenPanel, effectiveHost, postToHost, vscode, updatePanelGroup],
+    [
+      isDesktop,
+      tryOpenPanel,
+      effectiveHost,
+      effectiveWorkdir,
+      postToHost,
+      vscode,
+      updatePanelGroup,
+    ],
   );
 
   const handleRevealInFinder = useCallback(
