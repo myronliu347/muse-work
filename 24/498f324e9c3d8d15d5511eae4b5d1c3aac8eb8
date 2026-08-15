@@ -1,0 +1,42 @@
+packages/webview/src/components/panels/DiffPane.tsx
+  1ff162f4551c3153 10,14,155-159,224-233,247,263-282,434-438,440-456,459-479,481-482,487,522-535,548-560,573-589
+packages/webview/src/styles/DiffPane.css
+  1ff162f4551c3153 26-52
+packages/webview/tests/webview/diffPane.test.tsx
+  1ff162f4551c3153 580-658
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "24498f324e9c3d8d15d5511eae4b5d1c3aac8eb8",
+  "prompts": {
+    "1ff162f4551c3153": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9948ae09-f570-4a48-aef4-da84939bda5c",
+        "model": "cursor-grok-4.6-low"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 236,
+      "total_deletions": 34,
+      "accepted_lines": 236,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 130,
+          "deletions": 34,
+          "accepted_lines": 130
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 27,
+          "accepted_lines": 27
+        }
+      }
+    }
+  }
+}
