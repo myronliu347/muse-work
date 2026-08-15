@@ -115,7 +115,12 @@
   line-height: 1.2;
 }
 
-/* Hunk header (@@ ... @@) */
+/* Pierre PatchDiff fills the expanded accordion body. */
+.diff-file-body > * {
+  min-width: 0;
+}
+
+/* Hunk header (@@ ... @@) — kept for placeholder / truncated notes */
 .diff-line-hunk {
   color: var(--gray-11);
   padding: var(--space-1) var(--space-2);

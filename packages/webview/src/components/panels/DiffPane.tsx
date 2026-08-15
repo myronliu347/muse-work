@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { PatchDiff } from "@pierre/diffs/react";
+import type { DiffLineAnnotation } from "@pierre/diffs";
 import type { VsCodeApi } from "../../types";
-import { renderWordLevelDiff } from "../../utils/diffHighlight";
+import {
+  resolveDiffLineText,
+  toPierrePatch,
+} from "../../utils/toPierrePatch";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
 
@@ -68,6 +73,15 @@ export function formatDiffComment(msg: DiffComment): string {
 
 const MIN_WIDTH = 320;
 
+const PATCH_DIFF_OPTIONS = {
+  diffStyle: "unified" as const,
+  disableFileHeader: true,
+  lineDiffType: "word" as const,
+  overflow: "scroll" as const,
+  enableGutterUtility: true,
+  theme: { dark: "pierre-dark" as const, light: "pierre-light" as const },
+};
+
 export interface DiffPaneProps {
   vscode: VsCodeApi;
   width: number;
@@ -87,6 +101,14 @@ export interface DiffPaneProps {
   onAddComment?: (text: string) => void;
   /** Opens a workspace file in the file panel (desktop) or IDE. */
   onOpenFile?: (path: string) => void;
+}
+
+interface CommentTarget {
+  file: WorkspaceDiffFile;
+  side: "additions" | "deletions";
+  lineNumber: number;
+  prefix: string;
+  text: string;
 }
 
 /** Workspace git-diff panel: accordion of per-file collapsible diff blocks. */
@@ -116,12 +138,6 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // Inline diff-line comment box (GitHub/GitLab style): hovering a line shows a
   // "+" button; clicking opens a comment box under that line whose contents
   // are appended to the chat input (not sent) so several can be batched.
-  interface CommentTarget {
-    lineKey: string;
-    file: WorkspaceDiffFile;
-    prefix: string;
-    text: string;
-  }
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(
     null,
   );
@@ -129,6 +145,11 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const onAddCommentRef = useRef(onAddComment);
   onAddCommentRef.current = onAddComment;
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const clearComment = useCallback(() => {
+    setCommentTarget(null);
+    setCommentDraft("");
+  }, []);
 
   const submitComment = useCallback(() => {
     const target = commentTarget;
@@ -142,14 +163,12 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         comment,
       }),
     );
-    setCommentTarget(null);
-    setCommentDraft("");
-  }, [commentTarget, commentDraft]);
+    clearComment();
+  }, [commentTarget, commentDraft, clearComment]);
 
   const cancelComment = useCallback(() => {
-    setCommentTarget(null);
-    setCommentDraft("");
-  }, []);
+    clearComment();
+  }, [clearComment]);
 
   // Auto-focus the textarea when a comment box opens.
   useEffect(() => {
@@ -164,15 +183,14 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       if (hard) setState({ kind: "loading" });
       setRefreshing(true);
       // Refresh rewrites the hunks, so any open comment box + draft is stale.
-      setCommentTarget(null);
-      setCommentDraft("");
+      clearComment();
       vscode.postMessage({
         command: "desktopGetWorkspaceDiff",
         ...(paneId ? { paneId } : {}),
         ...(workdir ? { workdir } : {}),
       });
     },
-    [vscode, paneId, workdir],
+    [vscode, paneId, workdir, clearComment],
   );
 
   useEffect(() => {
@@ -212,6 +230,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const toggleFile = (path: string) => {
     // Mutual exclusion: expanding one file collapses every other.
     setExpandedPath((prev) => (prev === path ? null : path));
+    clearComment();
   };
 
   const onDragStart = (e: React.MouseEvent) => {
@@ -236,201 +255,119 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     window.addEventListener("mouseup", onUp);
   };
 
-  const renderHunks = (file: WorkspaceDiffFile) => {
-    const elements: React.ReactNode[] = [];
-    // Removed/added lines awaiting word-level pairing; `idx` is the original
-    // hunk line index (stable key + comment target).
-    let pendingRemoved: { text: string; idx: number }[] = [];
-    let pendingAdded: { text: string; idx: number }[] = [];
+  const renderCommentBox = (file: WorkspaceDiffFile) => (
+    <div className="diff-comment-box" data-testid="diff-comment-box">
+      <textarea
+        ref={commentInputRef}
+        className="diff-comment-input"
+        data-testid="diff-comment-input"
+        placeholder="评论这行改动…"
+        value={commentDraft}
+        onChange={(e) => setCommentDraft(e.target.value)}
+        onKeyDown={(e) => {
+          // IME composing (e.g. Chinese pinyin): Enter confirms the
+          // candidate, not a submit. keyCode 229 covers older engines
+          // where isComposing is unset.
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            submitComment();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancelComment();
+          }
+        }}
+      />
+      <div className="diff-comment-box-footer">
+        <span className="diff-comment-box-tag" title={file.path}>
+          {file.path}
+        </span>
+        <button
+          className="diff-comment-box-cancel"
+          data-testid="diff-comment-cancel"
+          onClick={cancelComment}
+        >
+          取消
+        </button>
+        <button
+          className="diff-comment-box-send"
+          title="添加到输入框"
+          data-testid="diff-comment-submit"
+          disabled={commentDraft.trim() === ""}
+          onClick={submitComment}
+        >
+          添加
+        </button>
+      </div>
+    </div>
+  );
 
-    const renderDiffLine = (
-      prefix: string,
-      cls: string,
-      content: React.ReactNode,
-      idx: number,
-      text: string,
-    ) => {
-      const lineKey = `${file.path}:${idx}`;
-      const isOpen = commentTarget?.lineKey === lineKey;
+  const renderFileBody = (file: WorkspaceDiffFile) => {
+    if (file.binary) {
+      return <div className="diff-line-ellipsis">二进制文件，不显示差异</div>;
+    }
+    const patch = toPierrePatch(file);
+    if (!patch) {
       return (
-        <React.Fragment key={idx}>
-          <div className={cls}>
-            <span className="diff-prefix">{prefix}</span>
-            <span className="diff-content">{content}</span>
-            <button
-              className="diff-line-comment-btn"
-              title="评论这行"
-              aria-label={`评论 ${file.path} 第 ${idx + 1} 行`}
-              data-testid={`diff-comment-add-${idx}`}
-              onClick={() =>
-                setCommentTarget({
-                  lineKey,
-                  file,
-                  prefix,
-                  text: text.slice(0, 30),
-                })
-              }
-            >
-              <i className="codicon codicon-add" />
-            </button>
-          </div>
-          {isOpen && (
-            <div className="diff-comment-box" data-testid="diff-comment-box">
-              <textarea
-                ref={commentInputRef}
-                className="diff-comment-input"
-                data-testid="diff-comment-input"
-                placeholder="评论这行改动…"
-                value={commentDraft}
-                onChange={(e) => setCommentDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  // IME composing (e.g. Chinese pinyin): Enter confirms the
-                  // candidate, not a submit. keyCode 229 covers older engines
-                  // where isComposing is unset.
-                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    submitComment();
-                  } else if (e.key === "Escape") {
-                    e.preventDefault();
-                    cancelComment();
-                  }
-                }}
-              />
-              <div className="diff-comment-box-footer">
-                <span className="diff-comment-box-tag" title={file.path}>
-                  {file.path}
-                </span>
-                <button
-                  className="diff-comment-box-cancel"
-                  data-testid="diff-comment-cancel"
-                  onClick={cancelComment}
-                >
-                  取消
-                </button>
-                <button
-                  className="diff-comment-box-send"
-                  title="添加到输入框"
-                  data-testid="diff-comment-submit"
-                  disabled={commentDraft.trim() === ""}
-                  onClick={submitComment}
-                >
-                  添加
-                </button>
-              </div>
-            </div>
-          )}
-        </React.Fragment>
+        <div className="diff-line-ellipsis">
+          {file.status === "renamed" && file.oldPath
+            ? `重命名自 ${file.oldPath}`
+            : "无内容差异"}
+        </div>
       );
-    };
+    }
 
-    // Pair pending removed/added lines by position; unpaired lines (added-only
-    // or removed-only blocks) are highlighted as whole lines, same as the
-    // message-list diff block.
-    const flushPending = () => {
-      const maxLines = Math.max(pendingRemoved.length, pendingAdded.length);
-      for (let i = 0; i < maxLines; i++) {
-        const oldLine = pendingRemoved[i];
-        const newLine = pendingAdded[i];
-        if (oldLine && newLine) {
-          const { removedParts, addedParts } = renderWordLevelDiff(
-            oldLine.text,
-            newLine.text,
-            `pair-${oldLine.idx}`,
-          );
-          elements.push(
-            renderDiffLine(
-              "-",
-              "diff-line diff-line-removed",
-              removedParts,
-              oldLine.idx,
-              oldLine.text,
-            ),
-          );
-          elements.push(
-            renderDiffLine(
-              "+",
-              "diff-line diff-line-added",
-              addedParts,
-              newLine.idx,
-              newLine.text,
-            ),
-          );
-        } else if (oldLine) {
-          const { removedParts } = renderWordLevelDiff(
-            oldLine.text,
-            "",
-            `removed-${oldLine.idx}`,
-          );
-          elements.push(
-            renderDiffLine(
-              "-",
-              "diff-line diff-line-removed",
-              removedParts,
-              oldLine.idx,
-              oldLine.text,
-            ),
-          );
-        } else if (newLine) {
-          const { addedParts } = renderWordLevelDiff(
-            "",
-            newLine.text,
-            `added-${newLine.idx}`,
-          );
-          elements.push(
-            renderDiffLine(
-              "+",
-              "diff-line diff-line-added",
-              addedParts,
-              newLine.idx,
-              newLine.text,
-            ),
-          );
+    const lineAnnotations: DiffLineAnnotation[] =
+      commentTarget?.file.path === file.path
+        ? [
+            {
+              side: commentTarget.side,
+              lineNumber: commentTarget.lineNumber,
+            },
+          ]
+        : [];
+
+    return (
+      <PatchDiff
+        patch={patch}
+        disableWorkerPool
+        options={PATCH_DIFF_OPTIONS}
+        lineAnnotations={lineAnnotations}
+        renderGutterUtility={(getHoveredLine) => (
+          <button
+            type="button"
+            className="diff-line-comment-btn"
+            data-testid="diff-comment-add"
+            title="评论这行"
+            aria-label={`评论 ${file.path}`}
+            onClick={() => {
+              const hovered = getHoveredLine();
+              if (!hovered) return;
+              const prefix = hovered.side === "additions" ? "+" : "-";
+              const text = resolveDiffLineText(
+                patch,
+                hovered.side,
+                hovered.lineNumber,
+              ).slice(0, 30);
+              setCommentTarget({
+                file,
+                side: hovered.side,
+                lineNumber: hovered.lineNumber,
+                prefix,
+                text,
+              });
+            }}
+          >
+            <i className="codicon codicon-add" />
+          </button>
+        )}
+        renderAnnotation={() =>
+          commentTarget?.file.path === file.path
+            ? renderCommentBox(file)
+            : null
         }
-      }
-      pendingRemoved = [];
-      pendingAdded = [];
-    };
-
-    file.hunks.split("\n").forEach((line, i) => {
-      if (line.startsWith("+")) {
-        pendingAdded.push({ text: line.slice(1), idx: i });
-        return;
-      }
-      if (line.startsWith("-")) {
-        pendingRemoved.push({ text: line.slice(1), idx: i });
-        return;
-      }
-      // Context lines, hunk headers and trailing markers end the current
-      // pairing block.
-      flushPending();
-      if (line.startsWith("@@")) {
-        elements.push(
-          <div key={i} className="diff-line-hunk">
-            {line}
-          </div>,
-        );
-      } else if (line.startsWith("\\")) {
-        elements.push(
-          <div key={i} className="diff-line-ellipsis">
-            {line}
-          </div>,
-        );
-      } else {
-        const content = line.startsWith(" ") ? line.slice(1) : line;
-        elements.push(
-          renderDiffLine(
-            " ",
-            "diff-line diff-line-context",
-            content,
-            i,
-            content,
-          ),
-        );
-      }
-    });
-    flushPending();
-    return elements;
+      />
+    );
   };
 
   const renderFile = (file: WorkspaceDiffFile) => {
@@ -483,17 +420,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         </button>
         {isExpanded && (
           <div className="diff-file-body">
-            {file.binary ? (
-              <div className="diff-line-ellipsis">二进制文件，不显示差异</div>
-            ) : file.hunks ? (
-              renderHunks(file)
-            ) : (
-              <div className="diff-line-ellipsis">
-                {file.status === "renamed" && file.oldPath
-                  ? `重命名自 ${file.oldPath}`
-                  : "无内容差异"}
-              </div>
-            )}
+            {renderFileBody(file)}
             {file.truncated && (
               <div className="diff-line-ellipsis">差异过大，已截断…</div>
             )}

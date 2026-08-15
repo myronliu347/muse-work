@@ -127,16 +127,9 @@ test.describe("Desktop Diff Pane Screenshots", () => {
     );
 
     // ── 2. Click the "+" comment button on an added line ──────────
-    // Line index 5 = `+  const handleSubmit = (e: React.FormEvent) => {`.
-    // The button is hidden until hover (GitHub/GitLab style); Playwright
-    // auto-hovers before click. Use the aria-label (file path + line) as
-    // the unique key — the testid uses a per-file line index, so it isn't
-    // unique across files.
-    await webviewPage
-      .getByRole("button", {
-        name: "评论 src/components/LoginForm.tsx 第 6 行",
-      })
-      .click();
+    // Hover a Pierre diff line so the gutter utility mounts, then click it.
+    await webviewPage.locator(".diff-file-body [data-line]").first().hover();
+    await webviewPage.getByTestId("diff-comment-add").click();
     await expect(webviewPage.getByTestId("diff-comment-box")).toBeVisible();
     await webviewPage
       .getByTestId("diff-comment-input")

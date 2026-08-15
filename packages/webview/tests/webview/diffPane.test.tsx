@@ -2,6 +2,51 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
+
+vi.mock("@pierre/diffs/react", () => ({
+  PatchDiff: ({
+    patch,
+    lineAnnotations,
+    renderGutterUtility,
+    renderAnnotation,
+  }: {
+    patch: string;
+    lineAnnotations?: { side: "additions" | "deletions"; lineNumber: number }[];
+    renderGutterUtility?: (
+      getHoveredLine: () =>
+        | { lineNumber: number; side: "additions" | "deletions" }
+        | undefined,
+    ) => React.ReactNode;
+    renderAnnotation?: (ann: {
+      side: "additions" | "deletions";
+      lineNumber: number;
+    }) => React.ReactNode;
+  }) => (
+    <div data-testid="pierre-patch-diff" data-patch={patch}>
+      {/* Surface a snippet so accordion tests can assert expand/collapse. */}
+      <span>
+        {patch
+          .split("\n")
+          .find((l) => l.startsWith("+") && !l.startsWith("+++"))
+          ?.slice(1) ?? ""}
+      </span>
+      {renderGutterUtility?.(() => ({
+        side: "additions",
+        lineNumber: 1,
+      }))}
+      {renderGutterUtility?.(() => ({
+        side: "additions",
+        lineNumber: 2,
+      }))}
+      {(lineAnnotations ?? []).map((ann) => (
+        <div key={`${ann.side}-${ann.lineNumber}`}>
+          {renderAnnotation?.(ann)}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
 import { DiffPane, formatDiffComment } from "../../src/components/panels/DiffPane";
 import type { WorkspaceDiffFile } from "../../src/components/panels/DiffPane";
 import { createMockVscode, sendCommand } from "./test-utils";
@@ -14,7 +59,7 @@ function makeFile(
     status: "modified",
     additions: 2,
     deletions: 1,
-    hunks: "@@ -1 +1 @@\n-old\n+new1\n+new2",
+    hunks: "@@ -1,1 +1,2 @@\n-old\n+new1\n+new2",
     truncated: false,
     binary: false,
     ...overrides,
@@ -124,122 +169,21 @@ describe("DiffPane", () => {
     expect(screen.getByText("-1")).toBeInTheDocument();
   });
 
-  it("renders hunks with added/removed/context line classes", () => {
-    const { container } = renderPane();
+  it("renders a Pierre PatchDiff for file hunks", () => {
+    renderPane();
     sendDiffResult([makeFile()]);
-    expect(container.querySelector(".diff-line-hunk")).toHaveTextContent(
-      "@@ -1 +1 @@",
-    );
-    expect(
-      container.querySelector(".diff-line-added .diff-content"),
-    ).toHaveTextContent("new1");
-    expect(
-      container.querySelector(".diff-line-removed .diff-content"),
-    ).toHaveTextContent("old");
+    const el = screen.getByTestId("pierre-patch-diff");
+    expect(el).toBeInTheDocument();
+    expect(el.getAttribute("data-patch")).toContain("--- a/src/a.ts");
+    expect(el.getAttribute("data-patch")).toContain("+new1");
   });
 
-  it("pairs adjacent removed/added lines and highlights word-level changes", () => {
-    const { container } = renderPane();
-    sendDiffResult([
-      makeFile({ hunks: "@@ -1 +1 @@\n-const x = 1;\n+const x = 2;" }),
-    ]);
-    const removed = container.querySelector(".diff-line-removed");
-    const added = container.querySelector(".diff-line-added");
-    // Unchanged words keep the line-level background; only the changed word
-    // gets the deeper word-level highlight.
-    expect(removed?.querySelector(".diff-word-unchanged")).toHaveTextContent(
-      "const x =",
-    );
-    expect(removed?.querySelector(".diff-word-removed")).toHaveTextContent("1");
-    expect(added?.querySelector(".diff-word-unchanged")).toHaveTextContent(
-      "const x =",
-    );
-    expect(added?.querySelector(".diff-word-added")).toHaveTextContent("2");
-    // Rows are rendered as removed-then-added pairs.
-    expect(removed?.querySelector(".diff-prefix")).toHaveTextContent("-");
-    expect(added?.querySelector(".diff-prefix")).toHaveTextContent("+");
-  });
-
-  it("highlights whole lines for unpaired added-only and removed-only blocks", () => {
-    const { container } = renderPane();
-    // Removed-only hunk (no added lines) and added-only hunk (no removed
-    // lines) — nothing to pair, the whole line is word-level highlighted
-    // (same as the message diff block).
-    sendDiffResult([
-      makeFile({
-        hunks: "@@ -1 +1 @@\n-only-removed\n@@ -2 +2 @@\n+only-added",
-        additions: 1,
-        deletions: 1,
-      }),
-    ]);
-    const removed = container.querySelector(".diff-line-removed");
-    const added = container.querySelector(".diff-line-added");
-    expect(removed?.querySelector(".diff-word-removed")).toHaveTextContent(
-      "only-removed",
-    );
-    expect(added?.querySelector(".diff-word-added")).toHaveTextContent(
-      "only-added",
-    );
-  });
-
-  it("resets word-level pairing at context lines and hunk headers", () => {
-    const { container } = renderPane();
-    sendDiffResult([
-      makeFile({
-        hunks:
-          "@@ -1 +3 @@\n context\n-old-a\n+new-a\n@@ -10 +10 @@\n-old-b\n+new-b",
-      }),
-    ]);
-    const removed = container.querySelectorAll(".diff-line-removed");
-    const added = container.querySelectorAll(".diff-line-added");
-    // Pair (old-a, new-a) then a second (old-b, new-b) after a fresh hunk
-    // header — pairing must not leak across the hunk boundary.
-    expect(removed).toHaveLength(2);
-    expect(added).toHaveLength(2);
-    // diffWords('old-a', 'new-a') marks only the changed words ('old'/'new');
-    // the '-a' suffix stays on the line-level background.
-    expect(removed[0].querySelector(".diff-word-removed")).toHaveTextContent(
-      "old",
-    );
-    expect(added[0].querySelector(".diff-word-added")).toHaveTextContent("new");
-    expect(removed[1].querySelector(".diff-word-removed")).toHaveTextContent(
-      "old",
-    );
-    expect(added[1].querySelector(".diff-word-added")).toHaveTextContent("new");
-    expect(removed[0].querySelector(".diff-content")).toHaveTextContent(
-      "old-a",
-    );
-    expect(added[0].querySelector(".diff-content")).toHaveTextContent("new-a");
-  });
-
-  it("does not pair lines across a hunk boundary", () => {
-    const { container } = renderPane();
-    // Hunk 1 has only a removed line, hunk 2 only an added line — pairing
-    // would merge them, so both must stay whole-line highlighted instead.
-    sendDiffResult([
-      makeFile({
-        hunks: "@@ -1 +1 @@\n-only-x\n@@ -10 +10 @@\n+only-y",
-        additions: 1,
-        deletions: 1,
-      }),
-    ]);
-    const removed = container.querySelector(".diff-line-removed");
-    const added = container.querySelector(".diff-line-added");
-    expect(removed?.querySelector(".diff-word-removed")).toHaveTextContent(
-      "only-x",
-    );
-    expect(added?.querySelector(".diff-word-added")).toHaveTextContent(
-      "only-y",
-    );
-  });
-
-  it("keeps line-comment buttons on word-level highlighted rows", () => {
+  it("exposes a line-comment gutter control on the PatchDiff", () => {
     renderPane();
     sendDiffResult([
-      makeFile({ hunks: "@@ -1 +1 @@\n-const x = 1;\n+const x = 2;" }),
+      makeFile({ hunks: "@@ -1,1 +1,1 @@\n-const x = 1;\n+const x = 2;" }),
     ]);
-    expect(screen.getByTestId("diff-comment-add-1")).toBeInTheDocument();
-    expect(screen.getByTestId("diff-comment-add-2")).toBeInTheDocument();
+    expect(screen.getAllByTestId("diff-comment-add").length).toBeGreaterThan(0);
   });
 
   it("binary files show a placeholder instead of hunks", () => {
@@ -361,13 +305,6 @@ describe("DiffPane", () => {
     expect(lastDiffRequest(vscode)).toHaveLength(1);
     fireEvent.click(screen.getByTestId("diff-refresh"));
     expect(lastDiffRequest(vscode)).toHaveLength(2);
-  });
-
-  it("close button calls onClose", () => {
-    const onClose = vi.fn();
-    renderPane({ onClose });
-    fireEvent.click(screen.getByTestId("diff-close"));
-    expect(onClose).toHaveBeenCalled();
   });
 
   it("tags requests with paneId and ignores responses for other panes", () => {
@@ -514,21 +451,18 @@ describe("DiffPane", () => {
       ).toBe("**差异评论** · a.ts\n「x」\n\nc");
     });
 
-    it("shows a comment button on each commentable line (not on @@ headers)", () => {
+    it("shows a comment gutter control on the PatchDiff", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      expect(screen.getByTestId("diff-comment-add-1")).toBeInTheDocument();
-      expect(screen.getByTestId("diff-comment-add-2")).toBeInTheDocument();
-      expect(screen.getByTestId("diff-comment-add-3")).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("diff-comment-add-0"),
-      ).not.toBeInTheDocument();
+      expect(screen.getAllByTestId("diff-comment-add").length).toBeGreaterThan(
+        0,
+      );
     });
 
     it("opens a comment box under the clicked line with the file path", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const box = screen.getByTestId("diff-comment-box");
       expect(box).toBeInTheDocument();
       expect(screen.getByTestId("diff-comment-input")).toBeInTheDocument();
@@ -541,7 +475,7 @@ describe("DiffPane", () => {
       const onAddComment = vi.fn();
       renderPane({ onAddComment });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.change(screen.getByTestId("diff-comment-input"), {
         target: { value: "改这里" },
       });
@@ -556,7 +490,7 @@ describe("DiffPane", () => {
       const onAddComment = vi.fn();
       renderPane({ onAddComment });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const input = screen.getByTestId("diff-comment-input");
       fireEvent.change(input, { target: { value: "好" } });
       fireEvent.keyDown(input, { key: "Enter" });
@@ -567,7 +501,7 @@ describe("DiffPane", () => {
       const onAddComment = vi.fn();
       renderPane({ onAddComment });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const input = screen.getByTestId("diff-comment-input");
       fireEvent.change(input, { target: { value: "改这里" } });
       // Chinese IME uses Enter to confirm the candidate; that keydown fires
@@ -584,7 +518,7 @@ describe("DiffPane", () => {
       const onAddComment = vi.fn();
       renderPane({ onAddComment });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.click(screen.getByTestId("diff-comment-submit"));
       expect(onAddComment).not.toHaveBeenCalled();
     });
@@ -592,7 +526,7 @@ describe("DiffPane", () => {
     it("closes the box on Escape", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.keyDown(screen.getByTestId("diff-comment-input"), {
         key: "Escape",
       });
@@ -602,7 +536,7 @@ describe("DiffPane", () => {
     it("closes the box via the cancel button", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.click(screen.getByTestId("diff-comment-cancel"));
       expect(screen.queryByTestId("diff-comment-box")).not.toBeInTheDocument();
     });
@@ -610,7 +544,7 @@ describe("DiffPane", () => {
     it("discards the open comment box on refresh", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       expect(screen.getByTestId("diff-comment-box")).toBeInTheDocument();
       fireEvent.click(screen.getByTestId("diff-refresh"));
       expect(screen.queryByTestId("diff-comment-box")).not.toBeInTheDocument();
@@ -619,9 +553,10 @@ describe("DiffPane", () => {
     it("keeps at most one comment box open (clicking another line moves it)", () => {
       renderPane();
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-comment-add-2"));
+      const buttons = screen.getAllByTestId("diff-comment-add");
+      fireEvent.click(buttons[0]);
       expect(screen.getByTestId("diff-comment-box")).toBeInTheDocument();
-      fireEvent.click(screen.getByTestId("diff-comment-add-3"));
+      fireEvent.click(buttons[1]);
       expect(screen.queryAllByTestId("diff-comment-box")).toHaveLength(1);
     });
   });
