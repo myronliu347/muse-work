@@ -94,17 +94,16 @@ const groupKey =
 
 **DesktopApp prune**
 
+注意：`desktopSessionTree` 的 **group.workdir 只是 `"pin"` / `"recent"`**，不是路径。真实绝对路径在 **`DesktopSessionEntry.workdir`**（创建 session 时写入的全路径）。
+
 ```ts
 const keep = new Set<string>();
 if (workdirState?.workdir) keep.add(workdirState.workdir);
 for (const g of sessionTree) {
   for (const s of g.sessions) {
-    if (s.workdir) keep.add(s.workdir);
+    if (s.workdir) keep.add(s.workdir); // absolute path only
   }
-  // 若 group 本身带 workdir 字段也一并加入
-  if (g.workdir && g.workdir !== "pin" && g.workdir !== "recent") {
-    keep.add(g.workdir);
-  }
+  // 不要用 g.workdir（"pin" | "recent"）
 }
 // prune 前后 diff → kill 被移除 workdir 对应的 term-wd-…
 prunePanelGroupCache(keep);
@@ -141,4 +140,4 @@ prunePanelGroupCache(keep);
 
 - **旧 session 级 PTY 泄漏**：升级后内存中可能残留 `term-${sessionId}`；进程重启即清，可接受；可选一次性 `killAll` 不在范围。
 - **workdir 字符串不一致**（尾斜杠 / 大小写）：key 与 `termId` 必须用同一套规范化；与现有 `effectiveWorkdir` 对齐即可。
-- **session tree 的 workdir 字段缺失**：prune 过猛会误杀仍在用的终端；实现时以 tree + 当前 workdir 并集为准，并对照现有 sidebar 数据结构核对字段。
+- **弄错 tree 字段**：`group.workdir` 是 `"pin"`/`"recent"`；必须用 `session.workdir`（绝对路径）做 prune keep 集合，否则会漏保留或误用假 key。
