@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-08-15-browser-toolbar-design.md
+  9b08060a306bdaeb 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "116e08053c8500aac3dab6823494711d709ea1cb",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 43,
+      "total_deletions": 0,
+      "accepted_lines": 43,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-browser-toolbar-design.md": {
+          "additions": 43,
+          "accepted_lines": 43
+        }
+      }
+    }
+  }
+}
