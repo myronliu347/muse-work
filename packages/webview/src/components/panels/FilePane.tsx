@@ -91,6 +91,13 @@ export const FilePane: React.FC<FilePaneProps> = ({
   };
 
   const isMd = !!(fileView?.content && isMarkdownPath(fileView.path));
+  const treeCollapsed = fileTree.collapsed !== false;
+  const showTreeToggle = Boolean(onFileTreeChange);
+
+  const toggleTreeCollapsed = () => {
+    if (!onFileTreeChange) return;
+    onFileTreeChange({ ...fileTree, collapsed: !treeCollapsed });
+  };
 
   return (
     <aside
@@ -108,32 +115,47 @@ export const FilePane: React.FC<FilePaneProps> = ({
             ) : (
               <span className="preview-pane-url">文件</span>
             )}
-            {isMd && (
-              <div className="file-pane-md-toggle" data-testid="file-md-toggle">
+            <div className="file-pane-toolbar-actions">
+              {isMd && (
+                <div className="file-pane-md-toggle" data-testid="file-md-toggle">
+                  <button
+                    type="button"
+                    className="preview-pane-button"
+                    aria-pressed={mdMode === "preview"}
+                    onClick={() => setMdMode("preview")}
+                  >
+                    预览
+                  </button>
+                  <button
+                    type="button"
+                    className="preview-pane-button"
+                    aria-pressed={mdMode === "source"}
+                    onClick={() => setMdMode("source")}
+                  >
+                    源码
+                  </button>
+                </div>
+              )}
+              {showTreeToggle && treeCollapsed && (
                 <button
                   type="button"
                   className="preview-pane-button"
-                  aria-pressed={mdMode === "preview"}
-                  onClick={() => setMdMode("preview")}
+                  data-testid="file-tree-expand-btn"
+                  title="展开文件树"
+                  aria-label="展开文件树"
+                  aria-pressed={false}
+                  onClick={toggleTreeCollapsed}
                 >
-                  预览
+                  <i className="codicon codicon-list-tree" aria-hidden />
                 </button>
-                <button
-                  type="button"
-                  className="preview-pane-button"
-                  aria-pressed={mdMode === "source"}
-                  onClick={() => setMdMode("source")}
-                >
-                  源码
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <div className="preview-pane-body file-pane-body">
             {!fileView && (
               <div className="desktop-panel-placeholder">
                 <i className="codicon codicon-file file-pane-placeholder-icon" />
-                <span>从消息或右侧文件树打开文件</span>
+                <span>从消息或文件树打开文件</span>
               </div>
             )}
             {fileView && (
@@ -146,7 +168,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
             )}
           </div>
         </div>
-        {onFileTreeChange && (
+        {onFileTreeChange && !treeCollapsed && (
           <FileTree
             workdir={workdir}
             vscode={vscode}

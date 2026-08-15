@@ -101,7 +101,7 @@
 }
 
 .desktop-panel-tab:hover .desktop-panel-tab-close,
-.desktop-panel-tab:focus-within .desktop-panel-tab-close {
+.desktop-panel-tab-close:focus-visible {
   opacity: 1;
 }
 

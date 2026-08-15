@@ -173,25 +173,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
     onTreeChange({ ...tree, collapsed: !tree.collapsed });
   };
 
+  // Fully collapsed: parent FilePane shows the expand control in its toolbar.
   if (tree.collapsed) {
-    return (
-      <div
-        className="file-tree file-tree--collapsed"
-        data-testid="file-tree"
-        data-collapsed="true"
-      >
-        <button
-          type="button"
-          className="file-tree-expand-btn"
-          data-testid="file-tree-expand-btn"
-          title="展开文件树"
-          aria-label="展开文件树"
-          onClick={toggleCollapsed}
-        >
-          <i className="codicon codicon-list-tree" aria-hidden />
-        </button>
-      </div>
-    );
+    return null;
   }
 
   if (!workdir) {

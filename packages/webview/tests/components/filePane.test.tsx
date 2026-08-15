@@ -86,9 +86,28 @@ describe("FilePane", () => {
 
   it("shows the placeholder when no file is open", () => {
     renderPane({ fileView: null });
-    expect(
-      screen.getByText("从消息或右侧文件树打开文件"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("从消息或文件树打开文件")).toBeInTheDocument();
+  });
+
+  it("shows expand control in toolbar when tree is collapsed", () => {
+    const { onFileTreeChange } = renderPane({
+      fileView: null,
+      fileTree: emptyFileTreeState(),
+    });
+    expect(screen.queryByTestId("file-tree")).toBeNull();
+    fireEvent.click(screen.getByTestId("file-tree-expand-btn"));
+    expect(onFileTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({ collapsed: false }),
+    );
+  });
+
+  it("hides expand control when tree is open", () => {
+    renderPane({
+      fileView: null,
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    expect(screen.queryByTestId("file-tree-expand-btn")).toBeNull();
+    expect(screen.getByTestId("file-tree")).toBeInTheDocument();
   });
 
   it("shows path bar with relative path", () => {

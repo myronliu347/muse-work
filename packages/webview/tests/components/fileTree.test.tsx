@@ -47,8 +47,8 @@ describe("FileTree", () => {
     onOpenFile.mockClear();
   });
 
-  it("defaults to a collapsed rail", () => {
-    render(
+  it("renders nothing when collapsed", () => {
+    const { container } = render(
       <FileTree
         workdir="/work"
         vscode={{ postMessage }}
@@ -57,30 +57,11 @@ describe("FileTree", () => {
         onOpenFile={onOpenFile}
       />,
     );
-    expect(screen.getByTestId("file-tree")).toHaveAttribute(
-      "data-collapsed",
-      "true",
-    );
-    expect(screen.getByTestId("file-tree-expand-btn")).toBeInTheDocument();
-    expect(screen.queryByTestId("file-tree-workdir")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it("expands and collapses the tree column", () => {
-    const { rerender } = render(
-      <FileTree
-        workdir="/work"
-        vscode={{ postMessage }}
-        tree={emptyFileTreeState()}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-      />,
-    );
-    fireEvent.click(screen.getByTestId("file-tree-expand-btn"));
-    expect(onTreeChange).toHaveBeenCalledWith(
-      expect.objectContaining({ collapsed: false }),
-    );
-
-    rerender(
+  it("collapses the tree column via header control", () => {
+    render(
       <FileTree
         workdir="/work"
         vscode={{ postMessage }}
@@ -90,7 +71,7 @@ describe("FileTree", () => {
       />,
     );
     fireEvent.click(screen.getByTestId("file-tree-collapse-btn"));
-    expect(onTreeChange).toHaveBeenLastCalledWith(
+    expect(onTreeChange).toHaveBeenCalledWith(
       expect.objectContaining({ collapsed: true }),
     );
   });
