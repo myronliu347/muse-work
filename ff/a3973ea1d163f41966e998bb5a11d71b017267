@@ -1,0 +1,36 @@
+packages/desktop/tests/filePanel.test.ts
+  9b08060a306bdaeb 23-55
+packages/desktop/src/main/filePanel.ts
+  9b08060a306bdaeb 8,39-40,61-71,95-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ffa3973ea1d163f41966e998bb5a11d71b017267",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 55,
+      "total_deletions": 2,
+      "accepted_lines": 55,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/tests/filePanel.test.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/desktop/src/main/filePanel.ts": {
+          "additions": 22,
+          "deletions": 2,
+          "accepted_lines": 22
+        }
+      }
+    }
+  }
+}
