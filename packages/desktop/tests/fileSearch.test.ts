@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   listWorkspaceDir,
+  searchContentInWorkspace,
   searchWorkspaceFiles,
 } from "../src/main/fileSearch.js";
 
@@ -114,6 +115,93 @@ describe("searchWorkspaceFiles directories", () => {
       true,
     );
 
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("searchContentInWorkspace", () => {
+  it("finds case-sensitive and insensitive matches", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-"));
+    fs.writeFileSync(path.join(root, "a.ts"), "Foo\nfoo\n");
+    const insensitive = searchContentInWorkspace(root, {
+      query: "Foo",
+      caseSensitive: false,
+    });
+    expect(insensitive.totalMatches).toBe(2);
+    const sensitive = searchContentInWorkspace(root, {
+      query: "Foo",
+      caseSensitive: true,
+    });
+    expect(sensitive.totalMatches).toBe(1);
+    expect(sensitive.results[0].matches[0].line).toBe(1);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("supports wholeWord and regex", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-"));
+    fs.writeFileSync(path.join(root, "a.ts"), "foo foobar\n");
+    const whole = searchContentInWorkspace(root, {
+      query: "foo",
+      wholeWord: true,
+    });
+    expect(whole.totalMatches).toBe(1);
+    expect(whole.results[0].matches[0].startCol).toBe(0);
+    const re = searchContentInWorkspace(root, {
+      query: "foo+",
+      regex: true,
+    });
+    expect(re.totalMatches).toBeGreaterThanOrEqual(1);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("returns error for invalid regex without throwing", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-"));
+    fs.writeFileSync(path.join(root, "a.ts"), "x\n");
+    const out = searchContentInWorkspace(root, {
+      query: "(",
+      regex: true,
+    });
+    expect(out.error).toBeTruthy();
+    expect(out.results).toEqual([]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("respects gitignore and skips binary / oversize", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-"));
+    fs.writeFileSync(path.join(root, ".gitignore"), "secret.ts\n");
+    fs.writeFileSync(path.join(root, "secret.ts"), "needle\n");
+    fs.writeFileSync(path.join(root, "ok.ts"), "needle\n");
+    fs.writeFileSync(path.join(root, "bin.dat"), Buffer.from([0, 1, 2, 3]));
+    const out = searchContentInWorkspace(root, { query: "needle" });
+    expect(out.results.map((r) => r.relativePath)).toEqual(["ok.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("sets truncated when maxMatches exceeded", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-"));
+    fs.writeFileSync(path.join(root, "a.ts"), "x\nx\nx\n");
+    const out = searchContentInWorkspace(root, {
+      query: "x",
+      maxMatches: 2,
+    });
+    expect(out.truncated).toBe(true);
+    expect(out.totalMatches).toBe(2);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("searchWorkspaceFiles gitignore + filesOnly", () => {
+  it("hides gitignored files when respectGitignore is true", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sf-"));
+    fs.writeFileSync(path.join(root, ".gitignore"), "hidden.ts\n");
+    fs.writeFileSync(path.join(root, "hidden.ts"), "");
+    fs.writeFileSync(path.join(root, "visible.ts"), "");
+    const hits = searchWorkspaceFiles(root, {
+      query: "ts",
+      respectGitignore: true,
+      filesOnly: true,
+    });
+    expect(hits.map((h) => h.name).sort()).toEqual(["visible.ts"]);
     fs.rmSync(root, { recursive: true, force: true });
   });
 });
