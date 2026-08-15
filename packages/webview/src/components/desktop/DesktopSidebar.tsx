@@ -1,5 +1,6 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
+import { NewSessionIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.svg";
 import {
   SessionTree,
@@ -114,7 +115,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         }
         data-testid="desktop-new-session"
       >
-        <span className="codicon codicon-add"></span>
+        <NewSessionIcon className="desktop-sidebar-new-chat-icon" />
         <span>新对话</span>
       </button>
       <SessionTree

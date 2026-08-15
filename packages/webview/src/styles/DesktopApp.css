@@ -90,8 +90,11 @@
 }
 
 /* Icon left edge + size match the session-tree group chevron below it. */
-.desktop-sidebar-new-chat .codicon {
-  font-size: var(--font-size-1);
+.desktop-sidebar-new-chat-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .desktop-sidebar-new-chat:hover:not(:disabled) {
