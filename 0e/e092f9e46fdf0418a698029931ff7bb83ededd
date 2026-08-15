@@ -1,0 +1,56 @@
+packages/webview/tests/muse/filePathDisplay.test.ts
+  0648f6718593b9a9 6,20-33
+packages/webview/tests/webview/diffPane.test.tsx
+  0648f6718593b9a9 236-239,244-246
+packages/webview/src/components/panels/DiffPane.tsx
+  0648f6718593b9a9 9,340,405,411
+packages/webview/src/styles/DiffPane.css
+  0648f6718593b9a9 55-56,58,61,65,69,73,77,133-135,167-176,178-180,182-187
+packages/webview/src/utils/filePathDisplay.ts
+  0648f6718593b9a9 25-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0ee092f9e46fdf0418a698029931ff7bb83ededd",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 19,
+      "accepted_lines": 74,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/filePathDisplay.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 34,
+          "deletions": 14,
+          "accepted_lines": 34
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
