@@ -1,0 +1,64 @@
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  4ca056b3b481a28a 123,125-140,142-146,148-156,158-162,164-170
+packages/webview/src/utils/localFileMention.ts
+  4ca056b3b481a28a 10-25,69-79,95
+packages/webview/src/types/index.ts
+  4ca056b3b481a28a 132-136
+packages/webview/tests/muse/localFileMention.test.ts
+  4ca056b3b481a28a 68-88
+packages/webview/src/components/chat/MessageInput.tsx
+  4ca056b3b481a28a 37,1300-1322
+packages/desktop/src/main/preload.ts
+  4ca056b3b481a28a 1,23-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "aa274fda350f2da3128d0afabd53f0d09737531a",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 135,
+      "total_deletions": 47,
+      "accepted_lines": 132,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/muse/localFileMention.test.ts": {
+          "additions": 24,
+          "deletions": 3,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/utils/localFileMention.ts": {
+          "additions": 30,
+          "deletions": 4,
+          "accepted_lines": 30
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 43,
+          "deletions": 38,
+          "accepted_lines": 43
+        }
+      }
+    }
+  }
+}
