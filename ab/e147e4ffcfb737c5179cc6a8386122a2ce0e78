@@ -1,0 +1,35 @@
+packages/desktop/src/main/workdirHost.ts
+  4ca056b3b481a28a 331-344
+packages/desktop/tests/workdirHost.test.ts
+  4ca056b3b481a28a 757-813
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "abe147e4ffcfb737c5179cc6a8386122a2ce0e78",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 71,
+      "total_deletions": 0,
+      "accepted_lines": 71,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        }
+      }
+    }
+  }
+}
