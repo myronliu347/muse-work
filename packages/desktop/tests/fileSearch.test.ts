@@ -74,6 +74,21 @@ describe("listWorkspaceDir", () => {
     expect(listWorkspaceDir(root, "../outside")).toEqual([]);
     fs.rmSync(root, { recursive: true, force: true });
   });
+
+  it("hides gitignored files when respectGitignore is true", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-"));
+    fs.writeFileSync(path.join(root, ".gitignore"), "secret.txt\n");
+    fs.writeFileSync(path.join(root, "secret.txt"), "x");
+    fs.writeFileSync(path.join(root, "ok.ts"), "x");
+    fs.mkdirSync(path.join(root, "node_modules"));
+    fs.writeFileSync(path.join(root, "node_modules", "x"), "x");
+    const hits = listWorkspaceDir(root, "", { respectGitignore: true });
+    const names = hits.map((h) => h.name);
+    expect(names).toContain("ok.ts");
+    expect(names).not.toContain("secret.txt");
+    expect(names).not.toContain("node_modules");
+    fs.rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("searchWorkspaceFiles directories", () => {

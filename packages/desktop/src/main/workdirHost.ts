@@ -365,6 +365,27 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       return;
     }
 
+    if (command === "desktopListDir") {
+      const requestId =
+        typeof msg.requestId === "string" ? msg.requestId : "";
+      const dir = typeof msg.dir === "string" ? msg.dir : "";
+      const cwd = state.workdir;
+      const entries = cwd
+        ? listWorkspaceDir(cwd, dir, { respectGitignore: true }).map((e) => ({
+            name: e.name,
+            path: e.path,
+            relativePath: e.relativePath.replace(/\/$/, ""),
+            isDirectory: e.isDirectory,
+          }))
+        : [];
+      pushToWebview(win, {
+        command: "desktopListDirResult",
+        requestId,
+        entries,
+      });
+      return;
+    }
+
     if (command === "openFile" || command === "previewImage") {
       const filePath = typeof msg.path === "string" ? msg.path : "";
       if (!filePath) return;

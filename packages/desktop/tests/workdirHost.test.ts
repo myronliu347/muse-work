@@ -226,6 +226,61 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
   });
 
+  it("desktopListDir replies with entries", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-listdir-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-listdir-"));
+    fs.writeFileSync(path.join(dir, "a.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "desktopListDir", requestId: "r1", dir: "" },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopListDirResult",
+        requestId: "r1",
+        entries: expect.arrayContaining([
+          expect.objectContaining({
+            name: "a.ts",
+            isDirectory: false,
+          }),
+        ]),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("requestFileSuggestions replies with matching workspace files", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-sug-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sug-"));

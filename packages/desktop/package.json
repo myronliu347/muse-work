@@ -65,6 +65,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "ignore": "^7.0.6",
     "node-pty": "1.0.0"
   },
   "devDependencies": {

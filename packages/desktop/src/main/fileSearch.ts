@@ -5,6 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import ignore from "ignore";
 
 const SKIP_DIR_NAMES = new Set([
   ".git",
@@ -43,6 +44,11 @@ export type SearchWorkspaceFilesOptions = {
   maxVisit?: number;
 };
 
+export type ListWorkspaceDirOptions = {
+  /** When true, apply .gitignore rules (plus always-skip node_modules/.git). */
+  respectGitignore?: boolean;
+};
+
 function isSkippedDir(name: string): boolean {
   return SKIP_DIR_NAMES.has(name) || name.startsWith(".");
 }
@@ -65,12 +71,32 @@ function toWorkspaceSuggestion(
   };
 }
 
+/** Always hide these; also merge .gitignore from workdir walking upward. */
+function loadIgnoreFilter(workdirAbs: string) {
+  const ig = ignore();
+  ig.add(["node_modules/", ".git/"]);
+  let dir = workdirAbs;
+  for (;;) {
+    const gi = path.join(dir, ".gitignore");
+    try {
+      ig.add(fs.readFileSync(gi, "utf8"));
+    } catch {
+      /* missing is fine */
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return ig;
+}
+
 /**
  * List direct children of `dir` (relative to workdir). Does not recurse.
  */
 export function listWorkspaceDir(
   workdir: string,
   dir = "",
+  options: ListWorkspaceDirOptions = {},
 ): WorkspaceFileSuggestion[] {
   if (!workdir || !fs.existsSync(workdir)) {
     return [];
@@ -99,12 +125,23 @@ export function listWorkspaceDir(
     return [];
   }
 
+  const ig = options.respectGitignore ? loadIgnoreFilter(workdirAbs) : null;
+
   const items: WorkspaceFileSuggestion[] = [];
   for (const entry of entries) {
     const name = entry.name;
-    if (entry.isDirectory() && isSkippedDir(name)) continue;
     if (name === ".DS_Store") continue;
+    if (name === "node_modules" || name === ".git") continue;
+    if (!ig && entry.isDirectory() && isSkippedDir(name)) continue;
     const rel = normalized ? `${normalized}/${name}` : name;
+    if (ig) {
+      const check = entry.isDirectory() ? `${rel}/` : rel;
+      try {
+        if (ig.ignores(check)) continue;
+      } catch {
+        /* invalid path for ignore — keep entry */
+      }
+    }
     const abs = path.join(target, name);
     items.push(toWorkspaceSuggestion(abs, rel, name, entry.isDirectory()));
   }
