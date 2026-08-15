@@ -1,0 +1,29 @@
+docs/superpowers/plans/2026-08-15-diff-pane-revert-commit.md
+  7cfc5350e2475b47 1-770
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f1b26c83a059b2346723e06341ca1369bb2029c8",
+  "prompts": {
+    "7cfc5350e2475b47": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3514b386-0b4d-4ef9-986a-151cc5727d56",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 770,
+      "total_deletions": 0,
+      "accepted_lines": 770,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-15-diff-pane-revert-commit.md": {
+          "additions": 770,
+          "accepted_lines": 770
+        }
+      }
+    }
+  }
+}
