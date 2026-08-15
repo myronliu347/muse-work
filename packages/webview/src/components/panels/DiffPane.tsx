@@ -35,6 +35,14 @@ const STATUS_LABEL: Record<WorkspaceFileStatus, string> = {
   untracked: "未跟踪",
 };
 
+const STATUS_ICON: Record<WorkspaceFileStatus, string> = {
+  added: "codicon-diff-added",
+  modified: "codicon-diff-modified",
+  deleted: "codicon-diff-removed",
+  renamed: "codicon-diff-renamed",
+  untracked: "codicon-diff-added",
+};
+
 export interface DiffComment {
   path?: string;
   prefix?: string;
@@ -438,8 +446,12 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           <i
             className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
           />
-          <span className={`diff-file-status diff-file-status-${file.status}`}>
-            {STATUS_LABEL[file.status]}
+          <span
+            className={`diff-file-status diff-file-status-${file.status}`}
+            title={STATUS_LABEL[file.status]}
+            aria-label={STATUS_LABEL[file.status]}
+          >
+            <i className={`codicon ${STATUS_ICON[file.status]}`} />
           </span>
           <span
             className="diff-file-path"

@@ -47,10 +47,13 @@
 
 .diff-file-status {
   flex-shrink: 0;
-  font-size: var(--font-size-1);
-  padding: var(--space-1) var(--space-1);
-  border-radius: var(--radius-1);
-  border: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.diff-file-status .codicon {
+  font-size: var(--font-size-2);
 }
 
 .diff-file-status-added {

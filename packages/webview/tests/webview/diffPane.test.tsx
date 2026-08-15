@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
@@ -106,8 +107,16 @@ describe("DiffPane", () => {
     ]);
     expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
     expect(screen.getByTestId("diff-file-added")).toBeInTheDocument();
-    expect(screen.getByText("修改")).toBeInTheDocument();
-    expect(screen.getByText("新增")).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("diff-file-modified")
+        .querySelector(".codicon-diff-modified"),
+    ).not.toBeNull();
+    expect(
+      screen.getByTestId("diff-file-added").querySelector(".codicon-diff-added"),
+    ).not.toBeNull();
+    expect(screen.queryByText("修改")).not.toBeInTheDocument();
+    expect(screen.queryByText("新增")).not.toBeInTheDocument();
     expect(screen.getByText("+2")).toBeInTheDocument();
     expect(screen.getByText("-1")).toBeInTheDocument();
   });
