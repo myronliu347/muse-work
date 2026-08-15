@@ -358,18 +358,18 @@ export const Message: React.FC<MessageProps> = React.memo(
 
     const getToolStatusColor = (toolBlock: ToolBlock) =>
       toolBlock.stage === "running" || toolBlock.stage === "streaming"
-        ? "var(--vscode-editorWarning-foreground, #cca700)"
+        ? "var(--amber-11)"
         : toolBlock.success === true
-          ? "var(--vscode-testing-iconPassed, #73c991)"
+          ? "var(--green-11)"
           : toolBlock.error || toolBlock.success === false
-            ? "var(--vscode-testing-iconFailed, #f14c4c)"
-            : "var(--vscode-descriptionForeground, #888)";
+            ? "var(--red-11)"
+            : "var(--gray-11)";
 
     // Dot color for text/reasoning blocks: yellow while streaming, green once done.
     const getStageColor = (stage?: "streaming" | "end") =>
       stage === "streaming"
-        ? "var(--vscode-editorWarning-foreground, #cca700)"
-        : "var(--vscode-testing-iconPassed, #73c991)";
+        ? "var(--amber-11)"
+        : "var(--green-11)";
 
     const isToolActive = (stage?: string) =>
       stage === "running" || stage === "streaming";

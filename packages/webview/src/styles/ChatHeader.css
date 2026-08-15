@@ -50,8 +50,8 @@
 }
 
 .header-button.active {
-  background-color: var(--vscode-toolbar-activeBackground);
-  color: var(--vscode-button-background);
+  background-color: var(--gray-4);
+  color: var(--accent-9);
 }
 
 .header-button:hover {
@@ -62,8 +62,8 @@
   position: absolute;
   top: -2px;
   right: -2px;
-  background-color: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
+  background-color: var(--gray-8);
+  color: var(--gray-12);
   font-size: var(--font-size-1);
   min-width: 12px;
   height: 12px;

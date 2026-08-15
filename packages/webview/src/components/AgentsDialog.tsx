@@ -120,7 +120,7 @@ const AgentsDialog: React.FC<
                       <span
                         style={{
                           fontSize: "12px",
-                          color: "var(--vscode-descriptionForeground)",
+                          color: "var(--gray-11)",
                         }}
                       >
                         {SCOPE_LABELS[selectedAgent.scope] ||
@@ -132,7 +132,7 @@ const AgentsDialog: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--vscode-descriptionForeground)",
+                        color: "var(--gray-11)",
                       }}
                     >
                       {selectedAgent.description}
@@ -177,12 +177,12 @@ const AgentsDialog: React.FC<
                     <pre
                       style={{
                         background:
-                          "var(--vscode-textCodeBlock-background, rgba(0,0,0,0.15))",
+                          "var(--gray-3))",
                         padding: "8px",
                         borderRadius: "4px",
                         fontSize: "12px",
                         fontFamily:
-                          "var(--vscode-editor-font-family, monospace)",
+                          "Menlo, Monaco, 'Courier New', monospace",
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
                         margin: "4px 0 0 0",
@@ -206,7 +206,7 @@ const AgentsDialog: React.FC<
                     style={{
                       fontSize: "12px",
                       fontWeight: "bold",
-                      color: "var(--vscode-descriptionForeground)",
+                      color: "var(--gray-11)",
                       margin: "8px 0 4px 0",
                     }}
                   >
@@ -226,7 +226,7 @@ const AgentsDialog: React.FC<
                             <span
                               style={{
                                 fontSize: "12px",
-                                color: "var(--vscode-descriptionForeground)",
+                                color: "var(--gray-11)",
                               }}
                             >
                               · {agent.model}
@@ -237,7 +237,7 @@ const AgentsDialog: React.FC<
                           <div
                             style={{
                               fontSize: "12px",
-                              color: "var(--vscode-descriptionForeground)",
+                              color: "var(--gray-11)",
                             }}
                           >
                             {agent.description}

@@ -13,7 +13,7 @@
   width: 100%;
   max-width: 640px;
   max-height: min(80vh, 720px);
-  background-color: var(--color-panel, var(--vscode-dropdown-background));
+  background-color: var(--color-panel, var(--gray-3));
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);

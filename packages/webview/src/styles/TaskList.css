@@ -5,8 +5,8 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3) var(--space-3);
-  background-color: var(--vscode-menu-background);
-  border: 1px solid var(--vscode-widget-border);
+  background-color: var(--gray-3);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   box-sizing: border-box;
   max-width: 800px;
@@ -33,7 +33,7 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   line-height: var(--line-height-1);
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   white-space: nowrap;
 }
 
@@ -60,14 +60,14 @@
   font-size: var(--font-size-1);
   font-weight: 400;
   line-height: var(--line-height-1);
-  color: var(--vscode-editor-foreground);
+  color: var(--gray-12);
   white-space: nowrap;
 }
 
 .task-list-chevron {
   width: 16px;
   height: 16px;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   transition: transform 0.15s ease;
 }
 
@@ -125,16 +125,16 @@
   font-weight: 400;
   line-height: var(--line-height-1);
   word-break: break-word;
-  color: var(--vscode-editor-foreground);
+  color: var(--gray-12);
 }
 
 .task-title.completed {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   text-decoration: line-through;
 }
 
 .task-title.deleted {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   text-decoration: line-through;
 }
 
@@ -142,7 +142,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   line-height: var(--line-height-1);
-  color: var(--vscode-textLink-foreground, #48a0c7);
+  color: var(--accent-11);
 }
 
 @keyframes spin {

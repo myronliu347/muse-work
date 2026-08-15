@@ -28,7 +28,7 @@ const initMermaidForTheme = () => {
       theme,
       securityLevel: "strict",
       htmlLabels: false,
-      fontFamily: "var(--vscode-font-family, monospace)",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
       deterministicIds: true,
       deterministicIDSeed: "wave-vscode",
       flowchart: {

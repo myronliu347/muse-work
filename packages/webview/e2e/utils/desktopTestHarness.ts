@@ -20,16 +20,6 @@ export const test = base.extend<DesktopTestContext>({
     });
 
     const webviewDistPath = path.join(process.cwd(), "dist");
-    const vscodeStylesPath = path.join(
-      process.cwd(),
-      "theme",
-      "theme-base-dark.css",
-    );
-
-    let vscodeStyles = "";
-    if (fs.existsSync(vscodeStylesPath)) {
-      vscodeStyles = fs.readFileSync(vscodeStylesPath, "utf8");
-    }
 
     const codiconsCssPath = path.join(
       process.cwd(),
@@ -107,7 +97,7 @@ export const test = base.extend<DesktopTestContext>({
 
     const testHtml = `
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -119,14 +109,8 @@ export const test = base.extend<DesktopTestContext>({
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/chat.css">
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/terminal.css">
     <style>
-        ${vscodeStyles}
-
         body {
             margin: 0;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
         }
 
         #root {

@@ -78,8 +78,8 @@ const StatusDialog: React.FC<
       <div
         style={{
           fontSize: "13px",
-          color: "var(--vscode-descriptionForeground)",
-          fontFamily: "var(--vscode-editor-font-family, monospace)",
+          color: "var(--gray-11)",
+          fontFamily: "Menlo, Monaco, 'Courier New', monospace",
           wordBreak: "break-all",
           padding: "4px 0",
         }}
@@ -111,8 +111,8 @@ const StatusDialog: React.FC<
                   alignItems: "center",
                   gap: "8px",
                   fontSize: "13px",
-                  color: "var(--vscode-descriptionForeground)",
-                  fontFamily: "var(--vscode-editor-font-family, monospace)",
+                  color: "var(--gray-11)",
+                  fontFamily: "Menlo, Monaco, 'Courier New', monospace",
                   wordBreak: "break-all",
                   padding: "4px 0",
                 }}

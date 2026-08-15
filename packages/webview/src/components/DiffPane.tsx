@@ -208,7 +208,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     const handle = e.currentTarget as HTMLElement;
     // Keep the handle lit + cursor locked for the whole drag — :hover and the
     // 6px-only col-resize cursor both flicker as the pointer outruns the handle.
-    handle.style.background = "var(--vscode-focusBorder, #007fd4)";
+    handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");
     const rect = asideRef.current?.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {

@@ -31,7 +31,7 @@ const statusColor = (status: string): string => {
     case "paused":
       return "#dcdcaa";
     default:
-      return "var(--vscode-descriptionForeground)";
+      return "var(--gray-11)";
   }
 };
 
@@ -130,7 +130,7 @@ const WorkflowManager: React.FC<
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--vscode-descriptionForeground)",
+                color: "var(--gray-11)",
               }}
             >
               <span style={{ color: "#569cd6" }}>Run ID:</span>{" "}
@@ -140,7 +140,7 @@ const WorkflowManager: React.FC<
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--vscode-descriptionForeground)",
+                  color: "var(--gray-11)",
                 }}
               >
                 <span style={{ color: "#569cd6" }}>Description:</span>{" "}
@@ -150,7 +150,7 @@ const WorkflowManager: React.FC<
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--vscode-descriptionForeground)",
+                color: "var(--gray-11)",
               }}
             >
               <span style={{ color: "#569cd6" }}>Started:</span>{" "}
@@ -169,7 +169,7 @@ const WorkflowManager: React.FC<
             <div
               style={{
                 fontSize: "12px",
-                color: "var(--vscode-descriptionForeground)",
+                color: "var(--gray-11)",
               }}
             >
               <span style={{ color: "#569cd6" }}>Agents:</span>{" "}
@@ -182,7 +182,7 @@ const WorkflowManager: React.FC<
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--vscode-descriptionForeground)",
+                  color: "var(--gray-11)",
                   wordBreak: "break-all",
                 }}
               >
@@ -240,7 +240,7 @@ const WorkflowManager: React.FC<
                 key={i}
                 style={{
                   fontSize: "12px",
-                  color: "var(--vscode-descriptionForeground)",
+                  color: "var(--gray-11)",
                   marginLeft: "8px",
                   marginBottom: "2px",
                 }}
@@ -288,7 +288,7 @@ const WorkflowManager: React.FC<
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "var(--vscode-descriptionForeground)",
+                    color: "var(--gray-11)",
                   }}
                 >
                   {run.meta.description}
@@ -297,7 +297,7 @@ const WorkflowManager: React.FC<
               <div
                 style={{
                   fontSize: "12px",
-                  color: "var(--vscode-descriptionForeground)",
+                  color: "var(--gray-11)",
                 }}
               >
                 {run.totalAgents} agents · {formatTokens(run.totalTokens)}{" "}
@@ -307,7 +307,7 @@ const WorkflowManager: React.FC<
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "var(--vscode-descriptionForeground)",
+                    color: "var(--gray-11)",
                   }}
                 >
                   {phases.map((p, pi) => (

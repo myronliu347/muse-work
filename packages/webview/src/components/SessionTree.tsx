@@ -304,8 +304,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               className={`codicon codicon-${waiting ? "bell" : "loading codicon-modifier-spin"} desktop-session-status-icon`}
               style={{
                 color: waiting
-                  ? "var(--vscode-charts-purple, #b180d7)"
-                  : "var(--vscode-charts-blue, #59a4f9)",
+                  ? "var(--accent-11)"
+                  : "var(--accent-9)",
               }}
               title={waiting ? "等待确认" : "正在运行"}
             />

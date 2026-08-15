@@ -10,7 +10,6 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, "..");
 const webviewDist = path.resolve(desktopRoot, "../webview/dist");
-const themeDir = path.resolve(desktopRoot, "../webview/theme");
 const outDir = path.join(desktopRoot, "webview");
 
 // Muse webview talks to localhost HTTP + WS (not Wave IPC).
@@ -31,12 +30,6 @@ for (const file of ["chat.js", "chat.css", "terminal.js", "terminal.css"]) {
     process.exit(1);
   }
 }
-for (const file of ["theme-base-dark.css", "theme-base-light.css"]) {
-  if (!fs.existsSync(path.join(themeDir, file))) {
-    console.error(`[syncWebview] Missing ${file} in ${themeDir}.`);
-    process.exit(1);
-  }
-}
 
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
@@ -49,21 +42,10 @@ fs.copyFileSync(
   path.join(outDir, "terminal.js"),
 );
 
-const rewriteThemeBase = (css, theme) =>
-  css.replace(/:root\s*\{/g, `:root[data-theme="${theme}"] {`);
-
 const chatCss = fs.readFileSync(path.join(webviewDist, "chat.css"), "utf-8");
 const terminalCss = fs.readFileSync(
   path.join(webviewDist, "terminal.css"),
   "utf-8",
-);
-const darkThemeCss = rewriteThemeBase(
-  fs.readFileSync(path.join(themeDir, "theme-base-dark.css"), "utf-8"),
-  "dark",
-);
-const lightThemeCss = rewriteThemeBase(
-  fs.readFileSync(path.join(themeDir, "theme-base-light.css"), "utf-8"),
-  "light",
 );
 const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
@@ -73,8 +55,6 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Muse</title>
   <style>
-${darkThemeCss}
-${lightThemeCss}
 ${chatCss}
 ${terminalCss}
 </style>

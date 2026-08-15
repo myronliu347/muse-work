@@ -69,7 +69,7 @@
 .sticky-user-content {
   font-size: var(--font-size-1);
   line-height: 1.45;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;

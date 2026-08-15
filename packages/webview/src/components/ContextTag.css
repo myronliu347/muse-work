@@ -4,8 +4,8 @@
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-2);
   font-size: var(--font-size-1);
-  background-color: var(--vscode-editor-inactiveSelectionBackground);
-  color: var(--vscode-foreground);
+  background-color: var(--gray-4);
+  color: var(--gray-12);
   margin: var(--space-1);
   user-select: none;
   max-width: 200px;
@@ -27,8 +27,8 @@
 }
 
 .context-tag.clickable:hover {
-  background-color: var(--vscode-editor-selectionBackground);
-  color: var(--vscode-button-foreground);
+  background-color: color-mix(in srgb, var(--accent-9) 30%, transparent);
+  color: #ffffff;
   text-decoration: none;
   box-shadow: 0 var(--space-1) var(--space-1) rgba(0, 0, 0, 0.2);
 }

@@ -81,15 +81,15 @@ const readPalette = (): Record<string, string> => {
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
   return {
-    accent: pick("--vscode-button-background", "#0e639c"),
-    accentForeground: pick("--vscode-button-foreground", "#ffffff"),
-    foreground: pick("--vscode-foreground", "#cccccc"),
+    accent: pick("--accent-9", "#c1292e"),
+    accentForeground: "#ffffff",
+    foreground: pick("--gray-12", "#cccccc"),
     background:
-      pick("--vscode-panel-background", "") ||
-      pick("--vscode-editor-background", "#1e1e1e"),
-    border: pick("--vscode-panel-border", "rgba(128, 128, 128, 0.35)"),
-    inputBackground: pick("--vscode-input-background", "#3c3c3c"),
-    inputForeground: pick("--vscode-input-foreground", "#cccccc"),
+      pick("--gray-2", "") ||
+      pick("--gray-1", "#1e1e1e"),
+    border: pick("--gray-6", "rgba(128, 128, 128, 0.35)"),
+    inputBackground: pick("--gray-3", "#3c3c3c"),
+    inputForeground: pick("--gray-12", "#cccccc"),
   };
 };
 
@@ -307,7 +307,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     const handle = e.currentTarget as HTMLElement;
     // Keep the handle lit + cursor locked for the whole drag — :hover and the
     // 6px-only col-resize cursor both flicker as the pointer outruns the handle.
-    handle.style.background = "var(--vscode-focusBorder, #007fd4)";
+    handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");
     const rect = asideRef.current?.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {

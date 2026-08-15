@@ -149,7 +149,7 @@ const BackgroundTaskManager: React.FC<
       case "killed":
         return "#dcdcaa";
       default:
-        return "var(--vscode-descriptionForeground)";
+        return "var(--gray-11)";
     }
   };
 
@@ -196,7 +196,7 @@ const BackgroundTaskManager: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--vscode-descriptionForeground)",
+                        color: "var(--gray-11)",
                       }}
                     >
                       {selectedTask.description}
@@ -206,9 +206,9 @@ const BackgroundTaskManager: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--vscode-descriptionForeground)",
+                        color: "var(--gray-11)",
                         fontFamily:
-                          "var(--vscode-editor-font-family, monospace)",
+                          "Menlo, Monaco, 'Courier New', monospace",
                         wordBreak: "break-all",
                       }}
                     >
@@ -218,7 +218,7 @@ const BackgroundTaskManager: React.FC<
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "var(--vscode-descriptionForeground)",
+                      color: "var(--gray-11)",
                     }}
                   >
                     Started: {formatTime(selectedTask.startTime)}
@@ -229,9 +229,9 @@ const BackgroundTaskManager: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--vscode-descriptionForeground)",
+                        color: "var(--gray-11)",
                         fontFamily:
-                          "var(--vscode-editor-font-family, monospace)",
+                          "Menlo, Monaco, 'Courier New', monospace",
                         wordBreak: "break-all",
                       }}
                     >
@@ -265,11 +265,11 @@ const BackgroundTaskManager: React.FC<
                 <pre
                   style={{
                     background:
-                      "var(--vscode-textCodeBlock-background, rgba(0,0,0,0.15))",
+                      "var(--gray-3))",
                     padding: "8px",
                     borderRadius: "4px",
                     fontSize: "12px",
-                    fontFamily: "var(--vscode-editor-font-family, monospace)",
+                    fontFamily: "Menlo, Monaco, 'Courier New', monospace",
                     maxHeight: "200px",
                     overflow: "auto",
                     whiteSpace: "pre-wrap",
@@ -297,13 +297,13 @@ const BackgroundTaskManager: React.FC<
                     <pre
                       style={{
                         background:
-                          "var(--vscode-textCodeBlock-background, rgba(0,0,0,0.15))",
+                          "var(--gray-3))",
                         padding: "8px",
                         borderRadius: "4px",
                         fontSize: "12px",
                         color: "#f48771",
                         fontFamily:
-                          "var(--vscode-editor-font-family, monospace)",
+                          "Menlo, Monaco, 'Courier New', monospace",
                         maxHeight: "150px",
                         overflow: "auto",
                         whiteSpace: "pre-wrap",
@@ -344,7 +344,7 @@ const BackgroundTaskManager: React.FC<
                       <div
                         style={{
                           fontSize: "12px",
-                          color: "var(--vscode-descriptionForeground)",
+                          color: "var(--gray-11)",
                         }}
                       >
                         {task.description}
@@ -354,9 +354,9 @@ const BackgroundTaskManager: React.FC<
                       <div
                         style={{
                           fontSize: "12px",
-                          color: "var(--vscode-descriptionForeground)",
+                          color: "var(--gray-11)",
                           fontFamily:
-                            "var(--vscode-editor-font-family, monospace)",
+                            "Menlo, Monaco, 'Courier New', monospace",
                           wordBreak: "break-all",
                         }}
                       >
@@ -366,7 +366,7 @@ const BackgroundTaskManager: React.FC<
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "var(--vscode-descriptionForeground)",
+                        color: "var(--gray-11)",
                       }}
                     >
                       Started: {formatTime(task.startTime)}

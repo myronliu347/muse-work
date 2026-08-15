@@ -48,23 +48,19 @@ export function prefetchTerminalLib(): void {
   loadTerminalLib().catch(() => {});
 }
 
-/** Terminal colors follow the app theme via --vscode-* variables. */
+/** Terminal colors follow the Muse Radix theme tokens. */
 const readTerminalTheme = () => {
   const styles = getComputedStyle(document.documentElement);
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
-  const background =
-    pick("--vscode-panel-background", "") ||
-    pick("--vscode-editor-background", "#1e1e1e");
-  const foreground = pick("--vscode-foreground", "#cccccc");
+  const background = pick("--gray-2", "") || pick("--gray-1", "#1e1e1e");
+  const foreground = pick("--gray-12", "#cccccc");
+  const accent = pick("--accent-9", "#c1292e");
   return {
     background,
     foreground,
-    cursor: pick("--vscode-editorCursor-foreground", foreground),
-    selectionBackground: pick(
-      "--vscode-editor-selectionBackground",
-      "rgba(255, 255, 255, 0.25)",
-    ),
+    cursor: foreground,
+    selectionBackground: `color-mix(in srgb, ${accent} 30%, transparent)`,
   };
 };
 
@@ -208,10 +204,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       .then((lib) => {
         if (disposed || !containerRef.current) return;
         const term = new lib.Terminal({
-          fontFamily:
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--vscode-editor-font-family")
-              .trim() || 'Menlo, Monaco, "Courier New", monospace',
+          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
           fontSize: 12,
           cursorBlink: true,
           theme: readTerminalTheme(),
@@ -323,7 +316,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const handle = e.currentTarget as HTMLElement;
     // Keep the handle lit + cursor locked for the whole drag — :hover and the
     // 6px-only col-resize cursor both flicker as the pointer outruns the handle.
-    handle.style.background = "var(--vscode-focusBorder, #007fd4)";
+    handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");
     const rect = asideRef.current?.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {

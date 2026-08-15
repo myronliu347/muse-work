@@ -16,8 +16,8 @@
   width: 200px;
   box-sizing: border-box;
   padding: var(--space-2);
-  background-color: var(--vscode-menu-background);
-  border: 1px solid var(--vscode-widget-border);
+  background-color: var(--gray-3);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
 }
@@ -31,12 +31,12 @@
   border-radius: var(--radius-2);
   font-size: var(--font-size-1);
   font-weight: 500;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   cursor: pointer;
 }
 
 .panel-toggle-menu-item:hover {
-  background-color: var(--vscode-list-hoverBackground);
+  background-color: var(--gray-4);
 }
 
 .panel-toggle-menu-item--disabled {
@@ -66,5 +66,5 @@
 .panel-toggle-menu-shortcut {
   flex-shrink: 0;
   font-size: var(--font-size-1);
-  color: var(--vscode-descriptionForeground, #999);
+  color: var(--gray-11);
 }

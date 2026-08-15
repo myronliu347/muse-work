@@ -47,16 +47,6 @@ export const test = base.extend<WebviewTestContext>({
 
     // Load the React webview app for testing
     const webviewDistPath = path.join(process.cwd(), "dist");
-    const vscodeStylesPath = path.join(
-      process.cwd(),
-      "theme",
-      "theme-base-dark.css",
-    );
-
-    let vscodeStyles = "";
-    if (fs.existsSync(vscodeStylesPath)) {
-      vscodeStyles = fs.readFileSync(vscodeStylesPath, "utf8");
-    }
 
     // Resolve codicons paths for local serving (avoid CDN)
     const codiconsCssPath = path.join(
@@ -142,7 +132,7 @@ export const test = base.extend<WebviewTestContext>({
     // Create a minimal HTML page that matches the React app structure
     const testHtml = `
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -150,16 +140,8 @@ export const test = base.extend<WebviewTestContext>({
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/codicons/codicon.css">
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/chat.css">
     <style>
-        /* Global VS Code CSS Variables for Testing */
-        ${vscodeStyles}
-
-        /* Ensure body has proper styling */
         body {
             margin: 0;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
         }
 
         #root {

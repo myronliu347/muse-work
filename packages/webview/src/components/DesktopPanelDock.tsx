@@ -32,7 +32,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const onDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
     const handle = e.currentTarget as HTMLElement;
-    handle.style.background = "var(--vscode-focusBorder, #007fd4)";
+    handle.style.background = "var(--accent-9)";
     document.body.classList.add("is-panel-resizing");
     const rect = dockRef.current?.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {

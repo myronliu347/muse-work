@@ -16,7 +16,7 @@ export interface WelcomeViewProps {
   onLogin: () => void;
 }
 
-const FONT_FAMILY = '"PingFang SC", var(--vscode-font-family, sans-serif)';
+const FONT_FAMILY = '"PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
 
 const WelcomeView: React.FC<WelcomeViewProps> = ({
   isAuthenticated,
@@ -79,7 +79,7 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
               fontSize: "13px",
               fontFamily: FONT_FAMILY,
               fontWeight: 600,
-              color: "var(--vscode-foreground, white)",
+              color: "var(--gray-12)",
               lineHeight: "18px",
             }}
           >
@@ -90,7 +90,7 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
               fontSize: "13px",
               fontFamily: FONT_FAMILY,
               fontWeight: 400,
-              color: "var(--vscode-descriptionForeground, #8c8c8c)",
+              color: "var(--gray-11)",
               lineHeight: "26px",
             }}
           >
@@ -102,7 +102,7 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
                 fontSize: "13px",
                 fontFamily: FONT_FAMILY,
                 fontWeight: 400,
-                color: "var(--vscode-descriptionForeground, #8c8c8c)",
+                color: "var(--gray-11)",
                 lineHeight: "26px",
               }}
             >
@@ -119,8 +119,8 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
               width: "100%",
               height: "32px",
               minHeight: "32px",
-              background: "var(--vscode-brand-primary, #c1292e)",
-              color: "var(--vscode-button-foreground, white)",
+              background: "var(--accent-9)",
+              color: "#ffffff",
               border: "none",
               borderRadius: "6px",
               fontSize: "13px",

@@ -284,14 +284,14 @@ describe("TerminalPane", () => {
     await act(async () => {});
     const before = mockTerminals[0].options.theme;
     document.documentElement.style.setProperty(
-      "--vscode-panel-background",
+      "--gray-2",
       "#112233",
     );
     sendCommand("desktopThemeChange", {});
     const after = mockTerminals[0].options.theme as { background: string };
     expect(after.background).toBe("#112233");
     expect(after).not.toBe(before);
-    document.documentElement.style.removeProperty("--vscode-panel-background");
+    document.documentElement.style.removeProperty("--gray-2");
   });
 
   // Clicking a URL printed in the terminal routes the same way Message.tsx

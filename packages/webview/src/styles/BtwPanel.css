@@ -3,8 +3,8 @@
   bottom: 100%; /* Anchor to the top of .input-wrapper (= top of the input box) */
   margin-bottom: var(--space-2); /* Gap above the input */
   z-index: 1000;
-  background-color: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border);
+  background-color: var(--gray-3);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   box-shadow: 0 var(--space-1) var(--space-3) rgba(0, 0, 0, 0.2);
   width: 100%;
@@ -23,19 +23,19 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--vscode-dropdown-border);
-  background-color: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--gray-6);
+  background-color: var(--gray-1);
   font-size: var(--font-size-1);
 }
 
 .btw-panel-prefix {
-  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+  color: var(--amber-11);
   font-weight: bold;
   white-space: nowrap;
 }
 
 .btw-panel-question {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,15 +47,15 @@
   border: none;
   padding: var(--space-1);
   cursor: pointer;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   display: flex;
   align-items: center;
   border-radius: var(--radius-1);
 }
 
 .btw-panel-close:hover {
-  background-color: var(--vscode-toolbar-hoverBackground);
-  color: var(--vscode-foreground);
+  background-color: var(--gray-4);
+  color: var(--gray-12);
 }
 
 .btw-panel-loading {
@@ -63,18 +63,18 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-size: var(--font-size-1);
 }
 
 .btw-loading-indicator {
-  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+  color: var(--amber-11);
   animation: blink 1s ease-in-out infinite;
 }
 
 .btw-loading-text {
   font-weight: bold;
-  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+  color: var(--amber-11);
 }
 
 .btw-panel-answer {
@@ -94,19 +94,19 @@
 }
 
 .btw-panel-answer pre {
-  background-color: var(--vscode-textCodeBlock-background);
-  border: 1px solid var(--vscode-dropdown-border);
+  background-color: var(--gray-3);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   padding: var(--space-2);
   overflow-x: auto;
 }
 
 .btw-panel-answer code {
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: Menlo, Monaco, 'Courier New', monospace;
 }
 
 .btw-panel-answer a {
-  color: var(--vscode-textLink-foreground);
+  color: var(--accent-11);
 }
 
 .btw-panel-answer ul,

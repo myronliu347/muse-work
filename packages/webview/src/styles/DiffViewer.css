@@ -3,10 +3,10 @@
 /* Main container */
 .diff-viewer-container {
   margin: var(--space-1) 0;
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   overflow: hidden;
-  background-color: var(--vscode-editor-background);
+  background-color: var(--gray-1);
   max-height: 300px;
   display: flex;
   flex-direction: column;
@@ -16,18 +16,13 @@
 .diff-viewer-content {
   flex: 1;
   overflow-y: auto;
-  font-family: var(
-    --vscode-editor-font-family,
-    "Consolas",
-    "Monaco",
-    monospace
-  );
+  font-family: Menlo, Monaco, 'Courier New', monospace;
   font-size: var(--font-size-1);
   line-height: 1.2;
 }
 
 .diff-viewer-content:focus {
-  outline: 1px solid var(--vscode-focusBorder);
+  outline: 1px solid var(--accent-9);
   outline-offset: -var(--space-1);
 }
 
@@ -67,61 +62,49 @@
 
 /* Added lines (green) */
 .diff-line-added {
-  background-color: var(
-    --vscode-diffEditor-insertedTextBackground,
-    rgba(0, 255, 0, 0.1)
-  );
+  background-color: color-mix(in srgb, var(--green-9) 18%, transparent);
 }
 
 .diff-line-added .diff-prefix {
-  color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  color: var(--green-11);
 }
 
 /* Removed lines (red) */
 .diff-line-removed {
-  background-color: var(
-    --vscode-diffEditor-removedTextBackground,
-    rgba(255, 0, 0, 0.1)
-  );
+  background-color: color-mix(in srgb, var(--red-9) 18%, transparent);
 }
 
 .diff-line-removed .diff-prefix {
-  color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149);
+  color: var(--red-11);
 }
 
 /* Context lines (unchanged) */
 .diff-line-context .diff-prefix {
-  color: var(--vscode-editorLineNumber-foreground);
+  color: var(--gray-9);
 }
 
 /* Word-level diff highlighting */
 .diff-word-added {
-  background-color: var(
-    --vscode-diffEditor-insertedTextBackground,
-    rgba(0, 255, 0, 0.3)
-  );
-  color: var(--vscode-diffEditor-insertedTextForeground);
+  background-color: color-mix(in srgb, var(--green-9) 18%, transparent);
+  color: var(--green-11);
 }
 
 .diff-word-removed {
-  background-color: var(
-    --vscode-diffEditor-removedTextBackground,
-    rgba(255, 0, 0, 0.3)
-  );
-  color: var(--vscode-diffEditor-removedTextForeground);
+  background-color: color-mix(in srgb, var(--red-9) 18%, transparent);
+  color: var(--red-11);
   text-decoration: line-through;
 }
 
 .diff-word-unchanged {
-  color: var(--vscode-editor-foreground);
+  color: var(--gray-12);
 }
 
 /* Error state */
 .diff-error {
   padding: var(--space-3);
-  color: var(--vscode-errorForeground);
-  background-color: var(--vscode-inputValidation-errorBackground);
-  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  color: var(--red-11);
+  background-color: color-mix(in srgb, var(--red-9) 15%, transparent);
+  border: 1px solid var(--red-9);
   border-radius: var(--radius-2);
   margin: var(--space-1);
 }
@@ -130,13 +113,13 @@
 .diff-empty {
   padding: var(--space-4);
   text-align: center;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-style: italic;
 }
 
 /* Ellipsis line for truncated context */
 .diff-line-ellipsis {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   padding: var(--space-1) var(--space-5);
   font-style: italic;
   user-select: none;
@@ -149,14 +132,14 @@
 }
 
 .diff-viewer-content::-webkit-scrollbar-track {
-  background: var(--vscode-scrollbar-shadow);
+  background: transparent;
 }
 
 .diff-viewer-content::-webkit-scrollbar-thumb {
-  background: var(--vscode-scrollbarSlider-background);
+  background: color-mix(in srgb, var(--gray-8) 40%, transparent);
   border-radius: var(--radius-2);
 }
 
 .diff-viewer-content::-webkit-scrollbar-thumb:hover {
-  background: var(--vscode-scrollbarSlider-hoverBackground);
+  background: color-mix(in srgb, var(--gray-8) 70%, transparent);
 }

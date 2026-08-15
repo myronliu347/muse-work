@@ -16,17 +16,14 @@
    partial-row remainder below the canvas would show as a black bar. Keep it
    opaque (scrollbar rendering) but matched to the terminal theme background. */
 .terminal-pane-body .xterm .xterm-viewport {
-  background-color: var(
-    --vscode-panel-background,
-    var(--vscode-editor-background)
-  );
+  background-color: var(--gray-2);
 }
 
 /* Loading / exited overlays sit above the (possibly dead) xterm element. */
 .terminal-pane-body > .desktop-panel-placeholder {
   position: absolute;
   inset: 0;
-  background: var(--vscode-panel-background, var(--vscode-editor-background));
+  background: var(--gray-2);
   z-index: 1;
 }
 

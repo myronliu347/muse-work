@@ -168,13 +168,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     {
       count: completed,
       label: "已完成",
-      color: "var(--vscode-testing-iconPassed, #73c991)",
+      color: "var(--green-11)",
     },
-    { count: inProgress, label: "进行中", color: "var(--wave-blue, #75beff)" },
+    { count: inProgress, label: "进行中", color: "var(--accent-11)" },
     {
       count: pending,
       label: "待执行",
-      color: "var(--vscode-icon-foreground, #cccccc)",
+      color: "var(--gray-11)",
     },
   ];
 

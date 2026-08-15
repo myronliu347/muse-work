@@ -43,13 +43,13 @@ const OptionIndicator: React.FC<{ multiSelect: boolean; checked: boolean }> = ({
           width="15"
           height="15"
           rx="2.5"
-          fill="var(--vscode-checkbox-background)"
-          stroke="var(--vscode-checkbox-border)"
+          fill="var(--gray-3)"
+          stroke="var(--gray-7)"
         />
         {checked && (
           <path
             d="M4.25 8.1L6.35 9.55L11.25 4.35"
-            stroke="var(--vscode-checkbox-foreground)"
+            stroke="var(--accent-9)"
             strokeWidth="1.7"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -73,12 +73,12 @@ const OptionIndicator: React.FC<{ multiSelect: boolean; checked: boolean }> = ({
         r="7.5"
         stroke={
           checked
-            ? "var(--vscode-focusBorder)"
-            : "var(--vscode-checkbox-border)"
+            ? "var(--accent-9)"
+            : "var(--gray-7)"
         }
       />
       {checked && (
-        <circle cx="8" cy="8" r="3" fill="var(--vscode-focusBorder)" />
+        <circle cx="8" cy="8" r="3" fill="var(--accent-9)" />
       )}
     </svg>
   );

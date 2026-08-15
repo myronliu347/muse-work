@@ -284,7 +284,7 @@
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   opacity: 0;
   cursor: pointer;
   align-items: center;
@@ -298,7 +298,7 @@
 
 .desktop-session-workdir-add:hover {
   opacity: 1;
-  background: var(--vscode-toolbar-hoverBackground);
+  background: var(--gray-4);
 }
 
 .desktop-session-workdir-add .codicon {
@@ -311,8 +311,8 @@
   min-width: 160px;
   padding: var(--space-1);
   box-sizing: border-box;
-  background: var(--color-panel, var(--vscode-menu-background));
-  border: 1px solid var(--gray-6, var(--vscode-widget-border));
+  background: var(--color-panel, var(--gray-3));
+  border: 1px solid var(--gray-6, var(--gray-6));
   border-radius: var(--radius-3, var(--radius-4));
   box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
 }
@@ -326,7 +326,7 @@
   border: none;
   border-radius: var(--radius-2, var(--radius-2));
   background: transparent;
-  color: var(--gray-12, var(--vscode-foreground));
+  color: var(--gray-12, var(--gray-12));
   font: inherit;
   font-size: var(--font-size-1);
   font-weight: 500;
@@ -335,7 +335,7 @@
 }
 
 .desktop-context-menu-item:hover {
-  background: var(--gray-4, var(--vscode-list-hoverBackground));
+  background: var(--gray-4, var(--gray-4));
 }
 
 .desktop-session-items {
@@ -377,7 +377,7 @@
 
 /* Weak counterpart of --current: the session is shown in a non-focused pane. */
 .desktop-session-item--visible {
-  background: var(--vscode-list-inactiveSelectionBackground);
+  background: var(--gray-4);
 }
 
 .desktop-session-status-slot {
@@ -428,10 +428,10 @@
   min-width: 0;
   margin: 0;
   padding: 0 var(--space-1);
-  border: 1px solid var(--vscode-focusBorder, #007fd4);
+  border: 1px solid var(--accent-9);
   border-radius: var(--radius-1);
-  background: var(--vscode-input-background, transparent);
-  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  background: var(--gray-3);
+  color: var(--gray-12);
   font: inherit;
   font-size: var(--font-size-1);
   line-height: 1.3;
@@ -492,7 +492,7 @@
   padding: 0;
   border: none;
   background: none;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   opacity: 0.75;
   cursor: pointer;
   font-size: var(--font-size-2);
@@ -510,7 +510,7 @@
 }
 
 .desktop-session-delete:hover {
-  color: var(--vscode-errorForeground, #f14c4c);
+  color: var(--red-11);
 }
 
 .desktop-session-empty {
@@ -541,7 +541,7 @@
   align-items: center;
   gap: var(--space-1);
   font-size: var(--font-size-1);
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -550,7 +550,7 @@
 .desktop-worktree-checkbox input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
-  accent-color: var(--vscode-button-background);
+  accent-color: var(--accent-9);
 }
 
 .desktop-git-context {
@@ -559,7 +559,7 @@
   gap: var(--space-2);
   min-width: 0;
   font-size: var(--font-size-1);
-  color: var(--vscode-descriptionForeground, #8b8b8b);
+  color: var(--gray-11);
 }
 
 .desktop-git-context-item {
@@ -636,7 +636,7 @@
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
   z-index: 10000;
   font-size: var(--font-size-1);
 }
@@ -689,7 +689,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   opacity: 0.5;
   padding: var(--space-1);
   display: flex;
@@ -712,8 +712,8 @@
 .preview-pane {
   position: relative;
   flex-shrink: 0;
-  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
-  background: var(--vscode-sideBar-background, var(--vscode-panel-background));
+  border-left: 1px solid var(--gray-6));
+  background: var(--gray-2);
   overflow: visible;
 }
 
@@ -729,7 +729,7 @@
 
 /* Visible affordance on hover, matching the pane separator style. */
 .preview-pane-drag-handle:hover {
-  background: var(--vscode-focusBorder, #007fd4);
+  background: var(--accent-9);
 }
 
 /* While dragging a panel handle, lock the cursor globally so it doesn't
@@ -751,15 +751,15 @@ body.is-panel-resizing * {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-1);
-  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  border-bottom: 1px solid var(--gray-6));
   flex-shrink: 0;
 }
 
 .preview-pane-hint {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
-  color: var(--vscode-descriptionForeground, #999);
-  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  color: var(--gray-11);
+  border-bottom: 1px solid var(--gray-6));
   flex-shrink: 0;
 }
 
@@ -781,24 +781,24 @@ body.is-panel-resizing * {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .preview-pane-button:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 .preview-pane-button.active {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--gray-5);
+  color: var(--gray-12);
 }
 
 /* The global .codicon rule sets an explicit icon color, which beats the
    inherited button color — give the active icon its own selection color. */
 .preview-pane-button.active .codicon {
-  color: var(--vscode-list-activeSelectionIconForeground, currentColor);
+  color: var(--gray-12);
 }
 
 .preview-pane-body {
@@ -825,21 +825,18 @@ body.is-panel-resizing * {
   padding: var(--space-4);
   text-align: center;
   font-size: var(--font-size-1);
-  background: var(--vscode-editor-background);
-  color: var(--vscode-foreground);
+  background: var(--gray-1);
+  color: var(--gray-12);
 }
 
 .preview-pane-error .preview-pane-button {
   padding: var(--space-1) var(--space-3);
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground, #ffffff);
+  background: var(--accent-9);
+  color: #ffffff;
 }
 
 .preview-pane-error .preview-pane-button:hover {
-  background: var(
-    --vscode-button-hoverBackground,
-    var(--vscode-button-background)
-  );
+  background: var(--accent-10);
 }
 
 /* ---- Split-view panes (FR-032~036) ---- */
@@ -879,7 +876,7 @@ body.is-panel-resizing * {
 
 .desktop-row-separator:hover,
 .desktop-row-separator--active {
-  background: var(--vscode-focusBorder, #007fd4);
+  background: var(--accent-9);
 }
 
 /* VS Code-style translucent overlay over the half of a single-row layout
@@ -891,8 +888,8 @@ body.is-panel-resizing * {
   height: 50%;
   z-index: 7;
   pointer-events: none;
-  background: var(--vscode-editorGroup-dropBackground, rgba(0, 122, 204, 0.18));
-  border: 1px dashed var(--vscode-focusBorder, #007fd4);
+  background: color-mix(in srgb, var(--accent-9) 15%, transparent);
+  border: 1px dashed var(--accent-9);
 }
 
 .desktop-pane-dropzone--above {
@@ -914,7 +911,7 @@ body.is-panel-resizing * {
 
 .desktop-pane-separator:hover,
 .desktop-pane-separator--active {
-  background: var(--vscode-focusBorder, #007fd4);
+  background: var(--accent-9);
 }
 
 /* Insertion marker shown while dragging a pane header to reorder. */
@@ -924,7 +921,7 @@ body.is-panel-resizing * {
   bottom: 0;
   width: 2px;
   z-index: 7;
-  background: var(--vscode-focusBorder, #007fd4);
+  background: var(--accent-9);
   pointer-events: none;
 }
 
@@ -934,7 +931,7 @@ body.is-panel-resizing * {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  border-right: 1px solid var(--gray-6));
 }
 
 /* The pane fills the chat-container's parent; chat-container is flex:1 already,
@@ -962,7 +959,7 @@ body.is-panel-resizing * {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--vscode-focusBorder, #007fd4);
+  background: var(--accent-9);
   z-index: 5;
   pointer-events: none;
 }
@@ -985,14 +982,14 @@ body.is-panel-resizing * {
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   opacity: 0.6;
   cursor: pointer;
 }
 
 .desktop-pane-close:hover {
   opacity: 1;
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 /* ---- Conversation-level panel group: title column + tabbed dock ----
@@ -1032,7 +1029,7 @@ body.is-panel-resizing * {
   padding: var(--space-4);
   text-align: center;
   font-size: var(--font-size-1);
-  color: var(--vscode-descriptionForeground, #999);
+  color: var(--gray-11);
 }
 
 /* An inline ConfirmationDialog (plan preview / permission / AskUserQuestions)

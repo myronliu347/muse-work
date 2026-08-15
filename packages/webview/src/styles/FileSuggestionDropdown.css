@@ -1,15 +1,15 @@
 /* File Suggestion Dropdown Styles */
 .file-suggestion-dropdown {
-  background: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border);
+  background: var(--gray-3);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
-  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
   max-height: 300px;
   min-width: 300px;
   max-width: 500px;
   overflow-y: auto;
   z-index: 1000;
-  font-family: var(--vscode-font-family);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: var(--font-size-1);
   transform: translateY(-100%); /* Move dropdown up by its own height */
   transform-origin: bottom left; /* Dropdown expands upward from bottom */
@@ -20,7 +20,7 @@
   align-items: center;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  border-bottom: 1px solid var(--vscode-list-inactiveSelectionBackground);
+  border-bottom: 1px solid var(--gray-4);
   min-height: 40px;
   transition: background-color 0.1s ease;
 }
@@ -31,12 +31,12 @@
 
 .suggestion-item:hover,
 .suggestion-item.selected {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--gray-4);
 }
 
 .suggestion-item.selected {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--gray-5);
+  color: var(--gray-12);
 }
 
 .suggestion-icon {
@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--vscode-icon-foreground);
+  color: var(--gray-11);
 }
 
 .suggestion-content {
@@ -74,7 +74,7 @@
 }
 
 .suggestion-name {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -82,7 +82,7 @@
 }
 
 .suggestion-path {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-size: var(--font-size-1);
   white-space: nowrap;
   overflow: hidden;
@@ -91,15 +91,15 @@
 }
 
 .suggestion-highlight {
-  background-color: var(--vscode-editor-findMatchHighlightBackground);
-  color: var(--vscode-editor-findMatchHighlightForeground);
+  background-color: color-mix(in srgb, var(--amber-9) 35%, transparent);
+  color: var(--gray-12);
   font-weight: bold;
   border-radius: var(--radius-1);
   padding: 0 var(--space-1);
 }
 
 .suggestion-empty {
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   font-style: italic;
   cursor: default;
 }
@@ -110,26 +110,26 @@
 
 /* Knowledge base option specific styles */
 .suggestion-item.kb-option {
-  border-bottom: 2px solid var(--vscode-panel-border);
-  background: var(--vscode-button-secondaryBackground);
+  border-bottom: 2px solid var(--gray-6);
+  background: transparent;
 }
 
 .suggestion-item.kb-option:hover,
 .suggestion-item.kb-option.selected {
-  background: var(--vscode-button-secondaryHoverBackground);
+  background: var(--gray-4);
 }
 
 .suggestion-item.kb-option .suggestion-icon {
-  color: var(--vscode-button-secondaryForeground);
+  color: var(--gray-11);
 }
 
 .suggestion-item.kb-option .suggestion-name {
-  color: var(--vscode-button-secondaryForeground);
+  color: var(--gray-11);
   font-weight: 600;
 }
 
 .suggestion-item.kb-option .suggestion-path {
-  color: var(--vscode-button-secondaryForeground);
+  color: var(--gray-11);
   opacity: 0.8;
 }
 
@@ -142,8 +142,8 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
-  border-bottom: 1px solid var(--vscode-dropdown-border);
-  background: var(--vscode-dropdown-background);
+  border-bottom: 1px solid var(--gray-6);
+  background: var(--gray-3);
   font-size: var(--font-size-1);
 }
 
@@ -162,14 +162,14 @@
 .suggestion-crumb-btn {
   border: none;
   background: transparent;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   cursor: pointer;
   padding: 0 var(--space-1);
   font: inherit;
 }
 
 .suggestion-crumb-btn:hover {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   text-decoration: underline;
 }
 
@@ -177,7 +177,7 @@
   flex-shrink: 0;
   border: none;
   background: transparent;
-  color: var(--vscode-descriptionForeground);
+  color: var(--gray-11);
   cursor: pointer;
   padding: var(--space-1);
   display: flex;
@@ -185,5 +185,5 @@
 }
 
 .suggestion-enter:hover {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
 }

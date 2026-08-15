@@ -26,9 +26,9 @@
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-1);
-  background-color: var(--vscode-inputValidation-warningBackground);
-  border: 1px solid var(--vscode-inputValidation-warningBorder);
-  color: var(--vscode-foreground);
+  background-color: color-mix(in srgb, var(--amber-9) 15%, transparent);
+  border: 1px solid var(--amber-9);
+  color: var(--gray-12);
 }
 
 .queue-edit-warning-text {
@@ -44,10 +44,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--vscode-icon-foreground);
+  color: var(--gray-11);
   flex-shrink: 0;
 }
 
 .queue-edit-warning-close:hover {
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
 }

@@ -133,7 +133,7 @@
 .send-button,
 .abort-button {
   background-color: transparent;
-  color: var(--vscode-foreground);
+  color: var(--gray-12);
   border: none;
   padding: var(--space-1);
   border-radius: 50%;
@@ -157,7 +157,7 @@
 
 .send-button:hover,
 .abort-button:hover {
-  background-color: var(--vscode-toolbar-hoverBackground);
+  background-color: var(--gray-4);
 }
 
 .send-button:disabled {
@@ -326,11 +326,11 @@
 }
 
 .permission-mode-select.mode-acceptEdits {
-  color: var(--vscode-list-warningForeground, #e5ba7d);
+  color: var(--amber-11);
 }
 
 .permission-mode-select.mode-bypassPermissions {
-  color: var(--vscode-errorForeground, #f48771);
+  color: var(--red-11);
   font-weight: bold;
 }
 
@@ -349,7 +349,7 @@
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
   z-index: 10000;
   min-width: 140px;
   white-space: nowrap;
@@ -418,7 +418,7 @@
   color: var(--gray-12);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) var(--vscode-widget-shadow);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
   z-index: 10000;
   width: 160px;
   white-space: nowrap;
@@ -458,21 +458,21 @@
 }
 
 .selection-tag.enabled {
-  background-color: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
+  background-color: transparent;
+  color: var(--gray-11);
 }
 
 .selection-tag.disabled {
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-descriptionForeground);
-  border: 1px solid var(--vscode-input-border);
+  background-color: var(--gray-3);
+  color: var(--gray-11);
+  border: 1px solid var(--gray-6);
   opacity: 0.7;
 }
 
 .selection-tag:hover,
 .selection-tag:focus-visible {
   opacity: 0.9;
-  outline: 1px solid var(--vscode-focusBorder);
+  outline: 1px solid var(--accent-9);
   outline-offset: var(--space-1);
 }
 
@@ -521,7 +521,7 @@
 }
 
 .queued-edit-chip {
-  color: var(--vscode-textLink-foreground);
+  color: var(--accent-11);
   font-size: var(--font-size-1);
   font-weight: 500;
   user-select: none;
