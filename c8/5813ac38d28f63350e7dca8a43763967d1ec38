@@ -1,0 +1,30 @@
+packages/desktop/assets/icon.svg
+  88b2909908d5ac36 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c85813ac38d28f63350e7dca8a43763967d1ec38",
+  "prompts": {
+    "88b2909908d5ac36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c9abb29-87c7-4691-aa7a-1a73e8e1df1e",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/assets/icon.svg": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
