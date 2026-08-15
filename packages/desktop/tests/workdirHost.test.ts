@@ -671,6 +671,71 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("desktopRevertWorkspaceDiff replies and restores file", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-rv-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-host-"));
+    const { execFileSync } = await import("node:child_process");
+    execFileSync("git", ["-c", "init.templateDir=", "init"], { cwd: dir });
+    execFileSync("git", ["config", "user.email", "t@e.com"], { cwd: dir });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "x.txt"), "1\n");
+    execFileSync("git", ["add", "x.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "i"], {
+      cwd: dir,
+    });
+    fs.writeFileSync(path.join(dir, "x.txt"), "1\n2\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "desktopRevertWorkspaceDiff",
+        paneId: "p1",
+        workdir: dir,
+        paths: ["x.txt"],
+      },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopWorkspaceDiffReverted",
+        paneId: "p1",
+        ok: true,
+      }),
+    );
+    expect(fs.readFileSync(path.join(dir, "x.txt"), "utf8")).toBe("1\n");
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("desktopOpenInEditor runs code with the workdir", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-code-"));
     const opened: string[] = [];

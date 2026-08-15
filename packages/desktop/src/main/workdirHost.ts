@@ -14,7 +14,7 @@ import {
   searchWorkspaceFiles,
 } from "./fileSearch.js";
 import { listGitBranches } from "./gitBranches.js";
-import { getWorkspaceDiff } from "./gitDiff.js";
+import { getWorkspaceDiff, revertWorkspaceDiff } from "./gitDiff.js";
 import { generateRandomName } from "./nameGenerator.js";
 import { TerminalManager } from "./terminal.js";
 import { createWorktree, removeWorktree } from "./worktree.js";
@@ -490,6 +490,24 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         command: "desktopWorkspaceDiff",
         paneId: msg.paneId,
         result,
+      });
+      return;
+    }
+
+    if (command === "desktopRevertWorkspaceDiff") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const paths = Array.isArray(msg.paths)
+        ? msg.paths.filter((p: unknown): p is string => typeof p === "string")
+        : undefined;
+      const result = cwd
+        ? await revertWorkspaceDiff(cwd, paths)
+        : ({ ok: false, error: "无法确定仓库目录" } as const);
+      pushToWebview(win, {
+        command: "desktopWorkspaceDiffReverted",
+        paneId: msg.paneId,
+        ok: result.ok,
+        ...(result.ok ? {} : { error: result.error }),
       });
       return;
     }
