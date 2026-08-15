@@ -68,8 +68,10 @@ import {
   usePanelGroup,
   usePaneUi,
   patchPaneUi,
+  emptyContentSearchState,
   type PanelGroupState,
 } from "../stores";
+import type { ContentSearchFileHit, ContentSearchState } from "../types";
 import "../styles/ChatApp.css";
 
 export { prunePanelGroupCache } from "../stores";
@@ -193,6 +195,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     previewUrl,
     fileView,
     fileTree,
+    fileSidebarMode,
+    contentSearch,
     forward: currentForward,
     forwardError: previewForwardError,
     previewEpoch,
@@ -439,6 +443,35 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               },
             },
           }));
+          break;
+        }
+        case "desktopSearchContentResult": {
+          const key = groupKeyRef.current;
+          if (!key) break;
+          const requestId =
+            typeof message.requestId === "string" ? message.requestId : "";
+          usePanelGroupStore.getState().patchGroup(key, (group) => {
+            if (
+              !group.contentSearch?.requestId ||
+              group.contentSearch.requestId !== requestId
+            ) {
+              return {};
+            }
+            return {
+              contentSearch: {
+                ...group.contentSearch,
+                loading: false,
+                results: Array.isArray(message.results)
+                  ? (message.results as ContentSearchFileHit[])
+                  : [],
+                truncated: Boolean(message.truncated) || undefined,
+                error:
+                  typeof message.error === "string"
+                    ? message.error
+                    : undefined,
+              },
+            };
+          });
           break;
         }
         case "updateQueue":
@@ -936,6 +969,95 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       paneId,
     });
   }, [effectiveWorkdir, isDesktop, postToHost, paneId, patchPane]);
+
+  // Reset file sidebar search when workdir changes (per-group memory stays
+  // for tree width/expand; search mode/results start fresh).
+  const contentSearchWorkdirRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!groupKey) return;
+    const prev = contentSearchWorkdirRef.current;
+    contentSearchWorkdirRef.current = effectiveWorkdir;
+    if (prev === undefined) return;
+    if (prev === effectiveWorkdir) return;
+    updatePanelGroup({
+      fileSidebarMode: "tree",
+      contentSearch: emptyContentSearchState(),
+    });
+  }, [effectiveWorkdir, groupKey, updatePanelGroup]);
+
+  const contentSearchSeqRef = useRef(0);
+  const contentSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (contentSearchTimerRef.current) {
+        clearTimeout(contentSearchTimerRef.current);
+      }
+    };
+  }, []);
+
+  const runContentSearch = useCallback(
+    (next: ContentSearchState) => {
+      if (contentSearchTimerRef.current) {
+        clearTimeout(contentSearchTimerRef.current);
+        contentSearchTimerRef.current = null;
+      }
+      const q = next.query.trim();
+      if (!q || !effectiveWorkdir) {
+        updatePanelGroup({
+          contentSearch: {
+            ...next,
+            loading: false,
+            results: q ? next.results : [],
+            error: undefined,
+            truncated: undefined,
+            requestId: undefined,
+          },
+        });
+        return;
+      }
+      contentSearchTimerRef.current = setTimeout(() => {
+        contentSearchTimerRef.current = null;
+        const requestId = `cs-${++contentSearchSeqRef.current}`;
+        updatePanelGroup({
+          contentSearch: { ...next, loading: true, requestId, error: undefined },
+        });
+        postToHost({
+          command: "desktopSearchContent",
+          requestId,
+          workdir: effectiveWorkdir,
+          query: q,
+          caseSensitive: next.caseSensitive,
+          wholeWord: next.wholeWord,
+          regex: next.regex,
+        });
+      }, 250);
+    },
+    [effectiveWorkdir, postToHost, updatePanelGroup],
+  );
+
+  const handleFileSidebarModeChange = useCallback(
+    (mode: import("../types").FileSidebarMode) => {
+      updatePanelGroup({ fileSidebarMode: mode });
+    },
+    [updatePanelGroup],
+  );
+
+  const handleContentSearchChange = useCallback(
+    (next: ContentSearchState) => {
+      const prev = contentSearch;
+      const searchKeyChanged =
+        prev.query !== next.query ||
+        prev.caseSensitive !== next.caseSensitive ||
+        prev.wholeWord !== next.wholeWord ||
+        prev.regex !== next.regex;
+      updatePanelGroup({ contentSearch: next });
+      if (searchKeyChanged) runContentSearch(next);
+    },
+    [contentSearch, runContentSearch, updatePanelGroup],
+  );
 
   const handleClearChat = useCallback(() => {
     // /clear 斜杠命令：三端统一为"原地清空当前会话"，streaming 期间忽略。
@@ -1870,6 +1992,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           vscode={vscode}
           fileTree={fileTree}
           onFileTreeChange={handleFileTreeChange}
+          fileSidebarMode={fileSidebarMode}
+          onFileSidebarModeChange={handleFileSidebarModeChange}
+          contentSearch={contentSearch}
+          onContentSearchChange={handleContentSearchChange}
           onOpenFile={handleOpenFile}
           onRevealInFinder={handleRevealInFinder}
           {...common}
