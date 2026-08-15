@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { ChatApp } from "./ChatApp";
 import { VsCodeApi, OpenPaneOptions } from "../types";
 import { useDesktopShell } from "../stores/desktopStore";
-import { prunePanelGroupCache } from "../stores/panelGroupStore";
+import { prunePanelGroupCache, workdirTermId } from "../stores/panelGroupStore";
+import { useDesktopStore } from "../stores/desktopStore";
 import "../styles/DesktopApp.css";
 
 interface DesktopAppProps {
@@ -25,22 +26,27 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     setPanes,
   } = useDesktopShell();
 
-  const panesRef = useRef(panes);
   const sessionTreeRef = useRef(sessionTree);
-  panesRef.current = panes;
   sessionTreeRef.current = sessionTree;
 
   useEffect(() => {
     const prunePanels = () => {
       const keep = new Set<string>();
-      for (const p of panesRef.current) {
-        keep.add(`new:${p.paneId}`);
-        if (p.sessionId) keep.add(p.sessionId);
-      }
+      const currentWd =
+        useDesktopStore.getState().workdirState?.workdir?.trim();
+      if (currentWd) keep.add(currentWd);
       for (const g of sessionTreeRef.current) {
-        for (const s of g.sessions) keep.add(s.sessionId);
+        for (const s of g.sessions) {
+          if (s.workdir) keep.add(s.workdir);
+        }
       }
-      prunePanelGroupCache(keep);
+      const removed = prunePanelGroupCache(keep);
+      for (const path of removed) {
+        vscode.postMessage({
+          command: "desktopTerminalKill",
+          termId: workdirTermId(path),
+        });
+      }
     };
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
@@ -56,7 +62,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         prunePanels();
       } else if (message.command === "desktopPanes") {
         const nextPanes = message.panes ?? [];
-        panesRef.current = nextPanes;
         setPanes(nextPanes, message.rowHeights, message.focusedPaneId ?? null);
         prunePanels();
       }

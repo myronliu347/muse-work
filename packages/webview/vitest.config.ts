@@ -32,6 +32,7 @@ export default defineConfig({
       "tests/webview/permissionModeCycle.test.tsx",
       "tests/webview/permissionModeDropdown.test.tsx",
       "tests/webview/terminalPane.test.tsx",
+      "tests/webview/panelWorkdirScope.test.tsx",
     ],
     exclude: ["node_modules"],
     setupFiles: ["tests/setup.ts"],

@@ -63,7 +63,6 @@ import {
 } from "../utils/subagentTranscript";
 import {
   usePanelGroupStore,
-  isDraftGroupKey,
   nextActivePanelAfterClose,
   PANEL_DEFAULT_WIDTH,
   usePanelGroup,
@@ -177,26 +176,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const effectiveHostRef = useRef(effectiveHost);
   const gitBranches = isDesktop ? paneGitBranches : null;
   const effectiveWorkdirRef = useRef(effectiveWorkdir);
-  // Desktop only: panel group is keyed by session in frontend cache.
-  // - Split pane: host `desktopPanes` sessionId, or `new:${paneId}` while unbound
-  // - Single pane: currentSession.id, or `__draft__` for 新对话
-  const boundSessionId = paneId
-    ? host?.panes?.find((p) => p.paneId === paneId)?.sessionId
-    : undefined;
-  const singlePaneSessionId =
-    state.currentSession?.id && state.currentSession.id !== "__draft__"
-      ? state.currentSession.id
-      : "__draft__";
-  const groupKey = !isDesktop
-    ? undefined
-    : paneId
-      ? (boundSessionId ?? `new:${paneId}`)
-      : singlePaneSessionId;
+  // Desktop only: panel group is keyed by absolute workdir (not session).
+  // Fall back to host.workdir so a draft with a selected folder still shares
+  // the same dock as sessions in that directory.
+  const panelWorkdir =
+    effectiveWorkdir ?? (isDesktop ? host?.workdir : undefined) ?? undefined;
+  const groupKey =
+    isDesktop && panelWorkdir ? panelWorkdir : undefined;
   const groupKeyRef = useRef(groupKey);
-  // Set when the user sends a message from this pane's new-session state. The
-  // new-session bucket migrates to the session id only when that message binds
-  // one — a sidebar switch to an existing session must not inherit the bucket.
-  const sentFromNewSessionRef = useRef(false);
+  groupKeyRef.current = groupKey;
   const {
     checked: checkedPanels,
     mounted: mountedPanels,
@@ -214,7 +202,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         | Partial<PanelGroupState>
         | ((group: PanelGroupState) => Partial<PanelGroupState>),
     ) => {
-      if (!groupKey || isDraftGroupKey(groupKey)) return;
+      if (!groupKey) return;
       usePanelGroupStore.getState().patchGroup(groupKey, patch);
     },
     [groupKey],
@@ -309,27 +297,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   useEffect(() => {
     panelWidthsRef.current = panelWidths;
   }, [panelWidths]);
-
-  // Session switch: migrate a pane's new-session / draft bucket to the bound
-  // session id once the first message binds one.
-  useEffect(() => {
-    if (!groupKey || groupKey === groupKeyRef.current) return;
-    const prevKey = groupKeyRef.current;
-    groupKeyRef.current = groupKey;
-    const prevIsDraftBucket =
-      prevKey === "__draft__" || Boolean(prevKey?.startsWith("new:"));
-    const nextIsRealSession =
-      groupKey !== "__draft__" && !groupKey.startsWith("new:");
-    if (
-      prevIsDraftBucket &&
-      nextIsRealSession &&
-      sentFromNewSessionRef.current &&
-      prevKey
-    ) {
-      usePanelGroupStore.getState().migrateGroup(prevKey, groupKey);
-    }
-    sentFromNewSessionRef.current = false;
-  }, [groupKey]);
 
   useEffect(() => {
     paneIdRef.current = paneId;
@@ -444,7 +411,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           if (!forThisPane(message)) break;
           {
             const key = groupKeyRef.current;
-            if (key && !isDraftGroupKey(key)) {
+            if (key) {
               usePanelGroupStore.getState().patchGroup(key, {
                 fileView: message.fileView as FileViewState,
               });
@@ -1084,12 +1051,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       // with the worktree checkbox on, create the worktree first — the main
       // process switches into it and forwards this message.
       if (
-        groupKeyRef.current === "__draft__" ||
-        groupKeyRef.current?.startsWith("new:")
-      ) {
-        sentFromNewSessionRef.current = true;
-      }
-      if (
         host?.type === "desktop" &&
         !stateRef.current.messages.some(
           (m) => !(m.role === "user" && m.isMeta),
@@ -1724,21 +1685,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const openPreviewHandler =
     effectiveHost !== "local" ? handleOpenRemotePreview : handleOpenPreview;
 
-  // 新对话 / unbound pane: all panels disabled. Bound session: diff/terminal/
-  // file need a workdir; preview can open without one.
+  // No workdir: all panels disabled. With a workdir (incl. draft + host
+  // folder): all panel kinds available; state is shared per workdir.
   const panelDisabled: DesktopPanelKind[] = useMemo(() => {
     if (!isDesktop) return [];
-    if (
-      isDraftSession ||
-      !groupKey ||
-      groupKey === "__draft__" ||
-      groupKey.startsWith("new:")
-    ) {
-      return [...PANEL_ORDER];
-    }
-    if (!effectiveWorkdir) return ["diff", "terminal", "file"];
+    if (!panelWorkdir) return [...PANEL_ORDER];
     return [];
-  }, [isDesktop, isDraftSession, groupKey, effectiveWorkdir]);
+  }, [isDesktop, panelWorkdir]);
 
   useEffect(() => {
     panelDisabledRef.current = panelDisabled;
