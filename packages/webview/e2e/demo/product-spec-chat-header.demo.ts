@@ -64,7 +64,7 @@ test.describe("Product Specification Screenshots - Chat Header", () => {
       },
     ];
 
-    // 初始化：已登录、含会话与消息，含 serverUrl 供“企业控制台”使用
+    // 初始化：已登录、含会话与消息
     await injector.simulateExtensionMessage("setInitialState", {
       messages,
       isStreaming: false,
@@ -76,7 +76,6 @@ test.describe("Product Specification Screenshots - Chat Header", () => {
         baseURL: "https://api.anthropic.com/v1",
         model: "claude-sonnet-4-20250514",
         fastModel: "claude-haiku-4-20250514",
-        serverUrl: "https://console.wave.example.com",
       },
       permissionMode: "default",
     });
@@ -102,7 +101,7 @@ test.describe("Product Specification Screenshots - Chat Header", () => {
       state: "hidden",
     });
 
-    // 3. 更多菜单（设置 / 企业控制台 / 退出登录）
+    // 3. 更多菜单（设置 / 退出登录）
     await webviewPage.getByTestId("more-btn").click();
     await webviewPage.waitForSelector('[data-testid="more-menu"]');
     await screenshotWebp(

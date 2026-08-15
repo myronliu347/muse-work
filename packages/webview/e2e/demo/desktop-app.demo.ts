@@ -2,6 +2,7 @@ import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
 import { screenshotWebp } from "../utils/screenshot.js";
+import { mockMuseSettingsApis } from "../utils/museApiMock.js";
 
 const DIR_A = "/Users/dev/projects/wave-agent";
 const DIR_B = "/Users/dev/projects/shop-server";
@@ -22,39 +23,44 @@ const session = (
   firstMessage,
 });
 
-// A session tree entry. The sidebar shows a green running dot while a session is
-// generating and an orange waiting dot while a tool-permission / plan / question
-// confirmation awaits the user. Both come straight from the tree data (the 5-per-
-// directory cap was removed — a group may hold any number of sessions).
+// A session tree entry. Sidebar sections are pin / 任务 / 工作空间; workspace
+// sessions are grouped by their `workdir` field. Green running / orange waiting
+// dots come from the tree entry flags.
 const treeSession = (
   sessionId: string,
   title: string,
   lastActiveAt: string,
+  workdir: string,
   running = false,
   waitingConfirmation = false,
 ) => ({
   sessionId,
   title,
   lastActiveAt: new Date(lastActiveAt).getTime(),
+  workdir,
   hasWorktree: false,
   running,
   waitingConfirmation,
 });
 
 const treeGroups = [
+  { host: "local", workdir: "pin", sessions: [] },
   {
-    workdir: DIR_A,
+    host: "local",
+    workdir: "recent",
     sessions: [
       treeSession(
         "sess-a1",
         "帮我修复登录页的样式问题",
         "2026-07-27T10:12:00Z",
+        DIR_A,
         true,
       ),
       treeSession(
         "sess-a2",
         "给 bashTool 增加超时参数",
         "2026-07-26T09:40:00Z",
+        DIR_A,
         false,
         true,
       ),
@@ -62,36 +68,50 @@ const treeGroups = [
         "sess-a3",
         "解释一下 listSessions 的实现",
         "2026-07-25T15:02:00Z",
+        DIR_A,
       ),
-      treeSession("sess-a4", "重构会话索引的持久化层", "2026-07-25T11:30:00Z"),
+      treeSession(
+        "sess-a4",
+        "重构会话索引的持久化层",
+        "2026-07-25T11:30:00Z",
+        DIR_A,
+      ),
       treeSession(
         "sess-a5",
         "补全桌面端分屏的测试用例",
         "2026-07-24T18:05:00Z",
+        DIR_A,
       ),
       treeSession(
         "sess-a6",
         "修复终端面板首次聚焦丢失",
         "2026-07-24T14:20:00Z",
+        DIR_A,
       ),
       treeSession(
         "sess-a7",
         "梳理 worktree 隔离会话的边界",
         "2026-07-23T09:10:00Z",
+        DIR_A,
       ),
-    ],
-  },
-  {
-    workdir: DIR_B,
-    sessions: [
-      treeSession("sess-b1", "订单接口偶发 500 排查", "2026-07-27T08:30:00Z"),
-      treeSession("sess-b2", "给购物车加单元测试", "2026-07-24T11:20:00Z"),
-    ],
-  },
-  {
-    workdir: DIR_C,
-    sessions: [
-      treeSession("sess-c1", "支持 Markdown 导出", "2026-07-23T14:00:00Z"),
+      treeSession(
+        "sess-b1",
+        "订单接口偶发 500 排查",
+        "2026-07-27T08:30:00Z",
+        DIR_B,
+      ),
+      treeSession(
+        "sess-b2",
+        "给购物车加单元测试",
+        "2026-07-24T11:20:00Z",
+        DIR_B,
+      ),
+      treeSession(
+        "sess-c1",
+        "支持 Markdown 导出",
+        "2026-07-23T14:00:00Z",
+        DIR_C,
+      ),
     ],
   },
 ];
@@ -137,13 +157,13 @@ test.describe("Desktop App Screenshots", () => {
 
     await expect(webviewPage.getByTestId("desktop-sidebar")).toBeVisible();
     await expect(webviewPage.getByTestId("desktop-workdir")).toContainText(
-      "选择工作目录",
+      "选择工作目录…",
     );
     // Regression guard: the empty-messages body must render the welcome
     // page, not the LoadingLogo sweep. The sweep appeared before because
     // setInitialState was dispatched before ChatApp's listener attached.
     await expect(webviewPage.locator(".loading-logo")).toHaveCount(0);
-    await expect(webviewPage.getByText("欢迎使用 Wave")).toBeVisible();
+    await expect(webviewPage.getByText("Hi~ 欢迎使用 Muse")).toBeVisible();
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-first-launch.webp",
@@ -189,21 +209,6 @@ test.describe("Desktop App Screenshots", () => {
       "../../docs/public/screenshots/desktop-session-tree.webp",
     );
 
-    // Collapse a group to show collapse/expand interactivity
-    await webviewPage.getByText("shop-server").click();
-    await expect(
-      webviewPage.getByTestId("desktop-session-item-sess-b1"),
-    ).toBeHidden();
-    await screenshotWebp(
-      webviewPage,
-      "../../docs/public/screenshots/desktop-session-tree-collapsed.webp",
-    );
-    // Re-expand so later screenshots show the default all-expanded state
-    await webviewPage.getByText("shop-server").click();
-    await expect(
-      webviewPage.getByTestId("desktop-session-item-sess-b1"),
-    ).toBeVisible();
-
     // ── 3. Workdir dropdown in the input area ─────────────────────
     await webviewPage.getByTestId("desktop-workdir").click();
     await expect(webviewPage.getByTestId("desktop-workdir-menu")).toBeVisible();
@@ -248,6 +253,7 @@ test.describe("Desktop App Screenshots", () => {
     await injector.waitForChatAppReady();
     await injector.simulateExtensionMessage("setInitialState", {
       ...initialState,
+      workdir: DIR_A,
       isAuthenticated: true,
     });
 
@@ -276,9 +282,8 @@ test.describe("Desktop App Screenshots", () => {
     );
   });
 
-  test("sidebar more menu lists settings / enterprise / logout", async ({
-    webviewPage,
-  }) => {
+  test("sidebar settings button opens config dialog", async ({ webviewPage }) => {
+    await mockMuseSettingsApis(webviewPage);
     const injector = new MessageInjector(webviewPage);
 
     await webviewPage.setViewportSize({ width: 960, height: 640 });
@@ -287,26 +292,39 @@ test.describe("Desktop App Screenshots", () => {
       workdir: DIR_A,
       recentWorkdirs: [DIR_A, DIR_B, DIR_C],
     });
-    // Wait for ChatApp to mount and its message listener (a passive effect)
-    // to attach before sending setInitialState — otherwise the auth status is
-    // lost and the more menu renders "登录" instead of "退出登录".
-    // desktopListGitBranches is posted in the same effect flush, so once it
-    // lands the listener is ready.
-    await injector.waitForMessage("desktopListGitBranches");
+    await injector.waitForChatAppReady();
     await injector.simulateExtensionMessage("setInitialState", {
       ...initialState,
       isAuthenticated: true,
     });
 
     await expect(webviewPage.getByTestId("desktop-sidebar")).toBeVisible();
-    await webviewPage.getByTestId("desktop-more-btn").click();
-    await expect(webviewPage.getByTestId("more-menu")).toBeVisible();
-    await expect(webviewPage.getByTestId("more-menu-settings")).toBeVisible();
-    await expect(webviewPage.getByTestId("more-menu-enterprise")).toBeVisible();
-    await expect(webviewPage.getByTestId("more-menu-logout")).toBeVisible();
+    await webviewPage.getByTestId("desktop-settings-btn").click();
+    await expect(webviewPage.getByTestId("config-dialog")).toBeVisible();
+    await expect(webviewPage.getByTestId("appearance-settings")).toBeVisible();
     await screenshotWebp(
       webviewPage,
-      "../../docs/public/screenshots/desktop-more-menu.webp",
+      "../../docs/public/screenshots/desktop-settings-dialog.webp",
+    );
+
+    // Plugins tab (Superpowers toggle)
+    await webviewPage.getByRole("tab", { name: "插件" }).click();
+    await expect(webviewPage.getByTestId("plugin-settings")).toBeVisible();
+    // Switch input is opacity:0; still assert checked + attached for the demo.
+    await expect(webviewPage.getByTestId("superpowers-toggle")).toBeChecked();
+    await screenshotWebp(
+      webviewPage,
+      "../../docs/public/screenshots/desktop-settings-plugins.webp",
+    );
+
+    // Provider tab (CodeMaker quota)
+    await webviewPage.getByRole("tab", { name: "供应商" }).click();
+    await expect(webviewPage.getByTestId("muse-provider-settings")).toBeVisible();
+    await expect(webviewPage.getByTestId("muse-codemaker-quota")).toBeVisible();
+    await expect(webviewPage.getByTestId("muse-quota-progress")).toBeVisible();
+    await screenshotWebp(
+      webviewPage,
+      "../../docs/public/screenshots/desktop-settings-provider.webp",
     );
   });
 });

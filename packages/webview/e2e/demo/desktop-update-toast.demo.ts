@@ -52,13 +52,13 @@ test.describe("Desktop Update Toast Screenshots", () => {
         message: "发现新版本 v0.20.0（当前 v0.19.7），正在后台下载…",
       },
     });
-    await expect(webviewPage.getByTestId("toast")).toBeVisible();
-    await expect(webviewPage.getByTestId("toast")).toContainText(
-      "发现新版本 v0.20.0",
-    );
+    const updateToast = webviewPage
+      .getByTestId("toast")
+      .filter({ hasText: "发现新版本 v0.20.0" });
+    await expect(updateToast).toBeVisible();
     // Wait for the 0.15s fade-in to finish — toBeVisible passes at opacity 0
     // and a screenshot taken mid-animation would look translucent.
-    await expect(webviewPage.getByTestId("toast")).toHaveCSS("opacity", "1");
+    await expect(updateToast).toHaveCSS("opacity", "1");
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-update-toast.webp",
@@ -66,7 +66,7 @@ test.describe("Desktop Update Toast Screenshots", () => {
 
     // The button-less toast auto-dismisses after 8s; wait for it to leave
     // so the second screenshot shows the action toast alone (not stacked).
-    await expect(webviewPage.getByTestId("toast")).toHaveCount(0, {
+    await expect(updateToast).toHaveCount(0, {
       timeout: 10000,
     });
 
@@ -79,11 +79,14 @@ test.describe("Desktop Update Toast Screenshots", () => {
         action: { type: "quitAndInstall" },
       },
     });
-    await expect(webviewPage.getByTestId("toast")).toContainText("已下载完成");
+    const actionToast = webviewPage
+      .getByTestId("toast")
+      .filter({ hasText: "已下载完成" });
+    await expect(actionToast).toBeVisible();
     await expect(
       webviewPage.getByRole("button", { name: "重启安装" }),
     ).toBeVisible();
-    await expect(webviewPage.getByTestId("toast")).toHaveCSS("opacity", "1");
+    await expect(actionToast).toHaveCSS("opacity", "1");
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-update-toast-action.webp",

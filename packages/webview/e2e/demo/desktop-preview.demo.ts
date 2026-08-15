@@ -93,7 +93,18 @@ test.describe("Desktop Preview Pane Screenshots", () => {
     // sending setInitialState — otherwise the auth/initialized payload is
     // lost to the mount race.
     await injector.waitForChatAppReady();
-    await injector.simulateExtensionMessage("setInitialState", initialState);
+    await injector.simulateExtensionMessage("setInitialState", {
+      ...initialState,
+      workdir: DIR_A,
+      session: {
+        id: "sess-a1",
+        sessionType: "main",
+        workdir: DIR_A,
+        createdAt: "2026-07-27T10:12:00Z",
+        lastActiveAt: "2026-07-27T10:12:00Z",
+        firstMessage: "帮我做一个订单管理页面的原型",
+      },
+    });
 
     await injector.updateMessages([
       MockDataGenerator.createUserMessage(

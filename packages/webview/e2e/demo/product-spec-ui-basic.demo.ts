@@ -29,7 +29,7 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
 
     // 1. Welcome View (logged-in empty state)
     await expect(
-      webviewPage.getByText("Hi~ 欢迎使用 Wave 代码智聊"),
+      webviewPage.getByText("Hi~ 欢迎使用 Muse"),
     ).toBeVisible();
     await screenshotWebp(
       webviewPage,
@@ -51,20 +51,20 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
     });
     await expect(webviewPage.getByText("登 录")).toBeVisible();
 
-    // Verify layout geometry: logo svg present, login button full-width & horizontally centered
+    // Verify layout geometry: logo present, login button full-width & horizontally centered
     const geometry = await webviewPage.evaluate(() => {
-      const svg = document.querySelector("button svg, div svg");
+      const logo = document.querySelector('[data-testid="welcome-muse-logo"]');
       const btn = Array.from(document.querySelectorAll("button")).find((b) =>
         b.textContent?.includes("登"),
       );
       const container = document.querySelector(
         ".chat-container",
       ) as HTMLElement | null;
-      if (!svg || !btn || !container) return null;
+      if (!logo || !btn || !container) return null;
       const bb = btn.getBoundingClientRect();
       const cb = container.getBoundingClientRect();
       return {
-        hasSvg: !!svg,
+        hasLogo: !!logo,
         btnWidth: Math.round(bb.width),
         containerWidth: Math.round(cb.width),
         btnLeftOffset: Math.round(bb.left - cb.left),
@@ -75,7 +75,7 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
       };
     });
     expect(geometry).not.toBeNull();
-    expect(geometry!.hasSvg).toBe(true);
+    expect(geometry!.hasLogo).toBe(true);
     // Button spans (nearly) the full container width
     expect(geometry!.btnWidth).toBeGreaterThan(geometry!.containerWidth - 40);
     // Button is horizontally centered within the container
@@ -206,7 +206,7 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
         {
           id: "settings",
           name: "settings",
-          description: "管理 Wave 设置：hooks、环境变量、权限、MCP、内存等",
+          description: "管理 Muse 设置：hooks、环境变量、权限、MCP、内存等",
         },
         {
           id: "simplify",

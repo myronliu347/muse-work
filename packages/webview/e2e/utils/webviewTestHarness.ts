@@ -136,7 +136,7 @@ export const test = base.extend<WebviewTestContext>({
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wave AI Chat</title>
+    <title>Muse</title>
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/codicons/codicon.css">
     <link rel="stylesheet" href="vscode-webview://mock-extension-id/chat.css">
     <style>
@@ -182,6 +182,9 @@ const mockVscodeApiJs = `
             NODE_ENV: 'production'
         }
     };
+
+    // Skip Muse HTTP/WS hostBridge — tests drive the UI via injected messages.
+    window.__MUSE_E2E_PASS_THROUGH__ = true;
     
     // Mock VS Code API
     let messageHandlers = [];

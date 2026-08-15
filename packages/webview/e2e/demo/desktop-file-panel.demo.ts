@@ -34,7 +34,18 @@ async function setupReadMessage(
     recentWorkdirs: [DIR_A],
   });
   await injector.waitForChatAppReady();
-  await injector.simulateExtensionMessage("setInitialState", initialState);
+  await injector.simulateExtensionMessage("setInitialState", {
+    ...initialState,
+    workdir: DIR_A,
+    session: {
+      id: "sess-a1",
+      sessionType: "main",
+      workdir: DIR_A,
+      createdAt: "2026-07-27T10:12:00Z",
+      lastActiveAt: "2026-07-27T10:12:00Z",
+      firstMessage: "这个文件/图片帮我看看",
+    },
+  });
   await injector.updateMessages([
     MockDataGenerator.createUserMessage("这个文件/图片帮我看看", "msg-u1"),
     MockDataGenerator.createAssistantMessageWithTool(

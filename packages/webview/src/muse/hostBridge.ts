@@ -157,6 +157,22 @@ function resolveToolInput(pending: PendingPermission): Record<string, unknown> {
  * Also bootstraps desktop workdir state so DesktopApp is not stuck on loading.
  */
 export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
+  // E2E harnesses set this so ChatApp talks to the mock outer host only —
+  // no HTTP/WS, no overwriting injected desktopSessionTree / toasts.
+  if (
+    typeof window !== "undefined" &&
+    (window as Window & { __MUSE_E2E_PASS_THROUGH__?: boolean })
+      .__MUSE_E2E_PASS_THROUGH__
+  ) {
+    return (
+      opts.outer ?? {
+        postMessage: () => {},
+        getState: () => null,
+        setState: () => {},
+      }
+    );
+  }
+
   const { api, ws } = opts;
   let currentWorkdir = opts.workdir ?? "/";
   let recentWorkdirs: string[] = [];
@@ -1731,17 +1747,20 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const bridge: VsCodeApi = {
     postMessage(raw: unknown) {
+      // Always mirror to the outer host (Electron IPC / e2e harness) so tests
+      // can observe every command ChatApp posts, even when this bridge handles
+      // the command locally via HTTP/WS.
+      opts.outer?.postMessage(raw);
+
       const msg = raw as { command?: string; [k: string]: unknown };
       const command = msg?.command;
       if (!command) {
-        opts.outer?.postMessage(raw);
         return;
       }
 
       switch (command) {
         case "desktopReady":
           void handleDesktopReady();
-          opts.outer?.postMessage(raw);
           return;
         case "newSession": {
           const workdir =
@@ -1785,7 +1804,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         }
         case "desktopSelectWorkdir":
           suppressWorkdirPush = false;
-          opts.outer?.postMessage(raw);
           return;
         case "desktopSelectRecentWorkdir": {
           const path = typeof msg.path === "string" ? msg.path : undefined;
@@ -1801,7 +1819,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
               clearSession: true,
             });
           }
-          opts.outer?.postMessage(raw);
           return;
         }
         case "login":
@@ -1897,8 +1914,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           if (typeof msg.url === "string") openExternal(msg.url);
           return;
         default:
-          // desktopSelectWorkdir / folder pick → Electron main via outer IPC.
-          opts.outer?.postMessage(raw);
+          // Already mirrored to outer above (Electron IPC / e2e harness).
+          return;
       }
     },
     getState() {

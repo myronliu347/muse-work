@@ -78,14 +78,24 @@ test.describe("Desktop Diff Pane Screenshots", () => {
     const injector = new MessageInjector(webviewPage);
     await webviewPage.setViewportSize({ width: 1100, height: 680 });
 
-    await injector.simulateExtensionMessage("setInitialState", initialState);
     await injector.simulateExtensionMessage("desktopWorkdirState", {
       workdir: DIR_A,
       recentWorkdirs: [DIR_A],
     });
-    await webviewPage.waitForSelector('[data-testid="chat-container"]', {
-      timeout: 5000,
+    await injector.waitForChatAppReady();
+    await injector.simulateExtensionMessage("setInitialState", {
+      ...initialState,
+      workdir: DIR_A,
+      session: {
+        id: "sess-a1",
+        sessionType: "main",
+        workdir: DIR_A,
+        createdAt: "2026-07-27T10:12:00Z",
+        lastActiveAt: "2026-07-27T10:12:00Z",
+        firstMessage: "帮我重构登录模块",
+      },
     });
+    await expect(webviewPage.getByTestId("chat-container")).toBeVisible();
 
     await injector.updateMessages([
       MockDataGenerator.createUserMessage(

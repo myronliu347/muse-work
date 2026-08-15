@@ -20,7 +20,8 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint --cache",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

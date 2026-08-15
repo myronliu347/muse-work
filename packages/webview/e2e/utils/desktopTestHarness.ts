@@ -101,7 +101,7 @@ export const test = base.extend<DesktopTestContext>({
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wave 代码智聊</title>
+    <title>Muse</title>
     <!-- Base resolves relative URLs (e.g. the terminal chunk's ./terminal.js)
          against the routed vscode-webview scheme so the harness serves them. -->
     <base href="vscode-webview://mock-extension-id/">
@@ -130,11 +130,12 @@ export const test = base.extend<DesktopTestContext>({
 
     await page.setContent(testHtml);
 
-    // DesktopApp renders `desktop-loading` until the host pushes the first
-    // `desktopWorkdirState`; tests inject that themselves, so the harness
-    // only waits for the loading element (proves the bundle mounted).
-    await page.waitForSelector('[data-testid="desktop-loading"]', {
-      timeout: 3000,
+    // hostBridge answers `desktopReady` by immediately pushing
+    // `desktopWorkdirState`, so the empty loading stub is only on-screen for a
+    // frame. Wait for the mounted sidebar instead — that proves DesktopApp +
+    // ChatApp are up and the message listener is attached.
+    await page.waitForSelector('[data-testid="desktop-sidebar"]', {
+      timeout: 5000,
     });
 
     await use(page);
@@ -153,26 +154,39 @@ const mockDesktopApiJs = `
         }
     };
 
+    // Skip Muse HTTP/WS hostBridge — tests drive the UI via injected messages.
+    window.__MUSE_E2E_PASS_THROUGH__ = true;
+
     // Select the desktop root component (mirrors the Electron preload script).
     window.waveHostType = 'desktop';
 
     let messageHandlers = [];
-
-    window.acquireVsCodeApi = () => ({
-        postMessage: (message) => {
-            if (!window.testMessages) window.testMessages = [];
-            window.testMessages.push(message);
-            window.dispatchEvent(new CustomEvent('vscode-message', { detail: message }));
-        },
-        setState: (state) => {},
-        getState: () => ({})
-    });
 
     window.simulateExtensionMessage = (message) => {
         window.dispatchEvent(new MessageEvent('message', {
             data: message
         }));
     };
+
+    window.acquireVsCodeApi = () => ({
+        postMessage: (message) => {
+            if (!window.testMessages) window.testMessages = [];
+            window.testMessages.push(message);
+            window.dispatchEvent(new CustomEvent('vscode-message', { detail: message }));
+            // Bootstrap workdir so DesktopApp leaves the loading stub (hostBridge
+            // used to do this on desktopReady; pass-through leaves it to us).
+            if (message && message.command === 'desktopReady') {
+                queueMicrotask(() => {
+                    window.simulateExtensionMessage({
+                        command: 'desktopWorkdirState',
+                        recentWorkdirs: [],
+                    });
+                });
+            }
+        },
+        setState: (state) => {},
+        getState: () => ({})
+    });
 
     window.getTestMessages = () => window.testMessages || [];
     window.clearTestMessages = () => { window.testMessages = []; };
