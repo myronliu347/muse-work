@@ -1056,8 +1056,12 @@ body.is-panel-resizing * {
   height: 100%;
 }
 
-/* Dock fullscreen covers the conversation column. */
+/* Dock fullscreen covers the conversation column and the session sidebar. */
 .desktop-chat-body:has(.desktop-panel-dock--fullscreen) .desktop-chat-main {
+  display: none;
+}
+
+.desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-sidebar {
   display: none;
 }
 
