@@ -1,0 +1,63 @@
+docs/superpowers/plans/2026-08-15-panel-workdir-scope.md
+  d0b7adc12ca36e4d 1-463
+docs/superpowers/specs/2026-08-15-panel-workdir-scope-design.md
+  d0b7adc12ca36e4d 97-98,104,106,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "67b00bcb7cce27e04fd369cf5550b87019121c13",
+  "prompts": {
+    "d0b7adc12ca36e4d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "04cd94fc-0447-43f4-a222-ca6d5c160c64",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 468,
+      "total_deletions": 6,
+      "accepted_lines": 468,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-15-panel-workdir-scope.md": {
+          "additions": 463,
+          "accepted_lines": 463
+        },
+        "docs/superpowers/specs/2026-08-15-panel-workdir-scope-design.md": {
+          "additions": 5,
+          "deletions": 6,
+          "accepted_lines": 5
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 22,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
