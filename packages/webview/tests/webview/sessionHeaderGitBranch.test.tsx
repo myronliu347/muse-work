@@ -90,4 +90,100 @@ describe("session header git branch", () => {
     expect(screen.getByTestId("desktop-worktree-controls")).toBeInTheDocument();
     expect(screen.queryByTestId("desktop-git-context")).not.toBeInTheDocument();
   });
+
+  it("updates header branch when a later desktopGitBranches current changes", () => {
+    vi.useFakeTimers();
+    try {
+      renderDesktop("/work/a");
+      act(() => {
+        sendCommand("updateCurrentSession", {
+          session: {
+            id: "s1",
+            sessionType: "main",
+            workdir: "/work/a",
+            firstMessage: "hello",
+            lastActiveAt: new Date().toISOString(),
+            worktreeBranch: "old-branch",
+          },
+        });
+      });
+      act(() => {
+        sendCommand("desktopGitBranches", {
+          workdir: "/work/a",
+          result: {
+            branches: ["old-branch", "new-branch"],
+            current: "old-branch",
+          },
+        });
+      });
+      expect(
+        within(screen.getByTestId("chat-header")).getByTestId(
+          "desktop-git-branch",
+        ),
+      ).toHaveTextContent("old-branch");
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      act(() => {
+        sendCommand("desktopGitBranches", {
+          workdir: "/work/a",
+          result: {
+            branches: ["old-branch", "new-branch"],
+            current: "new-branch",
+          },
+        });
+      });
+      expect(
+        within(screen.getByTestId("chat-header")).getByTestId(
+          "desktop-git-branch",
+        ),
+      ).toHaveTextContent("new-branch");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("posts desktopListGitBranches on the poll interval without clearing first", () => {
+    vi.useFakeTimers();
+    try {
+      const { vscode } = renderDesktop("/work/a");
+      act(() => {
+        sendCommand("updateCurrentSession", {
+          session: {
+            id: "s1",
+            sessionType: "main",
+            workdir: "/work/a",
+            firstMessage: "hello",
+            lastActiveAt: new Date().toISOString(),
+          },
+        });
+      });
+      act(() => {
+        sendCommand("desktopGitBranches", {
+          workdir: "/work/a",
+          result: { branches: ["main"], current: "main" },
+        });
+      });
+      vscode.postMessage.mockClear();
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "desktopListGitBranches",
+          workdir: "/work/a",
+        }),
+      );
+      expect(
+        within(screen.getByTestId("chat-header")).getByTestId(
+          "desktop-git-branch",
+        ),
+      ).toHaveTextContent("main");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

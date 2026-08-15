@@ -976,16 +976,51 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // host.workdir change would null out the branches and flash the selector
   // twice. A genuine user workdir switch changes recents[0] (and thus
   // effectiveWorkdir), which is the only re-query signal we want.
+  const GIT_BRANCH_POLL_MS = 3000;
+
+  const requestPaneGitBranches = useCallback(
+    (opts?: { clear?: boolean }) => {
+      if (!isDesktop) return;
+      if (!effectiveWorkdir) {
+        if (opts?.clear) patchPane({ paneGitBranches: null });
+        return;
+      }
+      if (opts?.clear) patchPane({ paneGitBranches: null });
+      postToHost({
+        command: "desktopListGitBranches",
+        workdir: effectiveWorkdir,
+        paneId,
+      });
+    },
+    [effectiveWorkdir, isDesktop, paneId, patchPane, postToHost],
+  );
+
+  // workdir change: clear then fetch (existing semantics)
   useEffect(() => {
-    if (!isDesktop) return;
-    patchPane({ paneGitBranches: null });
-    if (!effectiveWorkdir) return;
-    postToHost({
-      command: "desktopListGitBranches",
-      workdir: effectiveWorkdir,
-      paneId,
-    });
-  }, [effectiveWorkdir, isDesktop, postToHost, paneId, patchPane]);
+    requestPaneGitBranches({ clear: true });
+  }, [requestPaneGitBranches]);
+
+  // poll + resume on visibility (silent refresh — do not clear)
+  useEffect(() => {
+    if (!isDesktop || !effectiveWorkdir) return;
+
+    const poll = () => {
+      if (document.visibilityState === "hidden") return;
+      requestPaneGitBranches();
+    };
+
+    const id = window.setInterval(poll, GIT_BRANCH_POLL_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestPaneGitBranches();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [effectiveWorkdir, isDesktop, requestPaneGitBranches]);
 
   // Reset file sidebar search when workdir changes (per-group memory stays
   // for tree width/expand; search mode/results start fresh).
