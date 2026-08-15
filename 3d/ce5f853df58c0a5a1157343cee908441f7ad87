@@ -1,0 +1,47 @@
+packages/webview/src/styles/DiffPane.css
+  0648f6718593b9a9 85-90
+packages/webview/src/components/panels/DiffPane.tsx
+  0648f6718593b9a9 88-89,104,461-463,465-475
+packages/webview/tests/webview/diffPane.test.tsx
+  0648f6718593b9a9 32,49,71,290-300
+packages/webview/src/components/ChatApp.tsx
+  0648f6718593b9a9 2002
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3dce5f853df58c0a5a1157343cee908441f7ad87",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 0,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
