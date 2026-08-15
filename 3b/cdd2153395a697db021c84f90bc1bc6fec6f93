@@ -1,0 +1,140 @@
+packages/webview/src/components/DesktopApp.tsx
+  88a56fc4f56a7376 1-5,17-26,28-31,58,60,67
+packages/webview/src/stores/desktopStore.ts
+  88a56fc4f56a7376 1-61
+packages/webview/src/stores/paneKey.ts
+  88a56fc4f56a7376 1-4
+packages/webview/src/stores/index.ts
+  88a56fc4f56a7376 1-35
+packages/webview/tests/webview/chatAppPanels.test.tsx
+  88a56fc4f56a7376 6-7,53
+packages/webview/src/stores/paneUiStore.ts
+  88a56fc4f56a7376 1-104
+packages/webview/src/stores/panelGroupStore.ts
+  88a56fc4f56a7376 1-166
+docs/superpowers/specs/2026-08-15-webview-zustand-design.md
+  88a56fc4f56a7376 1-311
+docs/superpowers/plans/2026-08-15-webview-zustand.md
+  88a56fc4f56a7376 1-104
+packages/webview/src/components/ChatApp.tsx
+  034726f7911b0ff3 41,62,64-66,68-71,74-75,125-151,160-161,198-206,209-218,289-290,302-303,305,317,319,324-328,382,392-394,397-399,401-408,412,421-428,438-440,448-451,455-459,473-474,478-487,489-495,506-515,525-526,528-532,534,644-649,917,924,935-942,952-954,956,1019-1022,1101-1102,1267-1268,1298,1300,1303-1320,1323-1324,1328-1334,1337,1339,1345,1348,1360,1362,1368,1370,1376-1379,1389,1396,1432-1433,1445,1463,1501,1505-1513,1516,1523-1526,1534-1539,1541,1599-1615,1624,1653-1654,1662,1664,1686,1689,1697,1699,1970-1975,2124,2181,2195
+  88a56fc4f56a7376 63,67,207-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3bcdd2153395a697db021c84f90bc1bc6fec6f93",
+  "prompts": {
+    "034726f7911b0ff3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e96583e-2b44-4f6b-a048-4fcfe6dd985a",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 291,
+      "total_deletions": 430,
+      "accepted_lines": 279,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 291,
+          "deletions": 430,
+          "accepted_lines": 279
+        }
+      }
+    },
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 828,
+      "total_deletions": 60,
+      "accepted_lines": 816,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 166,
+          "accepted_lines": 166
+        },
+        "packages/webview/src/stores/paneKey.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/stores/desktopStore.ts": {
+          "additions": 61,
+          "accepted_lines": 61
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 36,
+          "deletions": 1,
+          "accepted_lines": 35
+        },
+        "docs/superpowers/plans/2026-08-15-webview-zustand.md": {
+          "additions": 104,
+          "accepted_lines": 104
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 32,
+          "deletions": 44,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/stores/paneUiStore.ts": {
+          "additions": 105,
+          "deletions": 1,
+          "accepted_lines": 104
+        },
+        "docs/superpowers/specs/2026-08-15-webview-zustand-design.md": {
+          "additions": 312,
+          "deletions": 1,
+          "accepted_lines": 311
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 10,
+          "accepted_lines": 5
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
