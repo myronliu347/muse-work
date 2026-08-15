@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderChatApp, screen, act, sendCommand } from "./test-utils";
+import { renderChatApp, screen, act, sendCommand, within } from "./test-utils";
 
 describe("Meta Message Hiding", () => {
   beforeEach(() => {
@@ -37,10 +37,11 @@ describe("Meta Message Hiding", () => {
       });
     });
 
+    const messages = screen.getByTestId("messages-container");
     // Regular user message should be visible
-    expect(screen.getByText("Hello")).toBeInTheDocument();
+    expect(within(messages).getByText("Hello")).toBeInTheDocument();
     // Assistant message should be visible
-    expect(screen.getByText("Hi there")).toBeInTheDocument();
+    expect(within(messages).getByText("Hi there")).toBeInTheDocument();
     // Meta message should NOT be visible
     expect(
       screen.queryByText("This is a meta message"),
@@ -71,8 +72,8 @@ describe("Meta Message Hiding", () => {
       });
     });
 
-    expect(screen.getByText("Visible message 1")).toBeInTheDocument();
-    expect(screen.getByText("Visible message 2")).toBeInTheDocument();
+    expect(within(screen.getByTestId("messages-container")).getByText("Visible message 1")).toBeInTheDocument();
+    expect(within(screen.getByTestId("messages-container")).getByText("Visible message 2")).toBeInTheDocument();
   });
 
   it("should hide multiple meta messages and show only non-meta ones", async () => {
@@ -113,10 +114,11 @@ describe("Meta Message Hiding", () => {
       });
     });
 
-    expect(screen.queryByText("Meta 1")).not.toBeInTheDocument();
-    expect(screen.getByText("Real message")).toBeInTheDocument();
-    expect(screen.queryByText("Meta 2")).not.toBeInTheDocument();
-    expect(screen.getByText("Response")).toBeInTheDocument();
+    const messages = screen.getByTestId("messages-container");
+    expect(within(messages).queryByText("Meta 1")).not.toBeInTheDocument();
+    expect(within(messages).getByText("Real message")).toBeInTheDocument();
+    expect(within(messages).queryByText("Meta 2")).not.toBeInTheDocument();
+    expect(within(messages).getByText("Response")).toBeInTheDocument();
   });
 
   it("should handle isMeta: false explicitly (should be visible)", async () => {
@@ -138,6 +140,10 @@ describe("Meta Message Hiding", () => {
       });
     });
 
-    expect(screen.getByText("Explicit non-meta")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("messages-container")).getByText(
+        "Explicit non-meta",
+      ),
+    ).toBeInTheDocument();
   });
 });

@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, act } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import {
   renderChatApp,
   screen,
   sendCommand,
   createMockVscode,
+  sendHostMessage,
+  act,
 } from "./test-utils";
 import { ChatApp } from "../../src/components/ChatApp";
+import { MuseTheme } from "../../src/ui/theme";
+import { fixtures } from "wave-webview-fixtures";
 
 // The message list (and thus the compaction hint) only renders once the
 // conversation has at least one message; an empty conversation shows the
@@ -95,14 +99,37 @@ describe("Compaction hint", () => {
   it("ignores compaction state tagged for a different pane (desktop split-view)", () => {
     const mockVscode = createMockVscode();
     render(
-      <ChatApp
-        vscode={mockVscode}
-        host={{ type: "desktop" } as never}
-        paneId="pane-a"
-      />,
+      <MuseTheme>
+        <ChatApp
+          vscode={mockVscode}
+          host={{ type: "desktop" } as never}
+          paneId="pane-a"
+        />
+      </MuseTheme>,
     );
-    sendCommand("authStatusResponse", { isAuthenticated: true });
-    addUserMessage("pane-a");
+    sendHostMessage(fixtures.authStatusResponse());
+    sendHostMessage(
+      fixtures.setInitialState({
+        paneId: "pane-a",
+        workdir: "/work/a",
+        messages: [
+          {
+            id: "msg_user_1",
+            role: "user",
+            timestamp: "2024-01-01T00:00:00.000Z",
+            blocks: [{ type: "text", content: "/compact" }],
+          },
+        ],
+        session: {
+          id: "s1",
+          sessionType: "main",
+          workdir: "/work/a",
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
+      }),
+    );
 
     act(() => {
       window.dispatchEvent(

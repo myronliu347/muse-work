@@ -74,13 +74,13 @@ describe("ConfigDialog", () => {
 
   it("calls onCancel when the close button is clicked", () => {
     const { onCancel } = renderDialog();
-    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[0]!);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it("calls onCancel when the header close icon is clicked", () => {
     const { onCancel } = renderDialog();
-    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[0]!);
     // header close + footer share aria/name; click first close via aria on header
     expect(onCancel).toHaveBeenCalled();
   });

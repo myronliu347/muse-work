@@ -4,24 +4,42 @@ import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { resetWebviewStores } from "../../src/stores";
+import { MuseTheme } from "../../src/ui/theme";
 import {
   createMockVscode,
   sendCommand,
   sendHostMessage,
+  renderDesktopApp,
+  bootstrapDesktopAuth,
 } from "./test-utils";
 import { fixtures } from "wave-webview-fixtures";
 
 vi.mock("../../src/styles/DesktopApp.css", () => ({}));
 
 function renderDesktop(options?: { workdir?: string }) {
-  const vscode = createMockVscode();
-  const view = render(<DesktopApp vscode={vscode} />);
+  const { vscode, unmount } = renderDesktopApp();
   sendCommand("desktopWorkdirState", {
     workdir: options?.workdir,
     recentWorkdirs: options?.workdir ? [options.workdir] : [],
   });
-  sendHostMessage(fixtures.authStatusResponse());
-  return { vscode, unmount: view.unmount };
+  bootstrapDesktopAuth();
+  if (options?.workdir) {
+    sendHostMessage(
+      fixtures.setInitialState({
+        workdir: options.workdir,
+        messages: [{ id: "m1", role: "user", blocks: [{ type: "text", content: "hi" }], timestamp: new Date().toISOString() }],
+        session: {
+          id: "sess-test",
+          sessionType: "main",
+          workdir: options.workdir,
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
+      }),
+    );
+  }
+  return { vscode, unmount };
 }
 
 const panelStatePosts = (vscode: ReturnType<typeof createMockVscode>) =>

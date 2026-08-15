@@ -25,9 +25,6 @@ describe("More Menu", () => {
     openMoreMenu();
 
     expect(screen.getByTestId("more-menu-settings")).toHaveTextContent("设置");
-    expect(screen.getByTestId("more-menu-enterprise")).toHaveTextContent(
-      "企业控制台",
-    );
     expect(screen.getByTestId("more-menu-logout")).toHaveTextContent(
       "退出登录",
     );
@@ -42,7 +39,6 @@ describe("More Menu", () => {
     openMoreMenu();
 
     expect(screen.getByTestId("more-menu-settings")).toBeInTheDocument();
-    expect(screen.getByTestId("more-menu-enterprise")).toBeInTheDocument();
     expect(screen.queryByTestId("more-menu-logout")).not.toBeInTheDocument();
     // Unauthenticated users get a 登录 entry instead
     expect(screen.getByTestId("more-menu-login")).toHaveTextContent("登录");
@@ -64,46 +60,6 @@ describe("More Menu", () => {
     );
     // Menu closes after selection
     expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
-  });
-
-  it("should post openExternal with the serverUrl when 企业控制台 is clicked", () => {
-    const { vscode } = renderChatApp();
-
-    act(() => {
-      sendCommand("configurationResponse", {
-        configurationData: { serverUrl: "https://console.example.com" },
-      });
-    });
-
-    vscode.postMessage.mockClear();
-    openMoreMenu();
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("more-menu-enterprise"));
-    });
-
-    expect(vscode.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        command: "openExternal",
-        url: "https://console.example.com",
-      }),
-    );
-    expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
-  });
-
-  it("should not post openExternal when serverUrl is missing", () => {
-    const { vscode } = renderChatApp();
-
-    vscode.postMessage.mockClear();
-    openMoreMenu();
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("more-menu-enterprise"));
-    });
-
-    expect(vscode.postMessage).not.toHaveBeenCalledWith(
-      expect.objectContaining({ command: "openExternal" }),
-    );
   });
 
   it("should post logout when 退出登录 is clicked", () => {

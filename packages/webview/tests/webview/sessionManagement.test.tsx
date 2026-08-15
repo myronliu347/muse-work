@@ -256,10 +256,7 @@ describe("Session Management", () => {
 
     // Clear chat via the /clear slash command (the header button now opens a new tab instead)
     const input = screen.getByTestId("message-input");
-    act(() => {
-      input.textContent = "/clear";
-    });
-    await fireInput(input, { data: "/clear", inputType: "insertText" });
+    await setInputText(input, "/clear");
     act(() => {
       fireEvent.click(screen.getByTestId("send-btn"));
     });
@@ -298,7 +295,7 @@ describe("Session Management", () => {
 
     // VERIFY EXPECTED BEHAVIOR:
     // - Chat should be cleared (welcome view shown, no messages container)
-    expect(screen.getByText("Hi~ 欢迎使用 Wave 代码智聊")).toBeInTheDocument();
+    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
 
     // - Header title should show the NEW session, not the original
     expect(screen.getByTestId("chat-header")).toHaveTextContent(
@@ -318,7 +315,6 @@ describe("Session Management", () => {
   it("should keep the new session button enabled during streaming", () => {
     renderChatApp();
 
-    // Setup sessions
     const sessions = [
       {
         id: "session-1",
@@ -335,20 +331,16 @@ describe("Session Management", () => {
       sendCommand("updateCurrentSession", { session: sessions[0] });
     });
 
-    // Start streaming
     act(() => {
       sendCommand("startStreaming");
     });
 
-    // New session button is disabled during streaming (prevents clearing an in-progress generation)
-    expect(screen.getByTestId("new-session-btn")).toBeDisabled();
+    expect(screen.getByTestId("new-session-btn")).not.toBeDisabled();
 
-    // End streaming
     act(() => {
       sendCommand("endStreaming");
     });
 
-    // Button remains enabled
     expect(screen.getByTestId("new-session-btn")).not.toBeDisabled();
   });
 

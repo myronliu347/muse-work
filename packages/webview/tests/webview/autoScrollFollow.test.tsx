@@ -56,9 +56,9 @@ describe("auto-scroll follow during streaming", () => {
   });
 
   it("keeps following when content above the viewport shrinks (e.g. reasoning collapse) without a user scroll-up", async () => {
-    const scrollIntoView = vi.fn();
-    // jsdom doesn't implement Element.scrollIntoView
-    window.Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => {});
 
     renderChatApp();
     act(() => {
@@ -103,12 +103,16 @@ describe("auto-scroll follow during streaming", () => {
       });
     });
 
-    expect(scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
+    scrollIntoView.mockRestore();
   });
 
   it("keeps following when the viewport grows (e.g. confirmation dialog closes) without a user scroll-up", async () => {
-    const scrollIntoView = vi.fn();
-    window.Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => {});
 
     renderChatApp();
     act(() => {
@@ -148,12 +152,16 @@ describe("auto-scroll follow during streaming", () => {
       });
     });
 
-    expect(scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
+    scrollIntoView.mockRestore();
   });
 
   it("stops following after a genuine user scroll-up (geometry unchanged)", async () => {
-    const scrollIntoView = vi.fn();
-    window.Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => {});
 
     renderChatApp();
     act(() => {
@@ -197,5 +205,6 @@ describe("auto-scroll follow during streaming", () => {
     });
 
     expect(scrollIntoView).not.toHaveBeenCalled();
+    scrollIntoView.mockRestore();
   });
 });

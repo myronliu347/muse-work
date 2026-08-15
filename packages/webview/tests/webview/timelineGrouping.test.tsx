@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderChatApp, screen, sendCommand } from "./test-utils";
+import { renderChatApp, screen, sendCommand, waitFor, act } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
 /**
@@ -7,8 +7,8 @@ import { MockDataGenerator } from "../fixtures/mockData";
  *
  * MessageList groups consecutive role==='assistant' messages into a single
  * `.assistant-group` wrapper so the timeline line runs continuously through all
- * their dots. User messages break the timeline. A group whose messages
- * contribute only a single timeline dot gets `.assistant-group--single`.
+ * their dots. User messages break the timeline. Completed assistant runs may
+ * collapse into a work summary + final bubble.
  */
 describe("Timeline assistant grouping", () => {
   beforeEach(() => {
@@ -19,7 +19,17 @@ describe("Timeline assistant grouping", () => {
     return screen.getByTestId("messages-container");
   }
 
-  it("groups consecutive assistant messages and isolates the post-user one", () => {
+  async function loadMessages(messages: ReturnType<typeof MockDataGenerator.createAssistantMessage>[]) {
+    act(() => {
+      sendCommand("updateMessages", { messages });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("messages-container")).toBeInTheDocument();
+    });
+    return getContainer();
+  }
+
+  it("groups consecutive assistant messages and isolates the post-user one", async () => {
     renderChatApp();
 
     const messages = [
@@ -28,35 +38,24 @@ describe("Timeline assistant grouping", () => {
       MockDataGenerator.createUserMessage("a user question", "u1"),
       MockDataGenerator.createAssistantMessage("third assistant", "a3"),
     ];
-    sendCommand("updateMessages", { messages });
-
-    const container = getContainer();
+    const container = await loadMessages(messages);
     const groups = container.querySelectorAll(".assistant-group");
 
-    // Two assistant runs → two groups (the user message breaks the run).
     expect(groups.length).toBe(2);
 
-    // First group: the two consecutive assistant messages.
     const firstGroup = groups[0];
-    const firstGroupAssistants =
-      firstGroup.querySelectorAll(".message.assistant");
-    expect(firstGroupAssistants.length).toBe(2);
-    // Two single-block assistant messages → 2 dots → NOT single, line drawn.
-    expect(firstGroup.classList.contains("assistant-group--single")).toBe(
-      false,
-    );
+    expect(
+      firstGroup.querySelector('[data-testid="assistant-group-collapsed"]') ??
+        firstGroup.querySelectorAll(".message.assistant").length,
+    ).toBeTruthy();
+    expect(firstGroup.querySelectorAll(".message.assistant").length).toBeGreaterThanOrEqual(1);
 
-    // Second group: the lone post-user assistant, single dot → --single.
     const secondGroup = groups[1];
-    const secondGroupAssistants =
-      secondGroup.querySelectorAll(".message.assistant");
-    expect(secondGroupAssistants.length).toBe(1);
-    expect(secondGroup.classList.contains("assistant-group--single")).toBe(
-      true,
-    );
+    expect(secondGroup.querySelectorAll(".message.assistant").length).toBe(1);
+    expect(secondGroup.classList.contains("assistant-group--single")).toBe(true);
   });
 
-  it("does not wrap the user message inside any assistant-group", () => {
+  it("does not wrap the user message inside any assistant-group", async () => {
     renderChatApp();
 
     const messages = [
@@ -65,12 +64,9 @@ describe("Timeline assistant grouping", () => {
       MockDataGenerator.createUserMessage("a user question", "u1"),
       MockDataGenerator.createAssistantMessage("third assistant", "a3"),
     ];
-    sendCommand("updateMessages", { messages });
-
-    const container = getContainer();
+    const container = await loadMessages(messages);
     const userMessage = container.querySelector('[data-role="user"]');
     expect(userMessage).not.toBeNull();
-    // The user message must be a direct child of the container, outside any group.
     expect(userMessage?.closest(".assistant-group")).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderChatApp, sendCommand } from "./test-utils";
 
 function getLastMessage(): HTMLElement {
@@ -31,8 +31,8 @@ describe("timeline dot color by stage", () => {
     const streamingRow = getLastMessage().querySelector(
       ".timeline-row",
     ) as HTMLElement;
-    expect(streamingRow.style.getPropertyValue("--dot-color")).toContain(
-      "Warning",
+    expect(streamingRow.style.getPropertyValue("--dot-color")).toBe(
+      "var(--amber-11)",
     );
 
     // finished text → green dot
@@ -49,7 +49,9 @@ describe("timeline dot color by stage", () => {
     const doneRow = getLastMessage().querySelector(
       ".timeline-row",
     ) as HTMLElement;
-    expect(doneRow.style.getPropertyValue("--dot-color")).toContain("Passed");
+    expect(doneRow.style.getPropertyValue("--dot-color")).toBe(
+      "var(--green-11)",
+    );
   });
 
   it("reasoning block dot is yellow while streaming and green when done", () => {
@@ -70,8 +72,8 @@ describe("timeline dot color by stage", () => {
     const streamingRow = getLastMessage().querySelector(
       ".timeline-row",
     ) as HTMLElement;
-    expect(streamingRow.style.getPropertyValue("--dot-color")).toContain(
-      "Warning",
+    expect(streamingRow.style.getPropertyValue("--dot-color")).toBe(
+      "var(--amber-11)",
     );
 
     sendCommand("updateMessages", {
@@ -87,7 +89,9 @@ describe("timeline dot color by stage", () => {
     const doneRow = getLastMessage().querySelector(
       ".timeline-row",
     ) as HTMLElement;
-    expect(doneRow.style.getPropertyValue("--dot-color")).toContain("Passed");
+    expect(doneRow.style.getPropertyValue("--dot-color")).toBe(
+      "var(--green-11)",
+    );
   });
 
   it("history text block without stage defaults to green dot", () => {
@@ -105,6 +109,6 @@ describe("timeline dot color by stage", () => {
       ],
     });
     const row = getLastMessage().querySelector(".timeline-row") as HTMLElement;
-    expect(row.style.getPropertyValue("--dot-color")).toContain("Passed");
+    expect(row.style.getPropertyValue("--dot-color")).toBe("var(--green-11)");
   });
 });

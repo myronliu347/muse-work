@@ -195,7 +195,7 @@ describe("Rich Input Features", () => {
       '#messageInput .context-tag-container[data-is-selection="true"]',
     );
     expect(inlineTag).toBeInTheDocument();
-    expect(inlineTag).toHaveTextContent(/app\.ts#1-10/);
+    expect(inlineTag).toHaveTextContent(/app\.ts \(1-10\)/);
 
     // 3. Type and send
     const input = screen.getByTestId("message-input");

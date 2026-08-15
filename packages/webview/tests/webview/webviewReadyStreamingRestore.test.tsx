@@ -7,6 +7,7 @@ import {
   act,
   sendCommand,
   fireInput,
+  withinMessages,
 } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
@@ -30,7 +31,7 @@ describe("Webview Ready Streaming State Restoration", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Hello")).toBeInTheDocument();
+      expect(withinMessages().getByText("Hello")).toBeInTheDocument();
     });
 
     // Start streaming response
@@ -117,7 +118,7 @@ describe("Webview Ready Streaming State Restoration", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Test message")).toBeInTheDocument();
+      expect(withinMessages().getByText("Test message")).toBeInTheDocument();
     });
 
     // Verify no streaming state

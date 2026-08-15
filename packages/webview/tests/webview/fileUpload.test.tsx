@@ -8,10 +8,6 @@ import {
 } from "./test-utils";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-/**
- * Helper: type text into the contenteditable message input and set up
- * a selection inside a text node at the end.
- */
 async function typeInInput(text: string) {
   const input = screen.getByTestId("message-input");
   input.focus();
@@ -19,7 +15,6 @@ async function typeInInput(text: string) {
   const fullText = existing + text;
   input.textContent = fullText;
 
-  // Set selection at end of text node
   const range = document.createRange();
   if (input.firstChild && input.firstChild.nodeType === Node.TEXT_NODE) {
     const textNode = input.firstChild;
@@ -36,9 +31,6 @@ async function typeInInput(text: string) {
   await fireInput(input, { inputType: "insertText" });
 }
 
-/**
- * Helper: wait for requestFileSuggestions and return the requestId
- */
 async function waitForFileSuggestionRequest(
   vscode: ReturnType<typeof renderChatApp>["vscode"],
 ): Promise<string> {
@@ -70,7 +62,6 @@ describe("File Upload Feature", () => {
 
     const reqId1 = await waitForFileSuggestionRequest(vscode);
 
-    // Simulate response with no filter text and a single suggestion
     act(() => {
       sendCommand("fileSuggestionsResponse", {
         suggestions: [
@@ -83,28 +74,21 @@ describe("File Upload Feature", () => {
             isDirectory: false,
           },
         ],
-        filterText: "", // Empty filter text
+        filterText: "",
         requestId: reqId1,
       });
     });
 
-    // Wait for suggestions to render
     await waitFor(() => {
       const items = document.querySelectorAll(".suggestion-item");
       expect(items.length).toBe(1);
     });
 
     const suggestionItems = document.querySelectorAll(".suggestion-item");
-    // Only the returned suggestion should render, no extra upload option.
     expect(suggestionItems.length).toBe(1);
-
-    // Verify there is no upload option anymore
-    const uploadOption = document.querySelector(
-      ".suggestion-item.upload-option",
-    );
-    expect(uploadOption).toBeNull();
-
-    // Verify the rendered suggestion is the returned file
+    expect(
+      document.querySelector(".suggestion-item.upload-option"),
+    ).toBeNull();
     expect(suggestionItems[0]).toHaveTextContent(/test.tsx/);
   });
 
@@ -115,7 +99,6 @@ describe("File Upload Feature", () => {
 
     const reqId = await waitForFileSuggestionRequest(vscode);
 
-    // Mock filtered response with filter text
     act(() => {
       sendCommand("fileSuggestionsResponse", {
         suggestions: [
@@ -133,7 +116,6 @@ describe("File Upload Feature", () => {
       });
     });
 
-    // Should only show filtered results (no upload option)
     await waitFor(() => {
       const items = document.querySelectorAll(".suggestion-item");
       expect(items.length).toBe(1);
@@ -141,39 +123,30 @@ describe("File Upload Feature", () => {
 
     const suggestionItems = document.querySelectorAll(".suggestion-item");
     expect(suggestionItems.length).toBe(1);
-
-    // Verify there's no upload option
-    const uploadOption = document.querySelector(
-      ".suggestion-item.upload-option",
-    );
-    expect(uploadOption).toBeNull();
-
-    // Verify the suggestion is the filtered file
+    expect(
+      document.querySelector(".suggestion-item.upload-option"),
+    ).toBeNull();
     expect(suggestionItems[0]).toHaveTextContent(/test.tsx/);
   });
 
-  it("should insert file paths into input after successful upload", async () => {
+  it("should insert file paths into input after desktopSelectFilesResult", async () => {
     renderChatApp();
 
-    // No @ mention needed: upload flow no longer goes through @.
     const input = screen.getByTestId("message-input");
     input.focus();
 
-    // Simulate successful file upload response
     act(() => {
-      sendCommand("uploadSuccess", {
-        uploadedFiles: [
-          "/tmp/wave-artifacts/document.pdf",
-          "/tmp/wave-artifacts/image.png",
+      sendCommand("desktopSelectFilesResult", {
+        paths: [
+          "/tmp/muse-artifacts/document.pdf",
+          "/tmp/muse-artifacts/image.png",
         ],
-        message: "成功上传 2 个文件到临时目录",
       });
     });
 
-    // Verify that file paths are inserted into the input as tags
     await waitFor(() => {
       const tags = document.querySelectorAll(
-        '[data-testid="message-input"] .context-tag',
+        '[data-testid="message-input"] .context-tag-container',
       );
       expect(tags.length).toBe(2);
     });
@@ -192,49 +165,38 @@ describe("File Upload Feature", () => {
     const input = screen.getByTestId("message-input");
     input.focus();
 
-    // Simulate successful single file upload response
     act(() => {
-      sendCommand("uploadSuccess", {
-        uploadedFiles: ["/tmp/wave-artifacts/single-file.txt"],
-        message: "成功上传 1 个文件到临时目录",
+      sendCommand("desktopSelectFilesResult", {
+        paths: ["/tmp/muse-artifacts/single-file.txt"],
       });
     });
 
-    // Verify that single file path is inserted into the input as a tag
     await waitFor(() => {
       const tags = document.querySelectorAll(
-        '[data-testid="message-input"] .context-tag',
+        '[data-testid="message-input"] .context-tag-container',
       );
       expect(tags.length).toBe(1);
     });
 
-    const inputValue = input.textContent
-      ?.replace(/\n/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    expect(inputValue).toContain("single-file.txt");
+    expect(input.textContent).toContain("single-file.txt");
   });
 
   it("should insert file path after existing input text", async () => {
     renderChatApp();
 
-    // Type some plain text first, then upload — the tag is appended at the cursor/end.
     await typeInInput("hello ");
 
     const input = screen.getByTestId("message-input");
 
-    // Simulate successful file upload response
     act(() => {
-      sendCommand("uploadSuccess", {
-        uploadedFiles: ["/tmp/wave-artifacts/test.pdf"],
-        message: "成功上传 1 个文件到临时目录",
+      sendCommand("desktopSelectFilesResult", {
+        paths: ["/tmp/muse-artifacts/test.pdf"],
       });
     });
 
-    // Verify that file path is inserted into the input as a tag
     await waitFor(() => {
       const tags = document.querySelectorAll(
-        '[data-testid="message-input"] .context-tag',
+        '[data-testid="message-input"] .context-tag-container',
       );
       expect(tags.length).toBe(1);
     });
@@ -244,7 +206,6 @@ describe("File Upload Feature", () => {
       .replace(/\s+/g, " ")
       .trim();
     expect(inputValue).toContain("test.pdf");
-    // Existing input text is preserved (no longer replaced by the upload flow).
     expect(inputValue).toContain("hello");
   });
 });

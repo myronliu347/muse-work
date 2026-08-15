@@ -1,9 +1,11 @@
 import React from "react";
 import { vi } from "vitest";
-import { render, act, fireEvent } from "@testing-library/react";
+import { render, act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { VsCodeApi } from "../../src/types";
 import { ChatApp } from "../../src/components/ChatApp";
+import { DesktopApp } from "../../src/components/DesktopApp";
+import { MuseTheme } from "../../src/ui/theme";
 import { fixtures, type HostToWebviewMessage } from "wave-webview-fixtures";
 
 // Mock heavy dependencies
@@ -53,12 +55,36 @@ export function renderChatApp(vscode?: VsCodeApi) {
   const mockVscode = (vscode || createMockVscode()) as ReturnType<
     typeof createMockVscode
   >;
-  const result = render(<ChatApp vscode={mockVscode} />);
+  const result = render(
+    <MuseTheme>
+      <ChatApp vscode={mockVscode} />
+    </MuseTheme>,
+  );
   // Default to authenticated so the message input is enabled and MessageList
   // (not the unauthenticated WelcomeView) renders for empty-state assertions.
   sendHostMessage(fixtures.authStatusResponse());
   const user = userEvent.setup();
   return { ...result, vscode: mockVscode, user };
+}
+
+/**
+ * Render DesktopApp with MuseTheme and authenticated initial state.
+ */
+export function renderDesktopApp(vscode?: VsCodeApi) {
+  const mockVscode = (vscode || createMockVscode()) as ReturnType<
+    typeof createMockVscode
+  >;
+  const result = render(
+    <MuseTheme>
+      <DesktopApp vscode={mockVscode} />
+    </MuseTheme>,
+  );
+  return { ...result, vscode: mockVscode };
+}
+
+/** Call after desktopWorkdirState so ChatApp (mounted with workdir) receives auth. */
+export function bootstrapDesktopAuth(isAuthenticated = true) {
+  sendHostMessage(fixtures.authStatusResponse(isAuthenticated));
 }
 
 /**
@@ -136,4 +162,87 @@ export {
   fireEvent,
   act,
 } from "@testing-library/react";
+
+/** Scope queries to the message list (avoids duplicate matches in the header). */
+export function withinMessages() {
+  return within(screen.getByTestId("messages-container"));
+}
+
+export type DesktopPanelKind = "preview" | "diff" | "terminal" | "file";
+
+/** Open a desktop panel via keyboard shortcuts (Radix add menu is unreliable in jsdom). */
+export function openPanelShortcut(kind: DesktopPanelKind) {
+  const isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+  if (kind === "terminal") {
+    fireEvent.keyDown(window, {
+      key: "`",
+      code: "Backquote",
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      bubbles: true,
+    });
+    return;
+  }
+  const key =
+    kind === "preview"
+      ? "p"
+      : kind === "diff"
+        ? "d"
+        : kind === "file"
+          ? "f"
+          : null;
+  if (!key) throw new Error(`unknown panel kind: ${kind}`);
+  fireEvent.keyDown(window, {
+    key,
+    ctrlKey: !isMac,
+    metaKey: isMac,
+    shiftKey: true,
+    bubbles: true,
+  });
+}
+
+/** Push the pin/recent session tree groups the sidebar expects. */
+export function pushRecentSessionTree(
+  sessions: Array<{
+    sessionId: string;
+    title: string;
+    workdir: string;
+    lastActiveAt?: number;
+    hasWorktree?: boolean;
+    running?: boolean;
+    waitingConfirmation?: boolean;
+  }>,
+  pinned: Array<{
+    sessionId: string;
+    title: string;
+    workdir: string;
+    lastActiveAt?: number;
+    hasWorktree?: boolean;
+  }> = [],
+) {
+  sendHostMessage(
+    fixtures.desktopSessionTreeRecent(
+      sessions.map((s) => ({
+        sessionId: s.sessionId,
+        title: s.title,
+        lastActiveAt: s.lastActiveAt ?? Date.now(),
+        hasWorktree: s.hasWorktree ?? false,
+        workdir: s.workdir,
+        ...(s.running !== undefined ? { running: s.running } : {}),
+        ...(s.waitingConfirmation !== undefined
+          ? { waitingConfirmation: s.waitingConfirmation }
+          : {}),
+      })),
+      pinned.map((s) => ({
+        sessionId: s.sessionId,
+        title: s.title,
+        lastActiveAt: s.lastActiveAt ?? Date.now(),
+        hasWorktree: s.hasWorktree ?? false,
+        workdir: s.workdir,
+      })),
+    ),
+  );
+}
+
 export { default as userEvent } from "@testing-library/user-event";
