@@ -134,6 +134,22 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getSettingsRaw(): Promise<{ path: string; content: string }> {
+    const res = await this.request("/settings/raw");
+    return parseJson(res);
+  }
+
+  async putSettingsRaw(
+    content: string,
+  ): Promise<{ path: string; content: string }> {
+    const res = await this.request("/settings/raw", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    return parseJson(res);
+  }
+
   async updateSettings(patch: {
     plugins: { superpowers: boolean };
   }): Promise<MuseSettings> {

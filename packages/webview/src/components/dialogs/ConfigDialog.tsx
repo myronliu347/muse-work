@@ -13,6 +13,10 @@ import {
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { PluginSettings } from "../settings/PluginSettings";
+import {
+  AgentSettings,
+  type AgentSettingsHandle,
+} from "../settings/AgentSettings";
 import "../../styles/ConfigurationDialog.css";
 
 const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
@@ -20,9 +24,10 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
+  const agentSettingsRef = useRef<AgentSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "appearance" | "plugins" | "provider"
+    "appearance" | "plugins" | "agent" | "provider"
   >("appearance");
   const savingRef = useRef(false);
   const reduceMotion =
@@ -36,7 +41,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
 
   const requestClose = useCallback(() => {
     if (savingRef.current) return;
-    if (settingsRef.current?.isDirty()) {
+    if (settingsRef.current?.isDirty() || agentSettingsRef.current?.isDirty()) {
       const discard = window.confirm("有未保存的修改，确定关闭？");
       if (!discard) return;
     }
@@ -73,6 +78,16 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   }, [requestClose]);
 
   const handleSave = async () => {
+    if (activeTab === "agent") {
+      setSaving(true);
+      try {
+        const ok = await agentSettingsRef.current?.save();
+        if (ok) onCancel();
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     const ok = await settingsRef.current?.save();
     if (ok) onCancel();
   };
@@ -163,6 +178,32 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           <button
             type="button"
             role="tab"
+            aria-selected={activeTab === "agent"}
+            aria-controls="config-agent-panel"
+            className={`config-tab${activeTab === "agent" ? " active" : ""}`}
+            onClick={() => setActiveTab("agent")}
+            style={{ position: "relative", borderBottomColor: "transparent" }}
+          >
+            Agent
+            {activeTab === "agent" && (
+              <motion.span
+                className="settings-tab-underline"
+                layoutId="settings-tab-underline"
+                transition={tabUnderlineTransition}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: -1,
+                  left: 0,
+                  height: 2,
+                  backgroundColor: "var(--accent-9)",
+                }}
+              />
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={activeTab === "provider"}
             aria-controls="config-provider-panel"
             className={`config-tab${activeTab === "provider" ? " active" : ""}`}
@@ -203,6 +244,13 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               hidden={activeTab !== "plugins"}
             >
               <PluginSettings />
+            </div>
+            <div
+              id="config-agent-panel"
+              role="tabpanel"
+              hidden={activeTab !== "agent"}
+            >
+              <AgentSettings ref={agentSettingsRef} />
             </div>
             <div
               id="config-provider-panel"

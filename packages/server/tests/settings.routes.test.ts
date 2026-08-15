@@ -5,6 +5,7 @@ import path from "node:path";
 import { createApp } from "../src/app.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
 import { getSettingsPath } from "../src/services/museSettings.js";
+import { getWaveUserSettingsPath } from "../src/services/waveAgentSettings.js";
 
 describe("settings routes", () => {
   let server: Server | undefined;
@@ -28,6 +29,51 @@ describe("settings routes", () => {
       version: 1,
       plugins: { superpowers: true },
     });
+  });
+
+  it("GET/PUT /settings/raw edits ~/.wave/settings.json and invalidates identities", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    let invalidated = false;
+    const original = app.ctx.runner.invalidateAgentIdentities.bind(
+      app.ctx.runner,
+    );
+    app.ctx.runner.invalidateAgentIdentities = () => {
+      invalidated = true;
+      original();
+    };
+
+    const empty = await fetch(`${app.baseUrl}/settings/raw`);
+    expect(empty.status).toBe(200);
+    const emptyBody = (await empty.json()) as { path: string; content: string };
+    expect(emptyBody.path).toBe(getWaveUserSettingsPath(app.home));
+    expect(JSON.parse(emptyBody.content)).toEqual({});
+
+    const put = await fetch(`${app.baseUrl}/settings/raw`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: '{"env":{"WAVE_VISION_MODEL":"kimi-k3"}}',
+      }),
+    });
+    expect(put.status).toBe(200);
+    expect(invalidated).toBe(true);
+    const putBody = (await put.json()) as { path: string; content: string };
+    expect(JSON.parse(putBody.content)).toEqual({
+      env: { WAVE_VISION_MODEL: "kimi-k3" },
+    });
+    expect(
+      JSON.parse(fs.readFileSync(getWaveUserSettingsPath(app.home), "utf8")),
+    ).toEqual({ env: { WAVE_VISION_MODEL: "kimi-k3" } });
+
+    const bad = await fetch(`${app.baseUrl}/settings/raw`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "{" }),
+    });
+    expect(bad.status).toBe(400);
   });
 
   it("PATCH /settings writes false and invalidates agent identities", async () => {

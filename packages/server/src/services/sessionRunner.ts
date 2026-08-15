@@ -955,6 +955,16 @@ export function createSessionRunner(
         rearmIdleIfNeeded(sessionId);
         return existing;
       }
+      // Stale identity (provider / ~/.wave/settings.json change). Recreate only
+      // when the session is idle so an in-flight turn keeps its live agent;
+      // the next ensureAgent after the turn finishes will dispose + create.
+      if (
+        !canIdleDestroy(sessionId) ||
+        agentLoading.get(sessionId) === true
+      ) {
+        rearmIdleIfNeeded(sessionId);
+        return existing;
+      }
       agents.delete(sessionId);
       agentIdentities.delete(sessionId);
       await existing.dispose();

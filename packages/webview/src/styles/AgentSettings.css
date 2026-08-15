@@ -1,0 +1,23 @@
+.agent-settings-editor {
+  width: 100%;
+  min-height: 280px;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--font-size-1);
+  line-height: 1.45;
+  padding: var(--space-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--gray-2);
+  color: var(--gray-12);
+}
+
+.agent-settings-editor:focus {
+  outline: 2px solid var(--accent-9);
+  outline-offset: -1px;
+}
+
+.agent-settings-editor[aria-invalid="true"] {
+  border-color: var(--red-9);
+}
