@@ -282,6 +282,67 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("desktopSearchContent replies with matches", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-cs-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-ipc-"));
+    fs.writeFileSync(path.join(dir, "a.ts"), "hello world\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "desktopSearchContent",
+        requestId: "cs1",
+        workdir: dir,
+        query: "hello",
+        caseSensitive: false,
+      },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSearchContentResult",
+        requestId: "cs1",
+        totalMatches: 1,
+        results: [
+          expect.objectContaining({
+            relativePath: "a.ts",
+          }),
+        ],
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("requestFileSuggestions replies with matching workspace files", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-sug-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sug-"));

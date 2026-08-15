@@ -8,7 +8,11 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
-import { listWorkspaceDir, searchWorkspaceFiles } from "./fileSearch.js";
+import {
+  listWorkspaceDir,
+  searchContentInWorkspace,
+  searchWorkspaceFiles,
+} from "./fileSearch.js";
 import { listGitBranches } from "./gitBranches.js";
 import { getWorkspaceDiff } from "./gitDiff.js";
 import { generateRandomName } from "./nameGenerator.js";
@@ -386,6 +390,31 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         requestId,
         dir,
         entries,
+      });
+      return;
+    }
+
+    if (command === "desktopSearchContent") {
+      const requestId =
+        typeof msg.requestId === "string" ? msg.requestId : "";
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const query = typeof msg.query === "string" ? msg.query : "";
+      const out = cwd
+        ? searchContentInWorkspace(cwd, {
+            query,
+            caseSensitive: Boolean(msg.caseSensitive),
+            wholeWord: Boolean(msg.wholeWord),
+            regex: Boolean(msg.regex),
+          })
+        : { results: [], totalMatches: 0 };
+      pushToWebview(win, {
+        command: "desktopSearchContentResult",
+        requestId,
+        results: out.results,
+        totalMatches: out.totalMatches,
+        truncated: out.truncated,
+        error: out.error,
       });
       return;
     }
