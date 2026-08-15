@@ -34,6 +34,8 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // Required for PreviewPane's <webview> guest (Electron ≥5 defaults this off).
+      webviewTag: true,
       additionalArguments: [
         `--muse-server-url=${opts.serverBaseUrl}`,
       ],
