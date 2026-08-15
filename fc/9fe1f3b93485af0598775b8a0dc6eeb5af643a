@@ -1,0 +1,227 @@
+packages/webview/src/components/ChatApp.tsx
+  44fd028ee51ef578 1201,1241-1244
+  adf8e216525888b2 334-336,339,342
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fc9fe1f3b93485af0598775b8a0dc6eeb5af643a",
+  "prompts": {
+    "44fd028ee51ef578": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "63664aba-2ad8-4ba5-a8c5-6db44f0501a3",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 619,
+      "total_deletions": 464,
+      "accepted_lines": 404,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 9,
+          "deletions": 4,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/webview/panelWorkdirScope.test.tsx": {
+          "additions": 22,
+          "deletions": 4,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "additions": 159,
+          "deletions": 177,
+          "accepted_lines": 77
+        },
+        "packages/webview/tests/webview/test-utils.tsx": {
+          "additions": 33,
+          "deletions": 2,
+          "accepted_lines": 32
+        },
+        "packages/webview/tests/webview/autoScrollFollow.test.tsx": {
+          "additions": 18,
+          "deletions": 9,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/webview/moreMenu.test.tsx": {
+          "deletions": 44
+        },
+        "packages/webview/tests/webview/basicMessageFlow.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/sessionManagement.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/timelineDotColor.test.tsx": {
+          "additions": 12,
+          "deletions": 8,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/fixtures/waveWebviewFixtures.ts": {
+          "additions": 140,
+          "deletions": 11,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/metaMessage.test.tsx": {
+          "additions": 16,
+          "deletions": 10,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/webview/model-status-login-commands.test.tsx": {
+          "additions": 5,
+          "deletions": 20,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 178,
+          "deletions": 159,
+          "accepted_lines": 158
+        },
+        "packages/webview/tests/webview/errorHandling.test.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/compactionHint.test.tsx": {
+          "additions": 15,
+          "deletions": 9,
+          "accepted_lines": 14
+        }
+      }
+    },
+    "adf8e216525888b2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bf00649-78e2-401c-9594-e5dc63fda216",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 121,
+      "total_deletions": 127,
+      "accepted_lines": 85,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 5
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 5,
+          "deletions": 20,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 38,
+          "deletions": 1,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "additions": 37,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/fixtures/waveWebviewFixtures.ts": {
+          "additions": 36,
+          "deletions": 102,
+          "accepted_lines": 35
+        }
+      }
+    },
+    "d0e5da4d1ca833b0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "61a6b8cb-743e-4e0b-a55c-ab8327778a52",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 447,
+      "total_deletions": 604,
+      "accepted_lines": 435,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "additions": 8,
+          "deletions": 31,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/webview/timelineGrouping.test.tsx": {
+          "additions": 25,
+          "deletions": 29,
+          "accepted_lines": 25
+        },
+        "packages/webview/tests/fixtures/waveWebviewFixtures.ts": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/webview/test-utils.tsx": {
+          "additions": 78,
+          "accepted_lines": 78
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "additions": 70,
+          "deletions": 154,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/webview/sessionManagement.test.tsx": {
+          "additions": 1,
+          "deletions": 6,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/fileUpload.test.tsx": {
+          "additions": 146,
+          "deletions": 185,
+          "accepted_lines": 134
+        },
+        "packages/webview/tests/webview/streamingButtonStates.test.tsx": {
+          "additions": 8,
+          "deletions": 28,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 70,
+          "deletions": 166,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/webview/errorHandling.test.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/queue-messages.test.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/richInputFeatures.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/compactionHint.test.tsx": {
+          "additions": 22,
+          "deletions": 1,
+          "accepted_lines": 22
+        }
+      }
+    }
+  }
+}
