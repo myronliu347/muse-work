@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   nextActivePanel,
+  PANEL_ADD_ORDER,
   PANEL_TAB_ICONS,
   PANEL_TAB_LABELS,
+  resolveOpenDockTabs,
+  snapshotCollapsedTabs,
 } from "../../src/muse/panelTabs";
 
 describe("PANEL_TAB_LABELS", () => {
@@ -38,5 +41,47 @@ describe("nextActivePanel", () => {
     expect(
       nextActivePanel(["preview", "diff", "terminal"], "diff", "diff"),
     ).toBe("terminal");
+  });
+});
+
+describe("PANEL_ADD_ORDER", () => {
+  it("lists 文件、终端、浏览器、变更", () => {
+    expect(PANEL_ADD_ORDER).toEqual(["file", "terminal", "preview", "diff"]);
+  });
+});
+
+describe("snapshotCollapsedTabs / resolveOpenDockTabs", () => {
+  it("returns null snapshot when nothing is open", () => {
+    expect(snapshotCollapsedTabs([], null)).toBeNull();
+  });
+
+  it("snapshots checked + active for restore", () => {
+    expect(snapshotCollapsedTabs(["preview", "file"], "file")).toEqual({
+      checked: ["preview", "file"],
+      active: "file",
+    });
+  });
+
+  it("restores collapsed tabs", () => {
+    expect(
+      resolveOpenDockTabs({ checked: ["preview", "file"], active: "file" }),
+    ).toEqual({ checked: ["preview", "file"], active: "file" });
+  });
+
+  it("defaults to 变更 when no collapsed history", () => {
+    expect(resolveOpenDockTabs(null)).toEqual({
+      checked: ["diff"],
+      active: "diff",
+    });
+    expect(resolveOpenDockTabs({ checked: [], active: null })).toEqual({
+      checked: ["diff"],
+      active: "diff",
+    });
+  });
+
+  it("falls back active to first remaining tab when stale", () => {
+    expect(
+      resolveOpenDockTabs({ checked: ["terminal"], active: "diff" }),
+    ).toEqual({ checked: ["terminal"], active: "terminal" });
   });
 });

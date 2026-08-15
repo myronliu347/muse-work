@@ -21,6 +21,42 @@ export const PANEL_TAB_ICONS: Record<DesktopPanelKind, string> = {
   file: "codicon-file",
 };
 
+/** Order for the dock "+" add menu: 文件、终端、浏览器、变更. */
+export const PANEL_ADD_ORDER: DesktopPanelKind[] = [
+  "file",
+  "terminal",
+  "preview",
+  "diff",
+];
+
+export type CollapsedTabs = {
+  checked: DesktopPanelKind[];
+  active: DesktopPanelKind | null;
+};
+
+export function snapshotCollapsedTabs(
+  checked: DesktopPanelKind[],
+  active: DesktopPanelKind | null,
+): CollapsedTabs | null {
+  if (checked.length === 0) return null;
+  const safeActive =
+    active && checked.includes(active) ? active : firstPanelTab(checked);
+  return { checked: [...checked], active: safeActive };
+}
+
+export function resolveOpenDockTabs(
+  collapsed: CollapsedTabs | null | undefined,
+): { checked: DesktopPanelKind[]; active: DesktopPanelKind } {
+  if (!collapsed || collapsed.checked.length === 0) {
+    return { checked: ["diff"], active: "diff" };
+  }
+  const active =
+    collapsed.active && collapsed.checked.includes(collapsed.active)
+      ? collapsed.active
+      : (firstPanelTab(collapsed.checked) as DesktopPanelKind);
+  return { checked: [...collapsed.checked], active };
+}
+
 export function firstPanelTab(
   checked: DesktopPanelKind[],
 ): DesktopPanelKind | null {
