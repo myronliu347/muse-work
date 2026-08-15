@@ -1,0 +1,183 @@
+packages/webview/src/styles/NewSessionPage.css
+  1c65e982ada3920c 1-31
+packages/webview/tests/webview/inputToolbarButtons.test.tsx
+  1c65e982ada3920c 1,4
+packages/webview/tests/components/newSessionPage.desktop.test.tsx
+  1c65e982ada3920c 1-99
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  88a56fc4f56a7376 53-58,64-68
+packages/webview/src/styles/MessageInput.css
+  1c65e982ada3920c 375
+packages/webview/src/components/ChatApp.tsx
+  88a56fc4f56a7376 7,237-239,282-300,1491,1494-1497,1664,1754,1756-1778,2279-2282,2284
+  1c65e982ada3920c 31,1233,1896-2016,2093,2259-2268
+packages/webview/src/styles/DesktopApp.css
+  88a56fc4f56a7376 715,717-718,935,1004,1006,1012-1015
+packages/webview/tests/muse/panelFit.test.ts
+  88a56fc4f56a7376 16
+packages/webview/src/muse/panelFit.ts
+  88a56fc4f56a7376 5,9-10,13,16
+packages/webview/tests/webview/terminalPane.test.tsx
+  1c65e982ada3920c 1,275-279,282-285,287-292,294
+packages/webview/src/styles/ChatApp.css
+  88a56fc4f56a7376 4-7
+packages/webview/src/styles/DesktopPanelDock.css
+  88a56fc4f56a7376 10-16,20
+packages/webview/tests/components/workdirSelector.draft.test.tsx
+  1c65e982ada3920c 1-80
+packages/webview/tests/webview/slash-commands.test.tsx
+  1c65e982ada3920c 50,61
+packages/webview/vitest.config.ts
+  1c65e982ada3920c 33
+packages/webview/src/components/panels/TerminalPane.tsx
+  1c65e982ada3920c 7,52-62,114,206,208,220,290-295
+packages/webview/tests/webview/desktopApp.test.tsx
+  1c65e982ada3920c 128,135,137,139,141-149,152,156-180
+packages/webview/src/components/panels/PreviewPane.tsx
+  1c65e982ada3920c 79-84,134,159-161
+packages/webview/src/components/chat/WelcomeView.tsx
+  1c65e982ada3920c 17-18,27,30,132-150
+packages/webview/tests/components/newSessionPage.test.tsx
+  1c65e982ada3920c 1-24
+packages/webview/src/components/chat/NewSessionPage.tsx
+  1c65e982ada3920c 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7c46db81e3a18bef7d86b2c15d692f93662dde3f",
+  "prompts": {
+    "1c65e982ada3920c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "927a7ed6-bc97-4201-8e42-a80dd962d4ed",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 272,
+      "total_deletions": 107,
+      "accepted_lines": 511,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/vitest.config.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "accepted_lines": 41
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 19,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 133,
+          "deletions": 99,
+          "accepted_lines": 134
+        },
+        "packages/webview/tests/components/newSessionPage.desktop.test.tsx": {
+          "additions": 99,
+          "accepted_lines": 99
+        },
+        "packages/webview/tests/components/workdirSelector.draft.test.tsx": {
+          "additions": 21,
+          "deletions": 8,
+          "accepted_lines": 80
+        },
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "accepted_lines": 24
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "accepted_lines": 31
+        }
+      }
+    },
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 59
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
