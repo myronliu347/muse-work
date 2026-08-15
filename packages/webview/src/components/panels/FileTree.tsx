@@ -215,6 +215,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   else onOpenFile(row.path);
                 }}
               >
+                {row.isDirectory ? (
+                  <i
+                    className={`codicon ${open ? "codicon-chevron-down" : "codicon-chevron-right"} file-tree-chevron`}
+                    aria-hidden
+                  />
+                ) : (
+                  <span className="file-tree-chevron-slot" aria-hidden />
+                )}
                 <FileIcon
                   name={row.name}
                   isDirectory={row.isDirectory}

@@ -193,16 +193,20 @@
   min-height: 0;
 }
 
+.file-pane-left > .preview-pane-toolbar,
 .file-tree-header {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: var(--panel-toolbar-height, 36px);
-  min-height: 36px;
-  padding: 0 var(--space-2);
-  border-bottom: 1px solid var(--gray-6);
+  padding: var(--space-1) var(--space-2);
+  min-height: 32px;
   box-sizing: border-box;
+  border-bottom: 1px solid var(--gray-6);
+  flex-shrink: 0;
+}
+
+.file-tree-header {
+  /* border already set above; keep workdir-specific look */
 }
 
 .file-tree-workdir {
@@ -246,6 +250,23 @@
   white-space: nowrap;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.file-tree-chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--gray-11);
+  opacity: 0.85;
+}
+
+.file-tree-chevron-slot {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .file-tree-row:hover {
