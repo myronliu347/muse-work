@@ -754,6 +754,63 @@ describe("installWorkdirHost", () => {
     host.dispose();
     fs.rmSync(userData, { recursive: true, force: true });
   });
+
+  it("desktopSelectFiles opens multi file dialog and pushes paths", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-files-"));
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+    const showOpenDialog = vi.fn(async () => ({
+      canceled: false,
+      filePaths: ["/tmp/a.ts", "/tmp/b.md"],
+    }));
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: "/proj",
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog,
+    });
+
+    await handler!({ sender: {} }, { command: "desktopSelectFiles" });
+
+    expect(showOpenDialog).toHaveBeenCalledWith(
+      fakeWin,
+      expect.objectContaining({
+        properties: expect.arrayContaining(["openFile", "multiSelections"]),
+        defaultPath: "/proj",
+      }),
+    );
+    expect(sent).toContainEqual({
+      command: "desktopSelectFilesResult",
+      paths: ["/tmp/a.ts", "/tmp/b.md"],
+    });
+
+    sent.length = 0;
+    showOpenDialog.mockResolvedValueOnce({ canceled: true, filePaths: [] });
+    await handler!({ sender: {} }, { command: "desktopSelectFiles" });
+    expect(sent).toEqual([]);
+
+    (host as { dispose: () => void }).dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
 });
 
 describe("resolveDarwinTerminalApp", () => {

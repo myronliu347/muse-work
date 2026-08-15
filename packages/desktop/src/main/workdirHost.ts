@@ -328,6 +328,20 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       return;
     }
 
+    if (command === "desktopSelectFiles") {
+      if (!win) return;
+      const result = await showOpenDialog(win, {
+        properties: ["openFile", "multiSelections"],
+        defaultPath: state.workdir,
+      });
+      if (result.canceled || !result.filePaths?.length) return;
+      pushToWebview(win, {
+        command: "desktopSelectFilesResult",
+        paths: result.filePaths,
+      });
+      return;
+    }
+
     if (command === "desktopSelectRecentWorkdir" && typeof msg.path === "string") {
       rememberWorkdir(state, msg.path);
       savePersistedWorkdirState(options.userDataPath, state);
