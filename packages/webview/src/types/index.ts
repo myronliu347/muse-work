@@ -528,6 +528,34 @@ export type FileTreeState = {
   childrenCache: Record<string, FileTreeDirEntry[]>;
 };
 
+export type FileSidebarMode = "tree" | "search";
+
+export type ContentSearchMatch = {
+  line: number;
+  text: string;
+  startCol: number;
+  endCol: number;
+};
+
+export type ContentSearchFileHit = {
+  path: string;
+  relativePath: string;
+  matches: ContentSearchMatch[];
+};
+
+export type ContentSearchState = {
+  query: string;
+  caseSensitive: boolean;
+  wholeWord: boolean;
+  regex: boolean;
+  results: ContentSearchFileHit[];
+  expandedFiles: string[];
+  loading: boolean;
+  error?: string;
+  truncated?: boolean;
+  requestId?: string;
+};
+
 /** Header panel-toggle control: which panels are checked + toggle callback. */
 export interface PanelToggleProps {
   /** Currently checked panels. */

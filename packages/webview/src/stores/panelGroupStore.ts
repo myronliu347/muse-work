@@ -3,6 +3,8 @@ import { useShallow } from "zustand/react/shallow";
 import { firstPanelTab } from "../muse/panelTabs";
 import type {
   DesktopPanelKind,
+  FileSidebarMode,
+  ContentSearchState,
   FileTreeDirEntry,
   FileTreeState,
   FileViewState,
@@ -24,6 +26,18 @@ export function emptyFileTreeState(): FileTreeState {
     selected: undefined,
     width: FILE_TREE_WIDTH_DEFAULT,
     childrenCache: {},
+  };
+}
+
+export function emptyContentSearchState(): ContentSearchState {
+  return {
+    query: "",
+    caseSensitive: false,
+    wholeWord: false,
+    regex: false,
+    results: [],
+    expandedFiles: [],
+    loading: false,
   };
 }
 
@@ -80,6 +94,8 @@ export interface PanelGroupState {
   previewUrl: string | null;
   fileView: FileViewState | null;
   fileTree: FileTreeState;
+  fileSidebarMode: FileSidebarMode;
+  contentSearch: ContentSearchState;
   forward: RemoteForwardRef | null;
   forwardError: string | null;
 }
@@ -98,6 +114,8 @@ export function emptyPanelGroup(): PanelGroupState {
     previewUrl: null,
     fileView: null,
     fileTree: emptyFileTreeState(),
+    fileSidebarMode: "tree",
+    contentSearch: emptyContentSearchState(),
     forward: null,
     forwardError: null,
   };
@@ -121,11 +139,18 @@ export function resolvePanelGroup(
   if (!groupKey || isDraftGroupKey(groupKey)) return EMPTY_GROUP;
   const group = groups[groupKey];
   if (!group) return EMPTY_GROUP;
-  // Back-compat for in-memory groups created before fileTree existed
-  if (!group.fileTree) {
-    return { ...group, fileTree: emptyFileTreeState() };
+  // Back-compat for in-memory groups created before newer fields existed
+  let next = group;
+  if (!next.fileTree) {
+    next = { ...next, fileTree: emptyFileTreeState() };
   }
-  return group;
+  if (!next.fileSidebarMode) {
+    next = { ...next, fileSidebarMode: "tree" };
+  }
+  if (!next.contentSearch) {
+    next = { ...next, contentSearch: emptyContentSearchState() };
+  }
+  return next;
 }
 
 interface PanelGroupStore {
@@ -240,4 +265,4 @@ export function usePanelGroup(groupKey: string | undefined): PanelGroupView {
   );
 }
 
-export type { FileTreeDirEntry, FileTreeState };
+export type { FileTreeDirEntry, FileTreeState, FileSidebarMode, ContentSearchState };

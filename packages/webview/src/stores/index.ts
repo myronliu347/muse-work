@@ -6,6 +6,7 @@ export {
   workdirTermId,
   emptyPanelGroup,
   emptyFileTreeState,
+  emptyContentSearchState,
   clampFileTreeWidth,
   ensureExpandedForFile,
   resolvePanelGroup,
@@ -20,6 +21,8 @@ export {
   type RemoteForwardRef,
   type FileTreeState,
   type FileTreeDirEntry,
+  type FileSidebarMode,
+  type ContentSearchState,
 } from "./panelGroupStore";
 export {
   usePaneUiStore,
