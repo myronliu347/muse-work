@@ -1,0 +1,29 @@
+packages/webview/src/components/ChatApp.tsx
+  9b08060a306bdaeb 71,74,198-199,448-476,973-1061,1995-1998
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3951ee8da91fe0ca72a75f6cefc737c9c6a874e4",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 126,
+      "total_deletions": 0,
+      "accepted_lines": 126,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 126,
+          "accepted_lines": 126
+        }
+      }
+    }
+  }
+}
