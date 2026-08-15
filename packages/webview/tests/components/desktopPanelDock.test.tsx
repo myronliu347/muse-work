@@ -14,7 +14,7 @@ describe("DesktopPanelDock", () => {
           active="diff"
           onSelect={() => {}}
           onCloseTab={() => {}}
-          panelToggle={{ checked: ["preview", "diff"], onToggle: () => {} }}
+          panelToggle={{ onToggleDock: () => {} }}
           width={420}
           onWidthChange={() => {}}
           maxWidth={800}
@@ -44,7 +44,7 @@ describe("DesktopPanelDock", () => {
           active="preview"
           onSelect={onSelect}
           onCloseTab={onCloseTab}
-          panelToggle={{ checked: ["preview", "diff"], onToggle: () => {} }}
+          panelToggle={{ onToggleDock: () => {} }}
           width={420}
           onWidthChange={() => {}}
           maxWidth={800}

@@ -563,14 +563,9 @@ export type ContentSearchState = {
   requestId?: string;
 };
 
-/** Header panel-toggle control: which panels are checked + toggle callback. */
+/** Header / dock control: show or hide the entire right dock. */
 export interface PanelToggleProps {
-  /** Currently checked panels. */
-  checked: DesktopPanelKind[];
-  /** Toggle one panel's checked state. */
-  onToggle: (kind: DesktopPanelKind) => void;
-  /** Panels that can't be toggled right now (e.g. no workdir for diff/terminal). */
-  disabled?: DesktopPanelKind[];
+  onToggleDock: () => void;
 }
 
 export interface ChatHeaderProps {

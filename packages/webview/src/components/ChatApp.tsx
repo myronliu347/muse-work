@@ -2366,9 +2366,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         panelToggle={
           isDesktop && checkedPanels.length === 0
             ? {
-                checked: checkedPanels,
-                onToggle: handleTogglePanel,
-                disabled: panelDisabled,
+                onToggleDock: () => {},
               }
             : undefined
         }
@@ -2417,9 +2415,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               onSelect={handleSelectPanel}
               onCloseTab={handleTogglePanel}
               panelToggle={{
-                checked: checkedPanels,
-                onToggle: handleTogglePanel,
-                disabled: panelDisabled,
+                onToggleDock: () => {},
               }}
               width={Math.min(
                 panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
