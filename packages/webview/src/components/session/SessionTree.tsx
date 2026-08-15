@@ -136,6 +136,7 @@ export interface SessionTreeProps {
   onNewSessionInWorkdir?: (workdir: string) => void;
   onOpenInEditor?: (workdir: string) => void;
   onOpenInTerminal?: (workdir: string) => void;
+  onRevealInFinder?: (workdir: string) => void;
 }
 
 function CollapsibleBody({
@@ -173,6 +174,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onNewSessionInWorkdir,
   onOpenInEditor,
   onOpenInTerminal,
+  onRevealInFinder,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
@@ -482,7 +484,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       onContextMenu={(e) => {
                         if (
                           !group.workdir ||
-                          (!onOpenInEditor && !onOpenInTerminal)
+                          (!onOpenInEditor && !onOpenInTerminal && !onRevealInFinder)
                         )
                           return;
                         e.preventDefault();
@@ -605,6 +607,19 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               }}
             >
               在终端打开
+            </button>
+          ) : null}
+          {onRevealInFinder ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid="desktop-workdir-reveal-in-finder"
+              onClick={() => {
+                onRevealInFinder(workdirMenu.workdir);
+                setWorkdirMenu(null);
+              }}
+            >
+              在 Finder 中打开
             </button>
           ) : null}
         </div>

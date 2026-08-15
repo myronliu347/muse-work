@@ -70,6 +70,8 @@ export interface DesktopSidebarProps {
   onOpenInEditor?: (workdir: string) => void;
   /** Open the workdir in the system terminal. */
   onOpenInTerminal?: (workdir: string) => void;
+  /** Reveal the workdir in the system file manager. */
+  onRevealInFinder?: (workdir: string) => void;
 }
 
 /**
@@ -94,6 +96,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onRenameSession,
   onOpenInEditor,
   onOpenInTerminal,
+  onRevealInFinder,
 }) => {
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
@@ -133,6 +136,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onNewSessionInWorkdir={onNewSessionInWorkdir}
         onOpenInEditor={onOpenInEditor}
         onOpenInTerminal={onOpenInTerminal}
+        onRevealInFinder={onRevealInFinder}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

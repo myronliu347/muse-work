@@ -319,6 +319,22 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(onOpenInTerminal).toHaveBeenCalledWith("/repo/beta");
   });
 
+  it("reveals workdir in Finder from the group context menu", () => {
+    const onRevealInFinder = vi.fn();
+    renderSidebar({
+      recentSessions: [entry({ sessionId: "r1", workdir: "/repo/beta" })],
+      onRevealInFinder,
+    });
+
+    fireEvent.contextMenu(
+      screen.getByTestId("desktop-session-workdir-row-/repo/beta"),
+    );
+    fireEvent.click(
+      screen.getByTestId("desktop-workdir-reveal-in-finder"),
+    );
+    expect(onRevealInFinder).toHaveBeenCalledWith("/repo/beta");
+  });
+
   it("double-click title renames via onRenameSession", () => {
     const onRenameSession = vi.fn();
     renderSidebar({
