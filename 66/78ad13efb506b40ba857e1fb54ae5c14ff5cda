@@ -1,0 +1,30 @@
+packages/webview/src/styles/MessageInput.css
+  7cfc5350e2475b47 287-288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6678ad13efb506b40ba857e1fb54ae5c14ff5cda",
+  "prompts": {
+    "7cfc5350e2475b47": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3514b386-0b4d-4ef9-986a-151cc5727d56",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
