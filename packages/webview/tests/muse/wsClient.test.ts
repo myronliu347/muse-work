@@ -206,6 +206,43 @@ describe("MuseWsClient", () => {
   describe("heartbeat", () => {
     afterEach(() => {
       vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("arms ping with default timers without Illegal invocation", async () => {
+      // Browsers brand-check timer callbacks: calling unbound setTimeout as a
+      // method (this.schedule(...)) throws Illegal invocation.
+      const realSetTimeout = globalThis.setTimeout.bind(globalThis);
+      const realClearTimeout = globalThis.clearTimeout.bind(globalThis);
+      vi.stubGlobal(
+        "setTimeout",
+        function (this: unknown, ...args: Parameters<typeof setTimeout>) {
+          if (this !== globalThis) {
+            throw new TypeError("Illegal invocation");
+          }
+          return realSetTimeout(...args);
+        },
+      );
+      vi.stubGlobal(
+        "clearTimeout",
+        function (this: unknown, ...args: Parameters<typeof clearTimeout>) {
+          if (this !== globalThis) {
+            throw new TypeError("Illegal invocation");
+          }
+          return realClearTimeout(...args);
+        },
+      );
+
+      const client = new MuseWsClient({
+        baseUrl: "http://127.0.0.1:8787",
+        WebSocketImpl: MockWebSocket as unknown as typeof WebSocket,
+        pingIntervalMs: 15,
+      });
+
+      const pending = client.connect("*");
+      expect(() => MockWebSocket.instances[0]!.open()).not.toThrow();
+      await pending;
+      client.close();
     });
 
     it("sends ping and does not surface pong to event handlers", async () => {

@@ -140,8 +140,10 @@ export class MuseWsClient {
       opts.pingIntervalMs ??
       (typeof process !== "undefined" && process.env.VITEST ? 0 : 20_000);
     this.pongTimeoutMs = opts.pongTimeoutMs ?? 10_000;
-    this.schedule = opts.schedule ?? setTimeout;
-    this.clearSchedule = opts.clearSchedule ?? clearTimeout;
+    // Bind host timers: browsers throw Illegal invocation if setTimeout /
+    // clearTimeout are stored and later invoked as methods (wrong `this`).
+    this.schedule = opts.schedule ?? setTimeout.bind(globalThis);
+    this.clearSchedule = opts.clearSchedule ?? clearTimeout.bind(globalThis);
   }
 
   onEvent(handler: MuseWsEventHandler): () => void {
