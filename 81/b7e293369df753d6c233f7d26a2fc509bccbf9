@@ -1,0 +1,50 @@
+packages/webview/tests/muse/panelShortcuts.test.ts
+  4f59b11387b272ed 139-188
+packages/webview/src/components/ChatApp.tsx
+  4f59b11387b272ed 40,256,1785-1788,1817-1820
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  4f59b11387b272ed 3-4,154
+packages/webview/src/muse/panelShortcuts.ts
+  4f59b11387b272ed 13,55-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "81b7e293369df753d6c233f7d26a2fc509bccbf9",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 98,
+      "total_deletions": 9,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 3,
+          "deletions": 7,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 51,
+          "deletions": 1,
+          "accepted_lines": 51
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        }
+      }
+    }
+  }
+}
