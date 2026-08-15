@@ -34,6 +34,7 @@ export default defineConfig({
       "tests/webview/terminalPane.test.tsx",
       "tests/webview/panelWorkdirScope.test.tsx",
       "tests/webview/diffPane.test.tsx",
+      "tests/webview/sessionHeaderGitBranch.test.tsx",
     ],
     exclude: ["node_modules"],
     setupFiles: ["tests/setup.ts"],

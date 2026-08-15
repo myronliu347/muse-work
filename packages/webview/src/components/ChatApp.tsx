@@ -36,7 +36,6 @@ import {
 } from "./desktop/DesktopSidebar";
 import { DesktopShell } from "./desktop/DesktopShell";
 import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
-import { DesktopGitContext } from "./desktop/DesktopGitContext";
 import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
@@ -178,6 +177,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const effectiveHost = "local";
   const effectiveHostRef = useRef(effectiveHost);
   const gitBranches = isDesktop ? paneGitBranches : null;
+  const sessionGitMeta = state.currentSession as
+    | { worktreeBranch?: string; worktreeName?: string }
+    | undefined;
+  const headerGitContext =
+    isDesktop && !isDraftSession
+      ? {
+          branch:
+            gitBranches?.current || sessionGitMeta?.worktreeBranch || undefined,
+          worktreeName: sessionGitMeta?.worktreeName,
+        }
+      : undefined;
   const effectiveWorkdirRef = useRef(effectiveWorkdir);
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
@@ -2009,20 +2019,19 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       onModelChange={handleSessionModelChange}
       workdir={effectiveWorkdir ?? panelWorkdir}
       workdirSelector={
-        host?.type === "desktop" ? (
-          isDraftSession ? (
-            <>
-              <DesktopWorkdirSelector
-                host={effectiveHost}
-                workdir={effectiveWorkdir}
-                recentWorkdirs={host.recentWorkdirs}
-                onSelectWorkdir={host.onSelectWorkdir}
-                onSelectRecentWorkdir={host.onSelectRecentWorkdir}
-                onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
-              />
-              {effectiveWorkdir &&
-                gitBranches &&
-                gitBranches.branches.length > 0 && (
+        host?.type === "desktop" && isDraftSession ? (
+          <>
+            <DesktopWorkdirSelector
+              host={effectiveHost}
+              workdir={effectiveWorkdir}
+              recentWorkdirs={host.recentWorkdirs}
+              onSelectWorkdir={host.onSelectWorkdir}
+              onSelectRecentWorkdir={host.onSelectRecentWorkdir}
+              onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
+            />
+            {effectiveWorkdir &&
+              gitBranches &&
+              gitBranches.branches.length > 0 && (
                 <DesktopWorktreeControls
                   branches={gitBranches.branches}
                   branch={worktreeBranch || gitBranches.current}
@@ -2035,21 +2044,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
                   }
                 />
               )}
-            </>
-          ) : (
-            <DesktopGitContext
-              branch={
-                (state.currentSession as { worktreeBranch?: string } | undefined)
-                  ?.worktreeBranch ||
-                gitBranches?.current ||
-                undefined
-              }
-              worktreeName={
-                (state.currentSession as { worktreeName?: string } | undefined)
-                  ?.worktreeName
-              }
-            />
-          )
+          </>
         ) : undefined
       }
       rewindPopup={
@@ -2316,6 +2311,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         isAuthenticated={state.isAuthenticated}
         hideSessionButtons={isDesktop}
         hideMoreButton={isDesktop}
+        gitContext={headerGitContext}
         panelToggle={
           isDesktop && checkedPanels.length === 0
             ? {

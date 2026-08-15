@@ -55,8 +55,9 @@ test.describe("Desktop git context and worktree create", () => {
       ),
     ]);
 
-    // Bound session with messages → DesktopGitContext instead of branch picker
-    await expect(webviewPage.getByTestId("desktop-git-context")).toBeVisible();
+    // Bound session with messages → DesktopGitContext in the chat header
+    const header = webviewPage.getByTestId("chat-header");
+    await expect(header.getByTestId("desktop-git-context")).toBeVisible();
     await expect(webviewPage.getByTestId("desktop-git-branch")).toContainText(
       "worktree-login-fix",
     );
