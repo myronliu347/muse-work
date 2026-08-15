@@ -34,6 +34,7 @@ import {
   parseFileSelectionClipboard,
   parseFileTreeDrag,
 } from "../../utils/filePanelDnD";
+import { fileItemFromAbsolutePath } from "../../utils/localFileMention";
 import {
   QueueSendIcon,
   PermModeAcceptIcon,
@@ -121,6 +122,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       onModelChange,
       modelSelectApi,
       workdir,
+      enableLocalFilePick,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -640,7 +642,14 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (!textareaRef.current) return;
         textareaRef.current.focus();
         const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
+        if (!selection) return;
+        if (selection.rangeCount === 0) {
+          const endRange = document.createRange();
+          endRange.selectNodeContents(textareaRef.current);
+          endRange.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(endRange);
+        }
         const range = selection.getRangeAt(0);
 
         const tagSpan = document.createElement("span");
@@ -694,6 +703,20 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       },
       [vscode],
     );
+
+    useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+        const data = event.data;
+        if (data?.command !== "desktopSelectFilesResult") return;
+        const paths = Array.isArray(data.paths) ? data.paths : [];
+        for (const p of paths) {
+          if (typeof p !== "string" || !p) continue;
+          insertFileMentionAtCursor(fileItemFromAbsolutePath(p, workdir));
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      return () => window.removeEventListener("message", handleMessage);
+    }, [insertFileMentionAtCursor, workdir]);
 
     const enterDirectory = useCallback(
       (file: FileItem) => {
@@ -1385,12 +1408,28 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
             {/* Toolbar row: workdir/git on the left, model select + send on the right */}
             <div className="input-buttons-row">
-              {workdirSelector ? (
+              {enableLocalFilePick || workdirSelector ? (
                 <div
                   className="input-toolbar-left"
                   data-testid="input-workdir-row"
                 >
                   {workdirSelector}
+                  {enableLocalFilePick ? (
+                    <Tooltip text="添加文件" position="top">
+                      <button
+                        type="button"
+                        className="toolbar-icon-button"
+                        data-testid="add-local-file-btn"
+                        aria-label="添加文件"
+                        disabled={disabled}
+                        onClick={() =>
+                          vscode.postMessage({ command: "desktopSelectFiles" })
+                        }
+                      >
+                        <i className="codicon codicon-new-file" />
+                      </button>
+                    </Tooltip>
+                  ) : null}
                 </div>
               ) : null}
               <div className="button-spacer" />

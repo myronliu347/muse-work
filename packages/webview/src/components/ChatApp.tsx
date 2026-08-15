@@ -2068,6 +2068,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }
       onModelChange={handleSessionModelChange}
       workdir={effectiveWorkdir ?? panelWorkdir}
+      enableLocalFilePick={isDesktop}
       workdirSelector={
         host?.type === "desktop" && isDraftSession ? (
           <>

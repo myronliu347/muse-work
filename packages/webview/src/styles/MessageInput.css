@@ -399,6 +399,16 @@
   color: var(--gray-12);
 }
 
+.toolbar-icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolbar-icon-button:disabled:hover {
+  background-color: transparent;
+  color: var(--gray-11);
+}
+
 /* "+" add menu — expands upward (bottom:100%) so it is not clipped at the bottom of
    the webview viewport in JCEF. Reuses the permission dropdown visual language. */
 .plus-menu-container {

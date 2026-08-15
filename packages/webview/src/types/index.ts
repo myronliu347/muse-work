@@ -446,6 +446,8 @@ export interface MessageInputProps {
   modelSelectApi?: import("../muse/apiClient").MuseApiClient;
   /** Absolute workdir for @ file mentions (desktop). */
   workdir?: string;
+  /** Desktop: show toolbar button to pick local files via OS dialog. */
+  enableLocalFilePick?: boolean;
 }
 
 /**
