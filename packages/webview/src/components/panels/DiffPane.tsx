@@ -6,6 +6,7 @@ import {
   resolveDiffLineText,
   toPierrePatch,
 } from "../../utils/toPierrePatch";
+import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
 
@@ -336,7 +337,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         renderGutterUtility={(getHoveredLine) => (
           <button
             type="button"
-            className="diff-line-comment-btn"
+            className="diff-pierre-comment-btn"
             data-testid="diff-comment-add"
             title="评论这行"
             aria-label={`评论 ${file.path}`}
@@ -401,13 +402,13 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
             onClick={(e) => {
               e.stopPropagation();
-              onOpenFile?.(file.path);
+              onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 e.stopPropagation();
-                onOpenFile?.(file.path);
+                onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
               }
             }}
           >

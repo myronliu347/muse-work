@@ -22,3 +22,17 @@ export function displayFilePath(absPath: string, workdir?: string): string {
   if (file.startsWith(wd + "/")) return file.slice(wd.length + 1);
   return absPath;
 }
+
+/** Join a git-relative path with workdir for host openFile (needs absolute). */
+export function resolveWorkspaceFilePath(
+  filePath: string,
+  workdir?: string,
+): string {
+  if (!filePath) return filePath;
+  const normalized = filePath.replace(/\\/g, "/");
+  if (/^([a-zA-Z]:\/|\/)/.test(normalized)) return filePath;
+  if (!workdir) return filePath;
+  const wd = workdir.replace(/\\/g, "/").replace(/\/+$/, "");
+  const rel = normalized.replace(/^\.\/+/, "").replace(/^\/+/, "");
+  return `${wd}/${rel}`;
+}
