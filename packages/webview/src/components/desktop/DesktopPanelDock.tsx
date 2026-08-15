@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../../types";
-import { PANEL_ADD_ORDER, PANEL_TAB_ICONS, PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../../muse/panelTabs";
+import {
+  PANEL_ADD_ORDER,
+  PANEL_TAB_ICONS,
+  PANEL_TAB_LABELS,
+  PANEL_TAB_ORDER,
+} from "../../muse/panelTabs";
 import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
@@ -39,7 +44,6 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
-  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const onDragStart = (e: React.MouseEvent) => {
     if (fullscreen) return;
@@ -71,6 +75,17 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const clampedWidth = Math.max(
     320,
     Math.min(width, Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : width),
+  );
+
+  const addButton = (
+    <button
+      type="button"
+      className="desktop-panel-add-btn"
+      data-testid="desktop-panel-add-btn"
+      aria-label="添加面板"
+    >
+      <i className="codicon codicon-add" />
+    </button>
   );
 
   return (
@@ -124,31 +139,17 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </button>
             </div>
           ))}
-        </div>
-        {canAdd && (
-          <div className="desktop-panel-add">
-            <button
-              type="button"
-              className="desktop-panel-add-btn"
-              data-testid="desktop-panel-add-btn"
-              aria-label="添加面板"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAddMenu((v) => !v);
-              }}
-            >
-              <i className="codicon codicon-add" />
-            </button>
-            {showAddMenu && (
+          {canAdd && (
+            <div className="desktop-panel-add">
               <PanelAddMenu
                 checked={checked}
                 disabled={disabledPanels}
                 onAdd={onAddPanel}
-                onClose={() => setShowAddMenu(false)}
+                trigger={addButton}
               />
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
         <div className="desktop-panel-dock-actions">
           <Tooltip
             text={`${fullscreen ? "退出全屏" : "全屏"} (${dockFullscreenShortcutLabel()})`}

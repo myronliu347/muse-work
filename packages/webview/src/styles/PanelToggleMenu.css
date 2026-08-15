@@ -22,13 +22,6 @@
   box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
 }
 
-/* Anchored under the dock "+" button (left-aligned to the control). */
-.panel-add-menu {
-  top: calc(100% + 4px);
-  left: 0;
-  right: auto;
-}
-
 .panel-toggle-menu-item {
   display: flex;
   align-items: center;

@@ -2,6 +2,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import { MuseTheme } from "../../src/ui/theme";
 
@@ -90,7 +91,8 @@ describe("DesktopPanelDock", () => {
     expect(screen.queryByTestId("desktop-panel-add-btn")).toBeNull();
   });
 
-  it("opens the add menu when clicking +", () => {
+  it("opens the add menu when clicking +", async () => {
+    const user = userEvent.setup();
     render(
       <MuseTheme>
         <DesktopPanelDock {...baseProps} checked={["diff"]} active="diff">
@@ -98,8 +100,8 @@ describe("DesktopPanelDock", () => {
         </DesktopPanelDock>
       </MuseTheme>,
     );
-    fireEvent.click(screen.getByTestId("desktop-panel-add-btn"));
-    expect(screen.getByTestId("panel-add-menu")).toBeInTheDocument();
+    await user.click(screen.getByTestId("desktop-panel-add-btn"));
+    expect(await screen.findByTestId("panel-add-menu")).toBeInTheDocument();
     expect(screen.getByTestId("panel-add-item-file")).toBeInTheDocument();
   });
 
