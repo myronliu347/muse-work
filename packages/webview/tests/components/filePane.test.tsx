@@ -142,7 +142,7 @@ describe("FilePane", () => {
     expect(md).not.toBeNull();
     expect(md?.querySelector("h1")?.textContent).toBe("标题");
     expect(screen.getByTestId("file-md-toggle")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Source"));
+    fireEvent.click(screen.getByText("源码"));
     await waitFor(() => {
       expect(container.querySelector(".file-pane-code")).not.toBeNull();
     });

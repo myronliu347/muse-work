@@ -116,7 +116,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
                   aria-pressed={mdMode === "preview"}
                   onClick={() => setMdMode("preview")}
                 >
-                  Preview
+                  预览
                 </button>
                 <button
                   type="button"
@@ -124,7 +124,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
                   aria-pressed={mdMode === "source"}
                   onClick={() => setMdMode("source")}
                 >
-                  Source
+                  源码
                 </button>
               </div>
             )}
