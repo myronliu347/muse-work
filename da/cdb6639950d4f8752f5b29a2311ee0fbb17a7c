@@ -1,0 +1,43 @@
+packages/webview/src/components/ChatApp.tsx
+  9b08060a306bdaeb 469-473
+packages/webview/src/components/panels/FilePreview.tsx
+  9b08060a306bdaeb 194,197,199
+packages/webview/src/styles/FilePane.css
+  9b08060a306bdaeb 526-527,534-536,540,544,546
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "dacdb6639950d4f8752f5b29a2311ee0fbb17a7c",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 4,
+      "accepted_lines": 16,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 8,
+          "deletions": 2,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
