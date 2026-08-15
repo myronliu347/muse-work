@@ -1,0 +1,84 @@
+docs/superpowers/specs/2026-08-15-sender-local-file-pick-design.md
+  4ca056b3b481a28a 1-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "33ed6ca5b3005e0bd262e2080ec34af66a89dda2",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 95,
+      "total_deletions": 0,
+      "accepted_lines": 95,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-sender-local-file-pick-design.md": {
+          "additions": 95,
+          "accepted_lines": 95
+        }
+      }
+    },
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 28,
+      "accepted_lines": 67,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 20,
+          "deletions": 3,
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "docs/superpowers/specs/2026-08-15-browser-toolbar-design.md": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 12,
+          "deletions": 8,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
