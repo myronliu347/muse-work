@@ -1,0 +1,161 @@
+packages/server/package.json
+  7b5a48f58b4190fc 23
+packages/webview/package.json
+  7b5a48f58b4190fc 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "614aec37320d535a166b1566bc9265831908d3bd",
+  "prompts": {
+    "1c65e982ada3920c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "927a7ed6-bc97-4201-8e42-a80dd962d4ed",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 14,
+      "accepted_lines": 248,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageInput.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 4,
+          "deletions": 14,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/webview/vitest.config.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/components/workdirSelector.draft.test.tsx": {
+          "accepted_lines": 67
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "accepted_lines": 41
+        },
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "7b5a48f58b4190fc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "371423cb-cce3-4961-acd4-5d224a9816f9",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/package.json": {
+          "accepted_lines": 1
+        },
+        "packages/webview/package.json": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 8
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 59
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 11
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
