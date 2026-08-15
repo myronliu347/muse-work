@@ -56,6 +56,9 @@ describe("FileTree", () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ command: "desktopListDir", dir: "" }),
     );
+    expect(screen.getByTestId("file-tree-workdir").textContent).toContain(
+      "work",
+    );
   });
 
   it("opens a file on click", () => {

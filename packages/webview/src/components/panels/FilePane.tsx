@@ -86,36 +86,36 @@ export const FilePane: React.FC<FilePaneProps> = ({
       data-testid="file-pane"
     >
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
-      <div className="preview-pane-inner">
-        <div className="preview-pane-toolbar">
-          {fileView ? (
-            <FilePathBar path={fileView.path} workdir={workdir} />
-          ) : (
-            <span className="preview-pane-url">文件</span>
-          )}
-          {isMd && (
-            <div className="file-pane-md-toggle" data-testid="file-md-toggle">
-              <button
-                type="button"
-                className="preview-pane-button"
-                aria-pressed={mdMode === "preview"}
-                onClick={() => setMdMode("preview")}
-              >
-                Preview
-              </button>
-              <button
-                type="button"
-                className="preview-pane-button"
-                aria-pressed={mdMode === "source"}
-                onClick={() => setMdMode("source")}
-              >
-                Source
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="preview-pane-body file-pane-body file-pane-main">
-          <div className="file-pane-preview">
+      <div className="preview-pane-inner file-pane-inner">
+        <div className="file-pane-left">
+          <div className="preview-pane-toolbar">
+            {fileView ? (
+              <FilePathBar path={fileView.path} workdir={workdir} />
+            ) : (
+              <span className="preview-pane-url">文件</span>
+            )}
+            {isMd && (
+              <div className="file-pane-md-toggle" data-testid="file-md-toggle">
+                <button
+                  type="button"
+                  className="preview-pane-button"
+                  aria-pressed={mdMode === "preview"}
+                  onClick={() => setMdMode("preview")}
+                >
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  className="preview-pane-button"
+                  aria-pressed={mdMode === "source"}
+                  onClick={() => setMdMode("source")}
+                >
+                  Source
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="preview-pane-body file-pane-body">
             {!fileView && (
               <div className="desktop-panel-placeholder">
                 <i className="codicon codicon-file file-pane-placeholder-icon" />
@@ -131,16 +131,16 @@ export const FilePane: React.FC<FilePaneProps> = ({
               />
             )}
           </div>
-          {onFileTreeChange && (
-            <FileTree
-              workdir={workdir}
-              vscode={vscode}
-              tree={fileTree}
-              onTreeChange={onFileTreeChange}
-              onOpenFile={(path) => onOpenFile(path)}
-            />
-          )}
         </div>
+        {onFileTreeChange && (
+          <FileTree
+            workdir={workdir}
+            vscode={vscode}
+            tree={fileTree}
+            onTreeChange={onFileTreeChange}
+            onOpenFile={(path) => onOpenFile(path)}
+          />
+        )}
       </div>
     </aside>
   );

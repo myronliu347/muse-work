@@ -145,10 +145,20 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return (
       <div className="file-tree file-tree--empty" style={{ width }}>
         <div className="file-tree-drag-handle" onMouseDown={onWidthDragStart} />
-        <div className="file-tree-empty">无工作目录</div>
+        <div className="file-tree-header">
+          <FileIcon name="folder" isDirectory className="file-tree-icon" />
+          <span className="file-tree-workdir" title="">
+            无工作目录
+          </span>
+        </div>
+        <div className="file-tree-empty">选择工作目录后显示文件</div>
       </div>
     );
   }
+
+  const workdirName =
+    workdir.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ||
+    workdir;
 
   return (
     <div className="file-tree" style={{ width }} data-testid="file-tree">
@@ -157,6 +167,15 @@ export const FileTree: React.FC<FileTreeProps> = ({
         onMouseDown={onWidthDragStart}
         data-testid="file-tree-resize"
       />
+      <div className="file-tree-header" title={workdir} data-testid="file-tree-workdir">
+        <FileIcon
+          name={workdirName}
+          isDirectory
+          isOpen
+          className="file-tree-icon"
+        />
+        <span className="file-tree-workdir">{workdirName}</span>
+      </div>
       <div className="file-tree-scroll" ref={parentRef}>
         <div
           className="file-tree-virtual"
