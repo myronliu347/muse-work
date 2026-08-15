@@ -40,7 +40,7 @@
 
 1. File 预览 Selection MIME → Selection 标签（现有）  
 2. 剪贴板本地文件路径（Electron `File.path` / `text/uri-list` 的 `file://`）  
-   - 按文件分流：图片扩展名 → AttachedImages（优先用 clipboard `File` 读 data URL；仅有路径无 blob 时跳过该图或经 host 读，实现选前者）  
+   - 按文件分流：图片扩展名且能拿到 clipboard `File` blob → AttachedImages；仅有路径无 blob 的图片跳过（不插 `@file`）  
    - 非图片 → `@file`（多文件按序插入，标签间空格）  
    - 同一次粘贴可同时产生若干 `@file` 与若干附件  
 3. 无路径的 `image/*` → AttachedImages  
