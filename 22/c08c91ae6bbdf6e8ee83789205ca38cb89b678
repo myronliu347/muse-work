@@ -1,0 +1,97 @@
+packages/desktop/src/main/filePanel.ts
+  9b08060a306bdaeb 8
+packages/webview/tests/webview/selectionFeature.test.tsx
+  9b08060a306bdaeb 66,138,208
+packages/webview/tests/webview/tagClickability.test.tsx
+  9b08060a306bdaeb 102
+packages/webview/src/components/chat/MessageInput.tsx
+  9b08060a306bdaeb 32-36,557,637-697,1239-1255,1301-1327,1329,1380-1381
+packages/webview/src/components/message/Message.tsx
+  9b08060a306bdaeb 956
+packages/webview/tests/muse/filePanelDnD.test.ts
+  9b08060a306bdaeb 1-37
+packages/desktop/src/main/fileSearch.ts
+  9b08060a306bdaeb 379
+packages/webview/src/utils/filePanelDnD.ts
+  9b08060a306bdaeb 1-98
+packages/webview/src/components/panels/FilePreview.tsx
+  9b08060a306bdaeb 8-12,127-154,167
+packages/desktop/tests/filePanel.test.ts
+  9b08060a306bdaeb 24,27,31,48
+packages/webview/src/components/panels/FileTree.tsx
+  9b08060a306bdaeb 16-19,301-317
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "22c08c91ae6bbdf6e8ee83789205ca38cb89b678",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 317,
+      "total_deletions": 14,
+      "accepted_lines": 317,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/filePanelDnD.ts": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 116,
+          "deletions": 2,
+          "accepted_lines": 116
+        },
+        "packages/webview/tests/webview/tagClickability.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/filePanelDnD.test.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/webview/selectionFeature.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/filePanel.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/filePanel.test.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 34,
+          "deletions": 1,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
