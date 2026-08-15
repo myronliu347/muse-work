@@ -1,0 +1,57 @@
+packages/webview/src/styles/NewSessionPage.css
+  e8b8b41289148eaf 30,33-37,40-54
+packages/webview/e2e/demo/desktop-sender-cat.demo.ts
+  e8b8b41289148eaf 1-62
+packages/webview/src/components/chat/SenderCat.tsx
+  e8b8b41289148eaf 1-26
+packages/webview/src/components/chat/NewSessionPage.tsx
+  e8b8b41289148eaf 3,18-24
+packages/webview/tests/components/newSessionPage.test.tsx
+  e8b8b41289148eaf 24-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "95b5fe8733194efc1318c87edc5d1c8a6deeda17",
+  "prompts": {
+    "e8b8b41289148eaf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0b9ab6ac-a517-4150-a8b1-cd5f8170dccc",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 855,
+      "total_deletions": 721,
+      "accepted_lines": 133,
+      "overriden_lines": 2,
+      "per_file_stats": {
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/chat/SenderCat.tsx": {
+          "additions": 643,
+          "deletions": 617,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/e2e/demo/desktop-sender-cat.demo.ts": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 127,
+          "deletions": 103,
+          "accepted_lines": 22,
+          "overriden_lines": 2
+        }
+      }
+    }
+  }
+}
