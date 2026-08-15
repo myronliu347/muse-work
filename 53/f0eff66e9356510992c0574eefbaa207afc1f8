@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-08-15-file-panel-explorer-design.md
+  9b08060a306bdaeb 1-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "53f0eff66e9356510992c0574eefbaa207afc1f8",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 150,
+      "total_deletions": 0,
+      "accepted_lines": 150,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-file-panel-explorer-design.md": {
+          "additions": 150,
+          "accepted_lines": 150
+        }
+      }
+    }
+  }
+}
