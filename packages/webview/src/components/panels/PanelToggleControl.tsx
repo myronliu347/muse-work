@@ -8,7 +8,7 @@ export const PanelToggleControl: React.FC<PanelToggleProps> = ({
   <div className="panel-toggle-control">
     <Tooltip text="面板" position="bottom">
       <button
-        className="header-button header-panel-toggle"
+        className="header-button"
         onClick={onToggleDock}
         data-testid="panel-toggle-btn"
         aria-label="面板"
