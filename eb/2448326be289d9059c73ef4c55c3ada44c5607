@@ -1,0 +1,48 @@
+packages/webview/src/stores/panelGroupStore.ts
+  9b08060a306bdaeb 4-9,13-67,82,100,122-128,242-243
+packages/webview/src/types/index.ts
+  9b08060a306bdaeb 509-528
+packages/webview/tests/stores/fileTreeState.test.ts
+  9b08060a306bdaeb 1-36
+packages/webview/src/stores/index.ts
+  9b08060a306bdaeb 8-10,15-17,21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "eb2448326be289d9059c73ef4c55c3ada44c5607",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 136,
+      "total_deletions": 2,
+      "accepted_lines": 136,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 72,
+          "deletions": 2,
+          "accepted_lines": 72
+        },
+        "packages/webview/tests/stores/fileTreeState.test.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
