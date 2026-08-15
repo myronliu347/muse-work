@@ -114,6 +114,8 @@ export interface DiffPaneProps {
   onAddComment?: (text: string) => void;
   /** Opens a workspace file in the file panel (desktop) or IDE. */
   onOpenFile?: (path: string) => void;
+  /** Sends text as a real chat message (not append-to-input). */
+  onSendMessage?: (text: string) => void;
 }
 
 interface CommentTarget {
@@ -137,6 +139,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   workdir,
   onAddComment,
   onOpenFile,
+  onSendMessage,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
   // Mutual-exclusion accordion: at most one file is expanded at a time, so the
@@ -454,6 +457,16 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
           <span className="preview-pane-url">变更</span>
+          <button
+            type="button"
+            className="preview-pane-button"
+            title="提交改动"
+            aria-label="提交改动"
+            data-testid="diff-commit"
+            onClick={() => onSendMessage?.("git commit")}
+          >
+            <i className="codicon codicon-git-commit" />
+          </button>
           <button
             className="preview-pane-button"
             title="刷新"

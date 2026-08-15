@@ -2075,6 +2075,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           workdir={effectiveWorkdir}
           onOpenFile={handleOpenFile}
           onAddComment={handleAddComment}
+          onSendMessage={(text) => handleSendMessage(text)}
           {...common}
         />
       );

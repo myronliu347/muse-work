@@ -75,6 +75,7 @@ function renderPane(options?: {
   onClose?: () => void;
   onAddComment?: (text: string) => void;
   onOpenFile?: (path: string) => void;
+  onSendMessage?: (text: string) => void;
 }) {
   const vscode = createMockVscode();
   const onClose = options?.onClose ?? vi.fn();
@@ -92,6 +93,7 @@ function renderPane(options?: {
       workdir={options?.workdir}
       onAddComment={options?.onAddComment}
       onOpenFile={options?.onOpenFile}
+      onSendMessage={options?.onSendMessage}
     />,
   );
   const rerenderWith = (props: {
@@ -114,6 +116,7 @@ function renderPane(options?: {
         workdir={props.workdir}
         onAddComment={options?.onAddComment}
         onOpenFile={options?.onOpenFile}
+        onSendMessage={options?.onSendMessage}
       />,
     );
   return { ...result, rerenderWith, vscode, onClose };
@@ -310,6 +313,15 @@ describe("DiffPane", () => {
     expect(lastDiffRequest(vscode)).toHaveLength(1);
     fireEvent.click(screen.getByTestId("diff-refresh"));
     expect(lastDiffRequest(vscode)).toHaveLength(2);
+  });
+
+  it("commit button sends git commit via onSendMessage without a confirm dialog", () => {
+    const onSendMessage = vi.fn();
+    renderPane({ onSendMessage });
+    sendDiffResult([makeFile()]);
+    fireEvent.click(screen.getByTestId("diff-commit"));
+    expect(onSendMessage).toHaveBeenCalledWith("git commit");
+    expect(screen.queryByTestId("confirm-dialog-overlay")).not.toBeInTheDocument();
   });
 
   it("tags requests with paneId and ignores responses for other panes", () => {
