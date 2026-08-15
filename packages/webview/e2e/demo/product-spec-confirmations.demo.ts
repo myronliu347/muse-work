@@ -220,24 +220,11 @@ test.describe("Product Specification Screenshots - Confirmations", () => {
     const inputContainer = webviewPage.locator(".input-container");
     const permissionModeSelect = webviewPage.locator(".permission-mode-select");
 
-    // Mode 1: Default (修改前询问)
-    await injector.simulateExtensionMessage("updatePermissionMode", {
-      mode: "default",
-    });
-    await webviewPage.waitForSelector(".permission-mode-select");
-    await expect(webviewPage.locator(".permission-mode-select")).toHaveClass(
-      /mode-default/,
-    );
-    await permissionModeSelect.focus();
-    await elementScreenshotWebp(
-      inputContainer,
-      "../../docs/public/screenshots/spec-permission-mode-default.webp",
-    );
-
-    // Mode 2: Accept Edits (自动接受修改)
+    // Mode: Accept Edits (自动接受修改)
     await injector.simulateExtensionMessage("updatePermissionMode", {
       mode: "acceptEdits",
     });
+    await webviewPage.waitForSelector(".permission-mode-select");
     await expect(webviewPage.locator(".permission-mode-select")).toHaveClass(
       /mode-acceptEdits/,
     );
@@ -247,25 +234,25 @@ test.describe("Product Specification Screenshots - Confirmations", () => {
       "../../docs/public/screenshots/spec-permission-mode-accept.webp",
     );
 
-    // Mode 3: Plan Mode (计划模式)
+    // Mode: Bypass Permissions (跳过权限确认)
     await injector.simulateExtensionMessage("updatePermissionMode", {
-      mode: "plan",
+      mode: "bypassPermissions",
     });
     await expect(webviewPage.locator(".permission-mode-select")).toHaveClass(
-      /mode-plan/,
+      /mode-bypassPermissions/,
     );
     await permissionModeSelect.focus();
     await elementScreenshotWebp(
       inputContainer,
-      "../../docs/public/screenshots/spec-permission-mode-plan.webp",
+      "../../docs/public/screenshots/spec-permission-mode-bypass.webp",
     );
 
-    // Reset to default for remaining screenshots
+    // Reset to acceptEdits for remaining screenshots
     await injector.simulateExtensionMessage("updatePermissionMode", {
-      mode: "default",
+      mode: "acceptEdits",
     });
     await expect(webviewPage.locator(".permission-mode-select")).toHaveClass(
-      /mode-default/,
+      /mode-acceptEdits/,
     );
 
     // 15. Plan 确认对话框 - 只显示确认对话框组件

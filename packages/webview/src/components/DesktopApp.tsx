@@ -58,7 +58,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
           workdir: message.workdir,
           recentWorkdirs: message.recentWorkdirs ?? [],
           host: message.host ?? "local",
-          hosts: message.hosts ?? [],
         });
       } else if (message.command === "desktopSessionTree") {
         sessionTreeRef.current = message.groups ?? [];
@@ -92,39 +91,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
   const handleRemoveRecentWorkdir = useCallback(
     (path: string, host?: string) => {
       vscode.postMessage({ command: "desktopRemoveRecentWorkdir", path, host });
-    },
-    [vscode],
-  );
-
-  const handleSelectHost = useCallback(
-    (host: string) => {
-      vscode.postMessage({ command: "desktopSelectHost", host });
-    },
-    [vscode],
-  );
-
-  const handleAddHost = useCallback(
-    (connectionString: string) => {
-      vscode.postMessage({ command: "desktopAddHost", connectionString });
-    },
-    [vscode],
-  );
-
-  const handleSelectRemotePath = useCallback(
-    (path: string, host: string) => {
-      vscode.postMessage({ command: "desktopSelectRemotePath", path, host });
-    },
-    [vscode],
-  );
-
-  const handleListRemoteDir = useCallback(
-    (path: string, host: string, requestId: string) => {
-      vscode.postMessage({
-        command: "desktopListRemoteDir",
-        path,
-        host,
-        requestId,
-      });
     },
     [vscode],
   );
@@ -188,7 +154,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     );
   }
 
-  const { workdir, recentWorkdirs, host, hosts } = workdirState;
+  const { workdir, recentWorkdirs, host } = workdirState;
 
   return (
     <ChatApp
@@ -196,16 +162,11 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
       host={{
         type: "desktop",
         host,
-        hosts,
         workdir,
         recentWorkdirs,
         onSelectWorkdir: handleSelectWorkdir,
         onSelectRecentWorkdir: handleSelectRecentWorkdir,
         onRemoveRecentWorkdir: handleRemoveRecentWorkdir,
-        onSelectHost: handleSelectHost,
-        onAddHost: handleAddHost,
-        onSelectRemotePath: handleSelectRemotePath,
-        onListRemoteDir: handleListRemoteDir,
         sessionTree,
         onSelectSession: handleSelectSession,
         onDeleteSession: handleDeleteSession,

@@ -325,16 +325,8 @@
   border-color: transparent;
 }
 
-.permission-mode-select.mode-default {
-  color: var(--vscode-testing-iconPassed, #73c991);
-}
-
 .permission-mode-select.mode-acceptEdits {
   color: var(--vscode-list-warningForeground, #e5ba7d);
-}
-
-.permission-mode-select.mode-plan {
-  color: var(--vscode-textLink-foreground, #48a0c7);
 }
 
 .permission-mode-select.mode-bypassPermissions {

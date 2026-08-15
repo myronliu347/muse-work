@@ -4,6 +4,7 @@ import {
   renderChatApp,
   screen,
   waitFor,
+  within,
   fireEvent,
   act,
   sendCommand,
@@ -11,6 +12,11 @@ import {
 import { MockDataGenerator } from "../fixtures/mockData";
 import type { Message } from "wave-agent-sdk";
 import { MessageSource } from "wave-agent-sdk";
+
+/** Scope text queries to the message list — UserMessageNav repeats the same labels. */
+function messagesView() {
+  return within(screen.getByTestId("messages-container"));
+}
 
 describe("Rewind Feature", () => {
   beforeEach(() => {
@@ -33,7 +39,7 @@ describe("Rewind Feature", () => {
 
     // Verify messages are displayed
     await waitFor(() => {
-      expect(screen.getByText("Message 1")).toBeInTheDocument();
+      expect(messagesView().getByText("Message 1")).toBeInTheDocument();
     });
 
     // Clear message log to track new commands
@@ -88,7 +94,7 @@ describe("Rewind Feature", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Message 1")).toBeInTheDocument();
+      expect(messagesView().getByText("Message 1")).toBeInTheDocument();
     });
 
     vscode.postMessage.mockClear();
@@ -128,7 +134,7 @@ describe("Rewind Feature", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Message 1")).toBeInTheDocument();
+      expect(messagesView().getByText("Message 1")).toBeInTheDocument();
     });
 
     // Click rewind on the second user message (Message 2)
@@ -167,11 +173,10 @@ describe("Rewind Feature", () => {
     // Verify Message 2 and Response 2 are removed from the messages list
     // (queryByText must be scoped to messages-container because the input box
     //  now contains 'Message 2' via inputContent)
-    const messagesContainer = document.querySelector(".messages-container")!;
     await waitFor(() => {
-      expect(screen.getByText("Message 1")).toBeInTheDocument();
-      expect(messagesContainer.textContent).not.toContain("Message 2");
-      expect(messagesContainer.textContent).not.toContain("Response 2");
+      expect(messagesView().getByText("Message 1")).toBeInTheDocument();
+      expect(messagesView().queryByText("Message 2")).not.toBeInTheDocument();
+      expect(messagesView().queryByText("Response 2")).not.toBeInTheDocument();
     });
 
     // Verify input box has 'Message 2'
@@ -192,7 +197,7 @@ describe("Rewind Feature", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("User message")).toBeInTheDocument();
+      expect(messagesView().getByText("User message")).toBeInTheDocument();
     });
 
     // Rewind buttons should only appear on user messages
@@ -233,7 +238,7 @@ describe("Rewind Feature", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("User message")).toBeInTheDocument();
+      expect(messagesView().getByText("User message")).toBeInTheDocument();
     });
 
     // Only the real user message has a rewind button; the background
@@ -264,7 +269,7 @@ describe("Rewind Feature", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("User message")).toBeInTheDocument();
+      expect(messagesView().getByText("User message")).toBeInTheDocument();
     });
 
     // Hook-injected messages are system-generated and not rewind checkpoints

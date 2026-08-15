@@ -52,7 +52,6 @@ export {
   CODEMAKER_AUTH_KEY_PATH,
   CODEMAKER_LOGIN_INFO_PATH,
   CODEMAKER_LOGIN_PATH,
-  CODEMAKER_TOKEN_EXCHANGE_PATH,
   type BeginCodeMakerLoginOptions,
   type CodeMakerLoginStart,
 } from "./codemaker/login.js";

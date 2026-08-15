@@ -144,50 +144,6 @@ export interface WebviewMessage {
   [key: string]: unknown;
 }
 
-// File upload related message types
-
-/**
- * File data for upload
- */
-export interface UploadFileData {
-  /** File name */
-  name: string;
-  /** File size in bytes */
-  size: number;
-  /** MIME type */
-  type: string;
-  /** File content as ArrayBuffer */
-  data: ArrayBuffer;
-}
-
-/**
- * Basic file info for upload request
- */
-export interface UploadFileInfo {
-  /** File name */
-  name: string;
-  /** File size in bytes */
-  size: number;
-  /** MIME type */
-  type: string;
-}
-
-// History types
-export interface HistoryItem {
-  prompt: string;
-  timestamp: number;
-  workdir?: string;
-}
-
-export interface HistorySearchState {
-  isActive: boolean;
-  items: HistoryItem[];
-  selectedIndex: number;
-  filterText: string;
-  position: { top: number; left: number };
-  isLoading: boolean;
-}
-
 // Component props
 export interface ChatAppProps {
   vscode: VsCodeApi;
@@ -240,28 +196,14 @@ export interface OpenPaneOptions {
 // window.waveHostType === 'desktop' selects the DesktopApp root in index.tsx.
 export interface DesktopHostProps {
   type: "desktop";
-  /** Current host: 'local' or an SSH host name (the focused pane's host). */
+  /** Current host (local-only for now; kept for pane/workdir scoping). */
   host: string;
-  /** All selectable hosts: 'local' + parsed ~/.ssh/config top-level Host names. */
-  hosts: string[];
   workdir?: string;
   recentWorkdirs: string[];
   onSelectWorkdir: () => void;
   /** `host` scopes the recents lookup to a specific host (defaults to the current one). */
   onSelectRecentWorkdir: (path: string, host?: string) => void;
   onRemoveRecentWorkdir: (path: string, host?: string) => void;
-  /** Switch the focused pane's host (本地 or an SSH host). */
-  onSelectHost: (host: string) => void;
-  /** Add a host from an `ssh user@hostname -p port` connection string (VSC-style). */
-  onAddHost: (connectionString: string) => void;
-  /** Select a remote workdir by absolute path; validated with `test -d` on the host. */
-  onSelectRemotePath: (path: string, host: string) => void;
-  /**
-   * List the subdirectories of a remote path (remote directory browser,
-   * spec scenario 20). The host replies with a requestId-matched
-   * `desktopRemoteDirList` message.
-   */
-  onListRemoteDir: (path: string, host: string, requestId: string) => void;
   /**
    * Sidebar session tree (FR-020): one group per recent directory with all of
    * its sessions. Pushed via the `desktopSessionTree` message.
@@ -400,10 +342,8 @@ export interface UpdateToast {
 // every workdir/host change (message command: 'desktopWorkdirState').
 export interface DesktopWorkdirState {
   workdir?: string;
-  /** Current host ('local' or an SSH host name) — the focused pane's host. */
+  /** Current host — the focused pane's host (local-only for now). */
   host: string;
-  /** All selectable hosts: 'local' + parsed ~/.ssh/config top-level Host names. */
-  hosts: string[];
   recentWorkdirs: string[];
 }
 

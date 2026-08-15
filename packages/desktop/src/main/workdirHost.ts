@@ -200,7 +200,6 @@ function pushState(win: BrowserWindow | null, state: WorkdirHostState): void {
     workdir: state.workdir,
     recentWorkdirs: state.recentWorkdirs,
     host: state.host,
-    hosts: [],
   });
 }
 

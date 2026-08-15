@@ -434,7 +434,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       workdir,
       recentWorkdirs,
       host: "local",
-      hosts: [],
     });
     syncChatWorkdir(workdir);
   };

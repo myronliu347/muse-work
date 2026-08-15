@@ -146,7 +146,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       workdir: "/Users/demo/project",
       recentWorkdirs: [],
       host: "local",
-      hosts: [],
     });
     expect(outer.postMessage).toHaveBeenCalledWith({ command: "desktopReady" });
   });

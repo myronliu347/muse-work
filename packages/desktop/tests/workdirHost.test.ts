@@ -80,7 +80,6 @@ describe("installWorkdirHost", () => {
       workdir: "/tmp/default-wd",
       recentWorkdirs: [],
       host: "local",
-      hosts: [],
     });
 
     // Folder pick path
@@ -136,7 +135,6 @@ describe("installWorkdirHost", () => {
       workdir: "/picked/project",
       recentWorkdirs: ["/picked/project"],
       host: "local",
-      hosts: [],
     });
     expect(loadPersistedWorkdirState(userData).workdir).toBe("/picked/project");
     fs.rmSync(userData, { recursive: true, force: true });

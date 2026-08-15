@@ -20,9 +20,6 @@ export const CODEMAKER_LOGIN_PATH = "/vs_login";
 export const CODEMAKER_LOGIN_INFO_PATH = "/vs_login_info";
 export const CODEMAKER_AUTH_KEY_PATH = "/get_auth_key";
 
-/** Key/token mint (user+key) on auth.nie — not the browser SSO path. */
-export const CODEMAKER_TOKEN_EXCHANGE_PATH = "/api/v2/tokens";
-
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 const DEFAULT_POLL_TIMEOUT_MS = 600_000;
 
