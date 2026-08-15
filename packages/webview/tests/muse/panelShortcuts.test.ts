@@ -136,6 +136,56 @@ describe("matchNewSessionShortcut", () => {
   });
 });
 
+describe("matchDockFullscreenShortcut", () => {
+  const platform = navigator.platform;
+
+  afterEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  it("matches Control+Command+F on mac", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchDockFullscreenShortcut, dockFullscreenShortcutLabel } =
+      await import("../../src/muse/panelShortcuts.js");
+    expect(
+      matchDockFullscreenShortcut(
+        keyEvent({ key: "f", ctrlKey: true, metaKey: true }),
+      ),
+    ).toBe(true);
+    expect(
+      matchDockFullscreenShortcut(
+        keyEvent({ key: "f", metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(false);
+    expect(dockFullscreenShortcutLabel()).toBe("⌃⌘F");
+  });
+
+  it("matches F11 on Windows", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "Win32",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchDockFullscreenShortcut, dockFullscreenShortcutLabel } =
+      await import("../../src/muse/panelShortcuts.js");
+    expect(matchDockFullscreenShortcut(keyEvent({ key: "F11" }))).toBe(true);
+    expect(
+      matchDockFullscreenShortcut(
+        keyEvent({ key: "f", ctrlKey: true, metaKey: true }),
+      ),
+    ).toBe(false);
+    expect(dockFullscreenShortcutLabel()).toBe("F11");
+  });
+});
+
 describe("matchQuickOpenShortcut", () => {
   const platform = navigator.platform;
 

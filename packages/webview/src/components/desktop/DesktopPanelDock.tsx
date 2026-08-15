@@ -1,11 +1,7 @@
 import React, { useState } from "react";
 import type { DesktopPanelKind, PanelToggleProps } from "../../types";
-import {
-  PANEL_ADD_ORDER,
-  PANEL_TAB_ICONS,
-  PANEL_TAB_LABELS,
-  PANEL_TAB_ORDER,
-} from "../../muse/panelTabs";
+import { PANEL_ADD_ORDER, PANEL_TAB_ICONS, PANEL_TAB_LABELS, PANEL_TAB_ORDER } from "../../muse/panelTabs";
+import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { Tooltip } from "../shared/Tooltip";
@@ -155,7 +151,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         )}
         <div className="desktop-panel-dock-actions">
           <Tooltip
-            text={fullscreen ? "退出全屏" : "全屏"}
+            text={`${fullscreen ? "退出全屏" : "全屏"} (${dockFullscreenShortcutLabel()})`}
             position="bottom"
           >
             <button

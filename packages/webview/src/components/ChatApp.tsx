@@ -37,7 +37,7 @@ import {
 import { DesktopShell } from "./desktop/DesktopShell";
 import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
-import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut } from "../muse/panelShortcuts";
+import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut, matchDockFullscreenShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
@@ -253,6 +253,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Mirrors so the stable message listener can reach the panel toggle logic
   // (defined below) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
+  const toggleFullscreenRef = useRef<() => void>(() => {});
   const panelDisabledRef = useRef<DesktopPanelKind[]>([]);
   const messageInputRef = useRef<MessageInputHandle>(null);
   const messageListRef = useRef<{
@@ -1781,6 +1782,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     togglePanelRef.current = handleTogglePanel;
   }, [handleTogglePanel]);
 
+  useEffect(() => {
+    toggleFullscreenRef.current = handleToggleFullscreen;
+  }, [handleToggleFullscreen]);
+
   // Desktop panel shortcuts (labels in PanelAddMenu). Shell host instance
   // must not bind — only the focused pane ChatApp (or single-pane layout).
   useEffect(() => {
@@ -1807,6 +1812,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         event.preventDefault();
         event.stopPropagation();
         setQuickOpenOpen(true);
+        return;
+      }
+      if (matchDockFullscreenShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleFullscreenRef.current();
         return;
       }
       const kind = matchPanelShortcut(event);

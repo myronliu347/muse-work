@@ -10,6 +10,7 @@ const isMac =
  * - Diff: ⇧⌘D / Ctrl+Shift+D
  * - Terminal: ⌃` / Ctrl+`
  * - File: ⇧⌘F / Ctrl+Shift+F
+ * Dock fullscreen (separate): ⌃⌘F / F11
  */
 export function matchPanelShortcut(event: KeyboardEvent): DesktopPanelKind | null {
   if (event.altKey || event.isComposing) return null;
@@ -49,6 +50,37 @@ export function matchPanelShortcut(event: KeyboardEvent): DesktopPanelKind | nul
     }
   }
   return null;
+}
+
+/**
+ * Dock fullscreen toggle:
+ * - macOS: Control+Command+F (⌃⌘F) — same chord as system app fullscreen
+ * - elsewhere: F11
+ * Does not collide with File panel ⇧⌘F / Ctrl+Shift+F.
+ */
+export function matchDockFullscreenShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+
+  if (isMac) {
+    return (
+      event.ctrlKey &&
+      event.metaKey &&
+      !event.shiftKey &&
+      key === "f"
+    );
+  }
+
+  return (
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    (key === "f11" || event.key === "F11")
+  );
+}
+
+export function dockFullscreenShortcutLabel(): string {
+  return isMac ? "⌃⌘F" : "F11";
 }
 
 export function matchNewSessionShortcut(event: KeyboardEvent): boolean {
