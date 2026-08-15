@@ -1,0 +1,57 @@
+packages/webview/src/components/panels/PanelAddMenu.tsx
+  4f59b11387b272ed 1-2,11-14,21-22,27,30-47,49-52
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  4f59b11387b272ed 1,3-8,80-90,142-143,148,150-152
+packages/webview/tests/components/panelAddMenu.test.tsx
+  4f59b11387b272ed 4-5,7,9-17,19-32,36,46-49,54
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  4f59b11387b272ed 5,94-95,103-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e9e2ab5b3e5b5a526eea5f7436cd2d2616faccea",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 114,
+      "total_deletions": 114,
+      "accepted_lines": 96,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/PanelToggleMenu.css": {
+          "deletions": 7
+        },
+        "packages/webview/src/components/panels/PanelAddMenu.tsx": {
+          "additions": 32,
+          "deletions": 47,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 24,
+          "deletions": 23,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 7
+        },
+        "packages/webview/tests/components/panelAddMenu.test.tsx": {
+          "additions": 46,
+          "deletions": 34,
+          "accepted_lines": 36
+        }
+      }
+    }
+  }
+}
