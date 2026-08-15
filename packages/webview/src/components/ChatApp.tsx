@@ -40,6 +40,7 @@ import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
+import { collapseDockState, expandDockState } from "../muse/dockActions";
 import { PreviewPane } from "./panels/PreviewPane";
 import { DiffPane } from "./panels/DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
@@ -64,6 +65,7 @@ import {
 import {
   usePanelGroupStore,
   nextActivePanelAfterClose,
+  emptyPanelGroup,
   PANEL_DEFAULT_WIDTH,
   usePanelGroup,
   usePaneUi,
@@ -204,6 +206,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     mounted: mountedPanels,
     active: activePanel,
     widths: panelWidths,
+    dockFullscreen,
     previewUrl,
     fileView,
     fileTree,
@@ -1701,10 +1704,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     (kind: DesktopPanelKind) => {
       if (panelDisabledRef.current.includes(kind)) return;
       if (checkedPanelsRef.current.includes(kind)) {
-        updatePanelGroup((group) => ({
-          active: nextActivePanelAfterClose(group.checked, kind, group.active),
-          checked: group.checked.filter((k) => k !== kind),
-        }));
+        updatePanelGroup((group) => {
+          const nextChecked = group.checked.filter((k) => k !== kind);
+          if (nextChecked.length === 0) {
+            return collapseDockState({
+              checked: group.checked,
+              active: group.active,
+            });
+          }
+          return {
+            active: nextActivePanelAfterClose(
+              group.checked,
+              kind,
+              group.active,
+            ),
+            checked: nextChecked,
+          };
+        });
         // Closing the preview hides the pane but never releases a remote tunnel
         // (scenario 18): the URL stays cached so re-checking shows the same page,
         // and the host keeps the ssh forward alive until the session is deleted.
@@ -1714,6 +1730,45 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     },
     [tryOpenPanel, updatePanelGroup],
   );
+
+  const handleToggleDock = useCallback(() => {
+    if (!groupKey) return;
+    const group =
+      usePanelGroupStore.getState().groups[groupKey] ??
+      emptyPanelGroup();
+    if (group.checked.length > 0) {
+      updatePanelGroup(collapseDockState(group));
+      return;
+    }
+    if (group.collapsedTabs?.checked.length) {
+      const next = expandDockState(group.collapsedTabs);
+      updatePanelGroup({
+        ...next,
+        mounted: Array.from(new Set([...group.mounted, ...next.checked])),
+      });
+      return;
+    }
+    tryOpenPanel("diff");
+  }, [groupKey, tryOpenPanel, updatePanelGroup]);
+
+  const handleAddPanel = useCallback(
+    (kind: DesktopPanelKind) => {
+      if (panelDisabledRef.current.includes(kind)) return;
+      if (checkedPanelsRef.current.includes(kind)) {
+        updatePanelGroup({ active: kind });
+        return;
+      }
+      tryOpenPanel(kind);
+    },
+    [tryOpenPanel, updatePanelGroup],
+  );
+
+  const handleToggleFullscreen = useCallback(() => {
+    updatePanelGroup((group) => {
+      if (group.checked.length === 0) return { dockFullscreen: false };
+      return { dockFullscreen: !group.dockFullscreen };
+    });
+  }, [updatePanelGroup]);
 
   const handleSelectPanel = useCallback(
     (kind: DesktopPanelKind) => {
@@ -2366,7 +2421,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         panelToggle={
           isDesktop && checkedPanels.length === 0
             ? {
-                onToggleDock: () => {},
+                onToggleDock: handleToggleDock,
               }
             : undefined
         }
@@ -2414,12 +2469,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               active={activePanel}
               onSelect={handleSelectPanel}
               onCloseTab={handleTogglePanel}
+              onAddPanel={handleAddPanel}
+              disabledPanels={panelDisabled}
               panelToggle={{
-                onToggleDock: () => {},
+                onToggleDock: handleToggleDock,
               }}
-              onAddPanel={() => {}}
-              fullscreen={false}
-              onToggleFullscreen={() => {}}
+              fullscreen={dockFullscreen}
+              onToggleFullscreen={handleToggleFullscreen}
               width={Math.min(
                 panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
                 Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
