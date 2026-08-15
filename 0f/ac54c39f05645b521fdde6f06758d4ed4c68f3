@@ -1,0 +1,42 @@
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  4f59b11387b272ed 132-155
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  4f59b11387b272ed 93-105
+packages/webview/src/styles/DesktopPanelDock.css
+  4f59b11387b272ed 31-32,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0fac54c39f05645b521fdde6f06758d4ed4c68f3",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 40,
+      "total_deletions": 21,
+      "accepted_lines": 40,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 24,
+          "deletions": 21,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
