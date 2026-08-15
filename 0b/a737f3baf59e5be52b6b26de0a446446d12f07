@@ -1,0 +1,55 @@
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  4ca056b3b481a28a 1-81
+packages/webview/src/components/chat/MessageInput.tsx
+  4ca056b3b481a28a 37,125,645-652,707-719,1411,1417-1432
+packages/webview/src/types/index.ts
+  4ca056b3b481a28a 449-450
+packages/webview/src/components/ChatApp.tsx
+  4ca056b3b481a28a 2071
+packages/webview/src/styles/MessageInput.css
+  4ca056b3b481a28a 402-411
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0ba737f3baf59e5be52b6b26de0a446446d12f07",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 137,
+      "total_deletions": 4,
+      "accepted_lines": 135,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 83,
+          "deletions": 2,
+          "accepted_lines": 81
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 41,
+          "deletions": 2,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 10,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
