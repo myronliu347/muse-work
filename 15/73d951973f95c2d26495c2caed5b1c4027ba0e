@@ -1,0 +1,37 @@
+packages/webview/src/muse/wsClient.ts
+  7cfc5350e2475b47 143-146
+packages/webview/tests/muse/wsClient.test.ts
+  7cfc5350e2475b47 209-245
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1573d951973f95c2d26495c2caed5b1c4027ba0e",
+  "prompts": {
+    "7cfc5350e2475b47": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3514b386-0b4d-4ef9-986a-151cc5727d56",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 43,
+      "total_deletions": 4,
+      "accepted_lines": 41,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/muse/wsClient.test.ts": {
+          "additions": 39,
+          "deletions": 2,
+          "accepted_lines": 37
+        }
+      }
+    }
+  }
+}
