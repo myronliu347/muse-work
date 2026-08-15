@@ -1,0 +1,120 @@
+packages/server/tests/settings.routes.test.ts
+  1c65e982ada3920c 8,34-76
+packages/webview/tests/components/agentSettings.test.tsx
+  1c65e982ada3920c 1-78
+packages/server/src/routes/settings.ts
+  1c65e982ada3920c 4-8,17-55
+packages/server/src/services/sessionRunner.ts
+  1c65e982ada3920c 958-967
+packages/webview/src/components/settings/AgentSettings.tsx
+  1c65e982ada3920c 1-136
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  1c65e982ada3920c 16-19,27,30,44,81-90,181-203,248-253
+packages/webview/src/muse/apiClient.ts
+  1c65e982ada3920c 137-152
+packages/webview/src/styles/AgentSettings.css
+  1c65e982ada3920c 1-23
+packages/server/tests/waveAgentSettings.test.ts
+  1c65e982ada3920c 1-54
+packages/server/src/services/waveAgentSettings.ts
+  1c65e982ada3920c 1-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1d5f838f46da854a6b8362ed2e01ea59d286e72f",
+  "prompts": {
+    "1c65e982ada3920c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "927a7ed6-bc97-4201-8e42-a80dd962d4ed",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 647,
+      "total_deletions": 47,
+      "accepted_lines": 529,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/waveAgentSettings.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/webview/src/components/settings/AgentSettings.tsx": {
+          "additions": 161,
+          "deletions": 25,
+          "accepted_lines": 136
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 78,
+          "accepted_lines": 78
+        },
+        "packages/webview/src/styles/AgentSettings.css": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 50,
+          "deletions": 2,
+          "accepted_lines": 50
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 62,
+          "deletions": 16,
+          "accepted_lines": 47
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/tests/settings.routes.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 20,
+          "deletions": 4,
+          "accepted_lines": 16
+        },
+        "packages/server/tests/waveAgentSettings.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "additions": 74
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
