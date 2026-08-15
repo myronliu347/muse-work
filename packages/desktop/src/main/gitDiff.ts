@@ -223,15 +223,23 @@ export async function revertWorkspaceDiff(
     (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
     cwd;
 
-  const status = await git(root, [
-    "status",
-    "--porcelain=v1",
-    "-z",
-    "--untracked-files=all",
-  ]).catch(() => "");
+  let status: string;
+  try {
+    status = await git(root, [
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+    ]);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
   let entries = parsePorcelain(status);
 
-  if (paths && paths.length > 0) {
+  if (paths !== undefined) {
     for (const p of paths) {
       if (!resolveInsideRepo(root, p)) {
         return { ok: false, error: `非法路径：${p}` };

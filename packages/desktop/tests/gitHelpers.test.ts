@@ -106,4 +106,29 @@ describe("revertWorkspaceDiff", () => {
     expect(result).toEqual({ ok: true });
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+  it("empty paths array is a no-op and does not revert all", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-empty-arr-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "a.txt"), "dirty\n");
+    const result = await revertWorkspaceDiff(dir, []);
+    expect(result).toEqual({ ok: true });
+    expect(fs.readFileSync(path.join(dir, "a.txt"), "utf8")).toBe("dirty\n");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("returns error when git status fails", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rv-status-"));
+    initRepo(dir);
+    const indexPath = path.join(dir, ".git", "index");
+    fs.chmodSync(indexPath, 0o000);
+    try {
+      const result = await revertWorkspaceDiff(dir, ["a.txt"]);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.length).toBeGreaterThan(0);
+    } finally {
+      fs.chmodSync(indexPath, 0o644);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
