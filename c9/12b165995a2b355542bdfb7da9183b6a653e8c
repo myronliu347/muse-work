@@ -1,0 +1,54 @@
+packages/webview/src/components/ChatApp.tsx
+  4f59b11387b272ed 2369,2418
+packages/webview/src/components/panels/PanelToggleControl.tsx
+  4f59b11387b272ed 1,6-20
+packages/webview/src/types/index.ts
+  4f59b11387b272ed 566,568
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  4f59b11387b272ed 17,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c912b165995a2b355542bdfb7da9183b6a653e8c",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 47,
+      "total_deletions": 47,
+      "accepted_lines": 22,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/PanelToggleControl.tsx": {
+          "additions": 16,
+          "deletions": 32,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "deletions": 6,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "deletions": 7,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/panelToggleControl.test.tsx": {
+          "additions": 25
+        }
+      }
+    }
+  }
+}
