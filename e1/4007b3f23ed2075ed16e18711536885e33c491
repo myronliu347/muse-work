@@ -1,0 +1,207 @@
+packages/webview/e2e/demo/product-spec-chat-header.demo.ts
+  88a56fc4f56a7376 67,104
+packages/webview/e2e/utils/desktopTestHarness.ts
+  88a56fc4f56a7376 104,133-138,157-159,165-169,176-185
+packages/webview/e2e/demo/desktop-app.demo.ts
+  88a56fc4f56a7376 5,26-28,33,40,47,49-50,56,63,71,74-77,83,89,95,97-113,160,166,256,285-286,295,302-304,307-324,327
+packages/webview/e2e/demo/agent-transcript-compaction.demo.ts
+  88a56fc4f56a7376 4,7-8,12,14-24,27-77,80,82,85-111,113-116,119,122-126,128,130-137,139-170,172,175-179
+packages/webview/package.json
+  88a56fc4f56a7376 23-24
+packages/webview/e2e/demo/desktop-git-context.demo.ts
+  88a56fc4f56a7376 6,21-22,26,29-45,49,53,58-65,68,71-109
+packages/webview/e2e/demo/desktop-update-toast.demo.ts
+  88a56fc4f56a7376 55-58,61,69,82-85,89
+packages/webview/e2e/utils/webviewTestHarness.ts
+  88a56fc4f56a7376 139,185-187
+packages/webview/e2e/demo/desktop-diff-comments.demo.ts
+  88a56fc4f56a7376 85-96,98
+packages/webview/e2e/utils/museApiMock.ts
+  88a56fc4f56a7376 1,3-17,19-33,35-65,67,69-81,83-94,96
+packages/webview/e2e/demo/desktop-session-tree-actions.demo.ts
+  88a56fc4f56a7376 1,5-6,8-19,21-24,26-28,30-41,44-81,83-91,95,98-106,108-120,122-138,140-141
+packages/webview/e2e/demo/action-confirm-dialog.demo.ts
+  88a56fc4f56a7376 62-66,81,83-84,90,97
+packages/webview/e2e/demo/product-spec-rich-content.demo.ts
+  88a56fc4f56a7376 96-98,103,116,119,129,131-139,141-146
+packages/webview/e2e/demo/product-spec-ui-basic.demo.ts
+  88a56fc4f56a7376 32,54,56,63,67,78,209
+packages/webview/e2e/demo/desktop-panels.demo.ts
+  88a56fc4f56a7376 31-42
+packages/webview/src/muse/hostBridge.ts
+  88a56fc4f56a7376 160-175,1750-1754,1917-1918
+packages/webview/e2e/demo/desktop-file-panel.demo.ts
+  88a56fc4f56a7376 37-48
+packages/webview/e2e/demo/desktop-preview.demo.ts
+  88a56fc4f56a7376 96-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e14007b3f23ed2075ed16e18711536885e33c491",
+  "prompts": {
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 825,
+      "total_deletions": 1186,
+      "accepted_lines": 758,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/e2e/demo/desktop-session-tree-actions.demo.ts": {
+          "additions": 143,
+          "accepted_lines": 143
+        },
+        "packages/webview/e2e/demo/product-spec-ui-basic.demo.ts": {
+          "additions": 7,
+          "deletions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/e2e/demo/product-spec-history-search.demo.ts": {
+          "deletions": 69
+        },
+        "packages/webview/e2e/demo/desktop-preview.demo.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 33
+        },
+        "packages/webview/tests/webview/btwPopup.test.tsx": {
+          "deletions": 365
+        },
+        "packages/webview/e2e/demo/desktop-git-context.demo.ts": {
+          "additions": 110,
+          "accepted_lines": 110
+        },
+        "packages/webview/e2e/demo/sdd-plugin.demo.ts": {
+          "deletions": 53
+        },
+        "packages/webview/e2e/demo/timeline-connector.demo.ts": {
+          "deletions": 159
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 24,
+          "deletions": 7,
+          "accepted_lines": 24
+        },
+        "packages/webview/e2e/demo/model-command.demo.ts": {
+          "deletions": 99
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 83,
+          "deletions": 65,
+          "accepted_lines": 69
+        },
+        "packages/webview/e2e/demo/desktop-update-toast.demo.ts": {
+          "additions": 11,
+          "deletions": 8,
+          "accepted_lines": 11
+        },
+        "packages/webview/e2e/demo/desktop-panels.demo.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/e2e/utils/museApiMock.ts": {
+          "additions": 96,
+          "accepted_lines": 96
+        },
+        "packages/webview/playwright.config.ts": {
+          "additions": 4
+        },
+        "packages/webview/package.json": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/desktop-message-width.demo.ts": {
+          "additions": 14,
+          "deletions": 109
+        },
+        "packages/webview/e2e/utils/desktopTestHarness.ts": {
+          "additions": 26,
+          "deletions": 12,
+          "accepted_lines": 26
+        },
+        "packages/webview/e2e/demo/agent-transcript-compaction.demo.ts": {
+          "additions": 183,
+          "deletions": 1,
+          "accepted_lines": 182
+        },
+        "packages/webview/e2e/demo/action-confirm-dialog.demo.ts": {
+          "additions": 10,
+          "deletions": 5,
+          "accepted_lines": 10
+        },
+        "packages/webview/e2e/utils/webviewTestHarness.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/e2e/demo/desktop-file-panel.demo.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/e2e/demo/product-spec-btw.demo.ts": {
+          "deletions": 73
+        },
+        "packages/webview/e2e/demo/language-config.demo.ts": {
+          "deletions": 56
+        },
+        "packages/webview/e2e/demo/product-spec-chat-header.demo.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/desktop-diff-comments.demo.ts": {
+          "additions": 15,
+          "deletions": 5,
+          "accepted_lines": 14
+        },
+        "packages/webview/e2e/demo/product-spec-rich-content.demo.ts": {
+          "additions": 22,
+          "deletions": 85,
+          "accepted_lines": 22
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
