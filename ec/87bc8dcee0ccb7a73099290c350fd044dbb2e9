@@ -1,0 +1,172 @@
+packages/webview/src/styles/ConfigurationDialog.css
+  88b2909908d5ac36 52,61,573
+packages/webview/src/styles/ChatHeader.css
+  88b2909908d5ac36 53-54
+packages/webview/src/components/ChatApp.tsx
+  88b2909908d5ac36 1898
+packages/webview/src/styles/DiffPane.css
+  88b2909908d5ac36 139,152
+packages/webview/e2e/utils/webviewTestHarness.ts
+  88b2909908d5ac36 135
+packages/webview/src/components/DiffPane.tsx
+  88b2909908d5ac36 211
+packages/webview/src/components/TaskList.tsx
+  88b2909908d5ac36 173
+packages/webview/src/components/FilePane.tsx
+  88b2909908d5ac36 222
+packages/webview/src/styles/DesktopApp.css
+  88b2909908d5ac36 431,553,732,879,892,914,924,962
+packages/webview/src/styles/TaskList.css
+  88b2909908d5ac36 145
+packages/webview/src/styles/ConfirmDialog.css
+  88b2909908d5ac36 19-20,55,59,84-86,90,94-95,100
+packages/webview/src/components/TerminalPane.tsx
+  88b2909908d5ac36 319
+packages/webview/src/styles/DiffViewer.css
+  88b2909908d5ac36 65,74,88,93
+packages/webview/e2e/utils/desktopTestHarness.ts
+  88b2909908d5ac36 100
+packages/webview/src/components/DesktopPanelDock.tsx
+  88b2909908d5ac36 35
+packages/webview/src/components/PreviewPane.tsx
+  88b2909908d5ac36 310
+packages/webview/tests/webview/terminalPane.test.tsx
+  88b2909908d5ac36 287,294
+packages/webview/src/styles/globals.css
+  88b2909908d5ac36 1,9,76
+packages/webview/src/components/SessionTree.tsx
+  88b2909908d5ac36 307-308
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ec87bc8dcee0ccb7a73099290c350fd044dbb2e9",
+  "prompts": {
+    "88b2909908d5ac36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c9abb29-87c7-4691-aa7a-1a73e8e1df1e",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 87,
+      "total_deletions": 2039,
+      "accepted_lines": 47,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        "packages/webview/theme/theme-base-dark.css": {
+          "deletions": 961
+        },
+        "packages/webview/src/styles/DiffViewer.css": {
+          "additions": 4,
+          "deletions": 8,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/TerminalPane.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/TaskList.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/PreviewPane.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 8,
+          "deletions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/theme/theme-base-light.css": {
+          "deletions": 969
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ConfirmDialog.css": {
+          "additions": 11,
+          "deletions": 14,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/e2e/utils/webviewTestHarness.ts": {
+          "additions": 1,
+          "deletions": 19,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/syncWebview.mjs": {
+          "deletions": 20
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/TaskList.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/FilePane.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/SessionTree.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/muse-vscode-bridge.css": {
+          "additions": 38
+        },
+        "packages/webview/src/components/DesktopPanelDock.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/utils/desktopTestHarness.ts": {
+          "additions": 1,
+          "deletions": 17,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DiffPane.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
