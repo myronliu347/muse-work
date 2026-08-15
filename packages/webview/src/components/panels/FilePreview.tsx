@@ -71,11 +71,28 @@ const renderFileMarkdown = (content: string): string => {
   return sanitizeFileMarkdown(typeof raw === "string" ? raw : content);
 };
 
+/**
+ * Resolve a markdown-relative href (e.g. `docs/x.md`, `../y.png`) against the
+ * workdir without Node's `path` module. Absolute paths pass through unchanged.
+ */
+const resolveWorkdirHref = (workdir: string, href: string): string => {
+  if (/^[\\/]|^[a-zA-Z]:/.test(href)) return href;
+  const parts = workdir.replace(/\\/g, "/").split("/");
+  for (const seg of href.replace(/\\/g, "/").split("/")) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") parts.pop();
+    else parts.push(seg);
+  }
+  return parts.join("/");
+};
+
 export type FilePreviewProps = {
   fileView: FileViewState;
   workdir?: string;
   onRevealInFinder?: (path: string) => void;
   markdownMode?: "preview" | "source";
+  onOpenFile?: (path: string) => void;
+  onOpenExternal?: (url: string) => void;
 };
 
 export const FilePreview: React.FC<FilePreviewProps> = ({
@@ -83,6 +100,8 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   workdir,
   onRevealInFinder,
   markdownMode = "preview",
+  onOpenFile,
+  onOpenExternal,
 }) => {
   const { effective } = useMuseTheme();
   const dark = effective === "dark";
@@ -205,11 +224,28 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     );
   }
 
+  // Relative markdown links open the target file in the panel (resolved
+  // against the workdir); external URLs go to the system browser. `#` anchors
+  // keep their default in-page jump.
+  const handleMarkdownClick = (e: React.MouseEvent) => {
+    const anchor = (e.target as Element | null)?.closest?.("a");
+    const href = anchor?.getAttribute("href");
+    if (!href || href.startsWith("#")) return;
+    e.preventDefault();
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) {
+      onOpenExternal?.(href);
+      return;
+    }
+    const raw = href.split("#")[0];
+    if (raw && workdir) onOpenFile?.(resolveWorkdirHref(workdir, raw));
+  };
+
   return (
     <div className="file-pane-preview-body" ref={scrollRef}>
       {markdown && markdownMode === "preview" && (
         <div
           className="message-content markdown-content file-pane-markdown"
+          onClick={handleMarkdownClick}
           dangerouslySetInnerHTML={{
             __html: renderFileMarkdown(fileView.content),
           }}

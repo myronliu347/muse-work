@@ -164,6 +164,10 @@ export const FilePane: React.FC<FilePaneProps> = ({
                 workdir={workdir}
                 onRevealInFinder={onRevealInFinder}
                 markdownMode={mdMode}
+                onOpenFile={onOpenFile}
+                onOpenExternal={(url) =>
+                  vscode.postMessage({ command: "openExternal", url })
+                }
               />
             )}
           </div>

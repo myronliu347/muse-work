@@ -167,6 +167,51 @@ describe("FilePane", () => {
     });
   });
 
+  it("opens workdir-relative markdown links in the panel", () => {
+    const { onOpenFile } = renderPane({
+      workdir: "/work/a",
+      fileView: {
+        path: "/work/a/README.md",
+        host: "local",
+        content: "[docs](../docs/x.md#intro) 和 [plan](plans/plan.md)",
+      },
+    });
+    fireEvent.click(screen.getByText("docs"));
+    expect(onOpenFile).toHaveBeenCalledWith("/work/docs/x.md");
+    fireEvent.click(screen.getByText("plan"));
+    expect(onOpenFile).toHaveBeenCalledWith("/work/a/plans/plan.md");
+  });
+
+  it("routes external markdown links to the system browser", () => {
+    const { vscode } = renderPane({
+      workdir: "/work/a",
+      fileView: {
+        path: "/work/a/README.md",
+        host: "local",
+        content: "[site](https://example.com/a)",
+      },
+    });
+    fireEvent.click(screen.getByText("site"));
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "openExternal",
+      url: "https://example.com/a",
+    });
+  });
+
+  it("leaves # anchors to their default in-page jump", () => {
+    const { onOpenFile, vscode } = renderPane({
+      workdir: "/work/a",
+      fileView: {
+        path: "/work/a/README.md",
+        host: "local",
+        content: "[top](#intro)",
+      },
+    });
+    fireEvent.click(screen.getByText("top"));
+    expect(onOpenFile).not.toHaveBeenCalled();
+    expect(vscode.postMessage).not.toHaveBeenCalled();
+  });
+
   it("renders code files as numbered lines", async () => {
     const { container } = renderPane();
     await waitFor(() => {
