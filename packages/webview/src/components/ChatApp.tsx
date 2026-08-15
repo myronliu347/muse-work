@@ -1999,6 +1999,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           isStreaming={state.isStreaming}
           sessionId={state.currentSession?.id}
           workdir={effectiveWorkdir}
+          onOpenFile={handleOpenFile}
           onAddComment={handleAddComment}
           {...common}
         />

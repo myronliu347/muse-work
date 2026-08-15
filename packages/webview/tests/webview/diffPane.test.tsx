@@ -29,6 +29,7 @@ function renderPane(options?: {
   workdir?: string;
   onClose?: () => void;
   onAddComment?: (text: string) => void;
+  onOpenFile?: (path: string) => void;
 }) {
   const vscode = createMockVscode();
   const onClose = options?.onClose ?? vi.fn();
@@ -45,6 +46,7 @@ function renderPane(options?: {
       sessionId={options?.sessionId}
       workdir={options?.workdir}
       onAddComment={options?.onAddComment}
+      onOpenFile={options?.onOpenFile}
     />,
   );
   const rerenderWith = (props: {
@@ -66,6 +68,7 @@ function renderPane(options?: {
         sessionId={props.sessionId}
         workdir={props.workdir}
         onAddComment={options?.onAddComment}
+        onOpenFile={options?.onOpenFile}
       />,
     );
   return { ...result, rerenderWith, vscode, onClose };
@@ -282,6 +285,17 @@ describe("DiffPane", () => {
     fireEvent.click(header);
     expect(header).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("new1")).toBeInTheDocument();
+  });
+
+  it("clicking the path opens the file without toggling expand", () => {
+    const onOpenFile = vi.fn();
+    const { container } = renderPane({ onOpenFile });
+    sendDiffResult([makeFile()]);
+    const header = container.querySelector(".diff-file-header") as HTMLElement;
+    expect(header).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByTestId("diff-file-path"));
+    expect(onOpenFile).toHaveBeenCalledWith("src/a.ts");
+    expect(header).toHaveAttribute("aria-expanded", "true");
   });
 
   describe("mutual-exclusion accordion", () => {

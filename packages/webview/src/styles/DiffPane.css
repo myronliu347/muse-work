@@ -82,6 +82,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
+  color: var(--accent-11);
+  cursor: pointer;
+}
+
+.diff-file-path:hover {
+  text-decoration: underline;
 }
 
 .diff-file-stats {

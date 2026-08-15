@@ -85,6 +85,8 @@ export interface DiffPaneProps {
   workdir?: string;
   /** Receives a formatted diff-line comment; appended to this pane's chat input. */
   onAddComment?: (text: string) => void;
+  /** Opens a workspace file in the file panel (desktop) or IDE. */
+  onOpenFile?: (path: string) => void;
 }
 
 /** Workspace git-diff panel: accordion of per-file collapsible diff blocks. */
@@ -99,6 +101,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   sessionId,
   workdir,
   onAddComment,
+  onOpenFile,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
   // Mutual-exclusion accordion: at most one file is expanded at a time, so the
@@ -455,7 +458,21 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           </span>
           <span
             className="diff-file-path"
+            data-testid="diff-file-path"
+            role="link"
+            tabIndex={0}
             title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFile?.(file.path);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenFile?.(file.path);
+              }
+            }}
           >
             {file.path}
           </span>
