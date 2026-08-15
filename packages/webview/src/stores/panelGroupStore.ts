@@ -43,8 +43,13 @@ export function emptyPanelGroup(): PanelGroupState {
 
 const EMPTY_GROUP = emptyPanelGroup();
 
+export function workdirTermId(workdir: string): string {
+  return `term-wd-${encodeURIComponent(workdir.trim())}`;
+}
+
 export function isDraftGroupKey(groupKey: string | undefined): boolean {
-  return groupKey === "__draft__";
+  if (!groupKey) return true;
+  return groupKey === "__draft__" || groupKey.startsWith("new:");
 }
 
 export function resolvePanelGroup(
@@ -64,7 +69,7 @@ interface PanelGroupStore {
     patch: Partial<PanelGroupState> | ((group: PanelGroupState) => Partial<PanelGroupState>),
   ) => void;
   migrateGroup: (fromKey: string, toKey: string) => void;
-  pruneGroups: (keepKeys: Set<string>) => void;
+  pruneGroups: (keepKeys: Set<string>) => string[];
   findGroupKeyByForwardRequestId: (requestId: string) => string | undefined;
   bumpPreviewEpoch: (key: string) => void;
   reset: () => void;
@@ -103,17 +108,19 @@ export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
   },
 
   pruneGroups: (keepKeys) => {
-    set((s) => {
-      const groups: Record<string, PanelGroupState> = {};
-      for (const [key, group] of Object.entries(s.groups)) {
-        if (keepKeys.has(key)) groups[key] = group;
-      }
-      const previewEpochs: Record<string, number> = {};
-      for (const [key, epoch] of Object.entries(s.previewEpochs)) {
-        if (keepKeys.has(key)) previewEpochs[key] = epoch;
-      }
-      return { groups, previewEpochs };
-    });
+    const s = get();
+    const removed: string[] = [];
+    const groups: Record<string, PanelGroupState> = {};
+    for (const [key, group] of Object.entries(s.groups)) {
+      if (keepKeys.has(key)) groups[key] = group;
+      else removed.push(key);
+    }
+    const previewEpochs: Record<string, number> = {};
+    for (const [key, epoch] of Object.entries(s.previewEpochs)) {
+      if (keepKeys.has(key)) previewEpochs[key] = epoch;
+    }
+    set({ groups, previewEpochs });
+    return removed;
   },
 
   findGroupKeyByForwardRequestId: (requestId) => {
@@ -135,8 +142,8 @@ export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
   reset: () => set({ groups: {}, previewEpochs: {} }),
 }));
 
-export function prunePanelGroupCache(keepKeys: Set<string>): void {
-  usePanelGroupStore.getState().pruneGroups(keepKeys);
+export function prunePanelGroupCache(keepKeys: Set<string>): string[] {
+  return usePanelGroupStore.getState().pruneGroups(keepKeys);
 }
 
 export function nextActivePanelAfterClose(

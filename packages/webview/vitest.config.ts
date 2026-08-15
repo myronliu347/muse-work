@@ -22,6 +22,7 @@ export default defineConfig({
       "tests/muse/**/*.test.ts",
       "tests/muse/**/*.test.tsx",
       "tests/components/**/*.test.tsx",
+      "tests/stores/**/*.test.ts",
       "tests/utils/**/*.test.ts",
       "tests/reducers/**/*.test.ts",
       "tests/webview/slash-commands.test.tsx",

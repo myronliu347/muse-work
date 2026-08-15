@@ -3,6 +3,7 @@ export {
   usePanelGroupStore,
   usePanelGroup,
   prunePanelGroupCache,
+  workdirTermId,
   emptyPanelGroup,
   resolvePanelGroup,
   isDraftGroupKey,
