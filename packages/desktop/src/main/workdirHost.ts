@@ -275,6 +275,11 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       filterText?: string;
       dir?: string;
       workdir?: string;
+      source?: string;
+      query?: string;
+      caseSensitive?: boolean;
+      wholeWord?: boolean;
+      regex?: boolean;
       baseBranch?: string;
       name?: string;
       text?: string;
@@ -350,9 +355,15 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       try {
         const query = filterText.trim();
+        const isQuickOpen = msg.source === "quickOpen";
         const suggestions = cwd
           ? query
-            ? searchWorkspaceFiles(cwd, { query, maxResults: 20 })
+            ? searchWorkspaceFiles(cwd, {
+                query,
+                maxResults: isQuickOpen ? 50 : 20,
+                respectGitignore: isQuickOpen,
+                filesOnly: isQuickOpen,
+              })
             : listWorkspaceDir(cwd, dir)
           : [];
         pushToWebview(win, {

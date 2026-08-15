@@ -135,3 +135,53 @@ describe("matchNewSessionShortcut", () => {
     ).toBe(false);
   });
 });
+
+describe("matchQuickOpenShortcut", () => {
+  const platform = navigator.platform;
+
+  afterEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  it("matches cmd/ctrl+p without shift", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchQuickOpenShortcut } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchQuickOpenShortcut(keyEvent({ key: "p", metaKey: true })),
+    ).toBe(true);
+    expect(
+      matchQuickOpenShortcut(
+        keyEvent({ key: "p", metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(false);
+  });
+
+  it("matches Ctrl+P on Windows", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "Win32",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchQuickOpenShortcut } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchQuickOpenShortcut(keyEvent({ key: "p", ctrlKey: true })),
+    ).toBe(true);
+    expect(
+      matchQuickOpenShortcut(
+        keyEvent({ key: "p", ctrlKey: true, shiftKey: true }),
+      ),
+    ).toBe(false);
+  });
+});

@@ -59,6 +59,15 @@ export function matchNewSessionShortcut(event: KeyboardEvent): boolean {
   return event.ctrlKey && !event.metaKey;
 }
 
+/** ⌘P / Ctrl+P — Quick Open (plain, no Shift; Shift+P is Preview panel). */
+export function matchQuickOpenShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.shiftKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key !== "p") return false;
+  if (isMac) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
+}
+
 export function panelShortcutLabel(kind: DesktopPanelKind): string {
   if (isMac) {
     switch (kind) {
