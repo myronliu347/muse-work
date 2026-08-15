@@ -1,0 +1,67 @@
+packages/webview/src/components/panels/FileTree.tsx
+  4f59b11387b272ed 172-196,230-239,281-289,292-303
+packages/webview/src/stores/panelGroupStore.ts
+  4f59b11387b272ed 29,153-157
+packages/webview/src/components/ChatApp.tsx
+  4f59b11387b272ed 456,1904
+packages/webview/src/types/index.ts
+  4f59b11387b272ed 536-537
+packages/webview/tests/stores/fileTreeState.test.ts
+  4f59b11387b272ed 11-16
+packages/webview/tests/components/fileTree.test.tsx
+  4f59b11387b272ed 35-38,50,60-69,74-103,122,133,150,161,187
+packages/webview/src/styles/FilePane.css
+  4f59b11387b272ed 196-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "82a92751173f0d1b2635c3cd7dc11f8066866aad",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 162,
+      "total_deletions": 11,
+      "accepted_lines": 161,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 59,
+          "deletions": 3,
+          "accepted_lines": 58
+        },
+        "packages/webview/tests/stores/fileTreeState.test.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 58,
+          "deletions": 8,
+          "accepted_lines": 58
+        }
+      }
+    }
+  }
+}
