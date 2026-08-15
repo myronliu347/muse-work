@@ -1,0 +1,59 @@
+docs/superpowers/plans/2026-08-15-session-header-git-branch.md
+  9b4a73ec6d8222b9 1-600
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e66444c2a52a37ee58c9e2858e69eec48145c298",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 295,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 41
+        },
+        "packages/webview/vitest.config.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "accepted_lines": 180
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "accepted_lines": 69
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 3
+        }
+      }
+    },
+    "9b4a73ec6d8222b9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e25434e-6d29-4dfc-8129-5dfaa4fc747a",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 600,
+      "total_deletions": 0,
+      "accepted_lines": 600,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-08-15-session-header-git-branch.md": {
+          "additions": 600,
+          "accepted_lines": 600
+        }
+      }
+    }
+  }
+}
