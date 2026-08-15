@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-08-15-file-search-quick-open-design.md
+  9b08060a306bdaeb 1-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fff5b19fb444ddb437a33ba88c04fc1bc4889f07",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 158,
+      "total_deletions": 0,
+      "accepted_lines": 158,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-file-search-quick-open-design.md": {
+          "additions": 158,
+          "accepted_lines": 158
+        }
+      }
+    }
+  }
+}
