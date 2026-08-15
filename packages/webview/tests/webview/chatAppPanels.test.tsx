@@ -3,7 +3,8 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import React from "react";
 import { DesktopApp } from "../../src/components/DesktopApp";
-import { ChatApp, prunePanelGroupCache } from "../../src/components/ChatApp";
+import { ChatApp } from "../../src/components/ChatApp";
+import { resetWebviewStores } from "../../src/stores";
 import type { WebviewTagElement } from "../../src/components/panels/PreviewPane";
 import { READ_TOOL_NAME } from "wave-agent-sdk";
 import {
@@ -49,8 +50,7 @@ const lastPanelState = (vscode: ReturnType<typeof createMockVscode>) => {
 };
 
 beforeEach(() => {
-  // The panel-group cache is module-level — isolate tests from each other.
-  prunePanelGroupCache(new Set());
+  resetWebviewStores();
 });
 
 afterEach(() => {

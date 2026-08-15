@@ -1,12 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ChatApp, prunePanelGroupCache } from "./ChatApp";
-import {
-  VsCodeApi,
-  DesktopWorkdirState,
-  DesktopSessionGroup,
-  DesktopPane,
-  OpenPaneOptions,
-} from "../types";
+import React, { useCallback, useEffect, useRef } from "react";
+import { ChatApp } from "./ChatApp";
+import { VsCodeApi, OpenPaneOptions } from "../types";
+import { useDesktopShell } from "../stores/desktopStore";
+import { prunePanelGroupCache } from "../stores/panelGroupStore";
 import "../styles/DesktopApp.css";
 
 interface DesktopAppProps {
@@ -16,30 +12,25 @@ interface DesktopAppProps {
 /**
  * Root component for the desktop (Electron) host. Owns the workdir state pushed
  * by the main process and renders the shared ChatApp with a desktop sidebar.
- * The sidebar's workdir dropdown is the single entry point for selecting a
- * workdir — both on first launch (no workdir yet, header shows a placeholder)
- * and when switching (FR-005). No full-screen selector overlay.
- *
- * Also owns the split-pane layout (FR-032): the ordered pane list + which pane
- * is focused, both driven by the host-authoritative `desktopPanes` message.
  */
 export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
-  const [workdirState, setWorkdirState] = useState<DesktopWorkdirState | null>(
-    null,
-  );
-  const [sessionTree, setSessionTree] = useState<DesktopSessionGroup[]>([]);
-  const [panes, setPanes] = useState<DesktopPane[]>([]);
-  const [rowHeights, setRowHeights] = useState<number[] | undefined>(undefined);
-  const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
-  // Latest panes/session tree for the panel-group prune below (the message
-  // handler closes over refs, not state, so both messages see fresh values).
-  const panesRef = useRef<DesktopPane[]>([]);
-  const sessionTreeRef = useRef<DesktopSessionGroup[]>([]);
+  const {
+    workdirState,
+    sessionTree,
+    panes,
+    rowHeights,
+    focusedPaneId,
+    setWorkdirState,
+    setSessionTree,
+    setPanes,
+  } = useDesktopShell();
+
+  const panesRef = useRef(panes);
+  const sessionTreeRef = useRef(sessionTree);
+  panesRef.current = panes;
+  sessionTreeRef.current = sessionTree;
 
   useEffect(() => {
-    // Panel groups are remembered per session: keep entries for live pane
-    // buckets, pane-bound sessions, and sessions still in the sidebar tree —
-    // a deleted session forgets its panel group here.
     const prunePanels = () => {
       const keep = new Set<string>();
       for (const p of panesRef.current) {
@@ -64,18 +55,16 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         setSessionTree(sessionTreeRef.current);
         prunePanels();
       } else if (message.command === "desktopPanes") {
-        const nextPanes: DesktopPane[] = message.panes ?? [];
+        const nextPanes = message.panes ?? [];
         panesRef.current = nextPanes;
-        setPanes(nextPanes);
+        setPanes(nextPanes, message.rowHeights, message.focusedPaneId ?? null);
         prunePanels();
-        setRowHeights(message.rowHeights);
-        setFocusedPaneId(message.focusedPaneId ?? null);
       }
     };
     window.addEventListener("message", handleMessage);
     vscode.postMessage({ command: "desktopReady" });
     return () => window.removeEventListener("message", handleMessage);
-  }, [vscode]);
+  }, [vscode, setWorkdirState, setSessionTree, setPanes]);
 
   const handleSelectWorkdir = useCallback(() => {
     vscode.postMessage({ command: "desktopSelectWorkdir" });
@@ -147,7 +136,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     [vscode],
   );
 
-  // Waiting for the main process to answer `desktopReady`.
   if (workdirState === null) {
     return (
       <div className="desktop-loading" data-testid="desktop-loading"></div>

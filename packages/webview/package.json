@@ -50,6 +50,7 @@
     "marked": "^9.1.6",
     "mermaid": "^11.12.2",
     "motion": "^13.1.0",
-    "wave-agent-sdk": "1.0.7"
+    "wave-agent-sdk": "1.0.7",
+    "zustand": "^5.0.15"
   }
 }

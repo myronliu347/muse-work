@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import { AgentTranscriptPopup } from "./dialogs/AgentTranscriptPopup";
 import { MessageList } from "./chat/MessageList";
@@ -17,7 +16,6 @@ import { QueuedMessageList } from "./chat/QueuedMessageList";
 import { ConfirmationDialog } from "./dialogs/ConfirmationDialog";
 import { ConfirmDialog } from "./dialogs/ConfirmDialog";
 import { RewindPopup } from "./dialogs/RewindPopup";
-import type { RewindCheckpoint } from "./dialogs/RewindPopup";
 import { ModelPopup } from "./dialogs/ModelPopup";
 import { ToastStack } from "./shared/ToastStack";
 import { BtwPanel } from "./chat/BtwPanel";
@@ -40,11 +38,7 @@ import { DesktopGitContext } from "./desktop/DesktopGitContext";
 import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
-import {
-  firstPanelTab,
-  nextActivePanel,
-  PANEL_TAB_ORDER,
-} from "../muse/panelTabs";
+import { PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { PreviewPane } from "./panels/PreviewPane";
 import { DiffPane } from "./panels/DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
@@ -65,12 +59,22 @@ import {
   parseAgentPrompt,
   resolveSubagentMessages,
 } from "../utils/subagentTranscript";
+import {
+  usePanelGroupStore,
+  isDraftGroupKey,
+  nextActivePanelAfterClose,
+  PANEL_DEFAULT_WIDTH,
+  usePanelGroup,
+  usePaneUi,
+  patchPaneUi,
+  type PanelGroupState,
+} from "../stores";
 import "../styles/ChatApp.css";
+
+export { prunePanelGroupCache } from "../stores";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
-/** Placeholder until the dock's first open seeds half the window width. */
-const PANEL_DEFAULT_WIDTH = 420;
 const PANEL_MIN_WIDTH = 320;
 /** The conversation (message) area never shrinks below this when opening/dragging panels. */
 const CHAT_MAIN_MIN_WIDTH = 360;
@@ -116,120 +120,36 @@ function canonicalForwardUrl(raw: string): string {
   }
 }
 
-/**
- * Panel group snapshot, remembered per session. Keys are session ids, plus one
- * `new:<paneId>` bucket per pane for the new-session state (no session bound
- * yet); the bucket migrates to the session id once the first message binds
- * one. The cache also carries a pane's group across the unmount/remount a
- * move between window rows forces (React cannot reparent) — the remount reads
- * the same session's entry. DesktopApp prunes entries whose owner is gone.
- */
-interface PanelGroupState {
-  checked: DesktopPanelKind[];
-  mounted: DesktopPanelKind[];
-  /** Currently selected tab in the dock; null when no panels are open. */
-  active: DesktopPanelKind | null;
-  widths: Record<DesktopPanelKind, number>;
-  previewUrl: string | null;
-  /** File panel state (which file is open + content); null = never opened. */
-  fileView: FileViewState | null;
-  /**
-   * This session's remote port forward (scenario 18). The tunnel is owned by
-   * the session, not the pane: it survives panel close, host switches, pane
-   * rebinding and unmount/remount — only session deletion, ssh process death
-   * or app exit release it. This reference is display bookkeeping only.
-   */
-  forward: RemoteForwardRef | null;
-  /** Last forward failure for this session, shown in the preview stub. */
-  forwardError: string | null;
-}
-
-/**
- * The in-flight/established remote port forward requested by this session. Set
- * when a remote localhost link is clicked (before the host replies). A pane
- * rebinding to another session must keep the previous session's forward held
- * (the host tunnels stay alive independently), so references live in the
- * per-session panel-group cache rather than a single pane ref.
- */
-interface RemoteForwardRef {
-  host: string;
-  remotePort: number;
-  /** The original remote URL the user clicked (kept for comment rewriting). */
-  originalUrl: string;
-  /** Matches the desktopForwardPortResult reply; stale replies are dropped. */
-  requestId: string;
-}
-
-const panelGroupCache = new Map<string, PanelGroupState>();
-
-/** Fresh panel-group state, used when a session gets its first forward. */
-function emptyPanelGroup(): PanelGroupState {
-  return {
-    checked: [],
-    mounted: [],
-    active: null,
-    widths: {
-      preview: PANEL_DEFAULT_WIDTH,
-      diff: PANEL_DEFAULT_WIDTH,
-      terminal: PANEL_DEFAULT_WIDTH,
-      file: PANEL_DEFAULT_WIDTH,
-    },
-    previewUrl: null,
-    fileView: null,
-    forward: null,
-    forwardError: null,
-  };
-}
-
-/**
- * Drop cached panel groups whose owner is gone. The keep-set covers live pane
- * buckets and the sessions in the sidebar tree / pane bindings, so a deleted
- * session forgets its panel group while a merely hidden one keeps it.
- */
-export function prunePanelGroupCache(keepKeys: Set<string>): void {
-  for (const key of [...panelGroupCache.keys()]) {
-    if (!keepKeys.has(key)) panelGroupCache.delete(key);
-  }
-}
-
 export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
-  const [queueEditWarning, setQueueEditWarning] = useState<string | null>(null);
-  // In-app toasts (VS Code-style, bottom-right). Desktop host only: pushed via
-  // `showToast` (update announcements), acknowledged via `toastAction`.
-  const [toasts, setToasts] = useState<UpdateToast[]>([]);
-  // Message id awaiting rewind confirmation; non-null shows the ConfirmDialog.
-  const [pendingRewindId, setPendingRewindId] = useState<string | null>(null);
-  // /rewind popup: checkpoint list requested from the host on open.
-  const [rewindPopupOpen, setRewindPopupOpen] = useState(false);
-  const [rewindCheckpoints, setRewindCheckpoints] = useState<
-    RewindCheckpoint[]
-  >([]);
-  const [rewindCheckpointsLoading, setRewindCheckpointsLoading] =
-    useState(false);
-  // /model popup: configured models requested from the host on open.
-  const [modelPopupOpen, setModelPopupOpen] = useState(false);
-  const [configuredModels, setConfiguredModels] = useState<string[]>([]);
-  const [currentModel, setCurrentModel] = useState<string | undefined>(
-    undefined,
+  const paneUi = usePaneUi(paneId);
+  const {
+    queueEditWarning,
+    toasts,
+    pendingRewindId,
+    rewindPopupOpen,
+    rewindCheckpoints,
+    rewindCheckpointsLoading,
+    modelPopupOpen,
+    configuredModels,
+    currentModel,
+    modelLoading,
+    agentTranscript,
+    btwPanel,
+    worktreeBranch,
+    worktreeChecked,
+    paneGitBranches,
+  } = paneUi;
+  const patchPane = useCallback(
+    (
+      patch:
+        | Partial<typeof paneUi>
+        | ((slice: typeof paneUi) => Partial<typeof paneUi>),
+    ) => {
+      patchPaneUi(paneId, patch);
+    },
+    [paneId],
   );
-  const [modelLoading, setModelLoading] = useState(false);
-  const [agentTranscript, setAgentTranscript] = useState<{
-    subagentId: string;
-    title: string;
-    nestedMessages?: Message[];
-    fallbackText?: string;
-    prompt?: string;
-  } | null>(null);
-  // /btw side-question panel (webview spec story 3). Non-null while the panel is
-  // open; `loading` while the askBtw RPC is in flight, `answer` afterwards
-  // (including the bare-/btw usage hint and API-error strings).
-  const [btwPanel, setBtwPanel] = useState<{
-    question: string;
-    answer: string;
-    loading: boolean;
-    contentStarted: boolean;
-  } | null>(null);
   // Question of the in-flight askBtw RPC. Cleared on close so a late reply is
   // dropped (scenario 7); matched against the reply's echoed question so a stale
   // reply never lands on a newer panel (scenario 6/7).
@@ -237,20 +157,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Session the current /btw panel belongs to. Compared against
   // state.currentSession.id in an effect below: the panel is conversation-scoped
   // (spec scenario 14), and desktop pane instances stay mounted across
-  // conversation switches (ChatApp is keyed by paneId, not sessionId), so a
-  // local useState alone would leak the previous conversation's panel.
+  // conversation switches (ChatApp is keyed by paneId, not sessionId), so pane
+  // UI state alone would leak the previous conversation's panel.
   const btwSessionRef = useRef<string | undefined>(undefined);
-  // Desktop new-session worktree controls (FR-022/FR-023).
-  const [worktreeBranch, setWorktreeBranch] = useState<string>("");
-  const [worktreeChecked, setWorktreeChecked] = useState(false);
-  // Per-pane git branches for this pane's OWN workdir (FR-022). The host-level
-  // workdir follows the focused pane — sharing it would bleed one pane's
-  // directory/branch into a sibling new-session pane, so each new-session pane
-  // queries branches against its own session workdir.
-  const [paneGitBranches, setPaneGitBranches] = useState<{
-    branches: string[];
-    current: string;
-  } | null>(null);
   // Desktop new sessions start with workdir=null. Host bridge syncs
   // updateWorkdir on activate / folder pick / auto-create. Fall back to
   // host.workdir only for bound (non-draft) sessions when state has not
@@ -286,38 +195,27 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // new-session bucket migrates to the session id only when that message binds
   // one — a sidebar switch to an existing session must not inherit the bucket.
   const sentFromNewSessionRef = useRef(false);
-  // Desktop only: localhost URL shown in the preview pane. Null = never opened.
-  const [previewUrl, setPreviewUrl] = useState<string | null>(
-    () => (groupKey ? panelGroupCache.get(groupKey)?.previewUrl : null) ?? null,
-  );
-  // Desktop remote sessions: port-forward failure shown in the empty-preview
-  // stub with a retry entry (scenario 16). Null = no error. Restored from the
-  // session's cached group so a pane rebinding away and back keeps the error.
-  const [previewForwardError, setPreviewForwardError] = useState<string | null>(
-    () =>
-      (groupKey ? panelGroupCache.get(groupKey)?.forwardError : undefined) ??
-      null,
-  );
-  // Bumped when a re-acquire returns the SAME forwarded URL — the [url] effect
-  // in PreviewPane would otherwise early-return and skip the forced reload a
-  // retry after a guest load failure needs. Remounting restarts the webview.
-  const [previewEpoch, setPreviewEpoch] = useState(0);
-  // Desktop only: the file panel's open file + content (null = never opened).
-  // Set locally to a loading stub when a path is clicked, then filled by the
-  // host's desktopFileContent reply (routed by paneId).
-  const [fileView, setFileView] = useState<FileViewState | null>(
-    () =>
-      (groupKey ? panelGroupCache.get(groupKey)?.fileView : undefined) ?? null,
-  );
-  // The pane's current remote port forward (see RemoteForwardRef above). State
-  // rather than a ref because a pane rebinding to another session must drop its
-  // own current forward WITHOUT dropping the previous session's (the host
-  // tunnels stay alive independently, scenario 18): the per-session references
-  // live in panelGroupCache, this state only mirrors the bound session's one
-  // for rendering the preview stub.
-  const [currentForward, setCurrentForward] = useState<RemoteForwardRef | null>(
-    () =>
-      (groupKey ? panelGroupCache.get(groupKey)?.forward : undefined) ?? null,
+  const {
+    checked: checkedPanels,
+    mounted: mountedPanels,
+    active: activePanel,
+    widths: panelWidths,
+    previewUrl,
+    fileView,
+    forward: currentForward,
+    forwardError: previewForwardError,
+    previewEpoch,
+  } = usePanelGroup(groupKey);
+  const updatePanelGroup = useCallback(
+    (
+      patch:
+        | Partial<PanelGroupState>
+        | ((group: PanelGroupState) => Partial<PanelGroupState>),
+    ) => {
+      if (!groupKey || isDraftGroupKey(groupKey)) return;
+      usePanelGroupStore.getState().patchGroup(groupKey, patch);
+    },
+    [groupKey],
   );
   // Mirrors of the forward state, refreshed on every render. Message is a
   // React.memo component whose DOM click handler captures props.onOpenPreview
@@ -333,35 +231,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const forwardSeqRef = useRef(0);
   const previewUrlRef = useRef(previewUrl);
   const fileViewRef = useRef<FileViewState | null>(fileView);
-  // Desktop only: conversation-level panel group (checked = visible; mounted =
-  // rendered but possibly hidden, so panel content survives unchecking). When
-  // this session's group was cached (session revisited, or the pane moved
-  // across window rows), restore it.
-  const [checkedPanels, setCheckedPanels] = useState<DesktopPanelKind[]>(
-    () => (groupKey ? panelGroupCache.get(groupKey)?.checked : undefined) ?? [],
-  );
-  const [mountedPanels, setMountedPanels] = useState<DesktopPanelKind[]>(
-    () => (groupKey ? panelGroupCache.get(groupKey)?.mounted : undefined) ?? [],
-  );
-  const [activePanel, setActivePanel] = useState<DesktopPanelKind | null>(
-    () => {
-      const group = groupKey ? panelGroupCache.get(groupKey) : undefined;
-      const checked = group?.checked ?? [];
-      if (group?.active && checked.includes(group.active)) return group.active;
-      return firstPanelTab(checked);
-    },
-  );
-  const [panelWidths, setPanelWidths] = useState<
-    Record<DesktopPanelKind, number>
-  >(
-    () =>
-      (groupKey ? panelGroupCache.get(groupKey)?.widths : undefined) ?? {
-        preview: PANEL_DEFAULT_WIDTH,
-        diff: PANEL_DEFAULT_WIDTH,
-        terminal: PANEL_DEFAULT_WIDTH,
-        file: PANEL_DEFAULT_WIDTH,
-      },
-  );
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const checkedPanelsRef = useRef(checkedPanels);
   const mountedPanelsRef = useRef(mountedPanels);
@@ -417,101 +286,25 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     panelWidthsRef.current = panelWidths;
   }, [panelWidths]);
 
-  // Cache the whole panel group under the current session so it survives this
-  // ChatApp being unmounted/remounted (pane moved across window rows) and so a
-  // later session switch can restore it. Skipped on the render where the key
-  // flips — the swap effect below re-seeds the state from the new key first.
-  useEffect(() => {
-    if (!groupKey || groupKey !== groupKeyRef.current) return;
-    panelGroupCache.set(groupKey, {
-      checked: checkedPanels,
-      mounted: mountedPanels,
-      active: activePanel,
-      widths: panelWidths,
-      // A forwarded URL's tunnel is session-scoped (scenario 18) — it survives
-      // pane remounts and session switches, so the URL is cached like a local
-      // one: switching away and back restores the same address, which still
-      // loads because the host keeps the tunnel alive for the session.
-      previewUrl,
-      fileView,
-      forward: currentForward,
-      forwardError: previewForwardError,
-    });
-  }, [
-    groupKey,
-    checkedPanels,
-    mountedPanels,
-    activePanel,
-    panelWidths,
-    previewUrl,
-    fileView,
-    currentForward,
-    previewForwardError,
-  ]);
-
-  // Session switch: swap in the incoming session's remembered panel group
-  // (empty when it has none — panels never leak across sessions). Diff /
-  // preview refresh for the new context; terminal PTY is per-session on the
-  // host and reattaches with scrollback. A pane's new-session / draft bucket
-  // migrates to the session id once the first message binds one.
+  // Session switch: migrate a pane's new-session / draft bucket to the bound
+  // session id once the first message binds one.
   useEffect(() => {
     if (!groupKey || groupKey === groupKeyRef.current) return;
     const prevKey = groupKeyRef.current;
     groupKeyRef.current = groupKey;
-    let group = panelGroupCache.get(groupKey);
     const prevIsDraftBucket =
       prevKey === "__draft__" || Boolean(prevKey?.startsWith("new:"));
     const nextIsRealSession =
       groupKey !== "__draft__" && !groupKey.startsWith("new:");
     if (
-      !group &&
       prevIsDraftBucket &&
       nextIsRealSession &&
-      sentFromNewSessionRef.current
+      sentFromNewSessionRef.current &&
+      prevKey
     ) {
-      group = panelGroupCache.get(prevKey!);
-      if (group) {
-        panelGroupCache.set(groupKey, group);
-        panelGroupCache.delete(prevKey!);
-      }
+      usePanelGroupStore.getState().migrateGroup(prevKey, groupKey);
     }
     sentFromNewSessionRef.current = false;
-    // Draft / 新对话 never shows panels.
-    if (groupKey === "__draft__") {
-      setPreviewUrl(null);
-      setPreviewForwardError(null);
-      setCurrentForward(null);
-      setCheckedPanels([]);
-      setMountedPanels([]);
-      setActivePanel(null);
-      setPanelWidths({
-        preview: PANEL_DEFAULT_WIDTH,
-        diff: PANEL_DEFAULT_WIDTH,
-        terminal: PANEL_DEFAULT_WIDTH,
-        file: PANEL_DEFAULT_WIDTH,
-      });
-      setFileView(null);
-      return;
-    }
-    setPreviewUrl(group?.previewUrl ?? null);
-    setPreviewForwardError(group?.forwardError ?? null);
-    setCurrentForward(group?.forward ?? null);
-    setCheckedPanels(group?.checked ?? []);
-    setMountedPanels(group?.mounted ?? []);
-    setActivePanel(
-      group?.active && (group.checked ?? []).includes(group.active)
-        ? group.active
-        : firstPanelTab(group?.checked ?? []),
-    );
-    setPanelWidths(
-      group?.widths ?? {
-        preview: PANEL_DEFAULT_WIDTH,
-        diff: PANEL_DEFAULT_WIDTH,
-        terminal: PANEL_DEFAULT_WIDTH,
-        file: PANEL_DEFAULT_WIDTH,
-      },
-    );
-    setFileView(group?.fileView ?? null);
   }, [groupKey]);
 
   useEffect(() => {
@@ -521,16 +314,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
     if (!queueEditWarning) return;
-    const timer = setTimeout(() => setQueueEditWarning(null), 4000);
+    const timer = setTimeout(() => patchPane({ queueEditWarning: null }), 4000);
     return () => clearTimeout(timer);
-  }, [queueEditWarning]);
+  }, [queueEditWarning, patchPane]);
 
   // Desktop: reset the worktree controls when the branch list changes (i.e. the
   // workdir was re-queried). Default to the repo's current branch; worktree off.
   useEffect(() => {
-    setWorktreeBranch(gitBranches?.current ?? "");
-    setWorktreeChecked(false);
-  }, [gitBranches]);
+    patchPane({
+      worktreeBranch: gitBranches?.current ?? "",
+      worktreeChecked: false,
+    });
+  }, [gitBranches, patchPane]);
 
   // Handle messages from VS Code extension
   useEffect(() => {
@@ -584,7 +379,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           // Per-pane branch list reply (FR-052). Routed by paneId so a sibling
           // pane's reply never overwrites this pane's selector.
           if (!forThisPane(message)) break;
-          setPaneGitBranches(message.result ?? null);
+          patchPaneUi(myPane, { paneGitBranches: message.result ?? null });
           break;
         case "desktopForwardPortResult":
           // Remote preview port-forward reply (scenario 15/16). The forward is
@@ -594,28 +389,27 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           // session's cached URL instead of being dropped.
           if (!forThisPane(message)) break;
           {
-            let targetKey: string | undefined;
-            panelGroupCache.forEach((g, key) => {
-              if (g.forward?.requestId === message.requestId) targetKey = key;
-            });
+            const targetKey = usePanelGroupStore
+              .getState()
+              .findGroupKeyByForwardRequestId(message.requestId);
             if (targetKey === undefined) break;
-            const target = panelGroupCache.get(targetKey);
-            if (!target) break;
             if (message.error) {
-              target.forwardError = String(message.error);
-              if (targetKey === groupKeyRef.current)
-                setPreviewForwardError(String(message.error));
+              usePanelGroupStore.getState().patchGroup(targetKey, {
+                forwardError: String(message.error),
+              });
             } else {
-              target.forwardError = null;
-              target.previewUrl = message.url as string;
-              if (targetKey === groupKeyRef.current) {
-                setPreviewForwardError(null);
-                setPreviewUrl(message.url as string);
+              usePanelGroupStore.getState().patchGroup(targetKey, {
+                forwardError: null,
+                previewUrl: message.url as string,
+              });
+              if (
+                message.url === previewUrlRef.current &&
+                targetKey === groupKeyRef.current
+              ) {
                 // Same URL as before (re-acquire after a guest load failure):
                 // remount so the webview actually reloads instead of the [url]
                 // effect early-returning on an unchanged prop.
-                if (message.url === previewUrlRef.current)
-                  setPreviewEpoch((e) => e + 1);
+                usePanelGroupStore.getState().bumpPreviewEpoch(targetKey);
               }
             }
           }
@@ -624,7 +418,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           // File panel content reply (file panel spec scenario 1/2). Routed by
           // paneId so a sibling pane's reply never overwrites this pane's view.
           if (!forThisPane(message)) break;
-          setFileView(message.fileView as FileViewState);
+          {
+            const key = groupKeyRef.current;
+            if (key && !isDraftGroupKey(key)) {
+              usePanelGroupStore.getState().patchGroup(key, {
+                fileView: message.fileView as FileViewState,
+              });
+            }
+          }
           break;
         case "updateQueue":
           if (!forThisPane(message)) break;
@@ -634,7 +435,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           if (!forThisPane(message)) break;
           // The edited queue message no longer exists. Keep input content, exit editing.
           dispatch({ type: "SET_EDITING_QUEUED_ID", payload: null });
-          setQueueEditWarning("编辑的队列消息已不存在！");
+          patchPaneUi(myPane, {
+            queueEditWarning: "编辑的队列消息已不存在！",
+          });
           break;
         case "updateCommandRunning":
           if (!forThisPane(message)) break;
@@ -642,14 +445,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           break;
         case "rewindCheckpoints":
           if (!forThisPane(message)) break;
-          setRewindCheckpoints(message.checkpoints || []);
-          setRewindCheckpointsLoading(false);
+          patchPaneUi(myPane, {
+            rewindCheckpoints: message.checkpoints || [],
+            rewindCheckpointsLoading: false,
+          });
           break;
         case "configuredModels":
           if (!forThisPane(message)) break;
-          setConfiguredModels(message.models || []);
-          setCurrentModel(message.currentModel);
-          setModelLoading(false);
+          patchPaneUi(myPane, {
+            configuredModels: message.models || [],
+            currentModel: message.currentModel,
+            modelLoading: false,
+          });
           break;
         case "btwStream":
           if (!forThisPane(message)) break;
@@ -663,16 +470,29 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             message.question !== btwActiveRef.current
           )
             break;
-          setBtwPanel((panel) => {
-            if (!panel) return panel;
+          patchPaneUi(myPane, (panel) => {
+            if (!panel.btwPanel) return {};
             const content =
               typeof message.content === "string" ? message.content : "";
             if (message.type === "content") {
-              const base = panel.contentStarted ? panel.answer : "";
-              return { ...panel, contentStarted: true, answer: base + content };
+              const base = panel.btwPanel.contentStarted
+                ? panel.btwPanel.answer
+                : "";
+              return {
+                btwPanel: {
+                  ...panel.btwPanel,
+                  contentStarted: true,
+                  answer: base + content,
+                },
+              };
             }
-            if (panel.contentStarted) return panel;
-            return { ...panel, answer: panel.answer + content };
+            if (panel.btwPanel.contentStarted) return {};
+            return {
+              btwPanel: {
+                ...panel.btwPanel,
+                answer: panel.btwPanel.answer + content,
+              },
+            };
           });
           break;
         case "btwResponse":
@@ -683,10 +503,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             btwActiveRef.current &&
             message.question === btwActiveRef.current
           ) {
-            setBtwPanel((panel) =>
-              panel
-                ? { ...panel, answer: message.answer ?? "", loading: false }
-                : panel,
+            patchPaneUi(myPane, (panel) =>
+              panel.btwPanel
+                ? {
+                    btwPanel: {
+                      ...panel.btwPanel,
+                      answer: message.answer ?? "",
+                      loading: false,
+                    },
+                  }
+                : {},
             );
           }
           break;
@@ -696,14 +522,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             btwActiveRef.current &&
             message.question === btwActiveRef.current
           ) {
-            setBtwPanel((panel) =>
-              panel
+            patchPaneUi(myPane, (panel) =>
+              panel.btwPanel
                 ? {
-                    ...panel,
-                    answer: `(API error: ${message.error ?? "unknown"})`,
-                    loading: false,
+                    btwPanel: {
+                      ...panel.btwPanel,
+                      answer: `(API error: ${message.error ?? "unknown"})`,
+                      loading: false,
+                    },
                   }
-                : panel,
+                : {},
             );
           }
           break;
@@ -813,10 +641,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           // one that renders the shell/sidebar, never a split-view pane) tracks
           // them, so a multi-pane desktop never stacks duplicates.
           if (myPane !== undefined) break;
-          setToasts((prev) => [
-            ...prev.filter((t) => t.id !== message.toast.id),
-            message.toast,
-          ]);
+          patchPaneUi(undefined, (slice) => ({
+            toasts: [
+              ...slice.toasts.filter((t) => t.id !== message.toast.id),
+              message.toast,
+            ],
+          }));
           break;
         case "desktopNewSessionShortcut":
           // Menu accelerator is window-global; the shell / single-pane instance
@@ -1084,14 +914,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // effectiveWorkdir), which is the only re-query signal we want.
   useEffect(() => {
     if (!isDesktop) return;
-    setPaneGitBranches(null);
+    patchPane({ paneGitBranches: null });
     if (!effectiveWorkdir) return;
     postToHost({
       command: "desktopListGitBranches",
       workdir: effectiveWorkdir,
       paneId,
     });
-  }, [effectiveWorkdir, isDesktop, postToHost, paneId]);
+  }, [effectiveWorkdir, isDesktop, postToHost, paneId, patchPane]);
 
   const handleClearChat = useCallback(() => {
     // /clear 斜杠命令：三端统一为"原地清空当前会话"，streaming 期间忽略。
@@ -1102,9 +932,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     });
   }, [postToHost]);
 
-  const handleToastDismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  const handleToastDismiss = useCallback(
+    (id: string) => {
+      patchPane((slice) => ({
+        toasts: slice.toasts.filter((t) => t.id !== id),
+      }));
+    },
+    [patchPane],
+  );
 
   const handleToastAction = useCallback(
     (toast: UpdateToast) => {
@@ -1114,9 +949,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         toastId: toast.id,
         action: toast.action,
       });
-      setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      patchPane((slice) => ({
+        toasts: slice.toasts.filter((t) => t.id !== toast.id),
+      }));
     },
-    [postToHost],
+    [postToHost, patchPane],
   );
 
   // Desktop 的"新对话"入口（侧边栏按钮）：由宿主 spawn 新 agent 承载全新会话，
@@ -1179,8 +1016,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           return;
         }
         if (name === "rewind") {
-          setRewindPopupOpen(true);
-          setRewindCheckpointsLoading(true);
+          patchPane({
+            rewindPopupOpen: true,
+            rewindCheckpointsLoading: true,
+          });
           postToHost({ command: "listRewindCheckpoints" });
           return;
         }
@@ -1258,9 +1097,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       host,
       worktreeChecked,
       worktreeBranch,
-      postToHost,
-      paneId,
       gitBranches,
+      postToHost,
+      patchPane,
       vscode,
     ],
   );
@@ -1425,8 +1264,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [state.isCommandRunning]);
 
   useEffect(() => {
-    setAgentTranscript(null);
-  }, [state.currentSession?.id]);
+    patchPane({ agentTranscript: null });
+  }, [state.currentSession?.id, patchPane]);
 
   const handleConfirmation = useCallback(
     (confirmationId: string, decision?: ConfirmationDecision) => {
@@ -1456,50 +1295,57 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const handleRewindToMessage = useCallback(
     (messageId: string) => {
       if (state.isStreaming) return;
-      setPendingRewindId(messageId);
+      patchPane({ pendingRewindId: messageId });
     },
-    [state.isStreaming],
+    [state.isStreaming, patchPane],
   );
 
-  const handleOpenAgentTranscript = useCallback((toolBlock: ToolBlock) => {
-    const nested = (
-      toolBlock as ToolBlock & { nestedMessages?: Message[] }
-    ).nestedMessages;
-    const resultText = (toolBlock.result || "").trim();
-    setAgentTranscript({
-      subagentId: toolBlock.id ?? "",
-      title: toolBlock.compactParams?.trim() || toolBlock.name || "Agent",
-      nestedMessages: nested,
-      fallbackText: resultText || undefined,
-      prompt: parseAgentPrompt(toolBlock.parameters),
-    });
-  }, []);
+  const handleOpenAgentTranscript = useCallback(
+    (toolBlock: ToolBlock) => {
+      const nested = (
+        toolBlock as ToolBlock & { nestedMessages?: Message[] }
+      ).nestedMessages;
+      const resultText = (toolBlock.result || "").trim();
+      patchPane({
+        agentTranscript: {
+          subagentId: toolBlock.id ?? "",
+          title: toolBlock.compactParams?.trim() || toolBlock.name || "Agent",
+          nestedMessages: nested,
+          fallbackText: resultText || undefined,
+          prompt: parseAgentPrompt(toolBlock.parameters),
+        },
+      });
+    },
+    [patchPane],
+  );
 
   const handleCloseAgentTranscript = useCallback(() => {
-    setAgentTranscript(null);
-  }, []);
+    patchPane({ agentTranscript: null });
+  }, [patchPane]);
 
   // /rewind popup selection reuses the same ConfirmDialog flow as the
   // per-message rewind button.
-  const handleRewindCheckpointSelect = useCallback((messageId: string) => {
-    setRewindPopupOpen(false);
-    setPendingRewindId(messageId);
-    messageInputRef.current?.focus();
-  }, []);
+  const handleRewindCheckpointSelect = useCallback(
+    (messageId: string) => {
+      patchPane({ rewindPopupOpen: false, pendingRewindId: messageId });
+      messageInputRef.current?.focus();
+    },
+    [patchPane],
+  );
 
   const handleRewindPopupClose = useCallback(() => {
-    setRewindPopupOpen(false);
+    patchPane({ rewindPopupOpen: false });
     messageInputRef.current?.focus();
-  }, []);
+  }, [patchPane]);
 
   // /model popup: send the switch and close silently (no toast/system message).
   const handleModelSelect = useCallback(
     (model: string) => {
       postToHost({ command: "setModel", model });
-      setModelPopupOpen(false);
+      patchPane({ modelPopupOpen: false });
       messageInputRef.current?.focus();
     },
-    [postToHost],
+    [postToHost, patchPane],
   );
 
   // Per-session model in sender toolbar → PATCH /sessions/:id { model }.
@@ -1511,26 +1357,26 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
 
   const handleModelPopupClose = useCallback(() => {
-    setModelPopupOpen(false);
+    patchPane({ modelPopupOpen: false });
     messageInputRef.current?.focus();
-  }, []);
+  }, [patchPane]);
 
   // Close the /btw panel. While a request is in flight, clearing btwActiveRef
   // makes the late reply a no-op (scenario 7: closing during loading drops it).
   const handleBtwClose = useCallback(() => {
     btwActiveRef.current = null;
-    setBtwPanel(null);
+    patchPane({ btwPanel: null });
     messageInputRef.current?.focus();
-  }, []);
+  }, [patchPane]);
 
   // The /btw panel is conversation-scoped (spec scenario 14): switching to
   // another conversation closes it, so the new conversation never shows the old
   // one's panel. Desktop panes key ChatApp by paneId (not sessionId), so a
   // sidebar session switch leaves this component mounted — without this effect
-  // the local btwPanel useState would survive the switch (setInitialState only
-  // resets reducer state, not local state). Clearing btwActiveRef also drops any
-  // in-flight askBtw reply that lands after the switch. `previous !== undefined`
-  // keeps the initial mount (no conversation assigned yet) a no-op.
+  // pane UI state would survive the switch (setInitialState only resets reducer
+  // state). Clearing btwActiveRef also drops any in-flight askBtw reply that
+  // lands after the switch. `previous !== undefined` keeps the initial mount
+  // (no conversation assigned yet) a no-op.
   useEffect(() => {
     const sessionId = state.currentSession?.id;
     const previous = btwSessionRef.current;
@@ -1540,14 +1386,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   const handleRewindConfirm = useCallback(() => {
     const messageId = pendingRewindId;
-    setPendingRewindId(null);
+    patchPane({ pendingRewindId: null });
     if (messageId) {
       postToHost({
         command: "rewindToMessage",
         messageId,
       });
     }
-  }, [pendingRewindId, postToHost]);
+  }, [pendingRewindId, postToHost, patchPane]);
 
   const showPanelHint = useCallback(
     (text: string) => {
@@ -1583,18 +1429,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }
       const requestId = `fwd-${++forwardSeqRef.current}`;
       const fwd = { host, remotePort, originalUrl: url, requestId };
-      setCurrentForward(fwd);
-      // Keep the reference in the session's cached group immediately (not via the
-      // state-sync effect below) so a desktopForwardPortResult reply — which may
-      // arrive on the very next event-loop turn — can match this forward even if
-      // the effect hasn't flushed yet. A pane rebinding to another session then
-      // keeps THIS session's forward cached for when it comes back.
-      let group = panelGroupCache.get(groupKey);
-      if (!group) {
-        group = emptyPanelGroup();
-        panelGroupCache.set(groupKey, group);
-      }
-      group.forward = fwd;
+      usePanelGroupStore.getState().ensureGroup(groupKey);
+      updatePanelGroup({ forward: fwd });
       // The session id scopes the tunnel's lifetime on the host — it stays alive
       // across UI actions and is only released when the session is deleted
       // (scenario 18).
@@ -1606,7 +1442,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         sessionId: groupKey,
       });
     },
-    [postToHost, showPanelHint, groupKey],
+    [postToHost, showPanelHint, groupKey, updatePanelGroup],
   );
 
   // Desktop: idle-preload the lazily injected xterm chunk so the first
@@ -1624,7 +1460,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const tryOpenPanel = useCallback(
     (kind: DesktopPanelKind): boolean => {
       if (checkedPanelsRef.current.includes(kind)) {
-        setActivePanel(kind);
+        updatePanelGroup({ active: kind });
         return true;
       }
       if (checkedPanelsRef.current.length === 0) {
@@ -1662,34 +1498,32 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           );
           if (changed) {
             panelWidthsRef.current = planned.widths;
-            setPanelWidths(planned.widths);
+            updatePanelGroup({ widths: planned.widths });
           }
         }
       }
-      setCheckedPanels((prev) =>
-        prev.includes(kind) ? prev : [...prev, kind],
-      );
-      setMountedPanels((prev) =>
-        prev.includes(kind) ? prev : [...prev, kind],
-      );
-      setActivePanel(kind);
+      updatePanelGroup((group) => ({
+        checked: group.checked.includes(kind)
+          ? group.checked
+          : [...group.checked, kind],
+        mounted: group.mounted.includes(kind)
+          ? group.mounted
+          : [...group.mounted, kind],
+        active: kind,
+      }));
       return true;
     },
-    [showPanelHint],
+    [showPanelHint, updatePanelGroup],
   );
 
   const handleTogglePanel = useCallback(
     (kind: DesktopPanelKind) => {
       if (panelDisabledRef.current.includes(kind)) return;
       if (checkedPanelsRef.current.includes(kind)) {
-        setActivePanel(
-          nextActivePanel(
-            checkedPanelsRef.current,
-            kind,
-            activePanelRef.current,
-          ),
-        );
-        setCheckedPanels((prev) => prev.filter((k) => k !== kind));
+        updatePanelGroup((group) => ({
+          active: nextActivePanelAfterClose(group.checked, kind, group.active),
+          checked: group.checked.filter((k) => k !== kind),
+        }));
         // Closing the preview hides the pane but never releases a remote tunnel
         // (scenario 18): the URL stays cached so re-checking shows the same page,
         // and the host keeps the ssh forward alive until the session is deleted.
@@ -1697,7 +1531,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         tryOpenPanel(kind);
       }
     },
-    [tryOpenPanel],
+    [tryOpenPanel, updatePanelGroup],
+  );
+
+  const handleSelectPanel = useCallback(
+    (kind: DesktopPanelKind) => {
+      updatePanelGroup({ active: kind });
+    },
+    [updatePanelGroup],
   );
 
   useEffect(() => {
@@ -1755,11 +1596,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       if (!tryOpenPanel("file")) return;
       // Re-clicking the file already shown re-reads it (soft refresh: keep the
       // old content until the host reply lands, matching the diff pane).
-      setFileView((prev) =>
-        prev && prev.path === path
-          ? { ...prev, loading: true, startLine, endLine }
-          : { path, host: effectiveHost, loading: true, startLine, endLine },
-      );
+      updatePanelGroup((group) => ({
+        fileView:
+          group.fileView && group.fileView.path === path
+            ? {
+                ...group.fileView,
+                loading: true,
+                startLine,
+                endLine,
+              }
+            : {
+                path,
+                host: effectiveHost,
+                loading: true,
+                startLine,
+                endLine,
+              },
+      }));
       postToHost({
         command: "openFile",
         path,
@@ -1768,7 +1621,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         endLine,
       });
     },
-    [isDesktop, tryOpenPanel, effectiveHost, postToHost, vscode],
+    [isDesktop, tryOpenPanel, effectiveHost, postToHost, vscode, updatePanelGroup],
   );
 
   // Local sessions only: leave the panel and open the file in the OS default
@@ -1797,8 +1650,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       file: clamped,
     };
     panelWidthsRef.current = next;
-    setPanelWidths(next);
-  }, []);
+    updatePanelGroup({ widths: next });
+  }, [updatePanelGroup]);
 
   // Desktop only: open/re-target the preview panel. Clicking a localhost link
   // checks the preview item (refused with a hint when space runs out) and loads
@@ -1806,9 +1659,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const handleOpenPreview = useCallback(
     (url: string) => {
       if (!tryOpenPanel("preview")) return;
-      setPreviewUrl(url);
+      updatePanelGroup({ previewUrl: url });
     },
-    [tryOpenPanel],
+    [tryOpenPanel, updatePanelGroup],
   );
 
   // Remote localhost link handler: open the preview panel (creating it when
@@ -1830,11 +1683,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         previewForwardErrorRef.current === null
       )
         return;
-      setPreviewForwardError(null);
-      setPreviewUrl(null); // show the connecting stub while the tunnel comes up
+      updatePanelGroup({ forwardError: null, previewUrl: null });
       acquireForward(effectiveHostRef.current, url);
     },
-    [tryOpenPanel, acquireForward],
+    [tryOpenPanel, acquireForward, updatePanelGroup],
   );
 
   // Retry after a failed forward (scenario 16): re-request the same tunnel.
@@ -1842,9 +1694,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const handleRemotePreviewRetry = useCallback(() => {
     const fwd = currentForwardRef.current;
     if (!fwd) return;
-    setPreviewForwardError(null);
+    updatePanelGroup({ forwardError: null });
     acquireForward(fwd.host, fwd.originalUrl);
-  }, [acquireForward]);
+  }, [acquireForward, updatePanelGroup]);
 
   const openPreviewHandler =
     effectiveHost !== "local" ? handleOpenRemotePreview : handleOpenPreview;
@@ -2115,8 +1967,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
                         branches={gitBranches.branches}
                         branch={worktreeBranch || gitBranches.current}
                         worktreeChecked={worktreeChecked}
-                        onBranchChange={setWorktreeBranch}
-                        onWorktreeChange={setWorktreeChecked}
+                        onBranchChange={(branch) =>
+                          patchPane({ worktreeBranch: branch })
+                        }
+                        onWorktreeChange={(checked) =>
+                          patchPane({ worktreeChecked: checked })
+                        }
                       />
                     )}
                   </>
@@ -2265,7 +2121,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           title="确定要回滚到此消息吗？"
           description="这将删除之后的所有消息并撤销相关的文件更改。"
           onConfirm={handleRewindConfirm}
-          onCancel={() => setPendingRewindId(null)}
+          onCancel={() => patchPane({ pendingRewindId: null })}
         />
       )}
       <ToastStack
@@ -2322,7 +2178,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           <span className="queue-edit-warning-text">{queueEditWarning}</span>
           <button
             className="queue-edit-warning-close"
-            onClick={() => setQueueEditWarning(null)}
+            onClick={() => patchPane({ queueEditWarning: null })}
             aria-label="关闭"
           >
             <i className="codicon codicon-close"></i>
@@ -2336,7 +2192,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             <DesktopPanelDock
               checked={checkedPanels}
               active={activePanel}
-              onSelect={setActivePanel}
+              onSelect={handleSelectPanel}
               onCloseTab={handleTogglePanel}
               panelToggle={{
                 checked: checkedPanels,
