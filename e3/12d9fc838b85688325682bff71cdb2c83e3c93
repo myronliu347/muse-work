@@ -1,0 +1,37 @@
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  4ca056b3b481a28a 4-11,18-55,119-164
+packages/webview/src/components/chat/MessageInput.tsx
+  4ca056b3b481a28a 37,1279-1299,1345-1350
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e312d9fc838b85688325682bff71cdb2c83e3c93",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 121,
+      "total_deletions": 9,
+      "accepted_lines": 121,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 93,
+          "deletions": 7,
+          "accepted_lines": 93
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 28,
+          "deletions": 2,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
