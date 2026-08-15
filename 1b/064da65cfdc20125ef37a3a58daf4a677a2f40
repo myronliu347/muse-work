@@ -1,0 +1,36 @@
+packages/webview/src/stores/panelGroupStore.ts
+  4f59b11387b272ed 3,94-97,118-119,159-164
+packages/webview/tests/stores/panelGroupCollapsed.test.ts
+  4f59b11387b272ed 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1b064da65cfdc20125ef37a3a58daf4a677a2f40",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 1,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/stores/panelGroupCollapsed.test.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
