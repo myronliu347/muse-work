@@ -1,0 +1,43 @@
+packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx
+  9b4a73ec6d8222b9 1-93
+packages/webview/src/components/ChatApp.tsx
+  9b4a73ec6d8222b9 180-190,2022-2034,2047,2314
+packages/webview/vitest.config.ts
+  9b4a73ec6d8222b9 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "69e9ba8efd666e4196bb59b80d2ce6611b3f3185",
+  "prompts": {
+    "9b4a73ec6d8222b9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e25434e-6d29-4dfc-8129-5dfaa4fc747a",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 129,
+      "total_deletions": 39,
+      "accepted_lines": 120,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 102,
+          "deletions": 9,
+          "accepted_lines": 93
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 26,
+          "deletions": 30,
+          "accepted_lines": 26
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
