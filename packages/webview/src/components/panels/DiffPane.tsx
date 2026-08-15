@@ -81,6 +81,18 @@ const PATCH_DIFF_OPTIONS = {
   overflow: "scroll" as const,
   enableGutterUtility: true,
   theme: { dark: "pierre-dark" as const, light: "pierre-light" as const },
+  // Pierre defaults the utility slot to the right edge of the gutter (between
+  // line numbers and code). GitHub-style comments put "+" on the far left.
+  unsafeCSS: `
+    [data-gutter-utility-slot] {
+      right: unset;
+      left: 0;
+      justify-content: flex-start;
+    }
+    [data-gutter-utility-slot] button {
+      margin-left: calc(-1lh + 2px);
+    }
+  `,
 };
 
 export interface DiffPaneProps {
