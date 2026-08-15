@@ -7,8 +7,11 @@ import {
   toPierrePatch,
 } from "../../utils/toPierrePatch";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
+import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
+
+type PendingRevert = { scope: "all" } | { scope: "file"; path: string };
 
 export type WorkspaceFileStatus =
   | "added"
@@ -149,6 +152,11 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
   // True while a refresh request is in flight; drives the toolbar spinner.
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingRevert, setPendingRevert] = useState<PendingRevert | null>(
+    null,
+  );
+  const [reverting, setReverting] = useState(false);
+  const [revertError, setRevertError] = useState<string | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
 
   // Inline diff-line comment box (GitHub/GitLab style): hovering a line shows a
@@ -212,8 +220,17 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const msg = event.data;
-      if (msg?.command !== "desktopWorkspaceDiff") return;
       if (paneId !== undefined && msg.paneId !== paneId) return;
+      if (msg?.command === "desktopWorkspaceDiffReverted") {
+        setReverting(false);
+        if (msg.ok) {
+          refresh();
+        } else {
+          setRevertError(msg.error ?? "丢弃失败");
+        }
+        return;
+      }
+      if (msg?.command !== "desktopWorkspaceDiff") return;
       const result = msg.result;
       setRefreshing(false);
       setState(
@@ -227,7 +244,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [paneId]);
+  }, [paneId, refresh]);
 
   // Refresh triggers: first mount (prev.visible starts false), re-show,
   // session/workdir change while visible, generation end while visible.
@@ -242,6 +259,26 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     if (contextChanged) refresh(true);
     else if (becameVisible || generationEnded) refresh();
   }, [visible, sessionId, workdir, isStreaming, refresh]);
+
+  const confirmRevert = () => {
+    if (!pendingRevert || state.kind !== "ok") {
+      setPendingRevert(null);
+      return;
+    }
+    const paths =
+      pendingRevert.scope === "all"
+        ? state.files.map((f) => f.path)
+        : [pendingRevert.path];
+    setPendingRevert(null);
+    setReverting(true);
+    setRevertError(null);
+    vscode.postMessage({
+      command: "desktopRevertWorkspaceDiff",
+      ...(paneId ? { paneId } : {}),
+      ...(workdir ? { workdir } : {}),
+      paths,
+    });
+  };
 
   const toggleFile = (path: string) => {
     // Mutual exclusion: expanding one file collapses every other.
@@ -394,46 +431,60 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         key={file.path}
         data-testid={`diff-file-${file.status}`}
       >
-        <button
-          className="diff-file-header"
-          aria-expanded={isExpanded}
-          onClick={() => toggleFile(file.path)}
-        >
-          <i
-            className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
-          />
-          <span
-            className={`diff-file-status diff-file-status-${file.status}`}
-            title={STATUS_LABEL[file.status]}
-            aria-label={STATUS_LABEL[file.status]}
+        <div className="diff-file-header-row">
+          <button
+            className="diff-file-header"
+            aria-expanded={isExpanded}
+            onClick={() => toggleFile(file.path)}
           >
-            <i className={`codicon ${STATUS_ICON[file.status]}`} />
-          </span>
-          <span
-            className="diff-file-path"
-            data-testid="diff-file-path"
-            role="link"
-            tabIndex={0}
-            title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
+            <i
+              className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
+            />
+            <span
+              className={`diff-file-status diff-file-status-${file.status}`}
+              title={STATUS_LABEL[file.status]}
+              aria-label={STATUS_LABEL[file.status]}
+            >
+              <i className={`codicon ${STATUS_ICON[file.status]}`} />
+            </span>
+            <span
+              className="diff-file-path"
+              data-testid="diff-file-path"
+              role="link"
+              tabIndex={0}
+              title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+              onClick={(e) => {
                 e.stopPropagation();
                 onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
-              }
-            }}
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
+                }
+              }}
+            >
+              {file.path}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="diff-file-revert preview-pane-button"
+            data-testid="diff-revert-file"
+            data-path={file.path}
+            title="丢弃此文件的改动"
+            aria-label={`丢弃 ${file.path} 的改动`}
+            disabled={reverting}
+            onClick={() => setPendingRevert({ scope: "file", path: file.path })}
           >
-            {file.path}
-          </span>
+            <i className="codicon codicon-discard" />
+          </button>
           <span className="diff-file-stats">
             <span className="diff-file-stats-add">+{file.additions}</span>
             <span className="diff-file-stats-del">-{file.deletions}</span>
           </span>
-        </button>
+        </div>
         {isExpanded && (
           <div className="diff-file-body">
             {renderFileBody(file)}
@@ -468,6 +519,21 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             <i className="codicon codicon-git-commit" />
           </button>
           <button
+            type="button"
+            className="preview-pane-button"
+            title="丢弃全部改动"
+            aria-label="丢弃全部改动"
+            data-testid="diff-revert-all"
+            disabled={
+              state.kind !== "ok" ||
+              state.files.length === 0 ||
+              reverting
+            }
+            onClick={() => setPendingRevert({ scope: "all" })}
+          >
+            <i className="codicon codicon-discard" />
+          </button>
+          <button
             className="preview-pane-button"
             title="刷新"
             data-testid="diff-refresh"
@@ -479,6 +545,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           </button>
         </div>
         <div className="diff-pane-body">
+          {revertError && (
+            <div className="diff-revert-error" data-testid="diff-revert-error">
+              <span>{revertError}</span>
+              <button
+                type="button"
+                className="preview-pane-button"
+                aria-label="关闭"
+                onClick={() => setRevertError(null)}
+              >
+                <i className="codicon codicon-close" />
+              </button>
+            </div>
+          )}
           {state.kind === "loading" && (
             <div className="desktop-panel-placeholder">加载中…</div>
           )}
@@ -491,6 +570,23 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           {state.kind === "ok" && state.files.map(renderFile)}
         </div>
       </div>
+      {pendingRevert && (
+        <ConfirmDialog
+          title={
+            pendingRevert.scope === "all"
+              ? "丢弃全部改动？"
+              : `丢弃「${pendingRevert.path}」的改动？`
+          }
+          description={
+            pendingRevert.scope === "all"
+              ? "将恢复已跟踪文件到 HEAD，并删除未跟踪文件。此操作不可撤销。"
+              : "将恢复该已跟踪文件到 HEAD；若为未跟踪则删除该文件。此操作不可撤销。"
+          }
+          confirmText="丢弃"
+          onConfirm={confirmRevert}
+          onCancel={() => setPendingRevert(null)}
+        />
+      )}
     </aside>
   );
 };

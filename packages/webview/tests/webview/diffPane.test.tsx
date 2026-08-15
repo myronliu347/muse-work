@@ -577,4 +577,83 @@ describe("DiffPane", () => {
       expect(screen.queryAllByTestId("diff-comment-box")).toHaveLength(1);
     });
   });
+
+  describe("revert", () => {
+    it("disables revert-all when there are no files", () => {
+      renderPane();
+      sendDiffResult([]);
+      expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
+    });
+
+    it("opens confirm for revert-all and posts paths on confirm", () => {
+      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
+      sendDiffResult([makeFile(), makeFile({ path: "b.ts" })], "p1");
+      vscode.postMessage.mockClear();
+      fireEvent.click(screen.getByTestId("diff-revert-all"));
+      expect(screen.getByTestId("confirm-dialog-overlay")).toBeInTheDocument();
+      expect(screen.getByText("丢弃全部改动？")).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopRevertWorkspaceDiff",
+        paneId: "p1",
+        workdir: "/repo",
+        paths: ["src/a.ts", "b.ts"],
+      });
+    });
+
+    it("cancel does not post revert", () => {
+      const { vscode } = renderPane();
+      sendDiffResult([makeFile()]);
+      vscode.postMessage.mockClear();
+      fireEvent.click(screen.getByTestId("diff-revert-all"));
+      fireEvent.click(screen.getByTestId("confirm-dialog-cancel"));
+      expect(
+        vscode.postMessage.mock.calls.some(
+          ([m]) => m.command === "desktopRevertWorkspaceDiff",
+        ),
+      ).toBe(false);
+    });
+
+    it("file revert posts single path and does not toggle expand", () => {
+      const { vscode, container } = renderPane({ paneId: "p1" });
+      sendDiffResult([makeFile()], "p1");
+      const header = container.querySelector(".diff-file-header") as HTMLElement;
+      expect(header).toHaveAttribute("aria-expanded", "true");
+      vscode.postMessage.mockClear();
+      fireEvent.click(screen.getByTestId("diff-revert-file"));
+      expect(header).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText(/丢弃「src\/a\.ts」的改动？/)).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopRevertWorkspaceDiff",
+        paneId: "p1",
+        paths: ["src/a.ts"],
+      });
+    });
+
+    it("successful revert triggers a soft refresh", () => {
+      const { vscode } = renderPane({ paneId: "p1" });
+      sendDiffResult([makeFile()], "p1");
+      vscode.postMessage.mockClear();
+      fireEvent.click(screen.getByTestId("diff-revert-all"));
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+      sendCommand("desktopWorkspaceDiffReverted", { paneId: "p1", ok: true });
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopGetWorkspaceDiff" }),
+      );
+    });
+
+    it("failed revert shows an error bar", () => {
+      renderPane({ paneId: "p1" });
+      sendDiffResult([makeFile()], "p1");
+      fireEvent.click(screen.getByTestId("diff-revert-all"));
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+      sendCommand("desktopWorkspaceDiffReverted", {
+        paneId: "p1",
+        ok: false,
+        error: "boom",
+      });
+      expect(screen.getByTestId("diff-revert-error")).toHaveTextContent("boom");
+    });
+  });
 });

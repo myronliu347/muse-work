@@ -23,6 +23,33 @@
   border-bottom: 1px solid var(--gray-6);
 }
 
+.diff-file-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-2);
+}
+
+.diff-file-header-row .diff-file-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.diff-file-revert {
+  flex-shrink: 0;
+}
+
+.diff-revert-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  color: var(--red-11);
+  background: var(--red-3);
+  font-size: var(--font-size-1);
+}
+
 .diff-file-header {
   display: flex;
   align-items: center;
