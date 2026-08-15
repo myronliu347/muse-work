@@ -54,7 +54,11 @@ describe("FileTree", () => {
     );
 
     expect(postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ command: "desktopListDir", dir: "" }),
+      expect.objectContaining({
+        command: "desktopListDir",
+        dir: "",
+        workdir: "/work",
+      }),
     );
     expect(screen.getByTestId("file-tree-workdir").textContent).toContain(
       "work",

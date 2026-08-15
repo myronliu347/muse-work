@@ -69,15 +69,22 @@ export const FileTree: React.FC<FileTreeProps> = ({
       command: "desktopListDir",
       requestId,
       dir,
+      workdir,
     });
   };
 
-  // Root load — skip post when cache already has root (tests / restore)
+  // Always refresh root when workdir mounts/changes (avoids stale empty cache).
   useEffect(() => {
     if (!workdir) return;
-    if (tree.childrenCache[""] !== undefined) return;
-    requestDir("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-request when workdir changes
+    setPendingDirs((prev) => new Set(prev).add(""));
+    const requestId = `listdir-${++listReqSeq}`;
+    vscode.postMessage({
+      command: "desktopListDir",
+      requestId,
+      dir: "",
+      workdir,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workdir]);
 
   // Load children for expanded dirs missing from cache

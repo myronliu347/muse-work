@@ -89,6 +89,18 @@ describe("listWorkspaceDir", () => {
     expect(names).not.toContain("node_modules");
     fs.rmSync(root, { recursive: true, force: true });
   });
+
+  it("does not inherit gitignore from outside the git repo", () => {
+    const outer = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-outer-"));
+    const root = path.join(outer, "proj");
+    fs.mkdirSync(root);
+    fs.mkdirSync(path.join(root, ".git"));
+    fs.writeFileSync(path.join(outer, ".gitignore"), "*\n");
+    fs.writeFileSync(path.join(root, "ok.ts"), "x");
+    const hits = listWorkspaceDir(root, "", { respectGitignore: true });
+    expect(hits.map((h) => h.name)).toContain("ok.ts");
+    fs.rmSync(outer, { recursive: true, force: true });
+  });
 });
 
 describe("searchWorkspaceFiles directories", () => {

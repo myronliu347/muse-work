@@ -277,6 +277,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       images?: unknown;
       branch?: string;
       repoRoot?: string;
+      workdir?: string;
       busy?: boolean;
     };
     const command = msg?.command;
@@ -369,7 +370,8 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       const requestId =
         typeof msg.requestId === "string" ? msg.requestId : "";
       const dir = typeof msg.dir === "string" ? msg.dir : "";
-      const cwd = state.workdir;
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
       const entries = cwd
         ? listWorkspaceDir(cwd, dir, { respectGitignore: true }).map((e) => ({
             name: e.name,

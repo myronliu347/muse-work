@@ -71,11 +71,36 @@ function toWorkspaceSuggestion(
   };
 }
 
-/** Always hide these; also merge .gitignore from workdir walking upward. */
+/** Always hide these; merge .gitignore from workdir up to the git repo root.
+ *  If workdir is not inside a git repo, only the workdir's own .gitignore applies
+ *  (never walk to / or $HOME — that would inherit unrelated ignore rules). */
 function loadIgnoreFilter(workdirAbs: string) {
   const ig = ignore();
   ig.add(["node_modules/", ".git/"]);
+
+  const hasGit = (dir: string) => fs.existsSync(path.join(dir, ".git"));
+  let inRepo = false;
   let dir = workdirAbs;
+  for (;;) {
+    if (hasGit(dir)) {
+      inRepo = true;
+      break;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  if (!inRepo) {
+    try {
+      ig.add(fs.readFileSync(path.join(workdirAbs, ".gitignore"), "utf8"));
+    } catch {
+      /* missing is fine */
+    }
+    return ig;
+  }
+
+  dir = workdirAbs;
   for (;;) {
     const gi = path.join(dir, ".gitignore");
     try {
@@ -83,6 +108,7 @@ function loadIgnoreFilter(workdirAbs: string) {
     } catch {
       /* missing is fine */
     }
+    if (hasGit(dir)) break;
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;
