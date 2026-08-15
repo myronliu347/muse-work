@@ -1,0 +1,28 @@
+docs/superpowers/specs/2026-08-15-sender-local-file-pick-design.md
+  4ca056b3b481a28a 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8ea0a050a8b8c61e08cd25e35728361f012fb034",
+  "prompts": {
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-sender-local-file-pick-design.md": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
