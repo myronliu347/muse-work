@@ -1,0 +1,29 @@
+packages/webview/src/components/panels/DiffPane.tsx
+  0648f6718593b9a9 84-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "12a6f0363f9093974c43d2b7940aeb8812e44ad9",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 0,
+      "accepted_lines": 12,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
