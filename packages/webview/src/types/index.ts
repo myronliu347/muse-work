@@ -506,6 +506,26 @@ export interface FileViewState {
   imageBase64?: string;
 }
 
+/** One directory entry from desktopListDir. */
+export type FileTreeDirEntry = {
+  name: string;
+  path: string;
+  relativePath: string;
+  isDirectory: boolean;
+};
+
+/** Per-workdir file tree UI state (panel group scoped). */
+export type FileTreeState = {
+  /** Expanded directory relative paths ("" is root listing key). */
+  expanded: string[];
+  /** Currently selected file absolute path. */
+  selected?: string;
+  /** Tree column width in px. */
+  width: number;
+  /** Cached list results keyed by relative dir ("" = workdir root). */
+  childrenCache: Record<string, FileTreeDirEntry[]>;
+};
+
 /** Header panel-toggle control: which panels are checked + toggle callback. */
 export interface PanelToggleProps {
   /** Currently checked panels. */

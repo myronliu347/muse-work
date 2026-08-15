@@ -1,9 +1,69 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { firstPanelTab } from "../muse/panelTabs";
-import type { DesktopPanelKind, FileViewState } from "../types";
+import type {
+  DesktopPanelKind,
+  FileTreeDirEntry,
+  FileTreeState,
+  FileViewState,
+} from "../types";
 
 export const PANEL_DEFAULT_WIDTH = 420;
+
+export const FILE_TREE_WIDTH_MIN = 180;
+export const FILE_TREE_WIDTH_MAX = 420;
+export const FILE_TREE_WIDTH_DEFAULT = 240;
+
+export function clampFileTreeWidth(width: number): number {
+  return Math.min(FILE_TREE_WIDTH_MAX, Math.max(FILE_TREE_WIDTH_MIN, width));
+}
+
+export function emptyFileTreeState(): FileTreeState {
+  return {
+    expanded: [],
+    selected: undefined,
+    width: FILE_TREE_WIDTH_DEFAULT,
+    childrenCache: {},
+  };
+}
+
+/** Normalize slashes and ensure path is under workdir; return relative POSIX path or null. */
+function relativeUnderWorkdir(
+  workdir: string,
+  fileAbsPath: string,
+): string | null {
+  const wd = workdir.replace(/\\/g, "/").replace(/\/+$/, "");
+  const file = fileAbsPath.replace(/\\/g, "/");
+  if (file === wd) return "";
+  if (!file.startsWith(wd + "/")) return null;
+  return file.slice(wd.length + 1);
+}
+
+/**
+ * Merge ancestor dirs of `fileAbsPath` into `expanded` and set `selected`.
+ * Outside workdir: only updates selected.
+ */
+export function ensureExpandedForFile(
+  tree: FileTreeState,
+  workdir: string,
+  fileAbsPath: string,
+): FileTreeState {
+  const rel = relativeUnderWorkdir(workdir, fileAbsPath);
+  if (rel === null) {
+    return { ...tree, selected: fileAbsPath };
+  }
+  const parts = rel.split("/").filter(Boolean);
+  // Drop filename — expand ancestor directories only
+  const dirs = parts.slice(0, -1);
+  const toAdd: string[] = [];
+  let acc = "";
+  for (const part of dirs) {
+    acc = acc ? `${acc}/${part}` : part;
+    toAdd.push(acc);
+  }
+  const expanded = Array.from(new Set([...tree.expanded, ...toAdd]));
+  return { ...tree, expanded, selected: fileAbsPath };
+}
 
 export interface RemoteForwardRef {
   host: string;
@@ -19,6 +79,7 @@ export interface PanelGroupState {
   widths: Record<DesktopPanelKind, number>;
   previewUrl: string | null;
   fileView: FileViewState | null;
+  fileTree: FileTreeState;
   forward: RemoteForwardRef | null;
   forwardError: string | null;
 }
@@ -36,6 +97,7 @@ export function emptyPanelGroup(): PanelGroupState {
     },
     previewUrl: null,
     fileView: null,
+    fileTree: emptyFileTreeState(),
     forward: null,
     forwardError: null,
   };
@@ -57,7 +119,13 @@ export function resolvePanelGroup(
   groupKey: string | undefined,
 ): PanelGroupState {
   if (!groupKey || isDraftGroupKey(groupKey)) return EMPTY_GROUP;
-  return groups[groupKey] ?? EMPTY_GROUP;
+  const group = groups[groupKey];
+  if (!group) return EMPTY_GROUP;
+  // Back-compat for in-memory groups created before fileTree existed
+  if (!group.fileTree) {
+    return { ...group, fileTree: emptyFileTreeState() };
+  }
+  return group;
 }
 
 interface PanelGroupStore {
@@ -171,3 +239,5 @@ export function usePanelGroup(groupKey: string | undefined): PanelGroupView {
     }),
   );
 }
+
+export type { FileTreeDirEntry, FileTreeState };
