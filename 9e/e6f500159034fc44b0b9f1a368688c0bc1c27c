@@ -1,0 +1,30 @@
+docs/superpowers/specs/2026-08-15-diff-pane-ui-polish-design.md
+  0648f6718593b9a9 1-91,93-100,103-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9ee6f500159034fc44b0b9f1a368688c0bc1c27c",
+  "prompts": {
+    "0648f6718593b9a9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "35ce9e34-fb57-4de0-86ca-fbd3e95e39a5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 134,
+      "total_deletions": 0,
+      "accepted_lines": 131,
+      "overriden_lines": 3,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-diff-pane-ui-polish-design.md": {
+          "additions": 134,
+          "accepted_lines": 131,
+          "overriden_lines": 3
+        }
+      }
+    }
+  }
+}
