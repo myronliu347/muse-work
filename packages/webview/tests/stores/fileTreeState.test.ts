@@ -8,6 +8,12 @@ import {
   FILE_TREE_WIDTH_MAX,
 } from "../../src/stores/panelGroupStore";
 
+describe("emptyFileTreeState", () => {
+  it("defaults the tree column to collapsed", () => {
+    expect(emptyFileTreeState().collapsed).toBe(true);
+  });
+});
+
 describe("clampFileTreeWidth", () => {
   it("clamps to min/max", () => {
     expect(clampFileTreeWidth(100)).toBe(FILE_TREE_WIDTH_MIN);

@@ -533,6 +533,8 @@ export type FileTreeState = {
   width: number;
   /** Cached list results keyed by relative dir ("" = workdir root). */
   childrenCache: Record<string, FileTreeDirEntry[]>;
+  /** When true, the tree column is collapsed to a slim rail. Default true. */
+  collapsed: boolean;
 };
 
 export type FileSidebarMode = "tree" | "search";

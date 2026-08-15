@@ -32,6 +32,10 @@ beforeEach(() => {
   });
 });
 
+function openTree(overrides: Partial<FileTreeState> = {}): FileTreeState {
+  return { ...emptyFileTreeState(), collapsed: false, ...overrides };
+}
+
 describe("FileTree", () => {
   const postMessage = vi.fn();
   const onTreeChange = vi.fn();
@@ -43,12 +47,60 @@ describe("FileTree", () => {
     onOpenFile.mockClear();
   });
 
-  it("requests root listing when cache is empty", () => {
+  it("defaults to a collapsed rail", () => {
     render(
       <FileTree
         workdir="/work"
         vscode={{ postMessage }}
         tree={emptyFileTreeState()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+      />,
+    );
+    expect(screen.getByTestId("file-tree")).toHaveAttribute(
+      "data-collapsed",
+      "true",
+    );
+    expect(screen.getByTestId("file-tree-expand-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("file-tree-workdir")).toBeNull();
+  });
+
+  it("expands and collapses the tree column", () => {
+    const { rerender } = render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={emptyFileTreeState()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("file-tree-expand-btn"));
+    expect(onTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({ collapsed: false }),
+    );
+
+    rerender(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={openTree()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("file-tree-collapse-btn"));
+    expect(onTreeChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ collapsed: true }),
+    );
+  });
+
+  it("requests root listing when cache is empty", () => {
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={openTree()}
         onTreeChange={onTreeChange}
         onOpenFile={onOpenFile}
       />,
@@ -67,8 +119,7 @@ describe("FileTree", () => {
   });
 
   it("opens a file on click", () => {
-    const tree: FileTreeState = {
-      ...emptyFileTreeState(),
+    const tree = openTree({
       childrenCache: {
         "": [
           {
@@ -79,7 +130,7 @@ describe("FileTree", () => {
           },
         ],
       },
-    };
+    });
 
     render(
       <FileTree
@@ -96,8 +147,7 @@ describe("FileTree", () => {
   });
 
   it("toggles directory expansion", () => {
-    const tree: FileTreeState = {
-      ...emptyFileTreeState(),
+    const tree = openTree({
       childrenCache: {
         "": [
           {
@@ -108,7 +158,7 @@ describe("FileTree", () => {
           },
         ],
       },
-    };
+    });
 
     render(
       <FileTree
@@ -134,7 +184,7 @@ describe("FileTree", () => {
       <FileTree
         workdir="/w"
         vscode={{ postMessage }}
-        tree={emptyFileTreeState()}
+        tree={openTree()}
         onTreeChange={onTreeChange}
         onOpenFile={onOpenFile}
         sidebarMode="tree"

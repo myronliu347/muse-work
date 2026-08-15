@@ -26,6 +26,7 @@ export function emptyFileTreeState(): FileTreeState {
     selected: undefined,
     width: FILE_TREE_WIDTH_DEFAULT,
     childrenCache: {},
+    collapsed: true,
   };
 }
 
@@ -149,6 +150,11 @@ export function resolvePanelGroup(
   let next = group;
   if (!next.fileTree) {
     next = { ...next, fileTree: emptyFileTreeState() };
+  } else if (next.fileTree.collapsed === undefined) {
+    next = {
+      ...next,
+      fileTree: { ...next.fileTree, collapsed: true },
+    };
   }
   if (!next.fileSidebarMode) {
     next = { ...next, fileSidebarMode: "tree" };

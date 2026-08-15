@@ -453,6 +453,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
                 expanded: [],
                 width: 240,
                 childrenCache: {},
+                collapsed: true,
               }),
               childrenCache: {
                 ...(group.fileTree?.childrenCache ?? {}),
@@ -1900,6 +1901,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           expanded: next.expanded,
           selected: next.selected,
           width: next.width,
+          collapsed: next.collapsed,
           childrenCache: {
             ...group.fileTree.childrenCache,
             ...next.childrenCache,

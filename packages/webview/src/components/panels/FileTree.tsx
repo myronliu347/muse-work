@@ -169,6 +169,31 @@ export const FileTree: React.FC<FileTreeProps> = ({
     onTreeChange({ ...tree, expanded: Array.from(set) });
   };
 
+  const toggleCollapsed = () => {
+    onTreeChange({ ...tree, collapsed: !tree.collapsed });
+  };
+
+  if (tree.collapsed) {
+    return (
+      <div
+        className="file-tree file-tree--collapsed"
+        data-testid="file-tree"
+        data-collapsed="true"
+      >
+        <button
+          type="button"
+          className="file-tree-expand-btn"
+          data-testid="file-tree-expand-btn"
+          title="展开文件树"
+          aria-label="展开文件树"
+          onClick={toggleCollapsed}
+        >
+          <i className="codicon codicon-list-tree" aria-hidden />
+        </button>
+      </div>
+    );
+  }
+
   if (!workdir) {
     return (
       <div className="file-tree file-tree--empty" style={{ width }}>
@@ -202,6 +227,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
               </button>
             </div>
           )}
+          <button
+            type="button"
+            className="file-tree-mode-btn"
+            data-testid="file-tree-collapse-btn"
+            title="收起文件树"
+            aria-label="收起文件树"
+            onClick={toggleCollapsed}
+          >
+            <i className="codicon codicon-chevron-right" aria-hidden />
+          </button>
         </div>
         {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
           <FileContentSearch
@@ -243,8 +278,29 @@ export const FileTree: React.FC<FileTreeProps> = ({
       >
         <i className="codicon codicon-search" aria-hidden />
       </button>
+      <button
+        type="button"
+        className="file-tree-mode-btn"
+        data-testid="file-tree-collapse-btn"
+        title="收起文件树"
+        aria-label="收起文件树"
+        onClick={toggleCollapsed}
+      >
+        <i className="codicon codicon-chevron-right" aria-hidden />
+      </button>
     </div>
-  ) : null;
+  ) : (
+    <button
+      type="button"
+      className="file-tree-mode-btn"
+      data-testid="file-tree-collapse-btn"
+      title="收起文件树"
+      aria-label="收起文件树"
+      onClick={toggleCollapsed}
+    >
+      <i className="codicon codicon-chevron-right" aria-hidden />
+    </button>
+  );
 
   return (
     <div className="file-tree" style={{ width }} data-testid="file-tree">
