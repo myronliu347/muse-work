@@ -34,7 +34,7 @@ import {
   parseFileSelectionClipboard,
   parseFileTreeDrag,
 } from "../../utils/filePanelDnD";
-import { fileItemFromAbsolutePath } from "../../utils/localFileMention";
+import { fileItemFromAbsolutePath, parseClipboardLocalFiles } from "../../utils/localFileMention";
 import {
   QueueSendIcon,
   PermModeAcceptIcon,
@@ -1276,6 +1276,27 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           }
         }
 
+        const localFiles = parseClipboardLocalFiles(event.clipboardData);
+        if (localFiles.length > 0) {
+          event.preventDefault();
+          const imageFiles: File[] = [];
+          for (const entry of localFiles) {
+            if (entry.isImage) {
+              if (entry.file) imageFiles.push(entry.file);
+              continue;
+            }
+            insertFileMentionAtCursor(
+              fileItemFromAbsolutePath(entry.absolutePath, workdir),
+            );
+          }
+          if (imageFiles.length > 0) {
+            const fileList = new DataTransfer();
+            imageFiles.forEach((f) => fileList.items.add(f));
+            void handleImagePaste(fileList.files);
+          }
+          return;
+        }
+
         const items = event.clipboardData?.items;
         if (!items) return;
 
@@ -1321,7 +1342,12 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           }
         }
       },
-      [handleImagePaste, insertSelectionTag],
+      [
+        handleImagePaste,
+        insertSelectionTag,
+        insertFileMentionAtCursor,
+        workdir,
+      ],
     );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
