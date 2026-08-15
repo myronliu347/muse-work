@@ -5,7 +5,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const MAX_BYTES = 1 * 1024 * 1024;
+const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_LINES = 2000;
 
 const IMAGE_EXTS = new Set([

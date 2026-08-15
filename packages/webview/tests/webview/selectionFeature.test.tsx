@@ -63,7 +63,7 @@ describe("Selection Feature (Inline Tags)", () => {
     const inlineTag = document.querySelector(
       '#messageInput .context-tag-container[data-is-selection="true"]',
     )!;
-    expect(inlineTag).toHaveTextContent(/file\.ts#10-20/);
+    expect(inlineTag).toHaveTextContent(/file\.ts \(10-20\)/);
 
     // Verify old selection tag is NOT visible
     const oldSelectionTag = document.querySelector(".selection-tag");
@@ -135,7 +135,7 @@ describe("Selection Feature (Inline Tags)", () => {
     const messageElements = document.querySelectorAll(".message.user");
     const lastMsg = messageElements[messageElements.length - 1];
     const renderedTag = lastMsg.querySelector(".context-tag")!;
-    expect(renderedTag).toHaveTextContent(/file\.ts#10-20/);
+    expect(renderedTag).toHaveTextContent(/file\.ts \(10-20\)/);
 
     // Verify old block-level reference is NOT visible
     const selectionRef = document.querySelector(".selection-reference");
@@ -205,7 +205,7 @@ describe("Selection Feature (Inline Tags)", () => {
     const messageElements = document.querySelectorAll(".message.user");
     const lastMsg = messageElements[messageElements.length - 1];
     const renderedTag = lastMsg.querySelector(".context-tag")!;
-    expect(renderedTag).toHaveTextContent(/file\.ts#10-20/);
+    expect(renderedTag).toHaveTextContent(/file\.ts \(10-20\)/);
 
     // Test clicking old format (path will be fileName)
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();

@@ -13,6 +13,10 @@ import {
 } from "../../stores/panelGroupStore";
 import { FileIcon } from "./FileIcon";
 import { FileContentSearch } from "./FileContentSearch";
+import {
+  encodeFileTreeDrag,
+  FILE_TREE_DRAG_MIME,
+} from "../../utils/filePanelDnD";
 
 const ROW_HEIGHT = 22;
 
@@ -294,6 +298,23 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   paddingLeft: 8 + row.depth * 12,
                 }}
                 data-testid={`file-tree-row-${row.relativePath}`}
+                draggable
+                onDragStart={(e) => {
+                  const relativePath =
+                    row.isDirectory && !row.relativePath.endsWith("/")
+                      ? `${row.relativePath}/`
+                      : row.relativePath;
+                  e.dataTransfer.setData(
+                    FILE_TREE_DRAG_MIME,
+                    encodeFileTreeDrag({
+                      path: row.path,
+                      relativePath,
+                      name: row.name,
+                      isDirectory: row.isDirectory,
+                    }),
+                  );
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
                 onClick={() => {
                   if (row.isDirectory) toggleDir(row.relativePath);
                   else onOpenFile(row.path);

@@ -21,14 +21,14 @@ describe("readLocalFileForPanel", () => {
     expect(view.error).toMatch(/不存在/);
   });
 
-  it("marks files larger than 1MB as too-large", async () => {
+  it("marks files larger than 2MB as too-large", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
     const file = path.join(dir, "big.txt");
-    fs.writeFileSync(file, Buffer.alloc(1 * 1024 * 1024 + 1, 0x61));
+    fs.writeFileSync(file, Buffer.alloc(2 * 1024 * 1024 + 1, 0x61));
     const view = await readLocalFileForPanel(file);
     expect(view.unsupported).toBe("too-large");
     expect(view.content).toBeUndefined();
-    expect(view.sizeBytes).toBe(1 * 1024 * 1024 + 1);
+    expect(view.sizeBytes).toBe(2 * 1024 * 1024 + 1);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -45,7 +45,7 @@ describe("readLocalFileForPanel", () => {
   it("rejects oversized images", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
     const file = path.join(dir, "big.png");
-    const buf = Buffer.alloc(1 * 1024 * 1024 + 10, 0);
+    const buf = Buffer.alloc(2 * 1024 * 1024 + 10, 0);
     buf.write("\x89PNG\r\n\x1a\n", 0);
     fs.writeFileSync(file, buf);
     const view = await readLocalFileForPanel(file);

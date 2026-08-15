@@ -99,7 +99,7 @@ describe("Tag Clickability", () => {
 
     const selectionTag = Array.from(
       userMessage!.querySelectorAll(".context-tag"),
-    ).find((tag) => tag.textContent?.includes("main.ts#10-20"));
+    ).find((tag) => tag.textContent?.includes("main.ts (10-20)"));
     expect(selectionTag).toBeDefined();
     expect(selectionTag!.className).toMatch(/clickable/);
   });

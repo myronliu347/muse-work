@@ -953,7 +953,7 @@ export const Message: React.FC<MessageProps> = React.memo(
                         />
                       );
                     } else if (part.type === "selection") {
-                      const displayName = `${part.fileName}#${part.startLine}-${part.endLine}`;
+                      const displayName = `${part.fileName} (${part.startLine}-${part.endLine})`;
                       const filePath = part.path || part.fileName || "";
                       return (
                         <ContextTag

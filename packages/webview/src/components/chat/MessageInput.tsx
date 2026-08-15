@@ -29,6 +29,12 @@ import {
   resolveFileMentionKey,
 } from "../../utils/fileMentionBrowse";
 import {
+  FILE_SELECTION_CLIPBOARD_MIME,
+  FILE_TREE_DRAG_MIME,
+  parseFileSelectionClipboard,
+  parseFileTreeDrag,
+} from "../../utils/filePanelDnD";
+import {
   QueueSendIcon,
   PermModeAcceptIcon,
   PermModeBypassIcon,
@@ -548,7 +554,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
         const fileName =
           selection.fileName.split(/[/\\]/).pop() || selection.fileName;
-        const displayName = `${fileName}#${selection.startLine}-${selection.endLine}`;
+        const displayName = `${fileName} (${selection.startLine}-${selection.endLine})`;
 
         const tagSpan = document.createElement("span");
         tagSpan.className = "context-tag-container";
@@ -627,6 +633,67 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       window.addEventListener("message", handleMessage);
       return () => window.removeEventListener("message", handleMessage);
     }, [insertSelectionTag]);
+
+    // Insert @file mention at the current caret (e.g. tree drag-drop).
+    const insertFileMentionAtCursor = useCallback(
+      (file: FileItem) => {
+        if (!textareaRef.current) return;
+        textareaRef.current.focus();
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        const range = selection.getRangeAt(0);
+
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "context-tag-container";
+        tagSpan.contentEditable = "false";
+        tagSpan.setAttribute("data-path", file.relativePath);
+        tagSpan.setAttribute("data-name", file.name);
+        tagSpan.setAttribute(
+          "data-is-image",
+          String(
+            !file.isDirectory &&
+              /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(file.name),
+          ),
+        );
+        tagSpan.innerText = `[@file:${file.relativePath}]`;
+
+        const isImage =
+          !file.isDirectory &&
+          /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(file.name);
+        const root = ReactDOM.createRoot(tagSpan);
+        root.render(
+          <ContextTag
+            name={file.name}
+            path={file.relativePath}
+            isImage={isImage}
+            onClick={
+              isImage
+                ? () => {
+                    vscode.postMessage({
+                      command: "previewImage",
+                      path: file.path,
+                    });
+                  }
+                : undefined
+            }
+          />,
+        );
+
+        range.deleteContents();
+        range.insertNode(tagSpan);
+        range.setStartAfter(tagSpan);
+        const space = document.createTextNode(" ");
+        range.insertNode(space);
+        range.setStartAfter(space);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        const inputEvent = new Event("input", { bubbles: true });
+        textareaRef.current.dispatchEvent(inputEvent);
+      },
+      [vscode],
+    );
 
     const enterDirectory = useCallback(
       (file: FileItem) => {
@@ -1169,6 +1236,23 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // Paste event handler
     const handlePaste = useCallback(
       (event: ClipboardEvent) => {
+        const selectionRaw = event.clipboardData?.getData(
+          FILE_SELECTION_CLIPBOARD_MIME,
+        );
+        if (selectionRaw) {
+          const payload = parseFileSelectionClipboard(selectionRaw);
+          if (payload) {
+            event.preventDefault();
+            insertSelectionTag({
+              fileName: payload.fileName,
+              filePath: payload.filePath,
+              startLine: payload.startLine,
+              endLine: payload.endLine,
+            });
+            return;
+          }
+        }
+
         const items = event.clipboardData?.items;
         if (!items) return;
 
@@ -1214,7 +1298,35 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           }
         }
       },
-      [handleImagePaste],
+      [handleImagePaste, insertSelectionTag],
+    );
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(FILE_TREE_DRAG_MIME)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }, []);
+
+    const handleDrop = useCallback(
+      (e: React.DragEvent) => {
+        const raw = e.dataTransfer.getData(FILE_TREE_DRAG_MIME);
+        if (!raw) return;
+        const payload = parseFileTreeDrag(raw);
+        if (!payload) return;
+        e.preventDefault();
+        e.stopPropagation();
+        insertFileMentionAtCursor({
+          path: payload.path,
+          relativePath: payload.relativePath,
+          name: payload.name,
+          extension: payload.isDirectory
+            ? ""
+            : (payload.name.match(/\.([^.]+)$/)?.[1] ?? ""),
+          icon: payload.isDirectory ? "codicon-folder" : "codicon-file",
+          isDirectory: payload.isDirectory,
+        });
+      },
+      [insertFileMentionAtCursor],
     );
 
     // Add event listeners for paste only
@@ -1265,6 +1377,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               onClick={handleSelectionChange}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
               data-testid="message-input"
               data-placeholder="@提及文件，粘贴图片，Enter发送..."
             />

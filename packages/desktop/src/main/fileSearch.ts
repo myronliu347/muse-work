@@ -376,7 +376,7 @@ export function searchContentInWorkspace(
 
   const maxFiles = options.maxFiles ?? 5000;
   const maxMatches = options.maxMatches ?? 2000;
-  const maxFileBytes = options.maxFileBytes ?? 1 * 1024 * 1024;
+  const maxFileBytes = options.maxFileBytes ?? 2 * 1024 * 1024;
 
   const workdirAbs = path.resolve(workdir);
   const ig = loadIgnoreFilter(workdirAbs);

@@ -5,6 +5,11 @@ import type { FileViewState } from "../../types";
 import { useMuseTheme } from "../../ui/theme";
 import { displayFilePath } from "../../utils/filePathDisplay";
 import { highlightCode } from "../../utils/shikiHighlighter";
+import {
+  encodeFileSelectionClipboard,
+  FILE_SELECTION_CLIPBOARD_MIME,
+  lineRangeFromFilePreviewSelection,
+} from "../../utils/filePanelDnD";
 
 const HIGHLIGHT_LINE_HEIGHT = 20;
 
@@ -119,6 +124,34 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     );
   }, [fileView.path, fileView.startLine, lines]);
 
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !showCode) return;
+    const onCopy = (e: ClipboardEvent) => {
+      const codeRoot = root.querySelector(".file-pane-code");
+      if (!(codeRoot instanceof HTMLElement)) return;
+      const range = lineRangeFromFilePreviewSelection(codeRoot);
+      if (!range) return;
+      const fileName =
+        fileView.path.replace(/\\/g, "/").split("/").pop() || fileView.path;
+      const payload = {
+        filePath: fileView.path,
+        fileName,
+        startLine: range.startLine,
+        endLine: range.endLine,
+        text: range.text,
+      };
+      e.clipboardData?.setData(
+        FILE_SELECTION_CLIPBOARD_MIME,
+        encodeFileSelectionClipboard(payload),
+      );
+      e.clipboardData?.setData("text/plain", range.text);
+      e.preventDefault();
+    };
+    root.addEventListener("copy", onCopy);
+    return () => root.removeEventListener("copy", onCopy);
+  }, [showCode, fileView.path]);
+
   if (fileView.error) {
     return (
       <div className="file-pane-status" ref={scrollRef}>
@@ -131,7 +164,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   if (fileView.unsupported) {
     const label =
       fileView.unsupported === "too-large"
-        ? "文件超过 1MB，暂不支持在面板中预览"
+        ? "文件超过 2MB，暂不支持在面板中预览"
         : "二进制文件暂不支持在面板中预览";
     return (
       <div className="file-pane-unsupported" data-testid="file-unsupported">
