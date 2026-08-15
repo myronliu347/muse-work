@@ -1,0 +1,68 @@
+docs/superpowers/specs/2026-08-15-session-header-git-branch-design.md
+  9b4a73ec6d8222b9 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2b5c3701b232a794135747e6418ae5a3ed96d65c",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 296,
+      "total_deletions": 117,
+      "accepted_lines": 295,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 3,
+          "deletions": 57,
+          "accepted_lines": 3
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 69,
+          "deletions": 20,
+          "accepted_lines": 69
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 181,
+          "deletions": 26,
+          "accepted_lines": 180
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 41,
+          "deletions": 14,
+          "accepted_lines": 41
+        }
+      }
+    },
+    "9b4a73ec6d8222b9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e25434e-6d29-4dfc-8129-5dfaa4fc747a",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 104,
+      "total_deletions": 0,
+      "accepted_lines": 104,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-08-15-session-header-git-branch-design.md": {
+          "additions": 104,
+          "accepted_lines": 104
+        }
+      }
+    }
+  }
+}
