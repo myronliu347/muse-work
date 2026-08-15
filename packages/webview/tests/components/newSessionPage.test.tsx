@@ -21,4 +21,19 @@ describe("NewSessionPage", () => {
       html.indexOf("composer-slot"),
     );
   });
+
+  it("perches a decorative cat on the composer right without capturing pointer events", () => {
+    render(
+      <NewSessionPage
+        welcome={<div data-testid="welcome-slot">欢迎</div>}
+        composer={<button type="button">发送</button>}
+      />,
+    );
+    const cat = screen.getByTestId("new-session-sender-cat");
+    expect(cat).toBeInTheDocument();
+    expect(cat).toHaveAttribute("aria-hidden", "true");
+    expect(getComputedStyle(cat).pointerEvents).toBe("none");
+    const composer = screen.getByTestId("new-session-page-composer");
+    expect(composer.contains(cat)).toBe(true);
+  });
 });

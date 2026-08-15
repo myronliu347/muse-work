@@ -1,5 +1,6 @@
 import React from "react";
 import "../../styles/NewSessionPage.css";
+import { SenderCat } from "./SenderCat";
 
 export interface NewSessionPageProps {
   welcome: React.ReactNode;
@@ -14,7 +15,13 @@ export const NewSessionPage: React.FC<NewSessionPageProps> = ({
   <div className="new-session-page" data-testid="new-session-page">
     <div className="new-session-page-column">
       <div className="new-session-page-welcome">{welcome}</div>
-      <div className="new-session-page-composer">{composer}</div>
+      <div
+        className="new-session-page-composer"
+        data-testid="new-session-page-composer"
+      >
+        <SenderCat />
+        {composer}
+      </div>
     </div>
   </div>
 );

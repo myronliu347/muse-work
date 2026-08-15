@@ -27,5 +27,29 @@
 }
 
 .new-session-page-composer {
+  position: relative;
   width: 100%;
+}
+
+/* Decorative cat perched on the sender top-right; never captures clicks.
+   Asset is @2x for retina; box size is CSS logical pixels. */
+.new-session-sender-cat {
+  position: absolute;
+  right: -2px;
+  bottom: calc(100% - 45px);
+  z-index: 1;
+  width: 170px;
+  height: 110px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.new-session-sender-cat-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+  image-rendering: auto;
 }
