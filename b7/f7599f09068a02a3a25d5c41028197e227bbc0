@@ -1,0 +1,50 @@
+packages/webview/src/components/panels/FileTree.tsx
+  9b08060a306bdaeb 148-154,159-162,170-178
+packages/webview/src/styles/FilePane.css
+  9b08060a306bdaeb 6,9,165-178,188,196-216,271
+packages/webview/tests/components/fileTree.test.tsx
+  9b08060a306bdaeb 59-61
+packages/webview/src/components/panels/FilePane.tsx
+  9b08060a306bdaeb 89-118,135-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b7f7599f09068a02a3a25d5c41028197e227bbc0",
+  "prompts": {
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 103,
+      "total_deletions": 42,
+      "accepted_lines": 103,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 20,
+          "deletions": 1,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 41,
+          "deletions": 2,
+          "accepted_lines": 41
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 39,
+          "deletions": 39,
+          "accepted_lines": 39
+        }
+      }
+    }
+  }
+}
