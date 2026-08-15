@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
-import { firstPanelTab } from "../muse/panelTabs";
+import { firstPanelTab, type CollapsedTabs } from "../muse/panelTabs";
 import type {
   DesktopPanelKind,
   FileSidebarMode,
@@ -91,6 +91,10 @@ export interface PanelGroupState {
   mounted: DesktopPanelKind[];
   active: DesktopPanelKind | null;
   widths: Record<DesktopPanelKind, number>;
+  /** Last open tabs when the dock was collapsed via toggle / last-tab close. */
+  collapsedTabs: CollapsedTabs | null;
+  /** Dock covers the chat column; cleared when the dock closes. */
+  dockFullscreen: boolean;
   previewUrl: string | null;
   fileView: FileViewState | null;
   fileTree: FileTreeState;
@@ -111,6 +115,8 @@ export function emptyPanelGroup(): PanelGroupState {
       terminal: PANEL_DEFAULT_WIDTH,
       file: PANEL_DEFAULT_WIDTH,
     },
+    collapsedTabs: null,
+    dockFullscreen: false,
     previewUrl: null,
     fileView: null,
     fileTree: emptyFileTreeState(),
@@ -149,6 +155,12 @@ export function resolvePanelGroup(
   }
   if (!next.contentSearch) {
     next = { ...next, contentSearch: emptyContentSearchState() };
+  }
+  if (next.collapsedTabs === undefined) {
+    next = { ...next, collapsedTabs: null };
+  }
+  if (next.dockFullscreen === undefined) {
+    next = { ...next, dockFullscreen: false };
   }
   return next;
 }
