@@ -1,0 +1,49 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  4f59b11387b272ed 197-205
+packages/desktop/src/main/window.ts
+  4f59b11387b272ed 37-38
+packages/desktop/tests/windowWebviewTag.test.ts
+  4f59b11387b272ed 1-47
+packages/webview/src/components/panels/PreviewPane.tsx
+  4f59b11387b272ed 518-520
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "897206569240a85d8a5e9424fd27f9bdd158905f",
+  "prompts": {
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 63,
+      "total_deletions": 3,
+      "accepted_lines": 61,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 49,
+          "deletions": 2,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
