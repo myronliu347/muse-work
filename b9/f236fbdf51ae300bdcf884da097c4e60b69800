@@ -1,0 +1,169 @@
+docs/superpowers/specs/2026-08-15-new-session-page-design.md
+  1c65e982ada3920c 1-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b9f236fbdf51ae300bdcf884da097c4e60b69800",
+  "prompts": {
+    "1c65e982ada3920c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "927a7ed6-bc97-4201-8e42-a80dd962d4ed",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 277,
+      "total_deletions": 157,
+      "accepted_lines": 254,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "deletions": 42
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "deletions": 20
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "additions": 2,
+          "deletions": 16,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "additions": 2,
+          "deletions": 37,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 2
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 24,
+          "deletions": 8,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/webview/desktopApp.test.tsx": {
+          "additions": 41,
+          "deletions": 5,
+          "accepted_lines": 41
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 10,
+          "deletions": 4,
+          "accepted_lines": 10
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/vitest.terminal-theme.tmp.config.ts": {
+          "additions": 23,
+          "deletions": 1
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 17,
+          "deletions": 17,
+          "accepted_lines": 17
+        },
+        "docs/superpowers/specs/2026-08-15-new-session-page-design.md": {
+          "additions": 87,
+          "accepted_lines": 87
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/workdirSelector.draft.test.tsx": {
+          "additions": 67,
+          "accepted_lines": 67
+        }
+      }
+    },
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 109,
+      "total_deletions": 35,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 12,
+          "deletions": 7,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 9,
+          "deletions": 3,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 65,
+          "deletions": 17,
+          "accepted_lines": 59
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
