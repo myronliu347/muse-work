@@ -18,7 +18,7 @@ describe("Background tasks visibility across setInitialState", () => {
 
   it("preserves running background tasks when the host re-pushes setInitialState (webview re-init / pane switch)", () => {
     // Repro: agent starts a background bash task; a mid-session setInitialState
-    // (VSCE sidebar cold-start, desktop pane/session switch, rewind) re-pushes
+    // (webview re-init, desktop pane/session switch, rewind) re-pushes
     // state. The host includes backgroundTasks in the payload, so the running
     // task must stay visible in /tasks — not wiped to "暂无后台任务".
     renderChatApp();

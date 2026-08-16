@@ -80,7 +80,7 @@ describe("themePreference store", () => {
     expect(seen).toEqual(["dark"]);
   });
 
-  it("uses host-specific signals when detecting system darkness", () => {
+  it("detects system darkness from VS Code body classes, falling back to matchMedia", () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: () => ({
@@ -88,7 +88,6 @@ describe("themePreference store", () => {
       }),
     });
     document.documentElement.setAttribute("data-theme", "dark");
-    window.waveHostType = "desktop";
     expect(detectSystemDark()).toBe(false);
 
     document.documentElement.removeAttribute("data-theme");

@@ -116,7 +116,7 @@ export interface DiffPaneProps {
   workdir?: string;
   /** Receives a formatted diff-line comment; appended to this pane's chat input. */
   onAddComment?: (text: string) => void;
-  /** Opens a workspace file in the file panel (desktop) or IDE. */
+  /** Opens a workspace file in the desktop file panel. */
   onOpenFile?: (path: string) => void;
   /** Sends text as a real chat message (not append-to-input). */
   onSendMessage?: (text: string) => void;

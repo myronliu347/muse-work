@@ -693,11 +693,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               isAuthenticated: message.isAuthenticated,
               workdir: message.workdir,
               theme: message.theme,
-              // Hosts (VSCE messageHandler / Desktop desktopHost) include the
-              // running background tasks + workflow runs in the snapshot so a
-              // webview re-init / pane switch does not wipe them. Without this
-              // the reducer falls back to [] and /tasks shows "暂无后台任务"
-              // until the next incremental updateBackgroundTasks (e.g. stop).
+              // The desktop host includes the running background tasks + workflow
+              // runs in the snapshot so a webview re-init / pane switch does not
+              // wipe them. Without this the reducer falls back to [] and /tasks
+              // shows "暂无后台任务" until the next incremental
+              // updateBackgroundTasks (e.g. stop).
               backgroundTasks: message.backgroundTasks,
               workflowRuns: message.workflowRuns,
             },
@@ -1906,7 +1906,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   // Desktop only: open/re-target the preview panel. Clicking a localhost link
   // checks the preview item (refused with a hint when space runs out) and loads
-  // the URL. Message.tsx gates on waveHostType, so this never fires in IDE hosts.
+  // the URL. Message.tsx only routes localhost links here; all other links go
+  // to openExternal.
   const handleOpenPreview = useCallback(
     (url: string) => {
       if (!tryOpenPanel("preview")) return;

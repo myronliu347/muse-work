@@ -175,7 +175,7 @@ describe("Bang Command", () => {
     });
   });
 
-  // Incremental bang events (VSCE host path): the webview receives
+  // Incremental bang events: the webview receives
   // bangMessageAdded/Updated/Completed keyed by messageId and updates in place.
   const dispatchBang = (command: string, params: Record<string, unknown>) => {
     window.dispatchEvent(

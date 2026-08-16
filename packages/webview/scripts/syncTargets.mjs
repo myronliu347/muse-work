@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Muse fork: no VSCE/JetBrains sync targets. Keep postbuild as a no-op so
-// `pnpm build` stays green; desktop can copy dist/ when wired.
+// Muse fork: desktop only, no plugin sync targets. Keep postbuild as a no-op
+// so `pnpm build` stays green; desktop can copy dist/ when wired.
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

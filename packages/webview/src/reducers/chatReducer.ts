@@ -495,8 +495,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages,
-        // Hosts that deliver user messages incrementally (desktop, VSCE) never
-        // route them through SET_MESSAGES, so the title pin must happen here
+        // The desktop host delivers user messages incrementally and never
+        // routes them through SET_MESSAGES, so the title pin must happen here
         // too — otherwise compaction wipes the derivation material.
         currentSession: pinSessionTitle(state.currentSession, messages),
       };

@@ -16,9 +16,8 @@ describe("Input toolbar", () => {
   it("renders the desktop local file pick button and posts desktopSelectFiles on click", () => {
     const { vscode } = renderChatApp();
 
-    // Desktop-only: enableLocalFilePick is always on, so the 添加文件 button is
-    // part of the toolbar (the old "does not render in IDE hosts" assertion
-    // covered removed IDE UI).
+    // Desktop-only: local file pick is always enabled, so the 添加文件 button
+    // is part of the toolbar.
     const fileBtn = screen.getByTestId("add-local-file-btn");
     expect(fileBtn).toHaveAttribute("aria-label", "添加文件");
 

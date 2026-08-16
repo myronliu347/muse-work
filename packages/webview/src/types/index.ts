@@ -123,9 +123,9 @@ export interface VsCodeApi {
 // pulls in src files reachable from test imports, never index.tsx itself.
 declare global {
   interface Window {
-    /** Provided by every host: VS Code runtime, JetBrains bridge, Electron preload. */
+    /** Provided by the Electron preload (and the VS Code webview runtime). */
     acquireVsCodeApi(): VsCodeApi;
-    /** Set by the Electron preload (packages/desktop); undefined in IDE hosts. */
+    /** Set by the Electron preload (packages/desktop). */
     waveHostType?: string;
     /** file:// URL of the element-picker preload, exposed by the Electron preload. */
     wavePickerPreloadPath?: string;
@@ -140,7 +140,7 @@ declare global {
 // VS Code webview message types
 
 /**
- * Base interface for messages sent between webview and extension
+ * Base interface for messages sent between webview and host
  */
 export interface WebviewMessage {
   /** Command identifier */
@@ -156,7 +156,7 @@ export interface ChatAppProps {
   /**
    * Desktop split-view: the paneId this instance renders. When set, the message
    * listener filters host pushes by paneId and outgoing commands carry it back.
-   * Undefined for the IDE hosts and for a single-pane desktop layout.
+   * Undefined for a single-pane desktop layout.
    */
   paneId?: string;
 }
@@ -478,7 +478,7 @@ export interface FileSuggestionDropdownProps {
   onBrowseTo?: (path: string) => void;
 }
 
-/** Desktop conversation-level side panels. VSCE/JetBrains hosts never render these. */
+/** Desktop conversation-level side panels (desktop-only). */
 export type DesktopPanelKind = "preview" | "diff" | "terminal" | "file";
 
 /**

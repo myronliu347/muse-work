@@ -6,7 +6,7 @@ import { renderChatApp, screen, fireEvent, act } from "./test-utils";
  * ChatHeader renders with hideMoreButton. Settings move to the desktop sidebar
  * footer (desktop-settings-btn), which opens the config dialog and requests the
  * provider configuration. The old header-more-menu cases (logout/login entries,
- * Escape close) covered removed IDE UI and were deleted with Task 4.
+ * Escape close) were deleted with the menu itself in Task 4.
  */
 describe("Desktop settings entry", () => {
   it("opens the config dialog and requests configuration from the sidebar 设置 button", () => {

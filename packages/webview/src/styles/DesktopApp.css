@@ -1088,8 +1088,8 @@ body.is-panel-resizing * {
 /* An inline ConfirmationDialog (plan preview / permission / AskUserQuestions)
    can grow taller than the pane; let the input area shrink within the flex
    column and the dialog body scroll, instead of overflowing onto the panels.
-   Scoped under .desktop-chat-main so VSCE/JB (full-height chat column) stay
-   on the inline auto-height path. */
+   Scoped under .desktop-chat-main, the desktop chat column, so the dialog
+   keeps the inline auto-height path. */
 .desktop-chat-main .input-area-container--confirm {
   flex: 0 1 auto;
   min-height: 0;

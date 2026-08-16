@@ -25,27 +25,6 @@ export const NewSessionIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-export const HistoryIcon: React.FC<IconProps> = ({
-  className = "header-icon",
-}) => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 16 16"
-    fill="none"
-    className={className}
-  >
-    <path
-      d="M8 1.4834C11.5989 1.48357 14.5166 4.40105 14.5166 8C14.5162 11.5985 11.5986 14.5164 8 14.5166C4.45117 14.5166 1.56718 11.679 1.4873 8.14941H2.52051C2.60013 11.1083 5.02189 13.4834 8 13.4834C11.028 13.4832 13.483 11.0279 13.4834 8C13.4834 4.97175 11.0282 2.51678 8 2.5166C6.1153 2.5166 4.45257 3.46743 3.46582 4.91504L3.30566 5.14941H5.18262V6.18262H1.4834V2.4834H2.5166V4.44824L2.78613 4.08887C3.97533 2.50612 5.86841 1.4834 8 1.4834Z"
-      fill="currentColor"
-    />
-    <path
-      d="M8.5166 7.78516L10.6152 9.88477L9.88477 10.6152L7.48242 8.21289L7.4834 4.81641H8.5166V7.78516Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
 export const ExternalLinkIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (

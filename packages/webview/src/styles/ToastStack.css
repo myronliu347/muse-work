@@ -1,5 +1,4 @@
-/* VS Code-style non-modal toast stack, bottom-right. Desktop host only (update
- * announcements); VSCE/JetBrains never push showToast so this stays inert. */
+/* VS Code-style non-modal toast stack, bottom-right. Desktop host only (update announcements). */
 
 .toast-stack {
   position: fixed;

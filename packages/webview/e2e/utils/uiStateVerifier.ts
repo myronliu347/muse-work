@@ -268,46 +268,4 @@ export class UIStateVerifier {
     await this.typeMessage(message);
     await this.clickSend();
   }
-
-  /**
-   * Get the history button that opens the session list popup
-   */
-  get historyButton(): Locator {
-    return this.page.getByTestId("history-btn");
-  }
-
-  /**
-   * Get the session list popup (opened via the history button)
-   */
-  get sessionListPopup(): Locator {
-    return this.page.getByTestId("session-list-popup");
-  }
-
-  /**
-   * Open the session history popup
-   */
-  async openSessionListPopup() {
-    await this.historyButton.click();
-    await this.sessionListPopup.waitFor({ state: "visible" });
-  }
-
-  /**
-   * Verify a session item exists (or not) in the history popup
-   */
-  async verifySessionOption(sessionId: string, shouldExist: boolean = true) {
-    const item = this.page.getByTestId(`session-list-item-${sessionId}`);
-    if (shouldExist) {
-      await expect(item).toHaveCount(1);
-    } else {
-      await expect(item).toHaveCount(0);
-    }
-  }
-
-  /**
-   * Select a session from the history popup
-   */
-  async selectSession(sessionId: string) {
-    await this.openSessionListPopup();
-    await this.page.getByTestId(`session-list-item-${sessionId}`).click();
-  }
 }
