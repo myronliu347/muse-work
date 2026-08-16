@@ -8,6 +8,12 @@ export type MuseWsEventPayload =
   | { type: "message:completed"; messageId?: string }
   | { type: "assistant:message"; messageId: string }
   | {
+      type: "user:message";
+      content: string;
+      images?: Array<{ path: string; mimeType: string }>;
+    }
+  | { type: "updateQueue"; messages: unknown[] }
+  | {
       type: "reasoning:delta";
       messageId: string;
       text: string;

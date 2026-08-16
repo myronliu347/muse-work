@@ -819,6 +819,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "user:message") {
+      postToWebview({
+        command: "user:message",
+        content: event.content,
+        images: event.images,
+      });
+      return;
+    }
+
     if (event.type === "message:delta") {
       if (aborted) return;
       const messageId = event.messageId || streamingMessageId || newId("asst");
@@ -1327,11 +1336,16 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         error: errorText,
       });
       maybePromptAuthDialog(errorText);
-      postToWebview({ command: "endStreaming" });
-      setLoading(false);
-      streamingMessageId = null;
+      // A queued send failing must not stop the turn that is already running.
+      if (!queuing) {
+        postToWebview({ command: "endStreaming" });
+        setLoading(false);
+        streamingMessageId = null;
+      }
     }
   }
+
+  async function handleAbortMessage(): Promise<void> {
     // Suppress straggler deltas of this turn from re-igniting streaming.
     aborted = true;
     // Optimistic UI: hide stop button immediately while the server aborts.

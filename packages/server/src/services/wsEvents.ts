@@ -25,6 +25,11 @@ export type WsEvent =
   | { type: "message:completed"; messageId?: string }
   | { type: "assistant:message"; messageId: string }
   | {
+      type: "user:message";
+      content: string;
+      images?: Array<{ path: string; mimeType: string }>;
+    }
+  | {
       type: "reasoning:delta";
       messageId: string;
       text: string;

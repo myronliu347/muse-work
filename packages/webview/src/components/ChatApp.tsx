@@ -813,6 +813,54 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           if (!forThisPane(message)) break;
           dispatch({ type: "APPEND_MESSAGE", payload: message.message });
           break;
+        // Queued sends (while the AI is busy) skip the optimistic bubble; when
+        // the SDK dispatches the queued message it broadcasts user:message.
+        // Dedupe against the last user bubble for normal non-queued sends,
+        // which already appended the same content locally.
+        case "user:message": {
+          if (!forThisPane(message)) break;
+          const um = message as {
+            content?: string;
+            images?: Array<{ path: string; mimeType: string }>;
+          };
+          const content = (um.content ?? "").trim();
+          if (!content && !um.images?.length) break;
+          const lastMsg = stateRef.current.messages[stateRef.current.messages.length - 1];
+          const lastTs = lastMsg?.timestamp
+            ? new Date(lastMsg.timestamp).getTime()
+            : 0;
+          const recent = Date.now() - lastTs < 5000;
+          if (
+            lastMsg?.role === "user" &&
+            recent &&
+            content &&
+            lastMsg.blocks?.some(
+              (b) => b.type === "text" && b.content === content,
+            )
+          ) {
+            break;
+          }
+          const blocks: Message["blocks"] = [];
+          if (content) {
+            blocks.push({ type: "text", content });
+          }
+          if (um.images?.length) {
+            blocks.push({
+              type: "image",
+              imageUrls: um.images.map((img) => img.path),
+            });
+          }
+          dispatch({
+            type: "APPEND_MESSAGE",
+            payload: {
+              id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              role: "user",
+              timestamp: new Date().toISOString(),
+              blocks,
+            },
+          });
+          break;
+        }
         // Bang message incremental updates. Hosts post the bang params nested
         // under `params` (they contain a `command` field that would otherwise
         // clobber the postMessage command discriminator).

@@ -24,7 +24,7 @@ function typeAndEnter(value: string) {
 }
 
 describe("MessageInput Enter", () => {
-  it("does not send on Enter while the assistant is responding", () => {
+  it("sends on Enter while the assistant is responding (queued)", () => {
     const onSendMessage = vi.fn();
     render(
       <MuseTheme>
@@ -39,7 +39,7 @@ describe("MessageInput Enter", () => {
     );
 
     typeAndEnter("follow up");
-    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(onSendMessage).toHaveBeenCalledWith("follow up", undefined);
   });
 
   it("sends on Enter when idle", () => {
