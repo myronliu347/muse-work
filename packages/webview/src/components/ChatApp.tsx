@@ -799,18 +799,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             }
           }
           break;
-        case "triggerShortcut":
-          if (!forThisPane(message)) break;
-          // Forwarded IDE keymap shortcut (JetBrains): the component-scoped AnAction
-          // intercepts the IDE action and forwards the intended operation here, since
-          // registerCustomShortcutSet consumes the AWT event before CEF can see it.
-          if (
-            messageInputRef.current &&
-            typeof messageInputRef.current.triggerShortcut === "function"
-          ) {
-            messageInputRef.current.triggerShortcut(message.name);
-          }
-          break;
         case "scrollToBottom":
           if (!forThisPane(message)) break;
           // Scroll the message list to bottom
@@ -1779,7 +1767,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Desktop panel shortcuts (labels in PanelAddMenu). Shell host instance
   // must not bind — only the focused pane ChatApp (or single-pane layout).
   useEffect(() => {
-    if (!isDesktop) return;
     const isShellHost =
       (host?.panes?.length ?? 0) > 0 && paneId === undefined;
     if (isShellHost) return;
@@ -1821,7 +1808,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [
-    isDesktop,
     isDraftSession,
     host?.panes?.length,
     host?.focusedPaneId,
@@ -1834,15 +1820,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // loading stub; the host reads the file (local fs or over ssh) and replies
   // with desktopFileContent to fill it in. The host is captured per-pane so a
   // split-view sibling's click never resolves against this pane's host.
-  // IDE hosts (VSCE/JetBrains) keep the plain openFile RPC that opens the file
-  // in the IDE — only the desktop host intercepts the click for the panel.
   const handleOpenFile = useCallback(
     (path: string, startLine?: number, endLine?: number) => {
       if (!path) return;
-      if (!isDesktop) {
-        vscode.postMessage({ command: "openFile", path, startLine, endLine });
-        return;
-      }
       if (!tryOpenPanel("file")) return;
       // Re-clicking the file already shown re-reads it (soft refresh: keep the
       // old content until the host reply lands, matching the diff pane).
@@ -1873,22 +1853,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       });
     },
     [
-      isDesktop,
       tryOpenPanel,
       effectiveHost,
       effectiveWorkdir,
       postToHost,
-      vscode,
       updatePanelGroup,
     ],
   );
 
   const handleRevealInFinder = useCallback(
     (path: string) => {
-      if (!isDesktop || !path) return;
+      if (!path) return;
       postToHost({ command: "revealInFinder", path });
     },
-    [isDesktop, postToHost],
+    [postToHost],
   );
 
   const handleFileTreeChange = useCallback(
