@@ -6,8 +6,7 @@ import { createMockVscode } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
 // in the desktop host, localhost links open the preview pane and all
-// other links go to the system browser via openExternal. IDE hosts must keep
-// their native link handling (no interception at all).
+// other links go to the system browser via openExternal.
 
 const CONTENT =
   "preview [local app](http://localhost:5173/app) then [docs](https://example.com/docs)";
@@ -86,24 +85,6 @@ describe("Message link routing", () => {
       command: "openExternal",
       url: "http://localhost:5173/app",
     });
-  });
-
-  it("IDE host: links are not intercepted at all", () => {
-    const onOpenPreview = vi.fn();
-    // jsdom only implements same-document (fragment) navigation; clicking
-    // real URLs would trigger its unimplemented cross-document navigation.
-    const { vscode, localLink, externalLink } = renderMessage({
-      onOpenPreview,
-      content: "preview [local app](#app) then [docs](#docs)",
-    });
-
-    const localNotPrevented = fireEvent.click(localLink);
-    const externalNotPrevented = fireEvent.click(externalLink);
-
-    expect(onOpenPreview).not.toHaveBeenCalled();
-    expect(vscode.postMessage).not.toHaveBeenCalled();
-    expect(localNotPrevented).toBe(true); // default navigation preserved
-    expect(externalNotPrevented).toBe(true);
   });
 
   it("desktop host: clicking non-link content does nothing", () => {

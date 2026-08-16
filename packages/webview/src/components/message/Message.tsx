@@ -174,20 +174,12 @@ export const Message: React.FC<MessageProps> = React.memo(
     } = props;
 
     // Desktop routes file opens to its file panel (the host resolves the path,
-    // pushing content back); IDE hosts keep the plain openFile RPC. The message
-    // chain reaches here via onOpenFile so the outbound message carries the
-    // originating paneId (postToHost in ChatApp) — a direct vscode.postMessage
-    // from a split-view pane would broadcast without it and misroute.
+    // pushing content back). The message chain reaches here via onOpenFile so
+    // the outbound message carries the originating paneId (postToHost in
+    // ChatApp).
     const openFile = (path: string, startLine?: number, endLine?: number) => {
       if (props.onOpenFile) {
         props.onOpenFile(path, startLine, endLine);
-      } else {
-        props.vscode.postMessage({
-          command: "openFile",
-          path,
-          startLine,
-          endLine,
-        });
       }
     };
 
@@ -266,11 +258,7 @@ export const Message: React.FC<MessageProps> = React.memo(
       return images;
     };
 
-    // Link routing is a desktop-host feature: localhost links open in
-    // the preview pane, everything else goes to the system browser. IDE hosts
-    // keep their native link handling, so bail BEFORE any preventDefault.
     const handleContentClick = (e: React.MouseEvent) => {
-      if (window.waveHostType !== "desktop") return;
       const anchor = (e.target as Element | null)?.closest?.("a");
       const href = anchor?.getAttribute("href");
       if (!href) return;
