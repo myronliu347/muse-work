@@ -1451,4 +1451,45 @@ describe("chatReducer", () => {
       expect(withoutTheme.theme).toBeUndefined();
     });
   });
+
+  describe("auth dialog state", () => {
+    it("SHOW_DIALOG login opens the auth dialog", () => {
+      const state = chatReducer(initialState, {
+        type: "SHOW_DIALOG",
+        payload: { type: "login" },
+      });
+      expect(state.activeDialog).toBe("login");
+    });
+
+    it("SET_LOGIN_ERROR surfaces the failure message", () => {
+      const state = chatReducer(initialState, {
+        type: "SET_LOGIN_ERROR",
+        payload: "CodeMaker login timed out",
+      });
+      expect(state.loginError).toBe("CodeMaker login timed out");
+    });
+
+    it("HIDE_DIALOG clears the login error", () => {
+      const withError = chatReducer(initialState, {
+        type: "SET_LOGIN_ERROR",
+        payload: "CodeMaker login timed out",
+      });
+      const state = chatReducer(withError, { type: "HIDE_DIALOG" });
+      expect(state.activeDialog).toBeNull();
+      expect(state.loginError).toBeUndefined();
+    });
+
+    it("successful auth clears the login error", () => {
+      const withError = chatReducer(initialState, {
+        type: "SET_LOGIN_ERROR",
+        payload: "CodeMaker login timed out",
+      });
+      const state = chatReducer(withError, {
+        type: "SET_AUTHENTICATED",
+        payload: true,
+      });
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.loginError).toBeUndefined();
+    });
+  });
 });

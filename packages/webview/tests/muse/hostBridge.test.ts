@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   buildSidebarModel,
   createHostBridge,
+  isAuthError,
 } from "../../src/muse/hostBridge";
 import type { MuseApiClient, MuseSession } from "../../src/muse/apiClient";
 import type { MuseWsClient } from "../../src/muse/wsClient";
@@ -1976,6 +1977,100 @@ describe("createHostBridge reconnect", () => {
         command: "showToast",
         toast: expect.objectContaining({ message: "上次对话被中断" }),
       }),
+    );
+  });
+});
+
+describe("createHostBridge codemaker auth-failure dialog", () => {
+  const messages: unknown[] = [];
+  let nativeDispatch: typeof window.dispatchEvent;
+
+  beforeEach(() => {
+    messages.length = 0;
+    nativeDispatch = window.dispatchEvent.bind(window);
+    vi.spyOn(window, "dispatchEvent").mockImplementation((event) => {
+      if (event instanceof MessageEvent) {
+        messages.push(event.data);
+      }
+      return true;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("isAuthError matches codemaker credential/expiry/unauthorized errors", () => {
+    expect(isAuthError("CodeMaker credentials missing or expired")).toBe(true);
+    expect(isAuthError("Unauthorized")).toBe(true);
+    expect(isAuthError("Request failed with status code 401")).toBe(true);
+    expect(isAuthError("CodeMaker token renew failed (401)")).toBe(true);
+  });
+
+  it("isAuthError does not match unrelated errors", () => {
+    expect(isAuthError("session not found")).toBe(false);
+    expect(isAuthError("network error")).toBe(false);
+    expect(isAuthError("CodeMaker login timed out")).toBe(false);
+  });
+
+  it("posts showAuthDialog when codemaker send fails with an auth error", async () => {
+    const api = stubApi({
+      sendMessage: vi.fn(async () => {
+        throw new Error("CodeMaker credentials missing or expired");
+      }),
+    });
+    const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
+    await flush();
+
+    bridge.postMessage({ command: "sendMessage", text: "hello" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({ command: "updateErrorBlock" }),
+    );
+    expect(messages).toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
+    );
+  });
+
+  it("does not post showAuthDialog when the active provider is not codemaker", async () => {
+    const api = stubApi({
+      getAuthStatus: vi.fn(async () => ({
+        state: "unauthenticated",
+        providerId: "openai-compatible",
+      })),
+      sendMessage: vi.fn(async () => {
+        throw new Error("CodeMaker credentials missing or expired");
+      }),
+    });
+    const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
+    await flush();
+
+    bridge.postMessage({ command: "sendMessage", text: "hello" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({ command: "updateErrorBlock" }),
+    );
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
+    );
+  });
+
+  it("does not post showAuthDialog for non-auth send errors", async () => {
+    const api = stubApi({
+      sendMessage: vi.fn(async () => {
+        throw new Error("session not found");
+      }),
+    });
+    const bridge = createHostBridge({ api, ws: stubWs(), workdir: "/tmp" });
+    await flush();
+
+    bridge.postMessage({ command: "sendMessage", text: "hello" });
+    await flush();
+
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
     );
   });
 });

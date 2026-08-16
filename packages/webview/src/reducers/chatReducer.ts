@@ -367,12 +367,19 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         activeDialog: null,
         configurationError: undefined,
+        loginError: undefined,
       };
     case "SET_AUTHENTICATED":
       return {
         ...state,
         isAuthenticated: action.payload,
         initialized: true,
+        loginError: action.payload ? undefined : state.loginError,
+      };
+    case "SET_LOGIN_ERROR":
+      return {
+        ...state,
+        loginError: action.payload,
       };
     case "SET_CONFIGURATION_LOADING":
       return {

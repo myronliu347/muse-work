@@ -27,6 +27,7 @@ import StatusDialog from "./dialogs/StatusDialog";
 import BackgroundTaskManager from "./settings/BackgroundTaskManager";
 import WorkflowManager from "./settings/WorkflowManager";
 import AgentsDialog from "./dialogs/AgentsDialog";
+import LoginDialog from "./dialogs/LoginDialog";
 import WelcomeView from "./chat/WelcomeView";
 import { NewSessionPage } from "./chat/NewSessionPage";
 import LoadingLogo from "./chat/LoadingLogo";
@@ -923,9 +924,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             payload: message.isAuthenticated || false,
           });
           break;
+        case "showAuthDialog":
+          dispatch({
+            type: "SHOW_DIALOG",
+            payload: { type: "login" },
+          });
+          break;
         case "loginResponse":
           if (message.success) {
             dispatch({ type: "SET_AUTHENTICATED", payload: true });
+          } else {
+            dispatch({
+              type: "SET_LOGIN_ERROR",
+              payload:
+                typeof message.error === "string"
+                  ? message.error
+                  : "登录失败，请重试",
+            });
           }
           break;
         case "logoutResponse":
@@ -2339,6 +2354,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       {state.activeDialog === "agents" && (
         <AgentsDialog vscode={vscode} onClose={handleDialogClose} />
+      )}
+      {state.activeDialog === "login" && (
+        <LoginDialog
+          isAuthenticated={state.isAuthenticated}
+          loginError={state.loginError}
+          onLogin={handleLogin}
+          onCancel={handleDialogClose}
+        />
       )}
       {agentTranscript && (
         <AgentTranscriptPopup

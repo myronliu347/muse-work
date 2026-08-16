@@ -657,7 +657,10 @@ export interface ChatState {
     | "tasks"
     | "workflows"
     | "agents"
+    | "login"
     | null;
+  /** Login failure shown inside the auth dialog (CodeMaker SSO). */
+  loginError?: string;
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
@@ -830,13 +833,15 @@ export type ChatAction =
           | "status"
           | "tasks"
           | "workflows"
-          | "agents";
+          | "agents"
+          | "login";
         data?: ConfigurationData;
         error?: string;
       };
     }
   | { type: "HIDE_DIALOG" }
   | { type: "SET_AUTHENTICATED"; payload: boolean }
+  | { type: "SET_LOGIN_ERROR"; payload: string | undefined }
   | { type: "SET_CONFIGURATION_LOADING"; payload: boolean }
   | { type: "SET_CONFIGURATION_ERROR"; payload: string | undefined }
   | { type: "SET_CONFIGURATION_DATA"; payload: ConfigurationData }

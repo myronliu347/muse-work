@@ -42,6 +42,17 @@ function truncateTitle(content: string): string {
     : trimmed;
 }
 
+/**
+ * Match CodeMaker auth failures that should prompt a re-login dialog:
+ * missing/expired credentials, revoked tokens (401), and renew failures.
+ * Only the CodeMaker provider produces these error strings.
+ */
+export function isAuthError(error: string): boolean {
+  return /credentials?\s+(missing|expired)|unauthorized|\b401\b|token.*(?:expired|invalid|revoked)/i.test(
+    error,
+  );
+}
+
 function toEntry(session: TreeSession): DesktopSessionEntry {
   return {
     sessionId: session.id,
@@ -210,6 +221,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let wsConnected = false;
   let toastedInterrupted = false;
   let wsEverOpened = false;
+  /** Active provider id (from /auth/status); gates the CodeMaker login dialog. */
+  let activeProviderId: string | undefined;
   let pinned: TreeSession[] = [];
   let recent: TreeSession[] = [];
   const titledSessions = new Set<string>();
@@ -894,6 +907,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         command: "updateErrorBlock",
         error: event.error?.trim() || "Session error",
       });
+      maybePromptAuthDialog(event.error ?? "");
       emitCompacting(false);
       return;
     }
@@ -983,7 +997,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const emitWs = (event: MuseWsEvent) => {
     if (event.type === "auth:changed") {
-      const status = event.status as { state?: string } | undefined;
+      const status = event.status as
+        | { state?: string; providerId?: string }
+        | undefined;
+      if (typeof status?.providerId === "string") {
+        activeProviderId = status.providerId;
+      }
       postToWebview({
         command: "authStatusResponse",
         isAuthenticated: status?.state === "authenticated",
@@ -1155,6 +1174,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   async function refreshAuth(): Promise<void> {
     try {
       const status = await api.getAuthStatus();
+      activeProviderId = status.providerId;
       postToWebview({
         command: "authStatusResponse",
         isAuthenticated: status.state === "authenticated",
@@ -1165,6 +1185,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         isAuthenticated: false,
       });
     }
+  }
+
+  /** Prompt the CodeMaker re-login dialog when a turn fails on auth grounds. */
+  function maybePromptAuthDialog(error: string): void {
+    if (!isAuthError(error) || activeProviderId !== "codemaker") return;
+    postToWebview({ command: "showAuthDialog" });
   }
 
   async function handleLogin(): Promise<void> {
@@ -1282,10 +1308,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       // First send promotes the session into the sidebar (started filter).
       await refreshTree();
     } catch (err) {
+      const errorText = err instanceof Error ? err.message : String(err);
       postToWebview({
         command: "updateErrorBlock",
-        error: err instanceof Error ? err.message : String(err),
+        error: errorText,
       });
+      maybePromptAuthDialog(errorText);
       postToWebview({ command: "endStreaming" });
       setLoading(false);
       streamingMessageId = null;
