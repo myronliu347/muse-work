@@ -512,6 +512,126 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual({ command: "endStreaming" });
   });
 
+  it("deltas already in flight after an abort do not re-ignite streaming", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    // Normal streaming in the active session.
+    handler!({
+      type: "message:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: "hello",
+      stage: "streaming",
+    });
+    handler!({
+      type: "message:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: " world",
+      stage: "streaming",
+    });
+    await flush();
+    expect(messages).toContainEqual({ command: "startStreaming" });
+
+    messages.length = 0;
+    bridge.postMessage({ command: "abortMessage" });
+    await flush();
+    expect(api.abortMessage).toHaveBeenCalledWith("sess-active");
+    expect(messages).toContainEqual({ command: "endStreaming" });
+
+    messages.length = 0;
+    // A delta the server sent just before processing the abort arrives late.
+    // Regression: it used to re-emit startStreaming (stop button flickers back)
+    // and append a duplicate assistant message (knownAssistantIds was cleared).
+    handler!({
+      type: "message:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: " tail",
+      stage: "streaming",
+    });
+    await flush();
+
+    const commands = messages
+      .map((m) => (m as { command?: string })?.command)
+      .filter(Boolean);
+    expect(commands).not.toContain("startStreaming");
+    expect(commands).not.toContain("appendMessage");
+  });
+
+  it("sendMessage clears the aborted-turn guard so the next turn streams", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    handler!({
+      type: "message:delta",
+      sessionId: "sess-active",
+      messageId: "m1",
+      text: "hello",
+      stage: "streaming",
+    });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "abortMessage" });
+    await flush();
+    messages.length = 0;
+
+    // A new user message starts a new turn; its deltas must stream again.
+    bridge.postMessage({ command: "sendMessage", text: "again" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "message:delta",
+      sessionId: "sess-active",
+      messageId: "m2",
+      text: "fresh",
+      stage: "streaming",
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "appendMessage",
+      message: expect.objectContaining({ id: "m2" }),
+    });
+    expect(messages).toContainEqual({
+      command: "updateStreamingContent",
+      messageId: "m2",
+      chunk: "fresh",
+      stage: "streaming",
+    });
+  });
+
   it("sendMessage forwards base64 images to the API", async () => {
     const api = stubApi();
     const bridge = createHostBridge({

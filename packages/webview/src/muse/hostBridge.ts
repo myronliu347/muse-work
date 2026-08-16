@@ -198,6 +198,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let state: unknown = null;
   let bootstrapped = false;
   let loading = false;
+  /**
+   * True after a user abort until the next turn starts. In-flight WS deltas
+   * that were sent before the abort can arrive after handleAbortMessage
+   * optimistically resets loading/streamingMessageId — without this guard the
+   * first such delta re-ignites startStreaming (stop button flickers back) and
+   * re-appends a duplicate assistant message (knownAssistantIds was cleared).
+   */
+  let aborted = false;
   let latestTokens = 0;
   let wsConnected = false;
   let toastedInterrupted = false;
@@ -357,6 +365,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const resetChatStreaming = () => {
     streamingMessageId = null;
     knownAssistantIds.clear();
+    aborted = false;
     setLoading(false);
     postToWebview({ command: "endStreaming" });
   };
@@ -762,6 +771,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
 
   const emitChatWs = (event: MuseWsEvent) => {
     if (event.type === "loading") {
+      // A fresh loading:true marks a new turn — later deltas are no longer the
+      // stragglers of an aborted turn.
+      if (event.loading) aborted = false;
       setLoading(event.loading);
       postToWebview({
         command: event.loading ? "startStreaming" : "endStreaming",
@@ -774,6 +786,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "assistant:message") {
+      if (aborted) return;
       ensureAssistantMessage(event.messageId);
       if (!loading) {
         setLoading(true);
@@ -783,6 +796,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "message:delta") {
+      if (aborted) return;
       const messageId = event.messageId || streamingMessageId || newId("asst");
       ensureAssistantMessage(messageId);
       if (!loading) {
@@ -799,6 +813,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "reasoning:delta") {
+      if (aborted) return;
       ensureAssistantMessage(event.messageId);
       if (!loading) {
         setLoading(true);
@@ -814,6 +829,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "tool:update") {
+      if (aborted) return;
       const params = event.params;
       const messageId =
         typeof params.messageId === "string"
@@ -1245,6 +1261,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       const sid = await ensureSession();
       streamingMessageId = null;
       knownAssistantIds.clear();
+      aborted = false;
       setLoading(true);
       postToWebview({ command: "startStreaming" });
       await api.sendMessage(sid, text, images.length > 0 ? images : undefined);
@@ -1265,6 +1282,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   }
 
   async function handleAbortMessage(): Promise<void> {
+    // Suppress straggler deltas of this turn from re-igniting streaming.
+    aborted = true;
     // Optimistic UI: hide stop button immediately while the server aborts.
     if (streamingMessageId) {
       postToWebview({
