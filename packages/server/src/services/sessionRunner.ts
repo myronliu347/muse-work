@@ -449,6 +449,9 @@ export function createSessionRunner(
       agents.get(sessionId)?.abortMessage?.();
       agentLoading.set(sessionId, false);
       hub.broadcast(sessionId, { type: "loading", loading: false });
+      // 中断（abort/stall/权限拒绝）时清空 sender 任务列表：任务进度只在
+      // 会话执行中展示。不删除 latestTasks 缓存，后续轮次仍可复用。
+      hub.broadcast(sessionId, { type: "tasks:update", tasks: [] });
       if (!turnEnded.get(sessionId)) {
         hub.broadcast(sessionId, { type: "message:completed" });
         turnEnded.set(sessionId, true);
@@ -668,6 +671,18 @@ export function createSessionRunner(
           markTurnOutput(sessionId);
           bumpActivity(sessionId);
           hub.broadcast(sessionId, { type: "assistant:message", messageId });
+        },
+        onUserMessageAdded: (params) => {
+          if (disposed.has(sessionId)) return;
+          // Meta messages (hook-injected system reminders) are not transcript
+          // bubbles. Regular user messages surface here for queued sends whose
+          // optimistic bubble was skipped while the AI was busy.
+          if (params.isMeta) return;
+          hub.broadcast(sessionId, {
+            type: "user:message",
+            content: params.content,
+            images: params.images,
+          });
         },
         onAssistantContentUpdated: ({ messageId, chunk, stage }) => {
           if (disposed.has(sessionId)) {

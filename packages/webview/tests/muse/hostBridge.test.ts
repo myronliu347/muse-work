@@ -575,6 +575,61 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(commands).not.toContain("appendMessage");
   });
 
+  it("tool:update finalize after an abort still reaches the UI to stop the shimmer", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "abortMessage" });
+    await flush();
+
+    messages.length = 0;
+    // SDK pushes the aborted tool block's finalize (stage: end + error) after
+    // the abort. Regression: it was dropped while `aborted` was true, leaving
+    // the Agent tool row shimmering forever.
+    handler!({
+      type: "tool:update",
+      sessionId: "sess-active",
+      params: {
+        messageId: "m1",
+        name: "Agent",
+        stage: "end",
+        success: false,
+        error: "Tool execution was aborted",
+      },
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "updateToolBlock",
+      params: {
+        messageId: "m1",
+        name: "Agent",
+        stage: "end",
+        success: false,
+        error: "Tool execution was aborted",
+      },
+    });
+    const commands = messages
+      .map((m) => (m as { command?: string })?.command)
+      .filter(Boolean);
+    expect(commands).not.toContain("startStreaming");
+  });
+
   it("sendMessage clears the aborted-turn guard so the next turn streams", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

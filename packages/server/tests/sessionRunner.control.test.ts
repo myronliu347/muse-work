@@ -457,4 +457,51 @@ describe("sessionRunner control plane", () => {
       statusCode: 404,
     });
   });
+
+  it("abortMessage broadcasts tasks:update [] to hide the sender task list", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    const broadcasts: Array<{ type?: string; tasks?: unknown }> = [];
+    const orig = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      broadcasts.push(event as { type?: string; tasks?: unknown });
+      orig(sessionId, event);
+    };
+    let captured: {
+      callbacks?: {
+        onTasksChange?: (tasks: unknown[]) => void;
+        onLoadingChange?: (loading: boolean) => void;
+      };
+    } | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        captured = opts;
+        return stubAgent();
+      },
+    });
+    const session = store.create({ workdir: dir, model: "m1" });
+    await runner.sendMessage(session.id, "hi");
+    await expect.poll(() => captured).toBeTruthy();
+
+    // 会话执行中且已有任务缓存
+    const tasks = [{ id: "1", subject: "do it", status: "pending" }];
+    captured!.callbacks!.onTasksChange!(tasks);
+    captured!.callbacks!.onLoadingChange!(true);
+    expect(await runner.getTasks(session.id)).toEqual(tasks);
+
+    // 取消会话 → 广播 tasks:update [] 隐藏 sender 任务列表
+    await runner.abortMessage(session.id);
+    expect(
+      broadcasts.some(
+        (e) =>
+          e.type === "tasks:update" &&
+          Array.isArray(e.tasks) &&
+          e.tasks.length === 0,
+      ),
+    ).toBe(true);
+  });
 });

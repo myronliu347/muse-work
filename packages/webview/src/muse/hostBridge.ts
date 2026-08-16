@@ -853,16 +853,20 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "tool:update") {
-      if (aborted) return;
       const params = event.params;
       const messageId =
         typeof params.messageId === "string"
           ? params.messageId
           : streamingMessageId || newId("asst");
-      ensureAssistantMessage(messageId);
-      if (!loading) {
-        setLoading(true);
-        postToWebview({ command: "startStreaming" });
+      // Abort 后 SDK 推送的 tool:update 是对卡在 running/streaming 的 tool
+      // block 的 finalize（stage:end + error）——必须放行让 UI 停止 shimmer；
+      // 只跳过 startStreaming，避免重燃被中断的会话。
+      if (!aborted) {
+        ensureAssistantMessage(messageId);
+        if (!loading) {
+          setLoading(true);
+          postToWebview({ command: "startStreaming" });
+        }
       }
       postToWebview({
         command: "updateToolBlock",
@@ -1272,35 +1276,44 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     const images = normalizeOutboundImages(msg.images);
     if (!text && images.length === 0) return;
 
-    const userId = newId("user");
-    const blocks: Array<Record<string, unknown>> = [];
-    // Text first, then images — the bubble renders prompt above 72px thumbs.
-    if (text) {
-      blocks.push({ type: "text", content: text });
-    }
-    if (images.length > 0) {
-      blocks.push({
-        type: "image",
-        imageUrls: images.map((img) => img.data),
+    // While the AI is busy the SDK queues this message instead of running a
+    // new turn. Skip the optimistic user bubble — it appears in the queue and
+    // lands in the transcript only when the SDK actually dispatches it
+    // (user:message broadcast via onUserMessageAdded).
+    const queuing = loading;
+    if (!queuing) {
+      const userId = newId("user");
+      const blocks: Array<Record<string, unknown>> = [];
+      // Text first, then images — the bubble renders prompt above 72px thumbs.
+      if (text) {
+        blocks.push({ type: "text", content: text });
+      }
+      if (images.length > 0) {
+        blocks.push({
+          type: "image",
+          imageUrls: images.map((img) => img.data),
+        });
+      }
+      postToWebview({
+        command: "appendMessage",
+        message: {
+          id: userId,
+          role: "user",
+          timestamp: new Date().toISOString(),
+          blocks,
+        },
       });
     }
-    postToWebview({
-      command: "appendMessage",
-      message: {
-        id: userId,
-        role: "user",
-        timestamp: new Date().toISOString(),
-        blocks,
-      },
-    });
 
     try {
       const sid = await ensureSession();
       streamingMessageId = null;
       knownAssistantIds.clear();
       aborted = false;
-      setLoading(true);
-      postToWebview({ command: "startStreaming" });
+      if (!queuing) {
+        setLoading(true);
+        postToWebview({ command: "startStreaming" });
+      }
       await api.sendMessage(sid, text, images.length > 0 ? images : undefined);
       if (text) {
         await maybePatchTitle(sid, text);
@@ -1319,8 +1332,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       streamingMessageId = null;
     }
   }
-
-  async function handleAbortMessage(): Promise<void> {
     // Suppress straggler deltas of this turn from re-igniting streaming.
     aborted = true;
     // Optimistic UI: hide stop button immediately while the server aborts.
