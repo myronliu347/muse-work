@@ -163,4 +163,20 @@ describe("sessions HTTP routes", () => {
     );
     expect(missing.status).toBe(404);
   });
+
+  it("GET /sessions/:id/runtime returns loading and queuedMessages", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", model: "m1" }),
+    }).then((r) => r.json());
+
+    const res = await fetch(`${app.baseUrl}/sessions/${created.id}/runtime`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ loading: false, queuedMessages: [] });
+  });
 });

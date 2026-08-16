@@ -421,6 +421,19 @@ session.get("/status", async (c) => {
   }
 });
 
+session.get("/runtime", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  try {
+    return c.json(await ctx.runner.getRuntimeState(sessionId));
+  } catch (err) {
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
+  }
+});
+
 session.get("/mcp", async (c) => {
   const ctx = c.get("ctx");
   const sessionId = c.req.param("sessionId")!;

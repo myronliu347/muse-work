@@ -661,6 +661,27 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   };
 
+  const restoreRuntimeState = async (id: string): Promise<void> => {
+    try {
+      const { loading: runtimeLoading, queuedMessages } =
+        await api.getRuntimeState(id);
+      // A newer activation may have superseded this one.
+      if (sessionId !== id || pendingNewSession) return;
+      if (runtimeLoading) {
+        setLoading(true);
+        postToWebview({ command: "startStreaming" });
+      } else {
+        resetChatStreaming();
+      }
+      // Always push (including empty) so the queue list reflects this session.
+      postToWebview({ command: "updateQueue", messages: queuedMessages });
+    } catch {
+      if (sessionId === id && !pendingNewSession) {
+        resetChatStreaming();
+      }
+    }
+  };
+
   const activateSession = async (id: string): Promise<MuseSession> => {
     pendingNewSession = false;
     suppressWorkdirPush = false;
@@ -676,6 +697,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     emitCompacting(compactingSessions.has(session.id));
     await loadMessages(session.id);
     await pushSessionControlState(session.id);
+    await restoreRuntimeState(session.id);
     await refreshTree();
     const pending = pendingPermissions.get(session.id);
     if (pending) {

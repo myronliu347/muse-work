@@ -292,6 +292,15 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getRuntimeState(
+    sessionId: string,
+  ): Promise<{ loading: boolean; queuedMessages: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/runtime`,
+    );
+    return parseJson(res);
+  }
+
   async sendMessage(
     sessionId: string,
     content: string,

@@ -75,6 +75,10 @@ export interface SessionAgent {
   hasPendingMessages?: () => boolean;
   /** Remove a queued message by id (SDK-owned queue). */
   removeQueuedMessageById?: (id: string) => boolean;
+  /** SDK loading state (true while AI / tools are running). */
+  isLoading?: () => boolean;
+  /** SDK queued messages snapshot (excludes background notifications). */
+  queuedMessages?: () => unknown[];
 }
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
@@ -93,6 +97,10 @@ export interface SessionRunner {
     sessionId: string,
     messageId: string,
   ): Promise<{ ok: boolean }>;
+  /** Runtime snapshot for session restore: SDK loading + queued messages. */
+  getRuntimeState(
+    sessionId: string,
+  ): Promise<{ loading: boolean; queuedMessages: unknown[] }>;
   respondPermission(
     sessionId: string,
     permissionId: string,
@@ -199,6 +207,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
       hasPendingMessages: () => agent.hasPendingMessages,
       removeQueuedMessageById: (id) => agent.removeQueuedMessageById(id),
+      isLoading: () => agent.isLoading,
+      queuedMessages: () => agent.queuedMessages,
       get latestTotalTokens() {
         return agent.latestTotalTokens;
       },
@@ -1189,6 +1199,20 @@ export function createSessionRunner(
       }
       const removed = agent.removeQueuedMessageById(messageId);
       return { ok: removed };
+    },
+
+    async getRuntimeState(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = agents.get(sessionId);
+      return {
+        loading: agent?.isLoading?.() ?? agentLoading.get(sessionId) ?? false,
+        queuedMessages: agent?.queuedMessages?.() ?? [],
+      };
     },
 
     async respondPermission(sessionId, permissionId, decision) {
