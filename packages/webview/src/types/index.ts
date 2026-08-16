@@ -575,10 +575,7 @@ export interface ChatHeaderProps {
   newSessionDisabled?: boolean;
   onAbortMessage: () => void;
   messages: Message[];
-  sessions: SessionMetadata[];
   currentSession?: SessionMetadata;
-  onSessionSelect: (sessionId: string) => void;
-  sessionsLoading: boolean;
   onOpenSettings: () => void;
   onLogin: () => void;
   onLogout: () => void;

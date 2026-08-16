@@ -5,7 +5,6 @@ import {
   waitFor,
   act,
   sendCommand,
-  fireEvent,
 } from "./test-utils";
 
 const tasks = [
@@ -281,59 +280,6 @@ describe("auto-hide when all tasks completed", () => {
       sendCommand("updateTasks", { tasks: withPending });
     });
     expect(screen.getByTestId("task-list")).toBeInTheDocument();
-  });
-
-  it("stays hidden when switching to a session whose tasks are all completed", async () => {
-    const { vscode } = renderChatApp();
-    const sessions = [
-      {
-        id: "session-a",
-        sessionType: "main",
-        workdir: "/test/project",
-        firstMessage: "Session A",
-        lastActiveAt: new Date("2023-12-01T10:00:00Z"),
-        latestTotalTokens: 100,
-      },
-      {
-        id: "session-b",
-        sessionType: "main",
-        workdir: "/test/project",
-        firstMessage: "Session B",
-        lastActiveAt: new Date("2023-12-01T11:00:00Z"),
-        latestTotalTokens: 200,
-      },
-    ];
-    act(() => {
-      sendCommand("updateSessions", { sessions });
-      sendCommand("updateTasks", { tasks: mixed });
-    });
-    expect(screen.getByTestId("task-list")).toBeInTheDocument();
-
-    // 选择历史会话：任务列表立即清空，并发起 restoreSession
-    act(() => {
-      fireEvent.click(screen.getByTestId("history-btn"));
-    });
-    act(() => {
-      fireEvent.click(screen.getByTestId("session-list-item-session-b"));
-    });
-    expect(vscode.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        command: "restoreSession",
-        sessionId: "session-b",
-      }),
-    );
-    expect(screen.queryByTestId("task-list")).not.toBeInTheDocument();
-
-    // 后端推送恢复会话的任务（全部完成）：保持隐藏，不闪现
-    act(() => {
-      sendCommand("updateTasks", { tasks: allCompleted });
-    });
-    expect(screen.queryByTestId("task-list")).not.toBeInTheDocument();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10000);
-    });
-    expect(screen.queryByTestId("task-list")).not.toBeInTheDocument();
   });
 });
 

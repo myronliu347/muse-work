@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon, HistoryIcon, MoreIcon } from "../shared/HeaderIcons";
-import { SessionListPopup } from "../dialogs/SessionListPopup";
+import { NewSessionIcon, MoreIcon } from "../shared/HeaderIcons";
 import { MoreMenu } from "../shared/MoreMenu";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { DesktopGitContext } from "../desktop/DesktopGitContext";
@@ -13,10 +12,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onNewSession,
   newSessionDisabled = false,
   messages,
-  sessions,
   currentSession,
-  onSessionSelect,
-  sessionsLoading,
   onOpenSettings,
   onLogin,
   onLogout,
@@ -26,7 +22,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   panelToggle,
   gitContext,
 }) => {
-  const [showSessionList, setShowSessionList] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const title = getSessionTitle(currentSession, messages);
@@ -54,16 +49,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <NewSessionIcon />
               </button>
             </Tooltip>
-            <Tooltip text="历史对话" position="bottom">
-              <button
-                className="header-button"
-                onClick={() => setShowSessionList((prev) => !prev)}
-                data-testid="history-btn"
-                aria-label="历史对话"
-              >
-                <HistoryIcon />
-              </button>
-            </Tooltip>
           </>
         )}
         {!hideMoreButton && (
@@ -80,15 +65,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
         {panelToggle && <PanelToggleControl {...panelToggle} />}
       </div>
-      {showSessionList && (
-        <SessionListPopup
-          sessions={sessions}
-          currentSession={currentSession}
-          onSessionSelect={onSessionSelect}
-          loading={sessionsLoading}
-          onClose={() => setShowSessionList(false)}
-        />
-      )}
       {showMoreMenu && !hideMoreButton && (
         <MoreMenu
           onOpenSettings={onOpenSettings}

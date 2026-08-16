@@ -1421,22 +1421,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     });
   }, [vscode]);
 
-  const handleSessionSelect = useCallback(
-    (sessionId: string) => {
-      if (state.isStreaming) return;
-
-      // 清空当前任务列表：避免恢复期间残留旧会话的任务，
-      // 并让新会话任务从空状态进入（若全部已完成则直接保持隐藏）
-      dispatch({ type: "SET_TASKS", payload: [] });
-
-      postToHost({
-        command: "restoreSession",
-        sessionId,
-      });
-    },
-    [state.isStreaming, postToHost],
-  );
-
   const handleInputCleared = useCallback(() => {
     dispatch({ type: "INPUT_CLEARED" });
   }, []);
@@ -2435,10 +2419,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         newSessionDisabled={false}
         onAbortMessage={handleAbortMessage}
         messages={state.messages}
-        sessions={state.sessions}
         currentSession={state.currentSession}
-        onSessionSelect={handleSessionSelect}
-        sessionsLoading={state.sessionsLoading}
         onOpenSettings={handleOpenSettings}
         onLogin={handleLogin}
         onLogout={handleLogout}
