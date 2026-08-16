@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@radix-ui/themes/styles.css";
-import { ChatApp } from "./components/ChatApp";
 import { DesktopApp } from "./components/DesktopApp";
 import { MuseApiClient } from "./muse/apiClient";
 import { MuseWsClient } from "./muse/wsClient";
@@ -55,10 +54,6 @@ const vscode = createHostBridge({
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 root.render(
   <MuseTheme>
-    {window.waveHostType === "desktop" ? (
-      <DesktopApp vscode={vscode} />
-    ) : (
-      <ChatApp vscode={vscode} />
-    )}
+    <DesktopApp vscode={vscode} />
   </MuseTheme>,
 );

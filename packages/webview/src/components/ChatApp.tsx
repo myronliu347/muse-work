@@ -2461,59 +2461,55 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           </button>
         </div>
       )}
-      {isDesktop ? (
-        <div className="desktop-chat-body">
-          <div className="desktop-chat-main">
-            {isDraftSession && !state.initialized ? (
-              <LoadingLogo />
-            ) : showNewSessionPage ? (
-              newSessionPage
-            ) : (
-              chatChrome
-            )}
-          </div>
-          {!isDraftSession && checkedPanels.length > 0 && activePanel && (
-            <DesktopPanelDock
-              checked={checkedPanels}
-              active={activePanel}
-              onSelect={handleSelectPanel}
-              onCloseTab={handleTogglePanel}
-              onAddPanel={handleAddPanel}
-              disabledPanels={panelDisabled}
-              panelToggle={{
-                onToggleDock: handleToggleDock,
-              }}
-              fullscreen={dockFullscreen}
-              onToggleFullscreen={handleToggleFullscreen}
-              width={Math.min(
-                panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
-                Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
-              )}
-              onWidthChange={handleDockWidthChange}
-              maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
-            >
-              {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
-                (kind) => (
-                  <div
-                    key={kind}
-                    className="desktop-panel-slot"
-                    style={{
-                      display:
-                        checkedPanels.includes(kind) && kind === activePanel
-                          ? undefined
-                          : "none",
-                    }}
-                  >
-                    {renderPanelSlot(kind)}
-                  </div>
-                ),
-              )}
-            </DesktopPanelDock>
+      <div className="desktop-chat-body">
+        <div className="desktop-chat-main">
+          {isDraftSession && !state.initialized ? (
+            <LoadingLogo />
+          ) : showNewSessionPage ? (
+            newSessionPage
+          ) : (
+            chatChrome
           )}
         </div>
-      ) : (
-        chatChrome
-      )}
+        {!isDraftSession && checkedPanels.length > 0 && activePanel && (
+          <DesktopPanelDock
+            checked={checkedPanels}
+            active={activePanel}
+            onSelect={handleSelectPanel}
+            onCloseTab={handleTogglePanel}
+            onAddPanel={handleAddPanel}
+            disabledPanels={panelDisabled}
+            panelToggle={{
+              onToggleDock: handleToggleDock,
+            }}
+            fullscreen={dockFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
+            width={Math.min(
+              panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
+              Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
+            )}
+            onWidthChange={handleDockWidthChange}
+            maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
+          >
+            {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
+              (kind) => (
+                <div
+                  key={kind}
+                  className="desktop-panel-slot"
+                  style={{
+                    display:
+                      checkedPanels.includes(kind) && kind === activePanel
+                        ? undefined
+                        : "none",
+                  }}
+                >
+                  {renderPanelSlot(kind)}
+                </div>
+              ),
+            )}
+          </DesktopPanelDock>
+        )}
+      </div>
     </div>
   );
 

@@ -19,11 +19,17 @@ import { ChatApp } from "../../src/components/ChatApp";
  * against re-introducing a login gate.
  */
 describe("Unauthenticated input enabled", () => {
-  it("keeps the message input editable when unauthenticated (no authStatusResponse sent)", () => {
+  it("keeps the message input editable when unauthenticated (authStatusResponse(false) sent)", () => {
     const vscode = createMockVscode();
-    // Render WITHOUT sending authStatusResponse so isAuthenticated stays at its
-    // initial value of false — the real unauthenticated state.
+    // Desktop-only ChatApp: the input only mounts once the host has pushed its
+    // initial state (state.initialized). Push authStatusResponse(false) so the
+    // app is initialized while isAuthenticated stays false — the real
+    // unauthenticated state.
     render(<ChatApp vscode={vscode as unknown as never} />);
+    sendExtensionMessage({
+      command: "authStatusResponse",
+      isAuthenticated: false,
+    });
 
     const input = screen.getByTestId("message-input");
     expect(input.getAttribute("contentEditable")).toBe("true");
