@@ -94,18 +94,16 @@
   flex-shrink: 0;
   position: relative;
   width: 18px;
-  height: 18px;
+  height: var(--line-height-1);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
 .task-status-svg {
   display: block;
   width: 14px;
   height: 14px;
-  margin-top: var(--space-1);
 }
 
 .task-status-spin {
