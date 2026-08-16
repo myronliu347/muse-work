@@ -454,6 +454,20 @@ session.get("/background-tasks", async (c) => {
   }
 });
 
+session.get("/tasks", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  try {
+    const tasks = await ctx.runner.getTasks(sessionId);
+    return c.json({ tasks });
+  } catch (err) {
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
+  }
+});
+
 session.get("/background-tasks/:taskId/output", async (c) => {
   const ctx = c.get("ctx");
   const sessionId = c.req.param("sessionId")!;

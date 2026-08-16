@@ -415,4 +415,46 @@ describe("sessionRunner control plane", () => {
       }),
     ]);
   });
+
+  it("getTasks returns the cached task list only while the session is active", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    let captured: {
+      callbacks?: {
+        onTasksChange?: (tasks: unknown[]) => void;
+        onLoadingChange?: (loading: boolean) => void;
+      };
+    } | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        captured = opts;
+        return stubAgent();
+      },
+    });
+    const session = store.create({ workdir: dir, model: "m1" });
+    // sendMessage 为 fire-and-forget，轮询等待惰性 createAgent 捕获 callbacks
+    await runner.sendMessage(session.id, "hi");
+    await expect.poll(() => captured).toBeTruthy();
+
+    // 从未执行过 → 无任务缓存
+    expect(await runner.getTasks(session.id)).toEqual([]);
+
+    // 任务变更回调写入缓存，但会话仍 idle → 保持不展示（只在执行中展示）
+    const tasks = [{ id: "1", subject: "do it", status: "pending" }];
+    captured!.callbacks!.onTasksChange!(tasks);
+    expect(await runner.getTasks(session.id)).toEqual([]);
+
+    // 会话进入执行中（loading）→ 返回缓存任务
+    captured!.callbacks!.onLoadingChange!(true);
+    expect(await runner.getTasks(session.id)).toEqual(tasks);
+
+    // 不存在的会话 → 404
+    await expect(runner.getTasks("missing")).rejects.toMatchObject({
+      statusCode: 404,
+    });
+  });
 });

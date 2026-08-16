@@ -197,4 +197,20 @@ describe("session control routes", () => {
       "workflows",
     ]);
   });
+
+  it("GET tasks returns the task list for the session", async () => {
+    const app = await listen(async () => stubAgent());
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: app.home }),
+    });
+    const session = (await created.json()) as { id: string };
+    const res = await fetch(`${app.baseUrl}/sessions/${session.id}/tasks`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ tasks: [] });
+
+    const missing = await fetch(`${app.baseUrl}/sessions/missing/tasks`);
+    expect(missing.status).toBe(404);
+  });
 });

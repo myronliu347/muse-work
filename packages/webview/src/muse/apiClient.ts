@@ -469,6 +469,13 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getTasks(sessionId: string): Promise<{ tasks: unknown[] }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/tasks`,
+    );
+    return parseJson(res);
+  }
+
   async stopBackgroundTask(
     sessionId: string,
     taskId: string,

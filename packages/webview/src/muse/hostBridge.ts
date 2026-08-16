@@ -624,6 +624,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       postToWebview({ command: "updateBackgroundTasks", tasks: [] });
     }
     try {
+      const { tasks } = await api.getTasks(id);
+      if (!stillHere()) return;
+      postToWebview({
+        command: "updateTasks",
+        tasks: Array.isArray(tasks) ? tasks : [],
+      });
+    } catch {
+      if (!stillHere()) return;
+      postToWebview({ command: "updateTasks", tasks: [] });
+    }
+    try {
       const { runs } = await api.getWorkflowRuns(id);
       if (!stillHere()) return;
       setRunningWork(id, "workflows", runs);

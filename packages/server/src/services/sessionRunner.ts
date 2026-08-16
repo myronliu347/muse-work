@@ -130,6 +130,7 @@ export interface SessionRunner {
     taskId: string,
   ): Promise<unknown>;
   getBackgroundTasks(sessionId: string): Promise<unknown[]>;
+  getTasks(sessionId: string): Promise<unknown[]>;
   stopBackgroundTask(sessionId: string, taskId: string): Promise<{ ok: boolean }>;
   getWorkflowRuns(sessionId: string): Promise<unknown[]>;
   stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
@@ -1460,6 +1461,25 @@ export function createSessionRunner(
         });
       }
       return reconcileBackgroundTasks(sessionId);
+    },
+
+    // 任务列表只在会话执行中展示：idle 会话返回空，避免切换回已结束的会话时
+    // 展示历史遗留任务。活跃判断与 snapshotEvents 保持一致。
+    async getTasks(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const loadingNow = agentLoading.get(sessionId) === true;
+      const pendingReq = [...pending.values()].some(
+        (entry) => entry.sessionId === sessionId,
+      );
+      if (session.status === "idle" && !loadingNow && !pendingReq) {
+        return [];
+      }
+      return latestTasks.get(sessionId) ?? [];
     },
 
     async stopBackgroundTask(sessionId, taskId) {
