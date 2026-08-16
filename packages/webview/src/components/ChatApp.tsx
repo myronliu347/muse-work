@@ -41,6 +41,7 @@ import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
 import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut, matchDockFullscreenShortcut } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
+import { stripImageSourceMarkers } from "../utils/messageUtils";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
 import { PreviewPane } from "./panels/PreviewPane";
 import { DiffPane } from "./panels/DiffPane";
@@ -823,7 +824,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             content?: string;
             images?: Array<{ path: string; mimeType: string }>;
           };
-          const content = (um.content ?? "").trim();
+          // The server extends screenshot sends with [Image source: ...]
+          // markers; strip them so dedupe still matches the optimistic bubble
+          // and the bubble does not render the marker text.
+          const content = stripImageSourceMarkers(um.content ?? "").trim();
           if (!content && !um.images?.length) break;
           const lastMsg = stateRef.current.messages[stateRef.current.messages.length - 1];
           const lastTs = lastMsg?.timestamp

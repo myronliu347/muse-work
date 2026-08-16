@@ -89,6 +89,13 @@ export const convertToMarkdown = (
 };
 
 /**
+ * 剥离服务端追加的 [Image source: <path>] 标记——该标记仅供模型读取磁盘路径，
+ * 不希望在用户消息渲染中显示或转成链接。连续多个标记（含中间换行）整体移除。
+ */
+export const stripImageSourceMarkers = (text: string): string =>
+  text.replace(/\[Image source: [^\]]+\](\n\[Image source: [^\]]+\])*/g, "");
+
+/**
  * 解析 Markdown 中的标签语法 [@file:path], [Selection: fileName#start-end] 和 [imageN]
  */
 export const parseMentions = (
@@ -104,6 +111,7 @@ export const parseMentions = (
   endLine?: string;
   imageData?: string;
 }> => {
+  text = stripImageSourceMarkers(text);
   const parts: Array<{
     type: "text" | "mention" | "selection";
     content: string;

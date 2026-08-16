@@ -332,12 +332,16 @@ describe("sessionRunner concurrency / dispose", () => {
       { data: "data:image/png;base64,abc", mediaType: "image/png" },
     ]);
     await expect.poll(() => seen).toBeTruthy();
-    expect(seen).toEqual({
-      content: "see this",
-      images: [
-        { path: "data:image/png;base64,abc", mimeType: "image/png" },
-      ],
-    });
+    expect(seen.images).toEqual([
+      { path: "data:image/png;base64,abc", mimeType: "image/png" },
+    ]);
+    // Content keeps the base64 send flow unchanged, plus [Image source: ...]
+    // markers pointing at the persisted temp file for the model to read.
+    const marker = /^see this\n\n\[Image source: (.+\.png)\]$/.exec(
+      seen.content,
+    );
+    expect(marker).toBeTruthy();
+    expect(fs.existsSync(marker![1])).toBe(true);
   });
 
   it("abortMessage stops the in-flight agent and marks session idle", async () => {

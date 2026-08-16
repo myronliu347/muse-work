@@ -7,6 +7,10 @@ import {
 import type { SessionStore } from "./sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "./wsHub.js";
 import {
+  appendImageSourceMarkers,
+  saveBase64Images,
+} from "../utils/imageSaver.js";
+import {
   AGENT_IDLE_TTL_MS,
   DEFAULT_TITLE,
   EMPTY_TURN_ERROR,
@@ -1116,7 +1120,18 @@ export function createSessionRunner(
 
     try {
       const agent = await ensureAgent(sessionId);
-      await agent.sendMessage(content, images);
+      // Persist pasted screenshots to a temp dir so the model can read them
+      // via its tools, then point at them with [Image source: ...] markers.
+      // The base64 images are still forwarded unchanged for vision.
+      const imagePaths = await saveBase64Images(
+        images?.map((img) => ({ data: img.path, mediaType: img.mimeType })) ??
+          [],
+      );
+      const contentWithSources = appendImageSourceMarkers(
+        content,
+        imagePaths,
+      );
+      await agent.sendMessage(contentWithSources, images);
       // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
       // If loading is still true, tools/stream are in flight — wait for loading false.
       if (
