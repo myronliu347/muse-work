@@ -850,6 +850,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "updateQueue") {
+      postToWebview({
+        command: "updateQueue",
+        messages: event.messages,
+      });
+      return;
+    }
+
     if (event.type === "message:delta") {
       if (aborted) return;
       const messageId = event.messageId || streamingMessageId || newId("asst");
@@ -1404,6 +1412,25 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  async function handleUpdateQueuedMessage(msg: {
+    id?: string;
+    text?: string;
+    images?: unknown;
+  }): Promise<void> {
+    const id = typeof msg.id === "string" ? msg.id : undefined;
+    const text = (msg.text ?? "").trim();
+    if (!id || !sessionId || pendingNewSession) return;
+    const images = normalizeOutboundImages(msg.images);
+    try {
+      await api.updateQueuedMessage(sessionId, id, {
+        text,
+        images: images.length > 0 ? images : undefined,
+      });
+    } catch {
+      // The next updateQueue sync restores the server-side queue content.
+    }
+  }
+
   const FALLBACK_SLASH_COMMANDS = [
     { id: "compact", name: "compact", description: "压缩会话上下文" },
     { id: "clear", name: "clear", description: "清空当前会话" },
@@ -1948,6 +1975,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "deleteQueuedMessageById":
           void handleDeleteQueuedMessageById(msg as { id?: string });
+          return;
+        case "updateQueuedMessage":
+          void handleUpdateQueuedMessage(
+            msg as { id?: string; text?: string; images?: unknown },
+          );
           return;
         case "requestSlashCommands":
           void handleRequestSlashCommands();

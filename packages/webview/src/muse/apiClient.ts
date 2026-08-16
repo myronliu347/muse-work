@@ -343,6 +343,32 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async updateQueuedMessage(
+    sessionId: string,
+    messageId: string,
+    patch: {
+      text: string;
+      images?: Array<{ data: string; mediaType: string }>;
+    },
+  ): Promise<{ ok: boolean }> {
+    const body: {
+      text: string;
+      images?: Array<{ data: string; mediaType: string }>;
+    } = { text: patch.text };
+    if (patch.images && patch.images.length > 0) {
+      body.images = patch.images;
+    }
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/queued-messages/${encodeURIComponent(messageId)}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    return parseJson(res);
+  }
+
   async respondPermission(
     sessionId: string,
     permissionId: string,

@@ -499,7 +499,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         }
         case "updateQueue":
           if (!forThisPane(message)) break;
-          dispatch({ type: "SET_QUEUED_MESSAGES", payload: message.queue });
+          dispatch({ type: "SET_QUEUED_MESSAGES", payload: message.messages });
           break;
         case "updateQueuedMessageMissing":
           if (!forThisPane(message)) break;
@@ -1386,26 +1386,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       dispatch({ type: "SET_EDITING_QUEUED_ID", payload: id });
     },
     [state.queuedMessages],
-  );
-
-  const handleSendQueuedMessage = useCallback(
-    (id: string) => {
-      const qm = state.queuedMessages.find((m) => m.id === id);
-      if (!qm) return;
-
-      const text = qm.content || qm.text || "";
-      const images = qm.images?.map((img) => ({
-        data: img.path || "",
-        mediaType: img.mimeType || "",
-      }));
-
-      // force=true: terminate current conversation and send this message immediately
-      handleSendMessage(text, images, true);
-
-      // Optimistically remove from queue + notify backend (and exit editing if applicable)
-      handleDeleteQueuedMessage(id);
-    },
-    [state.queuedMessages, handleSendMessage, handleDeleteQueuedMessage],
   );
 
   const handleSubmitQueuedEdit = useCallback(
@@ -2314,7 +2294,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             isCollapsed={state.isQueueCollapsed}
             onToggleCollapse={() => dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })}
             onEdit={handleEditQueuedMessage}
-            onSend={handleSendQueuedMessage}
             onDelete={handleDeleteQueuedMessage}
             editingQueuedId={state.editingQueuedId}
             vscode={vscode}

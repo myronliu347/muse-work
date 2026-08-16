@@ -71,7 +71,7 @@ describe("Message Queue Features", () => {
     renderChatApp();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [
+      messages: [
         { id: "q1", content: "Queued 1" },
         { id: "q2", content: "Queued 2" },
         { id: "q3", content: "Queued 3" },
@@ -86,7 +86,7 @@ describe("Message Queue Features", () => {
     renderChatApp();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [
+      messages: [
         { id: "q1", content: "Queued 1" },
         { id: "q2", content: "Queued 2" },
       ],
@@ -119,7 +119,7 @@ describe("Message Queue Features", () => {
   it("should delete a queued message by id via deleteQueuedMessageById", () => {
     const { vscode } = renderChatApp();
     sendCommand("startStreaming");
-    sendCommand("updateQueue", { queue: [{ id: "q1", content: "Queued 1" }] });
+    sendCommand("updateQueue", { messages: [{ id: "q1", content: "Queued 1" }] });
 
     fireEvent.click(screen.getByTestId("queued-delete-q1"));
 
@@ -134,45 +134,11 @@ describe("Message Queue Features", () => {
     expect(screen.queryByTestId("queued-message-list")).not.toBeInTheDocument();
   });
 
-  it("should force-send a queued message and remove it when clicking the inline ↑ send button", () => {
-    const { vscode } = renderChatApp();
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Send me now" }],
-    });
-
-    const sendBtn = screen.getByTestId("queued-send-q1");
-    expect(sendBtn).toHaveAttribute("aria-label", "立即发送");
-
-    vscode.postMessage.mockClear();
-    fireEvent.click(sendBtn);
-
-    const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
-
-    // force-send: sendMessage carries the item's text with force:true
-    const sendMsg = sentMessages.find(
-      (m: Record<string, unknown>) => m.command === "sendMessage",
-    );
-    expect(sendMsg).toBeDefined();
-    expect(sendMsg.text).toBe("Send me now");
-    expect(sendMsg.force).toBe(true);
-
-    // followed by removing it from the queue by id
-    const deleteMsg = sentMessages.find(
-      (m: Record<string, unknown>) => m.command === "deleteQueuedMessageById",
-    );
-    expect(deleteMsg).toBeDefined();
-    expect(deleteMsg.id).toBe("q1");
-
-    // Optimistic removal empties the queue and hides the panel
-    expect(screen.queryByTestId("queued-message-list")).not.toBeInTheDocument();
-  });
-
   it.skip("should enter editing mode and insert the inline chip + body into the input when clicking edit", async () => {
     renderChatApp();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Editable text" }],
+      messages: [{ id: "q1", content: "Editable text" }],
     });
 
     const input = screen.getByTestId("message-input");
@@ -203,7 +169,7 @@ describe("Message Queue Features", () => {
     renderChatApp();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Editable text" }],
+      messages: [{ id: "q1", content: "Editable text" }],
     });
 
     const input = screen.getByTestId("message-input");
@@ -235,7 +201,7 @@ describe("Message Queue Features", () => {
   it.skip("should submit the edit via updateQueuedMessage when sending in editing mode", async () => {
     const { vscode } = renderChatApp();
     sendCommand("startStreaming");
-    sendCommand("updateQueue", { queue: [{ id: "q1", content: "Old text" }] });
+    sendCommand("updateQueue", { messages: [{ id: "q1", content: "Old text" }] });
 
     fireEvent.click(screen.getByTestId("queued-edit-q1"));
     await waitFor(() =>
@@ -269,7 +235,7 @@ describe("Message Queue Features", () => {
   it("should show a banner and exit editing when receiving updateQueuedMessageMissing", async () => {
     renderChatApp();
     sendCommand("startStreaming");
-    sendCommand("updateQueue", { queue: [{ id: "q1", content: "Old text" }] });
+    sendCommand("updateQueue", { messages: [{ id: "q1", content: "Old text" }] });
 
     fireEvent.click(screen.getByTestId("queued-edit-q1"));
     await waitFor(() =>
@@ -297,7 +263,7 @@ describe("Message Queue Features", () => {
   it("abort should NOT clear the queue", () => {
     renderChatApp();
     sendCommand("startStreaming");
-    sendCommand("updateQueue", { queue: [{ id: "q1", content: "Queued 1" }] });
+    sendCommand("updateQueue", { messages: [{ id: "q1", content: "Queued 1" }] });
 
     const queuePanel = screen.getByTestId("queued-message-list");
     expect(queuePanel).toBeInTheDocument();
@@ -311,7 +277,7 @@ describe("Message Queue Features", () => {
   it("new message should prioritize over queue when not streaming", async () => {
     const { vscode } = renderChatApp();
 
-    sendCommand("updateQueue", { queue: [{ id: "q1", content: "Queued 1" }] });
+    sendCommand("updateQueue", { messages: [{ id: "q1", content: "Queued 1" }] });
 
     vscode.postMessage.mockClear();
     await typeMessage("New Message");
@@ -356,7 +322,7 @@ describe("Message Queue Features", () => {
     establishSession();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Editable text" }],
+      messages: [{ id: "q1", content: "Editable text" }],
     });
 
     const inputA = within(containerA).getByTestId("message-input");

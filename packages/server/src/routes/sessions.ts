@@ -283,6 +283,50 @@ session.delete("/queued-messages/:messageId", async (c) => {
   }
 });
 
+session.patch("/queued-messages/:messageId", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const messageId = c.req.param("messageId")!;
+  let body:
+    | { text?: string; images?: Array<{ data?: string; mediaType?: string }> }
+    | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
+  const images: Array<{ data: string; mediaType: string }> = [];
+  if (Array.isArray(body?.images)) {
+    for (const img of body.images) {
+      if (!img || typeof img.data !== "string" || !img.data) continue;
+      images.push({
+        data: img.data,
+        mediaType:
+          typeof img.mediaType === "string" && img.mediaType
+            ? img.mediaType
+            : "image/png",
+      });
+    }
+  }
+  try {
+    const result = await ctx.runner.updateQueuedMessage(sessionId, messageId, {
+      content: typeof body?.text === "string" ? body.text : undefined,
+      images: images.length > 0 ? images : undefined,
+    });
+    return c.json(result);
+  } catch (err) {
+    const status = runnerErrorStatus(err);
+    const message = runnerErrorMessage(err);
+    getLogger().warn("queued message update failed", {
+      sessionId,
+      messageId,
+      status,
+      error: message,
+    });
+    return c.json({ error: message }, status as 400);
+  }
+});
+
 session.post("/permissions/:permissionId", async (c) => {
   const ctx = c.get("ctx");
   const sessionId = c.req.param("sessionId")!;

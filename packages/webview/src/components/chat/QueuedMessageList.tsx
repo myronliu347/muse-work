@@ -3,7 +3,6 @@ import { Tooltip } from "../shared/Tooltip";
 import {
   QueueChevronIcon,
   QueueEditIcon,
-  QueueSendIcon,
   QueueTrashIcon,
 } from "../shared/HeaderIcons";
 import type { QueuedMessageListProps } from "../../types";
@@ -14,7 +13,6 @@ export const QueuedMessageList: React.FC<QueuedMessageListProps> = ({
   isCollapsed,
   onToggleCollapse,
   onEdit,
-  onSend,
   onDelete,
   editingQueuedId,
 }) => {
@@ -97,17 +95,6 @@ export const QueuedMessageList: React.FC<QueuedMessageListProps> = ({
                     data-testid={`queued-edit-${id}`}
                   >
                     <QueueEditIcon />
-                  </button>
-                  <button
-                    className="queued-action-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (qm.id != null) onSend(qm.id);
-                    }}
-                    aria-label="立即发送"
-                    data-testid={`queued-send-${id}`}
-                  >
-                    <QueueSendIcon />
                   </button>
                   <button
                     className="queued-action-button"

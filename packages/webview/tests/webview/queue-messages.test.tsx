@@ -71,7 +71,7 @@ describe("Message Queuing", () => {
 
     // 5. Simulate queue update from extension
     sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Queued message 1" }],
+      messages: [{ id: "q1", content: "Queued message 1" }],
     });
 
     // 6. Verify message is in the queue (visual check)
@@ -82,7 +82,7 @@ describe("Message Queuing", () => {
 
     // 7. End streaming and clear the queue as the extension would
     sendCommand("endStreaming");
-    sendCommand("updateQueue", { queue: [] });
+    sendCommand("updateQueue", { messages: [] });
 
     // 8. Verify queue is empty in UI
     expect(screen.queryByTestId("queued-message-list")).not.toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("Message Queuing", () => {
 
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [{ id: "q1", content: "Queued message 1" }],
+      messages: [{ id: "q1", content: "Queued message 1" }],
     });
 
     const queuePanel = screen.getByTestId("queued-message-list");
@@ -120,7 +120,7 @@ describe("Message Queuing", () => {
 
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [
+      messages: [
         { id: "q1", content: "Queued message 1" },
         { id: "q2", content: "Queued message 2" },
       ],
@@ -152,56 +152,12 @@ describe("Message Queuing", () => {
     expect(itemText("q2")).toBe("Queued message 2");
   });
 
-  it("should force-send a specific queued message by id when clicking the ↑ send icon", () => {
-    const { vscode } = renderChatApp();
-
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      queue: [
-        { id: "q1", content: "Queued message 1" },
-        { id: "q2", content: "Queued message 2" },
-      ],
-    });
-
-    // Expand to see both items (default collapsed shows only the first).
-    fireEvent.click(
-      screen
-        .getByTestId("queued-message-list")
-        .querySelector(".queued-message-list-header") as HTMLElement,
-    );
-
-    // Click the ↑ send-now button for the second queued message
-    fireEvent.click(screen.getByTestId("queued-send-q2"));
-
-    const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
-
-    // force-send: sendMessage with the item's text and force:true
-    const sendMessageSent = sentMessages.some(
-      (m: Record<string, unknown>) =>
-        m.command === "sendMessage" &&
-        m.text === "Queued message 2" &&
-        m.force === true,
-    );
-    expect(sendMessageSent).toBe(true);
-
-    // followed by removal from the queue by id
-    const deleteMessageSent = sentMessages.some(
-      (m: Record<string, unknown>) =>
-        m.command === "deleteQueuedMessageById" && m.id === "q2",
-    );
-    expect(deleteMessageSent).toBe(true);
-
-    // Optimistic local removal of the sent item; the other remains
-    expect(screen.queryByTestId("queued-item-q2")).not.toBeInTheDocument();
-    expect(itemText("q1")).toBe("Queued message 1");
-  });
-
   it("should display bang commands with ! prefix in the queue", () => {
     renderChatApp();
 
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [
+      messages: [
         { id: "q1", type: "bang", content: "ls -la" },
         { id: "q2", type: "message", content: "normal message" },
       ],
@@ -226,7 +182,7 @@ describe("Message Queuing", () => {
 
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
-      queue: [
+      messages: [
         {
           id: "q1",
           content: "A very long queued message that needs a tooltip",

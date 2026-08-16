@@ -793,4 +793,83 @@ describe("sessionRunner concurrency / dispose", () => {
       runner.getRuntimeState("does-not-exist"),
     ).rejects.toMatchObject({ statusCode: 404 });
   });
+
+  it("updateQueuedMessage patches a queued message on the SDK agent", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-updq-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const patches: Array<{ id: string; patch: unknown }> = [];
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        updateQueuedMessageById: (id, patch) => {
+          patches.push({ id, patch });
+          return id === "mq-1";
+        },
+        dispose: async () => {},
+      }),
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+
+    expect(
+      await runner.updateQueuedMessage(session.id, "mq-1", { content: "new" }),
+    ).toEqual({ ok: true });
+    expect(
+      await runner.updateQueuedMessage(session.id, "mq-999", { content: "x" }),
+    ).toEqual({ ok: false });
+    expect(patches).toEqual([
+      { id: "mq-1", patch: { content: "new" } },
+      { id: "mq-999", patch: { content: "x" } },
+    ]);
+
+    await expect(
+      runner.updateQueuedMessage("does-not-exist", "mq-1", { content: "x" }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+  });
 });

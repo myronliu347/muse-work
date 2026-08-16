@@ -75,6 +75,11 @@ export interface SessionAgent {
   hasPendingMessages?: () => boolean;
   /** Remove a queued message by id (SDK-owned queue). */
   removeQueuedMessageById?: (id: string) => boolean;
+  /** Update a queued message by id (SDK-owned queue). */
+  updateQueuedMessageById?: (
+    id: string,
+    patch: { content?: string; images?: SessionImage[] },
+  ) => boolean;
   /** SDK loading state (true while AI / tools are running). */
   isLoading?: () => boolean;
   /** SDK queued messages snapshot (excludes background notifications). */
@@ -96,6 +101,12 @@ export interface SessionRunner {
   deleteQueuedMessageById(
     sessionId: string,
     messageId: string,
+  ): Promise<{ ok: boolean }>;
+  /** Update a queued message's content/images in the SDK-owned queue. */
+  updateQueuedMessage(
+    sessionId: string,
+    messageId: string,
+    patch: { content?: string; images?: OutboundImage[] },
   ): Promise<{ ok: boolean }>;
   /** Runtime snapshot for session restore: SDK loading + queued messages. */
   getRuntimeState(
@@ -207,6 +218,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
       hasPendingMessages: () => agent.hasPendingMessages,
       removeQueuedMessageById: (id) => agent.removeQueuedMessageById(id),
+      updateQueuedMessageById: (id, patch) =>
+        agent.updateQueuedMessageById(id, patch),
       isLoading: () => agent.isLoading,
       queuedMessages: () => agent.queuedMessages,
       get latestTotalTokens() {
@@ -1199,6 +1212,29 @@ export function createSessionRunner(
       }
       const removed = agent.removeQueuedMessageById(messageId);
       return { ok: removed };
+    },
+
+    async updateQueuedMessage(sessionId, messageId, patch) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = agents.get(sessionId);
+      if (!agent?.updateQueuedMessageById) {
+        return { ok: false };
+      }
+      const sdkPatch: { content?: string; images?: SessionImage[] } = {};
+      if (typeof patch.content === "string") {
+        sdkPatch.content = patch.content;
+      }
+      const sdkImages = toSdkImages(patch.images);
+      if (sdkImages) {
+        sdkPatch.images = sdkImages;
+      }
+      const updated = agent.updateQueuedMessageById(messageId, sdkPatch);
+      return { ok: updated };
     },
 
     async getRuntimeState(sessionId) {

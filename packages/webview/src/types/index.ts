@@ -604,7 +604,6 @@ export interface QueuedMessageListProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onEdit: (id: string) => void;
-  onSend: (id: string) => void;
   onDelete: (id: string) => void;
   editingQueuedId: string | null;
   vscode: VsCodeApi;
