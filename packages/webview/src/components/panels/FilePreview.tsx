@@ -6,6 +6,11 @@ import { useMuseTheme } from "../../ui/theme";
 import { displayFilePath } from "../../utils/filePathDisplay";
 import { highlightCode } from "../../utils/shikiHighlighter";
 import {
+  findMatches,
+  wrapLineMatches,
+  type LineMatch,
+} from "../../utils/fileSearch";
+import {
   encodeFileSelectionClipboard,
   FILE_SELECTION_CLIPBOARD_MIME,
   lineRangeFromFilePreviewSelection,
@@ -93,6 +98,9 @@ export type FilePreviewProps = {
   markdownMode?: "preview" | "source";
   onOpenFile?: (path: string) => void;
   onOpenExternal?: (url: string) => void;
+  /** Whether the find-in-file bar is open (owned by the parent pane). */
+  searchOpen?: boolean;
+  onCloseSearch?: () => void;
 };
 
 export const FilePreview: React.FC<FilePreviewProps> = ({
@@ -102,11 +110,16 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   markdownMode = "preview",
   onOpenFile,
   onOpenExternal,
+  searchOpen = false,
+  onCloseSearch,
 }) => {
   const { effective } = useMuseTheme();
   const dark = effective === "dark";
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [lines, setLines] = useState<string[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentMatch, setCurrentMatch] = useState(0);
   const relativePath = useMemo(
     () => displayFilePath(fileView.path, workdir),
     [fileView.path, workdir],
@@ -118,6 +131,63 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     !fileView.error &&
     !fileView.unsupported &&
     (!markdown || showSource);
+
+  // Plain text lines, aligned with the shiki-highlighted `lines` fragments.
+  const plainLines = useMemo(
+    () => (fileView.content ?? "").replace(/\n$/, "").split("\n"),
+    [fileView.content],
+  );
+  const matches = useMemo(
+    () => findMatches(plainLines, searchQuery.trim()),
+    [plainLines, searchQuery],
+  );
+  const matchesByLine = useMemo(() => {
+    const map = new Map<number, LineMatch[]>();
+    for (const m of matches) {
+      const arr = map.get(m.lineIndex) ?? [];
+      arr.push({ start: m.startCol, end: m.endCol });
+      map.set(m.lineIndex, arr);
+    }
+    return map;
+  }, [matches]);
+
+  // Reset the search when the file changes.
+  useEffect(() => {
+    setSearchQuery("");
+    setCurrentMatch(0);
+  }, [fileView.path]);
+
+  useEffect(() => {
+    setCurrentMatch(0);
+  }, [searchQuery]);
+
+  // Closing the bar clears the query so stale highlights disappear.
+  useEffect(() => {
+    if (!searchOpen) setSearchQuery("");
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+      searchInputRef.current.select();
+    }
+  }, [searchOpen]);
+
+  const total = matches.length;
+  const activeIndex =
+    total === 0 ? -1 : Math.min(currentMatch, total - 1);
+
+  // Keep the current match visible when navigating.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || activeIndex < 0 || !lines) return;
+    const lineIndex = matches[activeIndex].lineIndex;
+    el.scrollTop = Math.max(
+      0,
+      lineIndex * HIGHLIGHT_LINE_HEIGHT - HIGHLIGHT_LINE_HEIGHT * 1.5,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex, fileView.path]);
 
   useEffect(() => {
     if (!showCode || !fileView.content) {
@@ -240,8 +310,76 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     if (raw && workdir) onOpenFile?.(resolveWorkdirHref(workdir, raw));
   };
 
+  const stepMatch = (delta: 1 | -1) => {
+    if (total === 0) return;
+    setCurrentMatch((prev) => (prev + delta + total) % total);
+  };
+
   return (
-    <div className="file-pane-preview-body" ref={scrollRef}>
+    <div className="file-pane-preview">
+      {searchOpen && showCode && onCloseSearch && (
+        <div className="file-pane-search" data-testid="file-search-bar">
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="file-pane-search-input"
+            data-testid="file-search-input"
+            placeholder="在文件中查找"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                stepMatch(e.shiftKey ? -1 : 1);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                onCloseSearch();
+              }
+            }}
+          />
+          <span
+            className="file-pane-search-count"
+            data-testid="file-search-count"
+          >
+            {total === 0 ? "0/0" : `${activeIndex + 1}/${total}`}
+          </span>
+          <div className="file-pane-search-actions">
+            <button
+              type="button"
+              className="file-pane-search-btn"
+              data-testid="file-search-prev"
+              title="上一处 (Shift+Enter)"
+              aria-label="上一处"
+              disabled={total === 0}
+              onClick={() => stepMatch(-1)}
+            >
+              <i className="codicon codicon-chevron-up" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="file-pane-search-btn"
+              data-testid="file-search-next"
+              title="下一处 (Enter)"
+              aria-label="下一处"
+              disabled={total === 0}
+              onClick={() => stepMatch(1)}
+            >
+              <i className="codicon codicon-chevron-down" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="file-pane-search-btn"
+              data-testid="file-search-close"
+              title="关闭 (Esc)"
+              aria-label="关闭"
+              onClick={onCloseSearch}
+            >
+              <i className="codicon codicon-close" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="file-pane-preview-body" ref={scrollRef}>
       {markdown && markdownMode === "preview" && (
         <div
           className="message-content markdown-content file-pane-markdown"
@@ -266,6 +404,20 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
               rangeEnd !== undefined &&
               lineNo >= fileView.startLine &&
               lineNo <= rangeEnd;
+            const activeMatch =
+              activeIndex >= 0 &&
+              matches[activeIndex].lineIndex === i
+                ? {
+                    start: matches[activeIndex].startCol,
+                    end: matches[activeIndex].endCol,
+                  }
+                : undefined;
+            const html = wrapLineMatches(
+              line,
+              plainLines[i] ?? "",
+              matchesByLine.get(i) ?? [],
+              activeMatch,
+            );
             return (
               <div
                 key={i}
@@ -274,7 +426,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
                 <span className="file-pane-line-no">{lineNo}</span>
                 <span
                   className="file-pane-line-code"
-                  dangerouslySetInnerHTML={{ __html: line || "&nbsp;" }}
+                  dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }}
                 />
               </div>
             );
@@ -292,6 +444,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
           <span>正在高亮…</span>
         </div>
       )}
+      </div>
     </div>
   );
 };

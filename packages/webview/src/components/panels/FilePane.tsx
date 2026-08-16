@@ -56,6 +56,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
 }) => {
   const asideRef = useRef<HTMLElement>(null);
   const [mdMode, setMdMode] = useState<"preview" | "source">("preview");
+  const [searchOpen, setSearchOpen] = useState(false);
   const lastPathRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
       ensureExpandedForFile(fileTree, workdir, fileView.path),
     );
     setMdMode("preview");
+    setSearchOpen(false);
     // Only react to path changes; fileTree identity intentionally omitted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileView?.path, workdir]);
@@ -96,6 +98,25 @@ export const FilePane: React.FC<FilePaneProps> = ({
   const treeCollapsed = fileTree.collapsed !== false;
   const showTreeToggle = Boolean(onFileTreeChange);
 
+  // Find-in-file is available whenever the code/source view renders.
+  const canSearch =
+    !!fileView?.content &&
+    !fileView.error &&
+    !fileView.unsupported &&
+    !(isMd && mdMode === "preview");
+
+  useEffect(() => {
+    if (!canSearch) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canSearch]);
+
   const toggleTreeCollapsed = () => {
     if (!onFileTreeChange) return;
     onFileTreeChange({ ...fileTree, collapsed: !treeCollapsed });
@@ -118,6 +139,19 @@ export const FilePane: React.FC<FilePaneProps> = ({
               <span className="preview-pane-url">文件</span>
             )}
             <div className="file-pane-toolbar-actions">
+              {canSearch && (
+                <button
+                  type="button"
+                  className="preview-pane-button"
+                  data-testid="file-search-btn"
+                  title="在文件中查找 (Cmd+F)"
+                  aria-label="在文件中查找"
+                  aria-pressed={searchOpen}
+                  onClick={() => setSearchOpen((v) => !v)}
+                >
+                  <i className="codicon codicon-search" aria-hidden />
+                </button>
+              )}
               {isMd && (
                 <div className="file-pane-md-toggle" data-testid="file-md-toggle">
                   <button
@@ -187,6 +221,8 @@ export const FilePane: React.FC<FilePaneProps> = ({
                 onOpenExternal={(url) =>
                   vscode.postMessage({ command: "openExternal", url })
                 }
+                searchOpen={searchOpen}
+                onCloseSearch={() => setSearchOpen(false)}
               />
             )}
           </div>

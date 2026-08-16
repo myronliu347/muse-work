@@ -9,9 +9,91 @@
   flex: 1;
 }
 
+.file-pane-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .file-pane-preview-body {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
+}
+
+/* Find-in-file bar pinned above the scrolling content. */
+.file-pane-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--gray-6);
+  background: var(--gray-2);
+}
+
+.file-pane-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-1);
+  background: var(--gray-1);
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+}
+
+.file-pane-search-count {
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--font-size-1);
+  font-family: Menlo, Monaco, monospace;
+  color: var(--gray-9);
+}
+
+.file-pane-search-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.file-pane-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-1);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.file-pane-search-btn:hover:not(:disabled) {
+  background: var(--gray-4);
+}
+
+.file-pane-search-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Inline match highlights inside the code view. */
+.file-pane-search-mark {
+  background: color-mix(in srgb, var(--accent-9) 35%, transparent);
+  color: inherit;
+  padding: 0;
+}
+
+.file-pane-search-mark--current {
+  background: var(--accent-9);
+  color: var(--gray-1);
 }
 
 /* Host badge + path, shown in the (fixed) toolbar so the location stays

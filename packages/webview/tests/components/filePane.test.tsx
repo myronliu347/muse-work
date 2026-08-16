@@ -250,6 +250,149 @@ describe("FilePane", () => {
     });
   });
 
+  describe("file search", () => {
+    async function openSearch() {
+      renderPane();
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
+      return screen.getByTestId("file-search-input") as HTMLInputElement;
+    }
+
+    it("opens the search bar from the toolbar button", async () => {
+      renderPane();
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      expect(screen.queryByTestId("file-search-bar")).toBeNull();
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
+    });
+
+    it("opens the search bar with Cmd+F", async () => {
+      renderPane();
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
+      expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
+    });
+
+    it("highlights matches and shows the match counter", async () => {
+      const { container } = renderPane();
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.change(screen.getByTestId("file-search-input"), {
+        target: { value: "const" },
+      });
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(2);
+      });
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("1/2");
+    });
+
+    it("navigates next and previous, wrapping around", async () => {
+      const input = await openSearch();
+      fireEvent.change(input, { target: { value: "const" } });
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("1/2");
+      fireEvent.click(screen.getByTestId("file-search-next"));
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("2/2");
+      fireEvent.click(screen.getByTestId("file-search-next"));
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("1/2");
+      fireEvent.click(screen.getByTestId("file-search-prev"));
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("2/2");
+    });
+
+    it("Enter goes to the next match, Shift+Enter to previous", async () => {
+      const input = await openSearch();
+      fireEvent.change(input, { target: { value: "const" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("2/2");
+      fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("1/2");
+    });
+
+    it("highlights the current match distinctly", async () => {
+      const { container } = renderPane();
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.change(screen.getByTestId("file-search-input"), {
+        target: { value: "const" },
+      });
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(2);
+      });
+      let current = container.querySelectorAll(".file-pane-search-mark--current");
+      expect(current.length).toBe(1);
+      expect(current[0].textContent).toBe("const");
+      fireEvent.click(screen.getByTestId("file-search-next"));
+      await waitFor(() => {
+        const next = container.querySelectorAll(".file-pane-search-mark--current");
+        expect(next.length).toBe(1);
+        const lineNo = next[0].closest(".file-pane-line")?.querySelector(
+          ".file-pane-line-no",
+        );
+        expect(lineNo?.textContent).toBe("2");
+      });
+    });
+
+    it("Esc closes the search bar", async () => {
+      const input = await openSearch();
+      fireEvent.keyDown(input, { key: "Escape" });
+      expect(screen.queryByTestId("file-search-bar")).toBeNull();
+    });
+
+    it("closing the search bar clears the highlights", async () => {
+      const { container } = renderPane();
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.change(screen.getByTestId("file-search-input"), {
+        target: { value: "const" },
+      });
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-close"));
+      expect(screen.queryByTestId("file-search-bar")).toBeNull();
+      expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(0);
+    });
+
+    it("clears highlights when the query is emptied", async () => {
+      const { container } = renderPane();
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      const input = screen.getByTestId("file-search-input");
+      fireEvent.change(input, { target: { value: "const" } });
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(2);
+      });
+      fireEvent.change(input, { target: { value: "" } });
+      expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(0);
+      expect(screen.getByTestId("file-search-count")).toHaveTextContent("0/0");
+    });
+
+    it("hides the search button in markdown preview mode", () => {
+      renderPane({
+        fileView: {
+          path: "/work/a/README.md",
+          host: "local",
+          content: "# 标题",
+        },
+      });
+      expect(screen.queryByTestId("file-search-btn")).toBeNull();
+    });
+  });
+
   it("marks the requested line range as active", async () => {
     const { container } = renderPane({
       fileView: makeFileView({ startLine: 1, endLine: 1 }),
