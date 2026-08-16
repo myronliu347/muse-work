@@ -64,27 +64,17 @@ function stubVscode(): VsCodeApi {
 describe("MessageInput local file pick", () => {
   afterEach(() => cleanup());
 
-  it("shows add-file button only when enableLocalFilePick", () => {
+  it("always shows the add-file button (desktop-only toolbar)", () => {
     const vscode = stubVscode();
-    const { rerender } = render(
+    render(
       <MessageInput
         onSendMessage={vi.fn()}
         isStreaming={false}
         onAbortMessage={vi.fn()}
         vscode={vscode}
-        enableLocalFilePick
       />,
     );
     expect(screen.getByTestId("add-local-file-btn")).toBeTruthy();
-    rerender(
-      <MessageInput
-        onSendMessage={vi.fn()}
-        isStreaming={false}
-        onAbortMessage={vi.fn()}
-        vscode={vscode}
-      />,
-    );
-    expect(screen.queryByTestId("add-local-file-btn")).toBeNull();
   });
 
   it("click posts desktopSelectFiles; result inserts @file tags", async () => {
@@ -95,7 +85,6 @@ describe("MessageInput local file pick", () => {
         isStreaming={false}
         onAbortMessage={vi.fn()}
         vscode={vscode}
-        enableLocalFilePick
         workdir="/proj"
       />,
     );
@@ -132,7 +121,6 @@ describe("MessageInput local file pick", () => {
           isStreaming={false}
           onAbortMessage={vi.fn()}
           vscode={vscode}
-          enableLocalFilePick
           workdir="/proj"
         />,
       );

@@ -122,7 +122,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       onModelChange,
       modelSelectApi,
       workdir,
-      enableLocalFilePick,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -956,8 +955,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
         // Handle Ctrl+B to background the current foreground task (same as CLI).
         // Only intercepted while a turn is running — when idle the key falls
-        // through so the host keeps its own Ctrl+B binding (e.g. VS Code's
-        // Toggle Sidebar).
+        // through so the host keeps its own Ctrl+B binding.
         if (
           event.key === "b" &&
           (event.ctrlKey || event.metaKey) &&
@@ -1450,30 +1448,26 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
             {/* Toolbar row: workdir/git on the left, model select + send on the right */}
             <div className="input-buttons-row">
-              {enableLocalFilePick || workdirSelector ? (
-                <div
-                  className="input-toolbar-left"
-                  data-testid="input-workdir-row"
-                >
-                  {workdirSelector}
-                  {enableLocalFilePick ? (
-                    <Tooltip text="添加文件" position="top">
-                      <button
-                        type="button"
-                        className="toolbar-icon-button"
-                        data-testid="add-local-file-btn"
-                        aria-label="添加文件"
-                        disabled={disabled}
-                        onClick={() =>
-                          vscode.postMessage({ command: "desktopSelectFiles" })
-                        }
-                      >
-                        <i className="codicon codicon-new-file" />
-                      </button>
-                    </Tooltip>
-                  ) : null}
-                </div>
-              ) : null}
+              <div
+                className="input-toolbar-left"
+                data-testid="input-workdir-row"
+              >
+                {workdirSelector}
+                <Tooltip text="添加文件" position="top">
+                  <button
+                    type="button"
+                    className="toolbar-icon-button"
+                    data-testid="add-local-file-btn"
+                    aria-label="添加文件"
+                    disabled={disabled}
+                    onClick={() =>
+                      vscode.postMessage({ command: "desktopSelectFiles" })
+                    }
+                  >
+                    <i className="codicon codicon-new-file" />
+                  </button>
+                </Tooltip>
+              </div>
               <div className="button-spacer" />
               <div className="permission-mode-container" ref={permMenuRef}>
                 <button

@@ -12,7 +12,6 @@ import "../../styles/ConfigurationDialog.css";
 const StatusDialog: React.FC<
   StatusDialogProps & {
     vscode: { postMessage: (msg: unknown) => void };
-    isDesktop?: boolean;
   }
 > = ({ onClose, vscode }) => {
   const [version, setVersion] = useState("");
