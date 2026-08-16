@@ -89,6 +89,7 @@ export type WsEvent =
   | { type: "background-tasks:update"; tasks: unknown[] }
   | { type: "workflow-runs:update"; runs: unknown[] }
   | { type: "mcp:update"; servers: unknown[] }
+  | { type: "updateQueue"; messages: unknown[] }
   | {
       type: "permission-mode";
       mode: "acceptEdits" | "bypassPermissions";

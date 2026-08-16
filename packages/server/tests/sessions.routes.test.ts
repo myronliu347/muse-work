@@ -138,4 +138,29 @@ describe("sessions HTTP routes", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
   });
+
+  it("DELETE /sessions/:id/queued-messages/:messageId returns ok (no agent yet)", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", model: "m1" }),
+    }).then((r) => r.json());
+
+    const res = await fetch(
+      `${app.baseUrl}/sessions/${created.id}/queued-messages/mq-1`,
+      { method: "DELETE" },
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: false });
+
+    const missing = await fetch(
+      `${app.baseUrl}/sessions/does-not-exist/queued-messages/mq-1`,
+      { method: "DELETE" },
+    );
+    expect(missing.status).toBe(404);
+  });
 });

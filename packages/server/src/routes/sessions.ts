@@ -260,6 +260,29 @@ session.post("/abort", async (c) => {
   }
 });
 
+session.delete("/queued-messages/:messageId", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  const messageId = c.req.param("messageId")!;
+  try {
+    const result = await ctx.runner.deleteQueuedMessageById(
+      sessionId,
+      messageId,
+    );
+    return c.json(result);
+  } catch (err) {
+    const status = runnerErrorStatus(err);
+    const message = runnerErrorMessage(err);
+    getLogger().warn("queued message delete failed", {
+      sessionId,
+      messageId,
+      status,
+      error: message,
+    });
+    return c.json({ error: message }, status as 400);
+  }
+});
+
 session.post("/permissions/:permissionId", async (c) => {
   const ctx = c.get("ctx");
   const sessionId = c.req.param("sessionId")!;

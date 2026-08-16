@@ -323,6 +323,17 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async deleteQueuedMessageById(
+    sessionId: string,
+    messageId: string,
+  ): Promise<{ ok: boolean }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/queued-messages/${encodeURIComponent(messageId)}`,
+      { method: "DELETE" },
+    );
+    return parseJson(res);
+  }
+
   async respondPermission(
     sessionId: string,
     permissionId: string,

@@ -579,9 +579,15 @@ describe("sessions + websocket streaming", () => {
       releaseSend = resolve;
     });
     const seen: string[] = [];
+    // Mock the SDK's own serialized queue: while a turn is in flight, sendMessage
+    // enqueues and returns; once loading drops, the next queued item is dispatched.
+    let busy = false;
+    const pending: string[] = [];
 
-    const createAgent: CreateAgent = async (opts) => ({
-      sendMessage: async (content: string) => {
+    const createAgent: CreateAgent = async (opts) => {
+      const run = async (content: string) => {
+        busy = true;
+        opts.callbacks?.onLoadingChange?.(true);
         seen.push(content);
         if (content === "first") {
           await sendGate;
@@ -591,9 +597,24 @@ describe("sessions + websocket streaming", () => {
           chunk: "",
           stage: "end",
         });
-      },
-      dispose: async () => {},
-    });
+        opts.callbacks?.onLoadingChange?.(false);
+        busy = false;
+        const next = pending.shift();
+        if (next) {
+          await run(next); // SDK tryDispatch chains the next queued message
+        }
+      };
+      return {
+        sendMessage: async (content: string) => {
+          if (busy) {
+            pending.push(content);
+            return;
+          }
+          await run(content);
+        },
+        dispose: async () => {},
+      };
+    };
 
     const app = await listenSessionsApp({ createAgent });
     server = app.server;

@@ -1345,6 +1345,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
+  async function handleDeleteQueuedMessageById(msg: {
+    id?: string;
+  }): Promise<void> {
+    const id = typeof msg.id === "string" ? msg.id : undefined;
+    if (!id || !sessionId || pendingNewSession) return;
+    try {
+      await api.deleteQueuedMessageById(sessionId, id);
+    } catch {
+      // The optimistic UI removal stays; the next updateQueue sync corrects it.
+    }
+  }
+
   const FALLBACK_SLASH_COMMANDS = [
     { id: "compact", name: "compact", description: "压缩会话上下文" },
     { id: "clear", name: "clear", description: "清空当前会话" },
@@ -1886,6 +1898,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "abortMessage":
           void handleAbortMessage();
+          return;
+        case "deleteQueuedMessageById":
+          void handleDeleteQueuedMessageById(msg as { id?: string });
           return;
         case "requestSlashCommands":
           void handleRequestSlashCommands();

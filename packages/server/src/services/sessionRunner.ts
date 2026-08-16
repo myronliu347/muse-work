@@ -71,6 +71,10 @@ export interface SessionAgent {
   getWorkflowRuns?: () => Promise<unknown[]> | unknown[];
   stopWorkflowRun?: (runId: string) => void;
   latestTotalTokens?: number;
+  /** Whether the SDK has messages queued (serialized send dispatch). */
+  hasPendingMessages?: () => boolean;
+  /** Remove a queued message by id (SDK-owned queue). */
+  removeQueuedMessageById?: (id: string) => boolean;
 }
 
 export type CreateAgent = (options: AgentOptions) => Promise<SessionAgent>;
@@ -84,6 +88,11 @@ export interface SessionRunner {
     images?: OutboundImage[],
   ): Promise<{ accepted: true }>;
   abortMessage(sessionId: string): Promise<{ ok: true }>;
+  /** Remove a queued message from the SDK-owned queue. */
+  deleteQueuedMessageById(
+    sessionId: string,
+    messageId: string,
+  ): Promise<{ ok: boolean }>;
   respondPermission(
     sessionId: string,
     permissionId: string,
@@ -134,11 +143,6 @@ export interface SessionRunner {
   stopBackgroundTask(sessionId: string, taskId: string): Promise<{ ok: boolean }>;
   getWorkflowRuns(sessionId: string): Promise<unknown[]>;
   stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
-}
-
-interface QueuedTurn {
-  content: string;
-  images?: SessionImage[];
 }
 
 interface PendingPermission {
@@ -193,6 +197,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       stopBackgroundTask: (id) => agent.stopBackgroundTask(id),
       getWorkflowRuns: () => agent.getWorkflowRuns(),
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
+      hasPendingMessages: () => agent.hasPendingMessages,
+      removeQueuedMessageById: (id) => agent.removeQueuedMessageById(id),
       get latestTotalTokens() {
         return agent.latestTotalTokens;
       },
@@ -221,8 +227,6 @@ export function createSessionRunner(
   const pending = new Map<string, PendingPermission>();
   /** Session IDs that were disposed; late createAgent completions must not revive them. */
   const disposed = new Set<string>();
-  /** Messages accepted while a turn is in flight (avoid HTTP 409). */
-  const messageQueues = new Map<string, QueuedTurn[]>();
   /** Per-session flag: current turn already received assistant stage "end". */
   const turnEnded = new Map<string, boolean>();
   /** True once this turn emitted assistant / tool / reasoning / error output. */
@@ -479,8 +483,9 @@ export function createSessionRunner(
     if (hasPendingPermission(sessionId)) {
       return false;
     }
-    const queue = messageQueues.get(sessionId);
-    if (queue && queue.length > 0) {
+    // Queued messages live in the SDK's own queue now; keep the runtime alive
+    // until they are dispatched so they are not lost on destroy.
+    if (agents.get(sessionId)?.hasPendingMessages?.()) {
       return false;
     }
     return true;
@@ -569,31 +574,11 @@ export function createSessionRunner(
       status: "error",
       error: message,
     });
-    // Allow the next queued message after a failed turn.
+    // Idle lets the SDK's own queue dispatch the next message via tryDispatch.
     store.updateStatus(sessionId, "idle");
     hub.broadcast(sessionId, { type: "session:status", status: "idle" });
     markUnreadDoneIfInactive(sessionId);
     scheduleIdleDestroy(sessionId);
-  }
-
-  async function drainQueue(sessionId: string): Promise<void> {
-    if (disposed.has(sessionId)) {
-      messageQueues.delete(sessionId);
-      return;
-    }
-    const session = store.get(sessionId);
-    if (!session || session.status === "running") {
-      return;
-    }
-    const queue = messageQueues.get(sessionId);
-    if (!queue || queue.length === 0) {
-      return;
-    }
-    const next = queue.shift()!;
-    if (queue.length === 0) {
-      messageQueues.delete(sessionId);
-    }
-    await runTurn(sessionId, next.content, next.images);
   }
 
   function rememberWaveSessionId(
@@ -742,6 +727,10 @@ export function createSessionRunner(
             type: "compaction:state",
             isCompacting,
           });
+        },
+        onQueuedMessagesChange: (messages) => {
+          if (disposed.has(sessionId)) return;
+          hub.broadcast(sessionId, { type: "updateQueue", messages });
         },
         onCompactBlockAdded: () => {
           if (disposed.has(sessionId)) return;
@@ -1070,13 +1059,6 @@ export function createSessionRunner(
     if (!session || disposed.has(sessionId)) {
       return;
     }
-    if (session.status === "running") {
-      // Should not happen; queue instead of overlapping turns.
-      const queue = messageQueues.get(sessionId) ?? [];
-      queue.push({ content, images });
-      messageQueues.set(sessionId, queue);
-      return;
-    }
 
     clearIdleTimer(sessionId);
     store.update(sessionId, { lastActiveAt: Date.now() });
@@ -1130,8 +1112,7 @@ export function createSessionRunner(
       }
       finishTurnError(sessionId, err);
     } finally {
-      // Drain only after this turn's sendMessage has settled (avoids overlapping turns).
-      void drainQueue(sessionId);
+      // No server-side drain: the SDK serializes queued sends via its own queue.
     }
   }
 
@@ -1159,15 +1140,9 @@ export function createSessionRunner(
         });
       }
 
-      if (session.status === "running") {
-        const queue = messageQueues.get(sessionId) ?? [];
-        queue.push({ content, images: sdkImages });
-        messageQueues.set(sessionId, queue);
-        clearIdleTimer(sessionId);
-        return { accepted: true };
-      }
-
       // Fire-and-forget so HTTP can return { accepted: true } promptly.
+      // If a turn is already in flight, the SDK enqueues the message internally
+      // and dispatches it once loading drops (its own serialized queue).
       void runTurn(sessionId, content, sdkImages);
 
       return { accepted: true };
@@ -1184,6 +1159,21 @@ export function createSessionRunner(
       interruptTurn(sessionId, { denyMessage: "Aborted by user" });
 
       return { ok: true };
+    },
+
+    async deleteQueuedMessageById(sessionId, messageId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = agents.get(sessionId);
+      if (!agent?.removeQueuedMessageById) {
+        return { ok: false };
+      }
+      const removed = agent.removeQueuedMessageById(messageId);
+      return { ok: removed };
     },
 
     async respondPermission(sessionId, permissionId, decision) {
@@ -1213,7 +1203,6 @@ export function createSessionRunner(
       disposed.add(sessionId);
       clearIdleTimer(sessionId);
       clearStallTimer(sessionId);
-      messageQueues.delete(sessionId);
       turnEnded.delete(sessionId);
       turnHadOutput.delete(sessionId);
       aborting.delete(sessionId);

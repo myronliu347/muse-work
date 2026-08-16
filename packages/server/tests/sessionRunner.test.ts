@@ -433,6 +433,83 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
   });
 
+  it("deleteQueuedMessageById removes a queued message from the SDK agent", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-delq-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const removedIds: string[] = [];
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        removeQueuedMessageById: (id) => {
+          removedIds.push(id);
+          return id === "mq-1";
+        },
+        dispose: async () => {},
+      }),
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    // Prime the agent so it exists in the agents map.
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+
+    expect(await runner.deleteQueuedMessageById(session.id, "mq-1")).toEqual({
+      ok: true,
+    });
+    expect(await runner.deleteQueuedMessageById(session.id, "mq-999")).toEqual({
+      ok: false,
+    });
+    expect(removedIds).toEqual(["mq-1", "mq-999"]);
+
+    await expect(
+      runner.deleteQueuedMessageById("does-not-exist", "mq-1"),
+    ).rejects.toMatchObject({ statusCode: 404 });
+  });
+
   it("passes local superpowers plugin when enabled", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-on-"));
     saveProvidersConfig(
