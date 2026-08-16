@@ -198,7 +198,7 @@ export interface OpenPaneOptions {
 }
 
 // Desktop host support — injected when running inside packages/desktop (Electron).
-// window.waveHostType === 'desktop' selects the DesktopApp root in index.tsx.
+// DesktopApp is the single root for the desktop host.
 export interface DesktopHostProps {
   type: "desktop";
   /** Current host (local-only for now; kept for pane/workdir scoping). */

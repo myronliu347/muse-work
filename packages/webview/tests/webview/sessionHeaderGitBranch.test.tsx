@@ -28,11 +28,9 @@ function renderDesktop(workdir = "/work/a") {
 
 beforeEach(() => {
   resetWebviewStores();
-  window.waveHostType = "desktop";
 });
 
 afterEach(() => {
-  delete window.waveHostType;
   document.head
     .querySelectorAll('script[src="./terminal.js"]')
     .forEach((s) => s.remove());

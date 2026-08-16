@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import React from "react";
 import { Message } from "../../src/components/message/Message";
@@ -13,13 +13,9 @@ const CONTENT =
 
 function renderMessage(options?: {
   onOpenPreview?: (url: string) => void;
-  hostType?: string;
   content?: string;
 }) {
   const vscode = createMockVscode();
-  if (options?.hostType) {
-    window.waveHostType = options.hostType;
-  }
   const message = MockDataGenerator.createAssistantMessage(
     options?.content ?? CONTENT,
   );
@@ -41,17 +37,10 @@ function renderMessage(options?: {
   };
 }
 
-afterEach(() => {
-  delete window.waveHostType;
-});
-
 describe("Message link routing", () => {
   it("desktop host: localhost link opens the preview pane", () => {
     const onOpenPreview = vi.fn();
-    const { vscode, localLink } = renderMessage({
-      onOpenPreview,
-      hostType: "desktop",
-    });
+    const { vscode, localLink } = renderMessage({ onOpenPreview });
 
     const notPrevented = fireEvent.click(localLink);
 
@@ -62,10 +51,7 @@ describe("Message link routing", () => {
 
   it("desktop host: non-localhost link goes to the system browser", () => {
     const onOpenPreview = vi.fn();
-    const { vscode, externalLink } = renderMessage({
-      onOpenPreview,
-      hostType: "desktop",
-    });
+    const { vscode, externalLink } = renderMessage({ onOpenPreview });
 
     fireEvent.click(externalLink);
 
@@ -77,7 +63,7 @@ describe("Message link routing", () => {
   });
 
   it("desktop host without onOpenPreview: localhost link falls back to external browser", () => {
-    const { vscode, localLink } = renderMessage({ hostType: "desktop" });
+    const { vscode, localLink } = renderMessage();
 
     fireEvent.click(localLink);
 
@@ -89,10 +75,7 @@ describe("Message link routing", () => {
 
   it("desktop host: clicking non-link content does nothing", () => {
     const onOpenPreview = vi.fn();
-    const { container, vscode } = renderMessage({
-      onOpenPreview,
-      hostType: "desktop",
-    });
+    const { container, vscode } = renderMessage({ onOpenPreview });
     const paragraph = container.querySelector(".message-content-container p")!;
 
     fireEvent.click(paragraph);

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
 import {
@@ -527,12 +527,7 @@ describe("rewriteCommentUrl", () => {
 // DesktopApp markdown/link harness is out of date with current message
 // rendering; keep unit coverage above and skip until the fixture is refreshed.
 describe.skip("PreviewPane integration (DesktopApp)", () => {
-  afterEach(() => {
-    delete window.waveHostType;
-  });
-
   it("clicking a localhost link in a message opens the preview pane", () => {
-    window.waveHostType = "desktop";
     render(<DesktopApp vscode={createMockVscode()} />);
     sendCommand("desktopWorkdirState", {
       workdir: "/work/a",
@@ -564,7 +559,6 @@ describe.skip("PreviewPane integration (DesktopApp)", () => {
   });
 
   it("picker comments land in the chat input (batched), nothing sent directly", () => {
-    window.waveHostType = "desktop";
     const vscode = createMockVscode();
     render(<DesktopApp vscode={vscode} />);
     sendCommand("desktopWorkdirState", {

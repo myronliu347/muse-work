@@ -21,14 +21,12 @@ describe("MuseTheme desktop theme changes", () => {
         removeEventListener: vi.fn(),
       }),
     });
-    window.waveHostType = "desktop";
     document.body.className = "";
     document.documentElement.removeAttribute("data-theme");
   });
 
   afterEach(() => {
     cleanup();
-    delete window.waveHostType;
     document.documentElement.removeAttribute("data-theme");
   });
 

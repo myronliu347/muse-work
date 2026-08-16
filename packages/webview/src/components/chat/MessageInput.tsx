@@ -92,7 +92,6 @@ const permissionModeIcon = (m?: PermissionMode): React.ReactNode => {
 
 export interface MessageInputHandle {
   focus: () => void;
-  triggerShortcut: (name: string) => void;
   appendText: (text: string) => void;
   loadQueuedEditContent: (text: string) => void;
 }
@@ -197,9 +196,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (textareaRef.current) {
           textareaRef.current.focus();
         }
-      },
-      triggerShortcut: (_name: string) => {
-        // History-search shortcut removed; keep stub for host bridge compatibility.
       },
       // Appends text at the end of the input, keeping any existing content
       // (including @file chips and images) intact. Used by the desktop preview

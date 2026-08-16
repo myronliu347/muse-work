@@ -57,7 +57,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete window.waveHostType;
   document.head
     .querySelectorAll('script[src="./terminal.js"]')
     .forEach((s) => s.remove());
@@ -129,7 +128,6 @@ describe("workdir-level panel groups", () => {
     });
 
   it("same workdir session switch keeps the panel group", () => {
-    window.waveHostType = "desktop";
     const { vscode } = renderDesktop({ workdir: "/work/a" });
     setWorkdir("/work/a");
     act(() => {
@@ -147,7 +145,6 @@ describe("workdir-level panel groups", () => {
   });
 
   it("switching workdir swaps the panel group; switching back restores", () => {
-    window.waveHostType = "desktop";
     const { vscode } = renderDesktop({ workdir: "/work/a" });
     setWorkdir("/work/a");
     act(() => {
@@ -182,7 +179,6 @@ describe("workdir-level panel groups", () => {
   });
 
   it("prunes panel group when workdir leaves the session tree", () => {
-    window.waveHostType = "desktop";
     renderDesktop({ workdir: "/work/a" });
     setWorkdir("/work/a");
     pushTree([
