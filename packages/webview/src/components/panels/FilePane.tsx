@@ -91,6 +91,8 @@ export const FilePane: React.FC<FilePaneProps> = ({
   };
 
   const isMd = !!(fileView?.content && isMarkdownPath(fileView.path));
+  const isHtml =
+    fileView?.host === "local" && /\.(html?|xhtml)$/i.test(fileView.path);
   const treeCollapsed = fileTree.collapsed !== false;
   const showTreeToggle = Boolean(onFileTreeChange);
 
@@ -135,6 +137,23 @@ export const FilePane: React.FC<FilePaneProps> = ({
                     源码
                   </button>
                 </div>
+              )}
+              {isHtml && (
+                <button
+                  type="button"
+                  className="preview-pane-button"
+                  data-testid="file-open-in-browser"
+                  title="在浏览器中打开"
+                  aria-label="在浏览器中打开"
+                  onClick={() =>
+                    vscode.postMessage({
+                      command: "desktopOpenFileExternal",
+                      path: fileView.path,
+                    })
+                  }
+                >
+                  <i className="codicon codicon-globe" aria-hidden />
+                </button>
               )}
               {showTreeToggle && treeCollapsed && (
                 <button

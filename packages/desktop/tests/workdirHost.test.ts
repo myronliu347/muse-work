@@ -283,6 +283,42 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
   });
 
+  it("desktopOpenFileExternal opens the path with the system app", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-open-"));
+    const openPath = vi.fn().mockResolvedValue("");
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: { send: () => {} },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      openPath,
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "desktopOpenFileExternal", path: "/tmp/page.html" },
+    );
+    expect(openPath).toHaveBeenCalledWith("/tmp/page.html");
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
+
   it("desktopListDir replies with entries", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-listdir-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-listdir-"));

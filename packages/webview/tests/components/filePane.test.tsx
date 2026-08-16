@@ -149,6 +149,37 @@ describe("FilePane", () => {
     expect(onRevealInFinder).toHaveBeenCalledWith("/work/a/big.bin");
   });
 
+  it("shows open-in-browser button for local html files", () => {
+    const { vscode } = renderPane({
+      fileView: {
+        path: "/work/a/index.html",
+        host: "local",
+        content: "<h1>Hello</h1>",
+      },
+    });
+    fireEvent.click(screen.getByTestId("file-open-in-browser"));
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "desktopOpenFileExternal",
+      path: "/work/a/index.html",
+    });
+  });
+
+  it("hides open-in-browser button for non-html files", () => {
+    renderPane();
+    expect(screen.queryByTestId("file-open-in-browser")).toBeNull();
+  });
+
+  it("hides open-in-browser button for remote html files", () => {
+    renderPane({
+      fileView: {
+        path: "/remote/index.html",
+        host: "ssh-host",
+        content: "<h1>Hello</h1>",
+      },
+    });
+    expect(screen.queryByTestId("file-open-in-browser")).toBeNull();
+  });
+
   it("renders markdown preview by default with toggle", async () => {
     const { container } = renderPane({
       fileView: {
