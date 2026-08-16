@@ -6,7 +6,6 @@ import * as fs from "fs";
 import * as path from "path";
 
 const MAX_BYTES = 2 * 1024 * 1024;
-const MAX_LINES = 2000;
 
 const IMAGE_EXTS = new Set([
   "png",
@@ -138,21 +137,18 @@ export async function readLocalFileForPanel(
     const rawContent = buf
       .subarray(0, Math.min(bytesRead, MAX_BYTES))
       .toString("utf8");
-    const allLines = rawContent.split("\n");
-    const tooManyLines = allLines.length > MAX_LINES;
     const content =
       opts?.workdir && isMarkdownPath(filePath)
         ? embedMarkdownImages(rawContent, opts.workdir)
         : rawContent;
+    const totalLines =
+      rawContent.split("\n").length - (rawContent.endsWith("\n") ? 1 : 0);
     return {
       path: filePath,
       host,
-      content: tooManyLines ? allLines.slice(0, MAX_LINES).join("\n") : content,
-      truncated: bytesRead > MAX_BYTES || tooManyLines,
-      totalLines:
-        bytesRead <= MAX_BYTES
-          ? allLines.length - (rawContent.endsWith("\n") ? 1 : 0)
-          : undefined,
+      content,
+      truncated: bytesRead > MAX_BYTES,
+      totalLines: bytesRead <= MAX_BYTES ? totalLines : undefined,
       startLine: opts?.startLine,
       endLine: opts?.endLine,
     };

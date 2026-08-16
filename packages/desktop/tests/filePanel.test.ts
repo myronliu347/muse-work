@@ -32,6 +32,27 @@ describe("readLocalFileForPanel", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("does not truncate files with more than 2000 lines", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
+    const file = path.join(dir, "long.txt");
+    const lineCount = 2500;
+    fs.writeFileSync(
+      file,
+      Array.from({ length: lineCount }, (_, i) => `line ${i + 1}`).join("\n") +
+        "\n",
+      "utf8",
+    );
+    const view = await readLocalFileForPanel(file);
+    expect(view.error).toBeUndefined();
+    expect(view.truncated).toBeFalsy();
+    // Trailing newline yields an empty last segment when split.
+    expect(view.content?.split("\n")).toHaveLength(lineCount + 1);
+    expect(view.content).toContain("line 1");
+    expect(view.content).toContain(`line ${lineCount}`);
+    expect(view.totalLines).toBe(lineCount);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("marks binary files as binary", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-file-"));
     const file = path.join(dir, "blob.bin");
