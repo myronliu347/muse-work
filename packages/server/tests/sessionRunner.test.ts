@@ -876,4 +876,81 @@ describe("sessionRunner concurrency / dispose", () => {
       runner.updateQueuedMessage("does-not-exist", "mq-1", { content: "x" }),
     ).rejects.toMatchObject({ statusCode: 404 });
   });
+
+  it("keeps status running in listGrouped while the SDK turn is in flight", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-listgroup-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    let releaseSend!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseSend = resolve;
+    });
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {
+          opts.callbacks?.onLoadingChange?.(true);
+          await gate;
+          opts.callbacks?.onLoadingChange?.(false);
+        },
+        dispose: async () => {},
+      }),
+    });
+
+    const session = store.create({ workdir: home, model: "gpt-4.1" });
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+
+    // While the turn is in flight the session list must report running.
+    const grouped = store.listGrouped();
+    const listed = [...grouped.pinned, ...grouped.recent].find(
+      (s) => s.id === session.id,
+    );
+    expect(listed?.status).toBe("running");
+
+    releaseSend();
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+  });
 });

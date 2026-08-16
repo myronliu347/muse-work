@@ -277,6 +277,60 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("restores sidebar running when switching back to a busy session", async () => {
+    const api = stubApi({
+      getRuntimeState: vi.fn(async () => ({
+        loading: true,
+        queuedMessages: [],
+      })),
+      // API status says idle, but the SDK runtime snapshot says loading — the
+      // runtime snapshot must win so the sidebar spinner is restored.
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [{ ...baseSession, id: "sess-b", status: "idle" as const }],
+        activeSessionId: "sess-active",
+      })),
+      selectSession: vi.fn(async (id) => ({
+        session: { ...baseSession, id, status: "running" as const },
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-b",
+      workdir: "/tmp",
+    });
+    await flush();
+
+    // Main pane streaming state is restored from the runtime snapshot.
+    expect(messages).toContainEqual({ command: "startStreaming" });
+
+    // Sidebar tree must keep running: true for the busy session.
+    const tree = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{ sessions: Array<{ sessionId?: string; running?: boolean }> }>;
+        }
+      | undefined;
+    const allSessions = (tree?.groups ?? []).flatMap(
+      (g) => g.sessions ?? [],
+    );
+    expect(
+      allSessions.find((s) => s.sessionId === "sess-b")?.running,
+    ).toBe(true);
+  });
+
   it("newSession does not create until first sendMessage", async () => {
     const created: MuseSession = {
       ...baseSession,

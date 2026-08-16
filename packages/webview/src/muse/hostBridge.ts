@@ -667,6 +667,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         await api.getRuntimeState(id);
       // A newer activation may have superseded this one.
       if (sessionId !== id || pendingNewSession) return;
+      // Restore the sidebar spinner from the authoritative SDK snapshot. The
+      // tree refresh uses API status, which can lag a moment between SDK
+      // loading rounds and would otherwise clear the spinner.
+      patchTreeSession(id, { running: runtimeLoading });
       if (runtimeLoading) {
         setLoading(true);
         postToWebview({ command: "startStreaming" });
@@ -697,8 +701,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     emitCompacting(compactingSessions.has(session.id));
     await loadMessages(session.id);
     await pushSessionControlState(session.id);
-    await restoreRuntimeState(session.id);
     await refreshTree();
+    // Restore runtime state last so it wins over the tree refresh's API status.
+    await restoreRuntimeState(session.id);
     const pending = pendingPermissions.get(session.id);
     if (pending) {
       showPermissionConfirmation(pending);
