@@ -1,9 +1,9 @@
 /**
- * Cross-host dark theme detection.
- * - VS Code webview: the host sets vscode-dark / vscode-light / vscode-high-contrast(-light)
+ * Dark theme detection for the desktop host.
+ * - The host sets vscode-dark / vscode-light / vscode-high-contrast(-light)
  *   classes on <body>.
- * - Desktop / JetBrains: <html data-theme="dark|light"> (desktop preload; JB injects it in
- *   WebviewContentBuilder). Desktop supports the in-app system/light/dark preference.
+ * - The desktop preload sets <html data-theme="dark|light"> based on the in-app
+ *   system/light/dark preference.
  */
 export const isDarkTheme = (): boolean => {
   const dataTheme = document.documentElement.getAttribute("data-theme");

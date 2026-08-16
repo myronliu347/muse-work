@@ -44,7 +44,7 @@ describe("MermaidRenderer theme", () => {
     });
   });
 
-  it("detects dark mode from <html data-theme> for desktop/JetBrains hosts", async () => {
+  it("detects dark mode from <html data-theme> for desktop hosts", async () => {
     document.documentElement.setAttribute("data-theme", "dark");
     renderDiagram();
     await vi.waitFor(() => {

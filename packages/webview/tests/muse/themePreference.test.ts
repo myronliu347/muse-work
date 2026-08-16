@@ -91,9 +91,6 @@ describe("themePreference store", () => {
     window.waveHostType = "desktop";
     expect(detectSystemDark()).toBe(false);
 
-    delete window.waveHostType;
-    expect(detectSystemDark()).toBe(true);
-
     document.documentElement.removeAttribute("data-theme");
     document.body.classList.add("vscode-light");
     expect(detectSystemDark()).toBe(false);

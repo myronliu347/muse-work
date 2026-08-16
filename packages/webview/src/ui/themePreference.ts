@@ -36,9 +36,6 @@ export function detectSystemDark(): boolean {
       return isDarkTheme();
     }
   }
-  if (typeof window !== "undefined" && window.waveHostType !== "desktop") {
-    return isDarkTheme();
-  }
   return Boolean(
     globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches,
   );
@@ -70,7 +67,6 @@ function startSystemDarkTracking(): void {
 
   const observer = new MutationObserver((mutations) => {
     if (
-      window.waveHostType === "desktop" &&
       mutations.some((mutation) => mutation.target === document.documentElement)
     ) {
       return;
@@ -286,7 +282,6 @@ export function subscribeThemeGrayColor(listener: () => void): () => void {
 function postDesktopThemeMessage(message: Record<string, string>): void {
   if (
     typeof window !== "undefined" &&
-    window.waveHostType === "desktop" &&
     typeof window.acquireVsCodeApi === "function"
   ) {
     window.acquireVsCodeApi().postMessage(message);
