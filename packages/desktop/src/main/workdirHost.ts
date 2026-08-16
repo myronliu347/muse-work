@@ -449,7 +449,14 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       if (!filePath) return;
       const workdir =
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
-      const fileView = await readLocalFileForPanel(filePath, {
+      // Message markdown linkify emits relative paths (e.g. src/foo.ts); resolve
+      // them against the workdir. Absolute paths pass through path.resolve
+      // unchanged.
+      const absPath =
+        workdir && !path.isAbsolute(filePath)
+          ? path.resolve(workdir, filePath)
+          : filePath;
+      const fileView = await readLocalFileForPanel(absPath, {
         startLine: msg.startLine,
         endLine: msg.endLine,
         workdir,

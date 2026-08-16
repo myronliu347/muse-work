@@ -13,6 +13,7 @@ const CONTENT =
 
 function renderMessage(options?: {
   onOpenPreview?: (url: string) => void;
+  onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
   content?: string;
 }) {
   const vscode = createMockVscode();
@@ -24,6 +25,7 @@ function renderMessage(options?: {
       message={message}
       vscode={vscode}
       onOpenPreview={options?.onOpenPreview}
+      onOpenFile={options?.onOpenFile}
     />,
   );
   const links = result.container.querySelectorAll(
@@ -82,5 +84,50 @@ describe("Message link routing", () => {
 
     expect(onOpenPreview).not.toHaveBeenCalled();
     expect(vscode.postMessage).not.toHaveBeenCalled();
+  });
+
+  it("links a bare file path to the file panel", () => {
+    const onOpenFile = vi.fn();
+    const { vscode, container } = renderMessage({
+      content: "see src/foo.ts now",
+      onOpenFile,
+    });
+    const link = container.querySelector(
+      '.message-content-container a[href="src/foo.ts"]',
+    )!;
+
+    const notPrevented = fireEvent.click(link);
+
+    expect(onOpenFile).toHaveBeenCalledWith("src/foo.ts", undefined, undefined);
+    expect(vscode.postMessage).not.toHaveBeenCalled();
+    expect(notPrevented).toBe(false); // default navigation prevented
+  });
+
+  it("routes a file link with line numbers to the file panel", () => {
+    const onOpenFile = vi.fn();
+    const { container } = renderMessage({
+      content: "bug at src/foo.ts:12:34",
+      onOpenFile,
+    });
+    const link = container.querySelector(
+      '.message-content-container a[href="src/foo.ts:12:34"]',
+    )!;
+
+    fireEvent.click(link);
+
+    expect(onOpenFile).toHaveBeenCalledWith("src/foo.ts", 12, 34);
+  });
+
+  it("keeps http links on the openExternal path", () => {
+    const onOpenFile = vi.fn();
+    const { vscode, externalLink } = renderMessage({ onOpenFile });
+
+    fireEvent.click(externalLink);
+
+    expect(onOpenFile).not.toHaveBeenCalled();
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "openExternal",
+      url: "https://example.com/docs",
+    });
   });
 });

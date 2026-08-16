@@ -185,3 +185,67 @@ export const toRelativePath = (filePath: string, workdir?: string): string => {
   // Path equals the workdir exactly, or isn't under it — show as-is.
   return filePath;
 };
+
+// Matches a bare file path (relative with a slash, absolute, or ./ ../ ~/
+// prefixed), optionally with a :line or :line:col suffix. Constrained to
+// ASCII path characters, never preceded by `](` (an existing markdown link
+// target) or a URL scheme, and followed by whitespace/punctuation/EOL.
+const FILE_PATH_SOURCE = [
+  "(?<!\\]\\()",
+  "(?:^|(?<=[\\s(（]))",
+  "(?!\\w+://)",
+  "(",
+  "(?:(?:\\.{1,2}|~)/|/)",
+  "[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*",
+  "(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*",
+  "(?::\\d+(?::\\d+)?)?",
+  "|",
+  "[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*",
+  "(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)+",
+  "(?::\\d+(?::\\d+)?)?",
+  ")",
+  "(?=[\\s,;.)\\]}）。，、；：！？!?…]|$)",
+].join("");
+
+const FILE_PATH_RE = new RegExp(FILE_PATH_SOURCE, "g");
+
+/** Wrap bare file paths in `[path](path)` markdown links. */
+const linkifySegment = (text: string): string =>
+  text.replace(FILE_PATH_RE, (_whole, path) => `[${path}](${path})`);
+
+// Guards for code-span content that would break as an inline markdown link.
+const CODE_SPAN_UNSAFE = /[[\]()<>\\]/;
+
+/**
+ * Linkify bare file paths in assistant markdown text so they open the file
+ * panel when clicked (matching mainstream AI apps). Fenced code blocks are
+ * left untouched; inline code spans whose content is a path become links.
+ */
+export const linkifyFilePaths = (markdown: string): string => {
+  if (!markdown) return markdown;
+
+  const tokens: string[] = [];
+  let source = markdown.replace(
+    /(```[\s\S]*?```)|(`[^`\n]+`)/g,
+    (match, fenced: string | undefined, inline: string | undefined) => {
+      if (fenced) {
+        tokens.push(fenced);
+        return `\u0000${tokens.length - 1}\u0000`;
+      }
+      const content = inline.slice(1, -1);
+      // Only convert code spans that are exactly a linkable path; anything
+      // with markdown link syntax characters is kept as-is.
+      const linked = CODE_SPAN_UNSAFE.test(content)
+        ? content
+        : linkifySegment(content);
+      if (linked !== content) {
+        return linked;
+      }
+      tokens.push(inline);
+      return `\u0000${tokens.length - 1}\u0000`;
+    },
+  );
+
+  source = linkifySegment(source);
+  return source.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => tokens[Number(i)]);
+};

@@ -1,6 +1,6 @@
 import React from "react";
 import { ContextTag } from "../shared/ContextTag";
-import { parseMentions, toRelativePath } from "../../utils/messageUtils";
+import { parseMentions, toRelativePath, linkifyFilePaths } from "../../utils/messageUtils";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
 import { marked } from "marked";
 import { BangBlock } from "./BangBlock";
@@ -90,7 +90,7 @@ const parseMarkdownWithMermaid = (content: string): ParsedMarkdownContent => {
       });
     } else if (part.trim()) {
       // This is regular markdown content
-      const html = marked.parse(part);
+      const html = marked.parse(linkifyFilePaths(part));
       const sanitizedHtml = DOMPurify.sanitize(html, {
         ALLOWED_TAGS: [
           "p",
@@ -258,11 +258,33 @@ export const Message: React.FC<MessageProps> = React.memo(
       return images;
     };
 
+    // A href without a URL scheme is a file path link produced by
+    // linkifyFilePaths; route it to the file panel instead of the browser.
+    const parseFileLink = (href: string) => {
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) || href.startsWith("#")) {
+        return null;
+      }
+      const m = href.match(/^(.+?):(\d+)(?::(\d+))?$/);
+      if (m) {
+        return {
+          path: m[1],
+          startLine: Number(m[2]),
+          endLine: m[3] ? Number(m[3]) : undefined,
+        };
+      }
+      return { path: href };
+    };
+
     const handleContentClick = (e: React.MouseEvent) => {
       const anchor = (e.target as Element | null)?.closest?.("a");
       const href = anchor?.getAttribute("href");
       if (!href) return;
       e.preventDefault();
+      const fileLink = parseFileLink(href);
+      if (fileLink) {
+        openFile(fileLink.path, fileLink.startLine, fileLink.endLine);
+        return;
+      }
       if (isLocalhostUrl(href) && props.onOpenPreview) {
         props.onOpenPreview(href);
       } else {
