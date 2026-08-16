@@ -32,7 +32,7 @@ describe("Clear Chat Functionality", () => {
     expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
   });
 
-  it("should request clear chat via header button", () => {
+  it("should request a new session via the desktop sidebar button", () => {
     const { vscode } = renderChatApp();
 
     act(() => {
@@ -48,14 +48,18 @@ describe("Clear Chat Functionality", () => {
     // Clear message log to track new commands
     vscode.postMessage.mockClear();
 
-    // Click the new session button
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    // Desktop-only: the header 新建对话 button is hidden; the sidebar
+    // 新对话 button spawns a fresh host session (newSession) — not an in-place
+    // clear (that is /clear's job, covered below).
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     act(() => {
       fireEvent.click(newSessionBtn);
     });
 
-    // Verify clear chat command is sent to the host (in-place clear)
     expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "newSession" }),
+    );
+    expect(vscode.postMessage).not.toHaveBeenCalledWith(
       expect.objectContaining({ command: "clearChat" }),
     );
     expect(vscode.postMessage).not.toHaveBeenCalledWith(
@@ -161,7 +165,8 @@ describe("Clear Chat Functionality", () => {
     const abortBtn = screen.getByTestId("abort-btn");
     expect(abortBtn).toBeInTheDocument();
 
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    // Desktop-only: the sidebar 新对话 stays enabled during streaming.
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     expect(newSessionBtn).not.toBeDisabled();
 
     act(() => {

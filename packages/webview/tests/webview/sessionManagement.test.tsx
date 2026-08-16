@@ -34,13 +34,13 @@ describe("Session Management", () => {
       sendCommand("startStreaming");
     });
 
-    expect(screen.getByTestId("new-session-btn")).not.toBeDisabled();
+    expect(screen.getByTestId("desktop-new-session")).not.toBeDisabled();
 
     act(() => {
       sendCommand("endStreaming");
     });
 
-    expect(screen.getByTestId("new-session-btn")).not.toBeDisabled();
+    expect(screen.getByTestId("desktop-new-session")).not.toBeDisabled();
   });
 
   it("should show 新对话 title for a current session that has no first message yet", () => {

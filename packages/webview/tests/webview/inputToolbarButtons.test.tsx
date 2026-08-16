@@ -1,4 +1,4 @@
-import { renderChatApp, screen } from "./test-utils";
+import { renderChatApp, screen, fireEvent, act } from "./test-utils";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 describe("Input toolbar", () => {
@@ -13,9 +13,21 @@ describe("Input toolbar", () => {
     expect(screen.getByTestId("send-btn")).toHaveAttribute("aria-label", "发送");
   });
 
-  it("does not render the removed desktop-only local file pick button in IDE hosts", () => {
-    renderChatApp();
+  it("renders the desktop local file pick button and posts desktopSelectFiles on click", () => {
+    const { vscode } = renderChatApp();
 
-    expect(screen.queryByTestId("add-local-file-btn")).not.toBeInTheDocument();
+    // Desktop-only: enableLocalFilePick is always on, so the 添加文件 button is
+    // part of the toolbar (the old "does not render in IDE hosts" assertion
+    // covered removed IDE UI).
+    const fileBtn = screen.getByTestId("add-local-file-btn");
+    expect(fileBtn).toHaveAttribute("aria-label", "添加文件");
+
+    vscode.postMessage.mockClear();
+    act(() => {
+      fireEvent.click(fileBtn);
+    });
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "desktopSelectFiles" }),
+    );
   });
 });

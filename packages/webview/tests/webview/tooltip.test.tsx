@@ -56,32 +56,17 @@ describe("Tooltip Component", () => {
     });
   });
 
-  it("should show tooltip for the new session button", async () => {
+  it("exposes the new session entry with a tooltip on the desktop sidebar button", async () => {
     renderChatApp();
 
-    await act(async () => {
-      sendCommand("setInitialState", {
-        messages: [],
-        permissionMode: "default",
-        configurationData: {},
-      });
-    });
-
-    const newSessionBtn = screen.getByTestId("new-session-btn");
-    const container = newSessionBtn.closest(
-      ".tooltip-container",
-    ) as HTMLElement;
-    expect(container).not.toBeNull();
-
-    await act(async () => {
-      fireEvent.mouseEnter(container);
-    });
-
-    await waitFor(() => {
-      const tooltip = document.querySelector(".tooltip-box.visible");
-      expect(tooltip).not.toBeNull();
-      expect(tooltip).toHaveTextContent("新建对话");
-    });
+    // Desktop-only: the chat-header 新建对话 button is hidden (hideSessionButtons);
+    // the entry lives in the desktop sidebar, whose button carries a native
+    // title tooltip (⌘N / Ctrl+N).
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
+    expect(newSessionBtn).toHaveAttribute(
+      "title",
+      expect.stringContaining("新对话"),
+    );
   });
 
   it("should show tooltip for the abort button during streaming", async () => {

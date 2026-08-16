@@ -9,6 +9,8 @@ import {
   fireInput,
   waitFor,
   createMockVscode,
+  createMockDesktopHost,
+  establishSession,
 } from "./test-utils";
 import { ChatApp } from "../../src/components/ChatApp";
 
@@ -332,10 +334,26 @@ describe("Message Queue Features", () => {
     const containerA = document.createElement("div");
     const containerB = document.createElement("div");
     document.body.append(containerA, containerB);
-    render(<ChatApp vscode={createMockVscode()} />, { container: containerA });
-    render(<ChatApp vscode={createMockVscode()} />, { container: containerB });
+    render(
+      <ChatApp
+        vscode={createMockVscode()}
+        host={createMockDesktopHost()}
+      />,
+      { container: containerA },
+    );
+    render(
+      <ChatApp
+        vscode={createMockVscode()}
+        host={createMockDesktopHost()}
+      />,
+      { container: containerB },
+    );
 
+    // Desktop-only: bind a session so the chat chrome (queued list, input)
+    // renders instead of the draft new-session page. Both panes share the
+    // same window message bus, mirroring split-view panes on one session.
     sendCommand("authStatusResponse", { isAuthenticated: true });
+    establishSession();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
       queue: [{ id: "q1", content: "Editable text" }],

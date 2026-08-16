@@ -1,112 +1,42 @@
 import { describe, it, expect } from "vitest";
-import {
-  renderChatApp,
-  screen,
-  fireEvent,
-  act,
-  sendCommand,
-} from "./test-utils";
+import { renderChatApp, screen, fireEvent, act } from "./test-utils";
 
 /**
- * Open the more menu by clicking the more button in the header.
+ * Desktop-only: the chat-header more menu (more-btn / MoreMenu) is hidden —
+ * ChatHeader renders with hideMoreButton. Settings move to the desktop sidebar
+ * footer (desktop-settings-btn), which opens the config dialog and requests the
+ * provider configuration. The old header-more-menu cases (logout/login entries,
+ * Escape close) covered removed IDE UI and were deleted with Task 4.
  */
-function openMoreMenu() {
-  const moreBtn = screen.getByTestId("more-btn");
-  act(() => {
-    fireEvent.click(moreBtn);
-  });
-  return screen.getByTestId("more-menu");
-}
-
-describe("More Menu", () => {
-  it("should render the menu items when opened", () => {
-    renderChatApp();
-
-    openMoreMenu();
-
-    expect(screen.getByTestId("more-menu-settings")).toHaveTextContent("设置");
-    expect(screen.getByTestId("more-menu-logout")).toHaveTextContent(
-      "退出登录",
-    );
-  });
-
-  it("should not show 退出登录 when unauthenticated", () => {
-    renderChatApp();
-
-    // Switch to unauthenticated
-    sendCommand("authStatusResponse", { isAuthenticated: false });
-
-    openMoreMenu();
-
-    expect(screen.getByTestId("more-menu-settings")).toBeInTheDocument();
-    expect(screen.queryByTestId("more-menu-logout")).not.toBeInTheDocument();
-    // Unauthenticated users get a 登录 entry instead
-    expect(screen.getByTestId("more-menu-login")).toHaveTextContent("登录");
-  });
-
-  it("should open settings dialog and request configuration when 设置 is clicked", () => {
+describe("Desktop settings entry", () => {
+  it("opens the config dialog and requests configuration from the sidebar 设置 button", () => {
     const { vscode } = renderChatApp();
 
     vscode.postMessage.mockClear();
-    openMoreMenu();
-
     act(() => {
-      fireEvent.click(screen.getByTestId("more-menu-settings"));
+      fireEvent.click(screen.getByTestId("desktop-settings-btn"));
     });
 
-    // Config dialog should open and configuration should be requested
     expect(vscode.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ command: "getConfiguration" }),
     );
-    // Menu closes after selection
-    expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
+    expect(screen.getByTestId("config-dialog")).toBeInTheDocument();
   });
 
-  it("should post logout when 退出登录 is clicked", () => {
-    const { vscode } = renderChatApp();
-
-    vscode.postMessage.mockClear();
-    openMoreMenu();
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("more-menu-logout"));
-    });
-
-    expect(vscode.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ command: "logout" }),
-    );
-    expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
-  });
-
-  it("should post login when 登录 is clicked while unauthenticated", () => {
-    const { vscode } = renderChatApp();
-
-    // Switch to unauthenticated
-    sendCommand("authStatusResponse", { isAuthenticated: false });
-
-    vscode.postMessage.mockClear();
-    openMoreMenu();
-
-    act(() => {
-      fireEvent.click(screen.getByTestId("more-menu-login"));
-    });
-
-    expect(vscode.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ command: "login" }),
-    );
-    expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
-  });
-
-  it("should close the menu when Escape is pressed", () => {
+  it("closes the config dialog on 关闭", () => {
     renderChatApp();
 
-    openMoreMenu();
-    expect(screen.getByTestId("more-menu")).toBeInTheDocument();
+    act(() => {
+      fireEvent.click(screen.getByTestId("desktop-settings-btn"));
+    });
+    expect(screen.getByTestId("config-dialog")).toBeInTheDocument();
 
     act(() => {
-      fireEvent.keyDown(document, { key: "Escape" });
+      const closeBtn = document.querySelector(
+        ".configuration-dialog .configuration-close-btn",
+      ) as HTMLElement;
+      fireEvent.click(closeBtn);
     });
-
-    expect(screen.queryByTestId("more-menu")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("config-dialog")).not.toBeInTheDocument();
   });
 });

@@ -104,6 +104,18 @@ describe("WelcomeView login button flash", () => {
 
     act(() => {
       sendCommand("setInitialState", {
+        // Desktop-only: the welcome page lives on the draft new-session page;
+        // once a session is bound, hasVisibleMessages controls the welcome vs
+        // the message list. Bind a session so the message list (not the
+        // always-welcome draft page) renders.
+        session: {
+          id: "sess-1",
+          sessionType: "main",
+          workdir: "/work",
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
         messages: [
           {
             id: "meta-1",

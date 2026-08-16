@@ -2,10 +2,11 @@ import React from "react";
 import { vi } from "vitest";
 import { render, act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { VsCodeApi } from "../../src/types";
+import type { VsCodeApi, DesktopHostProps } from "../../src/types";
 import { ChatApp } from "../../src/components/ChatApp";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { MuseTheme } from "../../src/ui/theme";
+import { resetWebviewStores } from "../../src/stores";
 import { fixtures, type HostToWebviewMessage } from "wave-webview-fixtures";
 
 // Mock heavy dependencies
@@ -49,20 +50,86 @@ export function createMockVscode() {
 }
 
 /**
- * Render the ChatApp with a mock VS Code API
+ * Desktop host props for tests. Mirrors what index.tsx → DesktopApp injects in
+ * production (single-pane layout, no split-view panes): ChatApp renders the
+ * desktop sidebar + chat chrome. The workdir enables the message input for
+ * bound sessions.
+ */
+export function createMockDesktopHost(
+  overrides?: Partial<DesktopHostProps>,
+): DesktopHostProps {
+  return {
+    type: "desktop",
+    host: "local",
+    workdir: "/mock/workdir",
+    recentWorkdirs: [],
+    onSelectWorkdir: vi.fn(),
+    onSelectRecentWorkdir: vi.fn(),
+    onRemoveRecentWorkdir: vi.fn(),
+    sessionTree: [],
+    onSelectSession: vi.fn(),
+    onDeleteSession: vi.fn(),
+    onTogglePin: vi.fn(),
+    onRenameSession: vi.fn(),
+    onOpenPane: vi.fn(),
+    panes: [],
+    rowHeights: [],
+    focusedPaneId: null,
+    ...overrides,
+  };
+}
+
+/** A bound session so isDraftSession is false and chatChrome renders. */
+export function establishSession(opts?: {
+  workdir?: string;
+  sessionId?: string;
+  messages?: unknown[];
+  inputContent?: string;
+  isAuthenticated?: boolean;
+}) {
+  const workdir = opts?.workdir ?? "/mock/workdir";
+  sendHostMessage(
+    fixtures.setInitialState({
+      workdir,
+      messages: opts?.messages ?? [],
+      isAuthenticated: opts?.isAuthenticated ?? true,
+      session: {
+        id: opts?.sessionId ?? "sess-mock",
+        sessionType: "main",
+        workdir,
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+      ...(opts?.inputContent !== undefined
+        ? { inputContent: opts.inputContent }
+        : {}),
+    }),
+  );
+}
+
+/**
+ * Render the ChatApp with a mock VS Code API on the desktop host. Desktop-only:
+ * the extension entry (index.tsx → DesktopApp) always boots the desktop layout,
+ * so tests exercise the same environment. A bound session is established so the
+ * chat chrome (messages-container, header, input) renders instead of the draft
+ * new-session page.
  */
 export function renderChatApp(vscode?: VsCodeApi) {
+  resetWebviewStores();
   const mockVscode = (vscode || createMockVscode()) as ReturnType<
     typeof createMockVscode
   >;
   const result = render(
     <MuseTheme>
-      <ChatApp vscode={mockVscode} />
+      <ChatApp vscode={mockVscode} host={createMockDesktopHost()} />
     </MuseTheme>,
   );
   // Default to authenticated so the message input is enabled and MessageList
   // (not the unauthenticated WelcomeView) renders for empty-state assertions.
   sendHostMessage(fixtures.authStatusResponse());
+  // Bind a session so the draft new-session page is not shown.
+  establishSession();
   const user = userEvent.setup();
   return { ...result, vscode: mockVscode, user };
 }

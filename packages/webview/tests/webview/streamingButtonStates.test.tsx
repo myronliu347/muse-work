@@ -17,7 +17,7 @@ describe("Streaming Button States", () => {
   it("should swap send/abort buttons during streaming while new session stays enabled", () => {
     renderChatApp();
 
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     expect(newSessionBtn).not.toBeDisabled();
     expect(screen.getByTestId("send-btn")).toBeInTheDocument();
     expect(screen.queryByTestId("abort-btn")).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("Streaming Button States", () => {
     renderChatApp();
 
     sendCommand("startStreaming");
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     expect(newSessionBtn).not.toBeDisabled();
 
     sendCommand("updateMessages", {
@@ -97,11 +97,18 @@ describe("Streaming Button States", () => {
 
     vscode.postMessage.mockClear();
 
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     expect(newSessionBtn).not.toBeDisabled();
     fireEvent.click(newSessionBtn);
 
     const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
+    // Desktop semantics: the sidebar 新对话 spawns a fresh host session without
+    // touching the current transcript (no in-place clear / tab switch).
+    expect(
+      sentMessages.filter(
+        (msg: Record<string, unknown>) => msg.command === "newSession",
+      ),
+    ).toHaveLength(1);
     expect(
       sentMessages.filter(
         (msg: Record<string, unknown>) => msg.command === "clearChat",
@@ -131,7 +138,7 @@ describe("Streaming Button States", () => {
       ],
     });
 
-    const newSessionBtn = screen.getByTestId("new-session-btn");
+    const newSessionBtn = screen.getByTestId("desktop-new-session");
     expect(newSessionBtn).not.toBeDisabled();
     expect(screen.getByTestId("abort-btn")).toBeInTheDocument();
 
