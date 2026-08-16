@@ -175,16 +175,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const effectiveWorkdir = isDraftSession
     ? state.workdir
     : (state.workdir ?? host?.workdir);
-  const isDesktop = host?.type === "desktop";
   // Local-only for now (remote hosts removed from the composer).
   const effectiveHost = "local";
   const effectiveHostRef = useRef(effectiveHost);
-  const gitBranches = isDesktop ? paneGitBranches : null;
+  const gitBranches = paneGitBranches;
   const sessionGitMeta = state.currentSession as
     | { worktreeBranch?: string; worktreeName?: string }
     | undefined;
   const headerGitContext =
-    isDesktop && !isDraftSession
+    !isDraftSession
       ? {
           branch:
             gitBranches?.current || sessionGitMeta?.worktreeBranch || undefined,
@@ -196,9 +195,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory.
   const panelWorkdir =
-    effectiveWorkdir ?? (isDesktop ? host?.workdir : undefined) ?? undefined;
+    effectiveWorkdir ?? host?.workdir ?? undefined;
   const groupKey =
-    isDesktop && panelWorkdir ? panelWorkdir : undefined;
+    panelWorkdir ? panelWorkdir : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
   const {
@@ -260,8 +259,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     scrollToBottom: (behavior?: ScrollBehavior) => void;
   }>(null);
   const stateRef = useRef(state);
-  // The pane this instance renders; undefined = single view (IDE hosts and the
-  // desktop single-pane layout). Ref mirror for use inside stable callbacks.
+  // The pane this instance renders; undefined = single view (desktop
+  // single-pane layout). Ref mirror for use inside stable callbacks.
   const paneIdRef = useRef<string | undefined>(paneId);
 
   // Keep stateRef in sync with state
@@ -292,7 +291,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
   useEffect(() => {
-    if (!isDesktop) return;
     const el = chatContainerRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const apply = () => {
@@ -306,7 +304,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     const ro = new ResizeObserver(() => apply());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isDesktop, paneId, host?.panes?.length]);
+  }, [paneId, host?.panes?.length]);
 
   useEffect(() => {
     mountedPanelsRef.current = mountedPanels;
@@ -344,9 +342,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Handle messages from VS Code extension
   useEffect(() => {
     // Session-scoped host pushes are pane-tagged on desktop (FR-032). This pane
-    // consumes a message when it is untagged (single view / IDE hosts / global
-    // commands) or tagged with this pane's id. Messages tagged with a different
-    // paneId belong to a sibling pane and are ignored here.
+    // consumes a message when it is untagged (single view / global commands) or
+    // tagged with this pane's id. Messages tagged with a different paneId
+    // belong to a sibling pane and are ignored here.
     const myPane = paneIdRef.current;
     const forThisPane = (message: { paneId?: string }): boolean =>
       myPane === undefined || message.paneId === myPane;
@@ -944,7 +942,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   // Desktop multi-pane (FR-032): session-scoped commands carry this pane's id
   // so the host routes them to the agent bound to this pane. Untagged when
-  // paneId is undefined (IDE hosts) — those backends ignore the field.
+  // paneId is undefined (single view) — the host ignores the field.
   const postToHost = useCallback(
     (message: Record<string, unknown>) => {
       const pid = paneIdRef.current;
@@ -975,7 +973,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   const requestPaneGitBranches = useCallback(
     (opts?: { clear?: boolean }) => {
-      if (!isDesktop) return;
       if (!effectiveWorkdir) {
         if (opts?.clear) patchPane({ paneGitBranches: null });
         return;
@@ -987,7 +984,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         paneId,
       });
     },
-    [effectiveWorkdir, isDesktop, paneId, patchPane, postToHost],
+    [effectiveWorkdir, paneId, patchPane, postToHost],
   );
 
   // workdir change: clear then fetch (existing semantics)
@@ -997,7 +994,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   // poll + resume on visibility (silent refresh — do not clear)
   useEffect(() => {
-    if (!isDesktop || !effectiveWorkdir) return;
+    if (!effectiveWorkdir) return;
 
     const poll = () => {
       if (document.visibilityState === "hidden") return;
@@ -1015,7 +1012,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [effectiveWorkdir, isDesktop, requestPaneGitBranches]);
+  }, [effectiveWorkdir, requestPaneGitBranches]);
 
   // Reset file sidebar search when workdir changes (per-group memory stays
   // for tree width/expand; search mode/results start fresh).
@@ -1612,12 +1609,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Desktop: idle-preload the lazily injected xterm chunk so the first
   // terminal open doesn't pay the fetch+parse cost.
   useEffect(() => {
-    if (!isDesktop) return;
     const id = window.requestIdleCallback?.(() => prefetchTerminalLib());
     return () => {
       if (id !== undefined) window.cancelIdleCallback?.(id);
     };
-  }, [isDesktop]);
+  }, []);
 
   // Open a panel as a tab in the shared dock. First open must fit beside the
   // conversation; later tabs reuse the same column. Mounting is sticky.
@@ -1973,10 +1969,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // No workdir: all panels disabled. With a workdir (incl. draft + host
   // folder): all panel kinds available; state is shared per workdir.
   const panelDisabled: DesktopPanelKind[] = useMemo(() => {
-    if (!isDesktop) return [];
     if (!panelWorkdir) return [...PANEL_ORDER];
     return [];
-  }, [isDesktop, panelWorkdir]);
+  }, [panelWorkdir]);
 
   useEffect(() => {
     panelDisabledRef.current = panelDisabled;
@@ -1985,16 +1980,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Report this pane's toggle state so the desktop app menu's 面板 checkboxes
   // reflect the focused pane.
   useEffect(() => {
-    if (!isDesktop) return;
     postToHost({ command: "desktopPanelState", checked: checkedPanels });
-  }, [checkedPanels, isDesktop, postToHost]);
+  }, [checkedPanels, postToHost]);
 
   const dockMaxWidth = chatColumnWidth - CHAT_MAIN_MIN_WIDTH;
 
   // Persist a clamp when the pane shrinks (window resize / split) so the next
   // drag/open starts from a width that still fits beside the conversation.
   useEffect(() => {
-    if (!isDesktop || checkedPanels.length === 0) return;
+    if (checkedPanels.length === 0) return;
     if (!(dockMaxWidth > 0)) return;
     const current = panelWidthsRef.current[activePanel ?? "preview"];
     if (!(current > dockMaxWidth)) return;
@@ -2008,7 +2002,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     panelWidthsRef.current = next;
     updatePanelGroup({ widths: next });
   }, [
-    isDesktop,
     checkedPanels.length,
     activePanel,
     dockMaxWidth,
@@ -2086,7 +2079,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     );
   };
 
-  const showNewSessionPage = isDesktop && isDraftSession && state.initialized;
+  const showNewSessionPage = isDraftSession && state.initialized;
 
   const messageInput = (
     <MessageInput
@@ -2113,7 +2106,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }
       onModelChange={handleSessionModelChange}
       workdir={effectiveWorkdir ?? panelWorkdir}
-      enableLocalFilePick={isDesktop}
+      enableLocalFilePick={true}
       workdirSelector={
         host?.type === "desktop" && isDraftSession ? (
           <>
@@ -2236,7 +2229,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
 
       <div
-        className={`input-area-container${isDesktop && state.pendingConfirmations.length > 0 ? " input-area-container--confirm" : ""}`}
+        className={`input-area-container${state.pendingConfirmations.length > 0 ? " input-area-container--confirm" : ""}`}
       >
         <div
           style={{
@@ -2324,7 +2317,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         <StatusDialog
           onClose={handleDialogClose}
           vscode={vscode}
-          isDesktop={isDesktop}
         />
       )}
       {state.activeDialog === "tasks" && (
@@ -2378,15 +2370,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         onDismiss={handleToastDismiss}
         onAction={handleToastAction}
       />
-      {isDesktop && (
-        <QuickOpenPalette
-          open={quickOpenOpen}
-          workdir={effectiveWorkdir}
-          vscode={vscode}
-          onClose={() => setQuickOpenOpen(false)}
-          onOpenFile={(path) => handleOpenFile(path)}
-        />
-      )}
+      <QuickOpenPalette
+        open={quickOpenOpen}
+        workdir={effectiveWorkdir}
+        vscode={vscode}
+        onClose={() => setQuickOpenOpen(false)}
+        onOpenFile={(path) => handleOpenFile(path)}
+      />
     </>
   );
 
@@ -2402,11 +2392,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         onLogin={handleLogin}
         onLogout={handleLogout}
         isAuthenticated={state.isAuthenticated}
-        hideSessionButtons={isDesktop}
-        hideMoreButton={isDesktop}
+        hideSessionButtons
+        hideMoreButton
         gitContext={headerGitContext}
         panelToggle={
-          isDesktop && checkedPanels.length === 0
+          checkedPanels.length === 0
             ? {
                 onToggleDock: handleToggleDock,
               }
@@ -2421,7 +2411,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     <div
       className="chat-container"
       data-testid="chat-container"
-      ref={isDesktop ? chatContainerRef : undefined}
+      ref={chatContainerRef}
     >
       {queueEditWarning && (
         <div
