@@ -572,34 +572,6 @@
   accent-color: var(--accent-9);
 }
 
-.desktop-git-context {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  font-size: var(--font-size-1);
-  color: var(--gray-11);
-}
-
-.desktop-git-context-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 0;
-  max-width: 180px;
-}
-
-.desktop-git-context-item span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.desktop-git-context-item .codicon {
-  font-size: var(--font-size-1);
-  flex-shrink: 0;
-}
-
 /* ---- Worktree hover card (sidebar item / chat header title) ----
    Mirrors the Cursor worktree metadata card: branch, worktree name, workdir. */
 

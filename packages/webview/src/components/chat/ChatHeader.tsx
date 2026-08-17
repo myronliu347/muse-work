@@ -4,7 +4,6 @@ import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import { NewSessionIcon, MoreIcon } from "../shared/HeaderIcons";
 import { MoreMenu } from "../shared/MoreMenu";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
-import { DesktopGitContext } from "../desktop/DesktopGitContext";
 import { getSessionTitle } from "../../utils/session";
 import type { ChatHeaderProps } from "../../types";
 import "../../styles/ChatHeader.css";
@@ -54,12 +53,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       ) : (
         <div className="header-title">{title}</div>
       )}
-      {gitContext ? (
-        <DesktopGitContext
-          branch={gitContext.branch}
-          worktreeName={gitContext.worktreeName}
-        />
-      ) : null}
       <div className="header-buttons">
         {!hideSessionButtons && (
           <>

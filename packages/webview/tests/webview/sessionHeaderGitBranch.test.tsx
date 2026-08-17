@@ -5,13 +5,11 @@ import React from "react";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { resetWebviewStores } from "../../src/stores";
 import {
-  createMockVscode,
   sendCommand,
   sendHostMessage,
   renderDesktopApp,
   bootstrapDesktopAuth,
 } from "./test-utils";
-import { fixtures } from "wave-webview-fixtures";
 
 vi.mock("../../src/styles/DesktopApp.css", () => ({}));
 
@@ -37,7 +35,7 @@ afterEach(() => {
 });
 
 describe("session header git branch", () => {
-  it("bound session shows git badge in chat-header, not in the input toolbar", () => {
+  it("bound session omits the git badge from chat-header", () => {
     renderDesktop("/work/a");
     act(() => {
       sendCommand("updateCurrentSession", {
@@ -64,20 +62,8 @@ describe("session header git branch", () => {
 
     const header = screen.getByTestId("chat-header");
     expect(
-      within(header).getByTestId("desktop-git-context"),
-    ).toBeInTheDocument();
-    expect(within(header).getByTestId("desktop-git-branch")).toHaveTextContent(
-      "worktree-login-form",
-    );
-    expect(
-      within(header).getByTestId("desktop-git-worktree"),
-    ).toHaveTextContent("login-form");
-
-    expect(
-      document.querySelector(
-        '.input-toolbar-left [data-testid="desktop-git-context"]',
-      ),
-    ).toBeNull();
+      within(header).queryByTestId("desktop-git-context"),
+    ).not.toBeInTheDocument();
   });
 
   it("draft keeps branch controls in the input area and omits header badge", () => {
@@ -131,59 +117,6 @@ describe("session header git branch", () => {
     );
   });
 
-  it("updates header branch when a later desktopGitBranches current changes", () => {
-    vi.useFakeTimers();
-    try {
-      renderDesktop("/work/a");
-      act(() => {
-        sendCommand("updateCurrentSession", {
-          session: {
-            id: "s1",
-            sessionType: "main",
-            workdir: "/work/a",
-            firstMessage: "hello",
-            lastActiveAt: new Date().toISOString(),
-            worktreeBranch: "old-branch",
-          },
-        });
-      });
-      act(() => {
-        sendCommand("desktopGitBranches", {
-          workdir: "/work/a",
-          result: {
-            branches: ["old-branch", "new-branch"],
-            current: "old-branch",
-          },
-        });
-      });
-      expect(
-        within(screen.getByTestId("chat-header")).getByTestId(
-          "desktop-git-branch",
-        ),
-      ).toHaveTextContent("old-branch");
-
-      act(() => {
-        vi.advanceTimersByTime(3000);
-      });
-      act(() => {
-        sendCommand("desktopGitBranches", {
-          workdir: "/work/a",
-          result: {
-            branches: ["old-branch", "new-branch"],
-            current: "new-branch",
-          },
-        });
-      });
-      expect(
-        within(screen.getByTestId("chat-header")).getByTestId(
-          "desktop-git-branch",
-        ),
-      ).toHaveTextContent("new-branch");
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
   it("posts desktopListGitBranches on the poll interval without clearing first", () => {
     vi.useFakeTimers();
     try {
@@ -217,11 +150,6 @@ describe("session header git branch", () => {
           workdir: "/work/a",
         }),
       );
-      expect(
-        within(screen.getByTestId("chat-header")).getByTestId(
-          "desktop-git-branch",
-        ),
-      ).toHaveTextContent("main");
     } finally {
       vi.useRealTimers();
     }

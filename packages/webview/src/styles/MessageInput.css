@@ -50,8 +50,7 @@
 }
 
 .input-toolbar-left .desktop-workdir-container,
-.input-toolbar-left .desktop-worktree-controls,
-.input-toolbar-left .desktop-git-context {
+.input-toolbar-left .desktop-worktree-controls {
   min-width: 0;
 }
 
