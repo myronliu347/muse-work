@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
-import { defaultCreateAgent, type CreateAgent } from "../services/sessionRunner.js";
+import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner.js";
 import { createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
 
@@ -10,7 +10,11 @@ export const POPO_SYSTEM_PROMPT = `你是 Muse 机器人，运行在 POPO 即时
 - 消息可能来自私聊或群聊。群聊消息开头可能带 "@机器人名 "，这是群成员 @ 你，正文才是需要你处理的内容。
 - 当消息来自群聊时，如果上下文不完整（例如用户提到群里的历史讨论），可以使用本地 popo-cli（popo-im skill）读取该群的历史消息来补全上下文。
 - 回复保持简洁、直接，使用中文。
-- 只有主人可以直接指挥你；其他人发来的请求一律礼貌拒绝。`;
+- 只有主人可以直接指挥你；其他人发来的请求一律礼貌拒绝。
+- 禁止后台任务：不要使用 Bash 的 run_in_background 参数，所有命令必须前台执行并等待完成；不要创建定时任务（cron）。你收不到后台任务完成的通知，后台任务只会白跑。`;
+
+/** POPO 机器人禁用的工具：Workflow 在后台运行、完成后才有通知，本场景无法接收结果。 */
+export const POPO_DISALLOWED_TOOLS = ["Workflow"] as const;
 
 export interface PopoAgentRunner {
   run(content: string): Promise<string>;
@@ -39,6 +43,42 @@ type PopoAgentMessage = {
   blocks: Array<{ type: string; content: string }>;
 };
 
+/** 后台任务状态轮询间隔 */
+const BACKGROUND_TASK_POLL_MS = 5000;
+
+/**
+ * 待销毁 agent 集合 + 单一轮询循环：所有有后台任务的 agent 共用一个
+ * 5s 定时器检查，任务全部结束后销毁并从集合移除；集合清空时停表。
+ */
+const pendingDisposals = new Set<SessionAgent>();
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+async function checkPendingDisposals(): Promise<void> {
+  for (const agent of [...pendingDisposals]) {
+    if (!(agent.hasRunningBackgroundWork?.() ?? false)) {
+      pendingDisposals.delete(agent);
+      try {
+        await agent.dispose();
+      } catch {
+        // 销毁失败不能掩盖任务结果。
+      }
+    }
+  }
+  if (pendingDisposals.size === 0 && pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function scheduleDisposeWhenSettled(agent: SessionAgent): void {
+  pendingDisposals.add(agent);
+  if (!pollTimer) {
+    pollTimer = setInterval(() => {
+      void checkPendingDisposals();
+    }, BACKGROUND_TASK_POLL_MS);
+  }
+}
+
 export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAgentFactory {
   const createAgent = options.createAgent ?? defaultCreateAgent;
   /** 机器人 agent 工作目录：~/popo-chat（用户指定，与主会话 workdir 隔离） */
@@ -64,6 +104,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       stream: true,
       permissionMode: "bypassPermissions",
       systemPrompt: POPO_SYSTEM_PROMPT,
+      // Workflow 后台运行且结果通知本场景收不到，硬禁用
+      disallowedTools: [...POPO_DISALLOWED_TOOLS],
       logger: createAgentLogger({
         home: options.home,
         sessionId: `popo-${sanitizeSessionId(chat.chatKey)}`,
@@ -100,10 +142,18 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         } finally {
           // 每条消息一个 SDK Agent，用完即销毁。上下文已通过 restoreSessionId
           // 持久化到 chatStore，dispose 不影响后续续聊。
-          try {
-            await agent.dispose();
-          } catch {
-            // dispose 失败不能掩盖回复结果。
+          // 例外：agent 启动了后台任务（bg 命令 / 活跃 subagent）时销毁会把任务
+          // 一起杀掉（SDK destroy 会 cleanup 所有 running 任务），此时保留 agent
+          // 等任务结束再销毁；fire-and-forget，不阻塞本次回复。
+          if (agent.hasRunningBackgroundWork?.()) {
+            // 注册到共享调度器：任务结束后统一销毁，不阻塞本次回复。
+            scheduleDisposeWhenSettled(agent);
+          } else {
+            try {
+              await agent.dispose();
+            } catch {
+              // dispose 失败不能掩盖回复结果。
+            }
           }
         }
       },

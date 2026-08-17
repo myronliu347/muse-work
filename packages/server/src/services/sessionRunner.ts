@@ -88,6 +88,8 @@ export interface SessionAgent {
   ) => boolean;
   /** SDK loading state (true while AI / tools are running). */
   isLoading?: () => boolean;
+  /** 是否有运行中的后台任务/活跃 subagent（有则不应销毁 agent，否则任务被杀）。 */
+  hasRunningBackgroundWork?: () => boolean;
   /** SDK queued messages snapshot (excludes background notifications). */
   queuedMessages?: () => unknown[];
 }
@@ -229,6 +231,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       updateQueuedMessageById: (id, patch) =>
         agent.updateQueuedMessageById(id, patch),
       isLoading: () => agent.isLoading,
+      hasRunningBackgroundWork: () => agent.hasRunningBackgroundWork,
       queuedMessages: () => agent.queuedMessages,
       get latestTotalTokens() {
         return agent.latestTotalTokens;

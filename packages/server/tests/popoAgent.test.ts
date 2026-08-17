@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createPopoAgentFactory } from "../src/popo/popoAgent.js";
 import type { SessionAgent } from "../src/services/sessionRunner.js";
 
@@ -30,6 +30,7 @@ function stubAgent(finalText: string): SessionAgent {
     removeQueuedMessageById: () => false,
     updateQueuedMessageById: () => false,
     isLoading: () => false,
+    hasRunningBackgroundWork: () => false,
     queuedMessages: () => [],
     latestTotalTokens: 0,
   } as SessionAgent;
@@ -121,6 +122,94 @@ describe("popoAgent", () => {
     const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
     await runner.run("hello");
     expect(waveSessionIds).toEqual([{ chatKey: "p2p:x", sessionId: "wave-1" }]);
+  });
+
+  it("disallows the Workflow tool and forbids background tasks in the system prompt", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (options) => {
+        captured = options as unknown as Record<string, unknown>;
+        return stubAgent("ok");
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    // Workflow 硬禁用（后台运行、完成通知本场景收不到）
+    expect(captured?.disallowedTools).toEqual(["Workflow"]);
+    // 系统提示明确禁止后台任务
+    expect(String(captured?.systemPrompt)).toContain("run_in_background");
+    expect(String(captured?.systemPrompt)).toContain("不要创建定时任务");
+  });
+
+  it("keeps the agent alive while a background task runs, disposing after it settles", async () => {
+    vi.useFakeTimers();
+    let running = true;
+    let disposeCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("最终回复"),
+        hasRunningBackgroundWork: () => running,
+        dispose: () => {
+          disposeCalls += 1;
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    // 后台任务运行中：run 正常返回，但不销毁 agent
+    expect(await runner.run("hello")).toBe("最终回复");
+    expect(disposeCalls).toBe(0);
+    // 任务结束后：共享轮询（5s 间隔）销毁 agent
+    running = false;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(disposeCalls).toBe(1);
+    // 再次推进：集合已清空，不再有定时器
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(disposeCalls).toBe(1);
+    vi.useRealTimers();
+  });
+
+  it("shares one poll loop across multiple agents with background tasks", async () => {
+    vi.useFakeTimers();
+    const flags: Array<{ running: boolean; disposed: boolean }> = [];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => {
+        const f = { running: true, disposed: false };
+        flags.push(f);
+        return {
+          ...stubAgent("回复"),
+          hasRunningBackgroundWork: () => f.running,
+          dispose: () => {
+            f.disposed = true;
+          },
+        };
+      },
+    });
+    const r1 = await factory({ chatKey: "p2p:a", type: "p2p" });
+    const r2 = await factory({ chatKey: "p2p:b", type: "p2p" });
+    await r1.run("x");
+    await r2.run("y");
+    // 两个 agent 后台任务都在跑：都不销毁
+    expect(flags.every((f) => !f.disposed)).toBe(true);
+
+    // 第二个任务结束：同一轮询只销毁第二个，第一个保留
+    flags[1].running = false;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(flags[0].disposed).toBe(false);
+    expect(flags[1].disposed).toBe(true);
+
+    // 第一个也结束：销毁；集合清空后定时器停止（再推进无新增销毁）
+    flags[0].running = false;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(flags.map((f) => f.disposed)).toEqual([true, true]);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(flags.map((f) => f.disposed)).toEqual([true, true]);
+    vi.useRealTimers();
   });
 
   it("swallows dispose errors and still returns the reply", async () => {
