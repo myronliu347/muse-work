@@ -2611,7 +2611,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenSettings={handleOpenSettings}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           currentSessionId={state.currentSession?.id}
-          onSelectSession={host.onSelectSession}
+          onSelectSession={(workdir, sessionId) => {
+            // 点侧栏会话立即回到聊天视图：即使点的是当前会话（host 不推
+            // updateCurrentSession、effect 不触发），机器人页等视图也能退出。
+            setView("chat");
+            host.onSelectSession(workdir, sessionId);
+          }}
           onOpenPane={host.onOpenPane}
           onDeleteSession={host.onDeleteSession}
           onTogglePin={host.onTogglePin}
