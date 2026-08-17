@@ -221,9 +221,11 @@
 }
 
 /* Beat `.codicon[class*="codicon-"]` (16px) so the glyph fits the 14px slot
-   instead of overflowing into the label gap. */
+   instead of overflowing into the label gap. `!important` because codicon.css
+   is imported after this file and wins the (0,2,0) specificity tie — without
+   it the folder renders at 16px and `overflow: hidden` clips its left edge. */
 .desktop-session-workdir-icon-slot .codicon {
-  font-size: 14px;
+  font-size: 14px !important;
 }
 
 .desktop-session-workdir-folder,

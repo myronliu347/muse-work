@@ -213,7 +213,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       "utf8",
     );
     expect(css).toMatch(
-      /\.desktop-session-workdir-icon-slot\s+\.codicon\s*\{[^}]*font-size:\s*14px/s,
+      /\.desktop-session-workdir-icon-slot\s+\.codicon\s*\{[^}]*font-size:\s*14px\s*!important/s,
     );
     expect(css).toMatch(
       /\.desktop-session-workdir-row\s*\{[^}]*gap:\s*var\(--space-2\)/s,
