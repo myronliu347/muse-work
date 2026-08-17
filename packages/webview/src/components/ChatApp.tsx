@@ -48,6 +48,9 @@ import { DiffPane } from "./panels/DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
 import { FilePane } from "./panels/FilePane";
 import { QuickOpenPalette } from "./panels/QuickOpenPalette";
+import { PopoRobotView } from "./popo/PopoRobotView";
+import { MuseApiClient } from "../muse/apiClient";
+import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type {
   ChatAppProps,
   ConfigurationData,
@@ -127,6 +130,9 @@ function canonicalForwardUrl(raw: string): string {
     return raw;
   }
 }
+
+/** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
+export type MainView = "newChat" | "chat" | "popo-robot";
 
 export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -248,6 +254,27 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
   );
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / POPO 机器人页。
+  // 独立于 host 推送的会话状态，任何导航入口显式切换。
+  const [view, setView] = useState<MainView>("chat");
+  const popoApi = useMemo(
+    () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
+    [],
+  );
+  // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
+  const [popoEnabled, setPopoEnabled] = useState(false);
+  useEffect(() => {
+    popoApi
+      .getPopoConfig()
+      .then((cfg) => setPopoEnabled(cfg.configured))
+      .catch(() => setPopoEnabled(false));
+  }, [popoApi]);
+  // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
+  // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
+  // state.currentSession 对应的会话（sessionId 即 currentSession.id）。
+  useEffect(() => {
+    setView("chat");
+  }, [state.currentSession?.id]);
   const checkedPanelsRef = useRef(checkedPanels);
   const mountedPanelsRef = useRef(mountedPanels);
   const activePanelRef = useRef(activePanel);
@@ -1207,6 +1234,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // Desktop 的"新对话"入口（侧边栏按钮）：由宿主 spawn 新 agent 承载全新会话，
   // 当前会话在后台继续，因此流式期间保持可用。
   const handleDesktopNewSession = useCallback(() => {
+    // 同步退出机器人页，不依赖宿主推送新会话的时序。
+    setView("chat");
     postToHost({
       command: "newSession",
     });
@@ -1214,6 +1243,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
 
   const handleDesktopNewSessionInWorkdir = useCallback(
     (workdir: string) => {
+      setView("chat");
       postToHost({
         command: "newSession",
         workdir,
@@ -1826,6 +1856,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       if (matchNewSessionShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
+        // 与侧栏新对话按钮一致：同步退出机器人页等其它视图。
+        setView("chat");
         postToHost({ command: "newSession" });
         return;
       }
@@ -2486,9 +2518,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          {isDraftSession && !state.initialized ? (
+          {view === "popo-robot" ? (
+            <PopoRobotView api={popoApi} vscode={vscode} />
+          ) : isDraftSession && !state.initialized ? (
             <LoadingLogo />
-          ) : showNewSessionPage ? (
+          ) : view === "newChat" || showNewSessionPage ? (
             newSessionPage
           ) : (
             chatChrome
@@ -2567,9 +2601,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       <div className="desktop-layout">
         <DesktopSidebar
           onNewSession={handleDesktopNewSession}
-          onNewSessionInPane={() =>
-            postToHost({ command: "desktopNewSessionInPane" })
-          }
+          onNewSessionInPane={() => {
+            setView("chat");
+            postToHost({ command: "desktopNewSessionInPane" });
+          }}
           onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
           isStreaming={state.isStreaming}
           disabled={false}
@@ -2589,6 +2624,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           }
           onRevealInFinder={(workdir) =>
             postToHost({ command: "revealInFinder", path: workdir })
+          }
+          onTogglePopoRobot={() => setView((v) => (v === "popo-robot" ? "chat" : "popo-robot"))}
+          popoEnabled={popoEnabled}
+          activeMenu={
+            view === "popo-robot"
+              ? "popo-robot"
+              : view === "newChat" || showNewSessionPage
+                ? "newChat"
+                : undefined
           }
         />
         {chatContainer}

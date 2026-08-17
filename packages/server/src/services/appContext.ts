@@ -25,6 +25,8 @@ export interface AppContext {
   store: SessionStore;
   hub: WsHub;
   runner: SessionRunner;
+  /** POPO 机器人运行时（未启用时为 undefined） */
+  popo?: import("../popo/setup.js").PopoRuntime;
 }
 
 export interface CreateAppContextOptions {

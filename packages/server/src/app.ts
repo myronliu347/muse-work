@@ -12,6 +12,7 @@ import { healthRoutes } from "./routes/health.js";
 import { providersRoutes } from "./routes/providers.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { createPopoRoutes } from "./popo/routes.js";
 
 export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   const app = new Hono<HonoEnv>();
@@ -25,6 +26,10 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", providersRoutes);
   app.route("/", authRoutes);
   app.route("/", sessionsRoutes);
+
+  if (ctx.popo) {
+    app.route("/", createPopoRoutes(ctx.popo));
+  }
 
   app.notFound((c) =>
     c.json({ error: `not found: ${c.req.method} ${c.req.path}` }, 404),

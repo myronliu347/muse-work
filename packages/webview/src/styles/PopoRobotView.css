@@ -1,0 +1,157 @@
+/* POPO 机器人页面（Radix Theme 设计规范：gray/space/radius 变量） */
+
+.popo-robot-view {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+
+/* ---- 配置卡片 ---- */
+
+.popo-config-card {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.popo-config-row {
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--gray-3);
+}
+
+.popo-config-row:last-child {
+  border-bottom: none;
+}
+
+.popo-config-value-wrap {
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.popo-config-value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+}
+
+.popo-config-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-1);
+  background: transparent;
+  color: var(--gray-9);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.popo-config-copy:hover {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.popo-config-copy .codicon {
+  font-size: 12px;
+}
+
+/* ---- 会话列表 + 详情布局 ---- */
+
+.popo-robot-view .popo-chats-layout {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.popo-robot-view .popo-chat-list {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.popo-robot-view .popo-chat-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.popo-chat-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-12);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.popo-chat-item:hover {
+  background: var(--gray-3);
+}
+
+.popo-chat-item.active {
+  background: var(--gray-4);
+}
+
+.popo-chat-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popo-chat-last {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popo-chat-time {
+  display: block;
+  margin-top: 2px;
+}
+
+.popo-chat-spinner {
+  flex-shrink: 0;
+}
+
+/* 列表项"处理中"标记：不随标题截断 */
+.popo-chat-processing {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---- 详情 ---- */
+
+.popo-robot-view .popo-chat-detail {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.popo-robot-view .popo-detail-body {
+  height: 100%;
+  width: 100%;
+}
+
+.popo-robot-view .popo-detail-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.popo-processing {
+  color: var(--gray-9);
+  flex-shrink: 0;
+}

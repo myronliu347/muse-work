@@ -25,6 +25,40 @@ export const NewSessionIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+/** 机器人图标（POPO 机器人入口），与 NewSessionIcon 同规格。 */
+export const PopoRobotIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+  >
+    {/* 头部 */}
+    <path
+      d="M5 4.5C5 2.8425 6.3425 1.5 8 1.5C9.6575 1.5 11 2.8425 11 4.5V6.5C11 8.1575 9.6575 9.5 8 9.5C6.3425 9.5 5 8.1575 5 6.5V4.5Z"
+      fill="currentColor"
+    />
+    {/* 天线 */}
+    <path d="M8 0.5V1.9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    {/* 头顶天线球 */}
+    <circle cx="8" cy="0.6" r="0.9" fill="currentColor" />
+    {/* 眼睛 */}
+    <circle cx="6.6" cy="5.2" r="0.8" fill="var(--gray-1, #fff)" />
+    <circle cx="9.4" cy="5.2" r="0.8" fill="var(--gray-1, #fff)" />
+    {/* 耳朵 */}
+    <path d="M5.5 4H4.2V6.5H5.5" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" fill="none" />
+    <path d="M10.5 4H11.8V6.5H10.5" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" fill="none" />
+    {/* 躯干 */}
+    <rect x="5.5" y="10" width="5" height="4" rx="1.2" fill="currentColor" />
+    {/* 手臂 */}
+    <rect x="4" y="10.8" width="1.4" height="2.6" rx="0.7" fill="currentColor" />
+    <rect x="10.6" y="10.8" width="1.4" height="2.6" rx="0.7" fill="currentColor" />
+  </svg>
+);
+
 export const ExternalLinkIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (
