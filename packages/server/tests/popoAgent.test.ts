@@ -72,7 +72,52 @@ describe("popoAgent", () => {
     await expect(runner.run("hello")).rejects.toThrow(/未生成回复|回复为空/);
   });
 
-  it("disposes the agent after run resolves", async () => {
+  it("keeps p2p agents resident: reused across runs and never disposed", async () => {
+    let createCalls = 0;
+    let disposeCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => {
+        createCalls += 1;
+        return {
+          ...stubAgent("最终回复"),
+          dispose: () => {
+            disposeCalls += 1;
+          },
+        };
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    await runner.run("hello again");
+    expect(createCalls).toBe(1); // 复用同一 agent
+    expect(disposeCalls).toBe(0); // 不销毁
+  });
+
+  it("does not schedule background-task disposal for resident p2p agents", async () => {
+    vi.useFakeTimers();
+    let disposeCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("最终回复"),
+        hasRunningBackgroundWork: () => true, // 一直有后台任务
+        dispose: () => {
+          disposeCalls += 1;
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    // 常驻 agent：不注册轮询、不销毁
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(disposeCalls).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it("disposes the team agent after run resolves", async () => {
     let disposeCalls = 0;
     const factory = createPopoAgentFactory({
       home: "/tmp",
@@ -84,12 +129,12 @@ describe("popoAgent", () => {
         },
       }),
     });
-    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
     expect(await runner.run("hello")).toBe("最终回复");
     expect(disposeCalls).toBe(1);
   });
 
-  it("disposes the agent even when run throws", async () => {
+  it("disposes the team agent even when run throws", async () => {
     let disposeCalls = 0;
     const factory = createPopoAgentFactory({
       home: "/tmp",
@@ -104,7 +149,7 @@ describe("popoAgent", () => {
         },
       }),
     });
-    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
     await expect(runner.run("hello")).rejects.toThrow("模型超时");
     expect(disposeCalls).toBe(1);
   });
@@ -158,7 +203,7 @@ describe("popoAgent", () => {
         },
       }),
     });
-    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
     // 后台任务运行中：run 正常返回，但不销毁 agent
     expect(await runner.run("hello")).toBe("最终回复");
     expect(disposeCalls).toBe(0);
@@ -190,8 +235,8 @@ describe("popoAgent", () => {
         };
       },
     });
-    const r1 = await factory({ chatKey: "p2p:a", type: "p2p" });
-    const r2 = await factory({ chatKey: "p2p:b", type: "p2p" });
+    const r1 = await factory({ chatKey: "team:1", type: "team" });
+    const r2 = await factory({ chatKey: "team:2", type: "team" });
     await r1.run("x");
     await r2.run("y");
     // 两个 agent 后台任务都在跑：都不销毁
@@ -223,7 +268,7 @@ describe("popoAgent", () => {
         },
       }),
     });
-    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
     expect(await runner.run("hello")).toBe("最终回复");
   });
 });

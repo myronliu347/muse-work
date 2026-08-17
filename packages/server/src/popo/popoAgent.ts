@@ -84,7 +84,15 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   /** 机器人 agent 工作目录：~/popo-chat（用户指定，与主会话 workdir 隔离） */
   const workdir = options.workdir ?? path.join(options.home, "popo-chat");
 
-  return async (chat) => {
+  /** p2p 私聊常驻 agent：跨消息复用、不销毁、不轮询后台任务（用户指定）。 */
+  const residentAgents = new Map<string, SessionAgent>();
+  const residentRunners = new Map<string, PopoAgentRunner>();
+  /** 同一 chat 的消息串行执行（常驻 agent / 共享 session 都要求按序）。 */
+  const serialChains = new Map<string, Promise<unknown>>();
+
+  async function createSdkAgent(
+    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+  ): Promise<SessionAgent> {
     fs.mkdirSync(workdir, { recursive: true });
     const active = options.registry.getActive();
     const provider = options.registry.get(active.providerId);
@@ -93,7 +101,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (!model) throw new Error("no active model");
     const gateway = await provider.resolveGateway(model);
 
-    const agent = await (createAgent as CreateAgent)({
+    return (createAgent as CreateAgent)({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
       defaultHeaders: gateway.defaultHeaders,
@@ -117,46 +125,76 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         },
       },
     });
+  }
 
+  /** 单轮：sendMessage + 取最后文本。不负责 agent 生命周期（由调用方决定）。 */
+  async function runTurn(
+    agent: SessionAgent,
+    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    content: string,
+  ): Promise<string> {
+    await agent.sendMessage(content);
+    // SDK 的 onSessionIdChange 只在 sessionId 变化时触发（新建 agent 不触发），
+    // 这里直接读最终 sessionId 落库，详情路由据此加载完整处理过程。
+    if (agent.sessionId) {
+      options.onWaveSessionId?.(chat.chatKey, agent.sessionId);
+    }
+    const msgs = (agent.getMessages?.() ?? []) as PopoAgentMessage[];
+    const last = msgs[msgs.length - 1];
+    const text = last?.blocks
+      .filter((b) => b.type === "text")
+      .map((b) => (b as { content: string }).content)
+      .join("");
+    if (text) return text;
+    const error = last?.blocks.find((b) => b.type === "error");
+    if (error) {
+      throw new Error((error as { content: string }).content || "agent 回复为空");
+    }
+    throw new Error("agent 未生成回复");
+  }
+
+  /** 同一 chat 的 run 串行排队（并发回调不冲突）。 */
+  function serialized(chatKey: string, fn: () => Promise<string>): Promise<string> {
+    const prev = serialChains.get(chatKey) ?? Promise.resolve();
+    const next = prev.then(fn, fn);
+    serialChains.set(chatKey, next.catch(() => undefined));
+    return next;
+  }
+
+  return async (chat) => {
+    // p2p 私聊：常驻 agent，复用 runner，不销毁也不轮询后台任务。
+    if (chat.type === "p2p") {
+      const existing = residentRunners.get(chat.chatKey);
+      if (existing) return existing;
+      const agent = await createSdkAgent(chat);
+      residentAgents.set(chat.chatKey, agent);
+      const runner: PopoAgentRunner = {
+        run: (content) => serialized(chat.chatKey, () => runTurn(agent, chat, content)),
+      };
+      residentRunners.set(chat.chatKey, runner);
+      return runner;
+    }
+
+    // 群聊：每条消息新建 agent，用完销毁；有后台任务则等任务结束再销毁。
     return {
-      async run(content) {
-        try {
-          await agent.sendMessage(content);
-          // SDK 的 onSessionIdChange 只在 sessionId 变化时触发（新建 agent 不触发），
-          // 这里直接读最终 sessionId 落库，详情路由据此加载完整处理过程。
-          if (agent.sessionId) {
-            options.onWaveSessionId?.(chat.chatKey, agent.sessionId);
-          }
-          const msgs = (agent.getMessages?.() ?? []) as PopoAgentMessage[];
-          const last = msgs[msgs.length - 1];
-          const text = last?.blocks
-            .filter((b) => b.type === "text")
-            .map((b) => (b as { content: string }).content)
-            .join("");
-          if (text) return text;
-          const error = last?.blocks.find((b) => b.type === "error");
-          if (error) {
-            throw new Error((error as { content: string }).content || "agent 回复为空");
-          }
-          throw new Error("agent 未生成回复");
-        } finally {
-          // 每条消息一个 SDK Agent，用完即销毁。上下文已通过 restoreSessionId
-          // 持久化到 chatStore，dispose 不影响后续续聊。
-          // 例外：agent 启动了后台任务（bg 命令 / 活跃 subagent）时销毁会把任务
-          // 一起杀掉（SDK destroy 会 cleanup 所有 running 任务），此时保留 agent
-          // 等任务结束再销毁；fire-and-forget，不阻塞本次回复。
-          if (agent.hasRunningBackgroundWork?.()) {
-            // 注册到共享调度器：任务结束后统一销毁，不阻塞本次回复。
-            scheduleDisposeWhenSettled(agent);
-          } else {
-            try {
-              await agent.dispose();
-            } catch {
-              // dispose 失败不能掩盖回复结果。
+      run: (content) =>
+        serialized(chat.chatKey, async () => {
+          const agent = await createSdkAgent(chat);
+          try {
+            return await runTurn(agent, chat, content);
+          } finally {
+            if (agent.hasRunningBackgroundWork?.()) {
+              // 注册到共享调度器：任务结束后统一销毁，不阻塞本次回复。
+              scheduleDisposeWhenSettled(agent);
+            } else {
+              try {
+                await agent.dispose();
+              } catch {
+                // dispose 失败不能掩盖回复结果。
+              }
             }
           }
-        }
-      },
+        }),
     };
   };
 }
