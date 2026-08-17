@@ -1064,6 +1064,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "session:titled") {
+      patchTreeSession(event.sessionId, { title: event.title });
+      if (event.sessionId === sessionId) {
+        const cur = treeById().get(event.sessionId);
+        if (cur) emitCurrentSession(cur);
+      }
+      return;
+    }
+
     if (event.type === "permission:request") {
       const pending: PendingPermission = {
         permissionId: event.permissionId,
@@ -1274,21 +1283,21 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
-  async function maybePatchTitle(sid: string, text: string): Promise<void> {
+  function maybePatchTitle(sid: string, text: string): void {
     if (titledSessions.has(sid)) return;
     const existing = treeById().get(sid);
     if (existing && existing.title && existing.title !== DEFAULT_TITLE) {
       titledSessions.add(sid);
       return;
     }
+    // Local placeholder only — the server owns the persisted title and replaces
+    // it with an AI summary (session:titled) when generation completes.
     const title = truncateTitle(text);
-    try {
-      const session = await api.patchSession(sid, { title });
-      titledSessions.add(sid);
-      patchTreeSession(sid, { title: session.title || title, model: session.model });
-      emitCurrentSession(session);
-    } catch {
-      // Title is best-effort; server also auto-titles.
+    titledSessions.add(sid);
+    patchTreeSession(sid, { title });
+    if (sessionId === sid) {
+      const cur = treeById().get(sid);
+      if (cur) emitCurrentSession(cur);
     }
   }
 
@@ -1361,7 +1370,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       }
       await api.sendMessage(sid, text, images.length > 0 ? images : undefined);
       if (text) {
-        await maybePatchTitle(sid, text);
+        maybePatchTitle(sid, text);
       }
       // First send promotes the session into the sidebar (started filter).
       await refreshTree();

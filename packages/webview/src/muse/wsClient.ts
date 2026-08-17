@@ -68,6 +68,7 @@ export type MuseWsEventPayload =
       messages: unknown[];
     }
   | { type: "session:unread"; unreadDone: boolean }
+  | { type: "session:titled"; title: string }
   | { type: "tasks:update"; tasks: unknown[] }
   | { type: "background-tasks:update"; tasks: unknown[] }
   | { type: "workflow-runs:update"; runs: unknown[] }

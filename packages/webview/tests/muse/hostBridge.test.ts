@@ -516,7 +516,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
-  it("first send keeps session model after auto-titling a new session", async () => {
+  it("first send keeps session model without auto-PATCHing a title", async () => {
     const created: MuseSession = {
       ...baseSession,
       id: "sess-created",
@@ -560,11 +560,14 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         ),
     );
     expect(currentSessions.length).toBeGreaterThan(0);
+    // Host no longer PATCHes the truncated title; the server owns the title and
+    // replaces it with an AI summary via the session:titled broadcast.
+    expect(api.patchSession).not.toHaveBeenCalled();
     expect(currentSessions.at(-1)?.session).toEqual(
       expect.objectContaining({
         id: "sess-created",
         model: "deepseek-v4-flash",
-        title: "hello world",
+        title: "新对话",
       }),
     );
   });
@@ -1118,6 +1121,101 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         ?.flatMap((g) => g.sessions)
         .find((s) => s.sessionId === "sess-active")?.running,
     ).toBe(false);
+  });
+
+  it("session:titled broadcast updates the tree and current session title", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-active",
+      workdir: "/tmp",
+    });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "session:titled",
+      sessionId: "sess-active",
+      title: "修复登录页白屏问题",
+    });
+    await flush();
+
+    const tree = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{ sessions: Array<{ sessionId: string; title?: string }> }>;
+        }
+      | undefined;
+    expect(
+      tree?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-active")?.title,
+    ).toBe("修复登录页白屏问题");
+
+    const current = messages.find(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        (m as { command?: string }).command === "updateCurrentSession",
+    ) as { session?: { title?: string } } | undefined;
+    expect(current?.session?.title).toBe("修复登录页白屏问题");
+  });
+
+  it("session:titled broadcast does not touch the current session when ids differ", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "session:titled",
+      sessionId: "sess-other",
+      title: "另一个会话",
+    });
+    await flush();
+
+    const current = messages.find(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        (m as { command?: string }).command === "updateCurrentSession",
+    );
+    expect(current).toBeUndefined();
   });
 
   it("non-focus loading keeps sidebar running without startStreaming", async () => {

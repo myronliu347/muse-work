@@ -57,6 +57,7 @@ export type WsEvent =
       unreadDone?: boolean;
     }
   | { type: "session:unread"; sessionId: string; unreadDone: boolean }
+  | { type: "session:titled"; sessionId: string; title: string }
   | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus }
   | { type: "compaction:state"; isCompacting: boolean }
   | { type: "error:block"; error: string }

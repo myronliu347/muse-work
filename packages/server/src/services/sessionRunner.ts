@@ -55,6 +55,8 @@ export type SessionImage = { path: string; mimeType: string };
 
 export interface SessionAgent {
   sendMessage(content: string, images?: SessionImage[]): Promise<void>;
+  /** Single-turn non-streaming fork (reuses system prompt / model / memory). */
+  askBtw?: (question: string, abortSignal?: AbortSignal) => Promise<string>;
   dispose(): Promise<void>;
   /** Interrupt in-flight AI / tools / bash (SDK abortMessage). */
   abortMessage?: () => void;
@@ -199,6 +201,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
     return {
       sendMessage: (content: string, images?: SessionImage[]) =>
         agent.sendMessage(content, images),
+      askBtw: (question: string, signal?: AbortSignal) =>
+        agent.askBtw(question, signal),
       abortMessage: () => agent.abortMessage(),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
@@ -1092,6 +1096,69 @@ export function createSessionRunner(
     store.update(sessionId, { title });
   }
 
+  /** Strip surrounding quotes/punct from an AI title; clamp to TITLE_MAX_LEN. */
+  function cleanAiTitle(summary: string): string {
+    const trimmed = summary.trim().replace(/\s+/g, " ");
+    if (!trimmed) {
+      return "";
+    }
+    const unquoted = trimmed
+      .replace(/^["'“”‘’「『]+/, "")
+      .replace(/["'“”‘’」』]+$/, "")
+      .trim();
+    if (!unquoted) {
+      return "";
+    }
+    return unquoted.length > TITLE_MAX_LEN
+      ? `${unquoted.slice(0, TITLE_MAX_LEN)}…`
+      : unquoted;
+  }
+
+  const titleGenerating = new Set<string>();
+
+  /**
+   * Replace the truncated placeholder title with an AI-summarized one.
+   * Fire-and-forget from runTurn; falls back to truncation on failure.
+   */
+  async function maybeGenerateAiTitle(
+    sessionId: string,
+    content: string,
+    agent: SessionAgent,
+  ): Promise<void> {
+    if (titleGenerating.has(sessionId)) {
+      return;
+    }
+    const session = store.get(sessionId);
+    if (!session || session.title !== DEFAULT_TITLE) {
+      return;
+    }
+    if (!agent.askBtw) {
+      maybeUpdateTitle(sessionId, content);
+      return;
+    }
+    titleGenerating.add(sessionId);
+    try {
+      const summary = await agent.askBtw(
+        `根据下面的用户消息，用一句话概括这个会话的主题，作为会话标题。直接输出标题本身，使用与用户消息相同的语言，不要引号、不要解释、不要句号，不超过 ${TITLE_MAX_LEN} 字。\n\n用户消息：\n${content}`,
+      );
+      const title = cleanAiTitle(summary);
+      if (!title) {
+        return;
+      }
+      // Do not overwrite a title the user renamed while we were generating.
+      const current = store.get(sessionId);
+      if (!current || current.title !== DEFAULT_TITLE) {
+        return;
+      }
+      store.update(sessionId, { title });
+      hub.broadcast(sessionId, { type: "session:titled", sessionId, title });
+    } catch {
+      maybeUpdateTitle(sessionId, content);
+    } finally {
+      titleGenerating.delete(sessionId);
+    }
+  }
+
   async function runTurn(
     sessionId: string,
     content: string,
@@ -1104,7 +1171,6 @@ export function createSessionRunner(
 
     clearIdleTimer(sessionId);
     store.update(sessionId, { lastActiveAt: Date.now() });
-    maybeUpdateTitle(sessionId, content);
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
     turnEnded.set(sessionId, false);
@@ -1120,6 +1186,9 @@ export function createSessionRunner(
 
     try {
       const agent = await ensureAgent(sessionId);
+      // Fire-and-forget AI title generation on the first message; the truncation
+      // fallback (maybeUpdateTitle) applies when askBtw is unavailable or fails.
+      void maybeGenerateAiTitle(sessionId, content, agent);
       // Persist pasted screenshots to a temp dir so the model can read them
       // via its tools, then point at them with [Image source: ...] markers.
       // The base64 images are still forwarded unchanged for vision.
@@ -1297,6 +1366,7 @@ export function createSessionRunner(
       turnHadOutput.delete(sessionId);
       aborting.delete(sessionId);
       agentLoading.delete(sessionId);
+      titleGenerating.delete(sessionId);
       closeAgentLogger(sessionId);
       subagentTranscripts.delete(sessionId);
       agentToolBinds.delete(sessionId);

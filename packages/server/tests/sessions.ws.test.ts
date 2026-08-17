@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import type { Server } from "node:http";
 import fs from "node:fs";
 import os from "node:os";
@@ -104,6 +104,128 @@ describe("sessions + websocket streaming", () => {
       },
       { type: "message:completed", messageId: "m1", sessionId: session.id },
     ]);
+  });
+
+  it("generates AI title via askBtw on first message and broadcasts session:titled", async () => {
+    const askBtw = vi.fn(async () => '"修复登录页白屏问题"');
+    const createAgent: CreateAgent = async () => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {},
+        askBtw,
+        dispose: async () => {},
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 1,
+      filter: (e) => e.type === "session:titled",
+    });
+    await ready;
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "帮我修复登录页白屏问题" }),
+    });
+
+    const [titled] = await events;
+    expect(titled).toMatchObject({
+      type: "session:titled",
+      sessionId: session.id,
+      title: "修复登录页白屏问题",
+    });
+    expect(askBtw).toHaveBeenCalledTimes(1);
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.title)
+      .toBe("修复登录页白屏问题");
+  });
+
+  it("falls back to truncated title when askBtw throws", async () => {
+    const createAgent: CreateAgent = async () => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {},
+        askBtw: async () => {
+          throw new Error("boom");
+        },
+        dispose: async () => {},
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "帮我修复登录页白屏问题" }),
+    });
+
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.title)
+      .toBe("帮我修复登录页白屏问题");
+  });
+
+  it("does not overwrite a title renamed while AI generation runs", async () => {
+    const askBtw = vi.fn(
+      async () => new Promise<string>((resolve) => setTimeout(resolve, 200)),
+    );
+    const createAgent: CreateAgent = async () => {
+      const agent: SessionAgent = {
+        sendMessage: async () => {},
+        askBtw,
+        dispose: async () => {},
+      };
+      return agent;
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "帮我修复登录页白屏问题" }),
+    });
+
+    // Rename while the AI generation is in flight.
+    await fetch(`${app.baseUrl}/sessions/${session.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "手动标题" }),
+    });
+
+    // Give the AI generation time to (attempt to) complete.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(app.ctx.store.get(session.id)?.title).toBe("手动标题");
   });
 
   it("broadcast includes sessionId and * subscriber receives it", async () => {
