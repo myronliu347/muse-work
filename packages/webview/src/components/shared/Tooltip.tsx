@@ -2,6 +2,7 @@ import React, {
   useState,
   useId,
   ReactElement,
+  ReactNode,
   useRef,
   useCallback,
 } from "react";
@@ -9,6 +10,8 @@ import "../../styles/Tooltip.css";
 
 interface TooltipProps {
   text: string;
+  /** Optional rich content; when provided it replaces `text` inside the box. */
+  content?: ReactNode;
   children: ReactElement;
   position?:
     | "top"
@@ -22,15 +25,24 @@ interface TooltipProps {
   offset?: number;
   disabled?: boolean;
   className?: string;
+  /**
+   * When true (default) the trigger is wrapped in a `.tooltip-container`
+   * span. Set false to bind events/ref directly onto `children` and render
+   * the box as a sibling — required when the child must stay a direct flex
+   * child of its parent (e.g. sidebar session rows).
+   */
+  wrap?: boolean;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
   text,
+  content,
   children,
   position = "top",
   offset = 8,
   disabled = false,
   className = "",
+  wrap = true,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
@@ -115,6 +127,38 @@ export const Tooltip: React.FC<TooltipProps> = ({
   };
   const handleHide = () => setIsVisible(false);
 
+  const box = (
+    <div
+      id={id}
+      role="tooltip"
+      ref={tooltipRef}
+      className={`tooltip-box tooltip-${position} ${content ? "tooltip-box--card" : ""} ${isVisible ? "visible" : ""}`}
+      style={tooltipStyle}
+    >
+      {content ?? text}
+    </div>
+  );
+
+  if (!wrap) {
+    // Bind hover handlers + ref directly onto the child so it stays a direct
+    // flex child of its parent (e.g. sidebar session rows). The box stays in
+    // place as a sibling — `position: fixed` keeps it out of the flex flow —
+    // so it keeps the theme CSS variables from the app root.
+    return (
+      <>
+        {React.cloneElement(children, {
+          onMouseEnter: handleShow,
+          onMouseLeave: handleHide,
+          onFocus: handleShow,
+          onBlur: handleHide,
+          ref: containerRef as React.Ref<HTMLElement>,
+          "aria-describedby": id,
+        })}
+        {box}
+      </>
+    );
+  }
+
   return (
     <span
       className={`tooltip-container ${className}`}
@@ -127,15 +171,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {React.cloneElement(children, {
         "aria-describedby": id,
       })}
-      <div
-        id={id}
-        role="tooltip"
-        ref={tooltipRef}
-        className={`tooltip-box tooltip-${position} ${isVisible ? "visible" : ""}`}
-        style={tooltipStyle}
-      >
-        {text}
-      </div>
+      {box}
     </span>
   );
 };

@@ -62,6 +62,7 @@ function toEntry(session: TreeSession): DesktopSessionEntry {
     hasWorktree: Boolean(session.worktreeName),
     worktreeName: session.worktreeName,
     worktreeBranch: session.worktreeBranch,
+    worktreeRepoRoot: session.worktreeRepoRoot,
     running: session.running ?? session.status === "running",
     waitingConfirmation: session.waitingConfirmation,
     pinned: session.pinned,

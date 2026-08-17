@@ -270,6 +270,8 @@ export interface DesktopSessionEntry {
   worktreeName?: string;
   /** Branch created for the worktree (e.g. `worktree-<name>`). */
   worktreeBranch?: string;
+  /** Main repo root — groups worktree sessions under the same parent as normal ones. */
+  worktreeRepoRoot?: string;
   /** True while this session is generating — drives the per-session running dot (FR-031). */
   running?: boolean;
   /** True while a confirmation request (tool/plan/question) awaits the user — drives the waiting dot. */
@@ -585,7 +587,7 @@ export interface ChatHeaderProps {
   // Desktop host: conversation-level panel toggle (preview/diff/terminal).
   panelToggle?: PanelToggleProps;
   /** Desktop: read-only branch / worktree badge in the title bar. */
-  gitContext?: { branch?: string; worktreeName?: string };
+  gitContext?: { branch?: string; worktreeName?: string; workdir?: string };
 }
 
 // Matches wave-agent-sdk's QueuedMessage type

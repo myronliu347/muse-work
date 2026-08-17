@@ -94,6 +94,26 @@ describe("buildSidebarModel", () => {
     expect(groups[1]?.sessions[0]?.sessionId).toBe("r1");
     expect(groups[1]?.sessions[0]?.workdir).toBe("/tmp");
   });
+
+  it("maps worktree metadata including worktreeRepoRoot into entries", () => {
+    const recent: MuseSession[] = [
+      {
+        ...baseSession,
+        id: "wt1",
+        title: "WT",
+        workdir: "/repo/.wave/worktrees/a",
+        worktreeName: "a",
+        worktreeBranch: "worktree-a",
+        worktreeRepoRoot: "/repo",
+      },
+    ];
+    const groups = buildSidebarModel({ pinned: [], recent });
+    const session = groups[1]?.sessions[0];
+    expect(session?.hasWorktree).toBe(true);
+    expect(session?.worktreeName).toBe("a");
+    expect(session?.worktreeBranch).toBe("worktree-a");
+    expect(session?.worktreeRepoRoot).toBe("/repo");
+  });
 });
 
 describe("createHostBridge desktop workdir bootstrap", () => {

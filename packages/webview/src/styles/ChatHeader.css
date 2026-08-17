@@ -22,6 +22,19 @@
   white-space: nowrap;
 }
 
+/* Tooltip wrapper around the title keeps the same flex sizing. */
+.chat-header-title-tooltip {
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.chat-header-title-tooltip .header-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-header > .desktop-git-context {
   flex-shrink: 1;
   min-width: 0;

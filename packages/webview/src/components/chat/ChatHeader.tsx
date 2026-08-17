@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
+import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import { NewSessionIcon, MoreIcon } from "../shared/HeaderIcons";
 import { MoreMenu } from "../shared/MoreMenu";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
@@ -26,9 +27,33 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const title = getSessionTitle(currentSession, messages);
 
+  // Worktree sessions show the same metadata card as the sidebar row on
+  // title hover (branch / worktree name / workdir).
+  const hasWorktreeMeta =
+    gitContext &&
+    (gitContext.worktreeName || gitContext.branch) &&
+    gitContext.workdir;
+
   return (
     <div className="chat-header" data-testid="chat-header">
-      <div className="header-title">{title}</div>
+      {hasWorktreeMeta ? (
+        <Tooltip
+          text=""
+          content={
+            <WorktreeInfoCard
+              branch={gitContext.branch}
+              worktreeName={gitContext.worktreeName}
+              workdir={gitContext.workdir}
+            />
+          }
+          position="bottom-right"
+          className="chat-header-title-tooltip"
+        >
+          <div className="header-title">{title}</div>
+        </Tooltip>
+      ) : (
+        <div className="header-title">{title}</div>
+      )}
       {gitContext ? (
         <DesktopGitContext
           branch={gitContext.branch}

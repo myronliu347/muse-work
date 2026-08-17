@@ -190,6 +190,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           branch:
             gitBranches?.current || sessionGitMeta?.worktreeBranch || undefined,
           worktreeName: sessionGitMeta?.worktreeName,
+          workdir: effectiveWorkdir,
         }
       : undefined;
   const effectiveWorkdirRef = useRef(effectiveWorkdir);

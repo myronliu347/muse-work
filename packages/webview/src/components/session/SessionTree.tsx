@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
+import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import type { DesktopSessionGroup, DesktopSessionEntry } from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
@@ -87,13 +88,18 @@ export type WorkdirSessionGroup = {
   sessions: DesktopSessionEntry[];
 };
 
-/** Group recent sessions by workdir; groups ordered by latest activity. */
+/**
+ * Group recent sessions by workdir; groups ordered by latest activity.
+ * Worktree sessions group under their main repo root (`worktreeRepoRoot`)
+ * so all worktrees of the same repository share one folder group.
+ */
 export function groupRecentSessionsByWorkdir(
   sessions: DesktopSessionEntry[],
 ): WorkdirSessionGroup[] {
   const map = new Map<string, DesktopSessionEntry[]>();
   for (const session of sessions) {
-    const key = session.workdir?.trim() || "";
+    const key =
+      session.worktreeRepoRoot?.trim() || session.workdir?.trim() || "";
     const list = map.get(key) ?? [];
     list.push(session);
     map.set(key, list);
@@ -271,7 +277,19 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     const shortName = workdir ? dirName(workdir) : "";
     const isEditing = editingSessionId === session.sessionId;
 
-    return (
+    // Worktree sessions get a branch icon next to the relative time, and a
+    // hover card on the right showing branch / worktree name / workdir.
+    const worktreeInfo =
+      session.hasWorktree && (session.worktreeName || session.worktreeBranch)
+        ? {
+            title: session.title || "新对话",
+            branch: session.worktreeBranch,
+            worktreeName: session.worktreeName,
+            workdir: session.workdir,
+          }
+        : null;
+
+    const row = (
       <li
         key={session.sessionId}
         className={`desktop-session-item${isCurrent ? " desktop-session-item--current" : ""}${isVisible ? " desktop-session-item--visible" : ""}`}
@@ -355,6 +373,19 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             </span>
           ) : null}
         </span>
+        {session.hasWorktree ? (
+          <span
+            className="desktop-session-worktree-badge"
+            data-testid={`desktop-session-worktree-badge-${session.sessionId}`}
+            title={
+              session.worktreeName
+                ? `worktree ${session.worktreeName}`
+                : undefined
+            }
+          >
+            <span className="codicon codicon-git-branch" aria-hidden="true" />
+          </span>
+        ) : null}
         {session.lastActiveAt ? (
           <span
             className="desktop-session-active-at"
@@ -400,6 +431,23 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           </Tooltip>
         </span>
       </li>
+    );
+
+    // Worktree rows show a hover card on the right (matches the Cursor
+    // metadata popover). `wrap={false}` keeps the <li> a direct flex child
+    // of `.desktop-session-items`; the box renders as a fixed sibling.
+    return worktreeInfo ? (
+      <Tooltip
+        key={session.sessionId}
+        text=""
+        content={<WorktreeInfoCard {...worktreeInfo} />}
+        position="right"
+        wrap={false}
+      >
+        {row}
+      </Tooltip>
+    ) : (
+      row
     );
   };
 

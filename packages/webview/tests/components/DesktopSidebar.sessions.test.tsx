@@ -469,4 +469,127 @@ describe("DesktopSidebar pin/recent sessions", () => {
     fireEvent.click(screen.getByTestId("desktop-session-item-s1"));
     expect(onSelectSession).toHaveBeenCalledWith("/real/path/proj", "s1");
   });
+
+  it("groups worktree sessions under their main repo root", () => {
+    const groups = groupRecentSessionsByWorkdir([
+      entry({
+        sessionId: "main",
+        workdir: "/repo",
+        lastActiveAt: 1,
+      }),
+      entry({
+        sessionId: "wt-a",
+        workdir: "/repo/.wave/worktrees/a",
+        worktreeRepoRoot: "/repo",
+        hasWorktree: true,
+        worktreeName: "a",
+        worktreeBranch: "worktree-a",
+        lastActiveAt: 50,
+      }),
+      entry({
+        sessionId: "wt-b",
+        workdir: "/repo/.wave/worktrees/b",
+        worktreeRepoRoot: "/repo",
+        hasWorktree: true,
+        worktreeName: "b",
+        worktreeBranch: "worktree-b",
+        lastActiveAt: 99,
+      }),
+      entry({
+        sessionId: "other",
+        workdir: "/elsewhere",
+        lastActiveAt: 10,
+      }),
+    ]);
+    expect(groups.map((g) => g.workdir)).toEqual(["/repo", "/elsewhere"]);
+    const repoGroup = groups[0]!;
+    expect(repoGroup.label).toBe("repo");
+    expect(repoGroup.sessions.map((s) => s.sessionId)).toEqual([
+      "wt-b",
+      "wt-a",
+      "main",
+    ]);
+  });
+
+  it("renders a branch badge on worktree session rows only", () => {
+    renderSidebar({
+      recentSessions: [
+        entry({
+          sessionId: "wt1",
+          workdir: "/repo/.wave/worktrees/a",
+          hasWorktree: true,
+          worktreeName: "a",
+          worktreeBranch: "worktree-a",
+        }),
+        entry({ sessionId: "plain", workdir: "/repo" }),
+      ],
+    });
+    expect(
+      screen.getByTestId("desktop-session-item-wt1").querySelector(
+        ".desktop-session-worktree-badge .codicon-git-branch",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("desktop-session-item-plain").querySelector(
+        ".desktop-session-worktree-badge",
+      ),
+    ).toBeNull();
+  });
+
+  it("shows a worktree metadata card on hover of a worktree row", () => {
+    renderSidebar({
+      recentSessions: [
+        entry({
+          sessionId: "wt1",
+          title: "WT session",
+          workdir: "/repo/.wave/worktrees/a",
+          hasWorktree: true,
+          worktreeName: "a",
+          worktreeBranch: "worktree-a",
+        }),
+      ],
+    });
+    const item = screen.getByTestId("desktop-session-item-wt1");
+    fireEvent.mouseEnter(item);
+    const card = screen.getByTestId("desktop-worktree-card");
+    expect(card.textContent).toContain("WT session");
+    expect(card.textContent).toContain("worktree-a");
+    expect(card.textContent).toContain("a");
+    expect(card.textContent).toContain("/repo/.wave/worktrees/a");
+    expect(card.textContent).toContain("Worktree");
+  });
+
+  it("keeps worktree rows as direct li children of the session ul", () => {
+    const { container } = renderSidebar({
+      recentSessions: [
+        entry({
+          sessionId: "wt1",
+          workdir: "/repo/.wave/worktrees/a",
+          hasWorktree: true,
+          worktreeName: "a",
+          worktreeBranch: "worktree-a",
+          worktreeRepoRoot: "/repo",
+        }),
+        entry({ sessionId: "plain", workdir: "/repo" }),
+      ],
+    });
+    // Worktree + plain rows share the /repo group, so the nested ul must
+    // contain two <li> flex children. A tooltip wrapper span in between
+    // would break the flex column and shift the row upward (regression:
+    // hover card pressed the row into the group header above). The tooltip
+    // box itself is `position: fixed` (out of flex flow) and may appear as
+    // a sibling DIV — it must not be a wrapper around the <li>.
+    const list = container.querySelector(".desktop-session-items");
+    expect(list).toBeTruthy();
+    const lis = Array.from(list!.querySelectorAll(":scope > li"));
+    expect(lis.map((el) => el.getAttribute("data-testid"))).toEqual([
+      "desktop-session-item-wt1",
+      "desktop-session-item-plain",
+    ]);
+    expect(
+      Array.from(list!.querySelectorAll(":scope > li")).every(
+        (el) => el.tagName === "LI",
+      ),
+    ).toBe(true);
+  });
 });

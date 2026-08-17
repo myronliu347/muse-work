@@ -27,6 +27,14 @@
   text-overflow: ellipsis;
 }
 
+/* Rich-content card (e.g. worktree info): multiline, no ellipsis clamp. */
+.tooltip-box--card {
+  white-space: normal;
+  overflow: visible;
+  max-width: 380px;
+  padding: var(--space-2) var(--space-3);
+}
+
 .tooltip-box.visible {
   opacity: 1;
   visibility: visible;

@@ -461,6 +461,20 @@
   text-align: right;
 }
 
+.desktop-session-worktree-badge {
+  flex-shrink: 0;
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+
+.desktop-session-item:hover .desktop-session-worktree-badge,
+.desktop-session-item:focus-within .desktop-session-worktree-badge {
+  visibility: hidden;
+}
+
 .desktop-session-actions {
   position: absolute;
   right: var(--space-2);
@@ -584,6 +598,50 @@
 .desktop-git-context-item .codicon {
   font-size: var(--font-size-1);
   flex-shrink: 0;
+}
+
+/* ---- Worktree hover card (sidebar item / chat header title) ----
+   Mirrors the Cursor worktree metadata card: branch, worktree name, workdir. */
+
+.desktop-worktree-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 340px;
+}
+
+.desktop-worktree-card-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-worktree-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--gray-12);
+}
+
+.desktop-worktree-card-row .codicon {
+  font-size: var(--font-size-1);
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--gray-11);
+}
+
+.desktop-worktree-card-row > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.desktop-worktree-card-sub {
+  display: block;
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  opacity: 0.75;
 }
 
 /* ---- Workdir dropdown (inside the message input toolbar, bottom-left) ----
