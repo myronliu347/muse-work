@@ -633,6 +633,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onRevealInFinder={(workdir) =>
           vscode.postMessage({ command: "revealInFinder", path: workdir })
         }
+        // Split-view shell has no robot-view slot (the popo view replaces the
+        // chat body in the single-pane ChatApp layout); keep the entry inert.
+        onTogglePopoRobot={() => {}}
       />
       <div
         className="desktop-pane-rows"

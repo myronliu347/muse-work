@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon } from "../shared/HeaderIcons";
+import { NewSessionIcon, PopoRobotIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.svg";
 import {
   SessionTree,
@@ -72,6 +72,12 @@ export interface DesktopSidebarProps {
   onOpenInTerminal?: (workdir: string) => void;
   /** Reveal the workdir in the system file manager. */
   onRevealInFinder?: (workdir: string) => void;
+  /** Toggle the POPO robot view (rendered in place of the chat body). */
+  onTogglePopoRobot: () => void;
+  /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
+  popoEnabled?: boolean;
+  /** 当前高亮的菜单项（选中态） */
+  activeMenu?: "newChat" | "popo-robot";
 }
 
 /**
@@ -97,30 +103,47 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  onTogglePopoRobot,
+  popoEnabled,
+  activeMenu,
 }) => {
   return (
     <div className="desktop-sidebar" data-testid="desktop-sidebar">
-      <button
-        className="desktop-sidebar-new-chat"
-        onClick={(e) => {
-          if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
-            onNewSessionInPane();
-          } else {
-            onNewSession();
+      <div className="app-menus">
+        <button
+          className={`app-menu${activeMenu === "newChat" ? " active" : ""}`}
+          onClick={(e) => {
+            if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
+              onNewSessionInPane();
+            } else {
+              onNewSession();
+            }
+          }}
+          // 新对话仅在无 workdir 时禁用；streaming 中也可开新会话（spec §7）。
+          disabled={disabled}
+          title={
+            isMacPlatform()
+              ? "新对话（⌘N，⌘+点击并排打开）"
+              : "新对话（Ctrl+N，Ctrl+点击并排打开）"
           }
-        }}
-        // 新对话仅在无 workdir 时禁用；streaming 中也可开新会话（spec §7）。
-        disabled={disabled}
-        title={
-          isMacPlatform()
-            ? "新对话（⌘N，⌘+点击并排打开）"
-            : "新对话（Ctrl+N，Ctrl+点击并排打开）"
-        }
-        data-testid="desktop-new-session"
-      >
-        <NewSessionIcon className="desktop-sidebar-new-chat-icon" />
-        <span>新对话</span>
-      </button>
+          data-testid="desktop-new-session"
+        >
+          <NewSessionIcon className="app-menu-icon" />
+          <span>新对话</span>
+        </button>
+        {popoEnabled && (
+          <button
+            type="button"
+            className={`app-menu${activeMenu === "popo-robot" ? " active" : ""}`}
+            onClick={onTogglePopoRobot}
+            data-testid="desktop-popo-robot"
+          >
+            <PopoRobotIcon className="app-menu-icon" />
+            <span>POPO 机器人</span>
+          </button>
+        )}
+      </div>
+      <div className="divider" />
       <SessionTree
         sessionTree={sessionTree}
         pinnedSessions={pinnedSessions}

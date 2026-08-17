@@ -3,6 +3,8 @@ export type MuseFetch = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+import type { Message } from "wave-agent-sdk/dist/types/index.js";
+
 export interface MuseApiClientOptions {
   baseUrl: string;
   fetch?: MuseFetch;
@@ -91,6 +93,55 @@ export interface MuseSessionsGrouped {
   pinned: MuseSession[];
   recent: MuseSession[];
   activeSessionId?: string;
+}
+
+export interface PopoConfigInfo {
+  url: string;
+  token: string;
+  aesKey: string;
+  masterUid: string;
+  port: number;
+  ready: boolean;
+  /** 本地存在 popo 配置（~/.popo-config.json）；false 时隐藏机器人入口 */
+  configured: boolean;
+  error: string | null;
+}
+
+export interface PopoChatSummary {
+  chatKey: string;
+  type: "p2p" | "team";
+  title: string;
+  lastMessage: string;
+  /** agent 正在处理该会话的消息时为 true */
+  processing: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PopoChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  at: string;
+  from?: string;
+  to?: string;
+  msgId?: string;
+}
+
+export interface PopoChatDetail {
+  chatKey: string;
+  type: "p2p" | "team";
+  title: string;
+  waveSessionId?: string;
+  processing: boolean;
+  messages: PopoChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** 详情接口：chat 元信息 + 完整处理过程消息（SDK Message 形状，含 reasoning/tool/text 块）。 */
+export interface PopoChatDetailResponse {
+  chat: PopoChatDetail;
+  messages: Message[];
 }
 
 function joinUrl(baseUrl: string, path: string): string {
@@ -550,6 +601,21 @@ export class MuseApiClient {
       `/sessions/${encodeURIComponent(sessionId)}/workflows/${encodeURIComponent(runId)}/stop`,
       { method: "POST" },
     );
+    return parseJson(res);
+  }
+
+  async getPopoConfig(): Promise<PopoConfigInfo> {
+    const res = await this.request("/popo/config");
+    return parseJson(res);
+  }
+
+  async listPopoChats(): Promise<{ chats: PopoChatSummary[] }> {
+    const res = await this.request("/popo/chats");
+    return parseJson(res);
+  }
+
+  async getPopoChat(chatKey: string): Promise<PopoChatDetailResponse> {
+    const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`);
     return parseJson(res);
   }
 }

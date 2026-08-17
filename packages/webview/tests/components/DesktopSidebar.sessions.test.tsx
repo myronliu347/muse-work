@@ -3,6 +3,7 @@ import React from "react";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import {
   DesktopSidebar,
@@ -49,6 +50,8 @@ function renderSidebar(
       onOpenPane={noop}
       onDeleteSession={noop}
       onTogglePin={noop}
+      onTogglePopoRobot={noop}
+      popoEnabled
       {...props}
     />,
   );
@@ -453,6 +456,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
         onOpenPane={noop}
         onDeleteSession={noop}
         onTogglePin={noop}
+        onTogglePopoRobot={noop}
       />,
     );
     expect(screen.getByTestId("desktop-new-session")).toBeDisabled();
@@ -591,5 +595,51 @@ describe("DesktopSidebar pin/recent sessions", () => {
         (el) => el.tagName === "LI",
       ),
     ).toBe(true);
+  });
+});
+
+describe("DesktopSidebar popo entry", () => {
+  it("renders the POPO 机器人 entry below 新对话", () => {
+    renderSidebar();
+    const newChat = screen.getByTestId("desktop-new-session");
+    const popoBtn = screen.getByTestId("desktop-popo-robot");
+    expect(
+      newChat.compareDocumentPosition(popoBtn) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("gives the POPO 机器人 entry an icon matching 新对话's", () => {
+    renderSidebar();
+    const newChat = screen.getByTestId("desktop-new-session");
+    const popoBtn = screen.getByTestId("desktop-popo-robot");
+    // 图标：共用 .app-menu-icon（同规格 14px SVG）
+    expect(popoBtn.querySelector(".app-menu-icon")).not.toBeNull();
+    expect(newChat.querySelector(".app-menu-icon")).not.toBeNull();
+  });
+
+  it("hides the POPO 机器人 entry when not configured", () => {
+    renderSidebar({ popoEnabled: false });
+    expect(screen.queryByTestId("desktop-popo-robot")).not.toBeInTheDocument();
+  });
+
+  it("highlights the POPO 机器人 menu item when active", () => {
+    renderSidebar({ activeMenu: "popo-robot" });
+    expect(screen.getByTestId("desktop-popo-robot").className).toContain("active");
+    expect(screen.getByTestId("desktop-new-session").className).not.toContain("active");
+  });
+
+  it("highlights the 新对话 menu item when active", () => {
+    renderSidebar({ activeMenu: "newChat" });
+    expect(screen.getByTestId("desktop-new-session").className).toContain("active");
+    expect(screen.getByTestId("desktop-popo-robot").className).not.toContain("active");
+  });
+
+  it("calls onTogglePopoRobot on click", async () => {
+    const user = userEvent.setup();
+    const onTogglePopoRobot = vi.fn();
+    renderSidebar({ onTogglePopoRobot });
+    await user.click(screen.getByTestId("desktop-popo-robot"));
+    expect(onTogglePopoRobot).toHaveBeenCalledTimes(1);
   });
 });

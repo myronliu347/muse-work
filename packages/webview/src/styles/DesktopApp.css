@@ -74,11 +74,27 @@
   font-size: var(--font-size-3);
 }
 
-.desktop-sidebar-new-chat {
+/* 侧栏顶部菜单区：统一定义 padding 与按钮间距（按钮自身不带 margin） */
+.app-menus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2) var(--space-2);
+}
+
+/* 菜单区与会话树之间的分隔线 */
+.divider {
+  height: 1px;
+  margin: 0 var(--space-2);
+  background: var(--gray-5);
+}
+
+/* 侧栏顶部菜单项（新对话 / POPO 机器人共用） */
+.app-menu {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  margin: var(--space-3) var(--space-2) var(--space-2);
+  width: 100%;
   padding: var(--space-2) var(--space-2);
   border: none;
   border-radius: var(--radius-3);
@@ -89,19 +105,25 @@
   text-align: left;
 }
 
-/* Icon left edge + size match the session-tree group chevron below it. */
-.desktop-sidebar-new-chat-icon {
+/* 菜单图标：左缘对齐 + 尺寸匹配下方会话树折叠箭头 */
+.app-menu-icon {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
   color: inherit;
 }
 
-.desktop-sidebar-new-chat:hover:not(:disabled) {
+.app-menu:hover:not(:disabled) {
   background: var(--gray-4);
 }
 
-.desktop-sidebar-new-chat:disabled {
+/* 菜单选中态（比 hover 略深，与会话树 current 高亮区分开） */
+.app-menu.active {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.app-menu:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
