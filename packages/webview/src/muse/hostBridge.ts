@@ -194,6 +194,24 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       window.open(url, "_blank", "noopener,noreferrer");
     });
 
+  /** Skip auto-minted `~/.muse-work/projects/…` scratch dirs and `.wave/worktrees/…`. */
+  const isTransientWorkdir = (dir: string): boolean => {
+    const segments = dir.split(/[\\/]/).filter(Boolean);
+    return segments.some(
+      (seg, i) =>
+        seg === ".muse-work" ||
+        (seg === ".wave" && segments[i + 1] === "worktrees"),
+    );
+  };
+  /** Adds a workdir to the recents list; transient dirs never enter it. */
+  const rememberRecentWorkdir = (path: string): void => {
+    if (isTransientWorkdir(path)) return;
+    recentWorkdirs = [
+      path,
+      ...recentWorkdirs.filter((p) => p !== path),
+    ].slice(0, 10);
+  };
+
   let sessionId: string | null = null;
   /** True after「新对话」until the first send creates a real session. */
   let pendingNewSession = false;
@@ -591,7 +609,9 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
     if (message?.command !== "desktopWorkdirState") return;
     if (Array.isArray(message.recentWorkdirs)) {
-      recentWorkdirs = message.recentWorkdirs;
+      recentWorkdirs = message.recentWorkdirs.filter(
+        (p) => typeof p === "string" && !isTransientWorkdir(p),
+      );
     }
     if (suppressWorkdirPush) return;
     if (typeof message.workdir === "string" && message.workdir) {
@@ -727,11 +747,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (workdir) {
       // Workdir-group "+": draft session with that directory pre-selected.
       suppressWorkdirPush = false;
-      const nextRecent = [
-        workdir,
-        ...recentWorkdirs.filter((p) => p !== workdir),
-      ].slice(0, 10);
-      emitWorkdirState({ workdir, recentWorkdirs: nextRecent });
+      rememberRecentWorkdir(workdir);
+      emitWorkdirState({ workdir, recentWorkdirs });
       opts.outer?.postMessage({
         command: "desktopSelectRecentWorkdir",
         path: workdir,
@@ -1207,13 +1224,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       draftPermissionMode = "acceptEdits";
       // Server may have minted ~/.muse-work/projects/<date>-<uid>.
       if (session.workdir) {
-        const nextRecent = [
-          session.workdir,
-          ...recentWorkdirs.filter((p) => p !== session.workdir),
-        ].slice(0, 10);
+        rememberRecentWorkdir(session.workdir);
         emitWorkdirState({
           workdir: session.workdir,
-          recentWorkdirs: nextRecent,
+          recentWorkdirs,
         });
         // Persist recents via Electron when available.
         opts.outer?.postMessage({
@@ -1964,13 +1978,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           const path = typeof msg.path === "string" ? msg.path : undefined;
           if (path) {
             suppressWorkdirPush = false;
-            const nextRecent = [
-              path,
-              ...recentWorkdirs.filter((p) => p !== path),
-            ].slice(0, 10);
+            rememberRecentWorkdir(path);
             emitWorkdirState({
               workdir: path,
-              recentWorkdirs: nextRecent,
+              recentWorkdirs,
               clearSession: true,
             });
           }
