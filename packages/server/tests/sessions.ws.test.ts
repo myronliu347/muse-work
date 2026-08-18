@@ -483,7 +483,7 @@ describe("sessions + websocket streaming", () => {
             name: "Agent",
             stage: "running",
           });
-          opts.callbacks?.onSubagentMessagesChange?.("uuid-sa", nested);
+          opts.callbacks?.onSubagentMessagesChange?.("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", nested);
           opts.callbacks?.onAssistantContentUpdated?.({
             messageId: "m1",
             chunk: "",
@@ -496,7 +496,11 @@ describe("sessions + websocket streaming", () => {
       return agent;
     };
 
-    const app = await listenSessionsApp({ createAgent });
+    const app = await listenSessionsApp({
+      createAgent,
+      loadSubagentMessages: async (subagentId) =>
+        subagentId === "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" ? nested : null,
+    });
     server = app.server;
     home = app.home;
 
@@ -507,24 +511,28 @@ describe("sessions + websocket streaming", () => {
     });
     const session = (await sessionRes.json()) as { id: string };
 
-    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
-      minCount: 1,
-      filter: (e) => e.type === "subagent:messages",
-    });
-    await ready;
-
     await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: "explore" }),
     });
-    await events;
 
-    const loaded = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`);
-    const body = (await loaded.json()) as {
-      messages: Array<{ blocks: Array<{ nestedMessages?: unknown }> }>;
-    };
-    expect(body.messages[0].blocks[0].nestedMessages).toEqual(nested);
+    // The subagent id is bound synchronously inside the turn; poll GET until
+    // the transcript is loaded from the injected loader.
+    await expect
+      .poll(
+        async () => {
+          const loaded = await fetch(
+            `${app.baseUrl}/sessions/${session.id}/messages`,
+          );
+          const body = (await loaded.json()) as {
+            messages: Array<{ blocks: Array<{ nestedMessages?: unknown }> }>;
+          };
+          return body.messages[0]?.blocks[0]?.nestedMessages;
+        },
+        { timeout: 3000 },
+      )
+      .toEqual(nested);
   });
 
   it("canUseTool hangs until POST permission allow resolves", async () => {
@@ -1106,6 +1114,10 @@ function openWsCollector(
 async function listenSessionsApp(options: {
   createAgent: CreateAgent;
   resolveGateway?: (modelId: string) => Promise<GatewayResolution>;
+  loadSubagentMessages?: (
+    subagentId: string,
+    workdir: string,
+  ) => Promise<unknown[] | null>;
 }): Promise<{ server: Server; baseUrl: string; home: string; ctx: AppContext }> {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
   saveProvidersConfig(
@@ -1154,6 +1166,7 @@ async function listenSessionsApp(options: {
     home,
     registry,
     createAgent: options.createAgent,
+    loadSubagentMessages: options.loadSubagentMessages,
   });
   const ctx: AppContext = { home, registry, ...sessions };
   const server = createApp(ctx);

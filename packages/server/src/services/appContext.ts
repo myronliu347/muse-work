@@ -36,6 +36,11 @@ export interface CreateAppContextOptions {
   createAgent?: CreateAgent;
   /** Idle TTL before destroying session runtime (default 10min). */
   idleTtlMs?: number;
+  /** Loader for subagent transcripts (tests); defaults to SDK disk read. */
+  loadSubagentMessages?: (
+    subagentId: string,
+    workdir: string,
+  ) => Promise<unknown[] | null>;
 }
 
 export interface CreateSessionServicesOptions {
@@ -43,6 +48,7 @@ export interface CreateSessionServicesOptions {
   registry: ProviderRegistry;
   createAgent?: CreateAgent;
   idleTtlMs?: number;
+  loadSubagentMessages?: CreateAppContextOptions["loadSubagentMessages"];
 }
 
 export function createSessionServices(
@@ -57,6 +63,7 @@ export function createSessionServices(
     home: options.home,
     createAgent: options.createAgent,
     idleTtlMs: options.idleTtlMs,
+    loadSubagentMessages: options.loadSubagentMessages,
   });
   hub.setSnapshotProvider(() => runner.snapshotEvents());
   return { store, hub, runner };
@@ -92,6 +99,7 @@ export function createAppContext(
     registry,
     createAgent: options?.createAgent,
     idleTtlMs: options?.idleTtlMs,
+    loadSubagentMessages: options?.loadSubagentMessages,
   });
 
   return { home, registry, ...sessions };

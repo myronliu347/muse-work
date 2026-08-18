@@ -1,4 +1,9 @@
-import { Agent, type AgentOptions, type PermissionDecision } from "wave-agent-sdk";
+import {
+  Agent,
+  loadSessionFromJsonl,
+  type AgentOptions,
+  type PermissionDecision,
+} from "wave-agent-sdk";
 import {
   loadProvidersConfig,
   type GatewayResolution,
@@ -190,6 +195,14 @@ export interface CreateSessionRunnerOptions {
   idleTtlMs?: number;
   /** Abort a running turn after this long with no SDK callbacks. Default 5min. */
   stallMs?: number;
+  /**
+   * Load a subagent transcript for historical nesting (defaults to reading the
+   * SDK's `subagent-<id>.jsonl` from disk). Returns frontend-format messages.
+   */
+  loadSubagentMessages?: (
+    subagentId: string,
+    workdir: string,
+  ) => Promise<unknown[] | null>;
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
@@ -273,7 +286,6 @@ export function createSessionRunner(
   const agentLoading = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const stallTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const subagentTranscripts = new Map<string, Map<string, unknown[]>>();
   const agentToolBinds = new Map<string, Map<string, string>>();
   const pendingAgentToolIds = new Map<string, string[]>();
   const unboundSubagentIds = new Map<string, string[]>();
@@ -349,15 +361,8 @@ export function createSessionRunner(
     bindAgentTools(sessionId);
   }
 
-  function rememberTranscript(
-    sessionId: string,
-    subagentId: string,
-    messages: unknown[],
-  ): void {
-    const transcripts =
-      subagentTranscripts.get(sessionId) ?? new Map<string, unknown[]>();
-    transcripts.set(subagentId, messages);
-    subagentTranscripts.set(sessionId, transcripts);
+  /** Record a subagent's id so the next pending Agent tool call can bind to it. */
+  function rememberSubagentId(sessionId: string, subagentId: string): void {
     const boundIds = [...(agentToolBinds.get(sessionId)?.values() ?? [])];
     const unbound = unboundSubagentIds.get(sessionId) ?? [];
     if (!boundIds.includes(subagentId) && !unbound.includes(subagentId)) {
@@ -367,33 +372,78 @@ export function createSessionRunner(
     bindAgentTools(sessionId);
   }
 
-  function attachNestedMessages(
+  /** UUID shape required by the SDK for subagent session ids. */
+  const SUBAGENT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+  const loadSubagentFromDisk = async (
+    subagentId: string,
+    workdir: string,
+  ): Promise<unknown[] | null> => {
+    const data = await loadSessionFromJsonl(subagentId, workdir, "subagent");
+    return data?.messages?.length ? mapSdkMessages(data.messages) : null;
+  };
+
+  /**
+   * Attach subagent transcripts to Agent tool blocks for history display.
+   * Transcripts are no longer cached in memory — they are loaded on demand
+   * from the SDK's `subagent-<id>.jsonl`, which the SDK appends to live.
+   */
+  async function attachNestedMessages(
     sessionId: string,
+    workdir: string,
     messages: unknown[],
-  ): unknown[] {
-    const transcripts = subagentTranscripts.get(sessionId);
-    if (!transcripts) return messages;
+  ): Promise<unknown[]> {
     const binds = agentToolBinds.get(sessionId);
+    if (!binds || binds.size === 0) return messages;
+    const loadTranscript = options.loadSubagentMessages ?? loadSubagentFromDisk;
+
+    // Collect the unique subagent ids referenced by Agent blocks.
+    const needed = new Set<string>();
+    for (const message of messages) {
+      const blocks = (message as { blocks?: unknown[] }).blocks;
+      if (!Array.isArray(blocks)) continue;
+      for (const block of blocks) {
+        const tool = block as { type?: string; name?: string; id?: string };
+        if (tool.type !== "tool" || tool.name !== AGENT_TOOL_NAME) continue;
+        const subagentId = tool.id && binds.get(tool.id);
+        if (subagentId && SUBAGENT_ID_RE.test(subagentId)) {
+          needed.add(subagentId);
+        }
+      }
+    }
+    if (needed.size === 0) return messages;
+
+    const transcripts = new Map<string, unknown[]>();
+    await Promise.all(
+      [...needed].map(async (subagentId) => {
+        try {
+          const loaded = await loadTranscript(subagentId, workdir);
+          if (loaded?.length) transcripts.set(subagentId, loaded);
+        } catch {
+          // A missing/corrupt subagent file must not fail getMessages.
+        }
+      }),
+    );
+    if (transcripts.size === 0) return messages;
+
     return messages.map((message) => {
       if (!message || typeof message !== "object") return message;
       const blocks = (message as { blocks?: unknown[] }).blocks;
       if (!Array.isArray(blocks)) return message;
-      return {
-        ...(message as Record<string, unknown>),
-        blocks: blocks.map((block) => {
-          if (!block || typeof block !== "object") return block;
-          const tool = block as { type?: string; name?: string; id?: string };
-          if (tool.type !== "tool" || tool.name !== AGENT_TOOL_NAME) {
-            return block;
-          }
-          const subagentId = (tool.id && binds?.get(tool.id)) || tool.id;
-          const nested =
-            (subagentId ? transcripts.get(subagentId) : undefined) ||
-            (tool.id ? transcripts.get(tool.id) : undefined);
-          if (!nested) return block;
-          return { ...tool, nestedMessages: nested };
-        }),
-      };
+      let changed = false;
+      const nextBlocks = blocks.map((block) => {
+        if (!block || typeof block !== "object") return block;
+        const tool = block as { type?: string; name?: string; id?: string };
+        if (tool.type !== "tool" || tool.name !== AGENT_TOOL_NAME) {
+          return block;
+        }
+        const subagentId = tool.id && binds.get(tool.id);
+        const nested = subagentId ? transcripts.get(subagentId) : undefined;
+        if (!nested) return block;
+        changed = true;
+        return { ...tool, nestedMessages: nested };
+      });
+      return changed ? { ...(message as Record<string, unknown>), blocks: nextBlocks } : message;
     });
   }
 
@@ -543,15 +593,10 @@ export function createSessionRunner(
     aborting.delete(sessionId);
     agentLoading.delete(sessionId);
     titleGenerating.delete(sessionId);
-    // Sub-agent transcripts / tool bindings are derived UI caches — drop them
-    // with the runtime. latestTasks is only read while a session is running
-    // (getTasks returns [] when idle) and the remaining caches are lazily
-    // rebuilt from the SDK on the next ensureAgent, so they can go too.
-    subagentTranscripts.delete(sessionId);
-    agentToolBinds.delete(sessionId);
-    pendingAgentToolIds.delete(sessionId);
-    unboundSubagentIds.delete(sessionId);
-    knownAgentToolIds.delete(sessionId);
+    // UI caches: latestTasks is only read while a session is running (getTasks
+    // returns [] when idle) and the rest are lazily rebuilt from the SDK on the
+    // next ensureAgent. agentToolBinds & friends are kept so history view can
+    // still resolve subagent transcripts from disk (cleared on disposeSession).
     latestTokens.delete(sessionId);
     latestTasks.delete(sessionId);
     latestBackgroundTasks.delete(sessionId);
@@ -864,15 +909,13 @@ export function createSessionRunner(
             params,
           });
         },
-        onSubagentMessagesChange: (subagentId, messages) => {
+        onSubagentMessagesChange: (subagentId) => {
           if (disposed.has(sessionId)) return;
-          const snapshot = mapSdkMessages(messages);
-          rememberTranscript(sessionId, subagentId, snapshot);
-          hub.broadcast(sessionId, {
-            type: "subagent:messages",
-            subagentId,
-            messages: snapshot,
-          });
+          // Bind the subagent id to the pending Agent tool call so history
+          // view can load the transcript from disk. Live process display uses
+          // the streaming callbacks (message:delta / tool:update etc), so the
+          // full transcript is not broadcast anymore.
+          rememberSubagentId(sessionId, subagentId);
         },
         onTasksChange: (tasks) => {
           if (disposed.has(sessionId)) return;
@@ -1394,7 +1437,6 @@ export function createSessionRunner(
       agentLoading.delete(sessionId);
       titleGenerating.delete(sessionId);
       closeAgentLogger(sessionId);
-      subagentTranscripts.delete(sessionId);
       agentToolBinds.delete(sessionId);
       pendingAgentToolIds.delete(sessionId);
       unboundSubagentIds.delete(sessionId);
@@ -1435,6 +1477,7 @@ export function createSessionRunner(
       rearmIdleIfNeeded(sessionId);
       return attachNestedMessages(
         sessionId,
+        session.workdir,
         mapSdkMessages(agent.getMessages?.() ?? []),
       );
     },
