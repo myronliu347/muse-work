@@ -9,6 +9,7 @@ import * as os from "os";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
 import {
+  findFileByBasename,
   listWorkspaceDir,
   searchContentInWorkspace,
   searchWorkspaceFiles,
@@ -470,10 +471,17 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       // Message markdown linkify emits relative paths (e.g. src/foo.ts); resolve
       // them against the workdir. Absolute paths pass through path.resolve
       // unchanged.
-      const absPath =
+      let absPath =
         workdir && !path.isAbsolute(filePath)
           ? path.resolve(workdir, filePath)
           : filePath;
+      // Relative links may point at files that live elsewhere in the workdir:
+      // when the direct resolution misses, search the whole workdir for the same
+      // basename and open the hit; if none exists, the read reports "not found".
+      if (workdir && !path.isAbsolute(filePath) && !fs.existsSync(absPath)) {
+        const hit = findFileByBasename(workdir, filePath);
+        if (hit) absPath = hit;
+      }
       const fileView = await readLocalFileForPanel(absPath, {
         startLine: msg.startLine,
         endLine: msg.endLine,
