@@ -544,14 +544,19 @@ export function createSessionRunner(
     agentLoading.delete(sessionId);
     titleGenerating.delete(sessionId);
     // Sub-agent transcripts / tool bindings are derived UI caches — drop them
-    // with the runtime. latestTasks / latestBackgroundTasks / latestWorkflowRuns /
-    // latestMcp are kept so the UI can still show history while the agent is gone.
+    // with the runtime. latestTasks is only read while a session is running
+    // (getTasks returns [] when idle) and the remaining caches are lazily
+    // rebuilt from the SDK on the next ensureAgent, so they can go too.
     subagentTranscripts.delete(sessionId);
     agentToolBinds.delete(sessionId);
     pendingAgentToolIds.delete(sessionId);
     unboundSubagentIds.delete(sessionId);
     knownAgentToolIds.delete(sessionId);
     latestTokens.delete(sessionId);
+    latestTasks.delete(sessionId);
+    latestBackgroundTasks.delete(sessionId);
+    latestWorkflowRuns.delete(sessionId);
+    latestMcp.delete(sessionId);
     closeAgentLogger(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);

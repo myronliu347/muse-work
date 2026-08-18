@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
 import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner.js";
-import { createAgentLogger } from "../utils/logger.js";
+import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
 
 export const POPO_SYSTEM_PROMPT = `你是 Muse 机器人，运行在 POPO 即时通讯上，为你的人类主人服务。
@@ -50,17 +50,19 @@ const BACKGROUND_TASK_POLL_MS = 5000;
  * 待销毁 agent 集合 + 单一轮询循环：所有有后台任务的 agent 共用一个
  * 5s 定时器检查，任务全部结束后销毁并从集合移除；集合清空时停表。
  */
-const pendingDisposals = new Set<SessionAgent>();
+const pendingDisposals = new Map<SessionAgent, string>();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 async function checkPendingDisposals(): Promise<void> {
-  for (const agent of [...pendingDisposals]) {
+  for (const [agent, loggerKey] of [...pendingDisposals]) {
     if (!(agent.hasRunningBackgroundWork?.() ?? false)) {
       pendingDisposals.delete(agent);
       try {
         await agent.dispose();
       } catch {
         // 销毁失败不能掩盖任务结果。
+      } finally {
+        closeAgentLogger(loggerKey);
       }
     }
   }
@@ -70,8 +72,8 @@ async function checkPendingDisposals(): Promise<void> {
   }
 }
 
-function scheduleDisposeWhenSettled(agent: SessionAgent): void {
-  pendingDisposals.add(agent);
+function scheduleDisposeWhenSettled(agent: SessionAgent, loggerKey: string): void {
+  pendingDisposals.set(agent, loggerKey);
   if (!pollTimer) {
     pollTimer = setInterval(() => {
       void checkPendingDisposals();
@@ -157,7 +159,15 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   function serialized(chatKey: string, fn: () => Promise<string>): Promise<string> {
     const prev = serialChains.get(chatKey) ?? Promise.resolve();
     const next = prev.then(fn, fn);
-    serialChains.set(chatKey, next.catch(() => undefined));
+    const chain = next.catch(() => undefined);
+    serialChains.set(chatKey, chain);
+    // Drop the settled chain so idle chats don't accumulate Map entries
+    // forever (only remove if this is still the latest chain).
+    void chain.then(() => {
+      if (serialChains.get(chatKey) === chain) {
+        serialChains.delete(chatKey);
+      }
+    });
     return next;
   }
 
@@ -180,17 +190,20 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       run: (content) =>
         serialized(chat.chatKey, async () => {
           const agent = await createSdkAgent(chat);
+          const loggerKey = `popo-${sanitizeSessionId(chat.chatKey)}`;
           try {
             return await runTurn(agent, chat, content);
           } finally {
             if (agent.hasRunningBackgroundWork?.()) {
               // 注册到共享调度器：任务结束后统一销毁，不阻塞本次回复。
-              scheduleDisposeWhenSettled(agent);
+              scheduleDisposeWhenSettled(agent, loggerKey);
             } else {
               try {
                 await agent.dispose();
               } catch {
                 // dispose 失败不能掩盖回复结果。
+              } finally {
+                closeAgentLogger(loggerKey);
               }
             }
           }

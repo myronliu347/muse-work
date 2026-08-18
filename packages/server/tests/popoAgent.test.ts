@@ -154,6 +154,26 @@ describe("popoAgent", () => {
     expect(disposeCalls).toBe(1);
   });
 
+  it("serializes concurrent runs per chat even after chains are dropped", async () => {
+    const order: string[] = [];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        sendMessage: async () => {
+          order.push("start");
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          order.push("end");
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    await Promise.all([runner.run("a"), runner.run("b")]);
+    // 串行：第一条消息的 sendMessage 完整结束后第二条才开始。
+    expect(order).toEqual(["start", "end", "start", "end"]);
+  });
+
   it("reports the agent sessionId after run so the detail route can load full messages", async () => {
     const waveSessionIds: Array<{ chatKey: string; sessionId: string }> = [];
     const factory = createPopoAgentFactory({
