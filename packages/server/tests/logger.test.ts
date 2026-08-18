@@ -7,6 +7,7 @@ import {
   configureLogger,
   createAgentLogger,
   createLogger,
+  defaultLogFileName,
   resolveLogDir,
 } from "../src/utils/logger.js";
 
@@ -20,7 +21,7 @@ describe("logger", () => {
     }
   });
 
-  it("writes human-readable lines to ~/.muse-work/logs/server.log", async () => {
+  it("writes human-readable lines to ~/.muse-work/logs/<date>-server.log", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-log-"));
     homes.push(home);
 
@@ -40,7 +41,7 @@ describe("logger", () => {
       setTimeout(() => reject(new Error("logger end timeout")), 2000);
     });
 
-    const file = path.join(resolveLogDir(home), "server.log");
+    const file = path.join(resolveLogDir(home), defaultLogFileName());
     expect(fs.existsSync(file)).toBe(true);
     const body = fs.readFileSync(file, "utf8");
     expect(body).toMatch(/\] INFO session created/);

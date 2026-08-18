@@ -19,7 +19,7 @@ export type CreateLoggerOptions = {
   disableFile?: boolean;
   /** Silence all transports (tests). Default true under `VITEST`. */
   silent?: boolean;
-  /** Log file name under `logs/` (default: `server.log`). */
+  /** Log file name under `logs/` (default: `server-YYYY-MM-DD.log`). */
   fileName?: string;
   /** Fields attached to every line (e.g. sessionId). */
   defaultMeta?: Record<string, unknown>;
@@ -91,6 +91,12 @@ function shouldDisableFile(options?: CreateLoggerOptions): boolean {
   return false;
 }
 
+/** Default server log file name with a local-date suffix (server-2026-08-18.log). */
+export function defaultLogFileName(date = new Date()): string {
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  return `server-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.log`;
+}
+
 export function createLogger(options?: CreateLoggerOptions): winston.Logger {
   const silentConsole =
     options?.silent ??
@@ -106,7 +112,7 @@ export function createLogger(options?: CreateLoggerOptions): winston.Logger {
 
   if (!disableFile) {
     const dir = resolveLogDir(options?.home);
-    const filename = path.join(dir, options?.fileName ?? "server.log");
+    const filename = path.join(dir, options?.fileName ?? defaultLogFileName());
     fs.mkdirSync(path.dirname(filename), { recursive: true });
     transports.push(
       new winston.transports.File({
