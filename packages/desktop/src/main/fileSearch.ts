@@ -315,6 +315,27 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Search the whole workdir for a file whose basename exactly matches the given
+ * relative path's basename (the path prefix may be stale). Used as a fallback
+ * when resolving a markdown link against the workdir misses. Returns the first
+ * (best-scored) exact-name file hit, or undefined when none exists.
+ */
+export function findFileByBasename(
+  workdir: string,
+  relativePath: string,
+): string | undefined {
+  const base = path.basename(relativePath);
+  if (!base) return undefined;
+  const hits = searchWorkspaceFiles(workdir, {
+    query: base,
+    filesOnly: true,
+    maxResults: 20,
+  });
+  const exact = hits.find((h) => !h.isDirectory && h.name === base);
+  return exact?.path;
+}
+
 function buildContentMatcher(
   options: SearchContentOptions,
 ): { re: RegExp } | { error: string } {

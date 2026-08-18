@@ -9,6 +9,7 @@ import * as os from "os";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
 import {
+  findFileByBasename,
   listWorkspaceDir,
   searchContentInWorkspace,
   searchWorkspaceFiles,
@@ -154,7 +155,10 @@ export function loadPersistedWorkdirState(
       return {
         workdir: raw.workdir,
         recentWorkdirs: Array.isArray(raw.recentWorkdirs)
-          ? raw.recentWorkdirs.filter((p) => typeof p === "string")
+          ? raw.recentWorkdirs.filter(
+              (p): p is string =>
+                typeof p === "string" && !isTransientWorkdir(p),
+            )
           : [],
         host: "local",
       };
@@ -187,8 +191,23 @@ export function savePersistedWorkdirState(
   }
 }
 
+/**
+ * Workdirs that must not appear in the "recently opened" list: the server's
+ * auto-minted `~/.muse-work/projects/<date>-<uid>` scratch dirs and git
+ * worktree dirs (`<repo>/.wave/worktrees/<name>`) created from the sidebar.
+ */
+export function isTransientWorkdir(dir: string): boolean {
+  const segments = dir.split(/[\\/]/).filter(Boolean);
+  return segments.some(
+    (seg, i) =>
+      seg === ".muse-work" ||
+      (seg === ".wave" && segments[i + 1] === "worktrees"),
+  );
+}
+
 export function rememberWorkdir(state: WorkdirHostState, dir: string): void {
   state.workdir = dir;
+  if (isTransientWorkdir(dir)) return;
   state.recentWorkdirs = [
     dir,
     ...state.recentWorkdirs.filter((p) => p !== dir),
@@ -452,10 +471,17 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       // Message markdown linkify emits relative paths (e.g. src/foo.ts); resolve
       // them against the workdir. Absolute paths pass through path.resolve
       // unchanged.
-      const absPath =
+      let absPath =
         workdir && !path.isAbsolute(filePath)
           ? path.resolve(workdir, filePath)
           : filePath;
+      // Relative links may point at files that live elsewhere in the workdir:
+      // when the direct resolution misses, search the whole workdir for the same
+      // basename and open the hit; if none exists, the read reports "not found".
+      if (workdir && !path.isAbsolute(filePath) && !fs.existsSync(absPath)) {
+        const hit = findFileByBasename(workdir, filePath);
+        if (hit) absPath = hit;
+      }
       const fileView = await readLocalFileForPanel(absPath, {
         startLine: msg.startLine,
         endLine: msg.endLine,

@@ -891,6 +891,70 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("newSession with a worktree workdir keeps it out of recents", async () => {
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    bridge.postMessage({
+      command: "newSession",
+      workdir: "/repo/.wave/worktrees/feat-x",
+    });
+    await flush();
+
+    expect(messages).toContainEqual({
+      command: "desktopWorkdirState",
+      workdir: "/repo/.wave/worktrees/feat-x",
+      recentWorkdirs: [],
+      host: "local",
+    });
+  });
+
+  it("server-minted ~/.muse-work workdir stays out of recents", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-mint",
+      title: "新对话",
+      workdir: "/Users/me/.muse-work/projects/20260818-abc123",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+    bridge.postMessage({ command: "sendMessage", text: "hi" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopWorkdirState",
+        workdir: "/Users/me/.muse-work/projects/20260818-abc123",
+        recentWorkdirs: [],
+      }),
+    );
+  });
+
   it("desktopCreateWorktree creates session in worktree then sends", async () => {
     const created: MuseSession = {
       ...baseSession,

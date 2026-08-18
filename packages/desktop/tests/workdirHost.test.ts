@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   FROM_WEBVIEW,
   installWorkdirHost,
+  isTransientWorkdir,
   loadPersistedWorkdirState,
   rememberWorkdir,
   resolveDarwinTerminalApp,
@@ -24,6 +25,16 @@ describe("workdirHost state helpers", () => {
     expect(state.recentWorkdirs).toEqual(["/b", "/a"]);
   });
 
+  it("rememberWorkdir skips transient workdirs in recents but keeps current", () => {
+    const state: WorkdirHostState = {
+      recentWorkdirs: ["/a"],
+      host: "local",
+    };
+    rememberWorkdir(state, "/Users/me/.muse-work/projects/20260818-abc123");
+    expect(state.workdir).toBe("/Users/me/.muse-work/projects/20260818-abc123");
+    expect(state.recentWorkdirs).toEqual(["/a"]);
+  });
+
   it("persists and reloads workdir state", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-persist-"));
     const state: WorkdirHostState = {
@@ -38,6 +49,44 @@ describe("workdirHost state helpers", () => {
       host: "local",
     });
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("loadPersistedWorkdirState drops transient recents", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-purge-"));
+    const state: WorkdirHostState = {
+      workdir: "/repo/.wave/worktrees/feat-x",
+      recentWorkdirs: [
+        "/repo/.wave/worktrees/feat-x",
+        "/proj",
+        "/Users/me/.muse-work/projects/20260818-abc123",
+      ],
+      host: "local",
+    };
+    savePersistedWorkdirState(dir, state);
+    expect(loadPersistedWorkdirState(dir)).toEqual({
+      workdir: "/repo/.wave/worktrees/feat-x",
+      recentWorkdirs: ["/proj"],
+      host: "local",
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("isTransientWorkdir", () => {
+  it("flags server-minted ~/.muse-work project scratch dirs", () => {
+    expect(
+      isTransientWorkdir("/Users/me/.muse-work/projects/20260818-abc123"),
+    ).toBe(true);
+  });
+
+  it("flags worktree dirs under .wave/worktrees", () => {
+    expect(isTransientWorkdir("/repo/.wave/worktrees/feat-x")).toBe(true);
+  });
+
+  it("keeps regular project dirs", () => {
+    expect(isTransientWorkdir("/Users/me/projects/muse-work")).toBe(false);
+    expect(isTransientWorkdir("/Users/me/foo/.wave")).toBe(false);
+    expect(isTransientWorkdir("C:\\dev\\project")).toBe(false);
   });
 });
 
@@ -238,6 +287,164 @@ describe("installWorkdirHost", () => {
           content: expect.stringContaining(
             "![shot](data:image/png;base64,AQID)",
           ),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile resolves workdir-relative paths and opens the file", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-rel-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-rel-open-"));
+    fs.writeFileSync(path.join(dir, "README.md"), "# hello\n", "utf8");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "README.md", workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: path.join(dir, "README.md"),
+          content: expect.stringContaining("# hello"),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile falls back to a workdir-wide basename search when direct path misses", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-fb-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-fb-open-"));
+    // Link points at docs/hello.ts but the file actually lives in src/hello.ts.
+    fs.mkdirSync(path.join(dir, "src"));
+    fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export const a = 1\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "docs/hello.ts", workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: path.join(dir, "src", "hello.ts"),
+          content: expect.stringContaining("export const a = 1"),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile reports not found when the basename is absent from the workdir", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-nf-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-nf-open-"));
+    fs.writeFileSync(path.join(dir, "other.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "missing.ts", workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: path.join(dir, "missing.ts"),
+          error: expect.stringContaining("文件不存在"),
         }),
       }),
     );
