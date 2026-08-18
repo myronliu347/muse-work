@@ -1357,6 +1357,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           text: trimmedText,
           images: images,
         });
+        // Reset the opt-in immediately: the pane-level reset below (on
+        // effectiveWorkdir change) only fires after the main process finishes
+        // creating the worktree and pushes the new workdir back — within that
+        // window a second message would re-enter this branch and create a
+        // duplicate worktree. Clearing here keeps one create per message.
+        patchPane({ worktreeChecked: false });
         return;
       }
 
