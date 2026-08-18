@@ -16,6 +16,7 @@ AI 编程工作桌面应用：本地优先的 Agent 对话 + 代码工作台，�
 - **文件智能交互** — `@` 提及文件（级联目录浏览）、拖拽/粘贴/本地文件选择、Quick Open 快速搜索、代码/图片预览。
 - **Agent 能力** — 子 Agent（subagent）、MCP 工具、slash commands、工具调用权限确认、任务列表、后台任务。
 - **消息体验** — 流式输出、消息队列（可编辑/删除排队消息）、rewind 回退、会话压缩提示。
+- **POPO 机器人** — 私聊机器人 / 群聊 @ 机器人自动接入 Agent 能力回复，机器人页查看会话与完整处理过程。
 
 ## 快速开始
 
@@ -38,6 +39,36 @@ Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 
 - **CodeMaker**：优先复用本机 CodeMaker 登录态（`~/.muse-work/auth/codemaker.json` → 本机 CodeMaker `auth.json`），未登录时可在应用内发起 SSO。
 - **OpenAI 兼容**：编辑 `baseURL` / `apiKeyEnv`，通过环境变量注入 API Key（默认 `MUSE_OPENAI_API_KEY`）。
+
+## POPO 机器人
+
+在 POPO 开放平台创建机器人，把消息事件回调指向本机，即可用**私聊**或**群聊 @** 的方式指挥 Muse 处理任务。
+
+### 配置
+
+1. 在本机创建 `~/.popo-config.json`（权限 0600，含机器人凭据与回调验签参数）：
+
+```json
+{
+  "appId": "<App ID>",
+  "appKey": "<App Key>",
+  "appSecret": "<App Secret>",
+  "token": "<回调 token>",
+  "aesKey": "<回调 aesKey>",
+  "masterUid": "you@corp.netease.com"
+}
+```
+
+2. 在开放平台后台「事件订阅」配置回调地址 `http://<局域网 IP>:3100/popo/callback`，订阅消息事件。
+
+### 使用
+
+- **主人私聊 / 群里 @ 机器人** → 先回 ack「收到，马上处理」，Agent 执行完成后回最终结果；出错回错误信息
+- **其他人发消息**一律回复「大胆，只有尊敬的大人可以指挥我做事」
+- **机器人页**（侧栏「POPO 机器人」）：查看回调配置、会话列表，以及每条消息的完整处理过程（思考 / 工具调用 / 结果）
+- 会话独立保存在 `~/.muse-work/popo-chats.json`；Agent 工作目录为 `~/popo-chat`
+- 回调端口默认 `3100`，dev 可用环境变量 `POPO_CALLBACK_PORT` 覆盖；端口被占用或未配置时自动降级，不影响主应用
+- 机器人场景禁止后台任务（Workflow 工具禁用、系统提示禁止 `run_in_background` 与 cron）——机器人收不到后台任务完成的通知，后台任务只会白跑
 
 ## 使用
 
