@@ -89,6 +89,39 @@ function isSkippedDir(name: string): boolean {
   return SKIP_DIR_NAMES.has(name) || name.startsWith(".");
 }
 
+/**
+ * Worktree dirs minted by the sidebar live at `<repo>/.wave/worktrees/<name>`.
+ * They are transient copies of the repo and must not surface in the file panel,
+ * file search, or directory listings (same rule as isTransientWorkdir).
+ */
+function isTransientDirRel(rel: string): boolean {
+  return rel === ".wave/worktrees" || rel.startsWith(".wave/worktrees/");
+}
+
+/**
+ * A linked git worktree root can live anywhere: its dir contains a `.git`
+ * *file* whose `gitdir:` line points at `<repo>/.git/worktrees/<name>` (the
+ * main repo has `.git` as a directory; submodules point at
+ * `.git/modules/…`). Detects worktrees minted outside `.wave/worktrees`.
+ */
+function isLinkedWorktreeRoot(abs: string): boolean {
+  try {
+    const gitPath = path.join(abs, ".git");
+    const st = fs.statSync(gitPath);
+    if (!st.isFile()) return false;
+    const firstLine = fs
+      .readFileSync(gitPath, "utf8")
+      .split("\n", 1)[0];
+    return /^gitdir:.*[\\/]\.git[\\/]worktrees[\\/]/.test(firstLine);
+  } catch {
+    return false;
+  }
+}
+
+function isTransientDir(rel: string, abs: string): boolean {
+  return isTransientDirRel(rel) || isLinkedWorktreeRoot(abs);
+}
+
 function toWorkspaceSuggestion(
   abs: string,
   rel: string,
@@ -196,6 +229,8 @@ export function listWorkspaceDir(
     if (name === "node_modules" || name === ".git") continue;
     if (!ig && entry.isDirectory() && isSkippedDir(name)) continue;
     const rel = normalized ? `${normalized}/${name}` : name;
+    const abs = path.join(target, name);
+    if (entry.isDirectory() && isTransientDir(rel, abs)) continue;
     if (ig) {
       const check = entry.isDirectory() ? `${rel}/` : rel;
       try {
@@ -204,7 +239,6 @@ export function listWorkspaceDir(
         /* invalid path for ignore — keep entry */
       }
     }
-    const abs = path.join(target, name);
     items.push(toWorkspaceSuggestion(abs, rel, name, entry.isDirectory()));
   }
 
@@ -272,6 +306,8 @@ export function searchWorkspaceFiles(
 
       const rel = relDir ? `${relDir}/${name}` : name;
       const isDirectory = entry.isDirectory();
+      const abs = path.join(absDir, name);
+      if (isDirectory && isTransientDir(rel, abs)) continue;
       if (ig) {
         const check = isDirectory ? `${rel}/` : rel;
         try {
@@ -282,7 +318,6 @@ export function searchWorkspaceFiles(
       }
 
       visited += 1;
-      const abs = path.join(absDir, name);
       const relativePath = isDirectory ? `${rel}/` : rel;
       if (!(filesOnly && isDirectory)) {
         const score = scoreMatch(relativePath, name, query);
@@ -423,6 +458,8 @@ export function searchContentInWorkspace(
 
       const rel = relDir ? `${relDir}/${name}` : name;
       const isDirectory = entry.isDirectory();
+      const abs = path.join(absDir, name);
+      if (isDirectory && isTransientDir(rel, abs)) continue;
       const check = isDirectory ? `${rel}/` : rel;
       try {
         if (ig.ignores(check)) continue;
@@ -430,7 +467,6 @@ export function searchContentInWorkspace(
         /* keep */
       }
 
-      const abs = path.join(absDir, name);
       if (isDirectory) {
         walk(abs, rel);
         continue;

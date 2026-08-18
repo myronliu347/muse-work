@@ -102,6 +102,74 @@ describe("listWorkspaceDir", () => {
     expect(hits.map((h) => h.name)).toContain("ok.ts");
     fs.rmSync(outer, { recursive: true, force: true });
   });
+
+  it("hides the .wave/worktrees dir even when not gitignored", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-wt-"));
+    fs.mkdirSync(path.join(root, ".wave", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".wave", "worktrees", "feature-x", "dup.ts"),
+      "",
+    );
+    fs.writeFileSync(path.join(root, ".wave", "settings.local.json"), "{}");
+    fs.writeFileSync(path.join(root, "ok.ts"), "");
+
+    const rootHits = listWorkspaceDir(root, "", { respectGitignore: true });
+    expect(rootHits.map((h) => h.name)).toContain(".wave");
+    expect(rootHits.map((h) => h.name)).toContain("ok.ts");
+
+    const waveHits = listWorkspaceDir(root, ".wave", {
+      respectGitignore: true,
+    });
+    expect(waveHits.map((h) => h.name)).toEqual(["settings.local.json"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("hides linked worktree roots anywhere, keeps main repos and submodules", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-arb-"));
+    // Linked worktree anywhere (not under .wave): `.git` is a file pointing
+    // into `<repo>/.git/worktrees/<name>`.
+    const wt = path.join(root, "wt", "feature-x");
+    fs.mkdirSync(wt, { recursive: true });
+    fs.writeFileSync(
+      path.join(wt, ".git"),
+      `gitdir: ${root}/repo/.git/worktrees/feature-x\n`,
+    );
+    fs.writeFileSync(path.join(wt, "dup.ts"), "");
+    // Main repo: `.git` is a directory — must NOT be hidden.
+    fs.mkdirSync(path.join(root, "repo", ".git"), { recursive: true });
+    fs.writeFileSync(path.join(root, "repo", "main.ts"), "");
+    // Submodule: `.git` file pointing at `.git/modules/…` — must NOT be hidden.
+    const sub = path.join(root, "lib");
+    fs.mkdirSync(sub);
+    fs.writeFileSync(
+      path.join(sub, ".git"),
+      `gitdir: ${root}/repo/.git/modules/lib\n`,
+    );
+    fs.writeFileSync(path.join(sub, "lib.ts"), "");
+
+    // At root only `wt` (parent of the worktree) shows; `repo` and `lib` stay.
+    const rootHits = listWorkspaceDir(root, "", { respectGitignore: true });
+    expect(rootHits.map((h) => h.name).sort()).toEqual(["lib", "repo", "wt"]);
+
+    // Inside `wt`, the worktree root itself is hidden.
+    const wtHits = listWorkspaceDir(root, "wt", { respectGitignore: true });
+    expect(wtHits.map((h) => h.name)).toEqual([]);
+
+    // `repo` and `lib` are ordinary dirs and list normally.
+    expect(
+      listWorkspaceDir(root, "repo", { respectGitignore: true }).map(
+        (h) => h.name,
+      ),
+    ).toEqual(["main.ts"]);
+    expect(
+      listWorkspaceDir(root, "lib", { respectGitignore: true }).map(
+        (h) => h.name,
+      ),
+    ).toEqual(["lib.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("searchWorkspaceFiles directories", () => {
@@ -188,6 +256,36 @@ describe("searchContentInWorkspace", () => {
     expect(out.totalMatches).toBe(2);
     fs.rmSync(root, { recursive: true, force: true });
   });
+
+  it("does not scan files under .wave/worktrees", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-wt-"));
+    fs.mkdirSync(path.join(root, ".wave", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".wave", "worktrees", "feature-x", "dup.ts"),
+      "needle\n",
+    );
+    fs.writeFileSync(path.join(root, "dup.ts"), "needle\n");
+    const out = searchContentInWorkspace(root, { query: "needle" });
+    expect(out.results.map((r) => r.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not scan files under a worktree living outside .wave", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-arb-"));
+    const wt = path.join(root, "wt", "feature-x");
+    fs.mkdirSync(wt, { recursive: true });
+    fs.writeFileSync(
+      path.join(wt, ".git"),
+      `gitdir: ${root}/repo/.git/worktrees/feature-x\n`,
+    );
+    fs.writeFileSync(path.join(wt, "dup.ts"), "needle\n");
+    fs.writeFileSync(path.join(root, "dup.ts"), "needle\n");
+    const out = searchContentInWorkspace(root, { query: "needle" });
+    expect(out.results.map((r) => r.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("searchWorkspaceFiles gitignore + filesOnly", () => {
@@ -202,6 +300,44 @@ describe("searchWorkspaceFiles gitignore + filesOnly", () => {
       filesOnly: true,
     });
     expect(hits.map((h) => h.name).sort()).toEqual(["visible.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not return hits under .wave/worktrees", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sf-wt-"));
+    fs.mkdirSync(path.join(root, ".wave", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".wave", "worktrees", "feature-x", "dup.ts"),
+      "",
+    );
+    fs.writeFileSync(path.join(root, "dup.ts"), "");
+
+    const hits = searchWorkspaceFiles(root, {
+      query: "dup",
+      respectGitignore: true,
+    });
+    expect(hits.map((h) => h.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not return hits under a worktree living outside .wave", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sf-arb-"));
+    const wt = path.join(root, "wt", "feature-x");
+    fs.mkdirSync(wt, { recursive: true });
+    fs.writeFileSync(
+      path.join(wt, ".git"),
+      `gitdir: ${root}/repo/.git/worktrees/feature-x\n`,
+    );
+    fs.writeFileSync(path.join(wt, "dup.ts"), "");
+    fs.writeFileSync(path.join(root, "dup.ts"), "");
+
+    const hits = searchWorkspaceFiles(root, {
+      query: "dup",
+      respectGitignore: true,
+    });
+    expect(hits.map((h) => h.relativePath)).toEqual(["dup.ts"]);
     fs.rmSync(root, { recursive: true, force: true });
   });
 });
