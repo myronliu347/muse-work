@@ -2528,7 +2528,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             chatChrome
           )}
         </div>
-        {!isDraftSession && checkedPanels.length > 0 && activePanel && (
+        {/* 文件/变更等面板只在会话详情（chat 视图）显示，机器人页/新会话页隐藏 */}
+        {view === "chat" && !isDraftSession && checkedPanels.length > 0 && activePanel && (
           <DesktopPanelDock
             checked={checkedPanels}
             active={activePanel}

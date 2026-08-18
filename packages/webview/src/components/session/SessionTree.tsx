@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
+import { formatRelativeActiveAt } from "../../utils/time";
 import type { DesktopSessionGroup, DesktopSessionEntry } from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
@@ -23,25 +24,8 @@ export function isTaskProjectWorkdir(workdir: string): boolean {
   return /(^|\/)\.muse-work\/projects\//.test(normalized);
 }
 
-/** Relative last-active label for sidebar rows (e.g. `10天前`). */
-export function formatRelativeActiveAt(
-  timestamp: number,
-  now = Date.now(),
-): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
-  const diffMs = Math.max(0, now - timestamp);
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return "刚刚";
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}分钟前`;
-  const hour = Math.floor(min / 60);
-  if (hour < 24) return `${hour}小时前`;
-  const day = Math.floor(hour / 24);
-  if (day < 30) return `${day}天前`;
-  const month = Math.floor(day / 30);
-  if (month < 12) return `${month}个月前`;
-  return `${Math.floor(day / 365)}年前`;
-}
+/** 相对时间格式化已抽到公共 utils（src/utils/time.ts），保持 re-export 兼容。 */
+export { formatRelativeActiveAt } from "../../utils/time";
 
 /** Split non-pinned sessions into workspace vs auto task projects. */
 export function partitionRecentSessions(sessions: DesktopSessionEntry[]): {

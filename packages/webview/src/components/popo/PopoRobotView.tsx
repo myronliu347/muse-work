@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Card, Flex, ScrollArea, Spinner, Text } from "@radix-ui/themes";
 import type { Message as SdkMessage } from "wave-agent-sdk";
 import type { VsCodeApi } from "../../types";
@@ -9,20 +9,10 @@ import type {
   PopoConfigInfo,
 } from "../../muse/apiClient";
 import { Message } from "../message/Message";
+import { formatRelativeActiveAt } from "../../utils/time";
 import "../../styles/PopoRobotView.css";
 
 const POLL_INTERVAL_MS = 2000;
-
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  if (diff < 60_000) return "刚刚";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`;
-  const d = new Date(ts);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${mm}-${dd}`;
-}
 
 const ConfigRow: React.FC<{ label: string; value: string; copyable?: boolean }> = ({
   label,
@@ -128,6 +118,15 @@ export const PopoRobotView: React.FC<{ api: MuseApiClient; vscode: VsCodeApi }> 
     return () => clearInterval(timer);
   }, [api, selectedKey, anyProcessing]);
 
+  // 消息详情自动滚动到底部：打开会话 / 新消息 / 处理中指示器变化时。
+  const detailScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const viewport = detailScrollRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [detail, processing]);
+
   return (
     <Flex direction="column" gap="3" className="popo-robot-view" data-testid="popo-robot-view">
       <Flex align="center" justify="between">
@@ -204,7 +203,7 @@ export const PopoRobotView: React.FC<{ api: MuseApiClient; vscode: VsCodeApi }> 
                       {chat.lastMessage || "—"}
                     </Text>
                     <Text size="1" color="gray" className="popo-chat-time">
-                      {formatTime(chat.updatedAt)}
+                      {formatRelativeActiveAt(chat.updatedAt)}
                     </Text>
                   </button>
                 ))}
@@ -226,7 +225,7 @@ export const PopoRobotView: React.FC<{ api: MuseApiClient; vscode: VsCodeApi }> 
                 </Text>
                 {processing && <ProcessingIndicator />}
               </Flex>
-              <ScrollArea type="auto" className="popo-detail-scroll">
+              <ScrollArea ref={detailScrollRef} type="auto" className="popo-detail-scroll">
                 <Flex direction="column" gap="2">
                   {detail.messages.map((msg, i) => (
                     <Message key={msg.id ?? i} message={msg as SdkMessage} vscode={vscode} />
