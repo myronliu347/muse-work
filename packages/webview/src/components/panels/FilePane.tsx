@@ -35,6 +35,8 @@ export interface FilePaneProps {
   contentSearch?: ContentSearchState;
   onContentSearchChange?: (next: ContentSearchState) => void;
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
+  /** Local HTML files: open in the built-in browser preview instead of the OS. */
+  onOpenInPreview?: (path: string) => void;
   onRevealInFinder?: (path: string) => void;
 }
 
@@ -52,6 +54,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
   contentSearch = emptyContentSearchState(),
   onContentSearchChange,
   onOpenFile,
+  onOpenInPreview,
   onRevealInFinder,
 }) => {
   const asideRef = useRef<HTMLElement>(null);
@@ -198,14 +201,9 @@ export const FilePane: React.FC<FilePaneProps> = ({
                   type="button"
                   className="preview-pane-button"
                   data-testid="file-open-in-browser"
-                  title="在浏览器中打开"
-                  aria-label="在浏览器中打开"
-                  onClick={() =>
-                    vscode.postMessage({
-                      command: "desktopOpenFileExternal",
-                      path: fileView.path,
-                    })
-                  }
+                  title="在内置浏览器中打开"
+                  aria-label="在内置浏览器中打开"
+                  onClick={() => onOpenInPreview?.(fileView.path)}
                 >
                   <i className="codicon codicon-globe" aria-hidden />
                 </button>

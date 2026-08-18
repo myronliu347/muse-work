@@ -14,8 +14,22 @@ describe("normalizePreviewAddress", () => {
     );
   });
 
-  it("rejects empty and non-http schemes", () => {
+  it("rejects empty input", () => {
     expect(normalizePreviewAddress("")).toBeNull();
-    expect(normalizePreviewAddress("file:///tmp/x")).toBeNull();
+  });
+
+  it("accepts file:// URLs", () => {
+    expect(normalizePreviewAddress("file:///tmp/x/index.html")).toBe(
+      "file:///tmp/x/index.html",
+    );
+  });
+
+  it("converts absolute local paths to file:// URLs", () => {
+    expect(normalizePreviewAddress("/Users/a/index.html")).toBe(
+      "file:///Users/a/index.html",
+    );
+    expect(normalizePreviewAddress("C:\\web\\index.html")).toBe(
+      "file:///C:/web/index.html",
+    );
   });
 });

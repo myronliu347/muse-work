@@ -35,6 +35,7 @@ function renderPane(
     fileTree?: FileTreeState;
     onRevealInFinder?: (path: string) => void;
     onOpenFile?: (path: string) => void;
+    onOpenInPreview?: (path: string) => void;
     onFileTreeChange?: (next: FileTreeState) => void;
     onClose?: () => void;
     onWidthChange?: (width: number) => void;
@@ -43,6 +44,7 @@ function renderPane(
   const onClose = options.onClose ?? vi.fn();
   const onWidthChange = options.onWidthChange ?? vi.fn();
   const onOpenFile = options.onOpenFile ?? vi.fn();
+  const onOpenInPreview = options.onOpenInPreview ?? vi.fn();
   const onFileTreeChange = options.onFileTreeChange ?? vi.fn();
   const vscode = { postMessage: vi.fn() };
   const fileView =
@@ -59,6 +61,7 @@ function renderPane(
       fileTree={options.fileTree ?? emptyFileTreeState()}
       onFileTreeChange={onFileTreeChange}
       onOpenFile={onOpenFile}
+      onOpenInPreview={onOpenInPreview}
       onRevealInFinder={options.onRevealInFinder}
     />,
   );
@@ -67,6 +70,7 @@ function renderPane(
     onClose,
     onWidthChange,
     onOpenFile,
+    onOpenInPreview,
     onFileTreeChange,
     vscode,
   };
@@ -204,8 +208,8 @@ describe("FilePane", () => {
     expect(onRevealInFinder).toHaveBeenCalledWith("/work/a/big.bin");
   });
 
-  it("shows open-in-browser button for local html files", () => {
-    const { vscode } = renderPane({
+  it("opens the built-in preview for local html files", () => {
+    const { onOpenInPreview, vscode } = renderPane({
       fileView: {
         path: "/work/a/index.html",
         host: "local",
@@ -213,10 +217,8 @@ describe("FilePane", () => {
       },
     });
     fireEvent.click(screen.getByTestId("file-open-in-browser"));
-    expect(vscode.postMessage).toHaveBeenCalledWith({
-      command: "desktopOpenFileExternal",
-      path: "/work/a/index.html",
-    });
+    expect(onOpenInPreview).toHaveBeenCalledWith("/work/a/index.html");
+    expect(vscode.postMessage).not.toHaveBeenCalled();
   });
 
   it("hides open-in-browser button for non-html files", () => {

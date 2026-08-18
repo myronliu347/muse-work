@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { VsCodeApi } from "../../types";
+import { pathToFileUrl } from "../../utils/pathToFileUrl";
 
 /**
  * Desktop-only preview pane: renders a localhost dev server in a
@@ -77,11 +78,17 @@ export function rewriteCommentUrl(
   }
 }
 
-/** Normalize address-bar input into an absolute http(s) URL, or null. */
+/** Normalize address-bar input into an absolute http(s) or local file URL, or null. */
 export function normalizePreviewAddress(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   try {
+    // Local file preview: file:// URLs and absolute filesystem paths load
+    // directly in the guest (file panel's "open in browser" routes here too).
+    if (/^file:\/\//i.test(trimmed)) return new URL(trimmed).href;
+    if (/^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith("/")) {
+      return new URL(pathToFileUrl(trimmed)).href;
+    }
     // Only treat as absolute when a real scheme:// is present. `host:port`
     // must NOT be mistaken for a scheme (e.g. localhost:5173).
     const withProto = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)

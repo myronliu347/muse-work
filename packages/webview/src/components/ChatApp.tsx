@@ -80,6 +80,7 @@ import {
 } from "../stores";
 import type { ContentSearchFileHit, ContentSearchState } from "../types";
 import { isLocalhostUrl } from "../utils/isLocalhostUrl";
+import { pathToFileUrl } from "../utils/pathToFileUrl";
 import "../styles/ChatApp.css";
 
 export { prunePanelGroupCache } from "../stores";
@@ -2002,6 +2003,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     [tryOpenPanel, updatePanelGroup],
   );
 
+  // Local HTML files from the file panel preview in the built-in browser:
+  // map the absolute path to a file:// URL and open the preview pane.
+  const handleOpenLocalFilePreview = useCallback(
+    (path: string) => {
+      if (!path) return;
+      handleOpenPreview(pathToFileUrl(path));
+    },
+    [handleOpenPreview],
+  );
+
   // Remote localhost link handler: open the preview panel (creating it when
   // absent) and forward. The same URL — under any loopback/all-interfaces
   // host spelling — is a no-op unless the previous attempt failed (scenario
@@ -2149,6 +2160,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           contentSearch={contentSearch}
           onContentSearchChange={handleContentSearchChange}
           onOpenFile={handleOpenFile}
+          onOpenInPreview={handleOpenLocalFilePreview}
           onRevealInFinder={handleRevealInFinder}
           {...common}
         />

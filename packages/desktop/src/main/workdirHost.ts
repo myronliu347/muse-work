@@ -41,7 +41,6 @@ export type WorkdirHostDeps = {
   ipc?: Pick<typeof ipcMain, "on" | "removeListener">;
   showOpenDialog?: typeof dialog.showOpenDialog;
   fromWebContents?: typeof BrowserWindow.fromWebContents;
-  openPath?: (filePath: string) => Promise<string>;
   /** Reveal a file in the OS file manager. Injected in tests. */
   showItemInFolder?: (filePath: string) => void;
   /** Open a folder in VS Code (`code <workdir>`). Injected in tests. */
@@ -237,11 +236,6 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     options.showOpenDialog ?? dialog.showOpenDialog.bind(dialog);
   const fromWebContents =
     options.fromWebContents ?? BrowserWindow.fromWebContents.bind(BrowserWindow);
-  const openPath =
-    options.openPath ??
-    (typeof shell?.openPath === "function"
-      ? shell.openPath.bind(shell)
-      : async () => "shell.openPath unavailable");
   const showItemInFolder =
     options.showItemInFolder ??
     (typeof shell?.showItemInFolder === "function"
@@ -497,22 +491,6 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
 
     if (command === "revealInFinder" && typeof msg.path === "string" && msg.path) {
       showItemInFolder(msg.path);
-      return;
-    }
-
-    if (command === "desktopOpenFileExternal" && typeof msg.path === "string") {
-      const err = await openPath(msg.path);
-      if (err) {
-        pushToWebview(win, {
-          command: "desktopFileContent",
-          paneId: msg.paneId,
-          fileView: {
-            path: msg.path,
-            host: "local",
-            error: `无法用系统应用打开：${err}`,
-          },
-        });
-      }
       return;
     }
 

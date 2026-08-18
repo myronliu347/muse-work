@@ -153,6 +153,17 @@ describe("PreviewPane", () => {
     expect(wv.loadURL).toHaveBeenCalledWith("https://www.baidu.com/");
   });
 
+  it("loads a local file path pasted into the address bar", () => {
+    const onNavigate = vi.fn();
+    const { wv } = renderPane({ url: null, onNavigate });
+    fireDomReady(wv);
+    const input = screen.getByTestId("preview-address");
+    fireEvent.change(input, { target: { value: "/work/a/index.html" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onNavigate).toHaveBeenCalledWith("file:///work/a/index.html");
+    expect(wv.loadURL).toHaveBeenCalledWith("file:///work/a/index.html");
+  });
+
   it("toggles the picker: activate sends palette, second click deactivates", () => {
     const { wv } = renderPane();
     fireDomReady(wv);
@@ -472,9 +483,20 @@ describe("normalizePreviewAddress", () => {
     );
   });
 
-  it("rejects empty and non-http schemes", () => {
+  it("rejects empty input", () => {
     expect(normalizePreviewAddress("")).toBeNull();
-    expect(normalizePreviewAddress("file:///tmp/x")).toBeNull();
+  });
+
+  it("accepts file:// URLs and absolute local paths", () => {
+    expect(normalizePreviewAddress("file:///tmp/x/index.html")).toBe(
+      "file:///tmp/x/index.html",
+    );
+    expect(normalizePreviewAddress("/Users/a/index.html")).toBe(
+      "file:///Users/a/index.html",
+    );
+    expect(normalizePreviewAddress("C:\\web\\index.html")).toBe(
+      "file:///C:/web/index.html",
+    );
   });
 });
 
