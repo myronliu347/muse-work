@@ -38,6 +38,11 @@ export interface FilePaneProps {
   /** Local HTML files: open in the built-in browser preview instead of the OS. */
   onOpenInPreview?: (path: string) => void;
   onRevealInFinder?: (path: string) => void;
+  /** True while the AI is generating; its falling edge auto-refreshes the tree
+   * and re-reads the open file (same pattern as DiffPane). */
+  isStreaming?: boolean;
+  /** Whether the file panel is open; auto-refresh is skipped when hidden. */
+  visible?: boolean;
 }
 
 export const FilePane: React.FC<FilePaneProps> = ({
@@ -56,11 +61,14 @@ export const FilePane: React.FC<FilePaneProps> = ({
   onOpenFile,
   onOpenInPreview,
   onRevealInFinder,
+  isStreaming,
+  visible,
 }) => {
   const asideRef = useRef<HTMLElement>(null);
   const [mdMode, setMdMode] = useState<"preview" | "source">("preview");
   const [searchOpen, setSearchOpen] = useState(false);
   const lastPathRef = useRef<string | null>(null);
+  const streamingRef = useRef(false);
 
   useEffect(() => {
     if (!fileView?.path || !workdir || !onFileTreeChange) return;
@@ -145,6 +153,21 @@ export const FilePane: React.FC<FilePaneProps> = ({
     onFileTreeChange({ ...fileTree, childrenCache: {} });
     requestDirListings(vscode, workdir, dirs);
   };
+
+  // When an AI turn finishes (isStreaming falling edge) while the panel is
+  // open, refresh like the refresh button: re-read the open file and re-fetch
+  // the listings, so the panel shows what the agent just wrote. Mirrors
+  // DiffPane's generationEnded refresh.
+  useEffect(() => {
+    const prev = streamingRef.current;
+    streamingRef.current = Boolean(isStreaming);
+    if (prev && !isStreaming && visible !== false) {
+      handleRefresh();
+    }
+    // handleRefresh intentionally omitted: the effect reads the latest
+    // closure from the render where isStreaming/visible changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStreaming, visible]);
 
   return (
     <aside

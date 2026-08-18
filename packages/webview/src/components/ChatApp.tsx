@@ -2162,6 +2162,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenFile={handleOpenFile}
           onOpenInPreview={handleOpenLocalFilePreview}
           onRevealInFinder={handleRevealInFinder}
+          isStreaming={state.isStreaming}
+          visible={checkedPanels.includes("file")}
           {...common}
         />
       );

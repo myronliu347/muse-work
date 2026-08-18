@@ -39,6 +39,8 @@ function renderPane(
     onFileTreeChange?: (next: FileTreeState) => void;
     onClose?: () => void;
     onWidthChange?: (width: number) => void;
+    isStreaming?: boolean;
+    visible?: boolean;
   } = {},
 ) {
   const onClose = options.onClose ?? vi.fn();
@@ -49,22 +51,26 @@ function renderPane(
   const vscode = { postMessage: vi.fn() };
   const fileView =
     options.fileView === undefined ? makeFileView() : options.fileView;
-  const result = render(
-    <FilePane
-      fileView={fileView}
-      width={options.width ?? 420}
-      onWidthChange={onWidthChange}
-      maxWidth={options.maxWidth ?? 716}
-      onClose={onClose}
-      workdir={options.workdir ?? "/work/a"}
-      vscode={vscode}
-      fileTree={options.fileTree ?? emptyFileTreeState()}
-      onFileTreeChange={onFileTreeChange}
-      onOpenFile={onOpenFile}
-      onOpenInPreview={onOpenInPreview}
-      onRevealInFinder={options.onRevealInFinder}
-    />,
-  );
+  const props: React.ComponentProps<typeof FilePane> = {
+    fileView,
+    width: options.width ?? 420,
+    onWidthChange,
+    maxWidth: options.maxWidth ?? 716,
+    onClose,
+    workdir: options.workdir ?? "/work/a",
+    vscode,
+    fileTree: options.fileTree ?? emptyFileTreeState(),
+    onFileTreeChange,
+    onOpenFile,
+    onOpenInPreview,
+    onRevealInFinder: options.onRevealInFinder,
+    isStreaming: options.isStreaming,
+    visible: options.visible,
+  };
+  const result = render(<FilePane {...props} />);
+  const rerenderWith = (next: Partial<typeof options>) => {
+    result.rerender(<FilePane {...props} {...next} />);
+  };
   return {
     ...result,
     onClose,
@@ -73,6 +79,7 @@ function renderPane(
     onOpenInPreview,
     onFileTreeChange,
     vscode,
+    rerenderWith,
   };
 }
 
@@ -165,6 +172,74 @@ describe("FilePane", () => {
       );
       expect(vscode.postMessage).toHaveBeenCalledWith(
         expect.objectContaining({ command: "desktopListDir", dir: "src" }),
+      );
+    });
+  });
+
+  describe("auto-refresh when an AI turn ends", () => {
+    it("re-reads the open file and refreshes listings on the streaming falling edge", () => {
+      const { onOpenFile, onFileTreeChange, vscode, rerenderWith } = renderPane({
+        isStreaming: true,
+        fileTree: {
+          ...emptyFileTreeState(),
+          expanded: ["src"],
+          childrenCache: { "": [] },
+        },
+      });
+
+      rerenderWith({ isStreaming: false });
+
+      expect(onOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onFileTreeChange).toHaveBeenCalledWith(
+        expect.objectContaining({ childrenCache: {} }),
+      );
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopListDir", dir: "" }),
+      );
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopListDir", dir: "src" }),
+      );
+    });
+
+    it("does not refresh when streaming starts", () => {
+      const { onOpenFile, onFileTreeChange, vscode, rerenderWith } = renderPane({
+        fileTree: {
+          ...emptyFileTreeState(),
+          expanded: ["src"],
+          childrenCache: { "": [], src: [] },
+        },
+      });
+      rerenderWith({ isStreaming: true });
+      expect(onOpenFile).not.toHaveBeenCalled();
+      expect(vscode.postMessage).not.toHaveBeenCalled();
+      expect(onFileTreeChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ childrenCache: {} }),
+      );
+    });
+
+    it("does not refresh when the panel is hidden", () => {
+      const { onOpenFile, vscode, rerenderWith } = renderPane({
+        isStreaming: true,
+        visible: false,
+      });
+      rerenderWith({ isStreaming: false, visible: false });
+      expect(onOpenFile).not.toHaveBeenCalled();
+      expect(vscode.postMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not refresh on initial mount while not streaming", () => {
+      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
+        fileTree: {
+          ...emptyFileTreeState(),
+          expanded: ["src"],
+          childrenCache: { "": [], src: [] },
+        },
+      });
+      expect(onOpenFile).not.toHaveBeenCalled();
+      expect(vscode.postMessage).not.toHaveBeenCalled();
+      // Mount expands the tree for the open file; that is not a refresh.
+      expect(onFileTreeChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ childrenCache: {} }),
       );
     });
   });
