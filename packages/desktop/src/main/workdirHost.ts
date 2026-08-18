@@ -154,7 +154,10 @@ export function loadPersistedWorkdirState(
       return {
         workdir: raw.workdir,
         recentWorkdirs: Array.isArray(raw.recentWorkdirs)
-          ? raw.recentWorkdirs.filter((p) => typeof p === "string")
+          ? raw.recentWorkdirs.filter(
+              (p): p is string =>
+                typeof p === "string" && !isTransientWorkdir(p),
+            )
           : [],
         host: "local",
       };
@@ -187,8 +190,23 @@ export function savePersistedWorkdirState(
   }
 }
 
+/**
+ * Workdirs that must not appear in the "recently opened" list: the server's
+ * auto-minted `~/.muse-work/projects/<date>-<uid>` scratch dirs and git
+ * worktree dirs (`<repo>/.wave/worktrees/<name>`) created from the sidebar.
+ */
+export function isTransientWorkdir(dir: string): boolean {
+  const segments = dir.split(/[\\/]/).filter(Boolean);
+  return segments.some(
+    (seg, i) =>
+      seg === ".muse-work" ||
+      (seg === ".wave" && segments[i + 1] === "worktrees"),
+  );
+}
+
 export function rememberWorkdir(state: WorkdirHostState, dir: string): void {
   state.workdir = dir;
+  if (isTransientWorkdir(dir)) return;
   state.recentWorkdirs = [
     dir,
     ...state.recentWorkdirs.filter((p) => p !== dir),

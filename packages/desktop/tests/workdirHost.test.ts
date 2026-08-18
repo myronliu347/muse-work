@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   FROM_WEBVIEW,
   installWorkdirHost,
+  isTransientWorkdir,
   loadPersistedWorkdirState,
   rememberWorkdir,
   resolveDarwinTerminalApp,
@@ -24,6 +25,16 @@ describe("workdirHost state helpers", () => {
     expect(state.recentWorkdirs).toEqual(["/b", "/a"]);
   });
 
+  it("rememberWorkdir skips transient workdirs in recents but keeps current", () => {
+    const state: WorkdirHostState = {
+      recentWorkdirs: ["/a"],
+      host: "local",
+    };
+    rememberWorkdir(state, "/Users/me/.muse-work/projects/20260818-abc123");
+    expect(state.workdir).toBe("/Users/me/.muse-work/projects/20260818-abc123");
+    expect(state.recentWorkdirs).toEqual(["/a"]);
+  });
+
   it("persists and reloads workdir state", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-persist-"));
     const state: WorkdirHostState = {
@@ -38,6 +49,44 @@ describe("workdirHost state helpers", () => {
       host: "local",
     });
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("loadPersistedWorkdirState drops transient recents", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-purge-"));
+    const state: WorkdirHostState = {
+      workdir: "/repo/.wave/worktrees/feat-x",
+      recentWorkdirs: [
+        "/repo/.wave/worktrees/feat-x",
+        "/proj",
+        "/Users/me/.muse-work/projects/20260818-abc123",
+      ],
+      host: "local",
+    };
+    savePersistedWorkdirState(dir, state);
+    expect(loadPersistedWorkdirState(dir)).toEqual({
+      workdir: "/repo/.wave/worktrees/feat-x",
+      recentWorkdirs: ["/proj"],
+      host: "local",
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("isTransientWorkdir", () => {
+  it("flags server-minted ~/.muse-work project scratch dirs", () => {
+    expect(
+      isTransientWorkdir("/Users/me/.muse-work/projects/20260818-abc123"),
+    ).toBe(true);
+  });
+
+  it("flags worktree dirs under .wave/worktrees", () => {
+    expect(isTransientWorkdir("/repo/.wave/worktrees/feat-x")).toBe(true);
+  });
+
+  it("keeps regular project dirs", () => {
+    expect(isTransientWorkdir("/Users/me/projects/muse-work")).toBe(false);
+    expect(isTransientWorkdir("/Users/me/foo/.wave")).toBe(false);
+    expect(isTransientWorkdir("C:\\dev\\project")).toBe(false);
   });
 });
 
