@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon, PopoRobotIcon } from "../shared/HeaderIcons";
+import { NewSessionIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.svg";
 import {
   SessionTree,
@@ -138,7 +138,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             onClick={onTogglePopoRobot}
             data-testid="desktop-popo-robot"
           >
-            <PopoRobotIcon className="app-menu-icon" />
+            <i className="codicon codicon-robot app-menu-icon" />
             <span>POPO 机器人</span>
           </button>
         )}

@@ -113,6 +113,12 @@
   color: inherit;
 }
 
+/* codicon 字体图标：与 SVG 图标同尺寸（codicon.css 后导入，需提特异性） */
+.app-menu-icon.codicon {
+  font-size: 14px;
+  line-height: 14px;
+}
+
 .app-menu:hover:not(:disabled) {
   background: var(--gray-4);
 }
