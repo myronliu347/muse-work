@@ -6,6 +6,7 @@ import { loadPopoConfig, type PopoConfig } from "./popo/popoConfig.js";
 import { getLanIPv4, setupPopoRuntime, type PopoRuntime } from "./popo/setup.js";
 import { createAppContext } from "./services/appContext.js";
 import { configureLogger, resolveLogDir } from "./utils/logger.js";
+import { installRuntimeStats } from "./utils/runtimeStats.js";
 import { installGracefulShutdown } from "./utils/shutdown.js";
 
 const HOST = "127.0.0.1";
@@ -90,6 +91,13 @@ const srv = server.listen(port, HOST, () => {
     host: HOST,
     port: addr.port,
     logDir: resolveLogDir(ctx.home),
+  });
+  // 周期性打内存/存活计数，崩溃前在 server.log 里留下增长曲线（V8 OOM 观测）。
+  installRuntimeStats({
+    store: ctx.store,
+    getAgentCount: () => ctx.runner.getAgentCount(),
+    getClientCount: () => ctx.hub.clientCount(),
+    log,
   });
 });
 // 绑定失败（端口占用等）时输出清晰日志后退出，替代未处理 'error' 事件的裸崩溃。

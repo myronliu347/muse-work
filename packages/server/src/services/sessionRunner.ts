@@ -138,6 +138,8 @@ export interface SessionRunner {
   abortRunningTurns(reason: string): Promise<{ aborted: number }>;
   /** Abort every in-flight turn, including permission waiters. */
   shutdown(): Promise<{ aborted: number }>;
+  /** Number of live session agents (for runtime stats). */
+  getAgentCount(): number;
   compact(sessionId: string): Promise<{ ok: true }>;
   clear(sessionId: string): Promise<{ ok: true }>;
   listRewindCheckpoints(
@@ -1764,6 +1766,10 @@ export function createSessionRunner(
         aborted += 1;
       }
       return { aborted };
+    },
+
+    getAgentCount() {
+      return agents.size;
     },
   };
 }

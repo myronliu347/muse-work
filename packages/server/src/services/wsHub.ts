@@ -40,6 +40,8 @@ export interface WsHub {
   attach(server: HttpServer): void;
   broadcast(sessionId: string, event: WsEvent): void;
   setSnapshotProvider(provider: () => WsBroadcastEvent[]): void;
+  /** Total connected WebSocket clients across all sessions (for runtime stats). */
+  clientCount(): number;
   close(): void;
 }
 
@@ -138,6 +140,14 @@ export function createWsHub(options: CreateWsHubOptions = {}): WsHub {
           sweepWsHeartbeat(sockets);
         }, pingIntervalMs);
       }
+    },
+
+    clientCount(): number {
+      let total = 0;
+      for (const set of clients.values()) {
+        total += set.size;
+      }
+      return total;
     },
 
     broadcast(sessionId: string, event: WsEvent): void {
