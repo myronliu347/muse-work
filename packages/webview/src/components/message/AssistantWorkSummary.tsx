@@ -2,11 +2,18 @@ import React, { useState } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
 import type { Message as MessageType } from "wave-agent-sdk";
 
-function formatWorkedDuration(ms: number): string {
+export function formatWorkedDuration(ms: number): string {
   const totalSec = Math.max(0, Math.round(ms / 1000));
   if (totalSec < 60) return `${totalSec}s`;
-  const m = Math.floor(totalSec / 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
+  if (h > 0) {
+    const parts = [`${h}h`];
+    if (m > 0) parts.push(`${m}m`);
+    if (s > 0) parts.push(`${s}s`);
+    return parts.join(" ");
+  }
   return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }
 

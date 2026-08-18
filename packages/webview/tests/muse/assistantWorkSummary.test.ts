@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Message } from "wave-agent-sdk";
 import {
   estimateAssistantWorkMs,
+  formatWorkedDuration,
   shouldCollapseAssistantGroup,
 } from "../../src/components/message/AssistantWorkSummary";
 
@@ -54,5 +55,35 @@ describe("estimateAssistantWorkMs", () => {
       ]),
     ]);
     expect(ms).toBe(5_000);
+  });
+});
+
+describe("formatWorkedDuration", () => {
+  it("formats sub-minute durations as seconds", () => {
+    expect(formatWorkedDuration(45_000)).toBe("45s");
+  });
+
+  it("formats minutes with trailing seconds", () => {
+    expect(formatWorkedDuration(5 * 60_000 + 3_000)).toBe("5m 3s");
+  });
+
+  it("formats whole minutes without seconds", () => {
+    expect(formatWorkedDuration(5 * 60_000)).toBe("5m");
+  });
+
+  it("summarizes hour-long durations with minutes and seconds", () => {
+    expect(formatWorkedDuration(90 * 60_000 + 5_000)).toBe("1h 30m 5s");
+  });
+
+  it("formats hours with minutes but no seconds", () => {
+    expect(formatWorkedDuration(3_600_000 + 30 * 60_000)).toBe("1h 30m");
+  });
+
+  it("formats whole hours without minutes", () => {
+    expect(formatWorkedDuration(2 * 3_600_000)).toBe("2h");
+  });
+
+  it("clamps negative input to zero", () => {
+    expect(formatWorkedDuration(-1_000)).toBe("0s");
   });
 });
