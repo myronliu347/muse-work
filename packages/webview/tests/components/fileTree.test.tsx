@@ -224,6 +224,23 @@ describe("FileTree", () => {
     );
   });
 
+  it("refreshes the open file when refresh is clicked", () => {
+    const onRefreshFile = vi.fn();
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={openTree()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+        onRefreshFile={onRefreshFile}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
+    expect(onRefreshFile).toHaveBeenCalledTimes(1);
+  });
+
   it("switches between tree and search modes", () => {
     const onMode = vi.fn();
     render(

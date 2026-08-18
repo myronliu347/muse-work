@@ -110,6 +110,61 @@ describe("FilePane", () => {
     expect(screen.getByTestId("file-tree")).toBeInTheDocument();
   });
 
+  describe("refresh from preview toolbar when tree is collapsed", () => {
+    it("shows a refresh button in the toolbar when tree is collapsed", () => {
+      renderPane({ fileTree: emptyFileTreeState() });
+      expect(screen.getByTestId("file-refresh-btn")).toBeInTheDocument();
+    });
+
+    it("hides the refresh button when tree is open", () => {
+      renderPane({
+        fileView: null,
+        fileTree: { ...emptyFileTreeState(), collapsed: false },
+      });
+      expect(screen.queryByTestId("file-refresh-btn")).toBeNull();
+    });
+
+    it("re-opens the current file and refreshes listings", () => {
+      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
+        fileTree: {
+          ...emptyFileTreeState(),
+          expanded: ["src"],
+          childrenCache: { "": [] },
+        },
+      });
+
+      fireEvent.click(screen.getByTestId("file-refresh-btn"));
+
+      expect(onOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onFileTreeChange).toHaveBeenCalledWith(
+        expect.objectContaining({ childrenCache: {} }),
+      );
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopListDir", dir: "" }),
+      );
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopListDir", dir: "src" }),
+      );
+    });
+
+    it("still refreshes listings when no file is open", () => {
+      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
+        fileView: null,
+        fileTree: { ...emptyFileTreeState(), expanded: ["src"] },
+      });
+
+      fireEvent.click(screen.getByTestId("file-refresh-btn"));
+
+      expect(onOpenFile).not.toHaveBeenCalled();
+      expect(onFileTreeChange).toHaveBeenCalledWith(
+        expect.objectContaining({ childrenCache: {} }),
+      );
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ command: "desktopListDir", dir: "src" }),
+      );
+    });
+  });
+
   it("shows path bar with relative path", () => {
     renderPane({ workdir: "/work/a" });
     expect(screen.getByTestId("file-path-bar")).toBeInTheDocument();

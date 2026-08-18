@@ -26,6 +26,7 @@ export type FileTreeProps = {
   tree: FileTreeState;
   onTreeChange: (next: FileTreeState) => void;
   onOpenFile: (absPath: string) => void;
+  onRefreshFile?: () => void;
   sidebarMode?: FileSidebarMode;
   onSidebarModeChange?: (mode: FileSidebarMode) => void;
   contentSearch?: ContentSearchState;
@@ -54,12 +55,31 @@ function flatten(
 
 let listReqSeq = 0;
 
+// Post desktopListDir for each dir. Shared by the tree's own refresh and by
+// FilePane's collapsed-toolbar refresh (tree unmounted, so no pendingDirs).
+export const requestDirListings = (
+  vscode: { postMessage: (msg: unknown) => void },
+  workdir: string,
+  dirs: string[],
+) => {
+  for (const dir of dirs) {
+    const requestId = `listdir-${++listReqSeq}`;
+    vscode.postMessage({
+      command: "desktopListDir",
+      requestId,
+      dir,
+      workdir,
+    });
+  }
+};
+
 export const FileTree: React.FC<FileTreeProps> = ({
   workdir,
   vscode,
   tree,
   onTreeChange,
   onOpenFile,
+  onRefreshFile,
   sidebarMode = "tree",
   onSidebarModeChange,
   contentSearch = emptyContentSearchState(),
@@ -174,7 +194,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
   };
 
   // Drop the children cache and re-request the root plus every expanded dir.
-  // Expanded state is preserved; only listings are re-fetched from disk.
+  // Expanded state is preserved; only listings are re-fetched from disk. The
+  // open file is re-read too so its panel content is not stale.
   const refreshTree = () => {
     if (!workdir) return;
     const dirs = [""];
@@ -183,15 +204,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
     }
     onTreeChange({ ...tree, childrenCache: {} });
     setPendingDirs(new Set(dirs));
-    for (const dir of dirs) {
-      const requestId = `listdir-${++listReqSeq}`;
-      vscode.postMessage({
-        command: "desktopListDir",
-        requestId,
-        dir,
-        workdir,
-      });
-    }
+    requestDirListings(vscode, workdir, dirs);
+    onRefreshFile?.();
   };
 
   // Fully collapsed: parent FilePane shows the expand control in its toolbar.
@@ -291,8 +305,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
         type="button"
         className="file-tree-mode-btn"
         data-testid="file-tree-refresh-btn"
-        title="刷新目录树"
-        aria-label="刷新目录树"
+        title="刷新目录与文件"
+        aria-label="刷新目录与文件"
         onClick={refreshTree}
       >
         <i className="codicon codicon-refresh" aria-hidden />

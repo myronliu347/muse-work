@@ -12,7 +12,7 @@ import {
 } from "../../stores/panelGroupStore";
 import { FilePathBar } from "./FilePathBar";
 import { FilePreview } from "./FilePreview";
-import { FileTree } from "./FileTree";
+import { FileTree, requestDirListings } from "./FileTree";
 import "../../styles/FilePane.css";
 
 const MIN_WIDTH = 320;
@@ -122,6 +122,27 @@ export const FilePane: React.FC<FilePaneProps> = ({
     onFileTreeChange({ ...fileTree, collapsed: !treeCollapsed });
   };
 
+  // Re-request the currently open file from the host (soft refresh: old
+  // content stays visible until the reply lands). Shared by the tree's
+  // refresh and the collapsed-toolbar refresh.
+  const refreshOpenFile = () => {
+    if (fileView?.path) onOpenFile(fileView.path);
+  };
+
+  // Same scope as the tree's refresh button: re-read the open file and
+  // re-fetch the directory listings. Used when the tree is collapsed (its
+  // own refresh button is hidden with it), so expanding shows fresh data.
+  const handleRefresh = () => {
+    refreshOpenFile();
+    if (!workdir || !onFileTreeChange) return;
+    const dirs = [""];
+    for (const dir of fileTree.expanded) {
+      if (!dirs.includes(dir)) dirs.push(dir);
+    }
+    onFileTreeChange({ ...fileTree, childrenCache: {} });
+    requestDirListings(vscode, workdir, dirs);
+  };
+
   return (
     <aside
       ref={asideRef}
@@ -193,6 +214,18 @@ export const FilePane: React.FC<FilePaneProps> = ({
                 <button
                   type="button"
                   className="preview-pane-button"
+                  data-testid="file-refresh-btn"
+                  title="刷新目录与文件"
+                  aria-label="刷新目录与文件"
+                  onClick={handleRefresh}
+                >
+                  <i className="codicon codicon-refresh" aria-hidden />
+                </button>
+              )}
+              {showTreeToggle && treeCollapsed && (
+                <button
+                  type="button"
+                  className="preview-pane-button"
                   data-testid="file-tree-expand-btn"
                   title="展开文件树"
                   aria-label="展开文件树"
@@ -234,6 +267,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
             tree={fileTree}
             onTreeChange={onFileTreeChange}
             onOpenFile={(path) => onOpenFile(path)}
+            onRefreshFile={refreshOpenFile}
             sidebarMode={fileSidebarMode}
             onSidebarModeChange={onFileSidebarModeChange}
             contentSearch={contentSearch}
