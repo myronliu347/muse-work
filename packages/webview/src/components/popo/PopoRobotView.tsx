@@ -119,12 +119,11 @@ export const PopoRobotView: React.FC<{ api: MuseApiClient; vscode: VsCodeApi }> 
   }, [api, selectedKey, anyProcessing]);
 
   // 消息详情自动滚动到底部：打开会话 / 新消息 / 处理中指示器变化时。
+  // 注意：Radix themes 的 ScrollArea ref 直接转发到滚动 Viewport 本身。
   const detailScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const viewport = detailScrollRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+    const el = detailScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [detail, processing]);
 
   return (
