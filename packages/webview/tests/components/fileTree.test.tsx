@@ -159,6 +159,71 @@ describe("FileTree", () => {
     );
   });
 
+  it("clears children cache when refresh is clicked", () => {
+    const tree = openTree({
+      childrenCache: {
+        "": [
+          {
+            name: "a.ts",
+            path: "/work/a.ts",
+            relativePath: "a.ts",
+            isDirectory: false,
+          },
+        ],
+      },
+    });
+
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={tree}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
+    expect(onTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({ childrenCache: {} }),
+    );
+  });
+
+  it("re-requests root and expanded dirs after refresh", () => {
+    const tree = openTree({
+      expanded: ["src"],
+      childrenCache: {
+        "": [
+          {
+            name: "src",
+            path: "/work/src",
+            relativePath: "src",
+            isDirectory: true,
+          },
+        ],
+        src: [],
+      },
+    });
+
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={tree}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "desktopListDir", dir: "" }),
+    );
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "desktopListDir", dir: "src" }),
+    );
+  });
+
   it("switches between tree and search modes", () => {
     const onMode = vi.fn();
     render(
