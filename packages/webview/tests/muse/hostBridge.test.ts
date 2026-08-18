@@ -1029,6 +1029,14 @@ describe("createHostBridge desktop workdir bootstrap", () => {
         baseBranch: "main",
       }),
     );
+    // The bridge must forward exactly ONE requestId-tagged create to the host.
+    // Mirroring the raw message on top of handleDesktopCreateWorktree's tagged
+    // forward made the main process create TWO worktrees per send.
+    const createCalls = outer.postMessage.mock.calls.filter(
+      ([m]: [Record<string, unknown>]) => m.command === "desktopCreateWorktree",
+    );
+    expect(createCalls).toHaveLength(1);
+    expect(createCalls[0]?.[0]?.requestId).toBeTruthy();
     expect(api.createSession).toHaveBeenCalledWith(
       "/tmp/.wave/worktrees/gentle-pike-147",
       expect.objectContaining({

@@ -1919,10 +1919,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       // Always mirror to the outer host (Electron IPC / e2e harness) so tests
       // can observe every command ChatApp posts, even when this bridge handles
       // the command locally via HTTP/WS.
-      opts.outer?.postMessage(raw);
-
+      //
+      // EXCEPT desktopCreateWorktree: the switch below hands it to
+      // handleDesktopCreateWorktree, which itself forwards a requestId-tagged
+      // message to the outer host. Mirroring the raw message here too would
+      // make the main process run createWorktree TWICE per send (one from the
+      // mirror, one from the tagged forward), producing a duplicate worktree.
       const msg = raw as { command?: string; [k: string]: unknown };
       const command = msg?.command;
+      if (command !== "desktopCreateWorktree") {
+        opts.outer?.postMessage(raw);
+      }
       if (!command) {
         return;
       }

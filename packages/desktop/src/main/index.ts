@@ -228,6 +228,11 @@ if (!gotLock) {
     try {
       const server = await startMuseServer({
         entry: paths.serverEntry,
+        // Dev instances write their server logs under the dev userData dir so
+        // they don't interleave with the packaged app's ~/.muse-work/logs.
+        ...(!app.isPackaged
+          ? { env: { MUSE_LOG_DIR: path.join(app.getPath("userData"), "logs") } }
+          : {}),
         onLifecycle: (event) => {
           mainWindow?.webContents.send(TO_WEBVIEW, {
             command: "museServerLifecycle",

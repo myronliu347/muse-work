@@ -39,6 +39,10 @@ function resolveLevel(override?: string): string {
 }
 
 export function resolveLogDir(home?: string): string {
+  // MUSE_LOG_DIR lets the desktop host point a dev instance's server logs at a
+  // separate directory (userData/logs) so they don't interleave with the
+  // packaged app's logs.
+  if (process.env.MUSE_LOG_DIR) return process.env.MUSE_LOG_DIR;
   const root = home ?? process.env.MUSE_HOME ?? os.homedir();
   return path.join(root, ".muse-work", "logs");
 }
