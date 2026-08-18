@@ -537,7 +537,21 @@ export function createSessionRunner(
       return;
     }
     clearIdleTimer(sessionId);
+    clearStallTimer(sessionId);
+    turnEnded.delete(sessionId);
+    turnHadOutput.delete(sessionId);
+    aborting.delete(sessionId);
     agentLoading.delete(sessionId);
+    titleGenerating.delete(sessionId);
+    // Sub-agent transcripts / tool bindings are derived UI caches — drop them
+    // with the runtime. latestTasks / latestBackgroundTasks / latestWorkflowRuns /
+    // latestMcp are kept so the UI can still show history while the agent is gone.
+    subagentTranscripts.delete(sessionId);
+    agentToolBinds.delete(sessionId);
+    pendingAgentToolIds.delete(sessionId);
+    unboundSubagentIds.delete(sessionId);
+    knownAgentToolIds.delete(sessionId);
+    latestTokens.delete(sessionId);
     closeAgentLogger(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);
@@ -997,11 +1011,13 @@ export function createSessionRunner(
         return existing;
       }
       // Stale identity (provider / ~/.wave/settings.json change). Recreate only
-      // when the session is idle so an in-flight turn keeps its live agent;
-      // the next ensureAgent after the turn finishes will dispose + create.
+      // when the agent is not mid-turn — an in-flight turn keeps its live agent.
+      // Note: not `canIdleDestroy` (its status=running check would always veto
+      // during runTurn, where status is set to "running" before ensureAgent).
       if (
-        !canIdleDestroy(sessionId) ||
-        agentLoading.get(sessionId) === true
+        hasPendingPermission(sessionId) ||
+        agentLoading.get(sessionId) === true ||
+        existing.hasPendingMessages?.()
       ) {
         rearmIdleIfNeeded(sessionId);
         return existing;
