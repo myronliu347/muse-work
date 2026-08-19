@@ -810,6 +810,11 @@ export function createSessionRunner(
             }
           } else {
             reportEmptyTurnIfNeeded(sessionId);
+            // Push the final enriched transcript so the webview's file_history
+            // card renders right after the turn — delta events carry text/tool
+            // chunks but never the file_history block, so without this the card
+            // only appears after a session switch re-fetches messages.
+            broadcastMessages(sessionId);
             markIdle(sessionId);
           }
         },

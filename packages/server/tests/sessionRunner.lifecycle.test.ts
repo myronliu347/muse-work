@@ -443,6 +443,87 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
   });
 
+  it("broadcasts enriched messages with file_history when a turn ends", async () => {
+    const { store, hub, registry, home } = setup();
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "fh-broadcast-"));
+    const filePath = path.join(workdir, "app.js");
+    const snapshotPath = path.join(workdir, "snap.txt");
+    fs.writeFileSync(filePath, "const a = 1;\nconst b = 2;\n");
+    fs.writeFileSync(snapshotPath, "const a = 1;\n");
+    const session = store.create({ workdir, model: "m1" });
+
+    const broadcasts: Array<{ type?: string; messages?: unknown }> = [];
+    const orig = hub.broadcast.bind(hub);
+    hub.broadcast = (sessionId, event) => {
+      broadcasts.push(event as { type?: string; messages?: unknown });
+      return orig(sessionId, event);
+    };
+
+    type Callbacks = { onLoadingChange?: (loading: boolean) => void };
+    let cbs: Callbacks | undefined;
+    const messages = [
+      { id: "u1", role: "user", blocks: [{ type: "text", content: "改" }] },
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [
+          {
+            type: "file_history",
+            snapshots: [
+              {
+                filePath,
+                snapshotPath,
+                operation: "modify",
+                timestamp: 1,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        cbs = opts.callbacks as Callbacks;
+        return {
+          sendMessage: async () => {},
+          dispose: async () => {},
+          getMessages: () => messages,
+          sessionId: "wave-bcast",
+        };
+      },
+    });
+
+    await runner.sendMessage(session.id, "改");
+    await expect.poll(() => cbs).toBeTruthy();
+    // Turn ends: loading false — the full enriched transcript must be pushed so
+    // the UI card appears without a session switch.
+    cbs!.onLoadingChange?.(false);
+
+    await expect
+      .poll(() =>
+        broadcasts.find(
+          (e) =>
+            e.type === "messages:replace" &&
+            Array.isArray(e.messages) &&
+            e.messages.length > 0,
+        ),
+      )
+      .toBeTruthy();
+    const last = broadcasts.find((e) => e.type === "messages:replace");
+    const lastMsg = (last?.messages as Array<{ blocks?: unknown[] }>)[1];
+    const fh = (lastMsg.blocks ?? []).find(
+      (b) => (b as { type?: string }).type === "file_history",
+    ) as { snapshots?: Array<{ additions?: number }> };
+    expect(fh.snapshots?.[0].additions).toBe(1);
+
+    fs.rmSync(workdir, { recursive: true, force: true });
+  });
+
   it("idle TTL does not destroy while status is running", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
