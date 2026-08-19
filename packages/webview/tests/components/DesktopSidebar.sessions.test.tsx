@@ -147,7 +147,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       "20260813-28ba6a54",
     );
     expect(screen.getByTestId("desktop-session-active-at-t1")).toHaveTextContent(
-      "10天前",
+      "10d",
     );
     // 任务 appears before 工作空间 in the tree.
     const tree = screen.getByTestId("desktop-session-tree");
@@ -225,10 +225,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
 
   it("formatRelativeActiveAt covers minute/day buckets", () => {
     const now = Date.parse("2026-08-14T00:00:00.000Z");
-    expect(formatRelativeActiveAt(now - 30_000, now)).toBe("刚刚");
-    expect(formatRelativeActiveAt(now - 5 * 60_000, now)).toBe("5分钟前");
+    expect(formatRelativeActiveAt(now - 30_000, now)).toBe("now");
+    expect(formatRelativeActiveAt(now - 5 * 60_000, now)).toBe("5min");
+    expect(formatRelativeActiveAt(now - 23 * 60 * 60_000, now)).toBe("23h");
     expect(formatRelativeActiveAt(now - 10 * 24 * 60 * 60_000, now)).toBe(
-      "10天前",
+      "10d",
     );
   });
 
