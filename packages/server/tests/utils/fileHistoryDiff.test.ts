@@ -185,7 +185,7 @@ describe("enrichFileHistory", () => {
     expect(result[2].blocks[0].snapshots[0].deletions).toBe(1);
   });
 
-  it("skips a trailing turn without file_history and enriches the previous turn", () => {
+  it("does not enrich earlier turns when the newest turn has no file_history", () => {
     const filePath = path.join(dir, "a.txt");
     fs.writeFileSync(filePath, "new\n");
     const snapshotPath = snapshotFile("old\n");
@@ -201,9 +201,9 @@ describe("enrichFileHistory", () => {
       message("a-diag", "assistant", [{ type: "text", content: "结果通过" }]),
     ];
     const result = enrichFileHistory(messages, dir, "s1");
-    // The diagnostic turn (u2 → a-diag) has no file_history; the previous
-    // turn's changes are enriched instead.
-    expect(result[1].blocks[0].snapshots[0].additions).toBe(1);
+    // The newest turn (u2 → a-diag) has no file_history; earlier turns are
+    // intentionally left untouched — nothing is enriched.
+    expect(result[1].blocks[0].snapshots[0].additions).toBeUndefined();
     expect(result[3].blocks[0].content).toBe("结果通过");
   });
 

@@ -165,15 +165,15 @@ export function diffLines(before: string, after: string): LineDiff {
 }
 
 /**
- * Enrich every assistant message of the newest turn that carries a
- * `file_history` block with per-snapshot line diff stats
- * (additions/deletions/hunks) by comparing the stored pre-edit snapshot
- * content against the file's current content on disk.
+ * Enrich every assistant message of the NEWEST turn with a `file_history`
+ * block, adding per-snapshot line diff stats (additions/deletions/hunks) by
+ * comparing the stored pre-edit snapshot content against the file's current
+ * content on disk.
  *
  * A "turn" starts at a real user message (role=user, not isMeta) and runs to
- * the next user message. Trailing turns without changes (tool-only diagnosis,
- * plain questions) are skipped; the newest turn that actually changed files
- * wins — matching the "recent changes" card below the last message.
+ * the next user message. Only the newest turn is considered: if it has no
+ * file_history blocks (a plain question, tool-only diagnosis), nothing is
+ * enriched — earlier turns' changes are intentionally not shown.
  *
  * Snapshots whose current content matches the snapshot (already reverted or
  * never persisted) are dropped; an emptied block is removed entirely.
@@ -187,10 +187,10 @@ export function enrichFileHistory(
 ): unknown[] {
   if (messages.length === 0) return messages;
 
-  // Walk from the tail and collect every assistant message belonging to the
-  // newest turn that contains at least one file_history block. A turn is
-  // bounded by real user messages (role=user && !isMeta); meta-injected user
-  // messages (task reminders, SessionStart) do not break the turn.
+  // Walk from the tail and collect every assistant message of the newest turn
+  // (bounded by real user messages; meta-injected user messages do not break
+  // it). We stop at the first real user message — earlier turns are ignored
+  // even when the newest turn has no file_history.
   const targets: number[] = [];
   let inTurn = false;
   let foundFh = false;
@@ -201,16 +201,8 @@ export function enrichFileHistory(
       blocks?: Array<Record<string, unknown>>;
     };
     if (m?.role === "user" && !m.isMeta) {
-      if (inTurn) {
-        // A user message ends the turn we were collecting. If that turn had
-        // file_history, we stop here; otherwise discard it and keep looking.
-        if (foundFh) break;
-        targets.length = 0;
-        inTurn = false;
-        foundFh = false;
-        continue;
-      }
-      continue;
+      // The newest turn ends here; do not look further back.
+      break;
     }
     if (m?.role !== "assistant") continue;
     inTurn = true;
@@ -219,7 +211,7 @@ export function enrichFileHistory(
       foundFh = true;
     }
   }
-  if (!foundFh) return messages;
+  if (!inTurn || !foundFh) return messages;
 
   let changed = false;
   const next = messages.map((m, idx) => {

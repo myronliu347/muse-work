@@ -524,10 +524,11 @@ export const MessageList = forwardRef<
         });
         flushGroup();
 
-        // "N 个文件已更改" card: render the newest turn that carried a
-        // file_history block below the list once streaming has settled.
-        // A turn starts at a real user message (role=user, not isMeta) and runs
-        // to the next one; trailing tool-only turns without changes are skipped.
+        // "N 个文件已更改" card: render the NEWEST turn's file_history blocks
+        // below the list once streaming has settled. A turn starts at a real
+        // user message (role=user, not isMeta) and runs to the next one; a
+        // plain question with no changes shows nothing (no fallback to earlier
+        // turns).
         if (!isStreaming) {
           const mergedSnapshots: EnrichedFileSnapshot[] = [];
           const turnMessageIds: string[] = [];
@@ -536,15 +537,8 @@ export const MessageList = forwardRef<
           for (let i = visibleMessages.length - 1; i >= 0; i--) {
             const m = visibleMessages[i];
             if (m.role === "user" && !m.isMeta) {
-              if (inTurn) {
-                if (foundFh) break;
-                mergedSnapshots.length = 0;
-                turnMessageIds.length = 0;
-                inTurn = false;
-                foundFh = false;
-                continue;
-              }
-              continue;
+              // The newest turn ends here; do not look further back.
+              break;
             }
             if (m.role !== "assistant") continue;
             inTurn = true;
@@ -567,7 +561,7 @@ export const MessageList = forwardRef<
               foundFh = true;
             }
           }
-          if (foundFh && turnMessageIds.length > 0) {
+          if (inTurn && foundFh && turnMessageIds.length > 0) {
             const snapshots = mergedSnapshots;
             rendered.push(
               <FileHistoryCard

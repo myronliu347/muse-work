@@ -1973,17 +1973,19 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     [tryOpenPanel, updatePanelGroup],
   );
 
-  // "最近一次修改" diff source: every assistant message of the newest turn
+  // "最近一次修改" diff source: every assistant message of the NEWEST turn
   // that carries an enriched file_history block (server adds +N/−M + hunks in
   // getMessages). A turn starts at a real user message (role=user, not isMeta)
-  // and runs to the next one; trailing tool-only turns without changes are
-  // skipped. Derived from the live message list so it survives session
+  // and runs to the next one. Only the newest turn is considered — a plain
+  // question with no file changes shows nothing (no fallback to earlier
+  // turns). Derived from the live message list so it survives session
   // switches — the reloaded transcript carries the same file_history blocks.
   const recentDiffFiles = useMemo<WorkspaceDiffFile[]>(() => {
     const msgs = state.messages;
-    // Walk from the tail: collect assistant messages of the newest turn that
-    // has at least one file_history block; meta-injected user messages do not
-    // break the turn.
+    // Walk from the tail and collect every assistant message of the newest
+    // turn; meta-injected user messages do not break the turn. We stop at the
+    // first real user message — earlier turns are ignored even when the newest
+    // turn has no file_history.
     const snapshots: Array<{
       filePath: string;
       additions?: number;
@@ -1995,14 +1997,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     for (let i = msgs.length - 1; i >= 0; i--) {
       const m = msgs[i];
       if (m.role === "user" && !m.isMeta) {
-        if (inTurn) {
-          if (foundFh) break;
-          snapshots.length = 0;
-          inTurn = false;
-          foundFh = false;
-          continue;
-        }
-        continue;
+        // The newest turn ends here; do not look further back.
+        break;
       }
       if (m.role !== "assistant") continue;
       inTurn = true;
@@ -2024,6 +2020,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         foundFh = true;
       }
     }
+    if (!inTurn || !foundFh) return [];
     const wd = effectiveWorkdir;
     // A turn often edits the same file repeatedly; keep the OLDEST snapshot per
     // file so the diff covers the whole turn (enrich diffs against current disk

@@ -75,8 +75,8 @@ describe("FileHistoryCard in MessageList", () => {
   });
 
   it("renders the newest message with file_history even when the last message has none", () => {
-    // A trailing tool-only turn (Bash etc.) carries no file_history block, but
-    // the newest message that actually changed files still shows the card.
+    // A trailing tool-only message (Bash etc.) carries no file_history block,
+    // but since it belongs to the same turn, the turn's changes still show.
     renderChatApp();
     sendCommand("updateMessages", {
       messages: [
@@ -95,6 +95,39 @@ describe("FileHistoryCard in MessageList", () => {
     const card = screen.getByTestId("file-history-card");
     expect(card).toHaveTextContent("1 个文件已更改");
     expect(card).toHaveTextContent("app.js");
+  });
+
+  it("does not show earlier turns' changes when the newest turn is a plain question", () => {
+    // The newest turn (a question, no file changes) must not fall back to
+    // showing the previous turn's file_history card.
+    renderChatApp();
+    sendCommand("updateMessages", {
+      messages: [
+        {
+          id: "u1",
+          role: "user",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          blocks: [{ type: "text", content: "改文件" }],
+        },
+        fileHistoryMessage("a1", [
+          { filePath: "/mock/workdir/app.js", operation: "modify", additions: 3 },
+        ]),
+        {
+          id: "u2",
+          role: "user",
+          timestamp: "2024-01-01T00:00:02.000Z",
+          blocks: [{ type: "text", content: "这个函数是干嘛的？" }],
+        },
+        {
+          id: "a2",
+          role: "assistant",
+          timestamp: "2024-01-01T00:00:03.000Z",
+          blocks: [{ type: "text", content: "解释一下" }],
+        },
+      ],
+    });
+
+    expect(screen.queryByTestId("file-history-card")).not.toBeInTheDocument();
   });
 
   it("merges snapshots across all messages of the newest turn", () => {
