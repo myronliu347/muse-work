@@ -367,7 +367,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 : undefined
             }
           >
-            <span className="codicon codicon-git-branch" aria-hidden="true" />
+            <span className="codicon codicon-worktree" aria-hidden="true" />
           </span>
         ) : null}
         {session.lastActiveAt ? (

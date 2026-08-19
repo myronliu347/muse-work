@@ -530,7 +530,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
     expect(
       screen.getByTestId("desktop-session-item-wt1").querySelector(
-        ".desktop-session-worktree-badge .codicon-git-branch",
+        ".desktop-session-worktree-badge .codicon-worktree",
       ),
     ).toBeTruthy();
     expect(
