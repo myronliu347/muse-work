@@ -694,4 +694,60 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(running.id)?.status).toBe("idle");
     await expect.poll(() => store.get(waiting.id)?.status).toBe("idle");
   });
+
+  it("getMessages enriches the last assistant message's file_history with diff stats (session reload)", async () => {
+    const { store, hub, registry, home } = setup();
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "fh-reload-"));
+    const filePath = path.join(workdir, "app.js");
+    const snapshotPath = path.join(workdir, "snap.txt");
+    fs.writeFileSync(filePath, "const a = 1;\nconst b = 2;\n");
+    fs.writeFileSync(snapshotPath, "const a = 1;\n");
+    const session = store.create({ workdir, model: "m1" });
+
+    const messages = [
+      { id: "u1", role: "user", blocks: [{ type: "text", content: "改" }] },
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [
+          {
+            type: "file_history",
+            snapshots: [
+              {
+                filePath,
+                snapshotPath,
+                operation: "modify",
+                timestamp: 1,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        dispose: async () => {},
+        getMessages: () => messages,
+      }),
+    });
+
+    // Simulate a session reload (switching back to this session).
+    const reloaded = (await runner.getMessages(session.id)) as Array<{
+      id: string;
+      blocks: Array<{ type?: string; snapshots?: Array<{ additions?: number; deletions?: number }> }>;
+    }>;
+    const last = reloaded[reloaded.length - 1];
+    const block = last.blocks.find((b) => b.type === "file_history");
+    expect(block).toBeDefined();
+    expect(block!.snapshots![0].additions).toBe(1);
+    expect(block!.snapshots![0].deletions).toBe(0);
+
+    fs.rmSync(workdir, { recursive: true, force: true });
+  });
 });

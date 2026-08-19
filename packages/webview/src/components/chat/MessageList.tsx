@@ -8,11 +8,12 @@ import React, {
   useState,
 } from "react";
 import { Message } from "../message/Message";
+import { FileHistoryCard } from "../message/FileHistoryCard";
 import {
   AssistantWorkSummary,
   shouldCollapseAssistantGroup,
 } from "../message/AssistantWorkSummary";
-import type { MessageListProps } from "../../types";
+import type { EnrichedFileSnapshot, MessageListProps } from "../../types";
 import type { Message as MessageType } from "wave-agent-sdk";
 import {
   UserMessageNav,
@@ -75,6 +76,9 @@ export const MessageList = forwardRef<
     onOpenPreview,
     onOpenFile,
     onOpenAgentTranscript,
+    onRevertFileHistory,
+    revertingFileHistory,
+    onOpenFileHistoryFile,
   },
   ref,
 ) {
@@ -520,6 +524,65 @@ export const MessageList = forwardRef<
         });
         flushGroup();
 
+        // "N 个文件已更改" card: render the newest turn that carried a
+        // file_history block below the list once streaming has settled.
+        // A turn starts at a real user message (role=user, not isMeta) and runs
+        // to the next one; trailing tool-only turns without changes are skipped.
+        if (!isStreaming) {
+          const mergedSnapshots: EnrichedFileSnapshot[] = [];
+          const turnMessageIds: string[] = [];
+          let inTurn = false;
+          let foundFh = false;
+          for (let i = visibleMessages.length - 1; i >= 0; i--) {
+            const m = visibleMessages[i];
+            if (m.role === "user" && !m.isMeta) {
+              if (inTurn) {
+                if (foundFh) break;
+                mergedSnapshots.length = 0;
+                turnMessageIds.length = 0;
+                inTurn = false;
+                foundFh = false;
+                continue;
+              }
+              continue;
+            }
+            if (m.role !== "assistant") continue;
+            inTurn = true;
+            turnMessageIds.push(m.id);
+            const historyBlock = (m.blocks ?? []).find(
+              (b) => b.type === "file_history",
+            ) as
+              | { type: "file_history"; snapshots: unknown[] }
+              | undefined;
+            if (
+              historyBlock &&
+              Array.isArray(historyBlock.snapshots) &&
+              historyBlock.snapshots.length > 0
+            ) {
+              mergedSnapshots.push(
+                ...(historyBlock.snapshots as unknown as EnrichedFileSnapshot[]).filter(
+                  (s) => !workdir || (s.filePath ?? "").startsWith(workdir),
+                ),
+              );
+              foundFh = true;
+            }
+          }
+          if (foundFh && turnMessageIds.length > 0) {
+            const snapshots = mergedSnapshots;
+            rendered.push(
+              <FileHistoryCard
+                key={`file-history-${turnMessageIds.join(",")}`}
+                messageIds={turnMessageIds}
+                snapshots={snapshots}
+                workdir={workdir}
+                onOpenFile={onOpenFileHistoryFile}
+                onRevert={onRevertFileHistory}
+                reverting={revertingFileHistory}
+              />,
+            );
+          }
+        }
+
         return rendered;
       }, [
         messages,
@@ -530,6 +593,9 @@ export const MessageList = forwardRef<
         onOpenPreview,
         onOpenFile,
         onOpenAgentTranscript,
+        onRevertFileHistory,
+        revertingFileHistory,
+        onOpenFileHistoryFile,
       ])}
 
       {isStreaming && !isCompacting && (

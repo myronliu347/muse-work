@@ -298,3 +298,36 @@
   opacity: 0.4;
   cursor: default;
 }
+
+/* 最近一次修改 / 未提交文件 dropdown（替代原「变更」标题） */
+.diff-pane-toolbar-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.diff-pane-mode-select {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-1);
+  background: var(--gray-1);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-family: inherit;
+  padding: 3px 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 130px;
+}
+
+.diff-pane-mode-select:hover {
+  background: var(--gray-4);
+}
+
+.diff-pane-mode-select:focus {
+  outline: 1px solid var(--accent-9);
+  outline-offset: -1px;
+}
+

@@ -448,6 +448,34 @@ session.post("/rewind", async (c) => {
   }
 });
 
+session.post("/revert-file-history", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  let body: { messageIds?: unknown; messageId?: string } | undefined;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = undefined;
+  }
+  // Accept both a single messageId (legacy) and a messageIds array.
+  const messageIds = Array.isArray(body?.messageIds)
+    ? body.messageIds.filter((id): id is string => typeof id === "string")
+    : typeof body?.messageId === "string"
+      ? [body.messageId]
+      : [];
+  if (messageIds.length === 0) {
+    return c.json({ error: "messageIds is required" }, 400);
+  }
+  try {
+    return c.json(await ctx.runner.revertFileHistory(sessionId, messageIds));
+  } catch (err) {
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
+  }
+});
+
 session.get("/slash-commands", (c) =>
   c.json({ commands: [...SYSTEM_SLASH_COMMANDS] }),
 );

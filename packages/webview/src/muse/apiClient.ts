@@ -494,6 +494,21 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async revertFileHistory(
+    sessionId: string,
+    messageIds: string[],
+  ): Promise<{ ok: true; revertedCount: number }> {
+    const res = await this.request(
+      `/sessions/${encodeURIComponent(sessionId)}/revert-file-history`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageIds }),
+      },
+    );
+    return parseJson(res);
+  }
+
   async getSlashCommands(
     sessionId: string,
   ): Promise<{ commands: Array<{ id: string; name: string; description: string }> }> {

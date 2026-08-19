@@ -23,12 +23,14 @@ import type {
   Task,
   TaskStatus,
   TaskNotificationBlock,
+  FileHistoryBlock,
   McpServerStatus,
   McpServerConfig,
   BackgroundTaskSummary,
   SerializableWorkflowRun,
   SubagentConfiguration,
 } from "wave-agent-sdk/dist/types/index.js";
+import type { FileSnapshot } from "wave-agent-sdk/dist/types/reversion.js";
 import type {
   SessionMetadata,
   SessionData,
@@ -46,6 +48,7 @@ export type {
   CompactBlock,
   ReasoningBlock,
   TaskNotificationBlock,
+  FileHistoryBlock,
   SessionData,
   SessionMetadata,
   PermissionMode,
@@ -368,7 +371,21 @@ export interface MessageListProps {
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
   /** Open the nested Agent tool transcript popup. */
   onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
+  /** Undo the newest turn's file changes (file_history card). */
+  onRevertFileHistory?: (messageIds: string[]) => void;
+  /** True while the file_history revert request is in flight. */
+  revertingFileHistory?: boolean;
+  /** Open a file from the file_history card in the diff pane. */
+  onOpenFileHistoryFile?: (path: string) => void;
 }
+
+/** FileSnapshot with server-computed line diff stats (enriched in getMessages). */
+export type EnrichedFileSnapshot = FileSnapshot & {
+  additions?: number;
+  deletions?: number;
+  /** Unified-diff style hunks (git-like @@ headers) for the diff pane. */
+  hunks?: string;
+};
 
 export interface MessageProps {
   message: Message;
@@ -513,6 +530,22 @@ export interface FileViewState {
   totalLines?: number;
   /** Base64 data URL for remote images, inlined in the panel. */
   imageBase64?: string;
+}
+
+/**
+ * Diff pane target state (panel group scoped). When set to `recent`, the diff
+ * pane renders the last assistant message's file_history snapshot diff for the
+ * given file instead of the workspace git diff.
+ */
+export interface DiffViewState {
+  mode: "recent" | "unstaged";
+  /** Recent-mode file (enriched file_history snapshot mapped to diff shape). */
+  file?: {
+    path: string;
+    additions?: number;
+    deletions?: number;
+    hunks?: string;
+  };
 }
 
 /** One directory entry from desktopListDir. */

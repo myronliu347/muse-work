@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import type { DiffLineAnnotation } from "@pierre/diffs";
-import type { VsCodeApi } from "../../types";
+import type { VsCodeApi, DiffViewState } from "../../types";
 import {
   resolveDiffLineText,
   toPierrePatch,
 } from "../../utils/toPierrePatch";
-import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
+import {
+  resolveWorkspaceFilePath,
+  displayFilePath,
+} from "../../utils/filePathDisplay";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DiffViewer.css";
@@ -120,6 +123,13 @@ export interface DiffPaneProps {
   onOpenFile?: (path: string) => void;
   /** Sends text as a real chat message (not append-to-input). */
   onSendMessage?: (text: string) => void;
+  /** Per-session target state: recent mode renders the last message's
+   *  file_history snapshot diff; unstaged renders the workspace git diff. */
+  diffView?: DiffViewState | null;
+  /** "最近一次修改" source: last assistant message's enriched file_history
+   *  snapshots mapped to diff files. Survives session switches (derived from
+   *  the live transcript in ChatApp). */
+  recentFiles?: WorkspaceDiffFile[];
 }
 
 interface CommentTarget {
@@ -144,8 +154,16 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   onAddComment,
   onOpenFile,
   onSendMessage,
+  diffView,
+  recentFiles,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
+  // "最近一次修改" (file_history snapshot) vs "未提交文件" (workspace git diff).
+  // Recent is the default; a diffView target (card row click) or an explicit
+  // unstaged target switches modes.
+  const [mode, setMode] = useState<"recent" | "unstaged">(
+    diffView?.mode === "unstaged" ? "unstaged" : "recent",
+  );
   // Mutual-exclusion accordion: at most one file is expanded at a time, so the
   // DOM holds every file header but only one file's hunks (bounded rendering
   // for large workspace diffs — data is still loaded once for all files).
@@ -249,6 +267,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
 
   // Refresh triggers: first mount (prev.visible starts false), re-show,
   // session/workdir change while visible, generation end while visible.
+  // Only the unstaged (workspace git) mode issues a desktop request — recent
+  // mode renders the transcript-derived recentFiles prop. A session/workdir
+  // change also resets the mode back to recent (per-group diffView targets do
+  // not survive a switch), so the new session's last-changed files show up.
   const prevRef = useRef({ visible: false, sessionId, workdir, isStreaming });
   useEffect(() => {
     const prev = prevRef.current;
@@ -257,9 +279,61 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     const contextChanged =
       visible && (prev.sessionId !== sessionId || prev.workdir !== workdir);
     const generationEnded = visible && prev.isStreaming && !isStreaming;
-    if (contextChanged) refresh(true);
-    else if (becameVisible || generationEnded) refresh();
-  }, [visible, sessionId, workdir, isStreaming, refresh]);
+    if (contextChanged) {
+      // A new session/workdir: default back to 最近一次修改 so the reloaded
+      // transcript's file_history card data is visible immediately.
+      setMode((m) => (m === "recent" ? m : "recent"));
+      const files = recentFiles ?? [];
+      setState({ kind: "ok", files });
+      if (files.length > 0) setExpandedPath(files[0].path);
+    } else if (mode === "unstaged" && (becameVisible || generationEnded)) {
+      refresh();
+    }
+  }, [visible, sessionId, workdir, isStreaming, refresh, mode, recentFiles]);
+
+  // Recent mode renders the live recentFiles prop; keep state in sync when the
+  // transcript reloads (session switch, generation end, revert broadcast).
+  const prevRecentRef = useRef(recentFiles);
+  useEffect(() => {
+    if (mode !== "recent") return;
+    const files = recentFiles ?? [];
+    prevRecentRef.current = recentFiles;
+    setState({ kind: "ok", files });
+    if (files.length > 0) {
+      setExpandedPath((prev) => prev ?? files[0].path);
+    }
+  }, [recentFiles, mode]);
+
+  // A fresh diffView target (card row click) switches mode; the file target is
+  // resolved against recentFiles (path may be relative vs absolute).
+  const prevDiffViewRef = useRef(diffView);
+  useEffect(() => {
+    if (!diffView || diffView === prevDiffViewRef.current) return;
+    prevDiffViewRef.current = diffView;
+    if (diffView.mode === "unstaged") {
+      setMode("unstaged");
+      refresh(true);
+    } else {
+      setMode("recent");
+      if (diffView.file?.path) {
+        const files = recentFiles ?? [];
+        const hit = files.find((f) => f.path === diffView.file!.path);
+        if (hit) setExpandedPath(hit.path);
+      }
+    }
+  }, [diffView, refresh, recentFiles]);
+
+  const switchMode = (next: "recent" | "unstaged") => {
+    if (next === mode) return;
+    setMode(next);
+    if (next === "recent") {
+      const files = recentFiles ?? [];
+      setState({ kind: "ok", files });
+      if (files.length > 0) setExpandedPath(files[0].path);
+    } else {
+      refresh(true);
+    }
+  };
 
   const confirmRevert = () => {
     if (!pendingRevert || state.kind !== "ok") {
@@ -466,7 +540,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
                 }
               }}
             >
-              {file.path}
+              {displayFilePath(file.path, workdir)}
             </span>
           </button>
           <button
@@ -521,48 +595,67 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
         <div className="preview-pane-toolbar">
-          <span className="preview-pane-url">变更</span>
-          <Tooltip
-            text={toolbarActionsTip ?? "提交改动"}
-            position="bottom"
-          >
-            <button
-              type="button"
-              className="preview-pane-button"
-              aria-label="提交改动"
-              data-testid="diff-commit"
-              disabled={toolbarActionsDisabled}
-              onClick={() => onSendMessage?.("git commit")}
+        <select
+          className="diff-pane-mode-select"
+          aria-label="变更范围"
+          data-testid="diff-mode-select"
+          value={mode}
+          onChange={(e) => switchMode(e.target.value as "recent" | "unstaged")}
+        >
+          <option value="recent" data-testid="diff-mode-recent">
+            最近一次修改
+          </option>
+          <option value="unstaged" data-testid="diff-mode-unstaged">
+            未提交文件
+          </option>
+        </select>
+        <div className="diff-pane-toolbar-actions">
+        {mode === "unstaged" && (
+          <>
+            <Tooltip
+              text={toolbarActionsTip ?? "提交改动"}
+              position="bottom"
             >
-              <i className="codicon codicon-git-commit" />
-            </button>
-          </Tooltip>
-          <Tooltip
-            text={toolbarActionsTip ?? "丢弃全部改动"}
-            position="bottom"
-          >
-            <button
-              type="button"
-              className="preview-pane-button"
-              aria-label="丢弃全部改动"
-              data-testid="diff-revert-all"
-              disabled={toolbarActionsDisabled}
-              onClick={() => setPendingRevert({ scope: "all" })}
+              <button
+                type="button"
+                className="preview-pane-button"
+                aria-label="提交改动"
+                data-testid="diff-commit"
+                disabled={toolbarActionsDisabled}
+                onClick={() => onSendMessage?.("git commit")}
+              >
+                <i className="codicon codicon-git-commit" />
+              </button>
+            </Tooltip>
+            <Tooltip
+              text={toolbarActionsTip ?? "丢弃全部改动"}
+              position="bottom"
             >
-              <i className="codicon codicon-discard" />
-            </button>
-          </Tooltip>
-          <button
-            className="preview-pane-button"
-            title="刷新"
-            data-testid="diff-refresh"
-            onClick={() => refresh()}
-          >
-            <i
-              className={`codicon codicon-refresh${refreshing ? " codicon-modifier-spin" : ""}`}
-            />
-          </button>
+              <button
+                type="button"
+                className="preview-pane-button"
+                aria-label="丢弃全部改动"
+                data-testid="diff-revert-all"
+                disabled={toolbarActionsDisabled}
+                onClick={() => setPendingRevert({ scope: "all" })}
+              >
+                <i className="codicon codicon-discard" />
+              </button>
+            </Tooltip>
+          </>
+        )}
+        <button
+          className="preview-pane-button"
+          title="刷新"
+          data-testid="diff-refresh"
+          onClick={() => (mode === "recent" ? switchMode("recent") : refresh())}
+        >
+          <i
+            className={`codicon codicon-refresh${refreshing ? " codicon-modifier-spin" : ""}`}
+          />
+        </button>
         </div>
+      </div>
         <div className="diff-pane-body">
           {revertError && (
             <div className="diff-revert-error" data-testid="diff-revert-error">
@@ -583,10 +676,15 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           {state.kind === "not-a-repo" && (
             <div className="desktop-panel-placeholder">非 git 仓库</div>
           )}
+          {state.kind === "ok" && mode === "recent" && isStreaming && (
+            <div className="desktop-panel-placeholder">响应中…</div>
+          )}
           {state.kind === "ok" && state.files.length === 0 && (
             <div className="desktop-panel-placeholder">无改动</div>
           )}
-          {state.kind === "ok" && state.files.map(renderFile)}
+          {state.kind === "ok" &&
+            !(mode === "recent" && isStreaming) &&
+            state.files.map(renderFile)}
         </div>
       </div>
       {pendingRevert && (

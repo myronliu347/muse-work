@@ -213,4 +213,119 @@ describe("session control routes", () => {
     const missing = await fetch(`${app.baseUrl}/sessions/missing/tasks`);
     expect(missing.status).toBe(404);
   });
+
+  it("POST revert-file-history restores snapshots and reports the count", async () => {
+    const targetFile = path.join(home ?? os.tmpdir(), "revert-target.txt");
+    const snapshotPath = path.join(home ?? os.tmpdir(), "revert-snap.txt");
+    fs.writeFileSync(snapshotPath, "old content\n");
+    fs.writeFileSync(targetFile, "new content\n");
+    const messages = [
+      {
+        id: "u1",
+        role: "user",
+        blocks: [{ type: "text", content: "first" }],
+      },
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [
+          {
+            type: "file_history",
+            snapshots: [
+              {
+                filePath: targetFile,
+                snapshotPath,
+                operation: "modify",
+                timestamp: 2,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const app = await listen(async () =>
+      stubAgent({ getMessages: () => messages }),
+    );
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: app.home }),
+    });
+    const session = (await created.json()) as { id: string };
+
+    const res = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/revert-file-history`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId: "a1" }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, revertedCount: 1 });
+    expect(fs.readFileSync(targetFile, "utf-8")).toBe("old content\n");
+  });
+
+  it("POST revert-file-history deletes files for create operations", async () => {
+    const targetFile = path.join(home ?? os.tmpdir(), "revert-create.txt");
+    fs.writeFileSync(targetFile, "exists");
+    const messages = [
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [
+          {
+            type: "file_history",
+            snapshots: [
+              {
+                filePath: targetFile,
+                operation: "create",
+                timestamp: 1,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const app = await listen(async () =>
+      stubAgent({ getMessages: () => messages }),
+    );
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: app.home }),
+    });
+    const session = (await created.json()) as { id: string };
+
+    const res = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/revert-file-history`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId: "a1" }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, revertedCount: 1 });
+    expect(fs.existsSync(targetFile)).toBe(false);
+  });
+
+  it("POST revert-file-history 404s for unknown message", async () => {
+    const app = await listen(async () => stubAgent());
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: app.home }),
+    });
+    const session = (await created.json()) as { id: string };
+    const res = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/revert-file-history`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId: "nope" }),
+      },
+    );
+    expect(res.status).toBe(404);
+  });
 });

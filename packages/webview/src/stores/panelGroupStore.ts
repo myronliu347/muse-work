@@ -8,6 +8,7 @@ import type {
   FileTreeDirEntry,
   FileTreeState,
   FileViewState,
+  DiffViewState,
 } from "../types";
 
 export const PANEL_DEFAULT_WIDTH = 420;
@@ -98,6 +99,7 @@ export interface PanelGroupState {
   dockFullscreen: boolean;
   previewUrl: string | null;
   fileView: FileViewState | null;
+  diffView: DiffViewState | null;
   fileTree: FileTreeState;
   fileSidebarMode: FileSidebarMode;
   contentSearch: ContentSearchState;
@@ -120,6 +122,7 @@ export function emptyPanelGroup(): PanelGroupState {
     dockFullscreen: false,
     previewUrl: null,
     fileView: null,
+    diffView: null,
     fileTree: emptyFileTreeState(),
     fileSidebarMode: "tree",
     contentSearch: emptyContentSearchState(),
@@ -283,4 +286,4 @@ export function usePanelGroup(groupKey: string | undefined): PanelGroupView {
   );
 }
 
-export type { FileTreeDirEntry, FileTreeState, FileSidebarMode, ContentSearchState };
+export type { FileTreeDirEntry, FileTreeState, FileSidebarMode, ContentSearchState, DiffViewState };

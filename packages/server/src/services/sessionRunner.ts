@@ -24,6 +24,7 @@ import {
 } from "../constants/agent.js";
 import { closeAgentLogger, createAgentLogger, getLogger } from "../utils/logger.js";
 import { mapSdkMessages } from "../utils/messageMapper.js";
+import { enrichFileHistory, revertSnapshots } from "../utils/fileHistoryDiff.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
@@ -154,6 +155,11 @@ export interface SessionRunner {
     sessionId: string,
     messageId: string,
   ): Promise<{ ok: true; inputContent: string }>;
+  /** Restore files captured by a turn's file_history blocks (undo). */
+  revertFileHistory(
+    sessionId: string,
+    messageIds: string[],
+  ): Promise<{ ok: true; revertedCount: number }>;
   setPermissionMode(
     sessionId: string,
     mode: "acceptEdits" | "bypassPermissions",
@@ -506,6 +512,18 @@ export function createSessionRunner(
     turnHadOutput.set(sessionId, true);
   }
 
+  /** Push the full SDK transcript, enriched with file_history diff stats. */
+  function broadcastMessages(sessionId: string): void {
+    const session = store.get(sessionId);
+    const messages = agents.get(sessionId)?.getMessages?.();
+    if (!messages || !session) return;
+    const mapped = mapSdkMessages(messages);
+    hub.broadcast(sessionId, {
+      type: "messages:replace",
+      messages: enrichFileHistory(mapped, session.workdir, sessionId),
+    });
+  }
+
   function reportEmptyTurnIfNeeded(sessionId: string): void {
     if (disposed.has(sessionId) || aborting.has(sessionId)) {
       return;
@@ -850,14 +868,8 @@ export function createSessionRunner(
         onCompactBlockAdded: () => {
           if (disposed.has(sessionId)) return;
           // Compaction truncates the SDK transcript; push the post-compact list.
-          const messages =
-            agentBox.current?.getMessages?.() ??
-            agents.get(sessionId)?.getMessages?.();
-          if (!messages) return;
-          hub.broadcast(sessionId, {
-            type: "messages:replace",
-            messages: mapSdkMessages(messages),
-          });
+          if (!agents.get(sessionId)?.getMessages) return;
+          broadcastMessages(sessionId);
           hub.broadcast(sessionId, {
             type: "compaction:state",
             isCompacting: false,
@@ -1475,11 +1487,14 @@ export function createSessionRunner(
       const agent = await ensureAgent(sessionId);
       // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
       rearmIdleIfNeeded(sessionId);
-      return attachNestedMessages(
+      const nested = await attachNestedMessages(
         sessionId,
         session.workdir,
         mapSdkMessages(agent.getMessages?.() ?? []),
       );
+      // Attach per-file +N/−M diff stats to the last assistant message's
+      // file_history block (UI card). Read-only enrichment; SDK blocks intact.
+      return enrichFileHistory(nested, session.workdir, sessionId);
     },
 
     async compact(sessionId) {
@@ -1580,9 +1595,47 @@ export function createSessionRunner(
       }
       const inputContent = userMessageText(messages[index]);
       await agent.truncateHistory(index);
-      const next = mapSdkMessages(agent.getMessages?.() ?? []);
-      hub.broadcast(sessionId, { type: "messages:replace", messages: next });
+      broadcastMessages(sessionId);
       return { ok: true as const, inputContent };
+    },
+
+    async revertFileHistory(sessionId, messageIds: string[]) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const agent = await ensureAgent(sessionId);
+      const messages = agent.getMessages?.() ?? [];
+      const ids = Array.isArray(messageIds) ? messageIds : [messageIds];
+      const snapshots = ids.flatMap((messageId) => {
+        const target = messages.find(
+          (m) => (m as { id?: string }).id === messageId,
+        );
+        if (!target) return [];
+        return (
+          (target as { blocks?: Array<{ type?: string; snapshots?: unknown[] }> })
+            .blocks ?? []
+        )
+          .filter((b) => b.type === "file_history")
+          .flatMap((b) => b.snapshots ?? []);
+      });
+      if (snapshots.length === 0) {
+        throw Object.assign(new Error("no file history to revert"), {
+          statusCode: 404,
+        });
+      }
+      const revertedCount = revertSnapshots(
+        snapshots as Array<{
+          filePath?: string;
+          snapshotPath?: string;
+          operation?: string;
+          timestamp?: number;
+        }>,
+      );
+      broadcastMessages(sessionId);
+      return { ok: true as const, revertedCount };
     },
 
     async setPermissionMode(sessionId, mode) {

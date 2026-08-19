@@ -44,7 +44,10 @@ import { PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { stripImageSourceMarkers } from "../utils/messageUtils";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
 import { PreviewPane } from "./panels/PreviewPane";
-import { DiffPane } from "./panels/DiffPane";
+import {
+  DiffPane,
+  type WorkspaceDiffFile,
+} from "./panels/DiffPane";
 import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
 import { FilePane } from "./panels/FilePane";
 import { QuickOpenPalette } from "./panels/QuickOpenPalette";
@@ -218,6 +221,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     dockFullscreen,
     previewUrl,
     fileView,
+    diffView,
     fileTree,
     fileSidebarMode,
     contentSearch,
@@ -1952,6 +1956,127 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     [postToHost],
   );
 
+  // File-history card row click: open the diff pane in "最近一次修改" mode,
+  // targeting the file whose snapshot diff came from the last assistant message.
+  const handleOpenFileHistoryDiff = useCallback(
+    (path: string) => {
+      if (!path) return;
+      if (!tryOpenPanel("diff")) return;
+      updatePanelGroup({
+        diffView: {
+          mode: "recent",
+          file: { path },
+        },
+      });
+    },
+    [tryOpenPanel, updatePanelGroup],
+  );
+
+  // "最近一次修改" diff source: every assistant message of the newest turn
+  // that carries an enriched file_history block (server adds +N/−M + hunks in
+  // getMessages). A turn starts at a real user message (role=user, not isMeta)
+  // and runs to the next one; trailing tool-only turns without changes are
+  // skipped. Derived from the live message list so it survives session
+  // switches — the reloaded transcript carries the same file_history blocks.
+  const recentDiffFiles = useMemo<WorkspaceDiffFile[]>(() => {
+    const msgs = state.messages;
+    // Walk from the tail: collect assistant messages of the newest turn that
+    // has at least one file_history block; meta-injected user messages do not
+    // break the turn.
+    const snapshots: Array<{
+      filePath: string;
+      additions?: number;
+      deletions?: number;
+      hunks?: string;
+    }> = [];
+    let inTurn = false;
+    let foundFh = false;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === "user" && !m.isMeta) {
+        if (inTurn) {
+          if (foundFh) break;
+          snapshots.length = 0;
+          inTurn = false;
+          foundFh = false;
+          continue;
+        }
+        continue;
+      }
+      if (m.role !== "assistant") continue;
+      inTurn = true;
+      const block = (m.blocks ?? []).find(
+        (b) => b.type === "file_history",
+      ) as
+        | {
+            type: "file_history";
+            snapshots: Array<{
+              filePath: string;
+              additions?: number;
+              deletions?: number;
+              hunks?: string;
+            }>;
+          }
+        | undefined;
+      if (block && Array.isArray(block.snapshots)) {
+        snapshots.push(...block.snapshots);
+        foundFh = true;
+      }
+    }
+    const wd = effectiveWorkdir;
+    // A turn often edits the same file repeatedly; keep one row per file.
+    const seen = new Set<string>();
+    return snapshots
+      .filter(
+        (s) =>
+          s.filePath &&
+          // Internal bookkeeping files (task state, etc.) outside the workdir
+          // are not user-facing changes.
+          (!wd || s.filePath.startsWith(wd)) &&
+          ((s.additions ?? 0) > 0 || (s.deletions ?? 0) > 0),
+      )
+      .filter((s) => {
+        if (seen.has(s.filePath)) return false;
+        seen.add(s.filePath);
+        return true;
+      })
+      .map((s) => ({
+        path: s.filePath,
+        status: "modified" as const,
+        additions: s.additions ?? 0,
+        deletions: s.deletions ?? 0,
+        hunks: s.hunks ?? "",
+        truncated: false,
+        binary: false,
+      }));
+  }, [state.messages, effectiveWorkdir]);
+
+  // Undo button on the file-history card: restore the snapshots captured by
+  // the newest turn. The server broadcasts messages:replace after reverting,
+  // and since the reverted files now match their snapshots, the enriched
+  // file_history block vanishes — the card disappears on its own.
+  const [revertingFileHistory, setRevertingFileHistory] = useState(false);
+  const handleRevertFileHistory = useCallback(
+    (messageIds: string[]) => {
+      if (!Array.isArray(messageIds) || messageIds.length === 0) return;
+      setRevertingFileHistory(true);
+      void (async () => {
+        try {
+          await popoApi.revertFileHistory(
+            state.currentSession!.id,
+            messageIds,
+          );
+        } catch {
+          // The card stays; user can retry. Server-side failure is surfaced
+          // via the next messages:replace (unchanged) or an error block.
+        } finally {
+          setRevertingFileHistory(false);
+        }
+      })();
+    },
+    [state.currentSession, popoApi],
+  );
+
   const handleFileTreeChange = useCallback(
     (next: import("../types").FileTreeState) => {
       updatePanelGroup((group) => ({
@@ -2140,6 +2265,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           isStreaming={state.isStreaming}
           sessionId={state.currentSession?.id}
           workdir={effectiveWorkdir}
+          diffView={diffView}
+          recentFiles={recentDiffFiles}
           onOpenFile={handleOpenFile}
           onAddComment={handleAddComment}
           onSendMessage={(text) => handleSendMessage(text)}
@@ -2325,6 +2452,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenPreview={openPreviewHandler}
           onOpenFile={handleOpenFile}
           onOpenAgentTranscript={handleOpenAgentTranscript}
+          onRevertFileHistory={handleRevertFileHistory}
+          revertingFileHistory={revertingFileHistory}
+          onOpenFileHistoryFile={handleOpenFileHistoryDiff}
         />
       )}
 

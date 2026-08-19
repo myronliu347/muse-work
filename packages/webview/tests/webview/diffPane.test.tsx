@@ -76,9 +76,22 @@ function renderPane(options?: {
   onAddComment?: (text: string) => void;
   onOpenFile?: (path: string) => void;
   onSendMessage?: (text: string) => void;
+  /** Recent is the default; pass "unstaged" to start in the workspace-git mode. */
+  initialMode?: "recent" | "unstaged";
+  diffView?: { mode: "recent" | "unstaged"; file?: { path: string; additions?: number; deletions?: number; hunks?: string } };
+  recentFiles?: Array<{
+    path: string;
+    status?: string;
+    additions?: number;
+    deletions?: number;
+    hunks?: string;
+    truncated?: boolean;
+    binary?: boolean;
+  }>;
 }) {
   const vscode = createMockVscode();
   const onClose = options?.onClose ?? vi.fn();
+  const initialMode = options?.initialMode ?? "recent";
   const result = render(
     <DiffPane
       vscode={vscode}
@@ -91,6 +104,13 @@ function renderPane(options?: {
       isStreaming={options?.isStreaming ?? false}
       sessionId={options?.sessionId}
       workdir={options?.workdir}
+      diffView={
+        options?.diffView ?? {
+          mode: initialMode,
+          ...(initialMode === "recent" ? {} : { file: undefined }),
+        }
+      }
+      recentFiles={options?.recentFiles as never}
       onAddComment={options?.onAddComment}
       onOpenFile={options?.onOpenFile}
       onSendMessage={options?.onSendMessage}
@@ -101,6 +121,16 @@ function renderPane(options?: {
     isStreaming?: boolean;
     sessionId?: string;
     workdir?: string;
+    diffView?: { mode: "recent" | "unstaged"; file?: { path: string; additions?: number; deletions?: number; hunks?: string } };
+    recentFiles?: Array<{
+      path: string;
+      status?: string;
+      additions?: number;
+      deletions?: number;
+      hunks?: string;
+      truncated?: boolean;
+      binary?: boolean;
+    }>;
   }) =>
     result.rerender(
       <DiffPane
@@ -114,12 +144,21 @@ function renderPane(options?: {
         isStreaming={props.isStreaming ?? false}
         sessionId={props.sessionId}
         workdir={props.workdir}
+        diffView={props.diffView ?? options?.diffView}
+        recentFiles={(props.recentFiles ?? options?.recentFiles) as never}
         onAddComment={options?.onAddComment}
         onOpenFile={options?.onOpenFile}
         onSendMessage={options?.onSendMessage}
       />,
     );
   return { ...result, rerenderWith, vscode, onClose };
+}
+
+/** Switch the toolbar dropdown to the unstaged (workspace git) mode. */
+function switchToUnstaged() {
+  fireEvent.change(screen.getByTestId("diff-mode-select"), {
+    target: { value: "unstaged" },
+  });
 }
 
 function sendDiffResult(files: WorkspaceDiffFile[], paneId?: string) {
@@ -135,18 +174,59 @@ const lastDiffRequest = (vscode: ReturnType<typeof createMockVscode>) =>
   );
 
 describe("DiffPane", () => {
-  it("requests the workspace diff on mount and shows a loading state", () => {
+  it("defaults to recent mode and only requests the workspace diff after switching to unstaged", () => {
     const { vscode } = renderPane();
-    expect(vscode.postMessage).toHaveBeenCalledWith({
-      command: "desktopGetWorkspaceDiff",
-    });
+    // Recent is the default: no workspace git request on mount.
+    expect(
+      vscode.postMessage.mock.calls.some(
+        ([msg]) => msg.command === "desktopGetWorkspaceDiff",
+      ),
+    ).toBe(false);
+    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+
+    switchToUnstaged();
+    expect(
+      vscode.postMessage.mock.calls.some(
+        ([msg]) => msg.command === "desktopGetWorkspaceDiff",
+      ),
+    ).toBe(true);
     expect(
       document.querySelector(".desktop-panel-placeholder"),
     ).toHaveTextContent("加载中…");
   });
 
+  it("hides recent-mode files while streaming", () => {
+    const { rerenderWith } = renderPane({
+      recentFiles: [makeFile()],
+    });
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+    rerenderWith({ isStreaming: true });
+    expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
+    expect(
+      document.querySelector(".desktop-panel-placeholder"),
+    ).toHaveTextContent("响应中…");
+    rerenderWith({ isStreaming: false });
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+  });
+
+  it("shows paths relative to workdir when under it", () => {
+    renderPane({
+      initialMode: "unstaged",
+      workdir: "/work",
+    });
+    sendDiffResult([
+      makeFile({ path: "/work/src/a.ts" }),
+      makeFile({ path: "/elsewhere/b.ts" }),
+    ]);
+    const paths = screen
+      .getAllByTestId("diff-file-path")
+      .map((el) => el.textContent);
+    expect(paths).toContain("src/a.ts");
+    expect(paths).toContain("/elsewhere/b.ts");
+  });
+
   it("renders file blocks with status, path and +/- stats", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([
       makeFile(),
       makeFile({
@@ -175,7 +255,7 @@ describe("DiffPane", () => {
   });
 
   it("renders a Pierre PatchDiff for file hunks", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([makeFile()]);
     const el = screen.getByTestId("pierre-patch-diff");
     expect(el).toBeInTheDocument();
@@ -184,7 +264,7 @@ describe("DiffPane", () => {
   });
 
   it("exposes a line-comment gutter control on the PatchDiff", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([
       makeFile({ hunks: "@@ -1,1 +1,1 @@\n-const x = 1;\n+const x = 2;" }),
     ]);
@@ -192,19 +272,19 @@ describe("DiffPane", () => {
   });
 
   it("binary files show a placeholder instead of hunks", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([makeFile({ binary: true, hunks: "" })]);
     expect(screen.getByText("二进制文件，不显示差异")).toBeInTheDocument();
   });
 
   it("truncated files show a truncation note", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([makeFile({ truncated: true })]);
     expect(screen.getByText("差异过大，已截断…")).toBeInTheDocument();
   });
 
   it("renames without content changes show the source path", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([
       makeFile({ status: "renamed", oldPath: "src/old.ts", hunks: "" }),
     ]);
@@ -212,7 +292,7 @@ describe("DiffPane", () => {
   });
 
   it("shows the not-a-repo state", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendCommand("desktopWorkspaceDiff", { result: { kind: "not-a-repo" } });
     expect(
       document.querySelector(".desktop-panel-placeholder"),
@@ -220,7 +300,7 @@ describe("DiffPane", () => {
   });
 
   it("shows the no-changes state for an empty file list", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([]);
     expect(
       document.querySelector(".desktop-panel-placeholder"),
@@ -228,7 +308,7 @@ describe("DiffPane", () => {
   });
 
   it("collapses and expands a file block via its header", () => {
-    const { container } = renderPane();
+    const { container } = renderPane({ initialMode: "unstaged" });
     sendDiffResult([makeFile()]);
     const header = container.querySelector(".diff-file-header") as HTMLElement;
     expect(header).toHaveAttribute("aria-expanded", "true");
@@ -258,7 +338,7 @@ describe("DiffPane", () => {
 
   describe("mutual-exclusion accordion", () => {
     it("expands only the first file by default", () => {
-      const { container } = renderPane();
+      const { container } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([
         makeFile(),
         makeFile({ path: "src/b.ts" }),
@@ -275,7 +355,7 @@ describe("DiffPane", () => {
     });
 
     it("expanding another file collapses the previously expanded one", () => {
-      const { container } = renderPane();
+      const { container } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       const headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[1]);
@@ -285,7 +365,7 @@ describe("DiffPane", () => {
     });
 
     it("clicking the expanded file collapses it", () => {
-      const { container } = renderPane();
+      const { container } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       const headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[0]);
@@ -295,7 +375,7 @@ describe("DiffPane", () => {
     });
 
     it("keeps the expanded file across a refresh", () => {
-      const { container } = renderPane();
+      const { container } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile(), makeFile({ path: "src/b.ts" })]);
       let headers = container.querySelectorAll(".diff-file-header");
       fireEvent.click(headers[1]);
@@ -315,7 +395,7 @@ describe("DiffPane", () => {
   });
 
   it("refresh button requests the diff again", () => {
-    const { vscode } = renderPane();
+    const { vscode } = renderPane({ initialMode: "unstaged" });
     expect(lastDiffRequest(vscode)).toHaveLength(1);
     fireEvent.click(screen.getByTestId("diff-refresh"));
     expect(lastDiffRequest(vscode)).toHaveLength(2);
@@ -323,7 +403,7 @@ describe("DiffPane", () => {
 
   it("commit button sends git commit via onSendMessage without a confirm dialog", () => {
     const onSendMessage = vi.fn();
-    renderPane({ onSendMessage });
+    renderPane({ initialMode: "unstaged", onSendMessage });
     sendDiffResult([makeFile()]);
     fireEvent.click(screen.getByTestId("diff-commit"));
     expect(onSendMessage).toHaveBeenCalledWith("git commit");
@@ -331,7 +411,7 @@ describe("DiffPane", () => {
   });
 
   it("disables commit and revert-all together when unavailable", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     expect(screen.getByTestId("diff-commit")).toBeDisabled();
     expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
 
@@ -349,7 +429,7 @@ describe("DiffPane", () => {
   });
 
   it("shows disabled-reason tooltips for commit and revert-all", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendCommand("desktopWorkspaceDiff", { result: { kind: "not-a-repo" } });
 
     const commitTip = screen
@@ -371,7 +451,7 @@ describe("DiffPane", () => {
   });
 
   it("tags requests with paneId and ignores responses for other panes", () => {
-    const { vscode } = renderPane({ paneId: "pane-1" });
+    const { vscode } = renderPane({ initialMode: "unstaged", paneId: "pane-1" });
     expect(vscode.postMessage).toHaveBeenCalledWith({
       command: "desktopGetWorkspaceDiff",
       paneId: "pane-1",
@@ -387,21 +467,21 @@ describe("DiffPane", () => {
   });
 
   it("re-showing a hidden panel triggers a fresh load", () => {
-    const { vscode, rerenderWith } = renderPane({ visible: false });
+    const { vscode, rerenderWith } = renderPane({ initialMode: "unstaged", visible: false });
     expect(lastDiffRequest(vscode)).toHaveLength(0);
     rerenderWith({ visible: true });
     expect(lastDiffRequest(vscode)).toHaveLength(1);
   });
 
   it("refreshes when generation ends while visible", () => {
-    const { vscode, rerenderWith } = renderPane({ isStreaming: true });
+    const { vscode, rerenderWith } = renderPane({ initialMode: "unstaged", isStreaming: true });
     expect(lastDiffRequest(vscode)).toHaveLength(1);
     rerenderWith({ isStreaming: false });
     expect(lastDiffRequest(vscode)).toHaveLength(2);
   });
 
   it("keeps current files visible while the generation-end refresh is in flight", () => {
-    const { rerenderWith } = renderPane({ isStreaming: true });
+    const { rerenderWith } = renderPane({ initialMode: "unstaged", isStreaming: true });
     sendDiffResult([makeFile()]);
     expect(screen.getByText("src/a.ts")).toBeInTheDocument();
     rerenderWith({ isStreaming: false });
@@ -413,7 +493,7 @@ describe("DiffPane", () => {
   });
 
   it("keeps current files visible on manual refresh and spins the refresh icon until the response arrives", () => {
-    renderPane();
+    renderPane({ initialMode: "unstaged" });
     sendDiffResult([makeFile()]);
     fireEvent.click(screen.getByTestId("diff-refresh"));
     expect(screen.queryByText("加载中…")).not.toBeInTheDocument();
@@ -431,18 +511,24 @@ describe("DiffPane", () => {
     ).toBeNull();
   });
 
-  it("resets to the loading state when the session context changes", () => {
-    const { rerenderWith } = renderPane({ sessionId: "s1", workdir: "/w/a" });
-    sendDiffResult([makeFile()]);
+  it("resets to recent mode when the session context changes", () => {
+    const { rerenderWith } = renderPane({
+      initialMode: "unstaged",
+      sessionId: "s1",
+      workdir: "/w/a",
+      recentFiles: [makeFile()],
+    });
+    expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    expect(
-      document.querySelector(".desktop-panel-placeholder"),
-    ).toHaveTextContent("加载中…");
-    expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
+    // Switching sessions defaults back to 最近一次修改, showing the new
+    // session's reloaded file_history data instead of the old git diff.
+    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+    expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
   });
 
   it("does not refresh on generation end while hidden", () => {
     const { vscode, rerenderWith } = renderPane({
+      initialMode: "unstaged",
       visible: false,
       isStreaming: true,
     });
@@ -450,14 +536,24 @@ describe("DiffPane", () => {
     expect(lastDiffRequest(vscode)).toHaveLength(0);
   });
 
-  it("refreshes when the session context changes while visible", () => {
+  it("stays in unstaged mode and refreshes when the session context changes while visible", () => {
     const { vscode, rerenderWith } = renderPane({
+      initialMode: "unstaged",
       sessionId: "s1",
       workdir: "/w/a",
     });
     expect(lastDiffRequest(vscode)).toHaveLength(1);
+    // Simulate a fresh diffView target that keeps unstaged mode (e.g. a dock
+    // toggle with the mode persisted) while the session changes.
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    expect(lastDiffRequest(vscode)).toHaveLength(2);
+    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+    rerenderWith({
+      sessionId: "s2",
+      workdir: "/w/b",
+      diffView: { mode: "unstaged" },
+    });
+    expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
+    expect(lastDiffRequest(vscode).length).toBeGreaterThan(1);
   });
 
   it("drag handle resizes within min/max bounds", () => {
@@ -521,7 +617,7 @@ describe("DiffPane", () => {
     });
 
     it("shows a comment gutter control on the PatchDiff", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       expect(screen.getAllByTestId("diff-comment-add").length).toBeGreaterThan(
         0,
@@ -529,7 +625,7 @@ describe("DiffPane", () => {
     });
 
     it("opens a comment box under the clicked line with the file path", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const box = screen.getByTestId("diff-comment-box");
@@ -542,7 +638,7 @@ describe("DiffPane", () => {
 
     it("appends the comment to the input and closes the box on submit", () => {
       const onAddComment = vi.fn();
-      renderPane({ onAddComment });
+      renderPane({ initialMode: "unstaged", onAddComment });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.change(screen.getByTestId("diff-comment-input"), {
@@ -557,7 +653,7 @@ describe("DiffPane", () => {
 
     it("submits on Enter (without shift)", () => {
       const onAddComment = vi.fn();
-      renderPane({ onAddComment });
+      renderPane({ initialMode: "unstaged", onAddComment });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const input = screen.getByTestId("diff-comment-input");
@@ -568,7 +664,7 @@ describe("DiffPane", () => {
 
     it("does not submit on Enter while IME is composing (e.g. pinyin)", () => {
       const onAddComment = vi.fn();
-      renderPane({ onAddComment });
+      renderPane({ initialMode: "unstaged", onAddComment });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       const input = screen.getByTestId("diff-comment-input");
@@ -585,7 +681,7 @@ describe("DiffPane", () => {
 
     it("does not submit when the comment is empty", () => {
       const onAddComment = vi.fn();
-      renderPane({ onAddComment });
+      renderPane({ initialMode: "unstaged", onAddComment });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.click(screen.getByTestId("diff-comment-submit"));
@@ -593,7 +689,7 @@ describe("DiffPane", () => {
     });
 
     it("closes the box on Escape", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.keyDown(screen.getByTestId("diff-comment-input"), {
@@ -603,7 +699,7 @@ describe("DiffPane", () => {
     });
 
     it("closes the box via the cancel button", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       fireEvent.click(screen.getByTestId("diff-comment-cancel"));
@@ -611,7 +707,7 @@ describe("DiffPane", () => {
     });
 
     it("discards the open comment box on refresh", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
       expect(screen.getByTestId("diff-comment-box")).toBeInTheDocument();
@@ -620,7 +716,7 @@ describe("DiffPane", () => {
     });
 
     it("keeps at most one comment box open (clicking another line moves it)", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       const buttons = screen.getAllByTestId("diff-comment-add");
       fireEvent.click(buttons[0]);
@@ -632,14 +728,14 @@ describe("DiffPane", () => {
 
   describe("revert", () => {
     it("disables revert-all when there are no files", () => {
-      renderPane();
+      renderPane({ initialMode: "unstaged" });
       sendDiffResult([]);
       expect(screen.getByTestId("diff-revert-all")).toBeDisabled();
       expect(screen.getByTestId("diff-commit")).toBeDisabled();
     });
 
     it("opens confirm for revert-all and posts paths on confirm", () => {
-      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
+      const { vscode } = renderPane({ initialMode: "unstaged", paneId: "p1", workdir: "/repo" });
       sendDiffResult([makeFile(), makeFile({ path: "b.ts" })], "p1");
       vscode.postMessage.mockClear();
       fireEvent.click(screen.getByTestId("diff-revert-all"));
@@ -655,7 +751,7 @@ describe("DiffPane", () => {
     });
 
     it("cancel does not post revert", () => {
-      const { vscode } = renderPane();
+      const { vscode } = renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
       vscode.postMessage.mockClear();
       fireEvent.click(screen.getByTestId("diff-revert-all"));
@@ -668,7 +764,7 @@ describe("DiffPane", () => {
     });
 
     it("file revert posts single path and does not toggle expand", () => {
-      const { vscode, container } = renderPane({ paneId: "p1" });
+      const { vscode, container } = renderPane({ initialMode: "unstaged", paneId: "p1" });
       sendDiffResult([makeFile()], "p1");
       const header = container.querySelector(".diff-file-header") as HTMLElement;
       expect(header).toHaveAttribute("aria-expanded", "true");
@@ -685,7 +781,7 @@ describe("DiffPane", () => {
     });
 
     it("successful revert triggers a soft refresh", () => {
-      const { vscode } = renderPane({ paneId: "p1" });
+      const { vscode } = renderPane({ initialMode: "unstaged", paneId: "p1" });
       sendDiffResult([makeFile()], "p1");
       vscode.postMessage.mockClear();
       fireEvent.click(screen.getByTestId("diff-revert-all"));
@@ -697,7 +793,7 @@ describe("DiffPane", () => {
     });
 
     it("failed revert shows an error bar", () => {
-      renderPane({ paneId: "p1" });
+      renderPane({ initialMode: "unstaged", paneId: "p1" });
       sendDiffResult([makeFile()], "p1");
       fireEvent.click(screen.getByTestId("diff-revert-all"));
       fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
@@ -707,6 +803,51 @@ describe("DiffPane", () => {
         error: "boom",
       });
       expect(screen.getByTestId("diff-revert-error")).toHaveTextContent("boom");
+    });
+  });
+
+  describe("mode selector (最近一次修改 / 未提交文件)", () => {
+    it("defaults to recent mode and hides commit/discard actions", () => {
+      renderPane();
+      const select = screen.getByTestId("diff-mode-select");
+      expect(select).toHaveValue("recent");
+      expect(select).toHaveTextContent("最近一次修改");
+      // Recent mode hides the workspace-git commit/discard actions.
+      expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("diff-revert-all")).not.toBeInTheDocument();
+    });
+
+    it("renders recentFiles without a workspace git request", () => {
+      const { vscode } = renderPane({
+        recentFiles: [
+          makeFile({
+            path: "src/a.ts",
+            hunks: "@@ -1,1 +1,2 @@\n-old\n+new1",
+          }),
+        ],
+      });
+      expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
+      // PatchDiff mock strips the "+" prefix and surfaces the added line.
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("new1");
+      // No workspace git request was issued for recent mode.
+      expect(
+        vscode.postMessage.mock.calls.some(
+          ([msg]) => msg.command === "desktopGetWorkspaceDiff",
+        ),
+      ).toBe(false);
+    });
+
+    it("switching to unstaged re-requests the workspace diff", () => {
+      const { vscode } = renderPane();
+      vscode.postMessage.mockClear();
+      switchToUnstaged();
+      expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
+      expect(
+        vscode.postMessage.mock.calls.some(
+          ([msg]) => msg.command === "desktopGetWorkspaceDiff",
+        ),
+      ).toBe(true);
     });
   });
 });

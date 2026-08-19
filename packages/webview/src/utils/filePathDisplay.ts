@@ -36,3 +36,30 @@ export function resolveWorkspaceFilePath(
   const rel = normalized.replace(/^\.\/+/, "").replace(/^\/+/, "");
   return `${wd}/${rel}`;
 }
+
+/**
+ * Short display name for a file: the basename, extended with one parent
+ * directory at a time when several files in the same group share the label,
+ * so names stay unique without showing the full path.
+ *
+ * `paths` is the full set of paths rendered together (e.g. one turn's
+ * snapshots); `path` is the one to label. Returns e.g. "ChatApp.tsx" or
+ * "components/ChatApp.tsx" when another ChatApp.tsx exists.
+ */
+export function displayFileName(path: string, paths: string[]): string {
+  if (!path) return path;
+  const norm = path.replace(/\\/g, "/");
+  const segs = norm.split("/").filter(Boolean);
+  for (let depth = 1; depth <= segs.length; depth++) {
+    const candidate = segs.slice(-depth).join("/");
+    const peers = paths.filter((p) => {
+      if (p === path) return false;
+      return (
+        p.replace(/\\/g, "/").split("/").filter(Boolean).slice(-depth).join("/") ===
+        candidate
+      );
+    });
+    if (peers.length === 0) return candidate;
+  }
+  return norm;
+}

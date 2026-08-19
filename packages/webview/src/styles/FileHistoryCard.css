@@ -1,0 +1,102 @@
+/* "N 个文件已更改" card under the last assistant message (Cursor-style). */
+.file-history-card {
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--muse-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: var(--muse-surface, #1a1a1a);
+  overflow: hidden;
+}
+
+.file-history-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muse-border, rgba(255, 255, 255, 0.1));
+  font-size: 13px;
+}
+
+.file-history-card-title {
+  font-weight: 600;
+  color: var(--muse-text, #e8e8e8);
+}
+
+.file-history-card-stats {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.file-history-card-stats--add {
+  color: #3fb950;
+}
+
+.file-history-card-stats--del {
+  color: #f85149;
+}
+
+.file-history-card-revert {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: var(--muse-text-secondary, #9e9e9e);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.file-history-card-revert:hover {
+  background: var(--muse-hover, rgba(255, 255, 255, 0.08));
+  color: var(--muse-text, #e8e8e8);
+}
+
+.file-history-card-revert:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.file-history-card-files {
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.file-history-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.file-history-card-row:hover {
+  background: var(--muse-hover, rgba(255, 255, 255, 0.06));
+}
+
+.file-history-card-file-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.file-history-card-file-name {
+  color: var(--muse-text, #e8e8e8);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-history-card-file-stats {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
