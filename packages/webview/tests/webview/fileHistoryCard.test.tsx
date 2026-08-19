@@ -127,7 +127,8 @@ describe("FileHistoryCard in MessageList", () => {
 
   it("dedupes the same file edited repeatedly within the turn", () => {
     // The SDK records one snapshot per edit; a turn that edits the same file
-    // several times must still show a single row (the newest snapshot wins).
+    // several times must still show a single row. The OLDEST snapshot wins —
+    // its diff (pre-first-edit vs current) covers the whole turn.
     renderChatApp();
     sendCommand("updateMessages", {
       messages: [
@@ -141,8 +142,8 @@ describe("FileHistoryCard in MessageList", () => {
           {
             filePath: "/mock/workdir/app.js",
             operation: "modify",
-            additions: 3,
-            deletions: 1,
+            additions: 9,
+            deletions: 2,
             timestamp: 1,
           },
         ]),
@@ -160,9 +161,10 @@ describe("FileHistoryCard in MessageList", () => {
 
     const card = screen.getByTestId("file-history-card");
     expect(card).toHaveTextContent("1 个文件已更改");
-    // Only the newest snapshot's stats show (+2, not +5).
-    expect(card).toHaveTextContent("+2");
-    expect(card).not.toHaveTextContent("+5");
+    // The oldest snapshot's full-turn stats show (+9 −2, not the last +2).
+    expect(card).toHaveTextContent("+9");
+    expect(card).toHaveTextContent("−2");
+    expect(card).not.toHaveTextContent("+2");
     expect(screen.getAllByTestId("file-history-card-row")).toHaveLength(1);
   });
 

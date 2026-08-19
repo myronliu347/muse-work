@@ -84,6 +84,7 @@ import {
 import type { ContentSearchFileHit, ContentSearchState } from "../types";
 import { isLocalhostUrl } from "../utils/isLocalhostUrl";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
+import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import "../styles/ChatApp.css";
 
 export { prunePanelGroupCache } from "../stores";
@@ -2024,9 +2025,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }
     }
     const wd = effectiveWorkdir;
-    // A turn often edits the same file repeatedly; keep one row per file.
-    const seen = new Set<string>();
-    return snapshots
+    // A turn often edits the same file repeatedly; keep the OLDEST snapshot per
+    // file so the diff covers the whole turn (enrich diffs against current disk
+    // content — newer snapshots would only show the delta since that edit).
+    const deduped = dedupeSnapshotsByFile(snapshots);
+    return deduped
       .filter(
         (s) =>
           s.filePath &&
@@ -2035,11 +2038,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           (!wd || s.filePath.startsWith(wd)) &&
           ((s.additions ?? 0) > 0 || (s.deletions ?? 0) > 0),
       )
-      .filter((s) => {
-        if (seen.has(s.filePath)) return false;
-        seen.add(s.filePath);
-        return true;
-      })
       .map((s) => ({
         path: s.filePath,
         status: "modified" as const,

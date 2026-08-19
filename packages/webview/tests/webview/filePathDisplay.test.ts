@@ -58,14 +58,15 @@ describe("displayFilePath", () => {
 });
 
 describe("dedupeSnapshotsByFile", () => {
-  it("keeps the newest snapshot per file", () => {
+  it("keeps the oldest snapshot per file (whole-turn diff)", () => {
     const snaps = [
-      { filePath: "/w/a.ts", timestamp: 1, additions: 3 },
+      { filePath: "/w/a.ts", timestamp: 1, additions: 9 },
       { filePath: "/w/b.ts", timestamp: 5, additions: 1 },
-      { filePath: "/w/a.ts", timestamp: 2, additions: 9 },
+      { filePath: "/w/a.ts", timestamp: 2, additions: 3 },
     ];
     const result = dedupeSnapshotsByFile(snaps);
     expect(result).toHaveLength(2);
+    // Oldest snapshot carries the full turn diff (pre-first-edit vs current).
     expect(result.find((s) => s.filePath === "/w/a.ts")?.additions).toBe(9);
     expect(result.find((s) => s.filePath === "/w/b.ts")?.additions).toBe(1);
   });

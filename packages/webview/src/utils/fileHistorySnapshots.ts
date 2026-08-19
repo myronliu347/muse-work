@@ -10,19 +10,21 @@ export interface FileSnapshotLike {
 
 /**
  * One turn often edits the same file several times; the SDK records a
- * snapshot per edit. For display we keep only the newest snapshot per file
- * (the diff against current content is the same, so duplicates just add rows).
+ * snapshot per edit. For display we keep only the OLDEST snapshot per file:
+ * the enrich diff is computed against the file's CURRENT disk content, so the
+ * oldest snapshot (pre-first-edit content) yields the whole turn's diff, while
+ * newer snapshots would only show the delta since that edit.
  */
 export function dedupeSnapshotsByFile<T extends FileSnapshotLike>(
   snapshots: T[],
 ): T[] {
-  const newest = new Map<string, T>();
+  const oldest = new Map<string, T>();
   for (const snap of snapshots) {
     if (!snap.filePath) continue;
-    const existing = newest.get(snap.filePath);
-    if (!existing || (snap.timestamp ?? 0) >= (existing.timestamp ?? 0)) {
-      newest.set(snap.filePath, snap);
+    const existing = oldest.get(snap.filePath);
+    if (!existing || (snap.timestamp ?? 0) <= (existing.timestamp ?? 0)) {
+      oldest.set(snap.filePath, snap);
     }
   }
-  return [...newest.values()];
+  return [...oldest.values()];
 }
