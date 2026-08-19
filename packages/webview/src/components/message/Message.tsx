@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ContextTag } from "../shared/ContextTag";
 import { parseMentions, toRelativePath, linkifyFilePaths } from "../../utils/messageUtils";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
@@ -202,14 +202,26 @@ export const Message: React.FC<MessageProps> = React.memo(
       return classes.join(" ");
     };
 
+    // Open image-preview modals, tracked so a mid-preview unmount (session
+    // switch / clear) releases both the document keydown listener and the
+    // modal DOM (which pins the image data via its closure) instead of leaking
+    // them until the next explicit close.
+    const previewModalsRef = useRef<
+      Set<{ modal: HTMLElement; onKeyDown: (e: KeyboardEvent) => void }>
+    >(new Set());
+    useEffect(() => {
+      return () => {
+        for (const { modal, onKeyDown } of previewModalsRef.current) {
+          document.removeEventListener("keydown", onKeyDown, true);
+          modal.remove();
+        }
+        previewModalsRef.current.clear();
+      };
+    }, []);
+
     const handleImagePreview = (url: string, name: string) => {
       const modal = document.createElement("div");
       modal.className = "image-preview-modal";
-
-      const close = () => {
-        document.removeEventListener("keydown", onKeyDown, true);
-        modal.remove();
-      };
 
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key !== "Escape") return;
@@ -217,6 +229,15 @@ export const Message: React.FC<MessageProps> = React.memo(
         e.stopPropagation();
         close();
       };
+
+      const close = () => {
+        document.removeEventListener("keydown", onKeyDown, true);
+        previewModalsRef.current.delete(entry);
+        modal.remove();
+      };
+
+      const entry = { modal, onKeyDown };
+      previewModalsRef.current.add(entry);
 
       modal.onclick = close;
 

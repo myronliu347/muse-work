@@ -532,6 +532,29 @@ describe("DiffPane", () => {
     expect(lastDiffRequest(vscode)).toHaveLength(1);
   });
 
+  it("drops the held workspace diff when the panel is hidden", () => {
+    // Regression: the panel stays mounted after being closed (display:none),
+    // so the full workspace diff previously lingered in state forever.
+    const { rerenderWith } = renderPane({ initialMode: "unstaged" });
+    sendDiffResult([makeFile()]);
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+
+    rerenderWith({ visible: false });
+    expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("diff-file-modified")).not.toBeInTheDocument();
+  });
+
+  it("restores recent-mode files when re-shown after being hidden", () => {
+    const { rerenderWith } = renderPane({ recentFiles: [makeFile()] });
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+
+    rerenderWith({ visible: false });
+    expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
+
+    rerenderWith({ visible: true });
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+  });
+
   it("refreshes when generation ends while visible", () => {
     const { vscode, rerenderWith } = renderPane({ initialMode: "unstaged", isStreaming: true });
     expect(lastDiffRequest(vscode)).toHaveLength(1);

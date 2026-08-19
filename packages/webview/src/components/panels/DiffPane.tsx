@@ -276,6 +276,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     const prev = prevRef.current;
     prevRef.current = { visible, sessionId, workdir, isStreaming };
     const becameVisible = visible && !prev.visible;
+    const becameHidden = !visible && prev.visible;
     const contextChanged =
       visible && (prev.sessionId !== sessionId || prev.workdir !== workdir);
     const generationEnded = visible && prev.isStreaming && !isStreaming;
@@ -286,7 +287,24 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       const files = recentFiles ?? [];
       setState({ kind: "ok", files });
       if (files.length > 0) setExpandedPath(files[0].path);
-    } else if (mode === "unstaged" && (becameVisible || generationEnded)) {
+    } else if (becameHidden) {
+      // The panel stays mounted while hidden (display:none) — release the held
+      // diff content so a closed panel does not pin the workspace diff in
+      // memory forever. Re-shown it is rebuilt (recent) or re-fetched
+      // (unstaged) below.
+      setState({ kind: "ok", files: [] });
+      setExpandedPath(null);
+    } else if (becameVisible) {
+      if (mode === "unstaged") {
+        refresh();
+      } else {
+        const files = recentFiles ?? [];
+        setState({ kind: "ok", files });
+        if (files.length > 0) {
+          setExpandedPath((prev) => prev ?? files[0].path);
+        }
+      }
+    } else if (mode === "unstaged" && generationEnded) {
       refresh();
     }
   }, [visible, sessionId, workdir, isStreaming, refresh, mode, recentFiles]);

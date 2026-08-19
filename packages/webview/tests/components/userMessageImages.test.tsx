@@ -65,6 +65,45 @@ describe("user message images", () => {
     expect(document.querySelector(".image-preview-modal img")).toBeTruthy();
   });
 
+  it("removes the preview modal and its keydown listener when the message unmounts with the preview open", () => {
+    // Regression: the modal's document keydown listener was only removed on
+    // explicit close — unmounting the message mid-preview leaked the listener
+    // (and the whole modal + image data via the closure).
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const removeSpy = vi.spyOn(document, "removeEventListener");
+
+    const message: MessageType = {
+      id: "u4",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [{ type: "image", imageUrls: [TINY] }],
+    };
+
+    const { unmount } = render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("user-image-block").querySelector("button")!);
+    expect(document.querySelector(".image-preview-modal")).toBeTruthy();
+
+    unmount();
+
+    expect(document.querySelector(".image-preview-modal")).toBeNull();
+    const keydownAdds = addSpy.mock.calls.filter(
+      ([type]) => type === "keydown",
+    ).length;
+    const keydownRemoves = removeSpy.mock.calls.filter(
+      ([type]) => type === "keydown",
+    ).length;
+    expect(keydownRemoves).toBe(keydownAdds);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
   it("closes the image preview on Escape", () => {
     const message: MessageType = {
       id: "u3",
