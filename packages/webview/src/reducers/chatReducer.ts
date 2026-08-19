@@ -498,6 +498,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
     // Incremental update actions for streaming optimization
     case "APPEND_MESSAGE": {
+      // Dedupe by id: hostBridge clears its knownAssistantIds guard on turn end
+      // / error / session switch, so a straggler delta for a message already in
+      // the list would otherwise be re-appended (duplicate React key warning).
+      if (state.messages.some((m) => m.id === action.payload.id)) return state;
       const messages = [...state.messages, action.payload];
       return {
         ...state,

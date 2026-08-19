@@ -55,6 +55,35 @@ describe("chatReducer", () => {
       expect(newState.messages[0]).toBe(newMessage);
     });
 
+    it("should NOT append a message whose id already exists (straggler delta dedup)", () => {
+      // hostBridge clears knownAssistantIds on turn end / error / session switch;
+      // a straggler assistant:message / message:delta / tool:update for an id
+      // already in the list must not re-append it (duplicate React key warning).
+      const existingMessage: Message = {
+        id: "msg-637d7f40-db64-4433-a6c0-71d4f9a7ea45",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "已存在的内容" }],
+      };
+      const state = { ...initialState, messages: [existingMessage] };
+
+      const duplicate: Message = {
+        id: "msg-637d7f40-db64-4433-a6c0-71d4f9a7ea45",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [],
+      };
+
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: duplicate,
+      });
+
+      expect(newState.messages).toHaveLength(1);
+      expect(newState.messages[0]).toBe(existingMessage);
+      expect(newState.messages[0].blocks).toHaveLength(1);
+    });
+
     it("should pin currentSession.firstMessage when the first user message arrives incrementally", () => {
       const currentSession: SessionMetadata = {
         id: "s1",
