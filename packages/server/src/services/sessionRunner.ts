@@ -209,6 +209,16 @@ export interface CreateSessionRunnerOptions {
     subagentId: string,
     workdir: string,
   ) => Promise<unknown[] | null>;
+  /**
+   * Load a main session's persisted messages when no agent runtime exists
+   * (defaults to reading the SDK's `<sessionId>.jsonl` from disk). Returns raw
+   * SDK messages or null when the session file is missing. Lets the messages
+   * endpoint serve history without forcing agent creation on session switch.
+   */
+  loadMainSessionFromDisk?: (
+    sessionId: string,
+    workdir: string,
+  ) => Promise<{ messages: unknown[] } | null>;
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
@@ -388,6 +398,25 @@ export function createSessionRunner(
     const data = await loadSessionFromJsonl(subagentId, workdir, "subagent");
     return data?.messages?.length ? mapSdkMessages(data.messages) : null;
   };
+
+  async function loadMainSessionFromDisk(
+    sessionId: string,
+    workdir: string,
+  ): Promise<{ messages: unknown[] } | null> {
+    return (
+      options.loadMainSessionFromDisk ??
+      (async (id: string, dir: string) => {
+        try {
+          const data = await loadSessionFromJsonl(id, dir, "main");
+          return data?.messages?.length ? { messages: data.messages } : null;
+        } catch {
+          // A missing/corrupt session file must not fail getMessages — the UI
+          // shows an empty history instead of an error.
+          return null;
+        }
+      })
+    )(sessionId, workdir);
+  }
 
   /**
    * Attach subagent transcripts to Agent tool blocks for history display.
@@ -1484,13 +1513,28 @@ export function createSessionRunner(
           statusCode: 404,
         });
       }
-      const agent = await ensureAgent(sessionId);
-      // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
-      rearmIdleIfNeeded(sessionId);
+      // Serve history without forcing agent creation: use the live runtime when
+      // one exists, otherwise read the persisted jsonl from disk.
+      const agent = agents.get(sessionId);
+      let sdkMessages: unknown[] = [];
+      if (agent?.getMessages) {
+        sdkMessages = agent.getMessages();
+        // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
+        rearmIdleIfNeeded(sessionId);
+      } else {
+        // SDK persists sessions under its own id (waveSessionId), not the
+        // server store's session id — reading by sessionId would miss the file.
+        const diskId = session.waveSessionId ?? sessionId;
+        const data = await loadMainSessionFromDisk(
+          diskId,
+          session.workdir,
+        );
+        sdkMessages = data?.messages ?? [];
+      }
       const nested = await attachNestedMessages(
         sessionId,
         session.workdir,
-        mapSdkMessages(agent.getMessages?.() ?? []),
+        mapSdkMessages(sdkMessages),
       );
       // Attach per-file +N/−M diff stats to the last assistant message's
       // file_history block (UI card). Read-only enrichment; SDK blocks intact.
@@ -1773,13 +1817,9 @@ export function createSessionRunner(
         latestWorkflowRuns.set(sessionId, runs);
         return runs;
       }
-      const cached = latestWorkflowRuns.get(sessionId);
-      if (cached) return cached;
-      const agent = await ensureAgent(sessionId);
-      const raw = (await agent.getWorkflowRuns?.()) ?? [];
-      const runs = toSerializableWorkflowRuns(raw);
-      latestWorkflowRuns.set(sessionId, runs);
-      return runs;
+      // No live runtime: serve the cached snapshot (empty after idle TTL
+      // destroyed the agent) instead of forcing agent creation.
+      return latestWorkflowRuns.get(sessionId) ?? [];
     },
 
     async stopWorkflowRun(sessionId, runId) {

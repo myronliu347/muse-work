@@ -264,6 +264,28 @@ describe("sessionRunner control plane", () => {
     );
   });
 
+  it("getWorkflowRuns returns [] without creating an agent for a never-sent session", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    let createCount = 0;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async () => {
+        createCount += 1;
+        return stubAgent();
+      },
+    });
+    const session = store.create({ workdir: dir, model: "m1" });
+
+    // No agent exists (never sent a message): workflows endpoint must not force
+    // agent creation — it returns the (empty) cached snapshot instead.
+    expect(await runner.getWorkflowRuns(session.id)).toEqual([]);
+    expect(createCount).toBe(0);
+  });
+
   it("getWorkflowRuns returns live agent runs instead of a stale empty cache", async () => {
     const { store, hub, registry, home: dir } = setup();
     let currentRuns: unknown[] = [];
@@ -503,5 +525,47 @@ describe("sessionRunner control plane", () => {
           e.tasks.length === 0,
       ),
     ).toBe(true);
+  });
+
+  it("getMessages serves disk history without creating an agent", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    let createCount = 0;
+    const diskMessages = [
+      { id: "u1", role: "user", blocks: [{ type: "text", content: "hi" }] },
+      {
+        id: "a1",
+        role: "assistant",
+        blocks: [{ type: "text", content: "ok" }],
+      },
+    ];
+    const loadCalls: Array<{ id: string; workdir: string }> = [];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async () => {
+        createCount += 1;
+        return stubAgent();
+      },
+      loadMainSessionFromDisk: async (id, workdir) => {
+        loadCalls.push({ id, workdir });
+        return { messages: diskMessages };
+      },
+    });
+    const session = store.create({ workdir: dir, model: "m1" });
+    // SDK persists under its own waveSessionId, not the server store's id.
+    store.setWaveSessionId(session.id, "wave-123");
+
+    // No agent exists: getMessages reads the persisted jsonl (injected) and
+    // must NOT create an agent — only sendMessage does.
+    const messages = (await runner.getMessages(session.id)) as Array<{
+      id: string;
+    }>;
+    expect(messages.map((m) => m.id)).toEqual(["u1", "a1"]);
+    expect(createCount).toBe(0);
+    // The disk lookup must use the SDK's waveSessionId so the file is found.
+    expect(loadCalls).toEqual([{ id: "wave-123", workdir: dir }]);
   });
 });

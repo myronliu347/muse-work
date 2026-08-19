@@ -100,15 +100,15 @@ describe("sessionRunner lifecycle", () => {
       },
     });
 
-    await runner.getMessages(session.id);
-    expect(calls).toBe(2);
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => calls).toBe(2);
     expect(store.get(session.id)?.waveSessionId).toBe("new-wave-id");
   });
 
   it("idle TTL destroys agent but keeps waveSessionId", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "wave-keep");
+    store.setWaveSessionId(session.id, "11111111-1111-4111-8111-111111111111");
 
     const restoreIds: Array<string | undefined> = [];
     let disposeCount = 0;
@@ -129,7 +129,7 @@ describe("sessionRunner lifecycle", () => {
             disposeCount += 1;
           },
           getMessages: () => [{ id: "m" }],
-          sessionId: "wave-keep",
+          sessionId: "11111111-1111-4111-8111-111111111111",
         };
       },
     });
@@ -137,15 +137,25 @@ describe("sessionRunner lifecycle", () => {
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => restoreIds.length).toBe(1);
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
-    expect(restoreIds[0]).toBe("wave-keep");
+    expect(restoreIds[0]).toBe("11111111-1111-4111-8111-111111111111");
 
     await expect.poll(() => disposeCount).toBe(1);
-    expect(store.get(session.id)?.waveSessionId).toBe("wave-keep");
+    expect(store.get(session.id)?.waveSessionId).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
     expect(store.get(session.id)).toBeDefined();
 
+    // getMessages is read-only: it must NOT recreate the destroyed agent.
     await runner.getMessages(session.id);
-    expect(restoreIds.length).toBe(2);
-    expect(restoreIds[1]).toBe("wave-keep");
+    expect(restoreIds.length).toBe(1);
+    expect(store.get(session.id)?.waveSessionId).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+
+    // Only sending a message recreates the runtime, restoring waveSessionId.
+    await runner.sendMessage(session.id, "again");
+    await expect.poll(() => restoreIds.length).toBe(2);
+    expect(restoreIds[1]).toBe("11111111-1111-4111-8111-111111111111");
   });
 
   it("model change destroys on next ensure and passes restoreSessionId", async () => {
@@ -177,12 +187,14 @@ describe("sessionRunner lifecycle", () => {
       },
     });
 
-    await runner.getMessages(session.id);
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => createdModels.length).toBe(1);
     expect(createdModels).toEqual(["m1"]);
     expect(restoreIds[0]).toBe("wave-1");
 
     store.update(session.id, { model: "m2" });
-    await runner.getMessages(session.id);
+    await runner.sendMessage(session.id, "again");
+    await expect.poll(() => createdModels.length).toBe(2);
 
     expect(disposeCount).toBe(1);
     expect(createdModels).toEqual(["m1", "m2"]);
@@ -324,9 +336,10 @@ describe("sessionRunner lifecycle", () => {
       },
     });
 
-    await runner.getMessages(background.id);
-    expect(store.get(background.id)?.status).toBe("idle");
-    expect(onLoadingChange).toBeTypeOf("function");
+    // Trigger agent creation via a control-plane call (connectMcpServer runs
+    // ensureAgent but does not change session status), keeping the session idle.
+    await runner.connectMcpServer(background.id, "srv");
+    await expect.poll(() => onLoadingChange).toBeTypeOf("function");
 
     onLoadingChange?.(false);
 
@@ -334,13 +347,13 @@ describe("sessionRunner lifecycle", () => {
     expect(store.get(background.id)?.status).toBe("idle");
   });
 
-  it("getMessages re-arms idle TTL after clear; agent destroyed, waveSessionId kept", async () => {
+  it("getMessages is read-only: does not create an agent for a never-sent session", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "wave-rearm");
+    store.setWaveSessionId(session.id, "22222222-2222-4222-8222-222222222222");
 
+    let restoreIds: Array<string | undefined> = [];
     let disposeCount = 0;
-    const restoreIds: Array<string | undefined> = [];
 
     const runner = createSessionRunner({
       store,
@@ -356,18 +369,26 @@ describe("sessionRunner lifecycle", () => {
             disposeCount += 1;
           },
           getMessages: () => [{ id: "m" }],
-          sessionId: "wave-rearm",
+          sessionId: "22222222-2222-4222-8222-222222222222",
         };
       },
     });
 
-    // ensureAgent/getMessages clearIdleTimer then must re-arm.
-    await runner.getMessages(session.id);
-    expect(restoreIds).toEqual(["wave-rearm"]);
+    // No agent exists yet (session never sent a message): getMessages must NOT
+    // create one — it serves the empty history read-only.
+    const messages = await runner.getMessages(session.id);
+    expect(messages).toEqual([]);
+    expect(restoreIds).toEqual([]);
     expect(store.get(session.id)?.status).toBe("idle");
 
+    // Sending a message creates the runtime and re-arms the idle TTL; the agent
+    // is destroyed after the TTL but waveSessionId is kept.
+    await runner.sendMessage(session.id, "hello");
+    await expect.poll(() => restoreIds.length).toBe(1);
     await expect.poll(() => disposeCount).toBe(1);
-    expect(store.get(session.id)?.waveSessionId).toBe("wave-rearm");
+    expect(store.get(session.id)?.waveSessionId).toBe(
+      "22222222-2222-4222-8222-222222222222",
+    );
     expect(store.get(session.id)).toBeDefined();
   });
 
@@ -733,9 +754,16 @@ describe("sessionRunner lifecycle", () => {
       createAgent: async () => ({
         sendMessage: async () => {},
         dispose: async () => {},
-        getMessages: () => messages,
+        getMessages: () => [],
       }),
+      // Session reload with no live agent: serve history from disk. The disk
+      // lookup uses the SDK's waveSessionId, not the server store's session id.
+      loadMainSessionFromDisk: async (id) => {
+        expect(id).toBe("wave-reload");
+        return { messages };
+      },
     });
+    store.setWaveSessionId(session.id, "wave-reload");
 
     // Simulate a session reload (switching back to this session).
     const reloaded = (await runner.getMessages(session.id)) as Array<{
