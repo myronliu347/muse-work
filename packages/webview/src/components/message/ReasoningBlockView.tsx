@@ -15,6 +15,17 @@ export const ReasoningBlockView: React.FC<ReasoningBlockViewProps> = ({
   // collapsed; an in-progress block starts expanded and auto-collapses on finish.
   const [collapsed, setCollapsed] = useState(block.stage === "end");
   const prevStageRef = useRef(block.stage);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // While reasoning streams, the content area grows inside its own scrollable
+  // container (max-height + overflow-y). The outer MessageList auto-scroll
+  // can't see inside it, so pin this container to its bottom as content grows
+  // so the latest thinking stays visible. Once finished, the block collapses.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || block.stage === "end") return;
+    el.scrollTop = el.scrollHeight;
+  }, [block.content, block.stage]);
 
   // Auto-collapse once when reasoning finishes (stage transitions from non-'end' to 'end').
   useEffect(() => {
@@ -64,7 +75,7 @@ export const ReasoningBlockView: React.FC<ReasoningBlockViewProps> = ({
         />
       </div>
       {!collapsed && (
-        <div className="reasoning-content">
+        <div className="reasoning-content" ref={contentRef}>
           {renderContent(block.content || "")}
         </div>
       )}

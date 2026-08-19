@@ -141,6 +141,83 @@ describe("ReasoningBlockView", () => {
     );
   });
 
+  describe("internal scroll follow while streaming", () => {
+    it("pins the internal scroll area to the bottom as streaming content grows", () => {
+      const block = {
+        type: "reasoning",
+        content: "thinking hard",
+        stage: "streaming",
+      } as ReasoningBlock;
+      const { container, rerender } = render(
+        <ReasoningBlockView block={block} renderContent={renderContent} />,
+      );
+      const content = container.querySelector(
+        ".reasoning-content",
+      ) as HTMLElement;
+
+      // jsdom reports no layout: fake a tall scroll area whose content grows
+      // beyond the 200px max-height the real CSS imposes.
+      Object.defineProperty(content, "scrollHeight", {
+        value: 600,
+        configurable: true,
+      });
+      let scrollTop = 0;
+      Object.defineProperty(content, "scrollTop", {
+        configurable: true,
+        get: () => scrollTop,
+        set: (v: number) => {
+          scrollTop = v;
+        },
+      });
+
+      rerender(
+        <ReasoningBlockView
+          block={{ ...block, content: "thinking hard... more" }}
+          renderContent={renderContent}
+        />,
+      );
+
+      // The growing content must have scrolled the internal container to its
+      // bottom so the latest reasoning stays visible.
+      expect(scrollTop).toBe(600);
+    });
+
+    it("stops following once reasoning finishes", () => {
+      const streaming = {
+        type: "reasoning",
+        content: "live thoughts",
+        stage: "streaming",
+      } as ReasoningBlock;
+      const { container, rerender } = render(
+        <ReasoningBlockView block={streaming} renderContent={renderContent} />,
+      );
+      const content = container.querySelector(
+        ".reasoning-content",
+      ) as HTMLElement;
+      Object.defineProperty(content, "scrollHeight", {
+        value: 600,
+        configurable: true,
+      });
+      let scrollTop = 0;
+      Object.defineProperty(content, "scrollTop", {
+        configurable: true,
+        get: () => scrollTop,
+        set: (v: number) => {
+          scrollTop = v;
+        },
+      });
+
+      // Finish the reasoning: the block auto-collapses, so no more scrolling.
+      rerender(
+        <ReasoningBlockView
+          block={{ ...streaming, stage: "end" }}
+          renderContent={renderContent}
+        />,
+      );
+      expect(scrollTop).toBe(0);
+    });
+  });
+
   describe("elapsed time", () => {
     afterEach(() => {
       vi.useRealTimers();
