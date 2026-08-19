@@ -293,14 +293,24 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
 
   // Recent mode renders the live recentFiles prop; keep state in sync when the
   // transcript reloads (session switch, generation end, revert broadcast).
-  const prevRecentRef = useRef(recentFiles);
+  // Guard against a setState feedback loop: if the parent hands us a fresh
+  // recentFiles array on every render (e.g. it re-maps messages), setState
+  // would re-render → new array → setState… ("Maximum update depth exceeded").
+  // Compare the rendered file paths instead; identical content is a no-op.
+  const prevRecentRef = useRef<{ files: WorkspaceDiffFile[]; mode: "recent" | "unstaged" }>({ files: [], mode: "recent" });
   useEffect(() => {
     if (mode !== "recent") return;
     const files = recentFiles ?? [];
-    prevRecentRef.current = recentFiles;
+    const prev = prevRecentRef.current;
+    const samePaths =
+      prev.mode === "recent" &&
+      prev.files.length === files.length &&
+      prev.files.every((f, i) => f.path === files[i]?.path);
+    if (samePaths) return;
+    prevRecentRef.current = { files, mode };
     setState({ kind: "ok", files });
     if (files.length > 0) {
-      setExpandedPath((prev) => prev ?? files[0].path);
+      setExpandedPath((prev2) => prev2 ?? files[0].path);
     }
   }, [recentFiles, mode]);
 

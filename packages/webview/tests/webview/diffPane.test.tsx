@@ -174,6 +174,65 @@ const lastDiffRequest = (vscode: ReturnType<typeof createMockVscode>) =>
   );
 
 describe("DiffPane", () => {
+  it("does not loop when recentFiles is a fresh array on every render", () => {
+    // Regression: a parent that re-maps messages hands DiffPane a NEW
+    // recentFiles array on every render. The recent-mode sync effect must
+    // compare content (paths), not reference — otherwise setState re-renders →
+    // new array → setState… "Maximum update depth exceeded".
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const vscode = createMockVscode();
+    const makeFiles = () => [makeFile()].map((f) => ({ ...f }));
+    const { rerender } = render(
+      <DiffPane
+        vscode={vscode}
+        width={420}
+        onWidthChange={vi.fn()}
+        maxWidth={716}
+        onClose={vi.fn()}
+        paneId={undefined}
+        visible
+        isStreaming={false}
+        sessionId="s1"
+        workdir="/w/a"
+        diffView={{ mode: "recent" }}
+        recentFiles={makeFiles()}
+        onAddComment={vi.fn()}
+        onOpenFile={vi.fn()}
+        onSendMessage={vi.fn()}
+      />,
+    );
+    // Re-render with a fresh recentFiles reference but identical content,
+    // repeatedly — the previous code setState'd on every one of these.
+    for (let i = 0; i < 20; i++) {
+      rerender(
+        <DiffPane
+          vscode={vscode}
+          width={420}
+          onWidthChange={vi.fn()}
+          maxWidth={716}
+          onClose={vi.fn()}
+          paneId={undefined}
+          visible
+          isStreaming={false}
+          sessionId="s1"
+          workdir="/w/a"
+          diffView={{ mode: "recent" }}
+          recentFiles={makeFiles()}
+          onAddComment={vi.fn()}
+          onOpenFile={vi.fn()}
+          onSendMessage={vi.fn()}
+        />,
+      );
+    }
+    expect(screen.getByTestId("diff-pane")).toBeInTheDocument();
+    expect(errorSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("Maximum update depth exceeded"),
+      expect.anything(),
+      expect.anything(),
+    );
+    errorSpy.mockRestore();
+  });
+
   it("defaults to recent mode and only requests the workspace diff after switching to unstaged", () => {
     const { vscode } = renderPane();
     // Recent is the default: no workspace git request on mount.
@@ -807,6 +866,30 @@ describe("DiffPane", () => {
   });
 
   describe("mode selector (最近一次修改 / 未提交文件)", () => {
+    it("does not loop when recentFiles changes at generation end (streaming false)", () => {
+      // Regression: turn end pushes file_history:update → recentFiles gets a
+      // new array; combined with isStreaming false, DiffPane must settle
+      // without a setState-in-effect feedback loop (maximum update depth).
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { rerenderWith } = renderPane({
+        visible: true,
+        isStreaming: true,
+        recentFiles: [],
+      });
+      // Generation ends: isStreaming drops and the file_history delta arrives,
+      // both new arrays/references in the same render batch.
+      rerenderWith({
+        isStreaming: false,
+        recentFiles: [makeFile()],
+      });
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining("Maximum update depth exceeded"),
+        expect.anything(),
+        expect.anything(),
+      );
+      errorSpy.mockRestore();
+    });
+
     it("defaults to recent mode and hides commit/discard actions", () => {
       renderPane();
       const select = screen.getByTestId("diff-mode-select");
