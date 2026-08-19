@@ -62,6 +62,34 @@ describe("diffLines", () => {
     const r = diffLines("a\nb", "a\nb\nc");
     expect(r.additions).toBe(1);
   });
+
+  it("does not mislabel shifted lines after a single insertion", () => {
+    // Inserting one line in the middle shifts every following line; the diff
+    // must report only the inserted line, not the whole shifted tail.
+    const before = Array.from({ length: 200 }, (_, i) => `line${i}`).join("\n") + "\n";
+    const after =
+      Array.from({ length: 100 }, (_, i) => `line${i}`).join("\n") +
+      "\nINSERTED\n" +
+      Array.from({ length: 100 }, (_, i) => `line${i + 100}`).join("\n") +
+      "\n";
+    const r = diffLines(before, after);
+    expect(r.additions).toBe(1);
+    expect(r.deletions).toBe(0);
+    expect(r.hunks).toContain("+INSERTED");
+  });
+
+  it("reports a single deletion without mislabeling shifted lines", () => {
+    const before =
+      Array.from({ length: 100 }, (_, i) => `line${i}`).join("\n") +
+      "\nREMOVE\n" +
+      Array.from({ length: 100 }, (_, i) => `line${i + 100}`).join("\n") +
+      "\n";
+    const after = Array.from({ length: 200 }, (_, i) => `line${i}`).join("\n") + "\n";
+    const r = diffLines(before, after);
+    expect(r.additions).toBe(0);
+    expect(r.deletions).toBe(1);
+    expect(r.hunks).toContain("-REMOVE");
+  });
 });
 
 describe("enrichFileHistory", () => {

@@ -11,11 +11,142 @@ export interface LineDiff {
 
 const CONTEXT_LINES = 3;
 
+type DiffOp = { type: "keep" | "del" | "add"; text: string };
+
 /**
- * Line diff between `before` and `after` file contents. Uses a simple
- * prefix/suffix match around a changed middle block, then emits git-style
- * hunks with 3 lines of context. Good enough for the small per-turn edits
- * that file_history snapshots capture; not a full Myers diff.
+ * Myers O((N+M)D) line diff. Produces an edit script (keep/del/add) that
+ * correctly aligns content around single-line insertions/deletions — the naive
+ * prefix/suffix matcher mislabeled hundreds of shifted lines as changed.
+ */
+function myersOps(a: string[], b: string[]): DiffOp[] {
+  const n = a.length;
+  const m = b.length;
+  if (n === 0) return b.map((text) => ({ type: "add" as const, text }));
+  if (m === 0) return a.map((text) => ({ type: "del" as const, text }));
+  const max = n + m;
+  const offset = max;
+  const v = new Int32Array(2 * max + 1);
+  const trace: Int32Array[] = [];
+
+  for (let d = 0; d <= max; d++) {
+    for (let k = -d; k <= d; k += 2) {
+      let x: number;
+      if (k === -d || (k !== d && v[k - 1 + offset] < v[k + 1 + offset])) {
+        x = v[k + 1 + offset];
+      } else {
+        x = v[k - 1 + offset] + 1;
+      }
+      let y = x - k;
+      while (x < n && y < m && a[x] === b[y]) {
+        x++;
+        y++;
+      }
+      v[k + offset] = x;
+      if (x >= n && y >= m) {
+        // Backtrack to reconstruct the edit script. trace[d] holds the V
+        // array AFTER layer d completed (saved at the end of this loop body).
+        const ops: DiffOp[] = [];
+        let px = n;
+        let py = m;
+        for (let dd = d - 1; dd >= 0; dd--) {
+          const vv = trace[dd];
+          const k = px - py;
+          let prevK: number;
+          if (k === -dd || (k !== dd && vv[k - 1 + offset] < vv[k + 1 + offset])) {
+            prevK = k + 1;
+          } else {
+            prevK = k - 1;
+          }
+          const prevX = vv[prevK + offset];
+          const prevY = prevX - prevK;
+          while (px > prevX && py > prevY) {
+            ops.push({ type: "keep", text: a[px - 1] });
+            px--;
+            py--;
+          }
+          if (px > prevX) {
+            ops.push({ type: "del", text: a[px - 1] });
+            px--;
+          } else if (py > prevY) {
+            ops.push({ type: "add", text: b[py - 1] });
+            py--;
+          }
+        }
+        while (px > 0 && py > 0) {
+          ops.push({ type: "keep", text: a[px - 1] });
+          px--;
+          py--;
+        }
+        ops.reverse();
+        return ops;
+      }
+    }
+    trace.push(Int32Array.from(v));
+  }
+  return [];
+}
+
+/**
+ * Group the edit script into git-style hunks with 3 lines of context.
+ * Adjacent change blocks closer than 2*CONTEXT+1 lines are merged into one
+ * hunk; each hunk carries a `@@ -aStart,aCount +bStart,bCount @@` header.
+ */
+function buildHunks(a: string[], b: string[], ops: DiffOp[]): string {
+  // Assign 1-based line numbers to every output line.
+  let aLine = 1;
+  let bLine = 1;
+  const rows = ops.map((op) => {
+    const row = {
+      op: op.type,
+      text: op.text,
+      aLine: op.type === "add" ? 0 : aLine,
+      bLine: op.type === "del" ? 0 : bLine,
+    };
+    if (op.type !== "add") aLine++;
+    if (op.type !== "del") bLine++;
+    return row;
+  });
+
+  // Find change-block boundaries: keep-runs longer than 2*CONTEXT split hunks.
+  const hunks: string[] = [];
+  let i = 0;
+  while (i < rows.length) {
+    while (i < rows.length && rows[i].op === "keep") i++;
+    if (i >= rows.length) break;
+    const start = Math.max(0, i - CONTEXT_LINES);
+    let end = i;
+    while (end < rows.length) {
+      if (rows[end].op !== "keep") {
+        end++;
+        continue;
+      }
+      let next = end;
+      while (next < rows.length && rows[next].op === "keep") next++;
+      if (next >= rows.length) break;
+      if (next - end > 2 * CONTEXT_LINES) break;
+      end = next;
+    }
+    end = Math.min(rows.length, end + CONTEXT_LINES);
+    const block = rows.slice(start, end);
+    const aStart = block.find((r) => r.aLine > 0)?.aLine ?? 0;
+    const bStart = block.find((r) => r.bLine > 0)?.bLine ?? 0;
+    const aCount = block.filter((r) => r.aLine > 0).length;
+    const bCount = block.filter((r) => r.bLine > 0).length;
+    const lines = [`@@ -${aStart},${aCount} +${bStart},${bCount} @@`];
+    for (const r of block) {
+      lines.push(`${r.op === "keep" ? " " : r.op === "del" ? "-" : "+"}${r.text}`);
+    }
+    hunks.push(lines.join("\n"));
+    i = end;
+  }
+  return hunks.join("\n");
+}
+
+/**
+ * Line diff between `before` and `after` file contents. Uses a Myers line diff
+ * so that a single inserted/deleted line does not mislabel the following
+ * shifted lines as changed (the old prefix/suffix matcher did), then emits
+ * git-style hunks with 3 lines of context.
  */
 export function diffLines(before: string, after: string): LineDiff {
   const a = before.split("\n");
@@ -24,49 +155,13 @@ export function diffLines(before: string, after: string): LineDiff {
   if (a[a.length - 1] === "") a.pop();
   if (b[b.length - 1] === "") b.pop();
 
-  // Common prefix / suffix
-  let prefix = 0;
-  while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) {
-    prefix++;
-  }
-  let suffix = 0;
-  while (
-    suffix < a.length - prefix &&
-    suffix < b.length - prefix &&
-    a[a.length - 1 - suffix] === b[b.length - 1 - suffix]
-  ) {
-    suffix++;
-  }
-
-  const aMid = a.slice(prefix, a.length - suffix);
-  const bMid = b.slice(prefix, b.length - suffix);
-
-  if (aMid.length === 0 && bMid.length === 0) {
+  const ops = myersOps(a, b);
+  const additions = ops.filter((op) => op.type === "add").length;
+  const deletions = ops.filter((op) => op.type === "del").length;
+  if (additions === 0 && deletions === 0) {
     return { additions: 0, deletions: 0, hunks: "" };
   }
-
-  const additions = bMid.length;
-  const deletions = aMid.length;
-
-  // Build a single hunk (small per-turn edits rarely need splitting).
-  const aStart = prefix;
-  const bStart = prefix;
-  const aCount = aMid.length;
-  const bCount = bMid.length;
-  const header = `@@ -${aStart},${aCount} +${bStart},${bCount} @@`;
-
-  // Context lines before the change.
-  const contextBefore = a.slice(Math.max(0, prefix - CONTEXT_LINES), prefix);
-  // Context lines after the change.
-  const contextAfter = a.slice(a.length - suffix, a.length - suffix + CONTEXT_LINES);
-
-  const lines: string[] = [header];
-  for (const line of contextBefore) lines.push(` ${line}`);
-  for (const line of aMid) lines.push(`-${line}`);
-  for (const line of bMid) lines.push(`+${line}`);
-  for (const line of contextAfter) lines.push(` ${line}`);
-
-  return { additions, deletions, hunks: lines.join("\n") };
+  return { additions, deletions, hunks: buildHunks(a, b, ops) };
 }
 
 /**
