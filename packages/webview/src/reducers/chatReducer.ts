@@ -7,6 +7,7 @@ import type {
   ToolBlock,
   ErrorBlock,
   ToolBlockUpdateCallbackParams,
+  EnrichedFileSnapshot,
 } from "../types";
 import { pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
@@ -608,6 +609,35 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: newMessages,
       };
+    }
+    case "UPDATE_FILE_HISTORY": {
+      // Turn ended: merge the turn's file_history blocks (messageId → enriched
+      // snapshots) into the matching messages. Delta events never carry
+      // file_history, so without this the card only appears after a session
+      // switch re-fetches messages.
+      const updates = action.payload.messages;
+      if (!Array.isArray(updates) || updates.length === 0) return state;
+      const byId = new Map(updates.map((u) => [u.messageId, u.snapshots]));
+      const newMessages = state.messages.map((m) => {
+        const snapshots = byId.get(m.id);
+        if (!snapshots) return m;
+        // Replace any existing file_history blocks with the fresh snapshot set
+        // (a turn may append multiple blocks; the card wants the merged view).
+        const otherBlocks = (m.blocks ?? []).filter(
+          (b) => b.type !== "file_history",
+        );
+        return {
+          ...m,
+          blocks: [
+            ...otherBlocks,
+            {
+              type: "file_history" as const,
+              snapshots: snapshots as EnrichedFileSnapshot[],
+            },
+          ],
+        };
+      });
+      return { ...state, messages: newMessages };
     }
     case "UPDATE_TOOL_BLOCK": {
       const {

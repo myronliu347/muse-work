@@ -553,6 +553,44 @@ export function createSessionRunner(
     });
   }
 
+  /**
+   * Push only the newest turn's file_history blocks (messageId + enriched
+   * snapshots), not the full transcript — the webview merges these into the
+   * matching messages so the file-change card appears when a turn ends. A turn
+   * without file_history broadcasts nothing.
+   */
+  function broadcastFileHistory(sessionId: string): void {
+    const session = store.get(sessionId);
+    const messages = agents.get(sessionId)?.getMessages?.();
+    if (!messages || !session) return;
+    const enriched = enrichFileHistory(
+      mapSdkMessages(messages),
+      session.workdir,
+      sessionId,
+    );
+    const updates: Array<{ messageId: string; snapshots: unknown[] }> = [];
+    let inTurn = false;
+    for (let i = enriched.length - 1; i >= 0; i--) {
+      const m = enriched[i] as {
+        role?: string;
+        isMeta?: boolean;
+        id?: string;
+        blocks?: Array<Record<string, unknown>>;
+      };
+      if (m?.role === "user" && !m.isMeta) break;
+      if (m?.role !== "assistant" || !m.id) continue;
+      inTurn = true;
+      const snapshots = (m.blocks ?? [])
+        .filter((b) => b.type === "file_history")
+        .flatMap((b) => (Array.isArray(b.snapshots) ? b.snapshots : []));
+      if (snapshots.length > 0) {
+        updates.push({ messageId: m.id, snapshots });
+      }
+    }
+    if (!inTurn || updates.length === 0) return;
+    hub.broadcast(sessionId, { type: "file_history:update", messages: updates });
+  }
+
   function reportEmptyTurnIfNeeded(sessionId: string): void {
     if (disposed.has(sessionId) || aborting.has(sessionId)) {
       return;
@@ -810,11 +848,11 @@ export function createSessionRunner(
             }
           } else {
             reportEmptyTurnIfNeeded(sessionId);
-            // Push the final enriched transcript so the webview's file_history
-            // card renders right after the turn — delta events carry text/tool
-            // chunks but never the file_history block, so without this the card
-            // only appears after a session switch re-fetches messages.
-            broadcastMessages(sessionId);
+            // Push only the turn's file_history blocks so the webview's card
+            // renders right after the turn — delta events carry text/tool
+            // chunks but never the file_history block, and re-sending the whole
+            // transcript over the socket is wasteful for large sessions.
+            broadcastFileHistory(sessionId);
             markIdle(sessionId);
           }
         },

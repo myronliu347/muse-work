@@ -443,7 +443,7 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
   });
 
-  it("broadcasts enriched messages with file_history when a turn ends", async () => {
+  it("broadcasts only file_history blocks (not the full transcript) when a turn ends", async () => {
     const { store, hub, registry, home } = setup();
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "fh-broadcast-"));
     const filePath = path.join(workdir, "app.js");
@@ -500,26 +500,19 @@ describe("sessionRunner lifecycle", () => {
 
     await runner.sendMessage(session.id, "改");
     await expect.poll(() => cbs).toBeTruthy();
-    // Turn ends: loading false — the full enriched transcript must be pushed so
-    // the UI card appears without a session switch.
+    // Turn ends: loading false — only the file_history delta must be pushed, not
+    // a full messages:replace of the whole transcript.
     cbs!.onLoadingChange?.(false);
 
-    await expect
-      .poll(() =>
-        broadcasts.find(
-          (e) =>
-            e.type === "messages:replace" &&
-            Array.isArray(e.messages) &&
-            e.messages.length > 0,
-        ),
-      )
-      .toBeTruthy();
-    const last = broadcasts.find((e) => e.type === "messages:replace");
-    const lastMsg = (last?.messages as Array<{ blocks?: unknown[] }>)[1];
-    const fh = (lastMsg.blocks ?? []).find(
-      (b) => (b as { type?: string }).type === "file_history",
-    ) as { snapshots?: Array<{ additions?: number }> };
-    expect(fh.snapshots?.[0].additions).toBe(1);
+    const fh = broadcasts.find((e) => e.type === "file_history:update");
+    await expect.poll(() => fh ?? broadcasts.find((e) => e.type === "messages:replace")).toBeTruthy();
+    expect(broadcasts.some((e) => e.type === "messages:replace")).toBe(false);
+    expect(
+      (fh?.messages as Array<{ messageId: string; snapshots: unknown[] }>)[0],
+    ).toMatchObject({
+      messageId: "a1",
+      snapshots: [expect.objectContaining({ additions: 1, deletions: 0 })],
+    });
 
     fs.rmSync(workdir, { recursive: true, force: true });
   });

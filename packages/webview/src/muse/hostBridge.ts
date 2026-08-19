@@ -881,6 +881,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "file_history:update") {
+      // Turn ended: merge the turn's file_history blocks into the matching
+      // messages (delta events never carry file_history). Lightweight — only
+      // snapshots, not the full transcript.
+      postToWebview({
+        command: "updateFileHistory",
+        messages: event.messages,
+      });
+      return;
+    }
+
     if (event.type === "message:delta") {
       if (aborted) return;
       const messageId = event.messageId || streamingMessageId || newId("asst");

@@ -39,6 +39,10 @@ export type MuseWsEventPayload =
   | { type: "error:block"; error: string }
   | { type: "messages:replace"; messages: unknown[] }
   | {
+      type: "file_history:update";
+      messages: Array<{ messageId: string; snapshots: unknown[] }>;
+    }
+  | {
       type: "subagent:assistant:message";
       subagentId: string;
       messageId: string;

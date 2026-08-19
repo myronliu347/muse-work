@@ -327,4 +327,41 @@ describe("FileHistoryCard in MessageList", () => {
     expect(select).toHaveValue("recent");
     expect(screen.getByTestId("diff-pane")).toHaveTextContent("lib.ts");
   });
+
+  it("renders the card right after a turn ends via updateFileHistory (no session switch)", () => {
+    // Delta events never carry file_history; the server pushes a lightweight
+    // file_history:update when loading drops. The card must appear immediately
+    // without re-fetching messages.
+    renderChatApp();
+    sendCommand("updateMessages", {
+      messages: [
+        { id: "u1", role: "user", timestamp: "2024-01-01T00:00:00.000Z", blocks: [{ type: "text", content: "改" }] },
+        {
+          id: "a1",
+          role: "assistant",
+          timestamp: "2024-01-01T00:00:01.000Z",
+          blocks: [{ type: "text", content: "完成" }],
+        },
+      ],
+    });
+    expect(screen.queryByTestId("file-history-card")).not.toBeInTheDocument();
+
+    // Streaming stops; the server pushes the turn's file_history delta.
+    sendCommand("updateFileHistory", {
+      messages: [
+        {
+          messageId: "a1",
+          snapshots: [
+            { filePath: "/mock/workdir/app.js", operation: "modify", additions: 3, deletions: 1 },
+          ],
+        },
+      ],
+    });
+
+    const card = screen.getByTestId("file-history-card");
+    expect(card).toHaveTextContent("1 个文件已更改");
+    expect(card).toHaveTextContent("app.js");
+    expect(card).toHaveTextContent("+3");
+    expect(card).toHaveTextContent("−1");
+  });
 });

@@ -925,6 +925,12 @@ export type ChatAction =
       type: "UPDATE_STREAMING_REASONING";
       payload: { messageId: string; chunk: string; stage: "streaming" | "end" };
     }
+  | {
+      type: "UPDATE_FILE_HISTORY";
+      payload: {
+        messages: Array<{ messageId: string; snapshots: unknown[] }>;
+      };
+    }
   | { type: "UPDATE_TOOL_BLOCK"; payload: ToolBlockUpdateCallbackParams }
   | { type: "APPEND_ERROR_BLOCK"; payload: { error: string } }
     | {

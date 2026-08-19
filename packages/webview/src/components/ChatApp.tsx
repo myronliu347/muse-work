@@ -948,6 +948,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             },
           });
           break;
+        case "updateFileHistory":
+          if (!forThisPane(message)) break;
+          dispatch({
+            type: "UPDATE_FILE_HISTORY",
+            payload: {
+              messages: message.messages as Array<{
+                messageId: string;
+                snapshots: unknown[];
+              }>,
+            },
+          });
+          break;
         case "updateToolBlock":
           if (!forThisPane(message)) break;
           dispatch({
