@@ -458,8 +458,6 @@ export interface MessageInputProps {
   rewindPopup?: React.ReactNode;
   /** Optional /model popup rendered above the input box, anchored to .input-wrapper. */
   modelPopup?: React.ReactNode;
-  /** Optional /btw side-question panel rendered above the input box, anchored to .input-wrapper. */
-  btwPopup?: React.ReactNode;
   /** Disable the whole input area (e.g. desktop host without a workdir). */
   disabled?: boolean;
   /** Per-session model id shown in the sender toolbar. */

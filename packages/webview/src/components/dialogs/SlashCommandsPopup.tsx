@@ -28,7 +28,6 @@ const SYSTEM_COMMANDS = [
   "compact",
   "rewind",
   "model",
-  "btw",
 ];
 
 interface CommandGroup {

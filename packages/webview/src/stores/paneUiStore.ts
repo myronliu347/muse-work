@@ -12,13 +12,6 @@ export interface AgentTranscriptState {
   prompt?: string;
 }
 
-export interface BtwPanelState {
-  question: string;
-  answer: string;
-  loading: boolean;
-  contentStarted: boolean;
-}
-
 export interface PaneGitBranches {
   branches: string[];
   current: string;
@@ -36,7 +29,6 @@ export interface PaneUiSlice {
   currentModel: string | undefined;
   modelLoading: boolean;
   agentTranscript: AgentTranscriptState | null;
-  btwPanel: BtwPanelState | null;
   worktreeBranch: string;
   worktreeChecked: boolean;
   paneGitBranches: PaneGitBranches | null;
@@ -55,7 +47,6 @@ export function emptyPaneUi(): PaneUiSlice {
     currentModel: undefined,
     modelLoading: false,
     agentTranscript: null,
-    btwPanel: null,
     worktreeBranch: "",
     worktreeChecked: false,
     paneGitBranches: null,

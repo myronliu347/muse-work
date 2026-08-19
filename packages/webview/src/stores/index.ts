@@ -30,7 +30,6 @@ export {
   patchPaneUi,
   emptyPaneUi,
   type AgentTranscriptState,
-  type BtwPanelState,
   type PaneGitBranches,
   type PaneUiSlice,
 } from "./paneUiStore";

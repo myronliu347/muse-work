@@ -115,7 +115,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       workdirSelector,
       rewindPopup,
       modelPopup,
-      btwPopup,
       disabled,
       modelId,
       onModelChange,
@@ -1575,9 +1574,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
           {/* /model 模型选择弹窗，与 rewind 弹窗共用 .input-wrapper 定位上下文 */}
           {modelPopup}
-
-          {/* /btw 旁路提问面板，锚定 .input-wrapper 顶部 */}
-          {btwPopup}
         </div>
       </div>
     );

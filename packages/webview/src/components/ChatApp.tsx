@@ -19,7 +19,6 @@ import { ConfirmDialog } from "./dialogs/ConfirmDialog";
 import { RewindPopup } from "./dialogs/RewindPopup";
 import { ModelPopup } from "./dialogs/ModelPopup";
 import { ToastStack } from "./shared/ToastStack";
-import { BtwPanel } from "./chat/BtwPanel";
 import ConfigDialog from "./dialogs/ConfigDialog";
 import PluginDialog from "./dialogs/PluginDialog";
 import McpDialog from "./dialogs/McpDialog";
@@ -154,7 +153,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     currentModel,
     modelLoading,
     agentTranscript,
-    btwPanel,
     worktreeBranch,
     worktreeChecked,
     paneGitBranches,
@@ -169,16 +167,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     },
     [paneId],
   );
-  // Question of the in-flight askBtw RPC. Cleared on close so a late reply is
-  // dropped (scenario 7); matched against the reply's echoed question so a stale
-  // reply never lands on a newer panel (scenario 6/7).
-  const btwActiveRef = useRef<string | null>(null);
-  // Session the current /btw panel belongs to. Compared against
-  // state.currentSession.id in an effect below: the panel is conversation-scoped
-  // (spec scenario 14), and desktop pane instances stay mounted across
-  // conversation switches (ChatApp is keyed by paneId, not sessionId), so pane
-  // UI state alone would leak the previous conversation's panel.
-  const btwSessionRef = useRef<string | undefined>(undefined);
   // Desktop new sessions start with workdir=null. Host bridge syncs
   // updateWorkdir on activate / folder pick / auto-create. Fall back to
   // host.workdir only for bound (non-draft) sessions when state has not
@@ -562,83 +550,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             currentModel: message.currentModel,
             modelLoading: false,
           });
-          break;
-        case "btwStream":
-          if (!forThisPane(message)) break;
-          // Streaming chunks from the askBtw RPC (spec scenario 6): thinking
-          // chunks show live while they stream, but once the first content
-          // chunk arrives the accumulated thinking text is discarded and only
-          // content is kept (user decision: thinking is not shown after the
-          // thinking phase ends).
-          if (
-            !btwActiveRef.current ||
-            message.question !== btwActiveRef.current
-          )
-            break;
-          patchPaneUi(myPane, (panel) => {
-            if (!panel.btwPanel) return {};
-            const content =
-              typeof message.content === "string" ? message.content : "";
-            if (message.type === "content") {
-              const base = panel.btwPanel.contentStarted
-                ? panel.btwPanel.answer
-                : "";
-              return {
-                btwPanel: {
-                  ...panel.btwPanel,
-                  contentStarted: true,
-                  answer: base + content,
-                },
-              };
-            }
-            if (panel.btwPanel.contentStarted) return {};
-            return {
-              btwPanel: {
-                ...panel.btwPanel,
-                answer: panel.btwPanel.answer + content,
-              },
-            };
-          });
-          break;
-        case "btwResponse":
-          if (!forThisPane(message)) break;
-          // Drop late replies: the panel must be open, the panel's question must
-          // still match the in-flight one, and the reply must echo the same question.
-          if (
-            btwActiveRef.current &&
-            message.question === btwActiveRef.current
-          ) {
-            patchPaneUi(myPane, (panel) =>
-              panel.btwPanel
-                ? {
-                    btwPanel: {
-                      ...panel.btwPanel,
-                      answer: message.answer ?? "",
-                      loading: false,
-                    },
-                  }
-                : {},
-            );
-          }
-          break;
-        case "btwError":
-          if (!forThisPane(message)) break;
-          if (
-            btwActiveRef.current &&
-            message.question === btwActiveRef.current
-          ) {
-            patchPaneUi(myPane, (panel) =>
-              panel.btwPanel
-                ? {
-                    btwPanel: {
-                      ...panel.btwPanel,
-                      answer: `(API error: ${message.error ?? "unknown"})`,
-                      loading: false,
-                    },
-                  }
-                : {},
-            );
-          }
           break;
         // Test-only handlers
         case "startStreaming":
@@ -1624,29 +1535,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     messageInputRef.current?.focus();
   }, [patchPane]);
 
-  // Close the /btw panel. While a request is in flight, clearing btwActiveRef
-  // makes the late reply a no-op (scenario 7: closing during loading drops it).
-  const handleBtwClose = useCallback(() => {
-    btwActiveRef.current = null;
-    patchPane({ btwPanel: null });
-    messageInputRef.current?.focus();
-  }, [patchPane]);
-
-  // The /btw panel is conversation-scoped (spec scenario 14): switching to
-  // another conversation closes it, so the new conversation never shows the old
-  // one's panel. Desktop panes key ChatApp by paneId (not sessionId), so a
-  // sidebar session switch leaves this component mounted — without this effect
-  // pane UI state would survive the switch (setInitialState only resets reducer
-  // state). Clearing btwActiveRef also drops any in-flight askBtw reply that
-  // lands after the switch. `previous !== undefined` keeps the initial mount
-  // (no conversation assigned yet) a no-op.
-  useEffect(() => {
-    const sessionId = state.currentSession?.id;
-    const previous = btwSessionRef.current;
-    btwSessionRef.current = sessionId;
-    if (previous !== undefined && previous !== sessionId) handleBtwClose();
-  }, [state.currentSession?.id, handleBtwClose]);
-
   const handleRewindConfirm = useCallback(() => {
     const messageId = pendingRewindId;
     patchPane({ pendingRewindId: null });
@@ -2388,16 +2276,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onSelect={handleModelSelect}
           onClose={handleModelPopupClose}
         />
-      }
-      btwPopup={
-        btwPanel ? (
-          <BtwPanel
-            question={btwPanel.question}
-            answer={btwPanel.answer}
-            isLoading={btwPanel.loading}
-            onClose={handleBtwClose}
-          />
-        ) : undefined
       }
     />
   );
