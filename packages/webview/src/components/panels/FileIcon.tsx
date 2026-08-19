@@ -5,8 +5,11 @@ import {
   getIconForOpenFolder,
 } from "vscode-icons-js";
 
+// CDN 版本必须与 vscode-icons-js 的数据来源匹配：11.6.1 的映射基于 2021-09
+// 的 vscode-icons 仓库，12.x 已删除 file_type_webp.svg 等图标（→404）。11.10.0
+// 与映射表 936 个图标全量匹配（已实测）。
 const ICON_CDN =
-  "https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons@12.12.0/icons";
+  "https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons@11.10.0/icons";
 
 export type FileIconProps = {
   name: string;
