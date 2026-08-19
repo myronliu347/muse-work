@@ -9,9 +9,6 @@ import { configureLogger, resolveLogDir } from "./utils/logger.js";
 import { installRuntimeStats } from "./utils/runtimeStats.js";
 import { installGracefulShutdown } from "./utils/shutdown.js";
 
-// 让进程在 ps / 活动监视器中显示为 "muse server"（默认是 Muse 二进制名，难区分）。
-process.title = "muse server";
-
 const HOST = "127.0.0.1";
 
 function parsePort(argv: string[]): number {
