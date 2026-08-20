@@ -884,6 +884,74 @@ describe("sessions + websocket streaming", () => {
     expect(second.status).toBe(200);
   });
 
+  it("does not report empty turn when loading callback arrives after sendMessage", async () => {
+    // Race: the SDK's async onLoadingChange(true) may not have fired yet when
+    // runTurn checks its fallback. That window must NOT be treated as a
+    // finished empty turn (bogus "模型没有产生输出" error block).
+    const createAgent: CreateAgent = async (opts) => {
+      const cbs = opts.callbacks as {
+        onLoadingChange?: (loading: boolean) => void;
+        onAssistantContentUpdated?: (p: {
+          messageId: string;
+          chunk: string;
+          stage: "streaming" | "end";
+        }) => void;
+      };
+      return {
+        sendMessage: async () => {
+          // The SDK reports loading on a later tick, after sendMessage settles.
+          setImmediate(() => cbs.onLoadingChange?.(true));
+          setImmediate(() =>
+            cbs.onAssistantContentUpdated?.({
+              messageId: "m1",
+              chunk: "hi",
+              stage: "end",
+            }),
+          );
+          setImmediate(() => cbs.onLoadingChange?.(false));
+        },
+        dispose: async () => {},
+      };
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const errorEvents: Array<{ type?: string; error?: string }> = [];
+    const origBroadcast = app.ctx.hub.broadcast.bind(app.ctx.hub);
+    app.ctx.hub.broadcast = (sessionId, event) => {
+      if (
+        (event as { type?: string }).type === "error:block" &&
+        (event as { error?: string }).error?.includes("没有产生输出")
+      ) {
+        errorEvents.push(event as { type?: string; error?: string });
+      }
+      return origBroadcast(sessionId, event);
+    };
+
+    const msgRes = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+    expect(msgRes.status).toBe(200);
+
+    // The turn completes with real output; the late loading callbacks must not
+    // have triggered a spurious empty-turn error.
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+    expect(errorEvents).toEqual([]);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},

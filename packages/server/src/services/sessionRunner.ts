@@ -300,6 +300,14 @@ export function createSessionRunner(
   const aborting = new Set<string>();
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
   const agentLoading = new Map<string, boolean>();
+  /**
+   * True once the SDK fired onLoadingChange for this turn. The runTurn fallback
+   * (tests / swallowed turns) must only report an empty turn when loading was
+   * NEVER reported — right after sendMessage the async onLoadingChange(true)
+   * may not have arrived yet, and mistaking that window for a finished empty
+   * turn shows a bogus "模型没有产生输出" error block.
+   */
+  const loadingSeen = new Map<string, boolean>();
   const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const stallTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const agentToolBinds = new Map<string, Map<string, string>>();
@@ -677,6 +685,7 @@ export function createSessionRunner(
     turnHadOutput.delete(sessionId);
     aborting.delete(sessionId);
     agentLoading.delete(sessionId);
+    loadingSeen.delete(sessionId);
     titleGenerating.delete(sessionId);
     // UI caches: latestTasks is only read while a session is running (getTasks
     // returns [] when idle) and the rest are lazily rebuilt from the SDK on the
@@ -835,6 +844,7 @@ export function createSessionRunner(
           if (disposed.has(sessionId)) return;
           bumpActivity(sessionId);
           agentLoading.set(sessionId, loading);
+          loadingSeen.set(sessionId, true);
           hub.broadcast(sessionId, { type: "loading", loading });
           // Sidebar / status must track the full agent turn (including tools),
           // not the first assistant content stage "end".
@@ -1329,6 +1339,7 @@ export function createSessionRunner(
     turnEnded.set(sessionId, false);
     turnHadOutput.set(sessionId, false);
     agentLoading.set(sessionId, false);
+    loadingSeen.set(sessionId, false);
     bumpActivity(sessionId);
     getLogger().info("turn started", {
       sessionId,
@@ -1355,19 +1366,26 @@ export function createSessionRunner(
       );
       await agent.sendMessage(contentWithSources, images);
       // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
-      // If loading is still true, tools/stream are in flight — wait for loading false.
-      if (
-        !disposed.has(sessionId) &&
-        store.get(sessionId)?.status === "running" &&
-        agentLoading.get(sessionId) !== true
-      ) {
-        reportEmptyTurnIfNeeded(sessionId);
-        if (!turnEnded.get(sessionId)) {
-          hub.broadcast(sessionId, { type: "message:completed" });
+      // Defer the check to the next macrotask: the SDK's async callbacks
+      // (onLoadingChange(true), assistant content) fire after sendMessage
+      // settles, and treating that in-flight window as a finished empty turn
+      // would broadcast a bogus "模型没有产生输出" error block. Only report when
+      // loading was never reported (loadingSeen) — a genuinely swallowed turn.
+      setImmediate(() => {
+        if (
+          !disposed.has(sessionId) &&
+          store.get(sessionId)?.status === "running" &&
+          agentLoading.get(sessionId) !== true &&
+          !loadingSeen.get(sessionId)
+        ) {
+          reportEmptyTurnIfNeeded(sessionId);
+          if (!turnEnded.get(sessionId)) {
+            hub.broadcast(sessionId, { type: "message:completed" });
+          }
+          getLogger().info("turn completed", { sessionId });
+          markIdle(sessionId);
         }
-        getLogger().info("turn completed", { sessionId });
-        markIdle(sessionId);
-      }
+      });
     } catch (err) {
       if (disposed.has(sessionId) || !store.get(sessionId)) {
         return;
@@ -1519,6 +1537,7 @@ export function createSessionRunner(
       turnHadOutput.delete(sessionId);
       aborting.delete(sessionId);
       agentLoading.delete(sessionId);
+      loadingSeen.delete(sessionId);
       titleGenerating.delete(sessionId);
       closeAgentLogger(sessionId);
       agentToolBinds.delete(sessionId);
