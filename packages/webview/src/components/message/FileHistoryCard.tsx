@@ -35,6 +35,7 @@ export const FileHistoryCard: React.FC<FileHistoryCardProps> = ({
   // file so the card lists each changed file once (stats counted once too).
   const files = dedupeSnapshotsByFile(snapshots);
   const filePaths = files.map((s) => s.filePath).filter(Boolean) as string[];
+  if (filePaths.length === 0) return null;
   const totalAdditions = files.reduce(
     (sum, s) => sum + (s.additions ?? 0),
     0,

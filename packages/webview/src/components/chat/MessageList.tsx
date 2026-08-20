@@ -533,7 +533,6 @@ export const MessageList = forwardRef<
           const mergedSnapshots: EnrichedFileSnapshot[] = [];
           const turnMessageIds: string[] = [];
           let inTurn = false;
-          let foundFh = false;
           for (let i = visibleMessages.length - 1; i >= 0; i--) {
             const m = visibleMessages[i];
             if (m.role === "user" && !m.isMeta) {
@@ -558,10 +557,12 @@ export const MessageList = forwardRef<
                   (s) => !workdir || (s.filePath ?? "").startsWith(workdir),
                 ),
               );
-              foundFh = true;
             }
           }
-          if (inTurn && foundFh && turnMessageIds.length > 0) {
+          // Show the card only when the turn actually produced workdir-visible
+          // changes — snapshots filtered out by the workdir check (or zero-diff
+          // ones the server dropped) must not render an empty "0 个文件" card.
+          if (inTurn && mergedSnapshots.length > 0 && turnMessageIds.length > 0) {
             const snapshots = mergedSnapshots;
             rendered.push(
               <FileHistoryCard

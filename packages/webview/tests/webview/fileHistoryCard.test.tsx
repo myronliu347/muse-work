@@ -74,6 +74,42 @@ describe("FileHistoryCard in MessageList", () => {
     expect(screen.queryByTestId("file-history-card")).not.toBeInTheDocument();
   });
 
+  it("does not render when all snapshots fall outside the workdir", () => {
+    // 0 文件修改：file_history block 存在但快照路径不在当前 workdir 下
+    // （如内部 bookkeeping 文件），不能渲染空卡片。
+    renderChatApp();
+    sendCommand("updateMessages", {
+      messages: [
+        {
+          id: "u1",
+          role: "user",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          blocks: [{ type: "text", content: "查一下" }],
+        },
+        {
+          id: "a1",
+          role: "assistant",
+          timestamp: "2024-01-01T00:00:01.000Z",
+          blocks: [
+            { type: "text", content: "无文件改动" },
+            {
+              type: "file_history",
+              snapshots: [
+                {
+                  filePath: "/tmp/other/out.log",
+                  operation: "modify",
+                  additions: 3,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(screen.queryByTestId("file-history-card")).not.toBeInTheDocument();
+  });
+
   it("renders the newest message with file_history even when the last message has none", () => {
     // A trailing tool-only message (Bash etc.) carries no file_history block,
     // but since it belongs to the same turn, the turn's changes still show.
