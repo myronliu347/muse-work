@@ -1471,14 +1471,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
   }
 
-  const FALLBACK_SLASH_COMMANDS = [
-    { id: "compact", name: "compact", description: "压缩会话上下文" },
-    { id: "clear", name: "clear", description: "清空当前会话" },
-    { id: "rewind", name: "rewind", description: "回滚到检查点" },
-    { id: "mcp", name: "mcp", description: "MCP 服务器" },
-    { id: "status", name: "status", description: "会话状态" },
-    { id: "workflows", name: "workflows", description: "工作流" },
-  ];
+  // 斜杠指令一律来自 agent.getSlashCommands（SDK 内置 /subtask + userInvocable
+  // 技能）；无会话/请求失败时不回退硬编码系统指令，弹窗保持为空。
+  const FALLBACK_SLASH_COMMANDS: Array<{
+    id: string;
+    name: string;
+    description: string;
+  }> = [];
 
   async function handleRequestSlashCommands(): Promise<void> {
     if (!sessionId || pendingNewSession) {

@@ -174,8 +174,28 @@ describe("session control routes", () => {
     expect(truncatedTo).toBe(0);
   });
 
-  it("GET slash-commands returns an empty system list (UI entry points replaced the popup)", async () => {
-    const app = await listen(async () => stubAgent());
+  it("GET slash-commands returns the agent's slash commands (handler stripped)", async () => {
+    // 斜杠指令来自 agent.getSlashCommands（SDK 内置 /subtask + userInvocable
+    // 技能），不返回硬编码系统指令；handler 函数不下发。
+    const app = await listen(async () =>
+      stubAgent({
+        getSlashCommands: () => [
+          {
+            id: "subtask",
+            name: "subtask",
+            description: "Start a fork subagent in the background",
+            handler: async () => {},
+            immediate: false,
+          },
+          {
+            id: "grilling",
+            name: "grilling",
+            description: "Grill the user about a plan",
+            handler: async () => {},
+          },
+        ],
+      }),
+    );
     const created = await fetch(`${app.baseUrl}/sessions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -186,10 +206,23 @@ describe("session control routes", () => {
       `${app.baseUrl}/sessions/${session.id}/slash-commands`,
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { commands: Array<{ name: string }> };
-    // 系统指令已改由 UI 触发（后台任务=内联列表，其余=标题下拉），
-    // 弹窗保留基础设施供未来的技能 /命令填充。
-    expect(body.commands).toEqual([]);
+    const body = (await res.json()) as {
+      commands: Array<{ id: string; name: string; description: string }>;
+    };
+    expect(body.commands).toEqual([
+      {
+        id: "subtask",
+        name: "subtask",
+        description: "Start a fork subagent in the background",
+      },
+      {
+        id: "grilling",
+        name: "grilling",
+        description: "Grill the user about a plan",
+      },
+    ]);
+    // handler 函数不下发
+    expect(JSON.stringify(body.commands)).not.toContain("handler");
   });
 
   it("GET tasks returns the task list for the session", async () => {

@@ -82,6 +82,8 @@ export interface SessionAgent {
   stopBackgroundTask?: (id: string) => boolean;
   getWorkflowRuns?: () => Promise<unknown[]> | unknown[];
   stopWorkflowRun?: (runId: string) => void;
+  /** SDK 运行时注册的斜杠命令（内置 /subtask + userInvocable 技能），含 handler 函数。 */
+  getSlashCommands?: () => unknown[];
   latestTotalTokens?: number;
   /** Whether the SDK has messages queued (serialized send dispatch). */
   hasPendingMessages?: () => boolean;
@@ -183,6 +185,7 @@ export interface SessionRunner {
   stopBackgroundTask(sessionId: string, taskId: string): Promise<{ ok: boolean }>;
   getWorkflowRuns(sessionId: string): Promise<unknown[]>;
   stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
+  getSlashCommands(sessionId: string): Promise<unknown[]>;
 }
 
 interface PendingPermission {
@@ -257,6 +260,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       stopBackgroundTask: (id) => agent.stopBackgroundTask(id),
       getWorkflowRuns: () => agent.getWorkflowRuns(),
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
+      getSlashCommands: () => agent.getSlashCommands(),
       hasPendingMessages: () => agent.hasPendingMessages,
       removeQueuedMessageById: (id) => agent.removeQueuedMessageById(id),
       updateQueuedMessageById: (id, patch) =>
@@ -1896,6 +1900,29 @@ export function createSessionRunner(
       return { ok: true as const };
     },
 
+    async getSlashCommands(sessionId) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      // 斜杠命令来自 agent 运行时（SDK 内置 /subtask + userInvocable 技能注册的
+      // 命令），不返回硬编码系统指令；优先用现有 agent，避免仅为展示弹窗创建。
+      const existing = agents.get(sessionId);
+      if (existing?.getSlashCommands) {
+        return existing.getSlashCommands().map(toSerializableSlashCommand);
+      }
+      try {
+        const agent = await ensureAgent(sessionId);
+        return (agent.getSlashCommands?.() ?? []).map(
+          toSerializableSlashCommand,
+        );
+      } catch {
+        return [];
+      }
+    },
+
     invalidateAgentIdentities() {
       agentIdentities.clear();
     },
@@ -2039,6 +2066,22 @@ function toBackgroundTaskSummary(task: {
     ...(task.exitCode !== undefined ? { exitCode: task.exitCode } : {}),
     ...(task.runtime !== undefined ? { runtime: task.runtime } : {}),
     ...(task.outputPath !== undefined ? { outputPath: task.outputPath } : {}),
+  };
+}
+
+/** SDK SlashCommand 剥离 handler/immediate 函数后下发前端（前端只需 id/name/description）。 */
+function toSerializableSlashCommand(
+  command: unknown,
+): { id: string; name: string; description: string } {
+  const c = (command ?? {}) as {
+    id?: unknown;
+    name?: unknown;
+    description?: unknown;
+  };
+  return {
+    id: String(c.id ?? c.name ?? ""),
+    name: String(c.name ?? c.id ?? ""),
+    description: c.description == null ? "" : String(c.description),
   };
 }
 

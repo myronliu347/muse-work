@@ -47,6 +47,52 @@ describe("Slash Commands", () => {
     vi.clearAllMocks();
   });
 
+  it("filters slash commands by name as more text is typed after /", async () => {
+    const { vscode } = renderChatApp();
+    const input = screen.getByTestId("message-input");
+    input.focus();
+
+    await typeInInput("/");
+    await waitFor(
+      () => {
+        expect(vscode.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({ command: "requestSlashCommands" }),
+        );
+      },
+      { timeout: 3000 },
+    );
+
+    sendCommand("slashCommandsResponse", {
+      commands: [
+        { id: "init", name: "init", description: "Initialize repository" },
+        { id: "help", name: "help", description: "Show help" },
+        { id: "clear", name: "clear", description: "Clear session" },
+      ],
+    });
+
+    // "/" 时展示全部命令
+    await waitFor(() => {
+      expect(screen.getByTestId("slash-commands-popup")).toBeInTheDocument();
+    });
+    expect(screen.getAllByTestId(/slash-command-/)).toHaveLength(3);
+
+    // 继续输入 "in" → 只保留 name 匹配的命令
+    await typeInInput("in");
+    await waitFor(() => {
+      expect(screen.queryByTestId("slash-command-help")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("slash-command-init")).toBeInTheDocument();
+    expect(screen.queryByTestId("slash-command-clear")).not.toBeInTheDocument();
+
+    // 输入不匹配的字符 → 弹窗隐藏
+    await typeInInput("zzz");
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("slash-commands-popup"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("does not show a slash toolbar button (commands are typed with /)", () => {
     renderChatApp();
     sendCommand("updateCurrentSession", {

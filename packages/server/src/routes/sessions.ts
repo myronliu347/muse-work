@@ -3,7 +3,6 @@ import {
   createDefaultProjectWorkdir,
   DEFAULT_ACTIVE_MODEL_ID,
 } from "@muse-work/provider";
-import { SYSTEM_SLASH_COMMANDS } from "../constants/slashCommands.js";
 import type { HonoEnv } from "../honoEnv.js";
 import { getLogger } from "../utils/logger.js";
 import {
@@ -476,9 +475,19 @@ session.post("/revert-file-history", async (c) => {
   }
 });
 
-session.get("/slash-commands", (c) =>
-  c.json({ commands: [...SYSTEM_SLASH_COMMANDS] }),
-);
+session.get("/slash-commands", async (c) => {
+  const ctx = c.get("ctx");
+  const sessionId = c.req.param("sessionId")!;
+  try {
+    const commands = await ctx.runner.getSlashCommands(sessionId);
+    return c.json({ commands });
+  } catch (err) {
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      runnerErrorStatus(err) as 400,
+    );
+  }
+});
 
 session.get("/status", async (c) => {
   const ctx = c.get("ctx");
@@ -634,5 +643,3 @@ session.post("/workflows/:runId/stop", async (c) => {
 });
 
 sessionsRoutes.route("/sessions/:sessionId", session);
-
-export { SYSTEM_SLASH_COMMANDS };

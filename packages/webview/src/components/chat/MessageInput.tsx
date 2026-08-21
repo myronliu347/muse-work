@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
   useImperativeHandle,
   forwardRef,
   KeyboardEvent,
@@ -167,6 +168,20 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
+
+    // "/" 后继续输入时按命令 name 过滤（不重新请求，本地过滤）
+    const filteredSlashCommands = useMemo(() => {
+      const q = slashCommand.filterText.trim().toLowerCase();
+      if (!q) return slashCommands;
+      return slashCommands.filter((c) =>
+        c.name.toLowerCase().includes(q),
+      );
+    }, [slashCommands, slashCommand.filterText]);
+
+    // 过滤条件变化时重置选中项到第一个匹配
+    useEffect(() => {
+      setSelectedSlashIndex(0);
+    }, [slashCommand.filterText]);
     const [dropdownPosition, setDropdownPosition] = useState({
       top: 0,
       left: 0,
@@ -964,8 +979,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           }
         }
 
-        if (slashCommand.isActive && slashCommands.length > 0) {
-          const orderedCommands = orderSlashCommands(slashCommands);
+        if (slashCommand.isActive && filteredSlashCommands.length > 0) {
+          const orderedCommands = orderSlashCommands(filteredSlashCommands);
           switch (event.key) {
             case "ArrowUp":
               event.preventDefault();
@@ -1047,7 +1062,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [
         atMention.isActive,
         slashCommand.isActive,
-        slashCommands,
+        filteredSlashCommands,
         selectedSlashIndex,
         handleSlashCommandSelect,
         closeSlashCommandPopup,
@@ -1561,8 +1576,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           />
 
           <SlashCommandsPopup
-            commands={slashCommands}
-            isVisible={slashCommand.isActive && slashCommands.length > 0}
+            commands={filteredSlashCommands}
+            isVisible={slashCommand.isActive && filteredSlashCommands.length > 0}
             selectedIndex={selectedSlashIndex}
             onSelect={handleSlashCommandSelect}
             onClose={closeSlashCommandPopup}
