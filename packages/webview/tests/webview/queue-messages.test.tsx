@@ -110,7 +110,13 @@ describe("Message Queuing", () => {
     );
     expect(abortMessageSent).toBe(true);
 
-    // Queue is STILL there (abort doesn't clear queue)
+    // Queue is STILL there (abort doesn't clear queue). Expand to verify the
+    // item survives (collapsed hides all rows).
+    fireEvent.click(
+      screen
+        .getByTestId("queued-message-list")
+        .querySelector(".queued-message-list-header") as HTMLElement,
+    );
     expect(queuePanel).toBeInTheDocument();
     expect(itemText("q1")).toBe("Queued message 1");
   });
@@ -126,7 +132,7 @@ describe("Message Queuing", () => {
       ],
     });
 
-    // Expand to see both items (default collapsed shows only the first).
+    // Expand to see both items (collapsed hides every row).
     fireEvent.click(
       screen
         .getByTestId("queued-message-list")
@@ -150,6 +156,34 @@ describe("Message Queuing", () => {
     // Optimistic local removal
     expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
     expect(itemText("q2")).toBe("Queued message 2");
+  });
+
+  it("should hide every queued item while collapsed, so toggling is always visible", () => {
+    renderChatApp();
+
+    sendCommand("startStreaming");
+    sendCommand("updateQueue", {
+      messages: [{ id: "q1", content: "Queued message 1" }],
+    });
+
+    // Default state is collapsed: the header shows the count, no item rows.
+    const queuePanel = screen.getByTestId("queued-message-list");
+    expect(queuePanel).toHaveTextContent("消息队列 (1)");
+    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
+
+    // Expand: the single item becomes visible.
+    fireEvent.click(
+      queuePanel.querySelector(".queued-message-list-header") as HTMLElement,
+    );
+    expect(screen.getByTestId("queued-item-q1")).toBeInTheDocument();
+
+    // Collapse again: the item disappears — visible feedback in both directions.
+    fireEvent.click(
+      screen
+        .getByTestId("queued-message-list")
+        .querySelector(".queued-message-list-header") as HTMLElement,
+    );
+    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
   });
 
   it("should display bang commands with ! prefix in the queue", () => {
@@ -189,6 +223,13 @@ describe("Message Queuing", () => {
         },
       ],
     });
+
+    // Expand so the item row renders (collapsed hides all rows).
+    fireEvent.click(
+      screen
+        .getByTestId("queued-message-list")
+        .querySelector(".queued-message-list-header") as HTMLElement,
+    );
 
     // The Tooltip wrapper (.tooltip-container) contains the item and a
     // role="tooltip" box carrying the full text.

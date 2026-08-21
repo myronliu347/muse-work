@@ -82,7 +82,7 @@ describe("Message Queue Features", () => {
     expect(queuePanel).toHaveTextContent("消息队列 (3)");
   });
 
-  it("should default to collapsed showing only the first item, and expand to show all on header click", () => {
+  it("should default to collapsed hiding every item, and expand to show all on header click", () => {
     renderChatApp();
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
@@ -92,8 +92,8 @@ describe("Message Queue Features", () => {
       ],
     });
 
-    // Collapsed by default: only first item, chevron SVG not rotated (no `expanded`)
-    expect(screen.getByTestId("queued-item-q1")).toBeInTheDocument();
+    // Collapsed by default: no item rows, chevron SVG not rotated (no `expanded`)
+    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
     expect(screen.queryByTestId("queued-item-q2")).not.toBeInTheDocument();
     const collapsedChevron = screen
       .getByTestId("queued-message-list")
@@ -111,8 +111,9 @@ describe("Message Queue Features", () => {
         .querySelector(".queued-chevron.expanded"),
     ).toBeTruthy();
 
-    // Collapse again
+    // Collapse again: every row disappears
     clickHeader();
+    expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
     expect(screen.queryByTestId("queued-item-q2")).not.toBeInTheDocument();
   });
 
@@ -121,6 +122,7 @@ describe("Message Queue Features", () => {
     sendCommand("startStreaming");
     sendCommand("updateQueue", { messages: [{ id: "q1", content: "Queued 1" }] });
 
+    clickHeader(); // expand so the row (and its delete button) is rendered
     fireEvent.click(screen.getByTestId("queued-delete-q1"));
 
     const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
@@ -173,6 +175,7 @@ describe("Message Queue Features", () => {
     });
 
     const input = screen.getByTestId("message-input");
+    clickHeader(); // expand so the row (and its edit button) is rendered
     fireEvent.click(screen.getByTestId("queued-edit-q1"));
     await waitFor(() =>
       expect(input.querySelector(".queued-edit-chip")).not.toBeNull(),
@@ -237,6 +240,7 @@ describe("Message Queue Features", () => {
     sendCommand("startStreaming");
     sendCommand("updateQueue", { messages: [{ id: "q1", content: "Old text" }] });
 
+    clickHeader(); // expand so the row (and its edit button) is rendered
     fireEvent.click(screen.getByTestId("queued-edit-q1"));
     await waitFor(() =>
       expect(
@@ -270,6 +274,9 @@ describe("Message Queue Features", () => {
 
     fireEvent.click(screen.getByTestId("abort-btn"));
 
+    // Queue is still there (abort doesn't clear queue); expand to verify the
+    // item survives (collapsed hides every row).
+    clickHeader();
     expect(queuePanel).toBeInTheDocument();
     expect(itemText("q1")).toBe("Queued 1");
   });
@@ -329,6 +336,13 @@ describe("Message Queue Features", () => {
     const inputB = within(containerB).getByTestId("message-input");
     expect(inputA.querySelector(".queued-edit-chip")).toBeNull();
     expect(inputB.querySelector(".queued-edit-chip")).toBeNull();
+
+    // Expand pane A's queue so the row (and its edit button) renders.
+    fireEvent.click(
+      within(containerA)
+        .getByTestId("queued-message-list")
+        .querySelector(".queued-message-list-header") as HTMLElement,
+    );
 
     // Click edit in pane A only.
     fireEvent.click(within(containerA).getByTestId("queued-edit-q1"));

@@ -19,7 +19,10 @@ export const QueuedMessageList: React.FC<QueuedMessageListProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
   const [showScrim, setShowScrim] = useState(false);
 
-  const items = isCollapsed ? queuedMessages.slice(0, 1) : queuedMessages;
+  // Collapsed hides every row (header only) — mirroring the sibling TaskList.
+  // Previously it kept the first item visible, so toggling a 1-message queue
+  // produced no visible change and expand/collapse felt broken.
+  const items = isCollapsed ? [] : queuedMessages;
 
   // Show bottom scrim only when expanded and the list overflows / can scroll.
   useEffect(() => {
