@@ -49,4 +49,40 @@ describe("FileContentSearch", () => {
     fireEvent.click(screen.getByTestId("content-search-match-a.ts-3"));
     expect(onOpenMatch).toHaveBeenCalledWith("/w/a.ts", 3);
   });
+
+  it("does not emit duplicate-key warnings when matches clip to the same column", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // Long-line truncation maps both matches to the same clipped startCol; the
+    // keys must still differ (index suffix) or React warns + may drop children.
+    const state: ContentSearchState = {
+      ...emptyContentSearchState(),
+      query: "hi",
+      results: [
+        {
+          path: "/w/a.ts",
+          relativePath: "a.ts",
+          matches: [
+            { line: 3, text: "x".repeat(400), startCol: 198, endCol: 201 },
+            { line: 3, text: "y".repeat(400), startCol: 198, endCol: 201 },
+          ],
+        },
+      ],
+      expandedFiles: ["a.ts"],
+    };
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={state}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    const messages = errorSpy.mock.calls
+      .map((c) => String(c[0]))
+      .join("\n");
+    errorSpy.mockRestore();
+    expect(messages).not.toContain("same key");
+    // Both matches are present (same clipped column, different windows).
+    expect(screen.getAllByRole("button").length).toBeGreaterThanOrEqual(3);
+  });
 });

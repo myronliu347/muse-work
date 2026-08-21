@@ -145,9 +145,12 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
                 </span>
               </button>
               {open &&
-                file.matches.map((m) => (
+                file.matches.map((m, idx) => (
                   <button
-                    key={`${file.path}-${m.line}-${m.startCol}`}
+                    // startCol is the *clipped* column (long lines truncate the
+                    // match window); two matches on one line can clip to the
+                    // same column, so the index keeps keys unique.
+                    key={`${file.path}-${m.line}-${m.startCol}-${idx}`}
                     type="button"
                     className="file-content-search-match"
                     data-testid={`content-search-match-${file.relativePath}-${m.line}`}
