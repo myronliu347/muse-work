@@ -867,6 +867,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     if (event.type === "user:message") {
       postToWebview({
         command: "user:message",
+        id: event.id,
         content: event.content,
         images: event.images,
       });

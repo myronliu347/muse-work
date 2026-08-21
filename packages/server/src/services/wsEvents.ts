@@ -26,6 +26,8 @@ export type WsEvent =
   | { type: "assistant:message"; messageId: string }
   | {
       type: "user:message";
+      /** SDK 真实消息 id（webview 用它对齐乐观气泡的临时 id）。 */
+      id?: string;
       content: string;
       images?: Array<{ path: string; mimeType: string }>;
     }

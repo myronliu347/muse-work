@@ -844,6 +844,10 @@ export interface WorkflowManagerProps {
 
 export type ChatAction =
   | { type: "SET_MESSAGES"; payload: Message[] }
+  | {
+      type: "UPDATE_MESSAGE_ID";
+      payload: { from: string; to: string };
+    }
   | { type: "SET_TASKS"; payload: Task[] }
   | { type: "SET_BACKGROUND_TASKS"; payload: BackgroundTaskSummary[] }
   | { type: "SET_WORKFLOW_RUNS"; payload: SerializableWorkflowRun[] }

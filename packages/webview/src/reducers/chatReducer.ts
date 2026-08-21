@@ -243,6 +243,18 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         },
       };
     }
+    case "UPDATE_MESSAGE_ID": {
+      // 乐观用户气泡的客户端临时 id 对齐成 SDK 真实 id：rewind 等按 id 的
+      // 操作依赖服务器 agent 消息里的 id，临时 id 从未持久化会 404。
+      const { from, to } = action.payload;
+      if (!from || !to || from === to) return state;
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === from ? { ...m, id: to } : m,
+        ),
+      };
+    }
     case "SET_TASKS":
       return {
         ...state,

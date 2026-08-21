@@ -888,8 +888,26 @@ export function createSessionRunner(
           // bubbles. Regular user messages surface here for queued sends whose
           // optimistic bubble was skipped while the AI was busy.
           if (params.isMeta) return;
+          // SDK 的 onUserMessageAdded 回调不携带新消息 id；从 agent 消息里取
+          // 最近一条非 meta 的 user 消息 id 下发。webview 用它把乐观气泡的
+          // 客户端临时 id 对齐成 SDK 真实 id——否则 rewind 等按 id 操作会
+          // 报 checkpoint not found（乐观 id 从未持久化，agent 消息里没有）。
+          let id: string | undefined;
+          const agent = agents.get(sessionId);
+          const agentMessages = agent?.getMessages?.() ?? [];
+          for (let i = agentMessages.length - 1; i >= 0; i--) {
+            const m = agentMessages[i] as {
+              role?: string;
+              id?: unknown;
+              isMeta?: boolean;
+            };
+            if (m.role !== "user" || m.isMeta) continue;
+            if (typeof m.id === "string") id = m.id;
+            break;
+          }
           hub.broadcast(sessionId, {
             type: "user:message",
+            id,
             content: params.content,
             images: params.images,
           });

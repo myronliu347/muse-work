@@ -767,6 +767,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         case "user:message": {
           if (!forThisPane(message)) break;
           const um = message as {
+            id?: string;
             content?: string;
             images?: Array<{ path: string; mimeType: string }>;
           };
@@ -775,6 +776,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           // and the bubble does not render the marker text.
           const content = stripImageSourceMarkers(um.content ?? "").trim();
           if (!content && !um.images?.length) break;
+          const realId =
+            typeof um.id === "string" && um.id.length > 0 ? um.id : undefined;
           const lastMsg = stateRef.current.messages[stateRef.current.messages.length - 1];
           const lastTs = lastMsg?.timestamp
             ? new Date(lastMsg.timestamp).getTime()
@@ -788,6 +791,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               (b) => b.type === "text" && b.content === content,
             )
           ) {
+            // 命中乐观气泡：把客户端临时 id 对齐成 SDK 真实 id，否则该消息
+            // 上的 rewind 按钮会用临时 id 请求服务器 → checkpoint not found
+            if (realId && lastMsg.id !== realId) {
+              dispatch({
+                type: "UPDATE_MESSAGE_ID",
+                payload: { from: lastMsg.id, to: realId },
+              });
+            }
             break;
           }
           const blocks: Message["blocks"] = [];
@@ -803,7 +814,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           dispatch({
             type: "APPEND_MESSAGE",
             payload: {
-              id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              id:
+                realId ??
+                `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               role: "user",
               timestamp: new Date().toISOString(),
               blocks,
