@@ -19,7 +19,7 @@ describe("settings routes", () => {
     }
   });
 
-  it("GET /settings defaults superpowers on", async () => {
+  it("GET /settings defaults mattpocock on and superpowers off", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -27,7 +27,7 @@ describe("settings routes", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       version: 1,
-      plugins: { superpowers: true },
+      plugins: { superpowers: false, mattpocock: true },
     });
   });
 
@@ -76,7 +76,7 @@ describe("settings routes", () => {
     expect(bad.status).toBe(400);
   });
 
-  it("PATCH /settings writes false and invalidates agent identities", async () => {
+  it("PATCH /settings writes fields and invalidates agent identities", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -93,27 +93,37 @@ describe("settings routes", () => {
     const res = await fetch(`${app.baseUrl}/settings`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ plugins: { superpowers: false } }),
+      body: JSON.stringify({ plugins: { superpowers: true } }),
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       version: 1,
-      plugins: { superpowers: false },
+      plugins: { superpowers: true, mattpocock: true },
     });
     expect(invalidated).toBe(true);
     expect(
-      JSON.parse(fs.readFileSync(getSettingsPath(app.home), "utf8")).plugins
-        .superpowers,
-    ).toBe(false);
+      JSON.parse(fs.readFileSync(getSettingsPath(app.home), "utf8")).plugins,
+    ).toEqual({ superpowers: true, mattpocock: true });
 
     const again = await fetch(`${app.baseUrl}/settings`);
     expect(await again.json()).toEqual({
       version: 1,
-      plugins: { superpowers: false },
+      plugins: { superpowers: true, mattpocock: true },
+    });
+
+    const off = await fetch(`${app.baseUrl}/settings`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ plugins: { mattpocock: false } }),
+    });
+    expect(off.status).toBe(200);
+    expect(await off.json()).toEqual({
+      version: 1,
+      plugins: { superpowers: true, mattpocock: false },
     });
   });
 
-  it("PATCH /settings rejects missing or non-boolean superpowers", async () => {
+  it("PATCH /settings rejects missing or non-boolean fields", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;

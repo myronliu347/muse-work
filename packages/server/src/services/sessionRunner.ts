@@ -33,7 +33,7 @@ import {
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 import {
   loadMuseSettings,
-  superpowersPluginDirIfPresent,
+  pluginDirIfPresent,
 } from "./museSettings.js";
 
 /** Resolve UI label for a model id (falls back to the raw id). */
@@ -490,10 +490,18 @@ export function createSessionRunner(
     });
   }
 
-  function superpowersFlag(): "superpowers:on" | "superpowers:off" {
-    const enabled = loadMuseSettings(home).plugins.superpowers;
-    const dir = superpowersPluginDirIfPresent();
-    return enabled && dir ? "superpowers:on" : "superpowers:off";
+  /** Paths of built-in plugins enabled in settings whose dirs are present. */
+  function enabledPluginDirs(): string[] {
+    const plugins = loadMuseSettings(home).plugins;
+    return ["superpowers", "mattpocock"].flatMap((name) => {
+      if (!plugins[name as keyof typeof plugins]) return [];
+      const dir = pluginDirIfPresent(name);
+      return dir ? [dir] : [];
+    });
+  }
+
+  function pluginsFlag(): string {
+    return enabledPluginDirs().join(",") || "none";
   }
 
   function gatewayIdentity(gateway: GatewayResolution): string {
@@ -505,7 +513,7 @@ export function createSessionRunner(
       credential,
       gateway.fastModel ?? "",
       MUSE_IDENTITY_REV,
-      superpowersFlag(),
+      pluginsFlag(),
     ].join("\0");
   }
 
@@ -825,14 +833,12 @@ export function createSessionRunner(
       permissionMode:
         store.get(sessionId)?.permissionMode ?? "acceptEdits",
       restoreSessionId,
-      ...(superpowersFlag() === "superpowers:on"
+      ...(enabledPluginDirs().length > 0
         ? {
-            plugins: [
-              {
-                type: "local" as const,
-                path: superpowersPluginDirIfPresent() as string,
-              },
-            ],
+            plugins: enabledPluginDirs().map((path) => ({
+              type: "local" as const,
+              path,
+            })),
           }
         : {}),
       // Intentionally omit serverUrl to avoid Wave SSO.

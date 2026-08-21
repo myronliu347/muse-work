@@ -13,14 +13,14 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
         contentType: "application/json",
         body: JSON.stringify({
           version: 1,
-          plugins: { superpowers: true },
+          plugins: { superpowers: false, mattpocock: true },
         }),
       });
       return;
     }
     if (route.request().method() === "PUT" || route.request().method() === "PATCH") {
       const body = route.request().postDataJSON() as {
-        plugins?: { superpowers?: boolean };
+        plugins?: { superpowers?: boolean; mattpocock?: boolean };
       };
       await route.fulfill({
         status: 200,
@@ -28,7 +28,8 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
         body: JSON.stringify({
           version: 1,
           plugins: {
-            superpowers: body?.plugins?.superpowers ?? true,
+            superpowers: body?.plugins?.superpowers ?? false,
+            mattpocock: body?.plugins?.mattpocock ?? true,
           },
         }),
       });

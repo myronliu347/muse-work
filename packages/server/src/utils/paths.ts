@@ -38,29 +38,31 @@ export function findServerPackageRoot(fromDir: string): string | undefined {
   }
 }
 
-function hasSuperpowersManifest(dir: string): boolean {
+function hasPluginManifest(dir: string): boolean {
   return fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json"));
 }
 
-export function resolveSuperpowersPluginDirFrom(fromDir: string): string {
+export function resolvePluginDirFrom(
+  fromDir: string,
+  pluginName: string,
+): string {
   const root = findServerPackageRoot(fromDir);
   const candidates = [
-    root ? path.join(root, "plugins", "superpowers") : "",
-    path.join(fromDir, "plugins", "superpowers"),
-    path.resolve(fromDir, "..", "plugins", "superpowers"),
+    root ? path.join(root, "plugins", pluginName) : "",
+    path.join(fromDir, "plugins", pluginName),
+    path.resolve(fromDir, "..", "plugins", pluginName),
   ].filter((dir, i, all) => dir && all.indexOf(dir) === i);
 
   for (const dir of candidates) {
-    if (hasSuperpowersManifest(dir)) return dir;
+    if (hasPluginManifest(dir)) return dir;
   }
-  return (
-    candidates[0] ?? path.resolve(fromDir, "..", "plugins", "superpowers")
-  );
+  return candidates[0] ?? path.resolve(fromDir, "..", "plugins", pluginName);
 }
 
 /** Plugin dir next to the server package root, or `dist/plugins` after tsc. */
-export function resolveSuperpowersPluginDir(): string {
-  return resolveSuperpowersPluginDirFrom(
+export function resolvePluginDir(pluginName: string): string {
+  return resolvePluginDirFrom(
     path.dirname(fileURLToPath(import.meta.url)),
+    pluginName,
   );
 }

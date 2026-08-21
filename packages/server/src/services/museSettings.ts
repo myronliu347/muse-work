@@ -4,25 +4,31 @@ import path from "node:path";
 import { getLogger } from "../utils/logger.js";
 import {
   getSettingsPath,
-  resolveSuperpowersPluginDir,
+  resolvePluginDir,
 } from "../utils/paths.js";
 
 export type MuseSettings = {
   version: 1;
-  plugins: { superpowers: boolean };
+  plugins: { superpowers: boolean; mattpocock: boolean };
 };
 
 const DEFAULT_SETTINGS: MuseSettings = {
   version: 1,
-  plugins: { superpowers: true },
+  plugins: { superpowers: false, mattpocock: true },
 };
 
 function isSettings(value: unknown): value is MuseSettings {
   if (!value || typeof value !== "object") return false;
   const plugins = (value as { plugins?: unknown }).plugins;
   if (!plugins || typeof plugins !== "object") return false;
-  const superpowers = (plugins as { superpowers?: unknown }).superpowers;
-  return superpowers === undefined || typeof superpowers === "boolean";
+  const { superpowers, mattpocock } = plugins as {
+    superpowers?: unknown;
+    mattpocock?: unknown;
+  };
+  return (
+    (superpowers === undefined || typeof superpowers === "boolean") &&
+    (mattpocock === undefined || typeof mattpocock === "boolean")
+  );
 }
 
 export function loadMuseSettings(home = os.homedir()): MuseSettings {
@@ -36,7 +42,8 @@ export function loadMuseSettings(home = os.homedir()): MuseSettings {
     return {
       version: 1,
       plugins: {
-        superpowers: raw.plugins.superpowers ?? true,
+        superpowers: raw.plugins.superpowers ?? false,
+        mattpocock: raw.plugins.mattpocock ?? true,
       },
     };
   } catch (err) {
@@ -63,7 +70,7 @@ export function saveMuseSettings(
 }
 
 export function patchMuseSettings(
-  patch: { plugins: { superpowers: boolean } },
+  patch: { plugins: { superpowers?: boolean; mattpocock?: boolean } },
   home = os.homedir(),
 ): MuseSettings {
   const current = loadMuseSettings(home);
@@ -71,18 +78,20 @@ export function patchMuseSettings(
     version: 1,
     plugins: {
       ...current.plugins,
-      superpowers: patch.plugins.superpowers,
+      superpowers:
+        patch.plugins.superpowers ?? current.plugins.superpowers,
+      mattpocock: patch.plugins.mattpocock ?? current.plugins.mattpocock,
     },
   };
   saveMuseSettings(next, home);
   return next;
 }
 
-export function superpowersPluginDirIfPresent(): string | undefined {
-  const dir = resolveSuperpowersPluginDir();
+export function pluginDirIfPresent(pluginName: string): string | undefined {
+  const dir = resolvePluginDir(pluginName);
   const manifest = path.join(dir, ".wave-plugin", "plugin.json");
   if (!fs.existsSync(manifest)) {
-    getLogger().error("superpowers plugin directory missing", { dir });
+    getLogger().error(`${pluginName} plugin directory missing`, { dir });
     return undefined;
   }
   return dir;
@@ -91,6 +100,6 @@ export function superpowersPluginDirIfPresent(): string | undefined {
 export {
   findServerPackageRoot,
   getSettingsPath,
-  resolveSuperpowersPluginDir,
-  resolveSuperpowersPluginDirFrom,
+  resolvePluginDir,
+  resolvePluginDirFrom,
 } from "../utils/paths.js";

@@ -57,20 +57,34 @@ settingsRoutes.put("/settings/raw", async (c) => {
 
 settingsRoutes.patch("/settings", async (c) => {
   const ctx = c.get("ctx");
-  let body: { plugins?: { superpowers?: unknown } } | undefined;
+  let body: {
+    plugins?: { superpowers?: unknown; mattpocock?: unknown };
+  } | undefined;
   try {
-    body = await c.req.json<{ plugins?: { superpowers?: unknown } }>();
+    body = await c.req.json<{
+      plugins?: { superpowers?: unknown; mattpocock?: unknown };
+    }>();
   } catch {
     body = undefined;
   }
-  const superpowers = body?.plugins?.superpowers;
-  if (typeof superpowers !== "boolean") {
+  const plugins = body?.plugins;
+  if (!plugins) {
+    return c.json({ error: "plugins is required" }, 400);
+  }
+  const { superpowers, mattpocock } = plugins;
+  if (
+    (superpowers !== undefined && typeof superpowers !== "boolean") ||
+    (mattpocock !== undefined && typeof mattpocock !== "boolean")
+  ) {
     return c.json(
-      { error: "plugins.superpowers is required and must be boolean" },
+      { error: "plugins fields must be boolean" },
       400,
     );
   }
-  const settings = patchMuseSettings({ plugins: { superpowers } }, ctx.home);
+  const settings = patchMuseSettings(
+    { plugins: { superpowers, mattpocock } },
+    ctx.home,
+  );
   ctx.runner.invalidateAgentIdentities();
   return c.json(settings);
 });

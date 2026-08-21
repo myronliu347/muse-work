@@ -8,10 +8,10 @@ import {
   getSettingsPath,
   loadMuseSettings,
   patchMuseSettings,
-  resolveSuperpowersPluginDir,
-  resolveSuperpowersPluginDirFrom,
+  pluginDirIfPresent,
+  resolvePluginDir,
+  resolvePluginDirFrom,
   saveMuseSettings,
-  superpowersPluginDirIfPresent,
 } from "../src/services/museSettings.js";
 
 describe("museSettings", () => {
@@ -23,39 +23,62 @@ describe("museSettings", () => {
     }
   });
 
-  it("defaults superpowers on when the file is missing", () => {
+  it("defaults mattpocock on and superpowers off when the file is missing", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-settings-"));
     homes.push(home);
     expect(loadMuseSettings(home)).toEqual({
       version: 1,
-      plugins: { superpowers: true },
+      plugins: { superpowers: false, mattpocock: true },
     });
     expect(fs.existsSync(getSettingsPath(home))).toBe(false);
   });
 
-  it("defaults superpowers on when JSON is corrupt", () => {
+  it("defaults mattpocock on and superpowers off when JSON is corrupt", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-settings-"));
     homes.push(home);
     const file = getSettingsPath(home);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, "{not-json");
-    expect(loadMuseSettings(home).plugins.superpowers).toBe(true);
+    expect(loadMuseSettings(home).plugins).toEqual({
+      superpowers: false,
+      mattpocock: true,
+    });
   });
 
-  it("honors explicit false and round-trips via patch", () => {
+  it("honors explicit values and round-trips via patch", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-settings-"));
     homes.push(home);
     saveMuseSettings(
-      { version: 1, plugins: { superpowers: false } },
+      {
+        version: 1,
+        plugins: { superpowers: false, mattpocock: true },
+      },
       home,
     );
-    expect(loadMuseSettings(home).plugins.superpowers).toBe(false);
+    expect(loadMuseSettings(home).plugins).toEqual({
+      superpowers: false,
+      mattpocock: true,
+    });
     const next = patchMuseSettings(
       { plugins: { superpowers: true } },
       home,
     );
-    expect(next.plugins.superpowers).toBe(true);
-    expect(loadMuseSettings(home).plugins.superpowers).toBe(true);
+    expect(next.plugins).toEqual({
+      superpowers: true,
+      mattpocock: true,
+    });
+    expect(loadMuseSettings(home).plugins).toEqual({
+      superpowers: true,
+      mattpocock: true,
+    });
+    const onlyMattpocock = patchMuseSettings(
+      { plugins: { mattpocock: false } },
+      home,
+    );
+    expect(onlyMattpocock.plugins).toEqual({
+      superpowers: true,
+      mattpocock: false,
+    });
   });
 
   it("walks up from a nested path to the @muse-work/server package root", () => {
@@ -114,18 +137,20 @@ describe("museSettings", () => {
       path.join(pluginDir, ".wave-plugin", "plugin.json"),
       JSON.stringify({ name: "superpowers" }),
     );
-    expect(resolveSuperpowersPluginDirFrom(fromDir)).toBe(pluginDir);
+    expect(resolvePluginDirFrom(fromDir, "superpowers")).toBe(pluginDir);
   });
 
-  it("resolves the vendored superpowers manifest from the server package root", () => {
+  it("resolves the vendored plugin manifests from the server package root", () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const root = findServerPackageRoot(here);
     expect(root).toBeTruthy();
-    const dir = resolveSuperpowersPluginDir();
-    expect(dir).toBe(path.join(root as string, "plugins", "superpowers"));
-    expect(
-      fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json")),
-    ).toBe(true);
-    expect(superpowersPluginDirIfPresent()).toBe(dir);
+    for (const name of ["superpowers", "mattpocock"]) {
+      const dir = resolvePluginDir(name);
+      expect(dir).toBe(path.join(root as string, "plugins", name));
+      expect(
+        fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json")),
+      ).toBe(true);
+      expect(pluginDirIfPresent(name)).toBe(dir);
+    }
   });
 });

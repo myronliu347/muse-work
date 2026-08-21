@@ -7,17 +7,32 @@ import { MuseTheme } from "../../src/ui/theme";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 
 function mockClient(opts: {
-  get?: { version: 1; plugins: { superpowers: boolean } };
+  get?: { version: 1; plugins: { superpowers: boolean; mattpocock: boolean } };
   updateError?: string;
 }): MuseApiClient {
   return {
     getSettings: vi.fn(async () => {
-      return opts.get ?? { version: 1, plugins: { superpowers: true } };
+      return (
+        opts.get ?? {
+          version: 1,
+          plugins: { superpowers: false, mattpocock: true },
+        }
+      );
     }),
-    updateSettings: vi.fn(async (patch: { plugins: { superpowers: boolean } }) => {
-      if (opts.updateError) throw new Error(opts.updateError);
-      return { version: 1 as const, plugins: patch.plugins };
-    }),
+    updateSettings: vi.fn(
+      async (patch: {
+        plugins: { superpowers?: boolean; mattpocock?: boolean };
+      }) => {
+        if (opts.updateError) throw new Error(opts.updateError);
+        return {
+          version: 1 as const,
+          plugins: {
+            superpowers: patch.plugins.superpowers ?? false,
+            mattpocock: patch.plugins.mattpocock ?? true,
+          },
+        };
+      },
+    ),
   } as unknown as MuseApiClient;
 }
 
@@ -26,17 +41,35 @@ describe("PluginSettings", () => {
     cleanup();
   });
 
-  it("checks the Superpowers toggle by default", async () => {
+  it("checks MattPocock and unchecks Superpowers by default", async () => {
     render(
       <MuseTheme>
         <PluginSettings api={mockClient({})} />
       </MuseTheme>,
     );
-    const toggle = await screen.findByTestId("superpowers-toggle");
-    expect(toggle).toBeChecked();
+    const mattpocock = await screen.findByTestId("mattpocock-toggle");
+    expect(mattpocock).toBeChecked();
+    const superpowers = screen.getByTestId("superpowers-toggle");
+    expect(superpowers).not.toBeChecked();
   });
 
-  it("PATCHes superpowers false when clicked", async () => {
+  it("PATCHes mattpocock false when clicked", async () => {
+    const api = mockClient({});
+    render(
+      <MuseTheme>
+        <PluginSettings api={api} />
+      </MuseTheme>,
+    );
+    const toggle = await screen.findByTestId("mattpocock-toggle");
+    fireEvent.click(toggle);
+    await vi.waitFor(() => {
+      expect(api.updateSettings).toHaveBeenCalledWith({
+        plugins: { mattpocock: false },
+      });
+    });
+  });
+
+  it("PATCHes superpowers true when clicked", async () => {
     const api = mockClient({});
     render(
       <MuseTheme>
@@ -47,7 +80,7 @@ describe("PluginSettings", () => {
     fireEvent.click(toggle);
     await vi.waitFor(() => {
       expect(api.updateSettings).toHaveBeenCalledWith({
-        plugins: { superpowers: false },
+        plugins: { superpowers: true },
       });
     });
   });
@@ -59,10 +92,10 @@ describe("PluginSettings", () => {
         <PluginSettings api={api} />
       </MuseTheme>,
     );
-    const toggle = await screen.findByTestId("superpowers-toggle");
+    const toggle = await screen.findByTestId("mattpocock-toggle");
     fireEvent.click(toggle);
     await vi.waitFor(() => {
-      expect(screen.getByText(/network down/i)).toBeTruthy();
+      expect(screen.getAllByText(/network down/i).length).toBeGreaterThan(0);
     });
     expect(toggle).toBeChecked();
   });

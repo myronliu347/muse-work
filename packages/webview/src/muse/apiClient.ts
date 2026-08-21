@@ -54,7 +54,7 @@ export interface MuseOpenAiCompatibleConfigPatch {
 
 export interface MuseSettings {
   version: 1;
-  plugins: { superpowers: boolean };
+  plugins: { superpowers: boolean; mattpocock: boolean };
 }
 
 export interface MuseAuthStatus {
@@ -202,7 +202,7 @@ export class MuseApiClient {
   }
 
   async updateSettings(patch: {
-    plugins: { superpowers: boolean };
+    plugins: { superpowers?: boolean; mattpocock?: boolean };
   }): Promise<MuseSettings> {
     const res = await this.request("/settings", {
       method: "PATCH",

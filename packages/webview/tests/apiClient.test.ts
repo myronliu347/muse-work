@@ -91,7 +91,10 @@ describe("MuseApiClient", () => {
           body: typeof init?.body === "string" ? init.body : undefined,
         });
         return new Response(
-          JSON.stringify({ version: 1, plugins: { superpowers: false } }),
+          JSON.stringify({
+            version: 1,
+            plugins: { superpowers: false, mattpocock: true },
+          }),
           { status: 200 },
         );
       },

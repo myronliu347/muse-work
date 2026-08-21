@@ -514,7 +514,7 @@ describe("sessionRunner concurrency / dispose", () => {
     ).rejects.toMatchObject({ statusCode: 404 });
   });
 
-  it("passes local superpowers plugin when enabled", async () => {
+  it("passes local plugins for each enabled builtin plugin", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-on-"));
     saveProvidersConfig(
       {
@@ -524,7 +524,10 @@ describe("sessionRunner concurrency / dispose", () => {
       },
       home,
     );
-    saveMuseSettings({ version: 1, plugins: { superpowers: true } }, home);
+    saveMuseSettings(
+      { version: 1, plugins: { superpowers: true, mattpocock: true } },
+      home,
+    );
 
     let seenPlugins: unknown;
     const provider: AiProvider = {
@@ -581,10 +584,14 @@ describe("sessionRunner concurrency / dispose", () => {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]superpowers$/),
       },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]mattpocock$/),
+      },
     ]);
   });
 
-  it("omits plugins when superpowers is disabled and recreates on toggle", async () => {
+  it("omits plugins when all builtin plugins are disabled and recreates on toggle", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-off-"));
     saveProvidersConfig(
       {
@@ -594,7 +601,10 @@ describe("sessionRunner concurrency / dispose", () => {
       },
       home,
     );
-    saveMuseSettings({ version: 1, plugins: { superpowers: true } }, home);
+    saveMuseSettings(
+      { version: 1, plugins: { superpowers: true, mattpocock: true } },
+      home,
+    );
 
     const pluginSnapshots: unknown[] = [];
     let disposeCount = 0;
@@ -652,7 +662,10 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
     expect(pluginSnapshots[0]).toBeDefined();
 
-    saveMuseSettings({ version: 1, plugins: { superpowers: false } }, home);
+    saveMuseSettings(
+      { version: 1, plugins: { superpowers: false, mattpocock: false } },
+      home,
+    );
     runner.invalidateAgentIdentities();
     await runner.sendMessage(session.id, "again");
     await expect.poll(() => pluginSnapshots.length).toBe(2);
