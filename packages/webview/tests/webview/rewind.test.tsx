@@ -276,4 +276,39 @@ describe("Rewind Feature", () => {
     const rewindButtons = document.querySelectorAll(".message-action-btn");
     expect(rewindButtons).toHaveLength(1);
   });
+
+  it("clears the rewind-prefilled input when switching sessions (no stale prefill leak)", async () => {
+    renderChatApp();
+
+    // rewind 回显：setInitialState 带 inputContent 预填输入框
+    act(() => {
+      sendCommand("setInitialState", {
+        messages: [],
+        inputContent: "rewound text",
+        isAuthenticated: true,
+      });
+    });
+    const input = screen.getByTestId("message-input");
+    await waitFor(() => {
+      expect(input.textContent).toContain("rewound text");
+    });
+
+    // 切到另一个会话：预填文本必须清空，不能带进新会话
+    act(() => {
+      sendCommand("updateCurrentSession", {
+        session: {
+          id: "sess-b",
+          sessionType: "main",
+          workdir: "/mock/workdir",
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(input.textContent).not.toContain("rewound text");
+    });
+  });
 });

@@ -361,6 +361,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
               tasks: [],
               activeDialog: dialogAfterSessionSwitch(state.activeDialog),
               isCompacting: false,
+              // rewind 等流程通过 setInitialState 塞过 inputContent 预填输入框；
+              // 会话切换时必须清掉，否则 MessageInput 的 sessionChanged 重置会把
+              // 上一会话的预填文本带进新会话。
+              inputContent: undefined,
               // Subagent transcripts/bindings are session-scoped: SET_MESSAGES
               // merges (never replaces) subagentMessages, so without clearing
               // here transcripts from previous sessions would be pinned in
