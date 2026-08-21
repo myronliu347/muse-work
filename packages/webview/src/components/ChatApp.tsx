@@ -78,6 +78,7 @@ import {
   usePaneUi,
   patchPaneUi,
   emptyContentSearchState,
+  releasePanelContent,
   type PanelGroupState,
 } from "../stores";
 import type { ContentSearchFileHit, ContentSearchState } from "../types";
@@ -1671,11 +1672,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       if (checkedPanelsRef.current.includes(kind)) {
         updatePanelGroup((group) => {
           const nextChecked = group.checked.filter((k) => k !== kind);
+          // Release the closed panel's large payloads (file content up to 2MB,
+          // search results, diff snapshots). Without this they'd stay pinned
+          // for the whole workdir lifetime (groups are keyed by workdir).
+          const released = releasePanelContent(group, kind);
           if (nextChecked.length === 0) {
-            return collapseDockState({
-              checked: group.checked,
-              active: group.active,
-            });
+            return {
+              ...collapseDockState({
+                checked: group.checked,
+                active: group.active,
+              }),
+              ...released,
+            };
           }
           return {
             active: nextActivePanelAfterClose(
@@ -1684,6 +1692,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               group.active,
             ),
             checked: nextChecked,
+            ...released,
           };
         });
         // Closing the preview hides the pane but never releases a remote tunnel

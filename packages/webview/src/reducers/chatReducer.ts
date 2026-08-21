@@ -334,6 +334,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
               tasks: [],
               activeDialog: dialogAfterSessionSwitch(state.activeDialog),
               isCompacting: false,
+              // Subagent transcripts/bindings are session-scoped: SET_MESSAGES
+              // merges (never replaces) subagentMessages, so without clearing
+              // here transcripts from previous sessions would be pinned in
+              // memory forever (multi-MB per workflow run).
+              subagentMessages: {},
+              agentToolSubagentIds: {},
+              pendingAgentToolIds: [],
+              unboundSubagentIds: [],
             }
           : {}),
       };

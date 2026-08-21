@@ -1281,6 +1281,75 @@ describe("chatReducer", () => {
 
       expect(newState.backgroundTasks).toEqual(backgroundTasks);
     });
+
+    it("clears subagent transcripts when switching to another session", () => {
+      // SET_MESSAGES merges (never replaces) subagentMessages, so transcripts
+      // from a previous session would otherwise be pinned in memory forever.
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const state = {
+        ...initialState,
+        currentSession,
+        subagentMessages: {
+          "subagent-old": [
+            { id: "m1", role: "assistant" as const, timestamp: "0", blocks: [] },
+          ],
+          "tool-old": [
+            { id: "m2", role: "assistant" as const, timestamp: "0", blocks: [] },
+          ],
+        },
+        agentToolSubagentIds: { "tool-old": "subagent-old" },
+        pendingAgentToolIds: ["tool-pending"],
+        unboundSubagentIds: ["subagent-pending"],
+      };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: {
+          id: "s2",
+          sessionType: "main",
+          workdir: "/w",
+          createdAt: new Date(0),
+          lastActiveAt: new Date(0),
+          latestTotalTokens: 0,
+        },
+      });
+
+      expect(newState.subagentMessages).toEqual({});
+      expect(newState.agentToolSubagentIds).toEqual({});
+      expect(newState.pendingAgentToolIds).toEqual([]);
+      expect(newState.unboundSubagentIds).toEqual([]);
+    });
+
+    it("keeps subagent transcripts when the same session is patched", () => {
+      const currentSession: SessionMetadata = {
+        id: "s1",
+        sessionType: "main",
+        workdir: "/w",
+        createdAt: new Date(0),
+        lastActiveAt: new Date(0),
+        latestTotalTokens: 0,
+      };
+      const subagentMessages = {
+        "subagent-1": [
+          { id: "m1", role: "assistant" as const, timestamp: "0", blocks: [] },
+        ],
+      };
+      const state = { ...initialState, currentSession, subagentMessages };
+
+      const newState = chatReducer(state, {
+        type: "SET_CURRENT_SESSION",
+        payload: { ...currentSession, model: "m2" },
+      });
+
+      expect(newState.subagentMessages).toEqual(subagentMessages);
+    });
   });
 
   describe("SET_INITIAL_STATE", () => {

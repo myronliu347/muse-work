@@ -81,6 +81,25 @@ export function ensureExpandedForFile(
   return { ...tree, expanded, selected: fileAbsPath };
 }
 
+/**
+ * Patch to release the large payloads a panel kind holds (file contents up to
+ * 2MB, content-search results, diff snapshots) when its tab is closed. The
+ * group stays keyed by workdir, so without releasing here the payloads would
+ * stay pinned in memory for the lifetime of the workdir.
+ */
+export function releasePanelContent(
+  group: PanelGroupState,
+  kind: DesktopPanelKind,
+): Partial<PanelGroupState> {
+  if (kind === "file") {
+    return { fileView: null, contentSearch: emptyContentSearchState() };
+  }
+  if (kind === "diff") {
+    return { diffView: null };
+  }
+  return {};
+}
+
 export interface RemoteForwardRef {
   host: string;
   remotePort: number;

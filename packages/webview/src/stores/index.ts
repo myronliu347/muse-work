@@ -12,6 +12,7 @@ export {
   resolvePanelGroup,
   isDraftGroupKey,
   nextActivePanelAfterClose,
+  releasePanelContent,
   PANEL_DEFAULT_WIDTH,
   FILE_TREE_WIDTH_MIN,
   FILE_TREE_WIDTH_MAX,
