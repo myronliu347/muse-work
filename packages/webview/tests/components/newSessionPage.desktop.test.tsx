@@ -3,6 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
+import { MuseTheme } from "../../src/ui/theme";
 import { createMockVscode, sendCommand } from "../webview/test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
 
@@ -10,7 +11,11 @@ vi.mock("../../src/styles/DesktopApp.css", () => ({}));
 
 function renderDesktopApp() {
   const vscode = createMockVscode();
-  render(<DesktopApp vscode={vscode} />);
+  render(
+    <MuseTheme>
+      <DesktopApp vscode={vscode} />
+    </MuseTheme>,
+  );
   return { vscode };
 }
 

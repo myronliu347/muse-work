@@ -1477,7 +1477,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     { id: "rewind", name: "rewind", description: "回滚到检查点" },
     { id: "mcp", name: "mcp", description: "MCP 服务器" },
     { id: "status", name: "status", description: "会话状态" },
-    { id: "tasks", name: "tasks", description: "后台任务" },
     { id: "workflows", name: "workflows", description: "工作流" },
   ];
 
@@ -1663,30 +1662,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       postToWebview({ command: "updateBackgroundTasks", tasks });
     } catch {
       // Keep the WS snapshot; opening /tasks should not wipe a live list.
-    }
-  }
-
-  async function handleGetBackgroundTaskOutput(msg: {
-    taskId?: string;
-  }): Promise<void> {
-    const taskId = typeof msg.taskId === "string" ? msg.taskId : "";
-    if (!taskId || !sessionId || pendingNewSession) return;
-    try {
-      const { output } = await api.getBackgroundTaskOutput(sessionId, taskId);
-      postToWebview({
-        command: "backgroundTaskOutput",
-        taskId,
-        output:
-          output && typeof output === "object"
-            ? output
-            : { stdout: "", stderr: "", status: "failed" },
-      });
-    } catch {
-      postToWebview({
-        command: "backgroundTaskOutput",
-        taskId,
-        output: { stdout: "", stderr: "", status: "failed" },
-      });
     }
   }
 
@@ -2054,9 +2029,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "getStatus":
           void handleGetStatus();
-          return;
-        case "getBackgroundTaskOutput":
-          void handleGetBackgroundTaskOutput(msg as { taskId?: string });
           return;
         case "getBackgroundTasks":
           void handleGetBackgroundTasks();

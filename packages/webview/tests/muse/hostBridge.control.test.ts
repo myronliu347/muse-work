@@ -454,43 +454,6 @@ describe("hostBridge control plane", () => {
     );
   });
 
-  it("getBackgroundTaskOutput posts nested output for the dialog", async () => {
-    const output = {
-      stdout: "build ok\n",
-      stderr: "",
-      status: "completed",
-      type: "shell",
-    };
-    const api = stubApi({
-      getBackgroundTaskOutput: vi.fn(async () => ({ output })),
-    });
-    const bridge = createHostBridge({
-      api,
-      ws: stubWs(),
-      workdir: "/tmp",
-    });
-
-    bridge.postMessage({ command: "desktopReady" });
-    await flush();
-    messages.length = 0;
-
-    bridge.postMessage({
-      command: "getBackgroundTaskOutput",
-      taskId: "bt-1",
-    });
-    await flush();
-
-    expect(api.getBackgroundTaskOutput).toHaveBeenCalledWith(
-      "sess-active",
-      "bt-1",
-    );
-    expect(messages).toContainEqual({
-      command: "backgroundTaskOutput",
-      taskId: "bt-1",
-      output,
-    });
-  });
-
   it("stopBackgroundTask posts backgroundTaskStopped", async () => {
     const api = stubApi();
     const bridge = createHostBridge({

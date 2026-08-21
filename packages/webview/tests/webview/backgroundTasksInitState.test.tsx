@@ -11,7 +11,7 @@ const runningTask: BackgroundTaskSummary = {
   description: "long-running build",
 };
 
-describe("Background tasks visibility across setInitialState", () => {
+describe("Background tasks inline list above the sender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -20,7 +20,7 @@ describe("Background tasks visibility across setInitialState", () => {
     // Repro: agent starts a background bash task; a mid-session setInitialState
     // (webview re-init, desktop pane/session switch, rewind) re-pushes
     // state. The host includes backgroundTasks in the payload, so the running
-    // task must stay visible in /tasks — not wiped to "暂无后台任务".
+    // task must stay visible in the inline list — not wiped.
     renderChatApp();
 
     act(() => {
@@ -31,30 +31,23 @@ describe("Background tasks visibility across setInitialState", () => {
       });
     });
 
-    act(() => {
-      sendCommand("showDialog", { dialogType: "tasks" });
-    });
-
-    const manager = screen.getByTestId("background-task-manager");
-    expect(manager).toHaveTextContent("sleep 300");
-    expect(manager).toHaveTextContent("running");
-    expect(manager).not.toHaveTextContent("暂无后台任务");
+    const list = screen.getByTestId("background-task-list");
+    expect(list).toHaveTextContent("sleep 300");
+    expect(list).toHaveTextContent("后台任务 (1)");
+    expect(list).toHaveTextContent("进行中 1");
   });
 
   it("shows background tasks pushed incrementally via updateBackgroundTasks (baseline)", () => {
     // Baseline: the incremental notification path (also used by stopTask)
-    // populates the list and is unaffected by the setInitialState wiring.
+    // populates the inline list and is unaffected by the setInitialState wiring.
     renderChatApp();
 
     act(() => {
       sendCommand("updateBackgroundTasks", { tasks: [runningTask] });
     });
-    act(() => {
-      sendCommand("showDialog", { dialogType: "tasks" });
-    });
 
-    const manager = screen.getByTestId("background-task-manager");
-    expect(manager).toHaveTextContent("sleep 300");
-    expect(manager).not.toHaveTextContent("暂无后台任务");
+    const list = screen.getByTestId("background-task-list");
+    expect(list).toHaveTextContent("sleep 300");
+    expect(list).toHaveTextContent("后台任务 (1)");
   });
 });

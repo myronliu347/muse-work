@@ -1,22 +1,33 @@
 import { test, expect } from "../utils/webviewTestHarness.js";
 import { elementScreenshotWebp } from "../utils/screenshot.js";
 
-test.describe("Background Task Manager Demo", () => {
-  test("should show background task list and detail", async ({
+test.describe("Background Task List Demo", () => {
+  test("should show background tasks inline above the sender", async ({
     webviewPage,
   }) => {
-    // Dialog min-width is 560px, wider than the default 400px demo viewport — widen so the full dialog is captured
+    // Wider viewport so the inline card + input area are captured together
     await webviewPage.setViewportSize({ width: 800, height: 700 });
 
-    // 1. Open the dialog via showDialog
+    // 0. Bind a session so the chat chrome (and the input-area list) renders
     await webviewPage.evaluate(() => {
       window.simulateExtensionMessage({
-        command: "showDialog",
-        dialogType: "tasks",
+        command: "setInitialState",
+        isAuthenticated: true,
+        messages: [],
+        sessions: [],
+        workdir: "/mock/workdir",
+        session: {
+          id: "sess-demo",
+          sessionType: "main",
+          workdir: "/mock/workdir",
+          createdAt: new Date().toISOString(),
+          lastActiveAt: new Date().toISOString(),
+          latestTotalTokens: 0,
+        },
       });
     });
 
-    // 2. Simulate extension pushing background tasks
+    // 1. Simulate extension pushing background tasks (real-time via WS)
     await webviewPage.evaluate(() => {
       window.simulateExtensionMessage({
         command: "updateBackgroundTasks",
@@ -58,49 +69,22 @@ test.describe("Background Task Manager Demo", () => {
       });
     });
 
-    // Verify dialog is visible
+    // Verify the inline list is visible above the sender
     await expect(
-      webviewPage.getByTestId("background-task-manager"),
+      webviewPage.getByTestId("background-task-list"),
     ).toBeVisible();
+    await expect(
+      webviewPage.getByTestId("background-task-list"),
+    ).toContainText("后台任务 (3)");
+    await expect(
+      webviewPage.getByTestId("background-task-list"),
+    ).toContainText("npm run build");
 
-    // Screenshot the list view
-    const dialog = webviewPage.getByTestId("background-task-manager");
+    // Screenshot the inline list
+    const list = webviewPage.getByTestId("background-task-list");
     await elementScreenshotWebp(
-      dialog,
+      list,
       "../../docs/public/screenshots/spec-background-task-list.webp",
-    );
-
-    // 3. Click the first task to enter detail view
-    await dialog.getByText("[bt-1] shell").click();
-
-    // 4. Simulate the getBackgroundTaskOutput response so the OUTPUT block renders
-    await webviewPage.evaluate(() => {
-      window.simulateExtensionMessage({
-        command: "backgroundTaskOutput",
-        taskId: "bt-1",
-        output: {
-          stdout: [
-            "> wave-agent@ build",
-            "> tsc -b && node esbuild.config.mjs",
-            "",
-            "[build] frontend started",
-            "[build] frontend finished",
-            "✓ built in 3.2s",
-          ].join("\n"),
-          stderr: "",
-          status: "running",
-          type: "shell",
-          outputPath: "/tmp/wave-task-bt-1.log",
-        },
-      });
-    });
-
-    await expect(webviewPage.getByText("OUTPUT (last 20 lines)")).toBeVisible();
-
-    // Screenshot the detail view
-    await elementScreenshotWebp(
-      dialog,
-      "../../docs/public/screenshots/spec-background-task-detail.webp",
     );
   });
 });

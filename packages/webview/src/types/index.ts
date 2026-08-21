@@ -619,6 +619,14 @@ export interface ChatHeaderProps {
   panelToggle?: PanelToggleProps;
   /** Desktop: read-only branch / worktree badge in the title bar. */
   gitContext?: { branch?: string; worktreeName?: string; workdir?: string };
+  /** 会话标题后的指令下拉菜单项（压缩/清空/回滚/MCP/状态/工作流）。 */
+  commandMenuItems?: Array<{
+    id: string;
+    label: string;
+    /** codicon 图标类名（如 "codicon-trash"）。 */
+    icon?: string;
+    onClick: () => void;
+  }>;
 }
 
 // Matches wave-agent-sdk's QueuedMessage type
@@ -650,6 +658,7 @@ export interface ChatState {
   workflowRuns: SerializableWorkflowRun[];
   isTaskListCollapsed: boolean;
   isQueueCollapsed: boolean;
+  isBackgroundTasksCollapsed: boolean;
   editingQueuedId: string | null;
   isStreaming: boolean;
   // Compaction in progress — shows the "正在压缩对话…" hint after the blinking
@@ -686,7 +695,6 @@ export interface ChatState {
     | "plugin"
     | "mcp"
     | "status"
-    | "tasks"
     | "workflows"
     | "agents"
     | "login"
@@ -823,10 +831,6 @@ export interface StatusDialogProps {
   onClose: () => void;
 }
 
-export interface BackgroundTaskManagerProps {
-  onClose: () => void;
-}
-
 /**
  * Props for the agent definitions dialog component
  */
@@ -845,6 +849,8 @@ export type ChatAction =
   | { type: "SET_WORKFLOW_RUNS"; payload: SerializableWorkflowRun[] }
   | { type: "TOGGLE_TASK_LIST_COLLAPSE" }
   | { type: "SET_TASK_LIST_COLLAPSED"; payload: boolean }
+  | { type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" }
+  | { type: "EXPAND_BACKGROUND_TASKS" }
   | { type: "TOGGLE_QUEUE_COLLAPSE" }
   | { type: "START_STREAMING" }
   | { type: "END_STREAMING" }
@@ -863,7 +869,6 @@ export type ChatAction =
           | "plugin"
           | "mcp"
           | "status"
-          | "tasks"
           | "workflows"
           | "agents"
           | "login";

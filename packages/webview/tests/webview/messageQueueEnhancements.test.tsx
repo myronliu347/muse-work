@@ -13,6 +13,7 @@ import {
   establishSession,
 } from "./test-utils";
 import { ChatApp } from "../../src/components/ChatApp";
+import { MuseTheme } from "../../src/ui/theme";
 
 /**
  * Helper: set contenteditable text and fire input event
@@ -308,17 +309,21 @@ describe("Message Queue Features", () => {
     const containerB = document.createElement("div");
     document.body.append(containerA, containerB);
     render(
-      <ChatApp
-        vscode={createMockVscode()}
-        host={createMockDesktopHost()}
-      />,
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost()}
+        />
+      </MuseTheme>,
       { container: containerA },
     );
     render(
-      <ChatApp
-        vscode={createMockVscode()}
-        host={createMockDesktopHost()}
-      />,
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost()}
+        />
+      </MuseTheme>,
       { container: containerB },
     );
 

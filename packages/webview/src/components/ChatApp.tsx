@@ -13,6 +13,7 @@ import type { MessageInputHandle } from "./chat/MessageInput";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DesktopPanelDock } from "./desktop/DesktopPanelDock";
 import { TaskList } from "./chat/TaskList";
+import { BackgroundTaskList } from "./chat/BackgroundTaskList";
 import { QueuedMessageList } from "./chat/QueuedMessageList";
 import { ConfirmationDialog } from "./dialogs/ConfirmationDialog";
 import { ConfirmDialog } from "./dialogs/ConfirmDialog";
@@ -23,7 +24,6 @@ import ConfigDialog from "./dialogs/ConfigDialog";
 import PluginDialog from "./dialogs/PluginDialog";
 import McpDialog from "./dialogs/McpDialog";
 import StatusDialog from "./dialogs/StatusDialog";
-import BackgroundTaskManager from "./settings/BackgroundTaskManager";
 import WorkflowManager from "./settings/WorkflowManager";
 import AgentsDialog from "./dialogs/AgentsDialog";
 import LoginDialog from "./dialogs/LoginDialog";
@@ -1240,7 +1240,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           return;
         }
         if (name === "tasks") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "tasks" } });
+          // 后台任务改为 sender 上方实时内联展示，/tasks 只负责展开列表
+          dispatch({ type: "EXPAND_BACKGROUND_TASKS" });
           return;
         }
         if (name === "workflows") {
@@ -2360,6 +2361,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             display: state.pendingConfirmations.length === 0 ? "block" : "none",
           }}
         >
+          <BackgroundTaskList
+            // 按会话 id 重挂载：切换会话时重置"全部完成自动隐藏"的跟踪
+            key={state.currentSession?.id}
+            tasks={state.backgroundTasks}
+            isCollapsed={state.isBackgroundTasksCollapsed}
+            onToggleCollapse={() =>
+              dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
+            }
+            onStopTask={(taskId) =>
+              postToHost({ command: "stopBackgroundTask", taskId })
+            }
+          />
           <TaskList
             // 按会话 id 重挂载：切换会话时重置“观察过未完成任务”的跟踪，
             // 使全部已完成的新会话立即隐藏，而不是沿用上一会话的 5 秒宽限
@@ -2442,13 +2455,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           vscode={vscode}
         />
       )}
-      {state.activeDialog === "tasks" && (
-        <BackgroundTaskManager
-          tasks={state.backgroundTasks}
-          vscode={vscode}
-          onClose={handleDialogClose}
-        />
-      )}
       {state.activeDialog === "workflows" && (
         <WorkflowManager
           runs={state.workflowRuns}
@@ -2526,6 +2532,56 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         hideSessionButtons
         hideMoreButton
         gitContext={headerGitContext}
+        commandMenuItems={[
+          {
+            id: "compact",
+            label: "压缩会话",
+            icon: "codicon-fold",
+            onClick: () => postToHost({ command: "compactChat" }),
+          },
+          {
+            id: "clear",
+            label: "清空会话",
+            icon: "codicon-trash",
+            onClick: handleClearChat,
+          },
+          {
+            id: "rewind",
+            label: "回滚到检查点",
+            icon: "codicon-history",
+            onClick: () => {
+              patchPane({
+                rewindPopupOpen: true,
+                rewindCheckpointsLoading: true,
+              });
+              postToHost({ command: "listRewindCheckpoints" });
+            },
+          },
+          {
+            id: "mcp",
+            label: "MCP 服务器",
+            icon: "codicon-plug",
+            onClick: () =>
+              dispatch({ type: "SHOW_DIALOG", payload: { type: "mcp" } }),
+          },
+          {
+            id: "status",
+            label: "会话状态",
+            icon: "codicon-info",
+            onClick: () =>
+              dispatch({ type: "SHOW_DIALOG", payload: { type: "status" } }),
+          },
+          {
+            id: "workflows",
+            label: "工作流",
+            icon: "codicon-type-hierarchy",
+            onClick: () =>
+              dispatch({
+                type: "SHOW_DIALOG",
+                payload: { type: "workflows" },
+              }),
+          },
+        ]}
         panelToggle={
           checkedPanels.length === 0
             ? {

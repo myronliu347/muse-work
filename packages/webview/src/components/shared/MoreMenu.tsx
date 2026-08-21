@@ -1,85 +1,51 @@
-import React, { useEffect, useRef } from "react";
-import "../../styles/MoreMenu.css";
+import React from "react";
+import { DropdownMenu } from "@radix-ui/themes";
 
 interface MoreMenuProps {
+  /** Radix Trigger 包裹的按钮（更多）。 */
+  trigger: React.ReactElement;
   onOpenSettings: () => void;
   onLogin: () => void;
   onLogout: () => void;
-  onClose: () => void;
   isAuthenticated: boolean;
 }
 
+/** 更多下拉菜单（设置/登录/退出登录）：Radix DropdownMenu。 */
 export const MoreMenu: React.FC<MoreMenuProps> = ({
+  trigger,
   onOpenSettings,
   onLogin,
   onLogout,
-  onClose,
   isAuthenticated,
-}) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
-
-  const handleSettings = () => {
-    onOpenSettings();
-    onClose();
-  };
-
-  const handleLogout = () => {
-    onLogout();
-    onClose();
-  };
-
-  const handleLogin = () => {
-    onLogin();
-    onClose();
-  };
-
-  return (
-    <div ref={menuRef} className="more-menu" data-testid="more-menu">
-      <div
-        className="more-menu-item"
-        onClick={handleSettings}
-        data-testid="more-menu-settings"
-      >
+}) => (
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger>{trigger}</DropdownMenu.Trigger>
+    <DropdownMenu.Content
+      size="1"
+      variant="soft"
+      color="gray"
+      highContrast
+      align="end"
+      sideOffset={4}
+      data-testid="more-menu"
+    >
+      <DropdownMenu.Item onSelect={onOpenSettings} data-testid="more-menu-settings">
+        <span className="codicon codicon-settings" aria-hidden="true" />
         设置
-      </div>
+      </DropdownMenu.Item>
       {isAuthenticated ? (
-        <div
-          className="more-menu-item"
-          onClick={handleLogout}
-          data-testid="more-menu-logout"
-        >
+        <DropdownMenu.Item onSelect={onLogout} data-testid="more-menu-logout">
+          <span className="codicon codicon-sign-out" aria-hidden="true" />
           退出登录
-        </div>
+        </DropdownMenu.Item>
       ) : (
-        <div
-          className="more-menu-item"
-          onClick={handleLogin}
-          data-testid="more-menu-login"
-        >
+        <DropdownMenu.Item onSelect={onLogin} data-testid="more-menu-login">
+          <span className="codicon codicon-sign-in" aria-hidden="true" />
           登录
-        </div>
+        </DropdownMenu.Item>
       )}
-    </div>
-  );
-};
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+);
 
 export default MoreMenu;

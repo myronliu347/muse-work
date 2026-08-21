@@ -1,0 +1,167 @@
+/* 后台任务卡片：固定在输入区上方，与任务列表/消息队列同款布局 */
+.background-task-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  background-color: var(--gray-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-4);
+  box-sizing: border-box;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.background-task-list-header {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.background-task-list-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.background-task-list-title {
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  line-height: var(--line-height-1);
+  color: var(--gray-12);
+  white-space: nowrap;
+}
+
+.background-task-list-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.background-task-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.background-task-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.background-task-stat-text {
+  font-size: var(--font-size-1);
+  font-weight: 400;
+  line-height: var(--line-height-1);
+  color: var(--gray-12);
+  white-space: nowrap;
+}
+
+.background-task-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-12);
+  transition: transform 0.15s ease;
+}
+
+.background-task-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.background-task-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* 最多同时显示 3 行（行高约 34px + 间距），其余滚动查看 */
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.background-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.background-task-status-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+
+.background-task-status-dot.running {
+  animation: background-task-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes background-task-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.background-task-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 0 0;
+}
+
+.background-task-title {
+  font-size: var(--font-size-1);
+  font-weight: 400;
+  line-height: var(--line-height-1);
+  word-break: break-word;
+  color: var(--gray-12);
+}
+
+.background-task-command {
+  font-size: var(--font-size-1);
+  font-weight: 400;
+  line-height: var(--line-height-1);
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  color: var(--gray-11);
+  word-break: break-all;
+}
+
+.background-task-meta {
+  font-size: var(--font-size-1);
+  font-weight: 400;
+  line-height: var(--line-height-1);
+  color: var(--gray-11);
+}
+
+.background-task-stop-btn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 var(--space-2);
+  margin-top: -1px;
+  background-color: var(--gray-4);
+  color: var(--gray-12);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+}
+
+.background-task-stop-btn:hover {
+  background-color: var(--gray-5);
+}
+
+.background-task-stop-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

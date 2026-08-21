@@ -174,7 +174,7 @@ describe("session control routes", () => {
     expect(truncatedTo).toBe(0);
   });
 
-  it("GET slash-commands returns the fixed system list", async () => {
+  it("GET slash-commands returns an empty system list (UI entry points replaced the popup)", async () => {
     const app = await listen(async () => stubAgent());
     const created = await fetch(`${app.baseUrl}/sessions`, {
       method: "POST",
@@ -187,15 +187,9 @@ describe("session control routes", () => {
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { commands: Array<{ name: string }> };
-    expect(body.commands.map((c) => c.name)).toEqual([
-      "compact",
-      "clear",
-      "rewind",
-      "mcp",
-      "status",
-      "tasks",
-      "workflows",
-    ]);
+    // 系统指令已改由 UI 触发（后台任务=内联列表，其余=标题下拉），
+    // 弹窗保留基础设施供未来的技能 /命令填充。
+    expect(body.commands).toEqual([]);
   });
 
   it("GET tasks returns the task list for the session", async () => {

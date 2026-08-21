@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import { NewSessionIcon, MoreIcon } from "../shared/HeaderIcons";
 import { MoreMenu } from "../shared/MoreMenu";
+import { CommandsMenu } from "../shared/CommandsMenu";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { getSessionTitle } from "../../utils/session";
 import type { ChatHeaderProps } from "../../types";
@@ -21,9 +22,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hideMoreButton = false,
   panelToggle,
   gitContext,
+  commandMenuItems,
 }) => {
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-
   const title = getSessionTitle(currentSession, messages);
 
   // Worktree sessions show the same metadata card as the sidebar row on
@@ -35,24 +35,42 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div className="chat-header" data-testid="chat-header">
-      {hasWorktreeMeta ? (
-        <Tooltip
-          text=""
-          content={
-            <WorktreeInfoCard
-              branch={gitContext.branch}
-              worktreeName={gitContext.worktreeName}
-              workdir={gitContext.workdir}
-            />
-          }
-          position="bottom-right"
-          className="chat-header-title-tooltip"
-        >
+      <div className="header-title-group">
+        {hasWorktreeMeta ? (
+          <Tooltip
+            text=""
+            content={
+              <WorktreeInfoCard
+                branch={gitContext.branch}
+                worktreeName={gitContext.worktreeName}
+                workdir={gitContext.workdir}
+              />
+            }
+            position="bottom-right"
+            className="chat-header-title-tooltip"
+          >
+            <div className="header-title">{title}</div>
+          </Tooltip>
+        ) : (
           <div className="header-title">{title}</div>
-        </Tooltip>
-      ) : (
-        <div className="header-title">{title}</div>
-      )}
+        )}
+        {commandMenuItems && commandMenuItems.length > 0 && (
+          <Tooltip text="会话指令" position="bottom">
+            <CommandsMenu
+              items={commandMenuItems}
+              trigger={
+                <button
+                  className="header-button header-command-menu-btn"
+                  data-testid="header-command-menu-btn"
+                  aria-label="会话指令"
+                >
+                  <i className="codicon codicon-kebab-vertical"></i>
+                </button>
+              }
+            />
+          </Tooltip>
+        )}
+      </div>
       <div className="header-buttons">
         {!hideSessionButtons && (
           <>
@@ -71,27 +89,25 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
         {!hideMoreButton && (
           <Tooltip text="更多" position="bottom">
-            <button
-              className="header-button"
-              onClick={() => setShowMoreMenu((prev) => !prev)}
-              data-testid="more-btn"
-              aria-label="更多"
-            >
-              <MoreIcon />
-            </button>
+            <MoreMenu
+              trigger={
+                <button
+                  className="header-button"
+                  data-testid="more-btn"
+                  aria-label="更多"
+                >
+                  <MoreIcon />
+                </button>
+              }
+              onOpenSettings={onOpenSettings}
+              onLogin={onLogin}
+              onLogout={onLogout}
+              isAuthenticated={isAuthenticated}
+            />
           </Tooltip>
         )}
         {panelToggle && <PanelToggleControl {...panelToggle} />}
       </div>
-      {showMoreMenu && !hideMoreButton && (
-        <MoreMenu
-          onOpenSettings={onOpenSettings}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          isAuthenticated={isAuthenticated}
-          onClose={() => setShowMoreMenu(false)}
-        />
-      )}
     </div>
   );
 };

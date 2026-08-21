@@ -7,6 +7,7 @@ import {
   createMockVscode,
 } from "./test-utils";
 import { ChatApp } from "../../src/components/ChatApp";
+import { MuseTheme } from "../../src/ui/theme";
 
 /**
  * Reproduces the welcome-page login-button flash:
@@ -20,14 +21,22 @@ describe("WelcomeView login button flash", () => {
   it("does not show the login button before initial state arrives", () => {
     // Render directly (bypassing renderChatApp's auto authStatusResponse) to
     // simulate the very first frame before setInitialState reaches the webview.
-    render(<ChatApp vscode={createMockVscode()} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} />
+      </MuseTheme>,
+    );
 
     expect(screen.queryByText("登 录")).not.toBeInTheDocument();
     expect(screen.queryByText("登录后即可开始使用~")).not.toBeInTheDocument();
   });
 
   it("shows the login button once initial state arrives with isAuthenticated:false", () => {
-    render(<ChatApp vscode={createMockVscode()} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} />
+      </MuseTheme>,
+    );
 
     act(() => {
       sendCommand("setInitialState", {
@@ -44,7 +53,11 @@ describe("WelcomeView login button flash", () => {
   });
 
   it("does not show the login button when initial state arrives with isAuthenticated:true", () => {
-    render(<ChatApp vscode={createMockVscode()} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} />
+      </MuseTheme>,
+    );
 
     act(() => {
       sendCommand("setInitialState", {
@@ -68,7 +81,11 @@ describe("WelcomeView login button flash", () => {
    * them out of rendering, but state.messages.length used to count them).
    */
   it("keeps showing the welcome page when only hidden meta messages exist", () => {
-    render(<ChatApp vscode={createMockVscode()} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} />
+      </MuseTheme>,
+    );
 
     act(() => {
       sendCommand("setInitialState", {
@@ -100,7 +117,11 @@ describe("WelcomeView login button flash", () => {
   });
 
   it("switches away from the welcome page once a visible message arrives", () => {
-    render(<ChatApp vscode={createMockVscode()} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} />
+      </MuseTheme>,
+    );
 
     act(() => {
       sendCommand("setInitialState", {

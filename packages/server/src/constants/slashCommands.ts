@@ -1,9 +1,4 @@
-export const SYSTEM_SLASH_COMMANDS = [
-  { id: "compact", name: "compact", description: "压缩会话上下文" },
-  { id: "clear", name: "clear", description: "清空当前会话" },
-  { id: "rewind", name: "rewind", description: "回滚到检查点" },
-  { id: "mcp", name: "mcp", description: "MCP 服务器" },
-  { id: "status", name: "status", description: "会话状态" },
-  { id: "tasks", name: "tasks", description: "后台任务" },
-  { id: "workflows", name: "workflows", description: "工作流" },
-] as const;
+// 系统指令已改由 UI 入口触发：后台任务=输入区上方内联列表，其余指令=会话标题
+// 后的下拉菜单。斜杠弹窗（SlashCommandsPopup）保留基础设施，供未来的技能
+// /命令（userInvocable）填充，不再下发系统指令。
+export const SYSTEM_SLASH_COMMANDS = [] as const;

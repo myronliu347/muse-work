@@ -35,6 +35,28 @@
   white-space: nowrap;
 }
 
+/* 标题 + 指令按钮的左半区：flex:1 让标题撑满可截断，按钮紧贴标题 */
+.header-title-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 组内标题不再独占剩余空间（flex:1 会把后面的按钮推到右端） */
+.header-title-group .header-title,
+.header-title-group .chat-header-title-tooltip {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.header-title-group .header-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .header-buttons {
   display: flex;
   gap: var(--space-1);
@@ -111,4 +133,16 @@
 .header-panel-toggle-caret {
   font-size: var(--font-size-1) !important;
   opacity: 0.7;
+}
+
+/* 会话标题后的指令下拉按钮：紧贴标题，不占用 header-buttons 空间 */
+.header-command-menu-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+
+.header-command-menu-btn .codicon {
+  font-size: var(--font-size-2);
+  opacity: 0.8;
 }

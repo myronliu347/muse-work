@@ -16,7 +16,6 @@ import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 const SESSION_SCOPED_DIALOGS = new Set([
   "mcp",
   "status",
-  "tasks",
   "workflows",
   "agents",
 ]);
@@ -199,6 +198,7 @@ export const initialState: ChatState = {
   workflowRuns: [],
   isTaskListCollapsed: false,
   isQueueCollapsed: true,
+  isBackgroundTasksCollapsed: false,
   editingQueuedId: null,
   isStreaming: false,
   isCompacting: false,
@@ -254,7 +254,15 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
             : state.isTaskListCollapsed,
       };
     case "SET_BACKGROUND_TASKS":
-      return { ...state, backgroundTasks: action.payload };
+      return {
+        ...state,
+        backgroundTasks: action.payload,
+        // 首批后台任务到达时自动展开（与 SET_TASKS 首次出现自动展开一致）
+        isBackgroundTasksCollapsed:
+          state.backgroundTasks.length === 0 && action.payload.length > 0
+            ? false
+            : state.isBackgroundTasksCollapsed,
+      };
     case "SET_WORKFLOW_RUNS":
       return { ...state, workflowRuns: action.payload };
     case "TOGGLE_TASK_LIST_COLLAPSE":
@@ -267,6 +275,13 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         isTaskListCollapsed: action.payload,
       };
+    case "TOGGLE_BACKGROUND_TASKS_COLLAPSE":
+      return {
+        ...state,
+        isBackgroundTasksCollapsed: !state.isBackgroundTasksCollapsed,
+      };
+    case "EXPAND_BACKGROUND_TASKS":
+      return { ...state, isBackgroundTasksCollapsed: false };
     case "TOGGLE_QUEUE_COLLAPSE":
       return {
         ...state,
