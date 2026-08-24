@@ -379,17 +379,7 @@
   gap: var(--space-1);
 }
 
-/* ---- 详情弹窗（居中大弹窗，2026-08-24 由右侧抽屉改） ---- */
-
-.todo-detail-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--black-a5, rgba(0, 0, 0, 0.4));
-}
+/* ---- 详情弹窗（Radix Dialog，Esc/遮罩点击关闭） ---- */
 
 .todo-detail-dialog {
   width: 720px;
@@ -402,6 +392,11 @@
   border-radius: var(--radius-4);
   box-shadow: var(--shadow-5);
   overflow: hidden;
+}
+
+/* Radix Dialog 覆盖：内建 padding/尺寸让位给上述 todo 详情样式（类名叠加提特异性） */
+.todo-detail-dialog.rt-DialogContent {
+  padding: 0;
 }
 
 .todo-drawer-head {

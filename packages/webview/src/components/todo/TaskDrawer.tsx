@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Button, Text, TextArea } from "@radix-ui/themes";
+import { Button, Dialog, Text, TextArea } from "@radix-ui/themes";
 import type { MuseApiClient, MuseRun, MuseTask } from "../../muse/apiClient";
 import {
   useSelectedComments,
@@ -192,15 +192,27 @@ export const TaskDrawer: React.FC<{
   if (!task) return null;
 
   return (
-    <div className="todo-detail-mask" onClick={closeTaskDrawer} data-testid="todo-drawer">
-      <div className="todo-detail-dialog" onClick={(e) => e.stopPropagation()}>
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        // Esc / 遮罩点击 → 关闭（Radix Dialog 内建 dismissable）
+        if (!open) closeTaskDrawer();
+      }}
+    >
+      <Dialog.Content
+        data-testid="todo-drawer"
+        className="todo-detail-dialog"
+        aria-describedby={undefined}
+      >
         <div className="todo-drawer-head">
-          <span className="todo-drawer-title">{task.title}</span>
+          <Dialog.Title className="todo-drawer-title">{task.title}</Dialog.Title>
           <TaskStatusBadge status={task.status} />
           {!archivedMode && task.status === "pending" && (
             <IconBtn icon="pencil" tip="编辑" onClick={() => setEditing((v) => !v)} />
           )}
-          <IconBtn icon="close" tip="关闭" onClick={closeTaskDrawer} />
+          <Dialog.Close>
+            <IconBtn icon="close" tip="关闭" onClick={closeTaskDrawer} />
+          </Dialog.Close>
         </div>
         <div className="todo-detail-body">
           {editing ? (
@@ -283,8 +295,8 @@ export const TaskDrawer: React.FC<{
             </>
           )}
         </div>
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 };
 

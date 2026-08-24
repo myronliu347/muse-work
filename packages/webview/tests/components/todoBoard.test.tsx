@@ -802,6 +802,10 @@ describe("TodoBoard", () => {
     expect(screen.queryByTestId("todo-comment-input")).toBeNull();
     expect(screen.queryByTestId(`todo-open-editor-dk1`)).toBeNull();
 
+    // 抽屉支持 Esc 关闭（Radix Dialog 模态）
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByTestId("todo-drawer")).toBeNull());
+
     // 切回进行中视图
     await user.click(screen.getByTestId("todo-view-active"));
     await waitFor(() => expect(screen.getByText("进行中A")).toBeTruthy());
