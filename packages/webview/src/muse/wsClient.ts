@@ -91,7 +91,8 @@ export type MuseWsEventPayload =
       todoTitle: string;
       taskTitle: string;
       priority: string;
-    };
+    }
+  | { type: "todo:changed" };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

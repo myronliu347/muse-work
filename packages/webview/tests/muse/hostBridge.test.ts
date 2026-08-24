@@ -1430,6 +1430,39 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(current).toBeUndefined();
   });
 
+  it("todo:changed broadcast (sessionId=*) posts to webview regardless of active session", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    bridge.postMessage({
+      command: "desktopSelectSession",
+      sessionId: "sess-active",
+      workdir: "/tmp",
+    });
+    await flush();
+    messages.length = 0;
+
+    // 服务端变更路由广播 todo:changed（broadcastAll → sessionId 恒为 "*"），
+    // 不得被下方活跃会话过滤丢弃——否则 AI 跑 todo.mjs 等非看板来源的变更永远刷不动看板。
+    handler!({ type: "todo:changed", sessionId: "*" });
+    await flush();
+
+    expect(messages).toContainEqual({ command: "todo:changed" });
+  });
+
   it("non-focus loading keeps sidebar running without startStreaming", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

@@ -214,6 +214,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    // todo/task 任何变更（REST 直改 store，如对话内 AI 跑 todo.mjs approve/requeue/complete）：
+    // broadcastAll 事件 sessionId 恒为 "*"，不能走下方活跃会话过滤（否则永远被丢弃，
+    // 看板停留在旧状态——文件已 completed、面板仍显示 review）。所有 pane 都收。
+    if (event.type === "todo:changed") {
+      postToWebview({ command: "todo:changed" });
+      return;
+    }
+
     // Chat / streaming events only drive ChatApp for the active session.
     if (event.sessionId !== ctx.sessionId) return;
     ctx.emitChatWs(event);
