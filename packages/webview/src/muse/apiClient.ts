@@ -132,6 +132,8 @@ export interface MuseTask {
   worktreeName?: string;
   /** worktree 的 base 分支（创建 worktree 时从该分支 checkout）。 */
   baseBranch?: string;
+  /** 显式 false = git 项目直接在原目录执行（不用 worktree）；缺省 undefined = 隔离。 */
+  worktreeEnabled?: boolean;
   executionSessionId?: string;
   createdAt: number;
   updatedAt: number;

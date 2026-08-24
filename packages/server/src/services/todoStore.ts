@@ -60,6 +60,11 @@ export interface Task {
   worktreeRepoRoot?: string;
   /** worktree 的 base 分支（创建 worktree 时从该分支 checkout；缺省自动推断）。 */
   baseBranch?: string;
+  /**
+   * git 项目是否用 worktree 隔离执行。缺省 undefined = 隔离（现有行为）；
+   * 显式 false = 即使 git 项目也直接在原 workdir 执行。
+   */
+  worktreeEnabled?: boolean;
   executionSessionId?: string;
   createdAt: number;
   updatedAt: number;
@@ -79,6 +84,8 @@ export interface CreateTaskInput {
   workdir: string;
   /** worktree 的 base 分支（创建 worktree 时从该分支 checkout；缺省自动推断）。 */
   baseBranch?: string;
+  /** git 项目是否用 worktree 隔离执行；缺省 true（隔离）。显式 false = 直接在原目录执行。 */
+  worktreeEnabled?: boolean;
 }
 
 export interface TodoStore {
@@ -483,6 +490,7 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
         status: "pending",
         workdir: input.workdir,
         ...(input.baseBranch ? { baseBranch: input.baseBranch } : {}),
+        ...(input.worktreeEnabled === false ? { worktreeEnabled: false } : {}),
         createdAt: now,
         updatedAt: now,
       };

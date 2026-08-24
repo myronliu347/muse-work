@@ -84,8 +84,6 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
   const maxConcurrent = options.maxConcurrent ?? 3;
   /** 本进程内正在执行的 taskId（恢复扫描排除 + 并发计数）。 */
   const activeRunning = new Set<string>();
-  /** 复核注入中的会话：sessionId -> taskId（turn 结束后取 AI 结论写 note 评论）。 */
-  const pendingReviews = new Map<string, string>();
   let timer: ReturnType<typeof setInterval> | null = null;
   let started = false;
 
@@ -143,7 +141,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
   async function launch(taskId: string): Promise<void> {
     const task = store.getTask(taskId);
     if (!task) return;
-    // worktree：已建则复用路径；git 项目首次执行时创建；非 git 直接用 workdir
+    // worktree：已建则复用路径；git 项目（默认隔离）首次执行时创建；非 git 或 worktreeEnabled=false 直接用 workdir
     let workdir = task.workdir;
     if (task.worktreeName && task.worktreeRepoRoot) {
       workdir = path.join(
@@ -152,7 +150,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         "worktrees",
         task.worktreeName,
       );
-    } else if (isGitRepo(task.workdir)) {
+    } else if (isGitRepo(task.workdir) && task.worktreeEnabled !== false) {
       const wt = await ensureWorktree(task.id, task.workdir, task.baseBranch);
       store.setTaskWorktree(task.id, {
         name: wt.name,
@@ -253,13 +251,6 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
 
   /** turn 结束回调（runner 注入）：执行中 task → 待审核 + result 评论 + 释放槽位。 */
   function onTurnSettled(sessionId: string, result: { ok: boolean; error?: string }): void {
-    // 复核注入的 turn 结束：取 AI 结论写 note 评论（不改变 task 状态）
-    const reviewTaskId = pendingReviews.get(sessionId);
-    if (reviewTaskId !== undefined) {
-      pendingReviews.delete(sessionId);
-      void captureReviewConclusion(sessionId, reviewTaskId);
-      return;
-    }
     const task = store.getTaskByExecutionSession(sessionId);
     if (!task || task.status !== "running") return;
     activeRunning.delete(task.id);
@@ -307,65 +298,34 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     ].join("\n");
   }
 
-  /** task 进待审核后：向规划会话注入进度消息触发 AI 复核（重试一次，失败跳过并标注）。 */
+  /** task 进待审核后：旁路 askBtw 向规划会话 agent 要复核结论（不注入消息、不打断对话、无工具静态 review；失败重试一次，再失败标注）。 */
   async function triggerAiReview(taskId: string): Promise<void> {
     const task = store.getTask(taskId);
     if (!task) return;
     const todo = store.getTodo(task.todoId);
     if (!todo?.planningSessionId) return; // 无规划会话（T8 懒创建后自动生效）
+    if (!runner.askBtw) return;
     const sessionId = todo.planningSessionId;
-    const content = buildReviewPrompt(task, todo);
-    try {
-      await runner.sendMessage(sessionId, content, undefined, "system-inject");
-    } catch {
+    const question = buildReviewPrompt(task, todo);
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        await runner.sendMessage(sessionId, content, undefined, "system-inject");
-      } catch {
+        const conclusion = (await runner.askBtw(sessionId, question)).trim();
+        if (!conclusion) throw new Error("empty conclusion");
         store.addComment(task.id, {
-          author: "system",
+          author: "ai",
           kind: "note",
-          content: "⚠️ AI 复核失败（注入失败，已重试一次）。任务不阻塞，可人工审核。",
+          content: `【AI 复核】${conclusion}`,
         });
         return;
+      } catch {
+        // 重试一次（askBtw 失败/空结论）
       }
     }
-    pendingReviews.set(sessionId, task.id);
-  }
-
-  /** 读复核注入会话的最新 assistant 文本，写 note 评论（结论仅供参考）。 */
-  async function captureReviewConclusion(sessionId: string, taskId: string): Promise<void> {
-    let conclusion = "";
-    try {
-      const messages = await runner.getMessages(sessionId);
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const m = messages[i] as { role?: string; blocks?: Array<{ type?: string; content?: string }> };
-        if (m?.role === "assistant") {
-          const text = (m.blocks ?? [])
-            .filter((b) => b.type === "text")
-            .map((b) => b.content ?? "")
-            .join("");
-          if (text.trim()) {
-            conclusion = text.trim();
-            break;
-          }
-        }
-      }
-    } catch {
-      // 读失败按无结论处理
-    }
-    if (conclusion) {
-      store.addComment(taskId, {
-        author: "ai",
-        kind: "note",
-        content: `【AI 复核】${conclusion}`,
-      });
-    } else {
-      store.addComment(taskId, {
-        author: "system",
-        kind: "note",
-        content: "⚠️ AI 复核失败（未生成结论）。任务不阻塞，可人工审核。",
-      });
-    }
+    store.addComment(task.id, {
+      author: "system",
+      kind: "note",
+      content: "⚠️ AI 复核失败（旁路提问失败，已重试一次）。任务不阻塞，可人工审核。",
+    });
   }
 
   /** 执行中取消：中止会话 + 删 worktree（执行中取消立即删，用户已拍板）；非执行中取消保留 worktree。 */

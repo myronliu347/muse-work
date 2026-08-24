@@ -153,6 +153,15 @@ export interface SessionRunner {
     images?: OutboundImage[],
     source?: "user" | "system-inject",
   ): Promise<{ accepted: true }>;
+  /**
+   * 旁路提问（SDK askBtw）：单轮 fork 复用会话的 system prompt/模型/内存注入，
+   * 不写消息、不落盘、不广播、不打断主对话、无工具。返回 AI 答案文本。
+   */
+  askBtw?(
+    sessionId: string,
+    question: string,
+    abortSignal?: AbortSignal,
+  ): Promise<string>;
   abortMessage(sessionId: string): Promise<{ ok: true }>;
   /** Remove a queued message from the SDK-owned queue. */
   deleteQueuedMessageById(

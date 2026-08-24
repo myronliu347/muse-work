@@ -82,6 +82,20 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       return { accepted: true };
     },
 
+    async askBtw(sessionId, question, abortSignal) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const existing = await agent.ensureAgent(sessionId);
+      if (!existing.askBtw) {
+        throw new Error("askBtw unavailable for this session");
+      }
+      return existing.askBtw(question, abortSignal);
+    },
+
     async abortMessage(sessionId) {
       const session = store.get(sessionId);
       if (!session) {

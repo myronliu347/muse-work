@@ -171,7 +171,7 @@
   padding: var(--space-2);
   box-sizing: border-box;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .todo-kanban-col-head {
@@ -179,6 +179,13 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+}
+
+/* 卡片区：列内独立滚动，列头固定 */
+.todo-kanban-col-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* 看板工具条：筛选开关 */
@@ -221,6 +228,28 @@
 
 .todo-task-card {
   flex-shrink: 0;
+}
+
+/* 看板卡片上的描述：行数截断（完整描述在详情弹窗里看） */
+.todo-task-card-desc {
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.todo-task-card-desc p {
+  margin: 2px 0;
+}
+
+.todo-task-card-desc code {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 11px;
+  background: var(--gray-3);
+  border-radius: 3px;
+  padding: 0 3px;
 }
 
 .todo-task-desc {
@@ -303,26 +332,29 @@
   gap: var(--space-1);
 }
 
-/* ---- 详情抽屉 ---- */
+/* ---- 详情弹窗（居中大弹窗，2026-08-24 由右侧抽屉改） ---- */
 
-.todo-drawer-mask {
+.todo-detail-mask {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--black-a5, rgba(0, 0, 0, 0.4));
 }
 
-.todo-drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 460px;
-  max-width: 90vw;
+.todo-detail-dialog {
+  width: 720px;
+  max-width: 94vw;
+  max-height: 84vh;
   display: flex;
   flex-direction: column;
   background: var(--color-panel-solid, var(--gray-1));
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-4);
   box-shadow: var(--shadow-5);
+  overflow: hidden;
 }
 
 .todo-drawer-head {
@@ -344,11 +376,11 @@
   font-size: 14px;
 }
 
-.todo-drawer-body {
+.todo-detail-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-3);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
