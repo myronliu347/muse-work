@@ -9,8 +9,8 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 
 ## 实体与状态
 
-- **todo**：大目标。含标题、描述（markdown）、优先级（p0/p1/p2，默认 p1）、来源（session/manual/popo/internal）。
-- **task**：todo 下的可执行子任务。创建时**必须指定 workdir**（git 项目默认开 worktree 隔离执行、`--no-worktree` 直接在原目录执行，非 git 直接执行）；创建即入队执行，全局并发 3、FIFO 排队。
+- **todo**：大目标。含标题、描述（markdown）、优先级（p0/p1/p2，默认 p1）、来源（session/manual/popo/internal）、可选绑定工作目录（workdir）。绑定后规划会话开在该目录，其下新 task 未指定 workdir 时自动继承；未绑定则规划会话用默认目录（`~/.muse-work/personal`），task 的 workdir 由用户指定。
+- **task**：todo 下的可执行子任务。创建时**必须确定 workdir**（todo 绑定了目录时可直接继承不用再问；否则询问用户。git 项目默认开 worktree 隔离执行、`--no-worktree` 直接在原目录执行，非 git 直接执行）；创建即入队执行，全局并发 3、FIFO 排队。
 
 ## 触发时机
 
@@ -22,15 +22,15 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 ## 创建 task 流程（关键，必须遵守）
 
 1. 确认用户要给哪个 todo 创建 task（按标题/列表确认，不猜）。
-2. **向用户询问 workdir**（任务执行的工作目录）。用户给出后，复述确认。
+2. **确定 workdir**：todo 已绑定工作目录 → 直接用 todo 的绑定目录，无需再问（add-task 可不传 `--workdir`）；未绑定 → **向用户询问 workdir**（任务执行的工作目录）。用户给出后，复述确认。
 3. 若 workdir 是 git 项目，**向用户询问是否用 worktree 隔离执行**（默认隔离：在 `<repo>/.wave/worktrees/<taskId>` 独立工作区执行，不污染主仓工作区/分支；用户明确不需要隔离时加 `--no-worktree` 直接在原目录执行）。需要 worktree 时再**询问 base 分支**（worktree 从该分支 checkout；用户未指定时用 `--branch` 缺省，即仓库默认分支）。非 git 目录无需分支。
 4. **只有用户明确说「创建 task」才落库**。任何一步不确定都先问，不要擅自创建。
 
 ## 命令速查（在插件 scripts 目录下执行 `node todo.mjs ...`）
 
 ```bash
-# 创建 todo（source 枚举：session/manual/popo/internal）
-node todo.mjs create --title "标题" --priority p1 --source session --description "可选 markdown"
+# 创建 todo（source 枚举：session/manual/popo/internal；--workdir 可选：绑定工作目录，task 缺省继承）
+node todo.mjs create --title "标题" --priority p1 --source session --description "可选 markdown" --workdir /path/to/dir
 
 # 列出未归档 todo
 node todo.mjs list
@@ -38,7 +38,7 @@ node todo.mjs list
 # 查看某 todo 详情与 task
 node todo.mjs get <todoId>
 
-# 给 todo 加 task（workdir 必填；git 项目默认建 worktree 隔离执行，--no-worktree 直接在原目录执行；--branch 指定 worktree 的 base 分支，可选）
+# 给 todo 加 task（--workdir 可选：缺省继承 todo 绑定目录，todo 也未绑定时需显式传入；git 项目默认建 worktree 隔离执行，--no-worktree 直接在原目录执行；--branch 指定 worktree 的 base 分支，可选）
 node todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/dir --description "可选" --branch develop
 node todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/git/repo --no-worktree
 

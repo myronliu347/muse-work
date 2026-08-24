@@ -71,7 +71,7 @@ export function createTodoRoutes(
 
   app.post("/todos", async (c) => {
     let body:
-      | { title?: string; description?: string; priority?: string; source?: string; tags?: unknown }
+      | { title?: string; description?: string; priority?: string; source?: string; tags?: unknown; workdir?: unknown }
       | undefined;
     try {
       body = await c.req.json();
@@ -86,12 +86,18 @@ export function createTodoRoutes(
     if (body.priority !== undefined && !isPriority(body.priority)) {
       return c.json({ error: "invalid priority" }, 400);
     }
+    // workdir 可选：trim 后非空才绑定（空串/纯空白 = 未绑定）
+    const workdir =
+      typeof body.workdir === "string" && body.workdir.trim()
+        ? body.workdir.trim()
+        : undefined;
     const todo = store.createTodo({
       title,
       description: body.description,
       priority: body.priority,
       source: body.source,
       tags: isTags(body.tags) ? body.tags : undefined,
+      workdir,
     });
     changed();
     return c.json({ todo }, 201);
@@ -156,9 +162,11 @@ export function createTodoRoutes(
     }
     const title = body?.title?.trim();
     if (!title) return c.json({ error: "title required" }, 400);
-    const workdir = body?.workdir?.trim();
+    const todo = store.getTodo(todoId);
+    if (!todo) return c.json({ error: "todo not found" }, 404);
+    // workdir 可选：未传/空白 → 继承 todo 绑定目录；todo 也未绑定 → 必填
+    const workdir = body?.workdir?.trim() || todo.workdir;
     if (!workdir) return c.json({ error: "workdir required" }, 400);
-    if (!store.getTodo(todoId)) return c.json({ error: "todo not found" }, 404);
     const task = store.createTask(todoId, {
       title,
       description: body?.description,

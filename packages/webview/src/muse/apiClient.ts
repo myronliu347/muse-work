@@ -117,6 +117,8 @@ export interface MuseTodo {
   status: MuseTodoStatus;
   /** 标签（server 已规范化：trim/去重/小写）。 */
   tags: string[];
+  /** 绑定工作目录（规划会话开在这里，新 task 未指定 workdir 时继承）；未绑定为 undefined。 */
+  workdir?: string;
   planningSessionId?: string;
   createdAt: number;
   updatedAt: number;
@@ -420,6 +422,7 @@ export class MuseApiClient {
     priority?: "p0" | "p1" | "p2";
     source: MuseTodoSource;
     tags?: string[];
+    workdir?: string;
   }): Promise<{ todo: MuseTodo }> {
     const res = await this.request("/todos", {
       method: "POST",

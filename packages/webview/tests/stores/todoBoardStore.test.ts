@@ -2,11 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MuseApiClient } from "../../src/muse/apiClient.js";
 import { useTodoBoardStore } from "../../src/stores/todoBoardStore.js";
 
-function apiWith(handlers: Record<string, () => Promise<unknown>>): MuseApiClient {
+function apiWith(
+  handlers: Record<string, () => Promise<unknown>>,
+  fetches?: Array<{ method: string; url: string; body?: string }>,
+): MuseApiClient {
   return new MuseApiClient({
     baseUrl: "http://x",
     fetch: async (url, init) => {
       const method = init?.method ?? "GET";
+      if (fetches) fetches.push({ method, url, body: init?.body as string });
       const h = handlers[`${method} ${url.replace("http://x", "")}`];
       if (!h) return new Response(JSON.stringify({ error: "nf" }), { status: 404 });
       return new Response(JSON.stringify(await h()), { status: 200 });
@@ -99,6 +103,27 @@ describe("todoBoardStore", () => {
     await Promise.resolve();
     await useTodoBoardStore.getState().createTodo({ title: "N", source: "manual", priority: "p0" });
     expect(useTodoBoardStore.getState().todos[0]?.title).toBe("N");
+  });
+
+  it("createTodo 透传 workdir（绑定目录）", async () => {
+    const fetches: Array<{ body?: string }> = [];
+    const api = apiWith(
+      {
+        "GET /todos": async () => ({ todos: [] }),
+        "POST /todos": async () => ({
+          todo: { id: "n1", title: "N", workdir: "/tmp/bound", source: "manual", status: "pending", createdAt: 9, updatedAt: 9, description: "" },
+        }),
+      },
+      fetches,
+    );
+    useTodoBoardStore.getState().init(api);
+    await Promise.resolve();
+    await useTodoBoardStore
+      .getState()
+      .createTodo({ title: "N", source: "manual", workdir: "/tmp/bound" });
+    expect(useTodoBoardStore.getState().todos[0]?.workdir).toBe("/tmp/bound");
+    const posted = fetches.find((f) => f.body);
+    expect(JSON.parse(posted!.body ?? "{}").workdir).toBe("/tmp/bound");
   });
 
   it("openNewTodo/closeNewTodo toggle flag", () => {

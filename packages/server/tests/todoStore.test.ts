@@ -100,6 +100,25 @@ describe("todoStore", () => {
     expect(todo.tags).toEqual([]);
   });
 
+  it("creates todo with bound workdir and persists", () => {
+    const store = makeStore();
+    const todo = store.createTodo({
+      title: "t",
+      source: "session",
+      workdir: "/Users/demo/repo",
+    });
+    expect(todo.workdir).toBe("/Users/demo/repo");
+
+    const reloaded = createTodoStore({ home });
+    expect(reloaded.getTodo(todo.id)?.workdir).toBe("/Users/demo/repo");
+  });
+
+  it("createTodo without workdir leaves it undefined", () => {
+    const store = makeStore();
+    const todo = store.createTodo({ title: "t", source: "session" });
+    expect(todo.workdir).toBeUndefined();
+  });
+
   it("cancels todo (status 已取消) and cascades to tasks later (T6)", () => {
     const store = makeStore();
     const todo = store.createTodo({ title: "t", source: "session" });

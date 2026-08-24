@@ -357,6 +357,21 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       return;
     }
 
+    if (command === "desktopPickDirectory") {
+      // 只选目录回传路径（todo 绑定 workdir 等），不动工作目录状态
+      if (!win) return;
+      const result = await showOpenDialog(win, {
+        properties: ["openDirectory", "createDirectory"],
+        defaultPath: state.workdir,
+      });
+      if (result.canceled || !result.filePaths[0]) return;
+      pushToWebview(win, {
+        command: "desktopPickDirectoryResult",
+        path: result.filePaths[0],
+      });
+      return;
+    }
+
     if (command === "desktopSelectRecentWorkdir" && typeof msg.path === "string") {
       rememberWorkdir(state, msg.path);
       savePersistedWorkdirState(options.userDataPath, state);

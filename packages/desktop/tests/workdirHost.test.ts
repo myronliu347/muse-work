@@ -202,6 +202,86 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
   });
 
+  it("desktopPickDirectory replies with picked path without touching workdir state", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-pickdir-"));
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: "/tmp/default-wd",
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({
+        canceled: false,
+        filePaths: ["/picked/todo-repo"],
+      }),
+    });
+
+    await handler!({ sender: {} }, { command: "desktopPickDirectory" });
+    // 只回传路径，不改工作目录状态（recentWorkdirs/workdir 不动）
+    expect(sent).toContainEqual({
+      command: "desktopPickDirectoryResult",
+      path: "/picked/todo-repo",
+    });
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({ command: "desktopWorkdirState" }),
+    );
+    expect(loadPersistedWorkdirState(userData).workdir).toBeUndefined();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
+
+  it("desktopPickDirectory canceled → no push", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-pickdir-cancel-"));
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!({ sender: {} }, { command: "desktopPickDirectory" });
+    expect(sent).toEqual([]);
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
+
   it("openFile replies with desktopFileContent", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-file-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sample-"));

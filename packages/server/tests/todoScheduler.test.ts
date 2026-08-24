@@ -557,4 +557,24 @@ describe("todoScheduler", () => {
     expect(input.systemPrompt).toContain("重构登录");
     expect(input.systemPrompt).toContain("把登录逻辑抽成独立模块");
   });
+
+  it("openPlanningSession 用 todo 绑定 workdir；未绑定回退 personal", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const bound = store.createTodo({
+      title: "t",
+      source: "session",
+      workdir: "/tmp/bound-repo",
+    });
+    const opened = scheduler.openPlanningSession(bound.id);
+    expect(opened!.workdir).toBe("/tmp/bound-repo");
+    expect(fs.existsSync(opened!.workdir)).toBe(true);
+    const input = vi.mocked(sessionStore.create).mock.calls[0][0] as {
+      workdir?: string;
+    };
+    expect(input.workdir).toBe("/tmp/bound-repo");
+
+    const unbound = store.createTodo({ title: "t2", source: "session" });
+    const opened2 = scheduler.openPlanningSession(unbound.id);
+    expect(opened2!.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
+  });
 });

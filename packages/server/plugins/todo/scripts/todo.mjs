@@ -13,10 +13,10 @@ function usage() {
   console.log(`todo.mjs — Todo/Task 管理 CLI（server 端口 ${PORT}）
 
 用法：
-  node todo.mjs create --title <标题> [--priority p0|p1|p2] [--source session|manual|popo|internal] [--description <md>] [--tags 标签1,标签2]
+  node todo.mjs create --title <标题> [--priority p0|p1|p2] [--source session|manual|popo|internal] [--description <md>] [--tags 标签1,标签2] [--workdir <目录>]
   node todo.mjs list
   node todo.mjs get <todoId>
-  node todo.mjs add-task <todoId> --title <标题> --workdir <目录> [--description <md>] [--branch <分支>] [--no-worktree]
+  node todo.mjs add-task <todoId> --title <标题> [--workdir <目录>] [--description <md>] [--branch <分支>] [--no-worktree]
   node todo.mjs comment <taskId> --content <文本>
 
 task 操作（状态迁移）：
@@ -78,6 +78,8 @@ async function main() {
         priority: arg(argv, "--priority") ?? "p1",
         source: arg(argv, "--source") ?? "session",
         tags,
+        // --workdir 可选：绑定 todo 工作目录（规划会话开在这里，task 缺省继承）
+        ...(arg(argv, "--workdir") ? { workdir: arg(argv, "--workdir") } : {}),
       });
       console.log(JSON.stringify(todo, null, 2));
       return;
@@ -106,13 +108,14 @@ async function main() {
       const todoId = argv[0];
       const title = arg(argv, "--title");
       const workdir = arg(argv, "--workdir");
-      if (!todoId || !title || !workdir) {
-        throw new Error("add-task 需要 <todoId> --title <标题> --workdir <目录>");
+      if (!todoId || !title) {
+        throw new Error("add-task 需要 <todoId> --title <标题> [--workdir <目录>]");
       }
       const { task } = await request("POST", `/todos/${todoId}/tasks`, {
         title,
         description: arg(argv, "--description") ?? "",
-        workdir,
+        // --workdir 可选：未传由 server 继承 todo 绑定目录（todo 也未绑定时 server 400）
+        ...(workdir ? { workdir } : {}),
         ...(arg(argv, "--branch") ? { baseBranch: arg(argv, "--branch") } : {}),
         // --no-worktree：git 项目也直接在原目录执行（缺省建 worktree 隔离）
         ...(has(argv, "--no-worktree") ? { worktreeEnabled: false } : {}),

@@ -13,6 +13,7 @@ function renderBoard(
     onOpenInEditor?: (workdir: string) => void;
     onOpenInTerminal?: (workdir: string) => void;
     onTodosChanged?: () => void;
+    pickDirectory?: () => Promise<string | null>;
   } = {},
 ) {
   return render(
@@ -23,6 +24,7 @@ function renderBoard(
         onOpenInEditor={overrides.onOpenInEditor}
         onOpenInTerminal={overrides.onOpenInTerminal}
         onTodosChanged={overrides.onTodosChanged}
+        pickDirectory={overrides.pickDirectory}
       />
     </MuseTheme>,
   );
@@ -756,6 +758,105 @@ describe("TodoBoard", () => {
     );
     // 创建成功后表单收起
     expect(screen.queryByTestId("todo-new-title")).toBeNull();
+  });
+
+  it("新建 TODO 弹窗：选择目录按钮调 pickDirectory 填入路径，创建 POST 带 workdir", async () => {
+    const fetches: Array<{ method: string; url: string; body?: string }> = [];
+    const api = apiWith(
+      {
+        "GET /todos": async () => ({ todos: [] }),
+        "POST /todos": async () => ({
+          todo: todoFixture({ id: "new1", title: "绑目录", workdir: "/tmp/bound" }),
+        }),
+        "GET /todos/new1/tasks": async () => ({ tasks: [] }),
+      },
+      fetches,
+    );
+    const user = userEvent.setup();
+    const pickDirectory = vi.fn(async () => "/picked/repo");
+    renderBoard(api, { pickDirectory });
+    await waitFor(() => expect(screen.getByTestId("todo-new-btn")).toBeTruthy());
+
+    await user.click(screen.getByTestId("todo-new-btn"));
+    // workdir 行 + 选择按钮可见
+    expect(screen.getByTestId("todo-new-workdir")).toBeTruthy();
+    await user.click(screen.getByTestId("todo-new-pick-workdir"));
+    expect(pickDirectory).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect((screen.getByTestId("todo-new-workdir") as HTMLInputElement).value).toBe(
+        "/picked/repo",
+      ),
+    );
+    await user.type(screen.getByTestId("todo-new-title"), "绑目录");
+    await user.click(screen.getByTestId("todo-new-save"));
+
+    await waitFor(() =>
+      expect(
+        fetches.some((f) => {
+          if (f.method !== "POST") return false;
+          const body = JSON.parse(f.body ?? "{}");
+          return body.title === "绑目录" && body.workdir === "/picked/repo";
+        }),
+      ).toBe(true),
+    );
+  });
+
+  it("新建 TODO 弹窗：清除按钮清空已选 workdir", async () => {
+    const fetches: Array<{ method: string; url: string; body?: string }> = [];
+    const api = apiWith(
+      {
+        "GET /todos": async () => ({ todos: [] }),
+        "POST /todos": async () => ({
+          todo: todoFixture({ id: "new1", title: "不绑", workdir: "/picked/repo" }),
+        }),
+        "GET /todos/new1/tasks": async () => ({ tasks: [] }),
+      },
+      fetches,
+    );
+    const user = userEvent.setup();
+    const pickDirectory = vi.fn(async () => "/picked/repo");
+    renderBoard(api, { pickDirectory });
+    await waitFor(() => expect(screen.getByTestId("todo-new-btn")).toBeTruthy());
+
+    await user.click(screen.getByTestId("todo-new-btn"));
+    await user.click(screen.getByTestId("todo-new-pick-workdir"));
+    await waitFor(() =>
+      expect((screen.getByTestId("todo-new-workdir") as HTMLInputElement).value).toBe(
+        "/picked/repo",
+      ),
+    );
+    await user.click(screen.getByTestId("todo-new-clear-workdir"));
+    await user.type(screen.getByTestId("todo-new-title"), "不绑");
+    await user.click(screen.getByTestId("todo-new-save"));
+
+    await waitFor(() =>
+      expect(
+        fetches.some((f) => {
+          if (f.method !== "POST") return false;
+          const body = JSON.parse(f.body ?? "{}");
+          return body.title === "不绑" && body.workdir === undefined;
+        }),
+      ).toBe(true),
+    );
+  });
+
+  it("编辑 TODO 弹窗不显示 workdir 行（绑定不可修改）", async () => {
+    const api = apiWith({
+      "GET /todos": async () => ({
+        todos: [todoFixture({ id: "a", title: "已绑定", workdir: "/tmp/bound" })],
+      }),
+      "GET /todos/a/tasks": async () => ({ tasks: [] }),
+      "PATCH /todos/a": async () => ({
+        todo: todoFixture({ id: "a", title: "已绑定2", workdir: "/tmp/bound" }),
+      }),
+    });
+    const user = userEvent.setup();
+    renderBoard(api);
+    await waitFor(() => expect(screen.getByText("已绑定")).toBeTruthy());
+
+    await user.click(screen.getByTestId("todo-more-a"));
+    await user.click(screen.getByTestId("todo-menu-edit-a"));
+    expect(screen.queryByTestId("todo-edit-workdir")).toBeNull();
   });
 
   it("新建 TODO 弹窗：优先级 chip 单选 p0 后创建", async () => {

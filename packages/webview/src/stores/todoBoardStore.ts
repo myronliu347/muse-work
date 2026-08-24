@@ -16,6 +16,8 @@ export interface NewTodoInput {
   priority?: MuseTodoPriority;
   source: MuseTodoSource;
   tags?: string[];
+  /** 绑定工作目录（新建时可选；创建后不可改）。 */
+  workdir?: string;
 }
 
 /** task 进待审核的通知（server WS todo:notify）。 */

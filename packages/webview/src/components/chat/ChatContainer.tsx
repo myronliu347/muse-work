@@ -18,6 +18,28 @@ import type {
 import type { MuseApiClient } from "../../muse/apiClient";
 import type { ChatAppCore } from "../../hooks/useChatAppCore";
 
+/** 调主进程系统目录选择器，一次性等待 desktopPickDirectoryResult 回传路径。 */
+function pickDirectoryViaHost(
+  postToHost: ChatAppCore["postToHost"],
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data;
+      if (data?.command !== "desktopPickDirectoryResult") return;
+      window.removeEventListener("message", handler);
+      clearTimeout(timer);
+      resolve(typeof data.path === "string" && data.path ? data.path : null);
+    };
+    window.addEventListener("message", handler);
+    postToHost({ command: "desktopPickDirectory" });
+    // 非桌面环境（独立 dev）主进程不响应 → 超时兜底，避免 Promise 悬挂
+    const timer = setTimeout(() => {
+      window.removeEventListener("message", handler);
+      resolve(null);
+    }, 15_000);
+  });
+}
+
 export interface ChatContainerProps extends ChatChromeProps {
   /** The chat column element; measured for dock width planning + focus routing. */
   chatContainerRef: RefObject<HTMLDivElement>;
@@ -108,6 +130,9 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
               }
               onTodosChanged={() =>
                 postToHost({ command: "desktopRefreshSessionTree" })
+              }
+              pickDirectory={() =>
+                pickDirectoryViaHost(postToHost)
               }
             />
           ) : view === "popo-robot" ? (

@@ -144,20 +144,28 @@ const TodoEditDialog: React.FC<{
     description: string;
     priority: MuseTodoPriority;
     tags: string[];
+    /** 绑定工作目录（编辑弹窗不显示 workdir，传当前值即可）。 */
+    workdir?: string;
   };
   allTags: string[];
+  /** 仅新建弹窗展示 workdir 选择行（编辑不支持修改）。 */
+  showWorkdir?: boolean;
+  /** 调系统目录选择器返回路径（无则隐藏选择按钮）；桌面端由 ChatContainer 注入。 */
+  pickDirectory?: () => Promise<string | null>;
   onSubmit: (v: {
     title: string;
     description: string;
     priority: MuseTodoPriority;
     tags: string[];
+    workdir?: string;
   }) => Promise<boolean>;
   onClose: () => void;
-}> = ({ heading, submitText, prefix, initial, allTags, onSubmit, onClose }) => {
+}> = ({ heading, submitText, prefix, initial, allTags, showWorkdir, pickDirectory, onSubmit, onClose }) => {
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
   const [priority, setPriority] = useState<MuseTodoPriority>(initial.priority);
   const [tags, setTags] = useState<string[]>(initial.tags);
+  const [workdir, setWorkdir] = useState(initial.workdir ?? "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -179,9 +187,16 @@ const TodoEditDialog: React.FC<{
       description,
       priority,
       tags,
+      ...(workdir.trim() ? { workdir: workdir.trim() } : {}),
     });
     if (ok) onClose();
     else setSaving(false);
+  };
+
+  const handlePickDirectory = async () => {
+    if (!pickDirectory) return;
+    const dir = await pickDirectory();
+    if (dir) setWorkdir(dir);
   };
 
   return (
@@ -233,6 +248,43 @@ const TodoEditDialog: React.FC<{
             </Text>
             <PriorityChips value={priority} onChange={setPriority} />
           </div>
+          {showWorkdir && (
+            <div className="todo-dialog-field">
+              <Text size="1" weight="medium">
+                工作目录（可选）
+              </Text>
+              <div className="todo-workdir-row">
+                <input
+                  className="todo-input todo-workdir-input"
+                  placeholder="不选则规划会话用默认目录（~/.muse-work/personal）"
+                  value={workdir}
+                  onChange={(e) => setWorkdir(e.target.value)}
+                  data-testid={`${prefix}-workdir`}
+                />
+                {pickDirectory && (
+                  <Button
+                    size="1"
+                    variant="soft"
+                    onClick={() => void handlePickDirectory()}
+                    data-testid={`${prefix}-pick-workdir`}
+                  >
+                    选择目录
+                  </Button>
+                )}
+                {workdir && (
+                  <button
+                    type="button"
+                    className="todo-icon-btn"
+                    onClick={() => setWorkdir("")}
+                    aria-label="清除工作目录"
+                    data-testid={`${prefix}-clear-workdir`}
+                  >
+                    <i className="codicon codicon-close" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="todo-dialog-field">
             <Text size="1" weight="medium">
               标签
@@ -270,6 +322,8 @@ export interface TodoBoardProps {
   onOpenInTerminal?: (workdir: string) => void;
   /** todo 状态变化（完成/取消）后触发——通知侧栏任务分组刷新。 */
   onTodosChanged?: () => void;
+  /** 调系统目录选择器返回路径（新建 TODO 绑定 workdir 用）；无则隐藏选择按钮。 */
+  pickDirectory?: () => Promise<string | null>;
 }
 
 /**
@@ -283,6 +337,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onTodosChanged,
+  pickDirectory,
 }) => {
   const todos = useTodoBoardStore((s) => s.todos);
   const loading = useTodoBoardStore((s) => s.loading);
@@ -389,6 +444,8 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
             submitText="创建"
             prefix="todo-new"
             initial={{ title: "", description: "", priority: "p1", tags: [] }}
+            showWorkdir
+            pickDirectory={pickDirectory}
             allTags={allTags}
             onSubmit={async (v) => {
               const todo = await createTodo({ ...v, source: "manual" });

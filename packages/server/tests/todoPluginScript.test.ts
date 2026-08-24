@@ -117,6 +117,22 @@ describe("todo plugin script (todo.mjs)", () => {
     expect(task.status).toBe("pending");
   });
 
+  it("add-task 未传 --workdir 时继承 todo 绑定目录（create --workdir 绑定）", async () => {
+    port = await startServer();
+    const out = await execScript(port, [
+      "create",
+      "--title",
+      "绑目录",
+      "--workdir",
+      "/tmp/bound",
+    ]);
+    const todo = JSON.parse(out) as { id: string; workdir: string };
+    expect(todo.workdir).toBe("/tmp/bound");
+    const taskOut = await execScript(port, ["add-task", todo.id, "--title", "继承目录"]);
+    const task = JSON.parse(taskOut) as { workdir: string };
+    expect(task.workdir).toBe("/tmp/bound");
+  });
+
   it("add-task --no-worktree 透传 worktreeEnabled=false（git 项目直接在原目录执行）", async () => {
     port = await startServer();
     const out = await execScript(port, ["create", "--title", "t"]);

@@ -43,6 +43,8 @@ export interface Todo {
   status: TodoStatus;
   /** 标签（trim/去重/小写规范化后的小写字符串）。 */
   tags: string[];
+  /** 绑定的工作目录：规划会话开在这里，新 task 未指定 workdir 时继承；未绑定则用默认 personal。 */
+  workdir?: string;
   planningSessionId?: string;
   createdAt: number;
   updatedAt: number;
@@ -76,6 +78,8 @@ export interface CreateTodoInput {
   priority?: TodoPriority;
   source: TodoSource;
   tags?: string[];
+  /** 绑定工作目录（可选；未绑定则规划会话用默认 personal，task 创建时 workdir 仍必填）。 */
+  workdir?: string;
 }
 
 export interface CreateTaskInput {
@@ -376,6 +380,7 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
         source: input.source,
         status: "pending",
         tags: normalizeTags(input.tags),
+        ...(input.workdir ? { workdir: input.workdir } : {}),
         createdAt: now,
         updatedAt: now,
       };

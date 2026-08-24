@@ -661,3 +661,18 @@
   background: var(--accent-3);
   color: var(--accent-11);
 }
+
+/* 新建 TODO 弹窗：绑定工作目录行（选择按钮 + 已选路径 + 清除） */
+.todo-workdir-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.todo-workdir-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--font-size-1);
+}

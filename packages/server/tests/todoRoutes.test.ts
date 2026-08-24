@@ -156,6 +156,73 @@ describe("todo routes", () => {
     expect(todoBody.todo.status).toBe("in_progress");
   });
 
+  it("POST /todos accepts optional workdir (trim; empty stays unbound)", async () => {
+    const { app } = makeApp();
+    const withWd = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "绑目录", source: "session", workdir: "  /tmp/proj  " }),
+      }),
+    );
+    expect(withWd.status).toBe(201);
+    const bound = (await withWd.json()) as { todo: { workdir?: string } };
+    expect(bound.todo.workdir).toBe("/tmp/proj");
+
+    const emptyWd = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "不绑", source: "session", workdir: "   " }),
+      }),
+    );
+    expect(emptyWd.status).toBe(201);
+    const unbound = (await emptyWd.json()) as { todo: { workdir?: string } };
+    expect(unbound.todo.workdir).toBeUndefined();
+  });
+
+  it("POST /todos/:id/tasks 未传 workdir 时继承 todo 绑定目录；todo 无绑定仍 400", async () => {
+    const { app } = makeApp();
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session", workdir: "/tmp/bound" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+
+    // 未传 workdir → 继承 todo.workdir
+    const inherited = await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task1" }),
+      }),
+    );
+    expect(inherited.status).toBe(201);
+    const body = (await inherited.json()) as { task: { workdir: string } };
+    expect(body.task.workdir).toBe("/tmp/bound");
+
+    // 未绑定 workdir 的 todo：未传仍 400
+    const created2 = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t2", source: "session" }),
+      }),
+    );
+    const { todo: todo2 } = (await created2.json()) as { todo: { id: string } };
+    const missing = await app.fetch(
+      new Request(`http://x/todos/${todo2.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task1" }),
+      }),
+    );
+    expect(missing.status).toBe(400);
+  });
+
   it("POST /todos/:id/tasks 支持 baseBranch（worktree base 分支）", async () => {
     const { app } = makeApp();
     const created = await app.fetch(

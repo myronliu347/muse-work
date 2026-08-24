@@ -75,6 +75,9 @@ function buildTodoSystemPrompt(todo: Todo): string {
     `TODO ID：${todo.id}`,
     `标题：${todo.title}`,
     todo.description ? `描述：${todo.description}` : "描述：（无）",
+    todo.workdir
+      ? `绑定工作目录：${todo.workdir}（拆解 task 时 add-task 可不传 --workdir，自动继承该目录）`
+      : "未绑定工作目录（拆解 task 时 add-task 需显式传 --workdir）",
   ].join("\n");
 }
 
@@ -427,8 +430,8 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
       }
       const active = registry.getActive();
       const model = active.modelId ?? DEFAULT_ACTIVE_MODEL_ID;
-      // todo 规划会话 workdir 统一为 <museHome>/personal（用户指定，固定目录）
-      const workdir = getTodoWorkdir(home);
+      // todo 规划会话 workdir = 绑定的目录；未绑定回退 <museHome>/personal（用户指定默认）
+      const workdir = todo.workdir ?? getTodoWorkdir(home);
       fs.mkdirSync(workdir, { recursive: true });
       const session = sessionStore.create({
         workdir,
