@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
 import { DEFAULT_ACTIVE_MODEL_ID, getTodoWorkdir } from "@muse-work/provider";
-import type { SessionRunner } from "./sessionRunner.js";
+import type { SessionRunner } from "./sessionRunner/index.js";
 import type { SessionStore } from "./sessionStore.js";
 import type { Task, Todo, TodoStore } from "./todoStore.js";
 import type { WsHub } from "./wsHub.js";

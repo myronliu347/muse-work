@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
-import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner.js";
+import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner/index.js";
 import { pluginDirIfPresent } from "../services/museSettings.js";
 import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";

@@ -11,7 +11,7 @@ import {
   type CreateAgent,
   type SessionAgent,
   type SessionRunner,
-} from "./sessionRunner.js";
+} from "./sessionRunner/index.js";
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createTodoStore, type TodoStore } from "./todoStore.js";
 import { createTodoScheduler, type TodoScheduler } from "./todoScheduler.js";

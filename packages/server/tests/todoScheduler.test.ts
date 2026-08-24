@@ -8,8 +8,8 @@ import { createTodoScheduler } from "../src/services/todoScheduler.js";
 import {
   isSystemInjectContent,
   wrapSystemInject,
-} from "../src/services/sessionRunner.js";
-import type { SessionRunner } from "../src/services/sessionRunner.js";
+} from "../src/services/sessionRunner/index.js";
+import type { SessionRunner } from "../src/services/sessionRunner/index.js";
 import type { SessionStore } from "../src/services/sessionStore.js";
 import type { WsHub } from "../src/services/wsHub.js";
 
