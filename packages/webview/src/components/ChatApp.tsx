@@ -809,7 +809,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           if (!content && !um.images?.length) break;
           const realId =
             typeof um.id === "string" && um.id.length > 0 ? um.id : undefined;
-          const lastMsg = stateRef.current.messages[stateRef.current.messages.length - 1];
+          // 乐观气泡可能已被插队的错误块（如空 turn 提示）压到非最后一条，
+          // 只比对最后一条会漏掉匹配、重复渲染同一条用户气泡。向上找最近
+          // 一条用户消息做去重；5s 时间窗保证不会误配更早的同内容消息。
+          let lastMsg: (typeof stateRef.current.messages)[number] | undefined;
+          for (let i = stateRef.current.messages.length - 1; i >= 0; i--) {
+            const m = stateRef.current.messages[i];
+            if (m.role === "user") {
+              lastMsg = m;
+              break;
+            }
+          }
           const lastTs = lastMsg?.timestamp
             ? new Date(lastMsg.timestamp).getTime()
             : 0;

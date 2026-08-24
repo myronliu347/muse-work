@@ -934,6 +934,11 @@ export function createSessionRunner(
           // bubbles. Regular user messages surface here for queued sends whose
           // optimistic bubble was skipped while the AI was busy.
           if (params.isMeta) return;
+          // 用户消息正式派发（进入 SDK 转录）＝新一轮真正开始：清掉上一轮
+          // 遗留的 turn 状态，保证本轮真空 turn 仍能被 reportEmptyTurnIfNeeded
+          // 捕获（入队场景下 runTurn 保留了上一轮状态，故在此复位）。
+          turnEnded.set(sessionId, false);
+          turnHadOutput.set(sessionId, false);
           // SDK 的 onUserMessageAdded 回调不携带新消息 id；从 agent 消息里取
           // 最近一条非 meta 的 user 消息 id 下发。webview 用它把乐观气泡的
           // 客户端临时 id 对齐成 SDK 真实 id——否则 rewind 等按 id 操作会
@@ -1411,10 +1416,17 @@ export function createSessionRunner(
     store.update(sessionId, { lastActiveAt: Date.now() });
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
-    turnEnded.set(sessionId, false);
-    turnHadOutput.set(sessionId, false);
-    agentLoading.set(sessionId, false);
-    loadingSeen.set(sessionId, false);
+    // 仅当 agent 当前空闲（本消息将开启新一轮）才重置轮次状态。若 agent 仍
+    // 在忙（SDK 会把本消息入队、等上一轮结束才派发），保留上一轮的
+    // turnHadOutput/loadingSeen 等——否则上一轮收尾时的 onLoadingChange(false)
+    // 或本 runTurn 的 setImmediate 回退会把这轮"入队中"的消息误判成空 turn，
+    // 广播假的"模型没有产生输出"，进而导致 webview 重复渲染用户气泡。
+    if (agentLoading.get(sessionId) !== true) {
+      turnEnded.set(sessionId, false);
+      turnHadOutput.set(sessionId, false);
+      agentLoading.set(sessionId, false);
+      loadingSeen.set(sessionId, false);
+    }
     bumpActivity(sessionId);
     getLogger().info("turn started", {
       sessionId,
