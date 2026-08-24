@@ -26,11 +26,13 @@
 }
 
 .todo-new-btn {
-  flex-shrink: 0;
+  /* 位于 .todo-board-left-top flex 行内：占剩余空间（不能用 width:100%，
+     会作为 flex-basis 与切换组叠加溢出左面板穿透到右侧看板区） */
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
   padding: var(--space-2);
   border: 1px dashed var(--gray-6);
   border-radius: var(--radius-2);
