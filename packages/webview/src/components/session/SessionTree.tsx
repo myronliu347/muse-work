@@ -114,7 +114,7 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "tasks" | "workspace";
+type SectionId = "pin" | "todos" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
@@ -154,7 +154,7 @@ function CollapsibleBody({
 }
 
 /**
- * Pin / 任务 / 工作空间 session tree for the desktop sidebar.
+ * Pin / 待办事项 / 任务 / 工作空间 session tree for the desktop sidebar.
  */
 export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
@@ -461,6 +461,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     sectionId: SectionId;
     title: string;
     testId: string;
+    /** 会话数量，跟随标题展示（如「置顶（2）」）。 */
+    count?: number;
   }) => {
     const collapsed = collapsedSections.has(opts.sectionId);
     return (
@@ -472,6 +474,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         aria-expanded={!collapsed}
       >
         <span className="desktop-session-section-title">{opts.title}</span>
+        {opts.count !== undefined ? (
+          <span className="desktop-session-count">（{opts.count}）</span>
+        ) : null}
         <span
           className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
           aria-hidden="true"
@@ -490,7 +495,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     const open = !collapsedSections.has(opts.sectionId);
     return (
       <div className="desktop-session-section" data-testid={opts.testId}>
-        {renderSectionHeader(opts)}
+        {renderSectionHeader({
+          ...opts,
+          count: opts.sessions.length,
+        })}
         <CollapsibleBody open={open}>
           {opts.sessions.length === 0 ? (
             <div className="desktop-session-empty">无会话</div>
@@ -506,19 +514,21 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  /** 任务 section：todo 分组（规划会话 + 执行会话按 todo 折叠）+ 遗留自动任务会话。 */
-  const renderTasksSection = () => {
-    const open = !collapsedSections.has("tasks");
+  /** 待办事项 section：todo 分组（规划会话 + 执行会话按 todo 折叠展示）。 */
+  const renderTodosSection = () => {
+    const open = !collapsedSections.has("todos");
     const groups = todoGroups ?? [];
+    const count = groups.reduce((sum, g) => sum + g.sessions.length, 0);
     return (
-      <div className="desktop-session-section" data-testid="desktop-session-section-tasks">
+      <div className="desktop-session-section" data-testid="desktop-session-section-todos">
         {renderSectionHeader({
-          sectionId: "tasks",
-          title: "任务",
-          testId: "desktop-session-section-tasks",
+          sectionId: "todos",
+          title: "待办事项",
+          testId: "desktop-session-section-todos",
+          count,
         })}
         <CollapsibleBody open={open}>
-          {groups.length === 0 && taskSessions.length === 0 ? (
+          {groups.length === 0 ? (
             <div className="desktop-session-empty">无会话</div>
           ) : (
             <>
@@ -564,21 +574,40 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                     <CollapsibleBody open={!collapsed}>
                       <ul className="desktop-session-items desktop-session-items--nested">
                         {group.sessions.map((session) =>
-                          renderSession(session, { hideWorkdir: true, hideActions: true }),
+                          renderSession(session, { hideWorkdir: true }),
                         )}
                       </ul>
                     </CollapsibleBody>
                   </div>
                 );
               })}
-              {taskSessions.length > 0 ? (
-                <ul className="desktop-session-items">
-                  {taskSessions.map((session) =>
-                    renderSession(session, { hideWorkdir: true, hideActions: true }),
-                  )}
-                </ul>
-              ) : null}
             </>
+          )}
+        </CollapsibleBody>
+      </div>
+    );
+  };
+
+  /** 任务 section：遗留自动任务会话（不在任何 todo 分组下的 task project 会话）。 */
+  const renderTasksSection = () => {
+    const open = !collapsedSections.has("tasks");
+    return (
+      <div className="desktop-session-section" data-testid="desktop-session-section-tasks">
+        {renderSectionHeader({
+          sectionId: "tasks",
+          title: "任务",
+          testId: "desktop-session-section-tasks",
+          count: taskSessions.length,
+        })}
+        <CollapsibleBody open={open}>
+          {taskSessions.length === 0 ? (
+            <div className="desktop-session-empty">无会话</div>
+          ) : (
+            <ul className="desktop-session-items">
+              {taskSessions.map((session) =>
+                renderSession(session, { hideWorkdir: true }),
+              )}
+            </ul>
           )}
         </CollapsibleBody>
       </div>
@@ -596,6 +625,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           sectionId: "workspace",
           title: "工作空间",
           testId: "desktop-session-section-recent",
+          count: workspaceGroups.reduce((sum, g) => sum + g.sessions.length, 0),
         })}
         <CollapsibleBody open={open}>
           {workspaceGroups.length === 0 ? (
@@ -689,6 +719,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         testId: "desktop-session-section-pin",
         sessions: pinnedSessions,
       })}
+      {renderTodosSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 

@@ -175,9 +175,10 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(tasksIdx).toBeLessThan(workspaceIdx);
   });
 
-  it("collapses 置顶 / 任务 / 工作空间 top-level sections", () => {
+  it("collapses 置顶 / 待办事项 / 任务 / 工作空间 top-level sections", () => {
     renderSidebar({
       pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
+      todoGroups: [todoGroup()],
       recentSessions: [
         entry({ sessionId: "r1", workdir: "/repo/beta" }),
         entry({
@@ -188,6 +189,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
 
     const pinToggle = screen.getByTestId("desktop-session-section-pin-toggle");
+    const todosToggle = screen.getByTestId(
+      "desktop-session-section-todos-toggle",
+    );
     const tasksToggle = screen.getByTestId(
       "desktop-session-section-tasks-toggle",
     );
@@ -204,6 +208,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
         .querySelector(".desktop-session-collapse--closed"),
     ).toBeTruthy();
 
+    fireEvent.click(todosToggle);
+    expect(todosToggle).toHaveAttribute("aria-expanded", "false");
+
     fireEvent.click(tasksToggle);
     expect(tasksToggle).toHaveAttribute("aria-expanded", "false");
 
@@ -211,7 +218,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(workspaceToggle).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("renders todo groups inside 任务 with priority badge and session count", () => {
+  it("renders todo groups inside 待办事项 with priority badge and session count", () => {
     renderSidebar({ todoGroups: [todoGroup()] });
 
     const group = screen.getByTestId("desktop-session-todo-group-todo-1");
@@ -219,8 +226,12 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(group).toHaveTextContent("P1");
     expect(group).toHaveTextContent("2");
     expect(
-      screen.getByTestId("desktop-session-section-tasks"),
+      screen.getByTestId("desktop-session-section-todos"),
     ).toContainElement(group);
+    // 待办事项 section 不包含遗留任务会话（任务 section 是独立顶级分组）
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).not.toContainElement(group);
 
     // 组内会话：规划 + 执行会话标题一眼可辨
     expect(
@@ -229,7 +240,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-item-sess-exec"),
     ).toHaveTextContent("写评审文档");
-    // todo 会话只出现在任务分组，不重复进工作空间
+    // todo 会话只出现在待办事项分组，不重复进工作空间
     expect(
       screen.getByTestId("desktop-session-section-recent"),
     ).not.toContainElement(screen.getByTestId("desktop-session-item-sess-exec"));
@@ -252,23 +263,30 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("todo 分组内会话不显示置顶/删除按钮（普通 recent 会话仍有）", () => {
+  it("todo/任务 分组内会话保留置顶/删除按钮（与普通会话一致）", () => {
     renderSidebar({
       todoGroups: [todoGroup()],
-      recentSessions: [entry({ sessionId: "r1", title: "普通会话" })],
+      recentSessions: [
+        entry({ sessionId: "r1", title: "普通会话" }),
+        entry({
+          sessionId: "t1",
+          title: "遗留任务会话",
+          workdir: "/home/u/.muse-work/projects/20260813-aaaa",
+        }),
+      ],
     });
 
-    // todo 分组内：规划/执行会话无置顶、无删除
+    // todo 分组内：规划/执行会话有置顶、有删除
     for (const sid of ["sess-plan", "sess-exec"]) {
-      expect(screen.queryByTestId(`desktop-session-pin-${sid}`)).toBeNull();
-      expect(screen.queryByTestId(`desktop-session-delete-${sid}`)).toBeNull();
+      expect(screen.getByTestId(`desktop-session-pin-${sid}`)).toBeTruthy();
+      expect(screen.getByTestId(`desktop-session-delete-${sid}`)).toBeTruthy();
     }
-    // 对照组：普通会话保留置顶/删除
-    expect(screen.getByTestId("desktop-session-pin-r1")).toBeTruthy();
-    expect(screen.getByTestId("desktop-session-delete-r1")).toBeTruthy();
+    // 遗留任务会话同样可置顶/删除
+    expect(screen.getByTestId("desktop-session-pin-t1")).toBeTruthy();
+    expect(screen.getByTestId("desktop-session-delete-t1")).toBeTruthy();
   });
 
-  it("lists legacy auto task sessions below todo groups", () => {
+  it("lists legacy auto task sessions in 任务, todo sessions in 待办事项", () => {
     renderSidebar({
       todoGroups: [
         todoGroup({
@@ -285,11 +303,43 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
 
     expect(
-      screen.getByTestId("desktop-session-section-tasks"),
+      screen.getByTestId("desktop-session-section-todos"),
     ).toContainElement(screen.getByTestId("desktop-session-item-sess-exec"));
     expect(
       screen.getByTestId("desktop-session-section-tasks"),
     ).toContainElement(screen.getByTestId("desktop-session-item-t1"));
+    // todo 会话与遗留任务会话分属不同顶级分组
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).not.toContainElement(screen.getByTestId("desktop-session-item-sess-exec"));
+  });
+
+  it("shows session counts on all top-level section headers", () => {
+    renderSidebar({
+      pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
+      todoGroups: [todoGroup()],
+      recentSessions: [
+        entry({
+          sessionId: "t1",
+          workdir: "/home/u/.muse-work/projects/20260813-aaaa",
+        }),
+        entry({ sessionId: "r1", workdir: "/repo/beta" }),
+        entry({ sessionId: "r2", workdir: "/repo/beta" }),
+      ],
+    });
+
+    expect(screen.getByTestId("desktop-session-section-pin")).toHaveTextContent(
+      "置顶（1）",
+    );
+    expect(
+      screen.getByTestId("desktop-session-section-todos"),
+    ).toHaveTextContent("待办事项（2）");
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toHaveTextContent("任务（1）");
+    expect(
+      screen.getByTestId("desktop-session-section-recent"),
+    ).toHaveTextContent("工作空间（2）");
   });
 
   it("shows workdir chevron over folder icon on hover", () => {
