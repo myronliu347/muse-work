@@ -194,12 +194,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       window.open(url, "_blank", "noopener,noreferrer");
     });
 
-  /** Skip auto-minted `~/.muse-work/projects/…` scratch dirs and `.wave/worktrees/…`. */
+  /** Skip auto-minted `~/.muse-work` / `~/.dev-muse-work` scratch dirs and `.wave/worktrees/…`. */
   const isTransientWorkdir = (dir: string): boolean => {
     const segments = dir.split(/[\\/]/).filter(Boolean);
     return segments.some(
       (seg, i) =>
         seg === ".muse-work" ||
+        seg === ".dev-muse-work" ||
         (seg === ".wave" && segments[i + 1] === "worktrees"),
     );
   };
@@ -244,6 +245,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   let activeProviderId: string | undefined;
   let pinned: TreeSession[] = [];
   let recent: TreeSession[] = [];
+  /** Todo 分组（规划会话 + 执行会话），来自 grouped 响应的 todoGroups。 */
+  let todoGroups: NonNullable<MuseSessionsGrouped["todoGroups"]> = [];
   const titledSessions = new Set<string>();
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   const pendingPermissions = new Map<string, PendingPermission>();
@@ -305,6 +308,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     const map = new Map<string, TreeSession>();
     for (const s of pinned) map.set(s.id, s);
     for (const s of recent) map.set(s.id, s);
+    for (const g of todoGroups) for (const s of g.sessions) map.set(s.id, s);
     return map;
   };
 
@@ -331,6 +335,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     postToWebview({
       command: "desktopSessionTree",
       groups: buildSidebarModel({ pinned, recent }),
+      todoGroups: todoGroups.map((g) => ({
+        todoId: g.todoId,
+        todoTitle: g.todoTitle,
+        priority: g.priority,
+        sessions: g.sessions.map(toEntry),
+      })),
     });
     publishAgentBusy();
   };
@@ -339,6 +349,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     const prev = treeById();
     pinned = mergeRuntimeFields(grouped.pinned, prev);
     recent = mergeRuntimeFields(grouped.recent, prev);
+    todoGroups = (grouped.todoGroups ?? []).map((g) => ({
+      ...g,
+      sessions: mergeRuntimeFields(g.sessions, prev),
+    }));
     emitSessionTree();
   };
 
@@ -350,6 +364,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       list.map((s) => (s.id === id ? { ...s, ...patch } : s));
     pinned = apply(pinned);
     recent = apply(recent);
+    todoGroups = todoGroups.map((g) => ({
+      ...g,
+      sessions: apply(g.sessions),
+    }));
     emitSessionTree();
   };
 
@@ -1175,6 +1193,19 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
     if (event.type === "workflow-runs:update") {
       setRunningWork(event.sessionId, "workflows", event.runs);
+    }
+
+    // 全局通知（task 进待审核）：不依赖当前会话，所有 pane 都收。
+    if (event.type === "todo:notify") {
+      postToWebview({
+        command: "todo:notify",
+        todoId: event.todoId,
+        taskId: event.taskId,
+        todoTitle: event.todoTitle,
+        taskTitle: event.taskTitle,
+        priority: event.priority,
+      });
+      return;
     }
 
     // Chat / streaming events only drive ChatApp for the active session.
@@ -2017,6 +2048,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
           return;
         case "setPermissionMode":
           void handleSetPermissionMode(msg as { mode?: string });
+          return;
+        case "desktopRefreshSessionTree":
+          // todo 完成/取消后侧栏任务分组需要重拉（server recent 剔除已变化）
+          void refreshTree().catch(() => {
+            // 侧栏保持旧数据，下次任意刷新兜底
+          });
           return;
         case "getMcpServers":
           void handleGetMcpServers();

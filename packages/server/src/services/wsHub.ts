@@ -39,6 +39,8 @@ export type CreateWsHubOptions = {
 export interface WsHub {
   attach(server: HttpServer): void;
   broadcast(sessionId: string, event: WsEvent): void;
+  /** Broadcast to every connected client (session-scoped and wildcard). */
+  broadcastAll(event: WsEvent): void;
   setSnapshotProvider(provider: () => WsBroadcastEvent[]): void;
   /** Total connected WebSocket clients across all sessions (for runtime stats). */
   clientCount(): number;
@@ -162,6 +164,20 @@ export function createWsHub(options: CreateWsHubOptions = {}): WsHub {
           if (delivered.has(ws)) {
             continue;
           }
+          delivered.add(ws);
+          if (ws.readyState === ws.OPEN) {
+            ws.send(payload);
+          }
+        }
+      }
+    },
+
+    broadcastAll(event: WsEvent): void {
+      const payload = JSON.stringify({ ...event, sessionId: "*" } satisfies WsBroadcastEvent);
+      const delivered = new Set<WebSocket>();
+      for (const set of clients.values()) {
+        for (const ws of set) {
+          if (delivered.has(ws)) continue;
           delivered.add(ws);
           if (ws.readyState === ws.OPEN) {
             ws.send(payload);

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
 import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner.js";
+import { pluginDirIfPresent } from "../services/museSettings.js";
 import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
 
@@ -103,6 +104,12 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (!model) throw new Error("no active model");
     const gateway = await provider.resolveGateway(model);
 
+    // 内置 todo 插件（普通会话也挂载；POPO 会话里说「记个 todo」也能创建）
+    const todoDir = pluginDirIfPresent("todo");
+    const plugins = todoDir
+      ? [{ type: "local" as const, path: todoDir }]
+      : [];
+
     return (createAgent as CreateAgent)({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
@@ -116,6 +123,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       systemPrompt: POPO_SYSTEM_PROMPT,
       // Workflow 后台运行且结果通知本场景收不到，硬禁用
       disallowedTools: [...POPO_DISALLOWED_TOOLS],
+      ...(plugins.length > 0 ? { plugins } : {}),
       logger: createAgentLogger({
         home: options.home,
         sessionId: `popo-${sanitizeSessionId(chat.chatKey)}`,

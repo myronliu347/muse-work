@@ -1,0 +1,98 @@
+/* 右上角通知组件（task 进待审核），spec 2026-08-21 原型定稿 A */
+
+.todo-notify-stack {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 320px;
+  max-width: calc(100vw - var(--space-6));
+}
+
+.todo-notify-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-panel-solid, var(--gray-1));
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  box-shadow: var(--shadow-4);
+  cursor: pointer;
+  text-align: left;
+  color: var(--gray-12);
+  animation: todo-notify-in 0.18s ease-out;
+}
+
+.todo-notify-card:hover {
+  border-color: var(--accent-7);
+}
+
+@keyframes todo-notify-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.todo-notify-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.todo-notify-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.todo-notify-time {
+  font-size: 11px;
+  color: var(--gray-9);
+}
+
+.todo-notify-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.todo-notify-priority {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--radius-2);
+}
+
+.todo-notify-priority-p0 {
+  background: var(--red-3);
+  color: var(--red-11);
+}
+
+.todo-notify-priority-p1 {
+  background: var(--orange-3);
+  color: var(--orange-11);
+}
+
+.todo-notify-priority-p2 {
+  background: var(--gray-3);
+  color: var(--gray-10);
+}
+
+.todo-notify-text {
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

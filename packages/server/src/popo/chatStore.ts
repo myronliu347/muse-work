@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getMuseHomeDir } from "@muse-work/provider";
 
 export type PopoChatType = "p2p" | "team";
 
@@ -42,7 +43,7 @@ const DEFAULT_MAX_MESSAGES = 200;
 
 export function createChatStore(options: ChatStoreOptions): ChatStore {
   const maxMessages = options.maxMessages ?? DEFAULT_MAX_MESSAGES;
-  const file = path.join(options.home, ".muse-work", "popo-chats.json");
+  const file = path.join(getMuseHomeDir(options.home), "popo-chats.json");
   const chats = new Map<string, PopoChat>();
 
   function load(): void {

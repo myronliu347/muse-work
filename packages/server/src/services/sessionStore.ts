@@ -31,6 +31,8 @@ export interface Session {
   status: SessionStatus;
   /** Runtime-only: last process died mid-turn. Not written to disk. */
   interrupted?: boolean;
+  /** 自定义 system prompt（规划会话等注入 todo 上下文；缺省用默认 Muse prompt）。 */
+  systemPrompt?: string;
 }
 
 export type SessionsFile = {
@@ -48,6 +50,8 @@ export interface SessionStore {
     worktreeBranch?: string;
     baseBranch?: string;
     worktreeRepoRoot?: string;
+    title?: string;
+    systemPrompt?: string;
   }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
@@ -157,11 +161,13 @@ export function createSessionStore(
       worktreeBranch,
       baseBranch,
       worktreeRepoRoot,
+      title,
+      systemPrompt,
     }): Session {
       const now = Date.now();
       const session: Session = {
         id: crypto.randomUUID(),
-        title: "新对话",
+        title: title ?? "新对话",
         workdir,
         permissionMode: normalizePermissionMode(permissionMode),
         model,
@@ -173,6 +179,7 @@ export function createSessionStore(
         ...(worktreeBranch ? { worktreeBranch } : {}),
         ...(baseBranch ? { baseBranch } : {}),
         ...(worktreeRepoRoot ? { worktreeRepoRoot } : {}),
+        ...(systemPrompt ? { systemPrompt } : {}),
       };
       sessions.set(session.id, session);
       persist();

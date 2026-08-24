@@ -192,14 +192,16 @@ export function savePersistedWorkdirState(
 
 /**
  * Workdirs that must not appear in the "recently opened" list: the server's
- * auto-minted `~/.muse-work/projects/<date>-<uid>` scratch dirs and git
- * worktree dirs (`<repo>/.wave/worktrees/<name>`) created from the sidebar.
+ * auto-minted `~/.muse-work/projects/<date>-<uid>` scratch dirs (or
+ * `~/.dev-muse-work/…` under MUSE_HOME_DIR dev instances) and git worktree
+ * dirs (`<repo>/.wave/worktrees/<name>`) created from the sidebar.
  */
 export function isTransientWorkdir(dir: string): boolean {
   const segments = dir.split(/[\\/]/).filter(Boolean);
+  const stateDir = process.env.MUSE_HOME_DIR ?? ".muse-work";
   return segments.some(
     (seg, i) =>
-      seg === ".muse-work" ||
+      seg === stateDir ||
       (seg === ".wave" && segments[i + 1] === "worktrees"),
   );
 }

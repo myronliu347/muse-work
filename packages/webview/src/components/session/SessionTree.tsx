@@ -3,7 +3,11 @@ import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import { formatRelativeActiveAt } from "../../utils/time";
-import type { DesktopSessionGroup, DesktopSessionEntry } from "../../types";
+import type {
+  DesktopSessionGroup,
+  DesktopSessionEntry,
+  DesktopTodoGroup,
+} from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
 export const SESSION_DRAG_MIME = "application/x-wave-session";
@@ -16,12 +20,13 @@ const isMacPlatform = (): boolean =>
   navigator.platform.toUpperCase().startsWith("MAC");
 
 /**
- * Auto-minted task projects live under `~/.muse-work/projects/<id>`
+ * Auto-minted task projects live under `~/.muse-work/projects/<id>` (or
+ * `~/.dev-muse-work/…` on MUSE_HOME_DIR dev instances)
  * (see `@muse-work/provider` `createDefaultProjectWorkdir`).
  */
 export function isTaskProjectWorkdir(workdir: string): boolean {
   const normalized = workdir.replace(/\\/g, "/");
-  return /(^|\/)\.muse-work\/projects\//.test(normalized);
+  return /(^|\/)(\.muse-work|\.dev-muse-work)\/projects\//.test(normalized);
 }
 
 /** 相对时间格式化已抽到公共 utils（src/utils/time.ts），保持 re-export 兼容。 */
@@ -115,6 +120,8 @@ export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
   pinnedSessions?: DesktopSessionEntry[];
   recentSessions?: DesktopSessionEntry[];
+  /** Todo 分组：每个 todo 的规划会话 + 执行会话（任务 section 内折叠展示）。 */
+  todoGroups?: DesktopTodoGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -153,6 +160,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
+  todoGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -172,6 +180,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     description?: string;
   } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [collapsedTodos, setCollapsedTodos] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
@@ -236,6 +247,15 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     });
   };
 
+  const toggleTodoCollapsed = (todoId: string) => {
+    setCollapsedTodos((prev) => {
+      const next = new Set(prev);
+      if (next.has(todoId)) next.delete(todoId);
+      else next.add(todoId);
+      return next;
+    });
+  };
+
   const toggleSectionCollapsed = (sectionId: SectionId) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
@@ -247,7 +267,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
 
   const renderSession = (
     session: DesktopSessionEntry,
-    opts?: { hideWorkdir?: boolean },
+    opts?: { hideWorkdir?: boolean; hideActions?: boolean },
   ) => {
     const running =
       session.running ||
@@ -379,41 +399,43 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             {formatRelativeActiveAt(session.lastActiveAt)}
           </span>
         ) : null}
-        <span className="desktop-session-actions">
-          <Tooltip text={session.pinned ? "取消置顶" : "置顶"} position="top">
-            <button
-              className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePin(session.sessionId, !session.pinned);
-              }}
-              data-testid={`desktop-session-pin-${session.sessionId}`}
-              aria-label={session.pinned ? "取消置顶" : "置顶"}
-            >
-              <span className="codicon codicon-pinned"></span>
-            </button>
-          </Tooltip>
-          <Tooltip text="删除会话" position="top">
-            <button
-              className="desktop-session-delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                const label = session.title || "新对话";
-                setPendingDelete({
-                  sessionId: session.sessionId,
-                  title: `确定删除会话「${label}」？`,
-                  description: session.hasWorktree
-                    ? "该会话的 worktree 目录与临时分支将一并删除，未提交的改动将丢失。"
-                    : undefined,
-                });
-              }}
-              data-testid={`desktop-session-delete-${session.sessionId}`}
-              aria-label="删除会话"
-            >
-              <span className="codicon codicon-trash"></span>
-            </button>
-          </Tooltip>
-        </span>
+        {!opts?.hideActions && (
+          <span className="desktop-session-actions">
+            <Tooltip text={session.pinned ? "取消置顶" : "置顶"} position="top">
+              <button
+                className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(session.sessionId, !session.pinned);
+                }}
+                data-testid={`desktop-session-pin-${session.sessionId}`}
+                aria-label={session.pinned ? "取消置顶" : "置顶"}
+              >
+                <span className="codicon codicon-pinned"></span>
+              </button>
+            </Tooltip>
+            <Tooltip text="删除会话" position="top">
+              <button
+                className="desktop-session-delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const label = session.title || "新对话";
+                  setPendingDelete({
+                    sessionId: session.sessionId,
+                    title: `确定删除会话「${label}」？`,
+                    description: session.hasWorktree
+                      ? "该会话的 worktree 目录与临时分支将一并删除，未提交的改动将丢失。"
+                      : undefined,
+                  });
+                }}
+                data-testid={`desktop-session-delete-${session.sessionId}`}
+                aria-label="删除会话"
+              >
+                <span className="codicon codicon-trash"></span>
+              </button>
+            </Tooltip>
+          </span>
+        )}
       </li>
     );
 
@@ -478,6 +500,85 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 renderSession(session, { hideWorkdir: opts.hideWorkdir }),
               )}
             </ul>
+          )}
+        </CollapsibleBody>
+      </div>
+    );
+  };
+
+  /** 任务 section：todo 分组（规划会话 + 执行会话按 todo 折叠）+ 遗留自动任务会话。 */
+  const renderTasksSection = () => {
+    const open = !collapsedSections.has("tasks");
+    const groups = todoGroups ?? [];
+    return (
+      <div className="desktop-session-section" data-testid="desktop-session-section-tasks">
+        {renderSectionHeader({
+          sectionId: "tasks",
+          title: "任务",
+          testId: "desktop-session-section-tasks",
+        })}
+        <CollapsibleBody open={open}>
+          {groups.length === 0 && taskSessions.length === 0 ? (
+            <div className="desktop-session-empty">无会话</div>
+          ) : (
+            <>
+              {groups.map((group) => {
+                const collapsed = collapsedTodos.has(group.todoId);
+                return (
+                  <div
+                    key={group.todoId}
+                    className="desktop-session-workdir-group"
+                    data-testid={`desktop-session-todo-group-${group.todoId}`}
+                  >
+                    <div
+                      className="desktop-session-workdir-row"
+                      onClick={() => toggleTodoCollapsed(group.todoId)}
+                      data-testid={`desktop-session-todo-row-${group.todoId}`}
+                    >
+                      <span
+                        className="desktop-session-workdir-icon-slot"
+                        aria-hidden="true"
+                      >
+                        <span
+                          className="codicon codicon-tasklist desktop-session-workdir-folder"
+                        />
+                        <span
+                          className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                        />
+                      </span>
+                      <span
+                        className="desktop-session-workdir-label"
+                        title={group.todoTitle}
+                      >
+                        {group.todoTitle}
+                      </span>
+                      <span
+                        className={`todo-sidebar-priority todo-sidebar-priority-${group.priority}`}
+                      >
+                        {group.priority.toUpperCase()}
+                      </span>
+                      <span className="desktop-session-count">
+                        {group.sessions.length}
+                      </span>
+                    </div>
+                    <CollapsibleBody open={!collapsed}>
+                      <ul className="desktop-session-items desktop-session-items--nested">
+                        {group.sessions.map((session) =>
+                          renderSession(session, { hideWorkdir: true, hideActions: true }),
+                        )}
+                      </ul>
+                    </CollapsibleBody>
+                  </div>
+                );
+              })}
+              {taskSessions.length > 0 ? (
+                <ul className="desktop-session-items">
+                  {taskSessions.map((session) =>
+                    renderSession(session, { hideWorkdir: true, hideActions: true }),
+                  )}
+                </ul>
+              ) : null}
+            </>
           )}
         </CollapsibleBody>
       </div>
@@ -588,13 +689,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         testId: "desktop-session-section-pin",
         sessions: pinnedSessions,
       })}
-      {renderFlatSection({
-        sectionId: "tasks",
-        title: "任务",
-        testId: "desktop-session-section-tasks",
-        sessions: taskSessions,
-        hideWorkdir: true,
-      })}
+      {renderTasksSection()}
       {renderWorkspaceSection()}
 
       {pendingDelete && (

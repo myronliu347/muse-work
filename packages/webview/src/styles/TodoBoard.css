@@ -1,0 +1,631 @@
+/* 任务看板（左右布局：左 todo 列表 + 右任务看板列），spec 2026-08-21 */
+
+.todo-board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-1);
+  overflow: hidden;
+  padding: var(--space-2);
+  box-sizing: border-box;
+}
+
+/* ---- 左栏 ---- */
+
+.todo-board-left {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-right: 1px solid var(--gray-4);
+  background: var(--gray-1);
+  padding: var(--space-2);
+  box-sizing: border-box;
+}
+
+.todo-new-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px dashed var(--gray-6);
+  border-radius: var(--radius-2);
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.todo-new-btn:hover {
+  border-color: var(--accent-8);
+  color: var(--accent-11);
+  background: var(--accent-2);
+}
+
+.todo-list-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Radix Themes 内建 .rt-ScrollAreaViewport > * 会设 width: fit-content——
+   左侧列表是单列布局，宽度应占满栏宽（行内省略号依赖定宽），fit-content
+   让宽度跟随内容 max-content 导致行内容超宽时横向溢出。仅覆盖左侧（右侧
+   kanban 列靠 fit-content 实现横向滚动，不能动）。 */
+.todo-list-scroll .rt-ScrollAreaViewport > * {
+  width: 100%;
+}
+
+.todo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.todo-row.active {
+  background: var(--accent-2);
+}
+
+.todo-row-line1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.todo-row-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-1);
+}
+
+/* todo 描述（单行省略，hover 看全文） */
+.todo-row-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-1);
+  color: var(--gray-10);
+  padding-left: 2px;
+}
+
+.todo-row-line2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.todo-source {
+  flex-shrink: 0;
+}
+
+/* ---- 右栏 ---- */
+
+.todo-board-right {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--gray-10);
+}
+
+.todo-empty-icon {
+  font-size: 28px;
+}
+
+.todo-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-11);
+}
+
+.todo-empty-desc {
+  font-size: var(--font-size-1);
+}
+
+.todo-kanban-scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.todo-kanban-cols {
+  height: 100%;
+  min-height: 0;
+}
+
+.todo-kanban-col {
+  flex: 1;
+  /* 最小宽度兜底；其余空间 4 列平分（无 max-width 上限） */
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--gray-3);
+  border-radius: var(--radius-3);
+  padding: var(--space-2);
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.todo-kanban-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* 看板工具条：筛选开关 */
+.todo-kanban-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding-bottom: 8px;
+}
+
+.todo-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 汇总模式下卡片上的所属 todo 标签：单行省略 + Tooltip 看全 */
+.todo-task-todo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.todo-task-todo .codicon {
+  font-size: 11px !important;
+  flex-shrink: 0;
+}
+
+.todo-task-todo-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.todo-task-card {
+  flex-shrink: 0;
+}
+
+.todo-task-desc {
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.todo-task-desc p {
+  margin: 2px 0;
+}
+
+.todo-task-desc code {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 11px;
+  background: var(--gray-3);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.todo-mono {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+}
+
+/* ---- 图标操作按钮（codicon + Tooltip） ---- */
+
+.todo-icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+  color: var(--gray-9);
+  cursor: pointer;
+  outline: none;
+}
+
+.todo-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-6);
+  outline-offset: -1px;
+}
+
+.todo-icon-btn:hover {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.todo-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: none;
+}
+
+.todo-icon-btn-primary {
+  color: var(--accent-11);
+}
+
+.todo-icon-btn-primary:hover {
+  background: var(--accent-3);
+  color: var(--accent-11);
+}
+
+/* 图标收敛到固定尺寸（codicon 16px 基线会撑大行高，统一 13px） */
+.todo-icon-btn .codicon {
+  font-size: 13px !important;
+}
+
+.todo-more-btn {
+  color: var(--gray-9);
+}
+
+.todo-task-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+/* ---- 详情抽屉 ---- */
+
+.todo-drawer-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--black-a5, rgba(0, 0, 0, 0.4));
+}
+
+.todo-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 460px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel-solid, var(--gray-1));
+  box-shadow: var(--shadow-5);
+}
+
+.todo-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--gray-4);
+  flex-shrink: 0;
+}
+
+.todo-drawer-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.todo-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.todo-drawer-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-10);
+  letter-spacing: 0.03em;
+  margin-bottom: var(--space-1);
+}
+
+.todo-act-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.todo-act-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--gray-5);
+  margin: 0 4px;
+}
+
+/* ---- 审核讨论 ---- */
+
+.todo-thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.todo-thread-item {
+  border-left: 2px solid var(--gray-4);
+  padding-left: var(--space-2);
+}
+
+.todo-thread-ai {
+  border-left-color: var(--accent-6);
+}
+
+.todo-thread-system {
+  border-left-color: var(--blue-6);
+}
+
+.todo-thread-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 11px;
+  color: var(--gray-10);
+}
+
+.todo-thread-time {
+  color: var(--gray-8);
+}
+
+.todo-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* ---- 编辑表单 ---- */
+
+.todo-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.todo-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.todo-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--color-surface, var(--gray-1));
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+}
+
+.todo-input:focus {
+  outline: 2px solid var(--accent-6);
+  outline-offset: -1px;
+}
+
+/* ---- 搜索 + 标签筛选工具栏 ---- */
+
+.todo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.todo-tag-filter-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--color-surface, var(--gray-1));
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.todo-tag-filter-btn:hover,
+.todo-tag-filter-btn.active {
+  border-color: var(--accent-8);
+  color: var(--accent-11);
+}
+
+.todo-tag-filter-btn .codicon {
+  font-size: 13px !important;
+}
+
+/* ---- 标签 chips ---- */
+
+.todo-tag-chips {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.todo-tag-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--gray-4);
+  color: var(--gray-11);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.todo-tag-chip:hover {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.todo-tag-chip.active {
+  background: var(--accent-5);
+  color: var(--accent-11);
+}
+
+/* ---- 编辑表单标签区 ---- */
+
+.todo-edit-tags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.todo-edit-tags-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.todo-edit-tags-history {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: var(--font-size-1);
+}
+
+/* ---- 新建/编辑 TODO 弹窗（中等大小） ---- */
+
+.todo-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--black-a5, rgba(0, 0, 0, 0.4));
+}
+
+.todo-dialog {
+  width: 480px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel-solid, var(--gray-1));
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-4);
+  box-shadow: var(--shadow-5);
+}
+
+.todo-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--gray-4);
+  flex-shrink: 0;
+}
+
+.todo-dialog-title {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+}
+
+.todo-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.todo-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.todo-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--gray-4);
+  flex-shrink: 0;
+}
+
+.todo-priority-chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.todo-priority-chip {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--color-surface, var(--gray-1));
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.todo-priority-chip:hover {
+  border-color: var(--gray-8);
+}
+
+.todo-priority-chip.active {
+  border-color: var(--accent-8);
+  background: var(--accent-3);
+  color: var(--accent-11);
+}

@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copyPlugins.mjs",
-    "dev": "tsx src/index.ts",
+    "dev": "MUSE_HOME_DIR=.dev-muse-work tsx src/index.ts",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
   },

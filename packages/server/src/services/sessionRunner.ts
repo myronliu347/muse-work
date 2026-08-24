@@ -51,11 +51,24 @@ export function resolveModelDisplay(modelId: string | undefined): string {
   return modelId;
 }
 
-export {
+export type {
   AGENT_IDLE_TTL_MS,
   EMPTY_TURN_ERROR,
   TURN_STALL_MS,
 } from "../constants/agent.js";
+
+/** 系统注入消息的标记（包裹内容；webview 识别后以独立样式渲染，区别于用户气泡）。 */
+export const SYSTEM_INJECT_OPEN = "<system-inject>";
+export const SYSTEM_INJECT_CLOSE = "</system-inject>";
+
+export function wrapSystemInject(content: string): string {
+  return `${SYSTEM_INJECT_OPEN}${content}${SYSTEM_INJECT_CLOSE}`;
+}
+
+/** 内容是否系统注入消息。 */
+export function isSystemInjectContent(content: string): boolean {
+  return content.startsWith(SYSTEM_INJECT_OPEN) && content.endsWith(SYSTEM_INJECT_CLOSE);
+}
 
 export type SessionImage = { path: string; mimeType: string };
 
@@ -111,6 +124,7 @@ export interface SessionRunner {
     sessionId: string,
     content: string,
     images?: OutboundImage[],
+    source?: "user" | "system-inject",
   ): Promise<{ accepted: true }>;
   abortMessage(sessionId: string): Promise<{ ok: true }>;
   /** Remove a queued message from the SDK-owned queue. */
@@ -133,6 +147,10 @@ export interface SessionRunner {
     permissionId: string,
     decision: PermissionDecision,
   ): Promise<{ ok: true }>;
+  /** Replace the turn-settled callback (runner ↔ scheduler wiring). */
+  setOnTurnSettled(
+    cb: (sessionId: string, result: { ok: boolean; error?: string }) => void,
+  ): void;
   disposeSession(sessionId: string): Promise<void>;
   getMessages(sessionId: string): Promise<unknown[]>;
   /**
@@ -222,6 +240,12 @@ export interface CreateSessionRunnerOptions {
     sessionId: string,
     workdir: string,
   ) => Promise<{ messages: unknown[] } | null>;
+  /**
+   * Called when a turn settles for sessions whose status was running. Lets
+   * external schedulers (todo 执行调度) react to turn completion without
+   * reaching into runner internals. ok=false when the turn aborted or errored.
+   */
+  onTurnSettled?: (sessionId: string, result: { ok: boolean; error?: string }) => void;
 }
 
 export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent> {
@@ -290,6 +314,8 @@ export function createSessionRunner(
   const createAgent = options.createAgent ?? defaultCreateAgent;
   const idleTtlMs = options.idleTtlMs ?? AGENT_IDLE_TTL_MS;
   const stallMs = options.stallMs ?? TURN_STALL_MS;
+  /** Turn-settled callback (runner ↔ scheduler wiring; settable after creation). */
+  let onTurnSettled = options.onTurnSettled;
   const agents = new Map<string, SessionAgent>();
   /** Gateway identity used when the session agent was created (model switch → recreate). */
   const agentIdentities = new Map<string, string>();
@@ -494,14 +520,18 @@ export function createSessionRunner(
     });
   }
 
-  /** Paths of built-in plugins enabled in settings whose dirs are present. */
+  /** Paths of built-in plugins enabled in settings whose dirs are present,
+   *  plus the always-on todo plugin (内置能力，非 settings 开关). */
   function enabledPluginDirs(): string[] {
     const plugins = loadMuseSettings(home).plugins;
-    return ["superpowers", "mattpocock"].flatMap((name) => {
+    const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
       const dir = pluginDirIfPresent(name);
       return dir ? [dir] : [];
     });
+    const todoDir = pluginDirIfPresent("todo");
+    if (todoDir) dirs.push(todoDir);
+    return dirs;
   }
 
   function pluginsFlag(): string {
@@ -767,6 +797,9 @@ export function createSessionRunner(
       // Only a finished turn is unread — idle loading=false (TTL dispose,
       // ensureAgent, SDK flicker) must not light the sidebar dot.
       markUnreadDoneIfInactive(sessionId);
+      // interruptTurn(abort) calls markIdle directly while aborting is set;
+      // SDK-driven loading=false settles are genuine turn ends.
+      onTurnSettled?.(sessionId, { ok: !aborting.has(sessionId) });
     }
     scheduleIdleDestroy(sessionId);
   }
@@ -788,6 +821,7 @@ export function createSessionRunner(
     hub.broadcast(sessionId, { type: "session:status", status: "idle" });
     markUnreadDoneIfInactive(sessionId);
     scheduleIdleDestroy(sessionId);
+    onTurnSettled?.(sessionId, { ok: false, error: message });
   }
 
   function rememberWaveSessionId(
@@ -834,6 +868,9 @@ export function createSessionRunner(
       fastModel: gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
+      // 会话可携带自定义 system prompt（todo 规划会话注入 todo 上下文）；
+      // 缺省时 SDK 用 MUSE_BASE_SYSTEM_PROMPT。
+      systemPrompt: store.get(sessionId)?.systemPrompt,
       permissionMode:
         store.get(sessionId)?.permissionMode ?? "acceptEdits",
       restoreSessionId,
@@ -1354,6 +1391,7 @@ export function createSessionRunner(
     sessionId: string,
     content: string,
     images?: SessionImage[],
+    source?: "user" | "system-inject",
   ): Promise<void> {
     const session = store.get(sessionId);
     if (!session || disposed.has(sessionId)) {
@@ -1374,6 +1412,7 @@ export function createSessionRunner(
       model: session.model,
       chars: content.length,
       images: images?.length ?? 0,
+      source: source ?? "user",
     });
 
     try {
@@ -1392,7 +1431,10 @@ export function createSessionRunner(
         content,
         imagePaths,
       );
-      await agent.sendMessage(contentWithSources, images);
+      // 系统注入消息包上标记：落盘 + 广播自然携带，webview 据此以独立样式渲染
+      const finalContent =
+        source === "system-inject" ? wrapSystemInject(contentWithSources) : contentWithSources;
+      await agent.sendMessage(finalContent, images);
       // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
       // Defer the check to the next macrotask: the SDK's async callbacks
       // (onLoadingChange(true), assistant content) fire after sendMessage
@@ -1446,7 +1488,11 @@ export function createSessionRunner(
   }
 
   return {
-    async sendMessage(sessionId, content, images) {
+    setOnTurnSettled(cb: (sessionId: string, result: { ok: boolean; error?: string }) => void) {
+      onTurnSettled = cb;
+    },
+
+    async sendMessage(sessionId, content, images, source) {
       const session = store.get(sessionId);
       if (!session) {
         throw Object.assign(new Error(`session not found: ${sessionId}`), {
@@ -1464,7 +1510,7 @@ export function createSessionRunner(
       // Fire-and-forget so HTTP can return { accepted: true } promptly.
       // If a turn is already in flight, the SDK enqueues the message internally
       // and dispatches it once loading drops (its own serialized queue).
-      void runTurn(sessionId, content, sdkImages);
+      void runTurn(sessionId, content, sdkImages, source);
 
       return { accepted: true };
     },

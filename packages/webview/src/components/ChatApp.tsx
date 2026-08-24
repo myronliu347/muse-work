@@ -51,6 +51,9 @@ import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
 import { FilePane } from "./panels/FilePane";
 import { QuickOpenPalette } from "./panels/QuickOpenPalette";
 import { PopoRobotView } from "./popo/PopoRobotView";
+import { TodoBoard } from "./todo/TodoBoard";
+import { TodoNotifyStack } from "./todo/TodoNotifyStack";
+import { useTodoBoardStore, type TodoNotification } from "../stores/todoBoardStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type {
@@ -137,7 +140,7 @@ function canonicalForwardUrl(raw: string): string {
 }
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-robot";
+export type MainView = "newChat" | "chat" | "popo-robot" | "todo-board";
 
 export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -256,6 +259,13 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
     [],
   );
+  // 待审核 task 计数（侧栏 badge）+ 通知点击跳转
+  const todoReviewCount = useTodoBoardStore((s) => s.reviewCount);
+  const openTodoNotification = (n: TodoNotification) => {
+    useTodoBoardStore.getState().selectTodo(n.todoId);
+    useTodoBoardStore.getState().selectTask(n.taskId);
+    setView("todo-board");
+  };
   // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
   const [popoEnabled, setPopoEnabled] = useState(false);
   useEffect(() => {
@@ -664,6 +674,16 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
               message.toast,
             ],
           }));
+          break;
+        case "todo:notify":
+          // 全局通知（所有 pane 都收）：task 进待审核 → 通知 + badge
+          useTodoBoardStore.getState().handleNotify({
+            todoId: message.todoId as string,
+            taskId: message.taskId as string,
+            todoTitle: message.todoTitle as string,
+            taskTitle: message.taskTitle as string,
+            priority: message.priority as string,
+          });
           break;
         case "desktopNewSessionShortcut":
           // Menu accelerator is window-global; the shell / single-pane instance
@@ -2375,8 +2395,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           }}
         >
           <BackgroundTaskList
-            // 按会话 id 重挂载：切换会话时重置"全部完成自动隐藏"的跟踪
-            key={state.currentSession?.id}
+            // 按会话 id 重挂载：切换会话时重置"全部完成自动隐藏"的跟踪。
+            // 注意与 TaskList 的 key 保持不同——两个兄弟组件用同一 key 会触发
+            // React 重复 key 警告（session id 每次渲染都相同）。
+            key={`bg-${state.currentSession?.id ?? "none"}`}
             tasks={state.backgroundTasks}
             isCollapsed={state.isBackgroundTasksCollapsed}
             onToggleCollapse={() =>
@@ -2389,7 +2411,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           <TaskList
             // 按会话 id 重挂载：切换会话时重置“观察过未完成任务”的跟踪，
             // 使全部已完成的新会话立即隐藏，而不是沿用上一会话的 5 秒宽限
-            key={state.currentSession?.id}
+            key={`tasks-${state.currentSession?.id ?? "none"}`}
             tasks={state.tasks}
             isCollapsed={state.isTaskListCollapsed}
             onToggleCollapse={() =>
@@ -2631,7 +2653,32 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       )}
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          {view === "popo-robot" ? (
+          {view === "todo-board" ? (
+            <TodoBoard
+              api={popoApi}
+              onOpenPlanningSession={(sessionId, workdir) => {
+                // 打开规划会话：切回聊天视图并选中该会话
+                if (!host) return;
+                setView("chat");
+                host.onSelectSession(workdir, sessionId);
+              }}
+              onOpenExecutionSession={(sessionId) => {
+                // 打开执行会话：切回聊天视图并选中该会话
+                if (!host) return;
+                setView("chat");
+                host.onSelectSession("", sessionId);
+              }}
+              onOpenInEditor={(workdir) =>
+                postToHost({ command: "desktopOpenInEditor", workdir })
+              }
+              onOpenInTerminal={(workdir) =>
+                postToHost({ command: "desktopOpenInTerminal", workdir })
+              }
+              onTodosChanged={() =>
+                postToHost({ command: "desktopRefreshSessionTree" })
+              }
+            />
+          ) : view === "popo-robot" ? (
             <PopoRobotView api={popoApi} vscode={vscode} />
           ) : isDraftSession && !state.initialized ? (
             <LoadingLogo />
@@ -2724,6 +2771,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           disabled={false}
           onOpenSettings={handleOpenSettings}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
+          todoGroups={host.todoGroups}
           currentSessionId={state.currentSession?.id}
           onSelectSession={(workdir, sessionId) => {
             // 点侧栏会话立即回到聊天视图：即使点的是当前会话（host 不推
@@ -2745,17 +2793,24 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             postToHost({ command: "revealInFinder", path: workdir })
           }
           onTogglePopoRobot={() => setView((v) => (v === "popo-robot" ? "chat" : "popo-robot"))}
+          onToggleTodoBoard={() =>
+            setView((v) => (v === "todo-board" ? "chat" : "todo-board"))
+          }
+          todoReviewCount={todoReviewCount}
           popoEnabled={popoEnabled}
           activeMenu={
             view === "popo-robot"
               ? "popo-robot"
-              : view === "newChat" || showNewSessionPage
-                ? "newChat"
-                : undefined
+              : view === "todo-board"
+                ? "todo-board"
+                : view === "newChat" || showNewSessionPage
+                  ? "newChat"
+                  : undefined
           }
         />
         {chatContainer}
         {dialogs}
+        <TodoNotifyStack onOpen={openTodoNotification} />
       </div>
     );
   }

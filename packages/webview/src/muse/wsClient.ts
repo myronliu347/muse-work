@@ -83,7 +83,15 @@ export type MuseWsEventPayload =
       type: "permission-mode";
       mode: "acceptEdits" | "bypassPermissions";
     }
-  | { type: "tokens:update"; latestTotalTokens: number };
+  | { type: "tokens:update"; latestTotalTokens: number }
+  | {
+      type: "todo:notify";
+      todoId: string;
+      taskId: string;
+      todoTitle: string;
+      taskTitle: string;
+      priority: string;
+    };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

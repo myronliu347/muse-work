@@ -52,6 +52,11 @@ if (!app.isPackaged) {
     "userData",
     path.join(app.getPath("appData"), "muse-work-desktop-dev"),
   );
+  // Dev: point the whole state dir (server db/sessions/auth/todo + logs, and
+  // desktop ui.json) at ~/.dev-muse-work so dev never touches production's
+  // ~/.muse-work. The server child inherits this env (serverProcess merges
+  // process.env); getMuseHomeDir reads it in every package.
+  process.env.MUSE_HOME_DIR = ".dev-muse-work";
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -228,11 +233,10 @@ if (!gotLock) {
     try {
       const server = await startMuseServer({
         entry: paths.serverEntry,
-        // Dev instances write their server logs under the dev userData dir so
-        // they don't interleave with the packaged app's ~/.muse-work/logs.
-        ...(!app.isPackaged
-          ? { env: { MUSE_LOG_DIR: path.join(app.getPath("userData"), "logs") } }
-          : {}),
+        // MUSE_HOME_DIR was set in the dev block above (and inherited here via
+        // process.env merge), so the server keeps ALL state (db/settings/
+        // providers/sessions/auth/todo + logs) under ~/.dev-muse-work instead
+        // of the packaged app's ~/.muse-work.
         onLifecycle: (event) => {
           mainWindow?.webContents.send(TO_WEBVIEW, {
             command: "museServerLifecycle",

@@ -11,6 +11,8 @@ export type GracefulShutdownOpts = {
   server: Pick<HttpServer, "close">;
   log?: ShutdownLogger;
   exit?: (code: number) => void;
+  /** 关闭前同步钩子（如停止 todo 调度器）。 */
+  onShutdown?: () => void;
 };
 
 export async function gracefulShutdown(
@@ -18,6 +20,7 @@ export async function gracefulShutdown(
 ): Promise<void> {
   const exit = opts.exit ?? ((code: number) => process.exit(code));
   try {
+    opts.onShutdown?.();
     const result = await opts.runner.shutdown();
     opts.log?.info("server shutting down", { aborted: result.aborted });
     opts.hub.close();
