@@ -1,7 +1,6 @@
 import React, {
   useEffect,
   useReducer,
-  useCallback,
   useMemo,
   useRef,
   useState,
@@ -37,10 +36,7 @@ import {
 import { DesktopShell } from "./desktop/DesktopShell";
 import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
 import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
-import { matchPanelShortcut, matchNewSessionShortcut, matchQuickOpenShortcut, matchDockFullscreenShortcut } from "../muse/panelShortcuts";
-import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
-import { collapseDockState, expandDockState } from "../muse/dockActions";
 import { createMessageHandler } from "../muse/messageRouter";
 import { PreviewPane } from "./panels/PreviewPane";
 import {
@@ -58,36 +54,25 @@ import { MuseApiClient } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type {
   ChatAppProps,
-  ConfigurationData,
-  ConfirmationDecision,
   DesktopPanelKind,
-  FileViewState,
-  Message,
-  ToolBlock,
-  UpdateToast,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
+import { resolveSubagentMessages } from "../utils/subagentTranscript";
 import {
-  parseAgentPrompt,
-  resolveSubagentMessages,
-} from "../utils/subagentTranscript";
-import {
-  usePanelGroupStore,
-  nextActivePanelAfterClose,
-  emptyPanelGroup,
   PANEL_DEFAULT_WIDTH,
   usePanelGroup,
   usePaneUi,
-  patchPaneUi,
-  emptyContentSearchState,
-  releasePanelContent,
-  type PanelGroupState,
 } from "../stores";
-import type { ContentSearchState } from "../types";
-import { isLocalhostUrl } from "../utils/isLocalhostUrl";
-import { pathToFileUrl } from "../utils/pathToFileUrl";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
+import { useChatAppCore } from "../hooks/useChatAppCore";
+import { useChatSend } from "../hooks/useChatSend";
+import { usePanels } from "../hooks/usePanels";
+import { useFilePanel } from "../hooks/useFilePanel";
+import { usePreview } from "../hooks/usePreview";
+import { useRewind } from "../hooks/useRewind";
+import { useDialogs } from "../hooks/useDialogs";
 import "../styles/ChatApp.css";
+
 
 export { prunePanelGroupCache } from "../stores";
 
@@ -160,16 +145,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     worktreeChecked,
     paneGitBranches,
   } = paneUi;
-  const patchPane = useCallback(
-    (
-      patch:
-        | Partial<typeof paneUi>
-        | ((slice: typeof paneUi) => Partial<typeof paneUi>),
-    ) => {
-      patchPaneUi(paneId, patch);
-    },
-    [paneId],
-  );
   // Desktop new sessions start with workdir=null. Host bridge syncs
   // updateWorkdir on activate / folder pick / auto-create. Fall back to
   // host.workdir only for bound (non-draft) sessions when state has not
@@ -181,7 +156,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     : (state.workdir ?? host?.workdir);
   // Local-only for now (remote hosts removed from the composer).
   const effectiveHost = "local";
-  const effectiveHostRef = useRef(effectiveHost);
   const gitBranches = paneGitBranches;
   const sessionGitMeta = state.currentSession as
     | { worktreeBranch?: string; worktreeName?: string }
@@ -195,7 +169,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           workdir: effectiveWorkdir,
         }
       : undefined;
-  const effectiveWorkdirRef = useRef(effectiveWorkdir);
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory.
@@ -221,31 +194,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
-  const updatePanelGroup = useCallback(
-    (
-      patch:
-        | Partial<PanelGroupState>
-        | ((group: PanelGroupState) => Partial<PanelGroupState>),
-    ) => {
-      if (!groupKey) return;
-      usePanelGroupStore.getState().patchGroup(groupKey, patch);
-    },
-    [groupKey],
-  );
-  // Mirrors of the forward state, refreshed on every render. Message is a
-  // React.memo component whose DOM click handler captures props.onOpenPreview
-  // at mount time — a useCallback that closes over the state values would pin
-  // the FIRST values forever and the same-link dedup in
-  // handleOpenRemotePreview would never see the established forward. The
-  // handlers read the refs at click time instead (same pattern as
-  // TerminalPane.tsx:117-119).
-  const currentForwardRef = useRef(currentForward);
-  currentForwardRef.current = currentForward;
-  const previewForwardErrorRef = useRef(previewForwardError);
-  previewForwardErrorRef.current = previewForwardError;
-  const forwardSeqRef = useRef(0);
   const previewUrlRef = useRef(previewUrl);
-  const fileViewRef = useRef<FileViewState | null>(fileView);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [chatColumnWidth, setChatColumnWidth] = useState(
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
@@ -279,15 +228,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   useEffect(() => {
     setView("chat");
   }, [state.currentSession?.id]);
-  const checkedPanelsRef = useRef(checkedPanels);
-  const mountedPanelsRef = useRef(mountedPanels);
-  const activePanelRef = useRef(activePanel);
-  const panelWidthsRef = useRef(panelWidths);
   // Mirrors so the stable message listener can reach the panel toggle logic
-  // (defined below) without re-subscribing.
+  // (filled by usePanels) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
   const toggleFullscreenRef = useRef<() => void>(() => {});
-  const panelDisabledRef = useRef<DesktopPanelKind[]>([]);
   const messageInputRef = useRef<MessageInputHandle>(null);
   const messageListRef = useRef<{
     scrollToBottom: (behavior?: ScrollBehavior) => void;
@@ -303,24 +247,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [state]);
 
   useEffect(() => {
-    effectiveWorkdirRef.current = effectiveWorkdir;
-  }, [effectiveWorkdir]);
-
-  useEffect(() => {
-    effectiveHostRef.current = effectiveHost;
-  }, [effectiveHost]);
-
-  useEffect(() => {
     previewUrlRef.current = previewUrl;
   }, [previewUrl]);
-
-  useEffect(() => {
-    fileViewRef.current = fileView;
-  }, [fileView]);
-
-  useEffect(() => {
-    checkedPanelsRef.current = checkedPanels;
-  }, [checkedPanels]);
 
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
@@ -341,37 +269,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [paneId, host?.panes?.length]);
 
   useEffect(() => {
-    mountedPanelsRef.current = mountedPanels;
-  }, [mountedPanels]);
-
-  useEffect(() => {
-    activePanelRef.current = activePanel;
-  }, [activePanel]);
-
-  useEffect(() => {
-    panelWidthsRef.current = panelWidths;
-  }, [panelWidths]);
-
-  useEffect(() => {
     paneIdRef.current = paneId;
   }, [paneId]);
-
-  // Auto-dismiss the queue-edit warning banner
-  useEffect(() => {
-    if (!queueEditWarning) return;
-    const timer = setTimeout(() => patchPane({ queueEditWarning: null }), 4000);
-    return () => clearTimeout(timer);
-  }, [queueEditWarning, patchPane]);
-
-  // Desktop: reset worktree opt-in when the workdir changes. Do not depend on
-  // `gitBranches` — silent poll / visibility refresh rewrite paneGitBranches
-  // every ~3s and must not clear the user's checkbox or base-branch pick.
-  useEffect(() => {
-    patchPane({
-      worktreeBranch: "",
-      worktreeChecked: false,
-    });
-  }, [effectiveWorkdir, patchPane]);
 
   // Host pushes (updateMessages, setInitialState, user:message, ...) arrive on
   // the window message channel. The 58-case router lives in muse/messageRouter
@@ -400,436 +299,201 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     return () => window.removeEventListener("message", handleMessage);
   }, [handleMessage]);
 
-  // Desktop multi-pane (FR-032): session-scoped commands carry this pane's id
-  // so the host routes them to the agent bound to this pane. Untagged when
-  // paneId is undefined (single view) — the host ignores the field.
-  const postToHost = useCallback(
-    (message: Record<string, unknown>) => {
-      const pid = paneIdRef.current;
-      vscode.postMessage(
-        pid === undefined ? message : { ...message, paneId: pid },
-      );
-    },
-    [vscode],
-  );
+  // Domain hooks: core bridge first, then panels → preview → file panel
+  // (tryOpenPanel/acquireForward/handleOpenPreview flow down), then the
+  // rewind/dialog/send groups. Order is fixed — missing params are tsc errors.
+  const core = useChatAppCore({
+    paneId,
+    vscode,
+    effectiveWorkdir,
+    groupKey,
+    paneIdRef,
+  });
+  const { postToHost, patchPane, updatePanelGroup } = core;
 
-  // Desktop: query this pane's own workdir for its git branches (FR-052). Each
-  // pane asks independently so a new-session pane keeps its workdir/branch even
-  // when focus moves to a sibling pane (which would otherwise rewire the host's
-  // global workdir). Clear stale branches first so the selector hides until the
-  // fresh reply lands.
-  //
-  // Depend ONLY on effectiveWorkdir (a primitive string) — never on the host
-  // object reference, and never on host.workdir. Rationale: when a new pane
-  // boots, activateAgentInPane sends desktopWorkdirState to update the host's
-  // global workdir from the previously-focused sibling's path to this pane's
-  // repo root. That changes host.workdir even though THIS pane's
-  // effectiveWorkdir is unchanged (spawn-before = recents[0] fallback; spawn-after
-  // = state.workdir = agent.cwd = the same recents[0]). Re-querying on a
-  // host.workdir change would null out the branches and flash the selector
-  // twice. A genuine user workdir switch changes recents[0] (and thus
-  // effectiveWorkdir), which is the only re-query signal we want.
-  const GIT_BRANCH_POLL_MS = 3000;
-
-  const requestPaneGitBranches = useCallback(
-    (opts?: { clear?: boolean }) => {
-      if (!effectiveWorkdir) {
-        if (opts?.clear) patchPane({ paneGitBranches: null });
-        return;
-      }
-      if (opts?.clear) patchPane({ paneGitBranches: null });
-      postToHost({
-        command: "desktopListGitBranches",
-        workdir: effectiveWorkdir,
-        paneId,
-      });
-    },
-    [effectiveWorkdir, paneId, patchPane, postToHost],
-  );
-
-  // workdir change: clear then fetch (existing semantics)
+  // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
-    requestPaneGitBranches({ clear: true });
-  }, [requestPaneGitBranches]);
+    if (!queueEditWarning) return;
+    const timer = setTimeout(() => patchPane({ queueEditWarning: null }), 4000);
+    return () => clearTimeout(timer);
+  }, [queueEditWarning, patchPane]);
 
-  // poll + resume on visibility (silent refresh — do not clear)
+  // Desktop: reset worktree opt-in when the workdir changes. Do not depend on
+  // `gitBranches` — silent poll / visibility refresh rewrite paneGitBranches
+  // every ~3s and must not clear the user's checkbox or base-branch pick.
   useEffect(() => {
-    if (!effectiveWorkdir) return;
+    patchPane({
+      worktreeBranch: "",
+      worktreeChecked: false,
+    });
+  }, [effectiveWorkdir, patchPane]);
 
-    const poll = () => {
-      if (document.visibilityState === "hidden") return;
-      requestPaneGitBranches();
-    };
+  const send = useChatSend({
+    postToHost,
+    patchPane,
+    dispatch,
+    vscode,
+    stateRef,
+    messageInputRef,
+    state,
+    host,
+    worktreeChecked,
+    worktreeBranch,
+    gitBranches,
+    effectiveWorkdir,
+  });
+  const {
+    handleSendMessage,
+    handleAbortMessage,
+    handleClearChat,
+    handleDeleteQueuedMessage,
+    handleEditQueuedMessage,
+    handleSubmitQueuedEdit,
+    handleCancelQueuedEdit,
+    handleAddComment,
+  } = send;
 
-    const id = window.setInterval(poll, GIT_BRANCH_POLL_MS);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        requestPaneGitBranches();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
+  const dockMaxWidth = chatColumnWidth - CHAT_MAIN_MIN_WIDTH;
+  const panels = usePanels({
+    postToHost,
+    updatePanelGroup,
+    groupKey,
+    panelWorkdir,
+    chatContainerRef,
+    togglePanelRef,
+    toggleFullscreenRef,
+    isDraftSession,
+    host,
+    paneId,
+    setView,
+    setQuickOpenOpen,
+    checkedPanels,
+    mountedPanels,
+    activePanel,
+    panelWidths,
+    dockMaxWidth,
+  });
+  const {
+    tryOpenPanel,
+    acquireForward,
+    panelDisabled,
+    handleTogglePanel,
+    handleToggleDock,
+    handleAddPanel,
+    handleToggleFullscreen,
+    handleSelectPanel,
+    handleDockWidthChange,
+  } = panels;
+
+  const preview = usePreview({
+    updatePanelGroup,
+    tryOpenPanel,
+    acquireForward,
+    effectiveHost,
+    currentForward,
+    previewForwardError,
+  });
+  const {
+    handleOpenPreview,
+    handleRemotePreviewRetry,
+    handlePreviewNavigate,
+    openPreviewHandler,
+  } = preview;
+
+  const filePanel = useFilePanel({
+    postToHost,
+    updatePanelGroup,
+    tryOpenPanel,
+    handleOpenPreview,
+    popoApi,
+    currentSession: state.currentSession,
+    effectiveHost,
+    effectiveWorkdir,
+    groupKey,
+    contentSearch,
+  });
+  const {
+    handleOpenFile,
+    handleRevealInFinder,
+    handleOpenFileHistoryDiff,
+    handleRevertFileHistory,
+    revertingFileHistory,
+    handleFileTreeChange,
+    handleOpenLocalFilePreview,
+    handleFileSidebarModeChange,
+    handleContentSearchChange,
+  } = filePanel;
+
+  const rewind = useRewind({
+    postToHost,
+    patchPane,
+    dispatch,
+    isStreaming: state.isStreaming,
+    pendingRewindId,
+    messageInputRef,
+  });
+  const {
+    handleConfirmation,
+    handleRejection,
+    handleRewindToMessage,
+    handleOpenAgentTranscript,
+    handleCloseAgentTranscript,
+    handleRewindCheckpointSelect,
+    handleRewindPopupClose,
+    handleRewindConfirm,
+  } = rewind;
+
+  const dialogActions = useDialogs({
+    postToHost,
+    patchPane,
+    dispatch,
+    vscode,
+    stateRef,
+    messageInputRef,
+    setView,
+  });
+  const {
+    handleConfigurationSave,
+    handleDialogClose,
+    handleLogin,
+    handleLogout,
+    handleOpenSettings,
+    handleToastDismiss,
+    handleToastAction,
+    handleModelSelect,
+    handleSessionModelChange,
+    handleModelPopupClose,
+    handleDesktopNewSession,
+    handleDesktopNewSessionInWorkdir,
+    handleInputCleared,
+  } = dialogActions;
+
+  // Initialize webview and load sessions on component mount
+  useEffect(() => {
+    dispatch({ type: "SET_SESSIONS_LOADING", payload: true });
+    vscode.postMessage({
+      command: "webviewReady",
+    });
+  }, [vscode]);
+
+  // Re-focus input when command finishes running (e.g., after bang execution)
+  useEffect(() => {
+    if (!state.isCommandRunning && messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  }, [state.isCommandRunning]);
+
+  useEffect(() => {
+    patchPane({ agentTranscript: null });
+  }, [state.currentSession?.id, patchPane]);
+
+  // Desktop: idle-preload the lazily injected xterm chunk so the first
+  // terminal open doesn't pay the fetch+parse cost.
+  useEffect(() => {
+    const id = window.requestIdleCallback?.(() => prefetchTerminalLib());
     return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisibility);
+      if (id !== undefined) window.cancelIdleCallback?.(id);
     };
-  }, [effectiveWorkdir, requestPaneGitBranches]);
-
-  // Reset file sidebar search when workdir changes (per-group memory stays
-  // for tree width/expand; search mode/results start fresh).
-  const contentSearchWorkdirRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!groupKey) return;
-    const prev = contentSearchWorkdirRef.current;
-    contentSearchWorkdirRef.current = effectiveWorkdir;
-    if (prev === undefined) return;
-    if (prev === effectiveWorkdir) return;
-    updatePanelGroup({
-      fileSidebarMode: "tree",
-      contentSearch: emptyContentSearchState(),
-    });
-  }, [effectiveWorkdir, groupKey, updatePanelGroup]);
-
-  const contentSearchSeqRef = useRef(0);
-  const contentSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  useEffect(() => {
-    return () => {
-      if (contentSearchTimerRef.current) {
-        clearTimeout(contentSearchTimerRef.current);
-      }
-    };
-  }, []);
-
-  const runContentSearch = useCallback(
-    (next: ContentSearchState) => {
-      if (contentSearchTimerRef.current) {
-        clearTimeout(contentSearchTimerRef.current);
-        contentSearchTimerRef.current = null;
-      }
-      const q = next.query.trim();
-      if (!q || !effectiveWorkdir) {
-        updatePanelGroup({
-          contentSearch: {
-            ...next,
-            loading: false,
-            results: q ? next.results : [],
-            error: undefined,
-            truncated: undefined,
-            requestId: undefined,
-          },
-        });
-        return;
-      }
-      contentSearchTimerRef.current = setTimeout(() => {
-        contentSearchTimerRef.current = null;
-        const requestId = `cs-${++contentSearchSeqRef.current}`;
-        updatePanelGroup({
-          contentSearch: { ...next, loading: true, requestId, error: undefined },
-        });
-        postToHost({
-          command: "desktopSearchContent",
-          requestId,
-          workdir: effectiveWorkdir,
-          query: q,
-          caseSensitive: next.caseSensitive,
-          wholeWord: next.wholeWord,
-          regex: next.regex,
-        });
-      }, 250);
-    },
-    [effectiveWorkdir, postToHost, updatePanelGroup],
-  );
-
-  const handleFileSidebarModeChange = useCallback(
-    (mode: import("../types").FileSidebarMode) => {
-      updatePanelGroup({ fileSidebarMode: mode });
-    },
-    [updatePanelGroup],
-  );
-
-  const handleContentSearchChange = useCallback(
-    (next: ContentSearchState) => {
-      const prev = contentSearch;
-      const searchKeyChanged =
-        prev.query !== next.query ||
-        prev.caseSensitive !== next.caseSensitive ||
-        prev.wholeWord !== next.wholeWord ||
-        prev.regex !== next.regex;
-      updatePanelGroup({ contentSearch: next });
-      if (searchKeyChanged) runContentSearch(next);
-    },
-    [contentSearch, runContentSearch, updatePanelGroup],
-  );
-
-  const handleClearChat = useCallback(() => {
-    // /clear 斜杠命令：三端统一为"原地清空当前会话"，streaming 期间忽略。
-    if (stateRef.current.isStreaming) return;
-
-    postToHost({
-      command: "clearChat",
-    });
-  }, [postToHost]);
-
-  const handleToastDismiss = useCallback(
-    (id: string) => {
-      patchPane((slice) => ({
-        toasts: slice.toasts.filter((t) => t.id !== id),
-      }));
-    },
-    [patchPane],
-  );
-
-  const handleToastAction = useCallback(
-    (toast: UpdateToast) => {
-      if (!toast.action) return;
-      postToHost({
-        command: "toastAction",
-        toastId: toast.id,
-        action: toast.action,
-      });
-      patchPane((slice) => ({
-        toasts: slice.toasts.filter((t) => t.id !== toast.id),
-      }));
-    },
-    [postToHost, patchPane],
-  );
-
-  // Desktop 的"新对话"入口（侧边栏按钮）：由宿主 spawn 新 agent 承载全新会话，
-  // 当前会话在后台继续，因此流式期间保持可用。
-  const handleDesktopNewSession = useCallback(() => {
-    // 同步退出机器人页，不依赖宿主推送新会话的时序。
-    setView("chat");
-    postToHost({
-      command: "newSession",
-    });
-  }, [postToHost]);
-
-  const handleDesktopNewSessionInWorkdir = useCallback(
-    (workdir: string) => {
-      setView("chat");
-      postToHost({
-        command: "newSession",
-        workdir,
-      });
-    },
-    [postToHost],
-  );
-
-  const handleLogin = useCallback(() => {
-    vscode.postMessage({ command: "login" });
-  }, [vscode]);
-
-  const handleOpenSettings = useCallback(() => {
-    dispatch({
-      type: "SHOW_DIALOG",
-      payload: {
-        type: "config",
-        data: stateRef.current.configurationData || {},
-      },
-    });
-    vscode.postMessage({ command: "getConfiguration" });
-  }, [vscode]);
-
-  const handleLogout = useCallback(() => {
-    vscode.postMessage({ command: "logout" });
-  }, [vscode]);
-
-  const handleSendMessage = useCallback(
-    (
-      text: string,
-      images?: Array<{ data: string; mediaType: string }>,
-      force: boolean = false,
-    ) => {
-      const trimmedText = text.trim();
-      if (!trimmedText && (!images || images.length === 0)) return;
-
-      const slashMatch = trimmedText.match(
-        /^\/(clear|compact|rewind|mcp|status|tasks|workflows|plugin|config|agents)(\s|$)/,
-      );
-      if (slashMatch) {
-        const name = slashMatch[1];
-        if (name === "clear") {
-          handleClearChat();
-          return;
-        }
-        if (name === "compact") {
-          postToHost({ command: "compactChat" });
-          return;
-        }
-        if (name === "rewind") {
-          patchPane({
-            rewindPopupOpen: true,
-            rewindCheckpointsLoading: true,
-          });
-          postToHost({ command: "listRewindCheckpoints" });
-          return;
-        }
-        if (name === "mcp") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "mcp" } });
-          return;
-        }
-        if (name === "status") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "status" } });
-          return;
-        }
-        if (name === "tasks") {
-          // 后台任务改为 sender 上方实时内联展示，/tasks 只负责展开列表
-          dispatch({ type: "EXPAND_BACKGROUND_TASKS" });
-          return;
-        }
-        if (name === "workflows") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "workflows" } });
-          return;
-        }
-        if (name === "plugin") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "plugin" } });
-          return;
-        }
-        if (name === "agents") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "agents" } });
-          return;
-        }
-        if (name === "config") {
-          dispatch({
-            type: "SHOW_DIALOG",
-            payload: {
-              type: "config",
-              data: stateRef.current.configurationData || {},
-            },
-          });
-          vscode.postMessage({ command: "getConfiguration" });
-          return;
-        }
-      }
-
-      // Desktop worktree flow (FR-023): on the first message of a new session
-      // with the worktree checkbox on, create the worktree first — the main
-      // process switches into it and forwards this message.
-      if (
-        host?.type === "desktop" &&
-        !stateRef.current.messages.some(
-          (m) => !(m.role === "user" && m.isMeta),
-        ) &&
-        worktreeChecked &&
-        effectiveWorkdirRef.current &&
-        gitBranches
-      ) {
-        postToHost({
-          command: "desktopCreateWorktree",
-          workdir: effectiveWorkdirRef.current,
-          baseBranch: worktreeBranch || gitBranches.current,
-          text: trimmedText,
-          images: images,
-        });
-        // Reset the opt-in immediately: the pane-level reset below (on
-        // effectiveWorkdir change) only fires after the main process finishes
-        // creating the worktree and pushes the new workdir back — within that
-        // window a second message would re-enter this branch and create a
-        // duplicate worktree. Clearing here keeps one create per message.
-        patchPane({ worktreeChecked: false });
-        return;
-      }
-
-      // Send to extension
-      postToHost({
-        command: "sendMessage",
-        text: trimmedText,
-        images: images,
-        force: force,
-      });
-    },
-    [
-      handleClearChat,
-      host,
-      worktreeChecked,
-      worktreeBranch,
-      gitBranches,
-      postToHost,
-      patchPane,
-      vscode,
-    ],
-  );
-
-  const handleAbortMessage = useCallback(() => {
-    if (!state.isStreaming) return;
-
-    postToHost({
-      command: "abortMessage",
-    });
-  }, [state.isStreaming, postToHost]);
-
-  const handleDeleteQueuedMessage = useCallback(
-    (id: string) => {
-      // Optimistically update local state (filter by id)
-      const newQueue = state.queuedMessages.filter((qm) => qm.id !== id);
-      dispatch({ type: "SET_QUEUED_MESSAGES", payload: newQueue });
-
-      // If the deleted one is being edited, exit editing mode
-      if (state.editingQueuedId === id) {
-        dispatch({ type: "SET_EDITING_QUEUED_ID", payload: null });
-      }
-
-      // Notify extension to delete from SDK's queue by id
-      postToHost({
-        command: "deleteQueuedMessageById",
-        id,
-      });
-    },
-    [state.queuedMessages, state.editingQueuedId, postToHost],
-  );
-
-  const handleEditQueuedMessage = useCallback(
-    (id: string) => {
-      const qm = state.queuedMessages.find((m) => m.id === id);
-      if (!qm) return;
-
-      const text = qm.content || qm.text || "";
-
-      // Load content into this pane's input via the imperative ref (scoped to this
-      // pane only; window.postMessage would be received by all split-view panes).
-      messageInputRef.current?.loadQueuedEditContent(text);
-      dispatch({ type: "SET_EDITING_QUEUED_ID", payload: id });
-    },
-    [state.queuedMessages],
-  );
-
-  const handleSubmitQueuedEdit = useCallback(
-    (
-      id: string,
-      text: string,
-      images?: Array<{ data: string; mediaType: string }>,
-    ) => {
-      postToHost({
-        command: "updateQueuedMessage",
-        id,
-        text,
-        images,
-      });
-      dispatch({ type: "SET_EDITING_QUEUED_ID", payload: null });
-    },
-    [postToHost],
-  );
-
-  const handleCancelQueuedEdit = useCallback(() => {
-    dispatch({ type: "SET_EDITING_QUEUED_ID", payload: null });
-  }, []);
-
-  // Configuration handlers
-  const handleConfigurationSave = useCallback(
-    (configData: ConfigurationData) => {
-      dispatch({ type: "SET_CONFIGURATION_LOADING", payload: true });
-      vscode.postMessage({
-        command: "updateConfiguration",
-        configurationData: configData,
-      });
-    },
-    [vscode],
-  );
-
-  const handleDialogClose = useCallback(() => {
-    dispatch({ type: "HIDE_DIALOG" });
   }, []);
 
   // A message counts as chat content only when the UI renders it — hidden meta
@@ -847,476 +511,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // arrived, otherwise logged-in users see the login CTA flash before
   // setInitialState updates isAuthenticated to true.
   const showWelcomeReady = showWelcome && state.initialized;
-
-  // Initialize webview and load sessions on component mount
-  useEffect(() => {
-    dispatch({ type: "SET_SESSIONS_LOADING", payload: true });
-    vscode.postMessage({
-      command: "webviewReady",
-    });
-  }, [vscode]);
-
-  const handleInputCleared = useCallback(() => {
-    dispatch({ type: "INPUT_CLEARED" });
-  }, []);
-
-  // Desktop panel comments (preview element picks, diff-line comments) land in
-  // this pane's input (not sent), so several can be batched and edited before
-  // sending.
-  const handleAddComment = useCallback((text: string) => {
-    messageInputRef.current?.appendText(text);
-  }, []);
-
-  // Re-focus input when command finishes running (e.g., after bang execution)
-  useEffect(() => {
-    if (!state.isCommandRunning && messageInputRef.current) {
-      messageInputRef.current.focus();
-    }
-  }, [state.isCommandRunning]);
-
-  useEffect(() => {
-    patchPane({ agentTranscript: null });
-  }, [state.currentSession?.id, patchPane]);
-
-  const handleConfirmation = useCallback(
-    (confirmationId: string, decision?: ConfirmationDecision) => {
-      postToHost({
-        command: "confirmationResponse",
-        confirmationId,
-        approved: true,
-        decision,
-      });
-      dispatch({ type: "HIDE_CONFIRMATION", payload: confirmationId });
-    },
-    [postToHost],
-  );
-
-  const handleRejection = useCallback(
-    (confirmationId: string) => {
-      postToHost({
-        command: "confirmationResponse",
-        confirmationId,
-        approved: false,
-      });
-      dispatch({ type: "HIDE_CONFIRMATION", payload: confirmationId });
-    },
-    [postToHost],
-  );
-
-  const handleRewindToMessage = useCallback(
-    (messageId: string) => {
-      if (state.isStreaming) return;
-      patchPane({ pendingRewindId: messageId });
-    },
-    [state.isStreaming, patchPane],
-  );
-
-  const handleOpenAgentTranscript = useCallback(
-    (toolBlock: ToolBlock) => {
-      const nested = (
-        toolBlock as ToolBlock & { nestedMessages?: Message[] }
-      ).nestedMessages;
-      const resultText = (toolBlock.result || "").trim();
-      patchPane({
-        agentTranscript: {
-          subagentId: toolBlock.id ?? "",
-          title: toolBlock.compactParams?.trim() || toolBlock.name || "Agent",
-          nestedMessages: nested,
-          fallbackText: resultText || undefined,
-          prompt: parseAgentPrompt(toolBlock.parameters),
-        },
-      });
-    },
-    [patchPane],
-  );
-
-  const handleCloseAgentTranscript = useCallback(() => {
-    patchPane({ agentTranscript: null });
-  }, [patchPane]);
-
-  // /rewind popup selection reuses the same ConfirmDialog flow as the
-  // per-message rewind button.
-  const handleRewindCheckpointSelect = useCallback(
-    (messageId: string) => {
-      patchPane({ rewindPopupOpen: false, pendingRewindId: messageId });
-      messageInputRef.current?.focus();
-    },
-    [patchPane],
-  );
-
-  const handleRewindPopupClose = useCallback(() => {
-    patchPane({ rewindPopupOpen: false });
-    messageInputRef.current?.focus();
-  }, [patchPane]);
-
-  // /model popup: send the switch and close silently (no toast/system message).
-  const handleModelSelect = useCallback(
-    (model: string) => {
-      postToHost({ command: "setModel", model });
-      patchPane({ modelPopupOpen: false });
-      messageInputRef.current?.focus();
-    },
-    [postToHost, patchPane],
-  );
-
-  // Per-session model in sender toolbar → PATCH /sessions/:id { model }.
-  const handleSessionModelChange = useCallback(
-    (model: string) => {
-      postToHost({ command: "setSessionModel", model });
-    },
-    [postToHost],
-  );
-
-  const handleModelPopupClose = useCallback(() => {
-    patchPane({ modelPopupOpen: false });
-    messageInputRef.current?.focus();
-  }, [patchPane]);
-
-  const handleRewindConfirm = useCallback(() => {
-    const messageId = pendingRewindId;
-    patchPane({ pendingRewindId: null });
-    if (messageId) {
-      postToHost({
-        command: "rewindToMessage",
-        messageId,
-      });
-    }
-  }, [pendingRewindId, postToHost, patchPane]);
-
-  const showPanelHint = useCallback(
-    (text: string) => {
-      // Route local validations (panel min-width refusals, preview URL checks)
-      // through the host's global toast so desktop hints share one presentation
-      // with host failures instead of a second hint style.
-      postToHost({ command: "desktopShowHint", text });
-    },
-    [postToHost],
-  );
-
-  // Desktop remote sessions: request an ssh port forward for the clicked
-  // localhost URL (scenario 15). The main process picks a local port, starts
-  // `ssh -N -L` and replies with the rewritten 127.0.0.1 address, which the
-  // preview pane then loads. Repeated clicks on the SAME link while the forward
-  // is established or connecting are no-ops — the tunnel is reused, not rebuilt.
-  const acquireForward = useCallback(
-    (host: string, url: string) => {
-      // The forward is keyed by the session's panel-group key; without one (a
-      // pane-less desktop view) there is nothing to cache the reference under.
-      if (!groupKey) return;
-      let remotePort: number;
-      try {
-        const u = new URL(url);
-        if (u.protocol !== "http:" && u.protocol !== "https:") {
-          showPanelHint("仅支持 http/https 链接");
-          return;
-        }
-        remotePort = Number(u.port) || (u.protocol === "https:" ? 443 : 80);
-      } catch {
-        showPanelHint("无效的预览链接");
-        return;
-      }
-      const requestId = `fwd-${++forwardSeqRef.current}`;
-      const fwd = { host, remotePort, originalUrl: url, requestId };
-      usePanelGroupStore.getState().ensureGroup(groupKey);
-      updatePanelGroup({ forward: fwd });
-      // The session id scopes the tunnel's lifetime on the host — it stays alive
-      // across UI actions and is only released when the session is deleted
-      // (scenario 18).
-      postToHost({
-        command: "desktopForwardPort",
-        host,
-        url,
-        requestId,
-        sessionId: groupKey,
-      });
-    },
-    [postToHost, showPanelHint, groupKey, updatePanelGroup],
-  );
-
-  // Desktop: idle-preload the lazily injected xterm chunk so the first
-  // terminal open doesn't pay the fetch+parse cost.
-  useEffect(() => {
-    const id = window.requestIdleCallback?.(() => prefetchTerminalLib());
-    return () => {
-      if (id !== undefined) window.cancelIdleCallback?.(id);
-    };
-  }, []);
-
-  // Open a panel as a tab in the shared dock. First open must fit beside the
-  // conversation; later tabs reuse the same column. Mounting is sticky.
-  const tryOpenPanel = useCallback(
-    (kind: DesktopPanelKind): boolean => {
-      if (checkedPanelsRef.current.includes(kind)) {
-        updatePanelGroup({ active: kind });
-        return true;
-      }
-      if (checkedPanelsRef.current.length === 0) {
-        const containerW =
-          chatContainerRef.current?.clientWidth ||
-          chatContainerRef.current?.getBoundingClientRect().width;
-        if (containerW) {
-          // First open of this session's dock: ~50% of the chat column (not
-          // the full window — sidebar already ate space). Later reopen after
-          // close keeps the last dragged width.
-          const desired = defaultDockWidth(containerW, PANEL_MIN_WIDTH);
-          const baseWidths =
-            mountedPanelsRef.current.length === 0
-              ? {
-                  preview: desired,
-                  diff: desired,
-                  terminal: desired,
-                  file: desired,
-                }
-              : panelWidthsRef.current;
-          const planned = planPanelWidthsForOpen(
-            containerW,
-            [],
-            baseWidths,
-            kind,
-            { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
-          );
-          if (!planned.ok) {
-            showPanelHint("空间不足，无法开启面板");
-            return false;
-          }
-          const changed = PANEL_ORDER.some(
-            (k) => planned.widths[k] !== panelWidthsRef.current[k],
-          );
-          if (changed) {
-            panelWidthsRef.current = planned.widths;
-            updatePanelGroup({ widths: planned.widths });
-          }
-        }
-      }
-      updatePanelGroup((group) => ({
-        checked: group.checked.includes(kind)
-          ? group.checked
-          : [...group.checked, kind],
-        mounted: group.mounted.includes(kind)
-          ? group.mounted
-          : [...group.mounted, kind],
-        active: kind,
-      }));
-      return true;
-    },
-    [showPanelHint, updatePanelGroup],
-  );
-
-  const handleTogglePanel = useCallback(
-    (kind: DesktopPanelKind) => {
-      if (panelDisabledRef.current.includes(kind)) return;
-      if (checkedPanelsRef.current.includes(kind)) {
-        updatePanelGroup((group) => {
-          const nextChecked = group.checked.filter((k) => k !== kind);
-          // Release the closed panel's large payloads (file content up to 2MB,
-          // search results, diff snapshots). Without this they'd stay pinned
-          // for the whole workdir lifetime (groups are keyed by workdir).
-          const released = releasePanelContent(group, kind);
-          if (nextChecked.length === 0) {
-            return {
-              ...collapseDockState({
-                checked: group.checked,
-                active: group.active,
-              }),
-              ...released,
-            };
-          }
-          return {
-            active: nextActivePanelAfterClose(
-              group.checked,
-              kind,
-              group.active,
-            ),
-            checked: nextChecked,
-            ...released,
-          };
-        });
-        // Closing the preview hides the pane but never releases a remote tunnel
-        // (scenario 18): the URL stays cached so re-checking shows the same page,
-        // and the host keeps the ssh forward alive until the session is deleted.
-      } else {
-        tryOpenPanel(kind);
-      }
-    },
-    [tryOpenPanel, updatePanelGroup],
-  );
-
-  const handleToggleDock = useCallback(() => {
-    if (!groupKey) return;
-    const group =
-      usePanelGroupStore.getState().groups[groupKey] ??
-      emptyPanelGroup();
-    if (group.checked.length > 0) {
-      updatePanelGroup(collapseDockState(group));
-      return;
-    }
-    if (group.collapsedTabs?.checked.length) {
-      const next = expandDockState(group.collapsedTabs);
-      updatePanelGroup({
-        ...next,
-        mounted: Array.from(new Set([...group.mounted, ...next.checked])),
-      });
-      return;
-    }
-    tryOpenPanel("diff");
-  }, [groupKey, tryOpenPanel, updatePanelGroup]);
-
-  const handleAddPanel = useCallback(
-    (kind: DesktopPanelKind) => {
-      if (panelDisabledRef.current.includes(kind)) return;
-      if (checkedPanelsRef.current.includes(kind)) {
-        updatePanelGroup({ active: kind });
-        return;
-      }
-      tryOpenPanel(kind);
-    },
-    [tryOpenPanel, updatePanelGroup],
-  );
-
-  const handleToggleFullscreen = useCallback(() => {
-    updatePanelGroup((group) => {
-      if (group.checked.length === 0) return { dockFullscreen: false };
-      return { dockFullscreen: !group.dockFullscreen };
-    });
-  }, [updatePanelGroup]);
-
-  const handleSelectPanel = useCallback(
-    (kind: DesktopPanelKind) => {
-      updatePanelGroup({ active: kind });
-    },
-    [updatePanelGroup],
-  );
-
-  useEffect(() => {
-    togglePanelRef.current = handleTogglePanel;
-  }, [handleTogglePanel]);
-
-  useEffect(() => {
-    toggleFullscreenRef.current = handleToggleFullscreen;
-  }, [handleToggleFullscreen]);
-
-  // Desktop panel shortcuts (labels in PanelAddMenu). Shell host instance
-  // must not bind — only the focused pane ChatApp (or single-pane layout).
-  useEffect(() => {
-    const isShellHost =
-      (host?.panes?.length ?? 0) > 0 && paneId === undefined;
-    if (isShellHost) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        paneId !== undefined &&
-        host?.focusedPaneId &&
-        host.focusedPaneId !== paneId
-      ) {
-        return;
-      }
-      if (matchNewSessionShortcut(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        // 与侧栏新对话按钮一致：同步退出机器人页等其它视图。
-        setView("chat");
-        postToHost({ command: "newSession" });
-        return;
-      }
-      if (!isDraftSession && matchQuickOpenShortcut(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        setQuickOpenOpen(true);
-        return;
-      }
-      if (matchDockFullscreenShortcut(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        toggleFullscreenRef.current();
-        return;
-      }
-      const kind = matchPanelShortcut(event);
-      if (!kind) return;
-      event.preventDefault();
-      event.stopPropagation();
-      togglePanelRef.current(kind);
-    };
-
-    // Capture so contenteditable / xterm do not swallow the chord first.
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [
-    isDraftSession,
-    host?.panes?.length,
-    host?.focusedPaneId,
-    paneId,
-    postToHost,
-  ]);
-
-  // Desktop file panel (spec: 文件面板): a file path clicked in a message or
-  // terminal opens here instead of the OS. Show the panel immediately with a
-  // loading stub; the host reads the file (local fs or over ssh) and replies
-  // with desktopFileContent to fill it in. The host is captured per-pane so a
-  // split-view sibling's click never resolves against this pane's host.
-  const handleOpenFile = useCallback(
-    (path: string, startLine?: number, endLine?: number) => {
-      if (!path) return;
-      if (!tryOpenPanel("file")) return;
-      // Re-clicking the file already shown re-reads it (soft refresh: keep the
-      // old content until the host reply lands, matching the diff pane).
-      updatePanelGroup((group) => ({
-        fileView:
-          group.fileView && group.fileView.path === path
-            ? {
-                ...group.fileView,
-                loading: true,
-                startLine,
-                endLine,
-              }
-            : {
-                path,
-                host: effectiveHost,
-                loading: true,
-                startLine,
-                endLine,
-              },
-      }));
-      postToHost({
-        command: "openFile",
-        path,
-        host: effectiveHost,
-        workdir: effectiveWorkdir ?? undefined,
-        startLine,
-        endLine,
-      });
-    },
-    [
-      tryOpenPanel,
-      effectiveHost,
-      effectiveWorkdir,
-      postToHost,
-      updatePanelGroup,
-    ],
-  );
-
-  const handleRevealInFinder = useCallback(
-    (path: string) => {
-      if (!path) return;
-      postToHost({ command: "revealInFinder", path });
-    },
-    [postToHost],
-  );
-
-  // File-history card row click: open the diff pane in "最近一次修改" mode,
-  // targeting the file whose snapshot diff came from the last assistant message.
-  const handleOpenFileHistoryDiff = useCallback(
-    (path: string) => {
-      if (!path) return;
-      if (!tryOpenPanel("diff")) return;
-      updatePanelGroup({
-        diffView: {
-          mode: "recent",
-          file: { path },
-        },
-      });
-    },
-    [tryOpenPanel, updatePanelGroup],
-  );
 
   // "最近一次修改" diff source: every assistant message of the NEWEST turn
   // that carries an enriched file_history block (server adds +N/−M + hunks in
@@ -1391,185 +585,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       }));
   }, [state.messages, effectiveWorkdir]);
 
-  // Undo button on the file-history card: restore the snapshots captured by
-  // the newest turn. The server broadcasts messages:replace after reverting,
-  // and since the reverted files now match their snapshots, the enriched
-  // file_history block vanishes — the card disappears on its own.
-  const [revertingFileHistory, setRevertingFileHistory] = useState(false);
-  const handleRevertFileHistory = useCallback(
-    (messageIds: string[]) => {
-      if (!Array.isArray(messageIds) || messageIds.length === 0) return;
-      setRevertingFileHistory(true);
-      void (async () => {
-        try {
-          await popoApi.revertFileHistory(
-            state.currentSession!.id,
-            messageIds,
-          );
-        } catch {
-          // The card stays; user can retry. Server-side failure is surfaced
-          // via the next messages:replace (unchanged) or an error block.
-        } finally {
-          setRevertingFileHistory(false);
-        }
-      })();
-    },
-    [state.currentSession, popoApi],
-  );
-
-  const handleFileTreeChange = useCallback(
-    (next: import("../types").FileTreeState) => {
-      updatePanelGroup((group) => ({
-        fileTree: {
-          ...group.fileTree,
-          expanded: next.expanded,
-          selected: next.selected,
-          width: next.width,
-          collapsed: next.collapsed,
-          childrenCache: {
-            ...group.fileTree.childrenCache,
-            ...next.childrenCache,
-          },
-        },
-      }));
-    },
-    [updatePanelGroup],
-  );
-
-  // Authoritative clamp at drag time: keep the panel within [320, container -
-  // other checked panels - conversation minimum].
-  const handleDockWidthChange = useCallback((width: number) => {
-    let clamped = Math.max(width, PANEL_MIN_WIDTH);
-    const containerW =
-      chatContainerRef.current?.clientWidth ||
-      chatContainerRef.current?.getBoundingClientRect().width;
-    if (containerW) {
-      clamped = Math.min(clamped, containerW - CHAT_MAIN_MIN_WIDTH);
-    }
-    const next = {
-      preview: clamped,
-      diff: clamped,
-      terminal: clamped,
-      file: clamped,
-    };
-    panelWidthsRef.current = next;
-    updatePanelGroup({ widths: next });
-  }, [updatePanelGroup]);
-
-  // Desktop only: open/re-target the preview panel. Clicking a localhost link
-  // checks the preview item (refused with a hint when space runs out) and loads
-  // the URL. Message.tsx only routes localhost links here; all other links go
-  // to openExternal.
-  const handleOpenPreview = useCallback(
-    (url: string) => {
-      if (!tryOpenPanel("preview")) return;
-      updatePanelGroup({ previewUrl: url });
-    },
-    [tryOpenPanel, updatePanelGroup],
-  );
-
-  // Local HTML files from the file panel preview in the built-in browser:
-  // map the absolute path to a file:// URL and open the preview pane.
-  const handleOpenLocalFilePreview = useCallback(
-    (path: string) => {
-      if (!path) return;
-      handleOpenPreview(pathToFileUrl(path));
-    },
-    [handleOpenPreview],
-  );
-
-  // Remote localhost link handler: open the preview panel (creating it when
-  // absent) and forward. The same URL — under any loopback/all-interfaces
-  // host spelling — is a no-op unless the previous attempt failed (scenario
-  // 15/16). Every other click — a different path, a different origin, another
-  // service entirely — just re-targets the panel; tunnels are session-scoped
-  // and only die when the session is deleted (scenario 18).
-  const handleOpenRemotePreview = useCallback(
-    (url: string) => {
-      if (!tryOpenPanel("preview")) return;
-      // Read the refs, not the state values: this callback is captured by the
-      // memoized Message component at mount, so closing over state would freeze
-      // the first render's values and break the same-link dedup below.
-      const current = currentForwardRef.current;
-      if (
-        current &&
-        canonicalForwardUrl(current.originalUrl) === canonicalForwardUrl(url) &&
-        previewForwardErrorRef.current === null
-      )
-        return;
-      updatePanelGroup({ forwardError: null, previewUrl: null });
-      acquireForward(effectiveHostRef.current, url);
-    },
-    [tryOpenPanel, acquireForward, updatePanelGroup],
-  );
-
-  // Retry after a failed forward (scenario 16): re-request the same tunnel.
-  // The host treats a failed entry as gone, so a fresh forward is established.
-  const handleRemotePreviewRetry = useCallback(() => {
-    const fwd = currentForwardRef.current;
-    if (!fwd) return;
-    updatePanelGroup({ forwardError: null });
-    acquireForward(fwd.host, fwd.originalUrl);
-  }, [acquireForward, updatePanelGroup]);
-
-  const openPreviewHandler =
-    effectiveHost !== "local" ? handleOpenRemotePreview : handleOpenPreview;
-
-  // Address-bar navigation: public http(s) always load directly. Only remote
-  // localhost needs an SSH port-forward (message/terminal clicks already gate
-  // on isLocalhostUrl before calling openPreviewHandler).
-  const handlePreviewNavigate = useCallback(
-    (url: string) => {
-      if (effectiveHostRef.current !== "local" && isLocalhostUrl(url)) {
-        handleOpenRemotePreview(url);
-        return;
-      }
-      handleOpenPreview(url);
-    },
-    [handleOpenPreview, handleOpenRemotePreview],
-  );
-
-  // No workdir: all panels disabled. With a workdir (incl. draft + host
-  // folder): all panel kinds available; state is shared per workdir.
-  const panelDisabled: DesktopPanelKind[] = useMemo(() => {
-    if (!panelWorkdir) return [...PANEL_ORDER];
-    return [];
-  }, [panelWorkdir]);
-
-  useEffect(() => {
-    panelDisabledRef.current = panelDisabled;
-  }, [panelDisabled]);
-
-  // Report this pane's toggle state so the desktop app menu's 面板 checkboxes
-  // reflect the focused pane.
-  useEffect(() => {
-    postToHost({ command: "desktopPanelState", checked: checkedPanels });
-  }, [checkedPanels, postToHost]);
-
-  const dockMaxWidth = chatColumnWidth - CHAT_MAIN_MIN_WIDTH;
-
-  // Persist a clamp when the pane shrinks (window resize / split) so the next
-  // drag/open starts from a width that still fits beside the conversation.
-  useEffect(() => {
-    if (checkedPanels.length === 0) return;
-    if (!(dockMaxWidth > 0)) return;
-    const current = panelWidthsRef.current[activePanel ?? "preview"];
-    if (!(current > dockMaxWidth)) return;
-    const clamped = Math.max(PANEL_MIN_WIDTH, dockMaxWidth);
-    const next = {
-      preview: clamped,
-      diff: clamped,
-      terminal: clamped,
-      file: clamped,
-    };
-    panelWidthsRef.current = next;
-    updatePanelGroup({ widths: next });
-  }, [
-    checkedPanels.length,
-    activePanel,
-    dockMaxWidth,
-    updatePanelGroup,
-  ]);
 
   const renderPanelSlot = (kind: DesktopPanelKind) => {
     const dockWidth =
