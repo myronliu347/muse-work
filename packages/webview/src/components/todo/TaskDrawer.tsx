@@ -186,6 +186,7 @@ export const TaskDrawer: React.FC<{
   const comments = useSelectedComments();
   const runs = useSelectedRuns();
   const closeTaskDrawer = useTodoBoardStore((s) => s.closeTaskDrawer);
+  const archivedMode = useTodoBoardStore((s) => s.archivedMode);
   const [editing, setEditing] = useState(false);
 
   if (!task) return null;
@@ -196,7 +197,7 @@ export const TaskDrawer: React.FC<{
         <div className="todo-drawer-head">
           <span className="todo-drawer-title">{task.title}</span>
           <TaskStatusBadge status={task.status} />
-          {task.status === "pending" && (
+          {!archivedMode && task.status === "pending" && (
             <IconBtn icon="pencil" tip="编辑" onClick={() => setEditing((v) => !v)} />
           )}
           <IconBtn icon="close" tip="关闭" onClick={closeTaskDrawer} />
@@ -225,19 +226,21 @@ export const TaskDrawer: React.FC<{
                   )}
                 </Text>
               </div>
-              <div className="todo-act-row">
-                <TaskActions
-                  task={task}
-                  onOpenExecutionSession={onOpenExecutionSession}
-                  onTodosChanged={onTodosChanged}
-                />
-                <span className="todo-act-sep" />
-                <OpenInButtons
-                  task={task}
-                  onOpenInEditor={onOpenInEditor}
-                  onOpenInTerminal={onOpenInTerminal}
-                />
-              </div>
+              {!archivedMode && (
+                <div className="todo-act-row">
+                  <TaskActions
+                    task={task}
+                    onOpenExecutionSession={onOpenExecutionSession}
+                    onTodosChanged={onTodosChanged}
+                  />
+                  <span className="todo-act-sep" />
+                  <OpenInButtons
+                    task={task}
+                    onOpenInEditor={onOpenInEditor}
+                    onOpenInTerminal={onOpenInTerminal}
+                  />
+                </div>
+              )}
               {runs.length > 0 && (
                 <div>
                   <div className="todo-drawer-section-title">执行记录</div>
@@ -275,7 +278,7 @@ export const TaskDrawer: React.FC<{
                     </Text>
                   )}
                 </div>
-                <CommentComposer task={task} />
+                {!archivedMode && <CommentComposer task={task} />}
               </div>
             </>
           )}

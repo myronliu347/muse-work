@@ -208,7 +208,7 @@ describe("todoStore", () => {
     expect(store.updateTodo("nope", { title: "x" })).toBeUndefined();
   });
 
-  it("归档（取消）后 task/comment/run 从内存释放，磁盘保留；重启不载入归档明细", () => {
+  it("归档（取消）后明细不驻留内存、磁盘可读回；cancelled 不进已完成视图（routes 过滤）", () => {
     const store = makeStore();
     const todo = store.createTodo({ title: "t", source: "session" });
     const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
@@ -217,39 +217,47 @@ describe("todoStore", () => {
     expect(store.listComments(task.id).length).toBe(1);
 
     store.cancelTodo(todo.id);
-    // 内存释放：活跃列表不含该 todo，明细读空
+    // 活跃列表不含该 todo；元数据仍在内存（listAllTodos 供侧栏剔除规划会话）
     expect(store.listTodos().map((t) => t.id)).not.toContain(todo.id);
-    expect(store.listTasks(todo.id)).toEqual([]);
-    expect(store.listComments(task.id)).toEqual([]);
-    expect(store.listRuns(task.id)).toEqual([]);
-    // todo 元数据仍在内存（listAllTodos 供侧栏剔除规划会话）
     expect(store.listAllTodos().map((t) => t.id)).toContain(todo.id);
+    // 明细不驻留内存，但磁盘可读回（task 级联取消状态已落盘）
+    expect(store.getTask(task.id)?.status).toBe("cancelled");
+    expect(store.listTasks(todo.id).map((t) => t.status)).toEqual(["cancelled"]);
+    expect(store.listComments(task.id).map((c) => c.content)).toEqual(["评论内容"]);
+    expect(store.listRuns(task.id).length).toBe(1);
 
-    // 磁盘明细文件保留（未丢失，只是不载入内存）
+    // 磁盘明细文件保留（未丢失，只是不驻留内存）
     const dbDir = path.join(getMuseHomeDir(home), "db");
     expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "tasks.json"))).toBe(true);
     expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "comments.json"))).toBe(true);
     expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "runs.json"))).toBe(true);
 
-    // 重启：todo 元数据载入，归档明细不载入内存
+    // 重启：todo 元数据载入，归档明细按需读盘
     const reloaded = createTodoStore({ home });
     expect(reloaded.getTodo(todo.id)?.status).toBe("cancelled");
-    expect(reloaded.listTasks(todo.id)).toEqual([]);
-    expect(reloaded.listComments(task.id)).toEqual([]);
-    expect(reloaded.listRuns(task.id)).toEqual([]);
+    expect(reloaded.listTasks(todo.id).map((t) => t.status)).toEqual(["cancelled"]);
   });
 
-  it("completeTodo 归档同样释放明细内存", () => {
+  it("已完成 todo 明细可经磁盘回退读取（只读查看归档）", () => {
     const store = makeStore();
     const todo = store.createTodo({ title: "t", source: "session" });
     const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    store.addComment(task.id, { author: "user", kind: "note", content: "评论内容" });
+    store.createRun(task.id, { status: "finished" });
     store.updateTaskStatus(task.id, "completed");
     store.completeTodo(todo.id);
-    expect(store.getTodo(todo.id)?.status).toBe("completed");
-    expect(store.listTasks(todo.id)).toEqual([]);
-    // 重启后同样只载入元数据
+    // 归档：活跃列表不含，内存已卸载
+    expect(store.listTodos()).toEqual([]);
+    // 明细从磁盘按需读回（getTask/listTasks/listComments/listRuns）
+    expect(store.getTask(task.id)?.status).toBe("completed");
+    expect(store.listTasks(todo.id).length).toBe(1);
+    expect(store.listComments(task.id).map((c) => c.content)).toEqual(["评论内容"]);
+    expect(store.listRuns(task.id).length).toBe(1);
+    // 重启后同样可读（磁盘为事实源，不驻留内存）
     const reloaded = createTodoStore({ home });
     expect(reloaded.getTodo(todo.id)?.status).toBe("completed");
-    expect(reloaded.listTasks(todo.id)).toEqual([]);
+    expect(reloaded.listTasks(todo.id).length).toBe(1);
+    expect(reloaded.listComments(task.id).length).toBe(1);
+    expect(reloaded.listRuns(task.id).length).toBe(1);
   });
 });

@@ -297,8 +297,8 @@ describe("todo routes", () => {
     expect(await res.json()).toEqual({ ok: true });
 
     expect(store.getTodo(todo.id)?.status).toBe("cancelled");
-    // 归档后 task 明细从内存卸载（级联取消状态已落盘）
-    expect(store.getTask(task.id)).toBeUndefined();
+    // 归档后 task 明细从内存卸载，级联取消状态从磁盘读回
+    expect(store.getTask(task.id)?.status).toBe("cancelled");
     const saved = JSON.parse(
       fs.readFileSync(
         path.join(getMuseHomeDir(home), "db", "todos", todo.id, "tasks.json"),
@@ -310,6 +310,47 @@ describe("todo routes", () => {
     const listRes = await app.fetch(new Request("http://x/todos"));
     const list = (await listRes.json()) as { todos: unknown[] };
     expect(list.todos).toEqual([]);
+  });
+
+  it("GET /todos?archived=1 返回已完成 todo（不含已取消）", async () => {
+    const { app, store } = makeApp();
+    const active = store.createTodo({ title: "进行中", source: "session" });
+    const doneTodo = store.createTodo({ title: "已完成", source: "session" });
+    const cancelledTodo = store.createTodo({ title: "已取消", source: "session" });
+    store.updateTaskStatus(
+      store.createTask(doneTodo.id, { title: "k", workdir: "/p" }).id,
+      "completed",
+    );
+    store.completeTodo(doneTodo.id);
+    store.cancelTodo(cancelledTodo.id);
+
+    // 默认不含归档
+    const res = await app.fetch(new Request("http://x/todos"));
+    const body = (await res.json()) as { todos: Array<{ id: string }> };
+    expect(body.todos.map((t) => t.id)).toEqual([active.id]);
+
+    // archived=1 只看已完成
+    const archRes = await app.fetch(new Request("http://x/todos?archived=1"));
+    const arch = (await archRes.json()) as { todos: Array<{ id: string; status: string }> };
+    expect(arch.todos.map((t) => t.id)).toEqual([doneTodo.id]);
+    expect(arch.todos[0].status).toBe("completed");
+  });
+
+  it("GET /todos/:id/tasks 对已完成 todo 从磁盘读回明细", async () => {
+    const { app, store } = makeApp();
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/tmp/p" });
+    store.addComment(task.id, { author: "user", kind: "note", content: "评论" });
+    store.updateTaskStatus(task.id, "completed");
+    store.completeTodo(todo.id);
+
+    const tasksRes = await app.fetch(new Request(`http://x/todos/${todo.id}/tasks`));
+    const tasks = (await tasksRes.json()) as { tasks: Array<{ id: string; status: string }> };
+    expect(tasks.tasks.length).toBe(1);
+    expect(tasks.tasks[0].status).toBe("completed");
+    const commentsRes = await app.fetch(new Request(`http://x/tasks/${task.id}/comments`));
+    const comments = (await commentsRes.json()) as { comments: Array<{ content: string }> };
+    expect(comments.comments[0].content).toBe("评论");
   });
 
   it("POST /todos/:id/cancel returns 404 for missing todo", async () => {

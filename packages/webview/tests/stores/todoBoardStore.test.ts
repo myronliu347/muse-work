@@ -33,6 +33,7 @@ describe("todoBoardStore", () => {
       newTodoOpen: false,
       notifications: [],
       reviewCount: 0,
+      archivedMode: false,
     });
   });
 
@@ -90,6 +91,35 @@ describe("todoBoardStore", () => {
     await vi.waitFor(() => expect(useTodoBoardStore.getState().loading).toBe(false));
     useTodoBoardStore.getState().selectTodo("x");
     await vi.waitFor(() => expect(useTodoBoardStore.getState().tasksByTodo["x"]?.[0]?.title).toBe("K"));
+  });
+
+  it("setArchivedMode 切换归档视图：拉取已完成 todo 并清空选择", async () => {
+    const fetches: Array<{ url: string }> = [];
+    const api = apiWith(
+      {
+        "GET /todos": async () => ({
+          todos: [{ id: "a", title: "进行中A", priority: "p1", source: "session", status: "pending", createdAt: 1, updatedAt: 1, description: "" }],
+        }),
+        "GET /todos/a/tasks": async () => ({ tasks: [] }),
+        "GET /todos?archived=1": async () => ({
+          todos: [{ id: "d1", title: "已完成B", priority: "p1", source: "session", status: "completed", createdAt: 2, updatedAt: 2, description: "" }],
+        }),
+        "GET /todos/d1/tasks": async () => ({ tasks: [] }),
+      },
+      fetches,
+    );
+    useTodoBoardStore.getState().init(api);
+    await vi.waitFor(() => expect(useTodoBoardStore.getState().todos[0]?.title).toBe("进行中A"));
+
+    useTodoBoardStore.getState().setArchivedMode(true);
+    await vi.waitFor(() => expect(useTodoBoardStore.getState().todos[0]?.title).toBe("已完成B"));
+    expect(useTodoBoardStore.getState().archivedMode).toBe(true);
+    expect(useTodoBoardStore.getState().selectedTodoId).toBe("d1");
+    expect(fetches.some((f) => f.url.includes("archived=1"))).toBe(true);
+
+    useTodoBoardStore.getState().setArchivedMode(false);
+    await vi.waitFor(() => expect(useTodoBoardStore.getState().todos[0]?.title).toBe("进行中A"));
+    expect(useTodoBoardStore.getState().archivedMode).toBe(false);
   });
 
   it("createTodo appends and sorts", async () => {

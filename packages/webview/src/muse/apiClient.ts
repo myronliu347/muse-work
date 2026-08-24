@@ -416,6 +416,12 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  /** 已完成 todo 列表（看板「已完成」归档视图；只读）。 */
+  async listArchivedTodos(): Promise<{ todos: MuseTodo[] }> {
+    const res = await this.request("/todos?archived=1");
+    return parseJson(res);
+  }
+
   async createTodo(input: {
     title: string;
     description?: string;

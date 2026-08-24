@@ -46,6 +46,46 @@
   background: var(--accent-2);
 }
 
+/* 左列顶部：进行中/已完成视图切换 + 新建按钮 */
+.todo-board-left-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.todo-view-switch {
+  display: inline-flex;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.todo-view-switch-btn {
+  padding: 4px 10px;
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  background: var(--color-surface, var(--gray-1));
+  cursor: pointer;
+  border: none;
+}
+
+.todo-view-switch-btn + .todo-view-switch-btn {
+  border-left: 1px solid var(--gray-6);
+}
+
+.todo-view-switch-btn:hover {
+  background: var(--gray-3);
+}
+
+.todo-view-switch-btn.active {
+  background: var(--accent-3);
+  color: var(--accent-11);
+  font-weight: 600;
+}
+
 .todo-list-scroll {
   flex: 1;
   min-height: 0;

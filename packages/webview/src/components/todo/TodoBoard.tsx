@@ -426,18 +426,46 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
   const tasks = useBoardTasks();
   const filterByTodo = useTodoBoardStore((s) => s.filterByTodo);
   const setFilterByTodo = useTodoBoardStore((s) => s.setFilterByTodo);
+  const archivedMode = useTodoBoardStore((s) => s.archivedMode);
+  const setArchivedMode = useTodoBoardStore((s) => s.setArchivedMode);
 
   return (
     <div className="todo-board">
       <div className="todo-board-left">
-        <button
-          type="button"
-          className="todo-new-btn"
-          onClick={openNewTodo}
-          data-testid="todo-new-btn"
-        >
-          + 新建 TODO
-        </button>
+        <div className="todo-board-left-top">
+          <div className="todo-view-switch" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!archivedMode}
+              className={`todo-view-switch-btn${!archivedMode ? " active" : ""}`}
+              onClick={() => setArchivedMode(false)}
+              data-testid="todo-view-active"
+            >
+              进行中
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={archivedMode}
+              className={`todo-view-switch-btn${archivedMode ? " active" : ""}`}
+              onClick={() => setArchivedMode(true)}
+              data-testid="todo-view-archived"
+            >
+              已完成
+            </button>
+          </div>
+          {!archivedMode && (
+            <button
+              type="button"
+              className="todo-new-btn"
+              onClick={openNewTodo}
+              data-testid="todo-new-btn"
+            >
+              + 新建 TODO
+            </button>
+          )}
+        </div>
         {newTodoOpen && (
           <TodoEditDialog
             heading="新建 TODO"
@@ -517,6 +545,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
                     <PriorityBadge p={t.priority} />
                     <span className="todo-row-title">{t.title}</span>
                     <IconBtn icon="comment-discussion" tip="打开规划会话（todo 专属会话）" testId={`todo-open-planning-${t.id}`} onClick={() => void openPlanning(t.id)} />
+                    {!archivedMode && (
                     <DropdownMenu.Root>
                       <DropdownMenu.Trigger asChild>
                         <button
@@ -551,6 +580,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
                     </DropdownMenu.Root>
+                    )}
                   </div>
                   {t.description && (
                     <div className="todo-row-desc" title={t.description}>
@@ -614,7 +644,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
           </Text>
         ) : !selected ? (
           <Text size="2" color="gray" className="todo-empty">
-            暂无 TODO，点击「+ 新建 TODO」创建
+            {archivedMode ? "暂无已完成 TODO" : "暂无 TODO，点击「+ 新建 TODO」创建"}
           </Text>
         ) : tasks.length === 0 ? (
           <div className="todo-empty">

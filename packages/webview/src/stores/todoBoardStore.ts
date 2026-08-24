@@ -47,9 +47,13 @@ interface TodoBoardState {
   reviewCount: number;
   /** 看板是否按选中 todo 筛选（默认 false=展示全部 todo 的 task）。 */
   filterByTodo: boolean;
+  /** 「已完成」归档视图（只读查看已完成 todo；false=进行中视图）。 */
+  archivedMode: boolean;
 
   init(api: MuseApiClient): void;
   load(): Promise<void>;
+  /** 切换进行中/已完成视图并重新加载。 */
+  setArchivedMode(v: boolean): void;
   refreshTasks(todoId: string): Promise<void>;
   setFilterByTodo(v: boolean): void;
   selectTodo(id: string): void;
@@ -103,6 +107,7 @@ export const useTodoBoardStore = create<TodoBoardState>((set, get) => ({
   notifications: [],
   reviewCount: 0,
   filterByTodo: false,
+  archivedMode: false,
 
   init(api) {
     set({ api });
@@ -113,7 +118,10 @@ export const useTodoBoardStore = create<TodoBoardState>((set, get) => ({
     const api = get().api;
     if (!api) return;
     try {
-      const { todos } = await api.listTodos();
+      // 归档视图拉已完成 todo（只读），进行中视图拉活跃 todo
+      const { todos } = get().archivedMode
+        ? await api.listArchivedTodos()
+        : await api.listTodos();
       const sorted = sortTodos(todos);
       set({
         todos: sorted,
@@ -141,6 +149,12 @@ export const useTodoBoardStore = create<TodoBoardState>((set, get) => ({
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
+  },
+
+  setArchivedMode(v) {
+    if (get().archivedMode === v) return;
+    set({ archivedMode: v, selectedTodoId: null, selectedTaskId: null });
+    void get().load();
   },
 
   async refreshTasks(todoId) {

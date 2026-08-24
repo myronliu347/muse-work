@@ -60,6 +60,12 @@ export function createTodoRoutes(
   }
 
   app.get("/todos", (c) => {
+    // ?archived=1 → 已完成 todo（看板「已完成」归档视图；已取消不展示）
+    if (c.req.query("archived") === "1") {
+      return c.json({
+        todos: store.listAllTodos().filter((t) => t.status === "completed"),
+      });
+    }
     return c.json({ todos: store.listTodos() });
   });
 

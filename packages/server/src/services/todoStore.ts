@@ -315,7 +315,39 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
     return last?.status === "interrupted";
   }
 
-  /** 归档 todo：其 tasks/comments/runs 从内存移除（磁盘明细保留，不常驻内存）。 */
+  /** 归档 todo 明细按需从磁盘读（不驻留内存；文件不存在返回空）。 */
+  function readArchivedTasks(todoId: string): Task[] {
+    return readJson<{ version: number; tasks: Task[] }>(tasksPath(home, todoId), {
+      version: 1,
+      tasks: [],
+    }).tasks;
+  }
+
+  function readArchivedComments(todoId: string): Comment[] {
+    return readJson<{ version: number; comments: Comment[] }>(commentsPath(home, todoId), {
+      version: 1,
+      comments: [],
+    }).comments;
+  }
+
+  function readArchivedRuns(todoId: string): Run[] {
+    return readJson<{ version: number; runs: Run[] }>(runsPath(home, todoId), {
+      version: 1,
+      runs: [],
+    }).runs;
+  }
+
+  /** 归档 task 反查所属 todoId（遍历已完成/已取消 todo 的磁盘 tasks.json；仅归档明细访问时触发）。 */
+  function todoIdOfArchivedTask(taskId: string): string | undefined {
+    for (const todo of todos.values()) {
+      if (todo.status === "pending" || todo.status === "in_progress") continue;
+      const list = readArchivedTasks(todo.id);
+      if (list.some((t) => t.id === taskId)) return todo.id;
+    }
+    return undefined;
+  }
+
+  /** 归档 todo 明细：task/comment/run 从内存移除（磁盘明细保留，不常驻内存）。 */
   function unloadTodoDetail(todoId: string): void {
     for (const [taskId, task] of [...tasks]) {
       if (task.todoId !== todoId) continue;
@@ -528,12 +560,22 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
 
     getTask(id) {
       const task = tasks.get(id);
-      return task ? { ...task } : undefined;
+      if (task) return { ...task };
+      // 归档 task：内存已卸载，按需从磁盘反查（completed todo）
+      const todoId = todoIdOfArchivedTask(id);
+      if (!todoId) return undefined;
+      const archived = readArchivedTasks(todoId).find((t) => t.id === id);
+      return archived ? { ...archived } : undefined;
     },
 
     listTasks(todoId) {
-      return [...tasks.values()]
+      const cached = [...tasks.values()]
         .filter((t) => t.todoId === todoId)
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .map((t) => ({ ...t }));
+      if (cached.length > 0) return cached;
+      // 内存无（归档 todo 或该 todo 无活跃 task）：从磁盘读
+      return readArchivedTasks(todoId)
         .sort((a, b) => a.createdAt - b.createdAt)
         .map((t) => ({ ...t }));
     },
@@ -575,8 +617,13 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
 
     listComments(taskId) {
       const task = tasks.get(taskId);
-      if (!task) return [];
-      return (comments.get(taskId) ?? []).map((c) => ({ ...c }));
+      if (task) return (comments.get(taskId) ?? []).map((c) => ({ ...c }));
+      // 归档 task：按需从磁盘读
+      const todoId = todoIdOfArchivedTask(taskId);
+      if (!todoId) return [];
+      return readArchivedComments(todoId)
+        .filter((c) => c.taskId === taskId)
+        .map((c) => ({ ...c }));
     },
 
     createRun(taskId, input) {
@@ -585,8 +632,13 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
 
     listRuns(taskId) {
       const task = tasks.get(taskId);
-      if (!task) return [];
-      return (runs.get(taskId) ?? []).map((r) => ({ ...r }));
+      if (task) return (runs.get(taskId) ?? []).map((r) => ({ ...r }));
+      // 归档 task：按需从磁盘读
+      const todoId = todoIdOfArchivedTask(taskId);
+      if (!todoId) return [];
+      return readArchivedRuns(todoId)
+        .filter((r) => r.taskId === taskId)
+        .map((r) => ({ ...r }));
     },
 
     updateRunStatus(id, status) {

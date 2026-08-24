@@ -89,6 +89,7 @@ describe("TodoBoard", () => {
       error: null,
       newTodoOpen: false,
       filterByTodo: false,
+      archivedMode: false,
     });
   });
 
@@ -120,7 +121,8 @@ describe("TodoBoard", () => {
     });
     renderBoard(api);
     await waitFor(() => expect(screen.getByText("A")).toBeTruthy());
-    expect(screen.queryByText(/已完成/)).toBeNull();
+    // 列表里没有归档 todo 行（「已完成」tab 是视图切换，不算）
+    expect(screen.queryByText("已完成B")).toBeNull();
   });
 
   it("todo 行展示描述（有描述才显示，单行省略）", async () => {
@@ -758,6 +760,48 @@ describe("TodoBoard", () => {
     );
     // 创建成功后表单收起
     expect(screen.queryByTestId("todo-new-title")).toBeNull();
+  });
+
+  it("切换「已完成」视图：拉取已完成 todo，归档只读（隐藏新建/更多操作/详情操作）", async () => {
+    const api = apiWith({
+      "GET /todos": async () => ({ todos: [todoFixture({ id: "a", title: "进行中A" })] }),
+      "GET /todos/a/tasks": async () => ({ tasks: [] }),
+      "GET /todos?archived=1": async () => ({
+        todos: [todoFixture({ id: "d1", title: "已完成B", status: "completed" })],
+      }),
+      "GET /todos/d1/tasks": async () => ({
+        tasks: [taskFixture({ id: "dk1", todoId: "d1", title: "已执行任务", status: "completed" })],
+      }),
+      "GET /tasks/dk1/comments": async () => ({
+        comments: [{ id: "c1", taskId: "dk1", author: "ai", kind: "note", content: "【AI 复核】合理", createdAt: 1 }],
+      }),
+      "GET /tasks/dk1/runs": async () => ({ runs: [] }),
+    });
+    const user = userEvent.setup();
+    renderBoard(api);
+    await waitFor(() => expect(screen.getByText("进行中A")).toBeTruthy());
+    // 进行中视图：新建按钮可见
+    expect(screen.getByTestId("todo-new-btn")).toBeTruthy();
+
+    await user.click(screen.getByTestId("todo-view-archived"));
+    // 「已完成B」出现在左列 todo 行 + 看板卡片 todo 标签（多处）
+    await waitFor(() =>
+      expect(screen.getAllByText("已完成B").length).toBeGreaterThan(0),
+    );
+    expect(screen.getByText("已执行任务")).toBeTruthy();
+    // 归档只读：无新建按钮、无 more 菜单
+    expect(screen.queryByTestId("todo-new-btn")).toBeNull();
+    expect(screen.queryByTestId("todo-more-d1")).toBeNull();
+    // 归档任务详情抽屉：无操作按钮、无评论输入
+    await user.click(screen.getByText("已执行任务"));
+    await waitFor(() => expect(screen.getByTestId("todo-drawer")).toBeTruthy());
+    expect(screen.queryByTestId("todo-comment-input")).toBeNull();
+    expect(screen.queryByTestId(`todo-open-editor-dk1`)).toBeNull();
+
+    // 切回进行中视图
+    await user.click(screen.getByTestId("todo-view-active"));
+    await waitFor(() => expect(screen.getByText("进行中A")).toBeTruthy());
+    expect(screen.getByTestId("todo-new-btn")).toBeTruthy();
   });
 
   it("新建 TODO 弹窗：选择目录按钮调 pickDirectory 填入路径，创建 POST 带 workdir", async () => {
