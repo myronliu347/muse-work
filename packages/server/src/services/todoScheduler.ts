@@ -87,6 +87,8 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
   const maxConcurrent = options.maxConcurrent ?? 3;
   /** 本进程内正在执行的 taskId（恢复扫描排除 + 并发计数）。 */
   const activeRunning = new Set<string>();
+  /** 复核进行中的会话：sessionId -> taskId（turn 结束取 AI 结论写 note 评论 + 销毁会话）。 */
+  const pendingReviews = new Map<string, string>();
   let timer: ReturnType<typeof setInterval> | null = null;
   let started = false;
 
@@ -254,6 +256,13 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
 
   /** turn 结束回调（runner 注入）：执行中 task → 待审核 + result 评论 + 释放槽位。 */
   function onTurnSettled(sessionId: string, result: { ok: boolean; error?: string }): void {
+    // 复核会话 turn 结束：取 AI 结论写 note 评论 + 销毁复核会话（不改变 task 状态）
+    const reviewTaskId = pendingReviews.get(sessionId);
+    if (reviewTaskId !== undefined) {
+      pendingReviews.delete(sessionId);
+      void captureReviewConclusion(sessionId, reviewTaskId);
+      return;
+    }
     const task = store.getTaskByExecutionSession(sessionId);
     if (!task || task.status !== "running") return;
     activeRunning.delete(task.id);
@@ -291,44 +300,63 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
   function buildReviewPrompt(task: Task, todo: Todo): string {
     const result = store.listComments(task.id).find((c) => c.kind === "result");
     return [
-      "【Todo/Task 进度同步 + AI 复核】",
+      "【Todo/Task AI 复核】",
       `Todo「${todo.title}」下的 task「${task.title}」已执行完，进入待审核。`,
+      task.description ? `task 描述：\n${task.description}` : "task 描述：（无）",
+      `工作目录：${task.workdir}`,
       ``,
       `执行结果：${result?.content ?? "（无执行结果记录）"}`,
       ``,
-      `请以审核者视角复核该 task 的执行结果：改动是否合理、是否覆盖测试、有无明显问题或遗漏。`,
+      `请以审核者视角复核该 task 的执行结果：检查改动是否合理、是否覆盖测试、有无明显问题或遗漏。`,
+      `可以在工作目录里读取文件、运行测试/构建命令来验证（只读复核，禁止修改任何文件）。`,
       `直接给出复核结论（供人工审核参考，不改变任务状态）。`,
     ].join("\n");
   }
 
-  /** task 进待审核后：旁路 askBtw 向规划会话 agent 要复核结论（不注入消息、不打断对话、无工具静态 review；失败重试一次，再失败标注）。 */
+  /** task 进待审核后：向规划会话注入 system-inject 复核消息（完整 turn、有工具可读代码/跑测试；
+      失败重试一次，再失败标注）。turn 结束由 onTurnSettled 取结论写评论。 */
   async function triggerAiReview(taskId: string): Promise<void> {
     const task = store.getTask(taskId);
     if (!task) return;
     const todo = store.getTodo(task.todoId);
     if (!todo?.planningSessionId) return; // 无规划会话（T8 懒创建后自动生效）
-    if (!runner.askBtw) return;
     const sessionId = todo.planningSessionId;
-    const question = buildReviewPrompt(task, todo);
+    const content = buildReviewPrompt(task, todo);
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const conclusion = (await runner.askBtw(sessionId, question)).trim();
-        if (!conclusion) throw new Error("empty conclusion");
-        store.addComment(task.id, {
-          author: "ai",
-          kind: "note",
-          content: `【AI 复核】${conclusion}`,
-        });
+        await runner.sendMessage(sessionId, content, undefined, "system-inject");
+        pendingReviews.set(sessionId, task.id);
         return;
       } catch {
-        // 重试一次（askBtw 失败/空结论）
+        // 注入失败重试一次
       }
     }
     store.addComment(task.id, {
       author: "system",
       kind: "note",
-      content: "⚠️ AI 复核失败（旁路提问失败，已重试一次）。任务不阻塞，可人工审核。",
+      content: "⚠️ AI 复核失败（复核消息注入失败，已重试一次）。任务不阻塞，可人工审核。",
     });
+  }
+
+  /** 复核注入 turn 结束：取规划会话最后 assistant 文本块写 note 评论（结论仅供参考）。 */
+  async function captureReviewConclusion(
+    sessionId: string,
+    taskId: string,
+  ): Promise<void> {
+    const conclusion = await extractFinalTextBlock(sessionId);
+    if (conclusion) {
+      store.addComment(taskId, {
+        author: "ai",
+        kind: "note",
+        content: `【AI 复核】${conclusion}`,
+      });
+    } else {
+      store.addComment(taskId, {
+        author: "system",
+        kind: "note",
+        content: "⚠️ AI 复核失败（未生成结论）。任务不阻塞，可人工审核。",
+      });
+    }
   }
 
   /** 执行中取消：中止会话 + 删 worktree（执行中取消立即删，用户已拍板）；非执行中取消保留 worktree。 */

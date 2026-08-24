@@ -300,10 +300,13 @@ describe("todoScheduler", () => {
     expect(runner.sendMessage).toHaveBeenCalledTimes(1);
   });
 
-  it("task 进待审核 → 旁路 askBtw 复核（不注入规划会话）→ AI 结论写 note 评论", async () => {
-    const { store, scheduler, runner } = makeScheduler({
+  it("task 进待审核 → 向规划会话注入复核消息（完整 turn 有工具）→ 复核 turn 结束写 AI 结论评论", async () => {
+    const { store, scheduler, runner, sessionStore, hub } = makeScheduler({
       runner: {
-        askBtw: vi.fn(async () => "改动合理，测试覆盖完整，建议通过。"),
+        // 复核 turn 的回复（extractFinalTextBlock 读最后 assistant 文本块）
+        getMessages: vi.fn(async () => [
+          { role: "assistant", blocks: [{ type: "text", content: "改动合理，测试覆盖完整，建议通过。" }] },
+        ]),
       },
     });
     const todo = store.createTodo({ title: "t", source: "session" });
@@ -313,20 +316,29 @@ describe("todoScheduler", () => {
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
     const execId = store.getTask(task.id)?.executionSessionId!;
     scheduler.handleTurnSettled(execId, { ok: true });
-    // 执行结束 → 待审核 + 旁路复核（不向规划会话注入消息）
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("review"));
-    const askCalls = (runner.askBtw as ReturnType<typeof vi.fn>).mock.calls;
-    expect(askCalls.length).toBe(1);
-    expect(askCalls[0][0]).toBe("plan-1"); // 目标=规划会话 agent
-    expect(askCalls[0][1]).toContain("AI 复核");
-    // 结论直接写 note 评论（无需等复核 turn 结束）
+    // 复核消息注入规划会话（system-inject，完整 turn 有工具），含执行结果 + 工作目录指引
+    const sendCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls;
+    expect(sendCalls.length).toBe(2); // 1 执行 + 1 复核
+    const reviewCall = sendCalls[1];
+    expect(reviewCall[0]).toBe("plan-1");
+    expect(reviewCall[3]).toBe("system-inject");
+    const reviewContent = reviewCall[1] as string;
+    expect(reviewContent).toContain("AI 复核");
+    expect(reviewContent).toContain("工作目录：/p");
+    expect(reviewContent).toContain("运行测试/构建命令来验证");
+    // 不新建复核会话（仍是规划会话 + 执行会话两个）
+    expect(sessionStore.create).toHaveBeenCalledTimes(1);
+    // 复核 turn 结束 → AI 结论写 note 评论（规划会话不销毁）
+    scheduler.handleTurnSettled("plan-1", { ok: true });
     await vi.waitFor(() => {
       const notes = store.listComments(task.id).filter((c) => c.kind === "note" && c.author === "ai");
       expect(notes.length).toBe(1);
       expect(notes[0].content).toContain("改动合理");
     });
-    // 规划会话未收到任何消息（不污染对话）
-    expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === "plan-1").length).toBe(0);
+    expect(runner.disposeSession).not.toHaveBeenCalled();
+    expect(sessionStore.delete).not.toHaveBeenCalled();
+    expect(hub.broadcastAll).not.toHaveBeenCalledWith({ type: "todo:changed" });
     scheduler.stop();
   });
 
@@ -381,13 +393,16 @@ describe("todoScheduler", () => {
     scheduler.stop();
   });
 
-  it("旁路复核失败重试一次后跳过，task 仍待审核且评论标注", async () => {
+  it("复核消息注入失败重试一次后标注，task 仍待审核（规划会话不销毁）", async () => {
     const { store, scheduler, runner } = makeScheduler({
       runner: {
-        // 旁路提问失败（规划会话无 agent / SDK 不可用）
-        askBtw: vi.fn(async () => {
-          throw new Error("askBtw failed");
-        }),
+        // 执行消息成功；复核消息（第 2 次起）失败 → 重试一次
+        sendMessage: vi
+          .fn()
+          .mockImplementationOnce(async () => ({ accepted: true }))
+          .mockImplementation(async () => {
+            throw new Error("send failed");
+          }),
       },
     });
     const todo = store.createTodo({ title: "t", source: "session" });
@@ -401,8 +416,13 @@ describe("todoScheduler", () => {
       const notes = store.listComments(task.id).filter((c) => c.content.includes("AI 复核失败"));
       expect(notes.length).toBe(1);
     });
-    // 重试恰好一次（共 2 次 askBtw 尝试）
-    expect((runner.askBtw as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
+    // 共 3 次发送：1 执行 + 2 复核（重试恰好一次），且都发往规划会话
+    const sendCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls;
+    expect(sendCalls.length).toBe(3);
+    expect(sendCalls[1][0]).toBe("plan-1");
+    expect(sendCalls[2][0]).toBe("plan-1");
+    // 规划会话不销毁
+    expect(runner.disposeSession).not.toHaveBeenCalled();
     // task 不被阻塞在待审核之外
     expect(store.getTask(task.id)?.status).toBe("review");
     scheduler.stop();
