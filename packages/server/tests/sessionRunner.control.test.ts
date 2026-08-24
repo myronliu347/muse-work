@@ -13,7 +13,7 @@ import {
 import {
   createSessionRunner,
   type SessionAgent,
-} from "../src/services/sessionRunner.js";
+} from "../src/services/sessionRunner/index.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
 import { createWsHub } from "../src/services/wsHub.js";
 

@@ -3,7 +3,7 @@ import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import type { AppContext } from "../services/appContext.js";
-import type { CreateAgent } from "../services/sessionRunner.js";
+import type { CreateAgent } from "../services/sessionRunner/index.js";
 import { getLogger } from "../utils/logger.js";
 import { createCallbackApp } from "./callbackApp.js";
 import { createChatStore, type ChatStore } from "./chatStore.js";

@@ -10,7 +10,7 @@ import {
   type AuthStatus,
   type ModelInfo,
 } from "@muse-work/provider";
-import { createSessionRunner, type SessionAgent } from "../src/services/sessionRunner.js";
+import { createSessionRunner, type SessionAgent } from "../src/services/sessionRunner/index.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
 import { createWsHub } from "../src/services/wsHub.js";
 import { saveMuseSettings } from "../src/services/museSettings.js";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPopoAgentFactory } from "../src/popo/popoAgent.js";
-import type { SessionAgent } from "../src/services/sessionRunner.js";
+import type { SessionAgent } from "../src/services/sessionRunner/index.js";
 
 function stubAgent(finalText: string): SessionAgent {
   const messages = [
