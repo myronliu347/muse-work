@@ -262,12 +262,10 @@ describe("todoScheduler", () => {
     expect(runner.sendMessage).toHaveBeenCalledTimes(1);
   });
 
-  it("task 进待审核 → 向规划会话注入复核消息（system-inject source）→ AI 结论写 note 评论", async () => {
+  it("task 进待审核 → 旁路 askBtw 复核（不注入规划会话）→ AI 结论写 note 评论", async () => {
     const { store, scheduler, runner } = makeScheduler({
       runner: {
-        getMessages: vi.fn(async () => [
-          { role: "assistant", blocks: [{ type: "text", content: "改动合理，测试覆盖完整，建议通过。" }] },
-        ]),
+        askBtw: vi.fn(async () => "改动合理，测试覆盖完整，建议通过。"),
       },
     });
     const todo = store.createTodo({ title: "t", source: "session" });
@@ -277,21 +275,20 @@ describe("todoScheduler", () => {
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
     const execId = store.getTask(task.id)?.executionSessionId!;
     scheduler.handleTurnSettled(execId, { ok: true });
-    // 执行结束 → 待审核 + 注入复核
+    // 执行结束 → 待审核 + 旁路复核（不向规划会话注入消息）
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("review"));
-    const injectCall = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === "plan-1",
-    );
-    expect(injectCall).toBeTruthy();
-    expect(injectCall[3]).toBe("system-inject"); // source 参数（第 4 位）
-    expect(injectCall[1]).toContain("AI 复核");
-    // 复核 turn 结束 → AI 结论 note 评论落盘
-    scheduler.handleTurnSettled("plan-1", { ok: true });
+    const askCalls = (runner.askBtw as ReturnType<typeof vi.fn>).mock.calls;
+    expect(askCalls.length).toBe(1);
+    expect(askCalls[0][0]).toBe("plan-1"); // 目标=规划会话 agent
+    expect(askCalls[0][1]).toContain("AI 复核");
+    // 结论直接写 note 评论（无需等复核 turn 结束）
     await vi.waitFor(() => {
       const notes = store.listComments(task.id).filter((c) => c.kind === "note" && c.author === "ai");
       expect(notes.length).toBe(1);
       expect(notes[0].content).toContain("改动合理");
     });
+    // 规划会话未收到任何消息（不污染对话）
+    expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === "plan-1").length).toBe(0);
     scheduler.stop();
   });
 
@@ -346,29 +343,28 @@ describe("todoScheduler", () => {
     scheduler.stop();
   });
 
-  it("复核注入失败重试一次后跳过，task 仍待审核且评论标注", async () => {
-    const { store, scheduler, runner } = makeScheduler({});
+  it("旁路复核失败重试一次后跳过，task 仍待审核且评论标注", async () => {
+    const { store, scheduler, runner } = makeScheduler({
+      runner: {
+        // 旁路提问失败（规划会话无 agent / SDK 不可用）
+        askBtw: vi.fn(async () => {
+          throw new Error("askBtw failed");
+        }),
+      },
+    });
     const todo = store.createTodo({ title: "t", source: "session" });
     store.setPlanningSessionId(todo.id, "plan-1");
     const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
     scheduler.start();
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
     const execId = store.getTask(task.id)?.executionSessionId!;
-    // 注入失败：plan-1 会话不存在（sendMessage 抛错）
-    (runner.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(async (sid: string) => {
-      if (sid === "plan-1") throw new Error("session not found");
-      return { accepted: true };
-    });
     scheduler.handleTurnSettled(execId, { ok: true });
     await vi.waitFor(() => {
       const notes = store.listComments(task.id).filter((c) => c.content.includes("AI 复核失败"));
       expect(notes.length).toBe(1);
     });
-    // 重试恰好一次（共 2 次注入尝试）
-    const planCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.filter(
-      (c) => c[0] === "plan-1",
-    );
-    expect(planCalls.length).toBe(2);
+    // 重试恰好一次（共 2 次 askBtw 尝试）
+    expect((runner.askBtw as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
     // task 不被阻塞在待审核之外
     expect(store.getTask(task.id)?.status).toBe("review");
     scheduler.stop();
