@@ -117,6 +117,34 @@ describe("todo plugin script (todo.mjs)", () => {
     expect(task.status).toBe("pending");
   });
 
+  it("add-task --no-worktree 透传 worktreeEnabled=false（git 项目直接在原目录执行）", async () => {
+    port = await startServer();
+    const out = await execScript(port, ["create", "--title", "t"]);
+    const todo = JSON.parse(out) as { id: string };
+    const taskOut = await execScript(port, [
+      "add-task",
+      todo.id,
+      "--title",
+      "直跑",
+      "--workdir",
+      "/tmp/proj",
+      "--no-worktree",
+    ]);
+    const task = JSON.parse(taskOut) as { worktreeEnabled?: boolean };
+    expect(task.worktreeEnabled).toBe(false);
+    // 不带 --no-worktree 时缺省不设字段（隔离）
+    const taskOut2 = await execScript(port, [
+      "add-task",
+      todo.id,
+      "--title",
+      "隔离",
+      "--workdir",
+      "/tmp/proj",
+    ]);
+    const task2 = JSON.parse(taskOut2) as { worktreeEnabled?: boolean };
+    expect(task2.worktreeEnabled).toBeUndefined();
+  });
+
   it("task actions: requeue → review → approve / cancel via API", async () => {
     port = await startServer();
     const todo = todoStore.createTodo({ title: "t", source: "session" });

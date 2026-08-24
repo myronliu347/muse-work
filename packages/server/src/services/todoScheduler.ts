@@ -141,7 +141,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
   async function launch(taskId: string): Promise<void> {
     const task = store.getTask(taskId);
     if (!task) return;
-    // worktree：已建则复用路径；git 项目首次执行时创建；非 git 直接用 workdir
+    // worktree：已建则复用路径；git 项目（默认隔离）首次执行时创建；非 git 或 worktreeEnabled=false 直接用 workdir
     let workdir = task.workdir;
     if (task.worktreeName && task.worktreeRepoRoot) {
       workdir = path.join(
@@ -150,7 +150,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         "worktrees",
         task.worktreeName,
       );
-    } else if (isGitRepo(task.workdir)) {
+    } else if (isGitRepo(task.workdir) && task.worktreeEnabled !== false) {
       const wt = await ensureWorktree(task.id, task.workdir, task.baseBranch);
       store.setTaskWorktree(task.id, {
         name: wt.name,

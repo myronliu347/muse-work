@@ -146,7 +146,9 @@ export function createTodoRoutes(
 
   app.post("/todos/:todoId/tasks", async (c) => {
     const todoId = c.req.param("todoId");
-    let body: { title?: string; description?: string; workdir?: string; baseBranch?: string } | undefined;
+    let body:
+      | { title?: string; description?: string; workdir?: string; baseBranch?: string; worktreeEnabled?: unknown }
+      | undefined;
     try {
       body = await c.req.json();
     } catch {
@@ -162,6 +164,8 @@ export function createTodoRoutes(
       description: body?.description,
       workdir,
       ...(body?.baseBranch?.trim() ? { baseBranch: body.baseBranch.trim() } : {}),
+      // worktreeEnabled=false → git 项目也直接在原目录执行；缺省=隔离
+      ...(body?.worktreeEnabled === false ? { worktreeEnabled: false } : {}),
     });
     changed();
     return c.json({ task }, 201);

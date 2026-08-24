@@ -250,6 +250,44 @@ describe("todoScheduler", () => {
     fs.rmSync(repo, { recursive: true, force: true });
   });
 
+  it("git workdir + worktreeEnabled=false：不建 worktree，直接在原目录执行", async () => {
+    // 真实 git 仓库 fixture
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-repo-"));
+    execFileSync("git", ["init", "-b", "main"], { cwd: repo });
+    execFileSync("git", ["config", "user.email", "t@t"], { cwd: repo });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: repo });
+    fs.writeFileSync(path.join(repo, "a.txt"), "x\n");
+    execFileSync("git", ["add", "."], { cwd: repo });
+    execFileSync("git", ["commit", "-m", "init"], { cwd: repo });
+
+    const { store, scheduler, sessionStore, runner } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, {
+      title: "k",
+      workdir: repo,
+      worktreeEnabled: false,
+    });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const task2 = store.getTask(task.id)!;
+    // 无 worktree 字段、未建 worktree 目录
+    expect(task2.worktreeName).toBeUndefined();
+    expect(fs.existsSync(path.join(repo, ".wave", "worktrees", task.id))).toBe(false);
+    // 执行会话 workdir = 原目录
+    const created = sessionStore.create as ReturnType<typeof vi.fn>;
+    const lastCall = created.mock.calls[created.mock.calls.length - 1][0] as {
+      workdir: string;
+      worktreeName?: string;
+    };
+    expect(lastCall.workdir).toBe(repo);
+    expect(lastCall.worktreeName).toBeUndefined();
+    // 执行 prompt 指向原目录
+    const sendCall = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(sendCall[1]).toContain(repo);
+    scheduler.stop();
+    fs.rmSync(repo, { recursive: true, force: true });
+  });
+
   it("enqueue 对待审核 task 生效（继续执行：回待执行再入队）", async () => {
     const { store, scheduler, runner } = makeScheduler({});
     const todo = store.createTodo({ title: "t", source: "session" });

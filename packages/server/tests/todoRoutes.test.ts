@@ -178,6 +178,38 @@ describe("todo routes", () => {
     expect(body.task.baseBranch).toBe("develop");
   });
 
+  it("POST /todos/:id/tasks 支持 worktreeEnabled=false（git 项目也直接在原目录执行）", async () => {
+    const { app } = makeApp();
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+    const res = await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task1", workdir: "/tmp/proj", worktreeEnabled: false }),
+      }),
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { task: { worktreeEnabled?: boolean } };
+    expect(body.task.worktreeEnabled).toBe(false);
+    // 缺省（未传）不设字段 → 调度器按隔离处理
+    const res2 = await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task2", workdir: "/tmp/proj" }),
+      }),
+    );
+    const body2 = (await res2.json()) as { task: { worktreeEnabled?: boolean } };
+    expect(body2.task.worktreeEnabled).toBeUndefined();
+  });
+
   it("POST /todos/:id/cancel marks cancelled and cascades to open tasks", async () => {
     const { app, store } = makeApp();
     const created = await app.fetch(

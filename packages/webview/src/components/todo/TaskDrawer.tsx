@@ -215,8 +215,14 @@ export const TaskDrawer: React.FC<{
                   />
                 )}
                 <Text size="1" color="gray" className="todo-mono">
-                  worktree: {task.worktreeName ?? "未绑定"}
-                  {task.workdir ? ` · ${task.workdir}` : ""}
+                  {task.worktreeEnabled === false ? (
+                    <>直接执行（未用 worktree） · {task.workdir}</>
+                  ) : (
+                    <>
+                      worktree: {task.worktreeName ?? "未绑定"}
+                      {task.workdir ? ` · ${task.workdir}` : ""}
+                    </>
+                  )}
                 </Text>
               </div>
               <div className="todo-act-row">
