@@ -174,7 +174,7 @@ describe("TodoBoard", () => {
     // worktree
     expect(screen.getByText("worktree-fix")).toBeTruthy();
     // markdown 描述渲染为 <strong>
-    expect(document.querySelector(".todo-task-desc strong")?.textContent).toBe("hostBridge");
+    expect(document.querySelector(".todo-task-card-desc strong")?.textContent).toBe("hostBridge");
   });
 
   it("todo 行打开规划按钮用存在的 codicon", async () => {

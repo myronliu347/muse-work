@@ -178,6 +178,38 @@ describe("todo routes", () => {
     expect(body.task.baseBranch).toBe("develop");
   });
 
+  it("POST /todos/:id/tasks 支持 worktreeEnabled=false（git 项目也直接在原目录执行）", async () => {
+    const { app } = makeApp();
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+    const res = await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task1", workdir: "/tmp/proj", worktreeEnabled: false }),
+      }),
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { task: { worktreeEnabled?: boolean } };
+    expect(body.task.worktreeEnabled).toBe(false);
+    // 缺省（未传）不设字段 → 调度器按隔离处理
+    const res2 = await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "task2", workdir: "/tmp/proj" }),
+      }),
+    );
+    const body2 = (await res2.json()) as { task: { worktreeEnabled?: boolean } };
+    expect(body2.task.worktreeEnabled).toBeUndefined();
+  });
+
   it("POST /todos/:id/cancel marks cancelled and cascades to open tasks", async () => {
     const { app, store } = makeApp();
     const created = await app.fetch(
@@ -267,5 +299,62 @@ describe("todo routes", () => {
     const { app } = makeApp();
     const res = await app.fetch(new Request("http://x/todos/nope"));
     expect(res.status).toBe(404);
+  });
+});
+
+describe("todo routes broadcast todo:changed", () => {
+  let home: string;
+  afterEach(() => {
+    if (home) fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("mutation endpoints broadcast todo:changed (对话内 AI 跑 todo.mjs 时 webview 靠它刷新)", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-bcast-"));
+    const store = createTodoStore({ home });
+    const events: unknown[] = [];
+    const hub = {
+      broadcastAll: (e: unknown) => events.push(e),
+    } as unknown as NonNullable<Parameters<typeof createTodoRoutes>[2]>;
+    const app = createTodoRoutes(store, undefined, hub);
+
+    const post = (url: string, body?: unknown) =>
+      app.fetch(
+        new Request(`http://x${url}`, {
+          method: "POST",
+          headers: body ? { "content-type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        }),
+      );
+
+    // 创建 todo → 广播
+    const created = await post("/todos", { title: "t", source: "session" });
+    const { todo } = (await created.json()) as { todo: { id: string } };
+    // PATCH 编辑（todo 仍 pending 可编辑）→ 广播
+    const patched = await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t2" }),
+      }),
+    );
+    expect(patched.status).toBe(200);
+    // 加 task（todo → in_progress）→ 广播
+    await post(`/todos/${todo.id}/tasks`, {
+      title: "k",
+      workdir: "/tmp/p",
+      description: "**md**",
+    });
+    const { tasks } = (await (
+      await app.fetch(new Request(`http://x/todos/${todo.id}/tasks`))
+    ).json()) as { tasks: Array<{ id: string }> };
+    // 评论 → 广播
+    await post(`/tasks/${tasks[0].id}/comments`, {
+      author: "user",
+      kind: "note",
+      content: "hi",
+    });
+
+    const changed = events.filter((e) => (e as { type?: string }).type === "todo:changed");
+    expect(changed.length).toBe(4); // create + patch + add-task + comment
   });
 });

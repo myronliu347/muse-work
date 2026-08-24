@@ -16,7 +16,7 @@ function usage() {
   node todo.mjs create --title <标题> [--priority p0|p1|p2] [--source session|manual|popo|internal] [--description <md>] [--tags 标签1,标签2]
   node todo.mjs list
   node todo.mjs get <todoId>
-  node todo.mjs add-task <todoId> --title <标题> --workdir <目录> [--description <md>] [--branch <分支>]
+  node todo.mjs add-task <todoId> --title <标题> --workdir <目录> [--description <md>] [--branch <分支>] [--no-worktree]
   node todo.mjs comment <taskId> --content <文本>
 
 task 操作（状态迁移）：
@@ -114,6 +114,8 @@ async function main() {
         description: arg(argv, "--description") ?? "",
         workdir,
         ...(arg(argv, "--branch") ? { baseBranch: arg(argv, "--branch") } : {}),
+        // --no-worktree：git 项目也直接在原目录执行（缺省建 worktree 隔离）
+        ...(has(argv, "--no-worktree") ? { worktreeEnabled: false } : {}),
       });
       console.log(JSON.stringify(task, null, 2));
       return;
