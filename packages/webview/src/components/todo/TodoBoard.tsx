@@ -456,14 +456,16 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
             </button>
           </div>
           {!archivedMode && (
-            <button
-              type="button"
+            <Button
+              size="1"
+              variant="soft"
               className="todo-new-btn"
               onClick={openNewTodo}
               data-testid="todo-new-btn"
             >
-              + 新建 TODO
-            </button>
+              <i className="codicon codicon-add" aria-hidden="true" />
+              新建
+            </Button>
           )}
         </div>
         {newTodoOpen && (
@@ -670,6 +672,8 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
           <ScrollArea className="todo-kanban-scroll">
             <Flex gap="3" align="start" className="todo-kanban-cols">
               {TASK_STATUS_ORDER.map((status) => {
+                // 归档视图只展示「已完成」列（归档 todo 的 task 全是 completed）
+                if (archivedMode && status !== "completed") return null;
                 const col = tasks.filter((t) => t.status === status);
                 return (
                   <div key={status} className="todo-kanban-col">

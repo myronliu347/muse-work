@@ -789,6 +789,10 @@ describe("TodoBoard", () => {
       expect(screen.getAllByText("已完成B").length).toBeGreaterThan(0),
     );
     expect(screen.getByText("已执行任务")).toBeTruthy();
+    // 归档视图右侧只展示「已完成」列，无待执行/执行中/待审核列
+    expect(screen.queryByText("待执行")).toBeNull();
+    expect(screen.queryByText("执行中")).toBeNull();
+    expect(screen.queryByText("待审核")).toBeNull();
     // 归档只读：无新建按钮、无 more 菜单
     expect(screen.queryByTestId("todo-new-btn")).toBeNull();
     expect(screen.queryByTestId("todo-more-d1")).toBeNull();

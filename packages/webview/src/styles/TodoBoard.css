@@ -26,20 +26,18 @@
 }
 
 .todo-new-btn {
-  /* 位于 .todo-board-left-top flex 行内：占剩余空间（不能用 width:100%，
-     会作为 flex-basis 与切换组叠加溢出左面板穿透到右侧看板区） */
-  flex: 1;
-  min-width: 0;
-  display: flex;
+  /* 右上角紧凑按钮（Radix Button soft），不再占满整行 */
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: var(--space-2);
-  border: 1px dashed var(--gray-6);
-  border-radius: var(--radius-2);
-  background: none;
-  cursor: pointer;
+  gap: 4px;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+}
+
+.todo-new-btn .codicon {
+  font-size: 13px;
+  /* 覆盖 globals.css 的 .codicon color: gray-11——图标继承按钮文字色（soft 变体 accent） */
+  color: inherit;
 }
 
 .todo-new-btn:hover {
