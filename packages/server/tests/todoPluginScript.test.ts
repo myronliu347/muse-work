@@ -20,10 +20,14 @@ const SCRIPT = path.join(
 
 function execScript(port: number, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
+    // 关键：剥离环境里的 MUSE_SERVER_URL/MUSE_HOME*（宿主 Muse 应用注入的
+    // 生产 server 地址），并显式指向测试 server——否则 todo.mjs 优先读
+    // MUSE_SERVER_URL 直连生产环境建 todo（2026-08-24 真实事故）。
+    const { MUSE_SERVER_URL: _u, MUSE_HOME: _h, MUSE_HOME_DIR: _hd, ...rest } = process.env;
     execFile(
       process.execPath,
       [SCRIPT, ...args],
-      { env: { ...process.env, MUSE_SERVER_PORT: String(port) } },
+      { env: { ...rest, MUSE_SERVER_URL: `http://127.0.0.1:${port}`, MUSE_SERVER_PORT: String(port) } },
       (err, stdout, stderr) => {
         if (err) reject(new Error(stderr || String(err)));
         else resolve(stdout);
@@ -49,7 +53,8 @@ describe("todo plugin script (todo.mjs)", () => {
       home,
       todoStore,
       store: {} as never,
-      hub: {} as never,
+      // 广播桩：createTodoRoutes 变更会调用 broadcastAll（todo:changed）
+      hub: { broadcastAll: () => {} } as never,
       runner: {} as never,
       // 简化调度器：只做状态转换（真实调度涉及执行会话/worktree，脚本命令覆盖 API 层即可）
       todoScheduler: {

@@ -685,6 +685,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             priority: message.priority as string,
           });
           break;
+        case "todo:changed":
+          // 对话内（AI 跑 todo.mjs）等非看板 UI 来源的 todo/task 变更 → 重拉
+          // 看板数据（badge 计数）并刷新侧栏任务分组。
+          if (!useTodoBoardStore.getState().api) {
+            // 看板从未打开过：先注入 api 再全量拉取（badge 需要真实计数）
+            useTodoBoardStore.getState().init(popoApi);
+          } else {
+            void useTodoBoardStore.getState().load();
+          }
+          vscode.postMessage({ command: "desktopRefreshSessionTree" });
+          break;
         case "desktopNewSessionShortcut":
           // Menu accelerator is window-global; the shell / single-pane instance
           // owns newSession so split panes do not spawn duplicates.

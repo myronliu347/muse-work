@@ -592,7 +592,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
                         {col.length}
                       </Text>
                     </div>
-                    <Flex direction="column" gap="2">
+                    <Flex direction="column" gap="2" className="todo-kanban-col-body">
                       {col.map((task) => {
                         const todo = todos.find((t) => t.id === task.todoId);
                         return (
@@ -610,7 +610,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
                             </Text>
                             {task.description && (
                               <div
-                                className="todo-task-desc"
+                                className="todo-task-card-desc"
                                 dangerouslySetInnerHTML={{
                                   __html: mdHtml(task.description),
                                 }}

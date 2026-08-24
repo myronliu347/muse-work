@@ -191,8 +191,8 @@ export const TaskDrawer: React.FC<{
   if (!task) return null;
 
   return (
-    <div className="todo-drawer-mask" onClick={closeTaskDrawer} data-testid="todo-drawer">
-      <div className="todo-drawer" onClick={(e) => e.stopPropagation()}>
+    <div className="todo-detail-mask" onClick={closeTaskDrawer} data-testid="todo-drawer">
+      <div className="todo-detail-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="todo-drawer-head">
           <span className="todo-drawer-title">{task.title}</span>
           <TaskStatusBadge status={task.status} />
@@ -201,7 +201,7 @@ export const TaskDrawer: React.FC<{
           )}
           <IconBtn icon="close" tip="关闭" onClick={closeTaskDrawer} />
         </div>
-        <div className="todo-drawer-body">
+        <div className="todo-detail-body">
           {editing ? (
             <TaskEditForm task={task} onDone={() => setEditing(false)} />
           ) : (

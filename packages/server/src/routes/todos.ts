@@ -8,6 +8,7 @@ import type {
   TodoStore,
 } from "../services/todoStore.js";
 import type { TodoScheduler } from "../services/todoScheduler.js";
+import type { WsHub } from "../services/wsHub.js";
 
 const VALID_SOURCES: TodoSource[] = ["session", "manual", "popo", "internal"];
 const VALID_PRIORITIES: TodoPriority[] = ["p0", "p1", "p2"];
@@ -43,9 +44,20 @@ function isTags(v: unknown): v is string[] {
  * Todo/Task REST API（Hono，store 直挂；见 spec 2026-08-21-todo-task-design.md）。
  * 与 sessionsRoutes 不同：不依赖 HonoEnv ctx，直接接收 store（便于测试）。
  * scheduler 可选：提供时启用 enqueue/cancel 执行端点。
+ * hub 可选：提供时所有变更广播 todo:changed（webview 联动刷新看板/侧栏 badge，
+ * 覆盖对话内 AI 跑 todo.mjs 等非看板 UI 来源的变更）。
  */
-export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): Hono {
+export function createTodoRoutes(
+  store: TodoStore,
+  scheduler?: TodoScheduler,
+  hub?: WsHub,
+): Hono {
   const app = new Hono();
+
+  /** 变更广播：webview 收到后重拉看板数据 + 刷新侧栏树。 */
+  function changed(): void {
+    hub?.broadcastAll({ type: "todo:changed" });
+  }
 
   app.get("/todos", (c) => {
     return c.json({ todos: store.listTodos() });
@@ -81,6 +93,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
       source: body.source,
       tags: isTags(body.tags) ? body.tags : undefined,
     });
+    changed();
     return c.json({ todo }, 201);
   });
 
@@ -107,6 +120,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
       }
       return c.json({ error: "todo not found" }, 404);
     }
+    changed();
     return c.json({ todo });
   });
 
@@ -114,6 +128,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
     const todo = store.cancelTodo(c.req.param("todoId"));
     if (!todo) return c.json({ error: "todo not found" }, 404);
     // 级联取消未完成任务（store 内完成），执行中 task 由 onTurnSettled 跳过
+    changed();
     return c.json({ ok: true });
   });
 
@@ -125,6 +140,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
     if (!todo) {
       return c.json({ error: "todo has unfinished tasks (pending/running/review)" }, 409);
     }
+    changed();
     return c.json({ ok: true });
   });
 
@@ -147,6 +163,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
       workdir,
       ...(body?.baseBranch?.trim() ? { baseBranch: body.baseBranch.trim() } : {}),
     });
+    changed();
     return c.json({ task }, 201);
   });
 
@@ -179,6 +196,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
       }
       return c.json({ error: "task not found" }, 404);
     }
+    changed();
     return c.json({ task });
   });
 
@@ -211,6 +229,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
       kind: body.kind,
       content,
     });
+    changed();
     return c.json({ comment }, 201);
   });
 
@@ -269,6 +288,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
         return c.json({ error: "task locked (only pending/review can enqueue)" }, 409);
       }
       scheduler.enqueue(task.id);
+      changed();
       return c.json({ ok: true });
     });
 
@@ -279,6 +299,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
         return c.json({ error: "task already archived" }, 409);
       }
       await scheduler.cancel(task.id);
+      changed();
       return c.json({ ok: true });
     });
 
@@ -289,6 +310,7 @@ export function createTodoRoutes(store: TodoStore, scheduler?: TodoScheduler): H
         return c.json({ error: "task locked (only review can approve)" }, 409);
       }
       await scheduler.approve(task.id);
+      changed();
       return c.json({ ok: true });
     });
   }

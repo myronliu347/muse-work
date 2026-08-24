@@ -27,7 +27,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", providersRoutes);
   app.route("/", authRoutes);
   app.route("/", sessionsRoutes);
-  app.route("/", createTodoRoutes(ctx.todoStore, ctx.todoScheduler));
+  app.route("/", createTodoRoutes(ctx.todoStore, ctx.todoScheduler, ctx.hub));
 
   if (ctx.popo) {
     app.route("/", createPopoRoutes(ctx.popo));
