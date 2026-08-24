@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { getMuseHomeDir } from "@muse-work/provider";
 import { createTodoRoutes } from "../src/routes/todos.js";
 import { createTodoStore } from "../src/services/todoStore.js";
 
@@ -278,7 +279,7 @@ describe("todo routes", () => {
   });
 
   it("POST /todos/:id/cancel marks cancelled and cascades to open tasks", async () => {
-    const { app, store } = makeApp();
+    const { app, store, home } = makeApp();
     const created = await app.fetch(
       new Request("http://x/todos", {
         method: "POST",
@@ -296,7 +297,15 @@ describe("todo routes", () => {
     expect(await res.json()).toEqual({ ok: true });
 
     expect(store.getTodo(todo.id)?.status).toBe("cancelled");
-    expect(store.getTask(task.id)?.status).toBe("cancelled");
+    // 归档后 task 明细从内存卸载（级联取消状态已落盘）
+    expect(store.getTask(task.id)).toBeUndefined();
+    const saved = JSON.parse(
+      fs.readFileSync(
+        path.join(getMuseHomeDir(home), "db", "todos", todo.id, "tasks.json"),
+        "utf-8",
+      ),
+    ) as { tasks: Array<{ status: string }> };
+    expect(saved.tasks[0].status).toBe("cancelled");
     // cancelled todo 从 list 消失（已被服务端过滤）
     const listRes = await app.fetch(new Request("http://x/todos"));
     const list = (await listRes.json()) as { todos: unknown[] };

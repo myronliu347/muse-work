@@ -221,7 +221,8 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
   const comments = new Map<string, Comment[]>(); // key: taskId -> comments
   const runs = new Map<string, Run[]>(); // key: taskId -> runs
 
-  // 载入磁盘
+  // 载入磁盘：todo 元数据全量载入（listAllTodos 供侧栏剔除规划会话）；
+  // 明细（tasks/comments/runs）只载入活跃 todo——归档数据留在磁盘不常驻内存
   const indexFile = todosIndexPath(home);
   const index = readJson<{ version: number; todos: Todo[] }>(indexFile, {
     version: 1,
@@ -229,6 +230,7 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
   });
   for (const todo of index.todos) {
     todos.set(todo.id, todo);
+    if (todo.status !== "pending" && todo.status !== "in_progress") continue;
     const taskFile = tasksPath(home, todo.id);
     const taskList = readJson<{ version: number; tasks: Task[] }>(taskFile, {
       version: 1,
@@ -311,6 +313,16 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
     const list = runs.get(taskId) ?? [];
     const last = list[list.length - 1];
     return last?.status === "interrupted";
+  }
+
+  /** 归档 todo：其 tasks/comments/runs 从内存移除（磁盘明细保留，不常驻内存）。 */
+  function unloadTodoDetail(todoId: string): void {
+    for (const [taskId, task] of [...tasks]) {
+      if (task.todoId !== todoId) continue;
+      tasks.delete(taskId);
+      comments.delete(taskId);
+      runs.delete(taskId);
+    }
   }
 
   function addCommentInternal(
@@ -459,6 +471,8 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
         }
       }
       persistTasks(id);
+      // 归档：明细从内存释放（磁盘已含完整取消快照）
+      unloadTodoDetail(id);
       return { ...todo };
     },
 
@@ -480,6 +494,8 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
       todo.status = "completed";
       touch(todo);
       persistTodos();
+      // 归档：明细从内存释放（task 已完成状态此前已落盘）
+      unloadTodoDetail(id);
       return { ...todo };
     },
 

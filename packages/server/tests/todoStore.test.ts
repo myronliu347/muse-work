@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { getMuseHomeDir } from "@muse-work/provider";
 import { createTodoStore } from "../src/services/todoStore.js";
 
 describe("todoStore", () => {
@@ -205,5 +206,50 @@ describe("todoStore", () => {
     expect(store.getTodo("nope")).toBeUndefined();
     expect(store.getTask("nope")).toBeUndefined();
     expect(store.updateTodo("nope", { title: "x" })).toBeUndefined();
+  });
+
+  it("归档（取消）后 task/comment/run 从内存释放，磁盘保留；重启不载入归档明细", () => {
+    const store = makeStore();
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    store.addComment(task.id, { author: "user", kind: "note", content: "评论内容" });
+    store.createRun(task.id, { status: "finished" });
+    expect(store.listComments(task.id).length).toBe(1);
+
+    store.cancelTodo(todo.id);
+    // 内存释放：活跃列表不含该 todo，明细读空
+    expect(store.listTodos().map((t) => t.id)).not.toContain(todo.id);
+    expect(store.listTasks(todo.id)).toEqual([]);
+    expect(store.listComments(task.id)).toEqual([]);
+    expect(store.listRuns(task.id)).toEqual([]);
+    // todo 元数据仍在内存（listAllTodos 供侧栏剔除规划会话）
+    expect(store.listAllTodos().map((t) => t.id)).toContain(todo.id);
+
+    // 磁盘明细文件保留（未丢失，只是不载入内存）
+    const dbDir = path.join(getMuseHomeDir(home), "db");
+    expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "tasks.json"))).toBe(true);
+    expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "comments.json"))).toBe(true);
+    expect(fs.existsSync(path.join(dbDir, "todos", todo.id, "runs.json"))).toBe(true);
+
+    // 重启：todo 元数据载入，归档明细不载入内存
+    const reloaded = createTodoStore({ home });
+    expect(reloaded.getTodo(todo.id)?.status).toBe("cancelled");
+    expect(reloaded.listTasks(todo.id)).toEqual([]);
+    expect(reloaded.listComments(task.id)).toEqual([]);
+    expect(reloaded.listRuns(task.id)).toEqual([]);
+  });
+
+  it("completeTodo 归档同样释放明细内存", () => {
+    const store = makeStore();
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    store.updateTaskStatus(task.id, "completed");
+    store.completeTodo(todo.id);
+    expect(store.getTodo(todo.id)?.status).toBe("completed");
+    expect(store.listTasks(todo.id)).toEqual([]);
+    // 重启后同样只载入元数据
+    const reloaded = createTodoStore({ home });
+    expect(reloaded.getTodo(todo.id)?.status).toBe("completed");
+    expect(reloaded.listTasks(todo.id)).toEqual([]);
   });
 });
