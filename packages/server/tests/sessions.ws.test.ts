@@ -952,6 +952,115 @@ describe("sessions + websocket streaming", () => {
     expect(errorEvents).toEqual([]);
   });
 
+  it("does not report an empty turn when the send is queued behind a running turn", async () => {
+    // A send landing while the previous turn is still loading is enqueued by the
+    // SDK and only dispatched after that turn's loading drops. runTurn must not
+    // treat the queued window (nor the previous turn's own end) as a finished
+    // empty turn — a bogus "模型没有产生输出" error block lands between the
+    // optimistic bubble and the user:message echo, duplicating the user bubble.
+    let cbs: {
+      onLoadingChange?: (loading: boolean) => void;
+      onUserMessageAdded?: (p: { content: string; isMeta?: boolean }) => void;
+      onAssistantContentUpdated?: (p: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => void;
+    } = {};
+    let sendCalls = 0;
+    const createAgent: CreateAgent = async (opts) => {
+      cbs = opts.callbacks as typeof cbs;
+      return {
+        sendMessage: async () => {
+          sendCalls++;
+          if (sendCalls === 1) {
+            // Previous turn starts loading and produces output; loading stays
+            // up (slow stream) until the test drops it below.
+            cbs.onLoadingChange?.(true);
+            cbs.onAssistantContentUpdated?.({
+              messageId: "m1",
+              chunk: "first reply",
+              stage: "end",
+            });
+            return;
+          }
+          // Second POST while the agent is busy: the SDK enqueues the message
+          // and returns without any callback.
+        },
+        dispose: async () => {},
+      };
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const errorEvents: Array<{ type?: string; error?: string }> = [];
+    const origBroadcast = app.ctx.hub.broadcast.bind(app.ctx.hub);
+    app.ctx.hub.broadcast = (sessionId, event) => {
+      if (
+        (event as { type?: string }).type === "error:block" &&
+        (event as { error?: string }).error?.includes("没有产生输出")
+      ) {
+        errorEvents.push(event as { type?: string; error?: string });
+      }
+      return origBroadcast(sessionId, event);
+    };
+
+    // First send starts a turn that stays loading.
+    const first = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "first" }),
+      },
+    );
+    expect(first.status).toBe(200);
+
+    // Second send lands while the agent is busy → the SDK enqueues it.
+    const second = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "second" }),
+      },
+    );
+    expect(second.status).toBe(200);
+
+    // Give runTurn's setImmediate fallback a chance to (wrongly) fire.
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    expect(errorEvents).toEqual([]);
+
+    // The previous turn's loading finally drops: still no empty-turn report —
+    // its turnHadOutput must survive the queued send's runTurn.
+    cbs.onLoadingChange?.(false);
+
+    // The queued message dispatches: user message + loading cycle + output.
+    cbs.onUserMessageAdded?.({ content: "second" });
+    cbs.onLoadingChange?.(true);
+    cbs.onAssistantContentUpdated?.({
+      messageId: "m2",
+      chunk: "second reply",
+      stage: "end",
+    });
+    cbs.onLoadingChange?.(false);
+
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+    expect(errorEvents).toEqual([]);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},

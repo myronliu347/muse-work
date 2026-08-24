@@ -77,6 +77,36 @@ describe("user:message dedupe with [Image source: ...] markers", () => {
     });
   });
 
+  it("dedupes against the optimistic bubble even when an error block lands between", async () => {
+    renderChatApp();
+
+    // Optimistic bubble appended by the host when the user sends.
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_opt_456",
+        role: "user",
+        timestamp: new Date().toISOString(),
+        blocks: [{ type: "text", content: "hello" }],
+      },
+    });
+
+    // A bogus empty-turn error block is broadcast before the user:message echo
+    // (server-side queued-send race), pushing the optimistic bubble off the tail.
+    sendCommand("updateErrorBlock", { error: "模型没有产生输出" });
+
+    // The user:message echo arrives after the error block; the dedupe must skip
+    // the interleaved block and still reconcile against the optimistic bubble.
+    sendCommand("user:message", { id: "msg-real-uuid", content: "hello" });
+
+    await waitFor(() => {
+      expect(getMessageIds()).toEqual(["msg-real-uuid", expect.anything()]);
+    });
+    const texts = getMessages().map((m) => m.textContent ?? "");
+    expect(texts.filter((t) => t.includes("hello"))).toHaveLength(1);
+    // The empty-turn error block is still shown as its own entry.
+    expect(texts.some((t) => t.includes("模型没有产生输出"))).toBe(true);
+  });
+
   it("appends queued sends with the real SDK message id (no optimistic bubble existed)", async () => {
     renderChatApp();
 
