@@ -40,8 +40,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     aborting,
     agentLoading,
     loadingSeen,
-    idleTimers,
-    stallTimers,
     agentToolBinds,
     pendingAgentToolIds,
     unboundSubagentIds,
