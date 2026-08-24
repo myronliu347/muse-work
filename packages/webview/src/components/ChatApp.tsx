@@ -203,6 +203,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       createMessageHandler({
         dispatch,
         vscode,
+        popoApi,
         refs: {
           paneIdRef,
           stateRef,
@@ -214,7 +215,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           groupKeyRef,
         },
       }),
-    [dispatch, vscode],
+    [dispatch, vscode, popoApi],
   );
   useEffect(() => {
     window.addEventListener("message", handleMessage);

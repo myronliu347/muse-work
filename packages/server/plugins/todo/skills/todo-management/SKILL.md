@@ -10,7 +10,7 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 ## 实体与状态
 
 - **todo**：大目标。含标题、描述（markdown）、优先级（p0/p1/p2，默认 p1）、来源（session/manual/popo/internal）。
-- **task**：todo 下的可执行子任务。创建时**必须指定 workdir**（git 项目会自动开 worktree 执行，非 git 直接执行）；创建即入队执行，全局并发 3、FIFO 排队。
+- **task**：todo 下的可执行子任务。创建时**必须指定 workdir**（git 项目默认开 worktree 隔离执行、`--no-worktree` 直接在原目录执行，非 git 直接执行）；创建即入队执行，全局并发 3、FIFO 排队。
 
 ## 触发时机
 
@@ -23,7 +23,7 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 
 1. 确认用户要给哪个 todo 创建 task（按标题/列表确认，不猜）。
 2. **向用户询问 workdir**（任务执行的工作目录）。用户给出后，复述确认。
-3. 若 workdir 是 git 项目（会开 worktree 隔离执行），**向用户询问 base 分支**（worktree 从该分支 checkout；用户未指定时用 `--branch` 缺省，即仓库默认分支）。非 git 目录无需分支。
+3. 若 workdir 是 git 项目，**向用户询问是否用 worktree 隔离执行**（默认隔离：在 `<repo>/.wave/worktrees/<taskId>` 独立工作区执行，不污染主仓工作区/分支；用户明确不需要隔离时加 `--no-worktree` 直接在原目录执行）。需要 worktree 时再**询问 base 分支**（worktree 从该分支 checkout；用户未指定时用 `--branch` 缺省，即仓库默认分支）。非 git 目录无需分支。
 4. **只有用户明确说「创建 task」才落库**。任何一步不确定都先问，不要擅自创建。
 
 ## 命令速查（在插件 scripts 目录下执行 `node todo.mjs ...`）
@@ -38,8 +38,9 @@ node todo.mjs list
 # 查看某 todo 详情与 task
 node todo.mjs get <todoId>
 
-# 给 todo 加 task（workdir 必填；创建即入队执行；--branch 指定 worktree 的 base 分支，可选）
+# 给 todo 加 task（workdir 必填；git 项目默认建 worktree 隔离执行，--no-worktree 直接在原目录执行；--branch 指定 worktree 的 base 分支，可选）
 node todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/dir --description "可选" --branch develop
+node todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/git/repo --no-worktree
 
 # 评论 task（审核讨论）
 node todo.mjs comment <taskId> --content "评论内容"
