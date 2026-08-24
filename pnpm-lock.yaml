@@ -70,8 +70,8 @@ importers:
         specifier: ^4.13.2
         version: 4.13.2
       wave-agent-sdk:
-        specifier: 1.0.10
-        version: 1.0.10(ws@8.21.3)(zod@3.25.76)
+        specifier: 1.1.4
+        version: 1.1.4(ws@8.21.3)(zod@3.25.76)
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -140,8 +140,8 @@ importers:
         specifier: ^11.6.1
         version: 11.6.1
       wave-agent-sdk:
-        specifier: 1.0.10
-        version: 1.0.10(ws@8.21.3)(zod@3.25.76)
+        specifier: 1.1.4
+        version: 1.1.4(ws@8.21.3)(zod@3.25.76)
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@18.3.31)(react@18.3.1)
@@ -4435,9 +4435,9 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
-  wave-agent-sdk@1.0.10:
-    resolution: {integrity: sha512-mLZLJox+mT/wAho3fTOmPW1GctLD7HVLVNkTcADLdhqmGuNGWxM7B92+cxXMlYvY28vnAAqwVihnEFcOR5W8Vw==}
-    engines: {node: '>=20'}
+  wave-agent-sdk@1.1.4:
+    resolution: {integrity: sha512-r9M0Llr62rGNLk0IH0S3f1sFg32YuyR7EzFa9dl78dJ+nPBii3gGXjPpl/DHQbaatxWXehs9QzinIxPWxpilMg==}
+    engines: {node: '>=22'}
 
   webcrypto-core@1.9.2:
     resolution: {integrity: sha512-gsXecm82UQNlTBURJGuqOWy1Ww08S3kZUcr3aOJS02Pk0xLtkfeUAVC0u0xhgdonFme80edSJUIJyuvL/7250Q==}
@@ -6395,14 +6395,6 @@ snapshots:
       '@vitest/utils': 3.2.7
       chai: 5.3.3
       tinyrainbow: 2.0.0
-
-  '@vitest/mocker@3.2.7(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.12))':
-    dependencies:
-      '@vitest/spy': 3.2.7
-      estree-walker: 3.0.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      vite: 7.3.6(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.12)
 
   '@vitest/mocker@3.2.7(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(tsx@4.23.12))':
     dependencies:
@@ -8931,7 +8923,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
-      '@vitest/mocker': 3.2.7(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.12))
+      '@vitest/mocker': 3.2.7(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(tsx@4.23.12))
       '@vitest/pretty-format': 3.2.7
       '@vitest/runner': 3.2.7
       '@vitest/snapshot': 3.2.7
@@ -9021,7 +9013,7 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wave-agent-sdk@1.0.10(ws@8.21.3)(zod@3.25.76):
+  wave-agent-sdk@1.1.4(ws@8.21.3)(zod@3.25.76):
     dependencies:
       '@modelcontextprotocol/sdk': 1.30.0(zod@3.25.76)
       '@opentelemetry/api': 1.9.1
