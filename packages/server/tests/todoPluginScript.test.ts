@@ -14,6 +14,8 @@ const SCRIPT = path.join(
   "..",
   "plugins",
   "todo",
+  "skills",
+  "todo-management",
   "scripts",
   "todo.mjs",
 );
