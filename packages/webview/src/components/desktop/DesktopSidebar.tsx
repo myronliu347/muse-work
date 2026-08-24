@@ -11,7 +11,11 @@ import {
   partitionRecentSessions,
   resolveSidebarSessions,
 } from "../session/SessionTree";
-import type { DesktopSessionGroup, DesktopSessionEntry } from "../../types";
+import type {
+  DesktopSessionGroup,
+  DesktopSessionEntry,
+  DesktopTodoGroup,
+} from "../../types";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -53,6 +57,8 @@ export interface DesktopSidebarProps {
   pinnedSessions?: DesktopSessionEntry[];
   /** Sessions in the 工作空间 / 任务 sections (split by workdir kind). */
   recentSessions?: DesktopSessionEntry[];
+  /** Todo 分组：每个 todo 的规划会话 + 执行会话（任务 section 内折叠展示）。 */
+  todoGroups?: DesktopTodoGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
@@ -74,10 +80,14 @@ export interface DesktopSidebarProps {
   onRevealInFinder?: (workdir: string) => void;
   /** Toggle the POPO robot view (rendered in place of the chat body). */
   onTogglePopoRobot: () => void;
+  /** Toggle the Todo/Task 任务看板 view. */
+  onToggleTodoBoard?: () => void;
+  /** 待审核 task 计数（看板入口 badge；0 不显示）。 */
+  todoReviewCount?: number;
   /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
   popoEnabled?: boolean;
   /** 当前高亮的菜单项（选中态） */
-  activeMenu?: "newChat" | "popo-robot";
+  activeMenu?: "newChat" | "popo-robot" | "todo-board";
 }
 
 /**
@@ -93,6 +103,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   sessionTree,
   pinnedSessions,
   recentSessions,
+  todoGroups,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
@@ -104,6 +115,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenInTerminal,
   onRevealInFinder,
   onTogglePopoRobot,
+  onToggleTodoBoard,
+  todoReviewCount = 0,
   popoEnabled,
   activeMenu,
 }) => {
@@ -142,12 +155,27 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             <span>POPO 机器人</span>
           </button>
         )}
+        <button
+          type="button"
+          className={`app-menu${activeMenu === "todo-board" ? " active" : ""}`}
+          onClick={onToggleTodoBoard}
+          data-testid="desktop-todo-board"
+        >
+          <i className="codicon codicon-tasklist app-menu-icon" />
+          <span>任务看板</span>
+          {todoReviewCount > 0 && (
+            <span className="todo-review-badge" data-testid="todo-review-badge">
+              {todoReviewCount}
+            </span>
+          )}
+        </button>
       </div>
       <div className="divider" />
       <SessionTree
         sessionTree={sessionTree}
         pinnedSessions={pinnedSessions}
         recentSessions={recentSessions}
+        todoGroups={todoGroups}
         currentSessionId={currentSessionId}
         visibleSessionIds={visibleSessionIds}
         isStreaming={isStreaming}

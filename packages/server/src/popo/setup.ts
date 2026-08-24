@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
+import { getMuseHomeDir } from "@muse-work/provider";
 import type { AppContext } from "../services/appContext.js";
 import type { CreateAgent } from "../services/sessionRunner.js";
 import { getLogger } from "../utils/logger.js";
@@ -92,7 +93,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     logger,
     // 调试落盘默认关闭（原始请求含消息内容与鉴权 token）；设 POPO_DEBUG_DUMP=1 开启
     ...(process.env.POPO_DEBUG_DUMP === "1"
-      ? { debugFile: path.join(ctx.home, ".muse-work", "popo-callback-debug.jsonl") }
+      ? { debugFile: path.join(getMuseHomeDir(ctx.home), "popo-callback-debug.jsonl") }
       : {}),
   });
 

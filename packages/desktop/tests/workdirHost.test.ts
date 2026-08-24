@@ -79,6 +79,19 @@ describe("isTransientWorkdir", () => {
     ).toBe(true);
   });
 
+  it("flags ~/.dev-muse-work scratch dirs when MUSE_HOME_DIR is set", () => {
+    const saved = process.env.MUSE_HOME_DIR;
+    process.env.MUSE_HOME_DIR = ".dev-muse-work";
+    try {
+      expect(
+        isTransientWorkdir("/Users/me/.dev-muse-work/projects/20260818-abc123"),
+      ).toBe(true);
+    } finally {
+      if (saved === undefined) delete process.env.MUSE_HOME_DIR;
+      else process.env.MUSE_HOME_DIR = saved;
+    }
+  });
+
   it("flags worktree dirs under .wave/worktrees", () => {
     expect(isTransientWorkdir("/repo/.wave/worktrees/feat-x")).toBe(true);
   });

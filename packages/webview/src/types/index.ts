@@ -217,6 +217,11 @@ export interface DesktopHostProps {
    * its sessions. Pushed via the `desktopSessionTree` message.
    */
   sessionTree: DesktopSessionGroup[];
+  /**
+   * Todo 分组（Todo/Task 侧栏折叠）：每个 todo 的规划会话 + 执行会话归一组，
+   * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
+   */
+  todoGroups?: DesktopTodoGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index; also removes worktree+branch if applicable. */
@@ -257,6 +262,15 @@ export interface DesktopSessionGroup {
   /** Host the group's sessions run on ('local' or an SSH host name) — the group key is (host, workdir). */
   host: string;
   workdir: string;
+  sessions: DesktopSessionEntry[];
+}
+
+/** Todo 分组：同一 todo 的规划会话 + 执行会话（侧栏按 todo 折叠展示）。 */
+export interface DesktopTodoGroup {
+  todoId: string;
+  todoTitle: string;
+  /** p0 | p1 | p2 */
+  priority: string;
   sessions: DesktopSessionEntry[];
 }
 

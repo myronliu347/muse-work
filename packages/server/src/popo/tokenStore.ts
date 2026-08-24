@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getMuseHomeDir } from "@muse-work/provider";
 
 const TOKEN_API = "https://open.popo.netease.com/open-apis/robots/v1/token";
 const REFRESH_API = "https://open.popo.netease.com/open-apis/robots/v1/token/refresh";
@@ -35,7 +36,7 @@ export function createTokenStore(options: TokenStoreOptions): TokenStore {
   const { appKey, appSecret } = options;
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
-  const file = path.join(options.home, ".muse-work", "popo-token.json");
+  const file = path.join(getMuseHomeDir(options.home), "popo-token.json");
 
   let pair: TokenPair | null = readPair();
   let inflight: Promise<TokenPair> | null = null;

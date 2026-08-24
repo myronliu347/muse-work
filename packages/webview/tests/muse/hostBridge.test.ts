@@ -230,6 +230,106 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("desktopReady carries todoGroups into the desktopSessionTree message", async () => {
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [baseSession],
+        activeSessionId: "sess-active",
+        todoGroups: [
+          {
+            todoId: "todo-1",
+            todoTitle: "设计评审",
+            priority: "p1",
+            sessions: [
+              { ...baseSession, id: "sess-plan", title: "设计评审" },
+              { ...baseSession, id: "sess-exec", title: "写评审文档" },
+            ],
+          },
+        ],
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        todoGroups: [
+          {
+            todoId: "todo-1",
+            todoTitle: "设计评审",
+            priority: "p1",
+            sessions: [
+              expect.objectContaining({ sessionId: "sess-plan" }),
+              expect.objectContaining({ sessionId: "sess-exec" }),
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  it("desktopRefreshSessionTree 重新拉 grouped 并广播新会话树（todo 完成/取消后刷新侧栏）", async () => {
+    let calls = 0;
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => {
+        calls++;
+        return {
+          pinned: [],
+          recent: calls === 1 ? [baseSession] : [],
+          activeSessionId: "sess-active",
+          todoGroups:
+            calls === 1
+              ? [
+                  {
+                    todoId: "todo-1",
+                    todoTitle: "设计评审",
+                    priority: "p1",
+                    sessions: [{ ...baseSession, id: "sess-plan", title: "设计评审" }],
+                  },
+                ]
+              : [],
+        };
+      }),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flushUntil(() => calls >= 1);
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        todoGroups: [expect.objectContaining({ todoId: "todo-1" })],
+      }),
+    );
+
+    // todo 完成/取消后：命令触发重拉，todoGroups 与 recent 均更新
+    bridge.postMessage({ command: "desktopRefreshSessionTree" });
+    await flushUntil(() => calls >= 2);
+    expect(calls).toBe(2);
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        todoGroups: [],
+        // recent 组会话清空（todo 完成剔除后不再回流）
+        groups: expect.arrayContaining([
+          expect.objectContaining({ workdir: "recent", sessions: [] }),
+        ]),
+      }),
+    );
+  });
+
   it("desktopReady loads the session tree even when WS connect fails", async () => {
     const ws = stubWs();
     vi.mocked(ws.connect).mockRejectedValue(new Error("ws down"));
@@ -950,6 +1050,46 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       expect.objectContaining({
         command: "desktopWorkdirState",
         workdir: "/Users/me/.muse-work/projects/20260818-abc123",
+        recentWorkdirs: [],
+      }),
+    );
+  });
+
+  it("server-minted ~/.dev-muse-work workdir also stays out of recents", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-mint",
+      title: "新对话",
+      workdir: "/Users/me/.dev-muse-work/projects/20260818-abc123",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    vi.mocked(api.createSession).mockClear();
+
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+    bridge.postMessage({ command: "sendMessage", text: "hi" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopWorkdirState",
+        workdir: "/Users/me/.dev-muse-work/projects/20260818-abc123",
         recentWorkdirs: [],
       }),
     );

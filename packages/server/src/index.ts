@@ -75,6 +75,7 @@ installGracefulShutdown({
   hub: ctx.hub,
   server,
   log,
+  onShutdown: () => ctx.todoScheduler.stop(),
 });
 
 const srv = server.listen(port, HOST, () => {
@@ -83,6 +84,9 @@ const srv = server.listen(port, HOST, () => {
     log.error("failed to bind server");
     process.exit(1);
   }
+  // 子进程（todo.mjs 等插件脚本）从 env 读 baseURL：随机端口也要写回实际端口。
+  process.env.MUSE_SERVER_URL = `http://${HOST}:${addr.port}`;
+  process.env.MUSE_SERVER_PORT = String(addr.port);
   // Desktop parses this single JSON line from stdout for the ready port.
   process.stdout.write(
     `${JSON.stringify({ ready: true, port: addr.port, host: HOST })}\n`,
@@ -92,6 +96,7 @@ const srv = server.listen(port, HOST, () => {
     port: addr.port,
     logDir: resolveLogDir(ctx.home),
   });
+  ctx.todoScheduler.start();
   // 周期性打内存/存活计数，崩溃前在 server.log 里留下增长曲线（V8 OOM 观测）。
   installRuntimeStats({
     store: ctx.store,

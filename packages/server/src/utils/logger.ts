@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import winston from "winston";
+import { getMuseHomeDir } from "@muse-work/provider";
 
 const LOG_LEVELS = ["error", "warn", "info", "http", "verbose", "debug", "silly"] as const;
 
@@ -44,7 +45,7 @@ export function resolveLogDir(home?: string): string {
   // packaged app's logs.
   if (process.env.MUSE_LOG_DIR) return process.env.MUSE_LOG_DIR;
   const root = home ?? process.env.MUSE_HOME ?? os.homedir();
-  return path.join(root, ".muse-work", "logs");
+  return path.join(getMuseHomeDir(root), "logs");
 }
 
 function formatValue(value: unknown): string {

@@ -57,7 +57,10 @@ export type UiPrefsFile = {
 };
 
 export function getUiPrefsPath(home = os.homedir()): string {
-  return path.join(home, ".muse-work", "ui.json");
+  // Mirrors getMuseHomeDir (MUSE_HOME_DIR) so dev instances keep UI prefs out
+  // of production's ~/.muse-work without a provider dependency here.
+  const dirName = process.env.MUSE_HOME_DIR ?? ".muse-work";
+  return path.join(home, dirName, "ui.json");
 }
 
 function isPreference(value: unknown): value is ThemePreference {

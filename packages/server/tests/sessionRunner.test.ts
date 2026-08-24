@@ -588,10 +588,14 @@ describe("sessionRunner concurrency / dispose", () => {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]mattpocock$/),
       },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]todo$/),
+      },
     ]);
   });
 
-  it("omits plugins when all builtin plugins are disabled and recreates on toggle", async () => {
+  it("keeps always-on todo plugin when builtins disabled and recreates on toggle", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-off-"));
     saveProvidersConfig(
       {
@@ -669,7 +673,13 @@ describe("sessionRunner concurrency / dispose", () => {
     runner.invalidateAgentIdentities();
     await runner.sendMessage(session.id, "again");
     await expect.poll(() => pluginSnapshots.length).toBe(2);
-    expect(pluginSnapshots[1]).toBeUndefined();
+    // settings 全关后仍挂 todo（无条件内置），身份变化 → agent 重建
+    expect(pluginSnapshots[1]).toEqual([
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]todo$/),
+      },
+    ]);
     expect(disposeCount).toBe(1);
   });
 

@@ -12,7 +12,7 @@ import {
   isTaskProjectWorkdir,
   partitionRecentSessions,
 } from "../../src/components/desktop/DesktopSidebar";
-import type { DesktopSessionEntry } from "../../src/types";
+import type { DesktopSessionEntry, DesktopTodoGroup } from "../../src/types";
 
 afterEach(() => {
   cleanup();
@@ -55,6 +55,21 @@ function renderSidebar(
       {...props}
     />,
   );
+}
+
+function todoGroup(
+  overrides: Partial<DesktopTodoGroup> = {},
+): DesktopTodoGroup {
+  return {
+    todoId: "todo-1",
+    todoTitle: "设计评审",
+    priority: "p1",
+    sessions: [
+      entry({ sessionId: "sess-plan", title: "设计评审" }),
+      entry({ sessionId: "sess-exec", title: "写评审文档" }),
+    ],
+    ...overrides,
+  };
 }
 
 describe("DesktopSidebar pin/recent sessions", () => {
@@ -196,6 +211,87 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(workspaceToggle).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("renders todo groups inside 任务 with priority badge and session count", () => {
+    renderSidebar({ todoGroups: [todoGroup()] });
+
+    const group = screen.getByTestId("desktop-session-todo-group-todo-1");
+    expect(group).toHaveTextContent("设计评审");
+    expect(group).toHaveTextContent("P1");
+    expect(group).toHaveTextContent("2");
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toContainElement(group);
+
+    // 组内会话：规划 + 执行会话标题一眼可辨
+    expect(
+      screen.getByTestId("desktop-session-item-sess-plan"),
+    ).toHaveTextContent("设计评审");
+    expect(
+      screen.getByTestId("desktop-session-item-sess-exec"),
+    ).toHaveTextContent("写评审文档");
+    // todo 会话只出现在任务分组，不重复进工作空间
+    expect(
+      screen.getByTestId("desktop-session-section-recent"),
+    ).not.toContainElement(screen.getByTestId("desktop-session-item-sess-exec"));
+  });
+
+  it("collapses per todo group on row click", () => {
+    renderSidebar({ todoGroups: [todoGroup()] });
+
+    const row = screen.getByTestId("desktop-session-todo-row-todo-1");
+    expect(
+      row
+        .closest(".desktop-session-workdir-group")
+        ?.querySelector(".desktop-session-collapse"),
+    ).toBeTruthy();
+    fireEvent.click(row);
+    expect(
+      row
+        .closest(".desktop-session-workdir-group")
+        ?.querySelector(".desktop-session-collapse--closed"),
+    ).toBeTruthy();
+  });
+
+  it("todo 分组内会话不显示置顶/删除按钮（普通 recent 会话仍有）", () => {
+    renderSidebar({
+      todoGroups: [todoGroup()],
+      recentSessions: [entry({ sessionId: "r1", title: "普通会话" })],
+    });
+
+    // todo 分组内：规划/执行会话无置顶、无删除
+    for (const sid of ["sess-plan", "sess-exec"]) {
+      expect(screen.queryByTestId(`desktop-session-pin-${sid}`)).toBeNull();
+      expect(screen.queryByTestId(`desktop-session-delete-${sid}`)).toBeNull();
+    }
+    // 对照组：普通会话保留置顶/删除
+    expect(screen.getByTestId("desktop-session-pin-r1")).toBeTruthy();
+    expect(screen.getByTestId("desktop-session-delete-r1")).toBeTruthy();
+  });
+
+  it("lists legacy auto task sessions below todo groups", () => {
+    renderSidebar({
+      todoGroups: [
+        todoGroup({
+          todoId: "todo-1",
+          sessions: [entry({ sessionId: "sess-exec", title: "写评审文档" })],
+        }),
+      ],
+      recentSessions: [
+        entry({
+          sessionId: "t1",
+          workdir: "/home/u/.muse-work/projects/20260813-aaaa",
+        }),
+      ],
+    });
+
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toContainElement(screen.getByTestId("desktop-session-item-sess-exec"));
+    expect(
+      screen.getByTestId("desktop-session-section-tasks"),
+    ).toContainElement(screen.getByTestId("desktop-session-item-t1"));
+  });
+
   it("shows workdir chevron over folder icon on hover", () => {
     renderSidebar({
       recentSessions: [entry({ sessionId: "r1", workdir: "/repo/beta" })],
@@ -236,6 +332,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
   it("isTaskProjectWorkdir detects .muse-work/projects paths", () => {
     expect(
       isTaskProjectWorkdir("/Users/a/.muse-work/projects/20260813-28ba6a54"),
+    ).toBe(true);
+    expect(
+      isTaskProjectWorkdir("/Users/a/.dev-muse-work/projects/20260813-28ba6a54"),
     ).toBe(true);
     expect(isTaskProjectWorkdir("/repo/beta")).toBe(false);
     expect(

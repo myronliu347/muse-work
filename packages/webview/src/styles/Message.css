@@ -85,6 +85,47 @@
   width: 100%;
 }
 
+/* 系统注入消息（todo 进度/AI 复核等）：居中灰条，区别于用户气泡 */
+.message.user.system-inject {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-1) 0;
+}
+
+.message.user.system-inject:hover {
+  background: transparent;
+}
+
+.system-inject-bubble {
+  max-width: 520px;
+  width: 100%;
+  background: var(--gray-2);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-3);
+  padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.system-inject-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-9);
+  margin-bottom: var(--space-1);
+}
+
+.system-inject-body {
+  color: var(--gray-11);
+}
+
+.system-inject-body p {
+  margin: 2px 0;
+}
+
 .user-text-block {
   background-color: var(--gray-3);
   border-radius: var(--radius-3);

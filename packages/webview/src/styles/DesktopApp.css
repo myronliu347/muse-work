@@ -134,6 +134,24 @@
   cursor: not-allowed;
 }
 
+/* 任务看板入口 badge：待审核 task 计数（右缘对齐） */
+.todo-review-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--red-4);
+  color: var(--red-11);
+  font-size: 10px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
 /* ---- Sidebar session list (pin / 最近) ---- */
 
 .desktop-session-tree {
@@ -336,6 +354,36 @@
 
 .desktop-session-workdir-add .codicon {
   font-size: var(--font-size-1);
+}
+
+/* Todo 分组行：优先级徽标 + 会话计数（任务 section 内按 todo 折叠展示）。 */
+.todo-sidebar-priority {
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+  padding: 0 4px;
+  border-radius: var(--radius-1);
+  background: var(--gray-4);
+  color: var(--gray-11);
+  font-size: var(--font-size-00);
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.todo-sidebar-priority-p0 {
+  background: var(--red-4);
+  color: var(--red-11);
+}
+
+.todo-sidebar-priority-p1 {
+  background: var(--orange-4);
+  color: var(--orange-11);
+}
+
+.desktop-session-count {
+  flex-shrink: 0;
+  margin-left: var(--space-1);
+  color: var(--gray-10);
+  font-size: var(--font-size-00);
 }
 
 .desktop-context-menu {

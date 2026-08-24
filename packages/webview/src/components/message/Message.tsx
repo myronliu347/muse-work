@@ -161,6 +161,18 @@ const isRewindTargetMessage = (message: MessageType): boolean =>
   !message.blocks.some((b) => b.type === "task_notification") &&
   !message.blocks.some((b) => b.type === "text" && b.source === "hook");
 
+// 系统注入消息（todo 进度/AI 复核等，server 以 <system-inject> 标记包裹）。
+// 命中时返回标记内内容（去标记），否则 null。
+function getSystemInjectContent(message: MessageType): string | null {
+  for (const block of message.blocks ?? []) {
+    if (block.type !== "text") continue;
+    const content = block.content ?? "";
+    const match = content.match(/^<system-inject>([\s\S]*)<\/system-inject>$/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export const Message: React.FC<MessageProps> = React.memo(
   (props: MessageProps) => {
     const {
@@ -191,6 +203,9 @@ export const Message: React.FC<MessageProps> = React.memo(
       if (message.role === "user") {
         if (!hasBangBlock) {
           classes.push("user");
+        }
+        if (getSystemInjectContent(message) !== null) {
+          classes.push("system-inject");
         }
         if (isQueued) {
           classes.push("queued");
@@ -1066,8 +1081,7 @@ export const Message: React.FC<MessageProps> = React.memo(
         index,
       }));
       const ordered = [
-        ...indexed.filter((item) => item.block.type === "text"),
-        ...indexed.filter((item) => item.block.type === "image"),
+        ...indexed.filter((item) => item.block.type === "text"),        ...indexed.filter((item) => item.block.type === "image"),
         ...indexed.filter(
           (item) => item.block.type !== "text" && item.block.type !== "image",
         ),
@@ -1079,15 +1093,29 @@ export const Message: React.FC<MessageProps> = React.memo(
       );
     };
 
+    /** 系统注入消息：居中灰条 + 图标 + 内容（区别于用户气泡）。 */
+    const renderSystemInject = (content: string) => (
+      <div className="system-inject-bubble" data-testid="system-inject-bubble">
+        <div className="system-inject-head">
+          <i className="codicon codicon-info" />
+          <span>系统</span>
+        </div>
+        <div className="system-inject-body">{renderMarkdownContent(content, 0)}</div>
+      </div>
+    );
+
+    const systemInjectContent = getSystemInjectContent(message);
+
     return (
       <div
         className={getMessageClassName()}
         data-message-id={message.id}
         data-role={message.role}
       >
-        {message.role === "user" &&
-        !message.blocks?.some((b) => b.type === "bang")
-          ? renderUserBubble()
+        {message.role === "user" && !message.blocks?.some((b) => b.type === "bang")
+          ? systemInjectContent !== null
+            ? renderSystemInject(systemInjectContent)
+            : renderUserBubble()
           : message.blocks?.map((block, index) => renderBlock(block, index))}
         {isRewindTargetMessage(message) && !isQueued && onRewindToMessage && (
           <div className="message-actions">
