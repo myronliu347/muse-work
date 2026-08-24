@@ -5,65 +5,30 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AgentTranscriptPopup } from "./dialogs/AgentTranscriptPopup";
-import { MessageList } from "./chat/MessageList";
-import { MessageInput } from "./chat/MessageInput";
 import type { MessageInputHandle } from "./chat/MessageInput";
-import { ChatHeader } from "./chat/ChatHeader";
-import { DesktopPanelDock } from "./desktop/DesktopPanelDock";
-import { TaskList } from "./chat/TaskList";
-import { BackgroundTaskList } from "./chat/BackgroundTaskList";
-import { QueuedMessageList } from "./chat/QueuedMessageList";
-import { ConfirmationDialog } from "./dialogs/ConfirmationDialog";
-import { ConfirmDialog } from "./dialogs/ConfirmDialog";
-import { RewindPopup } from "./dialogs/RewindPopup";
-import { ModelPopup } from "./dialogs/ModelPopup";
-import { ToastStack } from "./shared/ToastStack";
-import ConfigDialog from "./dialogs/ConfigDialog";
-import PluginDialog from "./dialogs/PluginDialog";
-import McpDialog from "./dialogs/McpDialog";
-import StatusDialog from "./dialogs/StatusDialog";
-import WorkflowManager from "./settings/WorkflowManager";
-import AgentsDialog from "./dialogs/AgentsDialog";
-import LoginDialog from "./dialogs/LoginDialog";
-import WelcomeView from "./chat/WelcomeView";
-import { NewSessionPage } from "./chat/NewSessionPage";
-import LoadingLogo from "./chat/LoadingLogo";
 import {
   DesktopSidebar,
   resolveSidebarSessions,
 } from "./desktop/DesktopSidebar";
 import { DesktopShell } from "./desktop/DesktopShell";
-import { DesktopWorkdirSelector } from "./desktop/DesktopWorkdirSelector";
-import { DesktopWorktreeControls } from "./desktop/DesktopWorktreeControls";
-import { PANEL_TAB_ORDER } from "../muse/panelTabs";
-import { createMessageHandler } from "../muse/messageRouter";
-import { PreviewPane } from "./panels/PreviewPane";
-import {
-  DiffPane,
-  type WorkspaceDiffFile,
-} from "./panels/DiffPane";
-import { TerminalPane, prefetchTerminalLib } from "./panels/TerminalPane";
-import { FilePane } from "./panels/FilePane";
-import { QuickOpenPalette } from "./panels/QuickOpenPalette";
-import { PopoRobotView } from "./popo/PopoRobotView";
-import { TodoBoard } from "./todo/TodoBoard";
+import { ChatContainer } from "./chat/ChatContainer";
+import { ChatComposer } from "./chat/ChatComposer";
+import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
+import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { TodoNotifyStack } from "./todo/TodoNotifyStack";
 import { useTodoBoardStore, type TodoNotification } from "../stores/todoBoardStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
+import type { WorkspaceDiffFile } from "./panels/DiffPane";
+import { prefetchTerminalLib } from "./panels/TerminalPane";
 import type {
   ChatAppProps,
   DesktopPanelKind,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { resolveSubagentMessages } from "../utils/subagentTranscript";
-import {
-  PANEL_DEFAULT_WIDTH,
-  usePanelGroup,
-  usePaneUi,
-} from "../stores";
+import { usePanelGroup, usePaneUi } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
+import { createMessageHandler } from "../muse/messageRouter";
 import { useChatAppCore } from "../hooks/useChatAppCore";
 import { useChatSend } from "../hooks/useChatSend";
 import { usePanels } from "../hooks/usePanels";
@@ -74,54 +39,11 @@ import { useDialogs } from "../hooks/useDialogs";
 import "../styles/ChatApp.css";
 
 
+
 export { prunePanelGroupCache } from "../stores";
 
-/** Desktop conversation-level panels: tab order in the shared dock. */
-const PANEL_ORDER = PANEL_TAB_ORDER;
-const PANEL_MIN_WIDTH = 320;
 /** The conversation (message) area never shrinks below this when opening/dragging panels. */
 const CHAT_MAIN_MIN_WIDTH = 520;
-
-/**
- * Hostname spellings that name the same remote service through an ssh tunnel:
- * the forward always targets the remote's `localhost:<port>`, so every
- * loopback and all-interfaces spelling refers to the same endpoint (aligned
- * with VS Code's LOCALHOST_ADDRESSES / ALL_INTERFACES_ADDRESSES, whose
- * mapHasAddressLocalhostOrAllInterfaces treats them as one tunnel). Both
- * bracketed and bare IPv6 forms are covered — URL.hostname serializes the
- * former, terminal/Markdown links may carry the latter.
- */
-const LOOPBACK_OR_ALL_INTERFACES_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "::1",
-  "[::1]",
-  "0:0:0:0:0:0:0:1",
-  "[0:0:0:0:0:0:0:1]",
-  "0.0.0.0",
-  "::",
-  "[::]",
-  "0:0:0:0:0:0:0:0",
-  "[0:0:0:0:0:0:0:0]",
-]);
-
-/**
- * Canonical form of a preview URL for same-link comparison: collapses the
- * loopback/all-interfaces host spellings above to `localhost`, so clicking
- * `http://127.0.0.1:5173/app` after `http://localhost:5173/app` reuses the
- * established tunnel instead of release + re-acquire churn. Non-loopback URLs
- * (external sites) are returned unchanged.
- */
-function canonicalForwardUrl(raw: string): string {
-  try {
-    const u = new URL(raw);
-    if (LOOPBACK_OR_ALL_INTERFACES_HOSTS.has(u.hostname.toLowerCase()))
-      u.hostname = "localhost";
-    return u.href;
-  } catch {
-    return raw;
-  }
-}
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
 export type MainView = "newChat" | "chat" | "popo-robot" | "todo-board";
@@ -586,86 +508,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   }, [state.messages, effectiveWorkdir]);
 
 
-  const renderPanelSlot = (kind: DesktopPanelKind) => {
-    const dockWidth =
-      panelWidths[activePanel ?? kind] ?? PANEL_DEFAULT_WIDTH;
-    const common = {
-      width: dockWidth,
-      onWidthChange: handleDockWidthChange,
-      maxWidth: dockMaxWidth,
-      onClose: () => handleTogglePanel(kind),
-    };
-
-    if (kind === "preview") {
-      return (
-        <PreviewPane
-          key={previewEpoch}
-          url={previewUrl}
-          originalUrl={currentForward?.originalUrl}
-          onRetry={currentForward ? handleRemotePreviewRetry : undefined}
-          forwardError={previewForwardError}
-          onNavigate={handlePreviewNavigate}
-          vscode={vscode}
-          onAddComment={handleAddComment}
-          {...common}
-        />
-      );
-    }
-    if (kind === "diff") {
-      return (
-        <DiffPane
-          vscode={vscode}
-          paneId={paneId}
-          visible={checkedPanels.includes("diff")}
-          isStreaming={state.isStreaming}
-          sessionId={state.currentSession?.id}
-          workdir={effectiveWorkdir}
-          diffView={diffView}
-          recentFiles={recentDiffFiles}
-          onOpenFile={handleOpenFile}
-          onAddComment={handleAddComment}
-          onSendMessage={(text) => handleSendMessage(text)}
-          {...common}
-        />
-      );
-    }
-    if (kind === "file") {
-      return (
-        <FilePane
-          fileView={fileView}
-          workdir={effectiveWorkdir}
-          vscode={vscode}
-          fileTree={fileTree}
-          onFileTreeChange={handleFileTreeChange}
-          fileSidebarMode={fileSidebarMode}
-          onFileSidebarModeChange={handleFileSidebarModeChange}
-          contentSearch={contentSearch}
-          onContentSearchChange={handleContentSearchChange}
-          onOpenFile={handleOpenFile}
-          onOpenInPreview={handleOpenLocalFilePreview}
-          onRevealInFinder={handleRevealInFinder}
-          isStreaming={state.isStreaming}
-          visible={checkedPanels.includes("file")}
-          {...common}
-        />
-      );
-    }
-    return (
-      <TerminalPane
-        vscode={vscode}
-        paneId={paneId}
-        visible={checkedPanels.includes("terminal")}
-        workdir={effectiveWorkdir}
-        onOpenPreview={openPreviewHandler}
-        {...common}
-      />
-    );
-  };
-
   const showNewSessionPage = isDraftSession && state.initialized;
 
-  const messageInput = (
-    <MessageInput
+  const composer = (
+    <ChatComposer
       ref={messageInputRef}
       onSendMessage={handleSendMessage}
       isStreaming={state.isStreaming}
@@ -681,471 +527,181 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       sessionId={state.currentSession?.id}
       permissionMode={state.permissionMode}
       initialAttachedImages={state.attachedImages}
-      disabled={
-        host?.type === "desktop" && !effectiveWorkdir && !isDraftSession
-      }
-      modelId={
-        (state.currentSession as { model?: string } | undefined)?.model
-      }
+      host={host}
+      isDraftSession={isDraftSession}
+      effectiveHost={effectiveHost}
+      effectiveWorkdir={effectiveWorkdir}
+      panelWorkdir={panelWorkdir}
+      gitBranches={gitBranches}
+      worktreeBranch={worktreeBranch}
+      worktreeChecked={worktreeChecked}
+      patchPane={patchPane}
+      modelId={(state.currentSession as { model?: string } | undefined)?.model}
       onModelChange={handleSessionModelChange}
-      workdir={effectiveWorkdir ?? panelWorkdir}
-      workdirSelector={
-        host?.type === "desktop" && isDraftSession ? (
-          <>
-            <DesktopWorkdirSelector
-              host={effectiveHost}
-              workdir={effectiveWorkdir}
-              recentWorkdirs={host.recentWorkdirs}
-              onSelectWorkdir={host.onSelectWorkdir}
-              onSelectRecentWorkdir={host.onSelectRecentWorkdir}
-              onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
-            />
-            {effectiveWorkdir &&
-              gitBranches &&
-              gitBranches.branches.length > 0 && (
-                <DesktopWorktreeControls
-                  branches={gitBranches.branches}
-                  branch={worktreeBranch || gitBranches.current}
-                  worktreeChecked={worktreeChecked}
-                  onBranchChange={(branch) =>
-                    patchPane({ worktreeBranch: branch })
-                  }
-                  onWorktreeChange={(checked) =>
-                    patchPane({ worktreeChecked: checked })
-                  }
-                />
-              )}
-          </>
-        ) : undefined
-      }
-      rewindPopup={
-        <RewindPopup
-          isVisible={rewindPopupOpen}
-          isLoading={rewindCheckpointsLoading}
-          checkpoints={rewindCheckpoints}
-          onSelect={handleRewindCheckpointSelect}
-          onClose={handleRewindPopupClose}
-        />
-      }
-      modelPopup={
-        <ModelPopup
-          isVisible={modelPopupOpen}
-          isLoading={modelLoading}
-          models={configuredModels}
-          currentModel={currentModel}
-          onSelect={handleModelSelect}
-          onClose={handleModelPopupClose}
-        />
-      }
+      rewindPopupOpen={rewindPopupOpen}
+      rewindCheckpointsLoading={rewindCheckpointsLoading}
+      rewindCheckpoints={rewindCheckpoints}
+      onRewindCheckpointSelect={handleRewindCheckpointSelect}
+      onRewindPopupClose={handleRewindPopupClose}
+      modelPopupOpen={modelPopupOpen}
+      modelLoading={modelLoading}
+      configuredModels={configuredModels}
+      currentModel={currentModel}
+      onModelSelect={handleModelSelect}
+      onModelPopupClose={handleModelPopupClose}
     />
   );
 
-  const newSessionPage = (
-    <NewSessionPage
-      welcome={
-        <WelcomeView
-          embedded
-          isAuthenticated={state.isAuthenticated}
-          hasDirectConnectConfig={
-            !!(
-              state.configurationData?.apiKey &&
-              state.configurationData?.baseURL
-            )
-          }
-          onLogin={handleLogin}
-        />
-      }
-      composer={messageInput}
-    />
-  );
+  // One assembly for the 4 return branches (desktop shell / pane / layout / web).
+  const dialogProps: ChatDialogsProps = {
+    activeDialog: state.activeDialog,
+    configurationData: state.configurationData,
+    configurationLoading: state.configurationLoading,
+    configurationError: state.configurationError,
+    projectSettings: state.projectSettings,
+    onLoadProjectSettings: () =>
+      postToHost({ command: "getProjectSettings" }),
+    onToggleBuiltinPlugin: (pluginId, enabled) =>
+      postToHost({
+        command: "setBuiltinPluginEnabled",
+        pluginId,
+        enabled,
+        scope: "project",
+      }),
+    onConfigurationSave: handleConfigurationSave,
+    onDialogClose: handleDialogClose,
+    vscode,
+    workflowRuns: state.workflowRuns,
+    onOpenFile: handleOpenFile,
+    isAuthenticated: state.isAuthenticated,
+    loginError: state.loginError,
+    onLogin: handleLogin,
+    agentTranscript,
+    subagentMessages: state.subagentMessages,
+    agentToolSubagentIds: state.agentToolSubagentIds,
+    onCloseAgentTranscript: handleCloseAgentTranscript,
+    pendingRewindId,
+    onRewindConfirm: handleRewindConfirm,
+    onCancelRewind: () => patchPane({ pendingRewindId: null }),
+    toasts,
+    onToastDismiss: handleToastDismiss,
+    onToastAction: handleToastAction,
+    quickOpenOpen,
+    onQuickOpenClose: () => setQuickOpenOpen(false),
+    effectiveWorkdir,
+  };
 
-  const chatBodyContent = state.isRestoring ? (
-    // Desktop restore in progress: the pane already switched to the target
-    // session — show the sweep animation over the message + input area until
-    // the host finishes connecting and replaying the transcript (spec 场景 7).
-    <div
-      className="chat-restoring-overlay"
-      data-testid="chat-restoring-overlay"
-    >
-      <LoadingLogo />
-    </div>
-  ) : (
-    <>
-      {showWelcomeReady ? (
-        <WelcomeView
-          isAuthenticated={state.isAuthenticated}
-          hasDirectConnectConfig={
-            !!(
-              state.configurationData?.apiKey &&
-              state.configurationData?.baseURL
-            )
-          }
-          onLogin={handleLogin}
-        />
-      ) : showWelcome ? (
-        <LoadingLogo />
-      ) : (
-        <MessageList
-          ref={messageListRef}
-          messages={state.messages}
-          queuedMessages={state.queuedMessages}
-          isStreaming={state.isStreaming}
-          isCompacting={state.isCompacting}
-          vscode={vscode}
-          onRewindToMessage={handleRewindToMessage}
-          workdir={state.workdir}
-          onOpenPreview={openPreviewHandler}
-          onOpenFile={handleOpenFile}
-          onOpenAgentTranscript={handleOpenAgentTranscript}
-          onRevertFileHistory={handleRevertFileHistory}
-          revertingFileHistory={revertingFileHistory}
-          onOpenFileHistoryFile={handleOpenFileHistoryDiff}
-        />
-      )}
-
-      <div
-        className={`input-area-container${state.pendingConfirmations.length > 0 ? " input-area-container--confirm" : ""}`}
-      >
-        <div
-          style={{
-            display: state.pendingConfirmations.length === 0 ? "block" : "none",
-          }}
-        >
-          <BackgroundTaskList
-            // 按会话 id 重挂载：切换会话时重置"全部完成自动隐藏"的跟踪。
-            // 注意与 TaskList 的 key 保持不同——两个兄弟组件用同一 key 会触发
-            // React 重复 key 警告（session id 每次渲染都相同）。
-            key={`bg-${state.currentSession?.id ?? "none"}`}
-            tasks={state.backgroundTasks}
-            isCollapsed={state.isBackgroundTasksCollapsed}
-            onToggleCollapse={() =>
-              dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
-            }
-            onStopTask={(taskId) =>
-              postToHost({ command: "stopBackgroundTask", taskId })
-            }
-          />
-          <TaskList
-            // 按会话 id 重挂载：切换会话时重置“观察过未完成任务”的跟踪，
-            // 使全部已完成的新会话立即隐藏，而不是沿用上一会话的 5 秒宽限
-            key={`tasks-${state.currentSession?.id ?? "none"}`}
-            tasks={state.tasks}
-            isCollapsed={state.isTaskListCollapsed}
-            onToggleCollapse={() =>
-              dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })
-            }
-          />
-          <QueuedMessageList
-            queuedMessages={state.queuedMessages}
-            isCollapsed={state.isQueueCollapsed}
-            onToggleCollapse={() => dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })}
-            onEdit={handleEditQueuedMessage}
-            onDelete={handleDeleteQueuedMessage}
-            editingQueuedId={state.editingQueuedId}
-            vscode={vscode}
-          />
-        </div>
-
-        <div
-          style={{
-            display: state.pendingConfirmations.length === 0 ? "block" : "none",
-          }}
-        >
-          {messageInput}
-        </div>
-
-        {state.pendingConfirmations.length > 0 && (
-          <ConfirmationDialog
-            key={state.pendingConfirmations[0].confirmationId}
-            data-confirmation-id={state.pendingConfirmations[0].confirmationId}
-            confirmation={state.pendingConfirmations[0]}
-            onConfirm={handleConfirmation}
-            onReject={handleRejection}
-          />
-        )}
-      </div>
-    </>
-  );
-
-  // Dialogs render at the component root — not inside chatContainer — so they
-  // stay visible in every layout: the desktop split-view shell (where the root
-  // ChatApp never mounts its own chatContainer) still shows the config dialog
-  // opened from the sidebar 更多 menu.
-  const dialogs = (
-    <>
-      {state.activeDialog === "config" && (
-        <ConfigDialog
-          configurationData={state.configurationData || {}}
-          isLoading={state.configurationLoading}
-          error={state.configurationError}
-          onSave={handleConfigurationSave}
-          onCancel={handleDialogClose}
-          projectSettings={state.projectSettings}
-          onLoadProjectSettings={() =>
-            postToHost({ command: "getProjectSettings" })
-          }
-          onToggleBuiltinPlugin={(pluginId, enabled) =>
-            postToHost({
-              command: "setBuiltinPluginEnabled",
-              pluginId,
-              enabled,
-              scope: "project",
-            })
-          }
-          vscode={vscode}
-        />
-      )}
-      {state.activeDialog === "plugin" && (
-        <PluginDialog vscode={vscode} onClose={handleDialogClose} />
-      )}
-      {state.activeDialog === "mcp" && (
-        <McpDialog vscode={vscode} onClose={handleDialogClose} />
-      )}
-      {state.activeDialog === "status" && (
-        <StatusDialog
-          onClose={handleDialogClose}
-          vscode={vscode}
-        />
-      )}
-      {state.activeDialog === "workflows" && (
-        <WorkflowManager
-          runs={state.workflowRuns}
-          vscode={vscode}
-          onCancel={handleDialogClose}
-          onOpenFile={(path) => {
-            handleOpenFile(path);
-            handleDialogClose();
-          }}
-        />
-      )}
-      {state.activeDialog === "agents" && (
-        <AgentsDialog vscode={vscode} onClose={handleDialogClose} />
-      )}
-      {state.activeDialog === "login" && (
-        <LoginDialog
-          isAuthenticated={state.isAuthenticated}
-          loginError={state.loginError}
-          onLogin={handleLogin}
-          onCancel={handleDialogClose}
-        />
-      )}
-      {agentTranscript && (
-        <AgentTranscriptPopup
-          title={agentTranscript.title}
-          messages={resolveSubagentMessages(
-            state.subagentMessages,
-            state.agentToolSubagentIds,
-            agentTranscript.subagentId,
-            {
-              nestedMessages: agentTranscript.nestedMessages,
-              fallbackText: agentTranscript.fallbackText,
-              prompt: agentTranscript.prompt,
-            },
-          )}
-          vscode={vscode}
-          onClose={handleCloseAgentTranscript}
-        />
-      )}
-      {pendingRewindId && (
-        <ConfirmDialog
-          title="确定要回滚到此消息吗？"
-          description="这将删除之后的所有消息并撤销相关的文件更改。"
-          onConfirm={handleRewindConfirm}
-          onCancel={() => patchPane({ pendingRewindId: null })}
-        />
-      )}
-      <ToastStack
-        toasts={toasts}
-        onDismiss={handleToastDismiss}
-        onAction={handleToastAction}
-      />
-      <QuickOpenPalette
-        open={quickOpenOpen}
-        workdir={effectiveWorkdir}
-        vscode={vscode}
-        onClose={() => setQuickOpenOpen(false)}
-        onOpenFile={(path) => handleOpenFile(path)}
-      />
-    </>
-  );
-
-  const chatChrome = (
-    <>
-      <ChatHeader
-        onNewSession={handleClearChat}
-        newSessionDisabled={false}
-        onAbortMessage={handleAbortMessage}
-        messages={state.messages}
-        currentSession={state.currentSession}
-        onOpenSettings={handleOpenSettings}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        isAuthenticated={state.isAuthenticated}
-        hideSessionButtons
-        hideMoreButton
-        gitContext={headerGitContext}
-        commandMenuItems={[
-          {
-            id: "compact",
-            label: "压缩会话",
-            icon: "codicon-fold",
-            onClick: () => postToHost({ command: "compactChat" }),
-          },
-          {
-            id: "clear",
-            label: "清空会话",
-            icon: "codicon-trash",
-            onClick: handleClearChat,
-          },
-          {
-            id: "rewind",
-            label: "回滚到检查点",
-            icon: "codicon-history",
-            onClick: () => {
-              patchPane({
-                rewindPopupOpen: true,
-                rewindCheckpointsLoading: true,
-              });
-              postToHost({ command: "listRewindCheckpoints" });
-            },
-          },
-          {
-            id: "mcp",
-            label: "MCP 服务器",
-            icon: "codicon-plug",
-            onClick: () =>
-              dispatch({ type: "SHOW_DIALOG", payload: { type: "mcp" } }),
-          },
-          {
-            id: "status",
-            label: "会话状态",
-            icon: "codicon-info",
-            onClick: () =>
-              dispatch({ type: "SHOW_DIALOG", payload: { type: "status" } }),
-          },
-          {
-            id: "workflows",
-            label: "工作流",
-            icon: "codicon-type-hierarchy",
-            onClick: () =>
-              dispatch({
-                type: "SHOW_DIALOG",
-                payload: { type: "workflows" },
-              }),
-          },
-        ]}
-        panelToggle={
-          checkedPanels.length === 0
-            ? {
-                onToggleDock: handleToggleDock,
-              }
-            : undefined
-        }
-      />
-      {chatBodyContent}
-    </>
-  );
+  // Shared dock payload: the 4 panel slots + dock chrome (rendered by
+  // ChatContainer when a bound session is showing).
+  const dock: DesktopPanelSlotsProps = {
+    checked: checkedPanels,
+    active: activePanel,
+    mounted: mountedPanels,
+    disabledPanels: panelDisabled,
+    fullscreen: dockFullscreen,
+    widths: panelWidths,
+    dockMaxWidth,
+    onSelect: handleSelectPanel,
+    onCloseTab: handleTogglePanel,
+    onAddPanel: handleAddPanel,
+    onToggleDock: handleToggleDock,
+    onToggleFullscreen: handleToggleFullscreen,
+    onWidthChange: handleDockWidthChange,
+    vscode,
+    paneId,
+    isStreaming: state.isStreaming,
+    sessionId: state.currentSession?.id,
+    workdir: effectiveWorkdir,
+    previewEpoch,
+    previewUrl,
+    currentForward,
+    previewForwardError,
+    onRemotePreviewRetry: handleRemotePreviewRetry,
+    onPreviewNavigate: handlePreviewNavigate,
+    onAddComment: handleAddComment,
+    diffView,
+    recentFiles: recentDiffFiles,
+    onOpenFile: handleOpenFile,
+    onSendMessage: (text) => handleSendMessage(text),
+    fileView,
+    fileTree,
+    onFileTreeChange: handleFileTreeChange,
+    fileSidebarMode,
+    onFileSidebarModeChange: handleFileSidebarModeChange,
+    contentSearch,
+    onContentSearchChange: handleContentSearchChange,
+    onOpenInPreview: handleOpenLocalFilePreview,
+    onRevealInFinder: handleRevealInFinder,
+    openPreviewHandler,
+  };
 
   const chatContainer = (
-    <div
-      className="chat-container"
-      data-testid="chat-container"
-      ref={chatContainerRef}
-    >
-      {queueEditWarning && (
-        <div
-          className="queue-edit-warning-banner"
-          role="alert"
-          data-testid="queue-edit-warning"
-        >
-          <span className="queue-edit-warning-text">{queueEditWarning}</span>
-          <button
-            className="queue-edit-warning-close"
-            onClick={() => patchPane({ queueEditWarning: null })}
-            aria-label="关闭"
-          >
-            <i className="codicon codicon-close"></i>
-          </button>
-        </div>
-      )}
-      <div className="desktop-chat-body">
-        <div className="desktop-chat-main">
-          {view === "todo-board" ? (
-            <TodoBoard
-              api={popoApi}
-              onOpenPlanningSession={(sessionId, workdir) => {
-                // 打开规划会话：切回聊天视图并选中该会话
-                if (!host) return;
-                setView("chat");
-                host.onSelectSession(workdir, sessionId);
-              }}
-              onOpenExecutionSession={(sessionId) => {
-                // 打开执行会话：切回聊天视图并选中该会话
-                if (!host) return;
-                setView("chat");
-                host.onSelectSession("", sessionId);
-              }}
-              onOpenInEditor={(workdir) =>
-                postToHost({ command: "desktopOpenInEditor", workdir })
-              }
-              onOpenInTerminal={(workdir) =>
-                postToHost({ command: "desktopOpenInTerminal", workdir })
-              }
-              onTodosChanged={() =>
-                postToHost({ command: "desktopRefreshSessionTree" })
-              }
-            />
-          ) : view === "popo-robot" ? (
-            <PopoRobotView api={popoApi} vscode={vscode} />
-          ) : isDraftSession && !state.initialized ? (
-            <LoadingLogo />
-          ) : view === "newChat" || showNewSessionPage ? (
-            newSessionPage
-          ) : (
-            chatChrome
-          )}
-        </div>
-        {/* 文件/变更等面板只在会话详情（chat 视图）显示，机器人页/新会话页隐藏 */}
-        {view === "chat" && !isDraftSession && checkedPanels.length > 0 && activePanel && (
-          <DesktopPanelDock
-            checked={checkedPanels}
-            active={activePanel}
-            onSelect={handleSelectPanel}
-            onCloseTab={handleTogglePanel}
-            onAddPanel={handleAddPanel}
-            disabledPanels={panelDisabled}
-            panelToggle={{
-              onToggleDock: handleToggleDock,
-            }}
-            fullscreen={dockFullscreen}
-            onToggleFullscreen={handleToggleFullscreen}
-            width={Math.min(
-              panelWidths[activePanel] ?? PANEL_DEFAULT_WIDTH,
-              Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
-            )}
-            onWidthChange={handleDockWidthChange}
-            maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
-          >
-            {PANEL_ORDER.filter((kind) => mountedPanels.includes(kind)).map(
-              (kind) => (
-                <div
-                  key={kind}
-                  className="desktop-panel-slot"
-                  style={{
-                    display:
-                      checkedPanels.includes(kind) && kind === activePanel
-                        ? undefined
-                        : "none",
-                  }}
-                >
-                  {renderPanelSlot(kind)}
-                </div>
-              ),
-            )}
-          </DesktopPanelDock>
-        )}
-      </div>
-    </div>
+    <ChatContainer
+      chatContainerRef={chatContainerRef}
+      queueEditWarning={queueEditWarning}
+      onDismissQueueEditWarning={() => patchPane({ queueEditWarning: null })}
+      view={view}
+      setView={setView}
+      host={host}
+      postToHost={postToHost}
+      patchPane={patchPane}
+      popoApi={popoApi}
+      currentSession={state.currentSession}
+      initialized={state.initialized}
+      effectiveWorkdir={effectiveWorkdir}
+      dock={dock}
+      vscode={vscode}
+      // ChatChrome / ChatBody props
+      onNewSession={handleClearChat}
+      onAbortMessage={handleAbortMessage}
+      messages={state.messages}
+      onOpenSettings={handleOpenSettings}
+      onLogin={handleLogin}
+      onLogout={handleLogout}
+      isAuthenticated={state.isAuthenticated}
+      dispatch={dispatch}
+      gitBranches={gitBranches}
+      isDraftSession={isDraftSession}
+      checkedPanels={checkedPanels}
+      onToggleDock={handleToggleDock}
+      isRestoring={state.isRestoring}
+      configurationData={state.configurationData}
+      queuedMessages={state.queuedMessages}
+      isStreaming={state.isStreaming}
+      isCompacting={state.isCompacting}
+      onRewindToMessage={handleRewindToMessage}
+      workdir={state.workdir}
+      onOpenPreview={openPreviewHandler}
+      onOpenFile={handleOpenFile}
+      onOpenAgentTranscript={handleOpenAgentTranscript}
+      onRevertFileHistory={handleRevertFileHistory}
+      revertingFileHistory={revertingFileHistory}
+      onOpenFileHistoryFile={handleOpenFileHistoryDiff}
+      backgroundTasks={state.backgroundTasks}
+      isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
+      onToggleBackgroundTasks={() =>
+        dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
+      }
+      onStopTask={(taskId) =>
+        postToHost({ command: "stopBackgroundTask", taskId })
+      }
+      tasks={state.tasks}
+      isTaskListCollapsed={state.isTaskListCollapsed}
+      onToggleTaskList={() =>
+        dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })
+      }
+      isQueueCollapsed={state.isQueueCollapsed}
+      onToggleQueueCollapse={() =>
+        dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })
+      }
+      onEditQueuedMessage={handleEditQueuedMessage}
+      onDeleteQueuedMessage={handleDeleteQueuedMessage}
+      editingQueuedId={state.editingQueuedId}
+      pendingConfirmations={state.pendingConfirmations}
+      onConfirm={handleConfirmation}
+      onReject={handleRejection}
+      composer={composer}
+    />
   );
 
   if (host?.type === "desktop") {
@@ -1161,7 +717,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             host={host}
             onOpenSettings={handleOpenSettings}
           />
-          {dialogs}
+          <ChatDialogs {...dialogProps} />
         </>
       );
     }
@@ -1171,7 +727,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       return (
         <>
           {chatContainer}
-          {dialogs}
+          <ChatDialogs {...dialogProps} />
         </>
       );
     }
@@ -1226,7 +782,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           }
         />
         {chatContainer}
-        {dialogs}
+        <ChatDialogs {...dialogProps} />
         <TodoNotifyStack onOpen={openTodoNotification} />
       </div>
     );
@@ -1235,7 +791,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   return (
     <>
       {chatContainer}
-      {dialogs}
+      <ChatDialogs {...dialogProps} />
     </>
   );
 };
