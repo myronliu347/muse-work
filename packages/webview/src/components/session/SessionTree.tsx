@@ -574,7 +574,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                     <CollapsibleBody open={!collapsed}>
                       <ul className="desktop-session-items desktop-session-items--nested">
                         {group.sessions.map((session) =>
-                          renderSession(session, { hideWorkdir: true }),
+                          renderSession(session, {
+                            hideWorkdir: true,
+                            // 待办事项（todo 规划/执行）会话不允许置顶/删除
+                            hideActions: true,
+                          }),
                         )}
                       </ul>
                     </CollapsibleBody>

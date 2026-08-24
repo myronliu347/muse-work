@@ -263,7 +263,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("todo/任务 分组内会话保留置顶/删除按钮（与普通会话一致）", () => {
+  it("待办事项分组内会话无置顶/删除按钮；任务 section 会话保留", () => {
     renderSidebar({
       todoGroups: [todoGroup()],
       recentSessions: [
@@ -276,12 +276,12 @@ describe("DesktopSidebar pin/recent sessions", () => {
       ],
     });
 
-    // todo 分组内：规划/执行会话有置顶、有删除
+    // todo 分组内（待办事项）：规划/执行会话不允许置顶/删除
     for (const sid of ["sess-plan", "sess-exec"]) {
-      expect(screen.getByTestId(`desktop-session-pin-${sid}`)).toBeTruthy();
-      expect(screen.getByTestId(`desktop-session-delete-${sid}`)).toBeTruthy();
+      expect(screen.queryByTestId(`desktop-session-pin-${sid}`)).toBeNull();
+      expect(screen.queryByTestId(`desktop-session-delete-${sid}`)).toBeNull();
     }
-    // 遗留任务会话同样可置顶/删除
+    // 任务 section 遗留任务会话仍可置顶/删除
     expect(screen.getByTestId("desktop-session-pin-t1")).toBeTruthy();
     expect(screen.getByTestId("desktop-session-delete-t1")).toBeTruthy();
   });
