@@ -152,7 +152,7 @@ export interface TodoStore {
     taskId: string,
     input?: { ok?: boolean; error?: string; summary?: string },
   ): Task | undefined;
-  /** 取消 task（任意未归档状态）：已取消 + 未结束 run 标 canceled。 */
+  /** 取消 task（任意未归档状态）：已取消 + 未结束 run 标 canceled + 清执行会话引用（会话已由调度器销毁）。 */
   cancelTask(taskId: string): Task | undefined;
   /** 审核通过：task 已完成 + 清 worktree/执行会话引用（T6 清理后调用）。 */
   approveTask(taskId: string): Task | undefined;
@@ -744,6 +744,8 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
       const run = latestActiveRun(taskId);
       if (run) updateRunStatusInternal(run.id, "canceled");
       task.status = "cancelled";
+      // 执行会话已由调度器销毁（cancel 补删会话），清引用；会话 id 留在执行记录（run.sessionId/agentSessionId）
+      delete task.executionSessionId;
       task.updatedAt = Date.now();
       persistTasks(task.todoId);
       return { ...task };

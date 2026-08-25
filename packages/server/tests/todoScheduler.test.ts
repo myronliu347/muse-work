@@ -181,6 +181,78 @@ describe("todoScheduler", () => {
     scheduler.stop();
   });
 
+  it("执行中取消：销毁执行会话（runtime+记录）+ 清 executionSessionId + waveSessionId 回填 run", async () => {
+    const { store, scheduler, runner, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const execId = store.getTask(task.id)?.executionSessionId!;
+    expect(sessionStore.get(execId)).toBeTruthy();
+    await scheduler.cancel(task.id);
+    // 执行会话已销毁（runtime dispose + 记录删除），不再残留侧栏
+    expect(runner.disposeSession).toHaveBeenCalledWith(execId);
+    expect(sessionStore.delete).toHaveBeenCalledWith(execId);
+    expect(sessionStore.get(execId)).toBeUndefined();
+    // task.executionSessionId 清除（与 approve 对称）
+    expect(store.getTask(task.id)?.executionSessionId).toBeUndefined();
+    // waveSessionId 删前已回填 run：删会话记录后仅 run 留存 SDK jsonl 定位线索
+    const run = store.listRuns(task.id)[0];
+    expect(run.sessionId).toBe(execId);
+    expect(run.agentSessionId).toMatch(/^wave-/);
+    scheduler.stop();
+  });
+
+  it("待审核（review）取消：同样销毁执行会话（不 abort 无进行中 turn，worktree 保留）", async () => {
+    const { store, scheduler, runner, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const execId = store.getTask(task.id)?.executionSessionId!;
+    scheduler.handleTurnSettled(execId, { ok: true });
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("review"));
+    expect(sessionStore.get(execId)).toBeTruthy();
+    await scheduler.cancel(task.id);
+    // 非执行中：不 abort（无进行中 turn），但执行会话同样销毁
+    expect(runner.abortMessage).not.toHaveBeenCalled();
+    expect(runner.disposeSession).toHaveBeenCalledWith(execId);
+    expect(sessionStore.delete).toHaveBeenCalledWith(execId);
+    expect(sessionStore.get(execId)).toBeUndefined();
+    expect(store.getTask(task.id)?.executionSessionId).toBeUndefined();
+    // run 为 finished（finalizeRun 已回填 agentSessionId）
+    const run = store.listRuns(task.id)[0];
+    expect(run.status).toBe("finished");
+    expect(run.agentSessionId).toMatch(/^wave-/);
+    scheduler.stop();
+  });
+
+  it("取消后 requeue：新建执行会话（executionSessionId 为新 id）+ 首次完整 prompt（全新开始）", async () => {
+    const { store, scheduler, runner } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const execId1 = store.getTask(task.id)?.executionSessionId!;
+    await scheduler.cancel(task.id);
+    expect(store.getTask(task.id)?.status).toBe("cancelled");
+    // 模拟外部恢复待执行后重新入队（取消不写 result 评论 → 全新开始）
+    store.updateTaskStatus(task.id, "pending");
+    scheduler.enqueue(task.id);
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const execId2 = store.getTask(task.id)?.executionSessionId!;
+    // 新会话（旧会话已销毁），不是复用
+    expect(execId2).not.toBe(execId1);
+    // 无 result 评论 → isReexec=false → 首次完整 prompt（不判继续执行）
+    const sendCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls;
+    expect(sendCalls.length).toBe(2);
+    expect(sendCalls[1][0]).toBe(execId2);
+    const prompt = sendCalls[1][1] as string;
+    expect(prompt).toContain("执行 Todo/Task 任务「k」");
+    expect(prompt).not.toContain("继续执行");
+    scheduler.stop();
+  });
+
   it("重启恢复：running 中断回待执行 + queued 自动恢复调度", async () => {
     const { store, scheduler, runner } = makeScheduler({});
     const todo = store.createTodo({ title: "t", source: "session" });

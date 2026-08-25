@@ -125,7 +125,7 @@ export interface TodoScheduler {
   stop(): void;
   /** 手动「开始执行/继续执行」：入队并立即尝试启动。 */
   enqueue(taskId: string): void;
-  /** 取消 task：中止执行会话（若执行中）、标已取消、删 worktree（仅执行中取消删）。 */
+  /** 取消 task：标已取消、中止执行会话（若执行中）、销毁执行会话（runtime+记录）、删 worktree（仅执行中取消删）。 */
   cancel(taskId: string): Promise<void>;
   /** 审核通过：task 已完成 + 删执行会话（worktree 保留供排查）。 */
   approve(taskId: string): Promise<void>;
@@ -424,20 +424,40 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     }
   }
 
-  /** 执行中取消：中止会话 + 删 worktree（执行中取消立即删，用户已拍板）；非执行中取消保留 worktree。 */
+  /** 取消 task：中止执行会话（若执行中）、销毁执行会话（runtime+记录）、删 worktree（仅执行中取消立即删，用户已拍板）。
+      执行会话不残留侧栏（与 approve 一致）；waveSessionId 删前回填 run 供 SDK jsonl 排查定位。非执行中取消保留 worktree。 */
   async function cancel(taskId: string): Promise<void> {
     const task = store.getTask(taskId);
     if (!task) return;
     const wasRunning = task.status === "running";
     const execSessionId = task.executionSessionId;
+    const session = execSessionId ? sessionStore.get(execSessionId) : undefined;
+    // 删会话记录前先回填 agent 会话 id（waveSessionId）：删后仅 run 留存，供 SDK jsonl 排查定位；
+    // 执行中 run 仍是 running（latestActiveRun 命中）；待审核 run 已在 finalizeRun 回填过
+    if (wasRunning && session?.waveSessionId) {
+      store.setRunSessionIds(taskId, { agentSessionId: session.waveSessionId });
+    }
     // 先标已取消（onTurnSettled 回调看到非执行中会跳过），再中止会话
     store.cancelTask(taskId);
     activeRunning.delete(taskId);
-    if (wasRunning && execSessionId && sessionStore.get(execSessionId)) {
+    if (execSessionId && session) {
+      if (wasRunning) {
+        try {
+          await runner.abortMessage(execSessionId);
+        } catch {
+          // abort 失败不阻塞取消
+        }
+      }
+      // 执行会话删除（runtime + 记录）：复用 approve 清理逻辑，取消即释放，不留残留
       try {
-        await runner.abortMessage(execSessionId);
+        await runner.disposeSession(execSessionId);
       } catch {
-        // abort 失败不阻塞取消
+        getLogger().warn("execution session dispose failed", { taskId, execSessionId });
+      }
+      try {
+        sessionStore.delete(execSessionId);
+      } catch {
+        getLogger().warn("execution session delete failed", { taskId, execSessionId });
       }
     }
     // 仅执行中取消时删除 worktree（T6：取消/继续执行保留 worktree）
