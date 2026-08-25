@@ -26,6 +26,15 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 3. 若 workdir 是 git 项目，**向用户询问是否用 worktree 隔离执行**（默认隔离：在 `<repo>/.wave/worktrees/<taskId>` 独立工作区执行，不污染主仓工作区/分支；用户明确不需要隔离时加 `--no-worktree` 直接在原目录执行）。需要 worktree 时再**询问 base 分支**（worktree 从该分支 checkout；用户未指定时用 `--branch` 缺省，即仓库默认分支）。非 git 目录无需分支。
 4. **只有用户明确说「创建 task」才落库**。任何一步不确定都先问，不要擅自创建。
 
+## 拆解 task 原则（重要）
+
+拆解（规划会话把 todo 细化成 task 时）必须遵守，防止执行出错：
+
+1. **依赖合并**：实现→验证/测试等有依赖的工作必须合并进 1 个 task，由执行 agent 完成后自行验证；只有互不依赖的独立需求才拆多个；并行 task 改同一批文件或有先后依赖一律合并。
+2. **描述写全**：task 描述必须含背景、方案要点、约束、验收标准（执行 agent 是全新会话，只有描述可依赖）。
+3. **工具区分**：看板 task 只能 `todo.mjs add-task` 落库；系统 TaskCreate/TaskUpdate/TaskList 是会话内清单，勿用于看板。
+4. **规划会话只读**：可读代码分析，禁止 Edit/Write 修改仓库文件，改动拆 task 交执行会话。
+
 ## 命令速查（脚本在本 skill 目录的 scripts/ 下，执行 `node scripts/todo.mjs ...`）
 
 ```bash

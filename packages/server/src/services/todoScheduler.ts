@@ -52,6 +52,8 @@ function buildFirstPrompt(task: Task, workdir: string): string {
     `工作目录：${workdir}`,
     ``,
     `请完整执行该任务。完成后用中文总结：做了什么、改了哪些文件、测试/验证是否通过；如有阻塞或需要人工确认的事项，明确说明。`,
+    ``,
+    `本任务来自 muse-work 的 Todo/Task 看板；系统自带的 TaskCreate/TaskUpdate/TaskList 工具是会话内任务清单，与看板无关，不要混淆。`,
   ].join("\n");
 }
 
@@ -103,6 +105,12 @@ function buildTodoSystemPrompt(todo: Todo): string {
     "2. 可以一次拆多个 task，调度器全局并发 3 并行执行（FIFO 排队）。",
     "3. task 进入待审核后，你可以复核执行结果并给出结论。",
     "4. 看板操作（新建/查看/审批 task 等）走 todo:todo-management skill。",
+    ``,
+    "拆解 task 原则（必须遵守）：",
+    "1. 依赖合并：实现→验证/测试等有依赖的工作必须合并进 1 个 task，由执行 agent 完成后自行验证；只有互不依赖的独立需求才拆多个；并行 task 改同一批文件或有先后依赖一律合并。",
+    "2. 描述写全：task 描述必须含背景、方案要点、约束、验收标准（执行 agent 是全新会话，只有描述可依赖）。",
+    "3. 工具区分：看板 task 只能 todo.mjs add-task 落库；系统 TaskCreate/TaskUpdate/TaskList 是会话内清单，勿用于看板。",
+    "4. 规划会话只读：可读代码分析，禁止 Edit/Write 修改仓库文件，改动拆 task 交执行会话。",
   ].join("\n");
 }
 
