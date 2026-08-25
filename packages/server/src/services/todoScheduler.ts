@@ -15,7 +15,7 @@ import type { ProviderRegistry } from "@muse-work/provider";
 import { DEFAULT_ACTIVE_MODEL_ID, getTodoWorkdir } from "@muse-work/provider";
 import type { SessionRunner } from "./sessionRunner/index.js";
 import type { SessionStore } from "./sessionStore.js";
-import type { Task, Todo, TodoStore } from "./todoStore.js";
+import type { Comment, Task, Todo, TodoStore } from "./todoStore.js";
 import type { WsHub } from "./wsHub.js";
 import {
   ensureWorktree,
@@ -24,6 +24,87 @@ import {
   type WorktreeRef,
 } from "../utils/gitWorktree.js";
 import { getLogger } from "../utils/logger.js";
+
+/**
+ * 收集再次执行的增量评论：最近一条 result 评论之后新增的 user/ai 评论（供继续执行参考）；
+ * 无 result 评论时返回全部 user/ai 评论。result 评论本身（上次执行总结）不重复携带。
+ */
+function collectIncrementalComments(comments: Comment[]): Comment[] {
+  let lastResultIdx = -1;
+  for (let i = comments.length - 1; i >= 0; i--) {
+    if (comments[i].kind === "result") {
+      lastResultIdx = i;
+      break;
+    }
+  }
+  const candidates =
+    lastResultIdx === -1 ? comments : comments.slice(lastResultIdx + 1);
+  return candidates.filter((c) => c.author === "user" || c.author === "ai");
+}
+
+/** 首次执行：完整 prompt（标题 + 描述 + workdir）。 */
+function buildFirstPrompt(task: Task, workdir: string): string {
+  return [
+    `执行 Todo/Task 任务「${task.title}」`,
+    ``,
+    task.description ? `任务描述（markdown）：\n${task.description}` : "（无描述）",
+    ``,
+    `工作目录：${workdir}`,
+    ``,
+    `请完整执行该任务。完成后用中文总结：做了什么、改了哪些文件、测试/验证是否通过；如有阻塞或需要人工确认的事项，明确说明。`,
+  ].join("\n");
+}
+
+/** 再次执行：复用执行会话已有上下文（不重复完整描述/上次总结），只带增量评论。 */
+function buildReexecPrompt(
+  task: Task,
+  workdir: string,
+  incremental: Comment[],
+): string {
+  const lines = [
+    `继续执行 Todo/Task 任务「${task.title}」（上次执行已结束，重新入队继续）`,
+    ``,
+    `工作目录：${workdir}`,
+    ``,
+    `沿用执行会话中已有的任务描述与已做工作继续完成剩余部分，不要重复完整任务描述或上次执行总结。`,
+  ];
+  if (incremental.length > 0) {
+    lines.push(``, `上次执行后新增信息（供继续执行参考）：`);
+    for (const c of incremental) {
+      lines.push(`- ${c.author === "user" ? "用户" : "AI"}：${c.content}`);
+    }
+  }
+  lines.push(
+    ``,
+    `请完整执行该任务。完成后用中文总结：做了什么、改了哪些文件、测试/验证是否通过；如有阻塞或需要人工确认的事项，明确说明。`,
+  );
+  return lines.join("\n");
+}
+
+function buildPrompt(task: Task, workdir: string, isReexec: boolean, incremental: Comment[]): string {
+  return isReexec
+    ? buildReexecPrompt(task, workdir, incremental)
+    : buildFirstPrompt(task, workdir);
+}
+
+/** 规划会话的系统上下文：注入 todo 基本信息（id/标题/描述）+ 规划会话职责说明。 */
+function buildTodoSystemPrompt(todo: Todo): string {
+  return [
+    "当前会话是 TODO 的规划会话。以下是该 TODO 的基本信息：",
+    `TODO ID：${todo.id}`,
+    `标题：${todo.title}`,
+    todo.description ? `描述：${todo.description}` : "描述：（无）",
+    todo.workdir
+      ? `绑定工作目录：${todo.workdir}（拆解 task 时 add-task 可不传 --workdir，自动继承该目录）`
+      : "未绑定工作目录（拆解 task 时 add-task 需显式传 --workdir）",
+    ``,
+    "你的职责：",
+    "1. 你是该 TODO 的规划会话，负责分析、规划、拆解 task（通过 todo.mjs add-task 入队执行），不直接改代码。",
+    "2. 可以一次拆多个 task，调度器全局并发 3 并行执行（FIFO 排队）。",
+    "3. task 进入待审核后，你可以复核执行结果并给出结论。",
+    "4. 看板操作（新建/查看/审批 task 等）走 todo:todo-management skill。",
+  ].join("\n");
+}
 
 export interface TodoSchedulerOptions {
   store: TodoStore;
@@ -50,35 +131,12 @@ export interface TodoScheduler {
   approve(taskId: string): Promise<void>;
   /** 打开 todo 的规划会话（首次懒创建，每 todo 固定一个）。 */
   openPlanningSession(todoId: string): { sessionId: string; workdir: string } | null;
+  /** todo.workdir 变更后同步规划会话 workdir（planning 会话已创建时；未绑定回退默认 personal）。 */
+  syncPlanningWorkdir(todoId: string): void;
   /** 已存在 worktree 的 task，计算执行目录。 */
   worktreePathOf(task: Task): string | null;
   /** turn 结束回调入口（appContext 绑定到 runner 的 onTurnSettled）。 */
   handleTurnSettled(sessionId: string, result: { ok: boolean; error?: string }): void;
-}
-
-function buildPrompt(task: Task, workdir: string): string {
-  return [
-    `执行 Todo/Task 任务「${task.title}」`,
-    ``,
-    task.description ? `任务描述（markdown）：\n${task.description}` : "（无描述）",
-    ``,
-    `工作目录：${workdir}`,
-    ``,
-    `请完整执行该任务。完成后用中文总结：做了什么、改了哪些文件、测试/验证是否通过；如有阻塞或需要人工确认的事项，明确说明。`,
-  ].join("\n");
-}
-
-/** 规划会话的系统上下文：注入 todo 基本信息（id/标题/描述），agent 从创建起即了解目标。 */
-function buildTodoSystemPrompt(todo: Todo): string {
-  return [
-    "当前会话是 TODO 的规划会话。以下是该 TODO 的基本信息：",
-    `TODO ID：${todo.id}`,
-    `标题：${todo.title}`,
-    todo.description ? `描述：${todo.description}` : "描述：（无）",
-    todo.workdir
-      ? `绑定工作目录：${todo.workdir}（拆解 task 时 add-task 可不传 --workdir，自动继承该目录）`
-      : "未绑定工作目录（拆解 task 时 add-task 需显式传 --workdir）",
-  ].join("\n");
 }
 
 export function createTodoScheduler(options: TodoSchedulerOptions): TodoScheduler {
@@ -191,7 +249,14 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
       sessionId: execSessionId,
       workdir,
     });
-    await runner.sendMessage(execSessionId, buildPrompt(task, workdir));
+    // 再次执行判定：存在历史执行结果（result 评论）→ 复用执行会话上下文，只带增量评论
+    const comments = store.listComments(task.id);
+    const isReexec = comments.some((c) => c.kind === "result");
+    const incremental = isReexec ? collectIncrementalComments(comments) : [];
+    await runner.sendMessage(
+      execSessionId,
+      buildPrompt(task, workdir, isReexec, incremental),
+    );
   }
 
   async function tick(): Promise<void> {
@@ -385,6 +450,9 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
       };
       try {
         await removeWorktree(ref);
+        // 清 worktree 引用 + workdir 重置为主仓库根：requeue 后 launch 重新建 worktree，
+        // 不会在已删除的 worktree 路径上执行
+        store.clearTaskWorktree(task.id);
       } catch {
         getLogger().warn("worktree remove failed", { taskId });
       }
@@ -474,6 +542,16 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         sessionId: session.id,
       });
       return { sessionId: session.id, workdir: session.workdir };
+    },
+
+    syncPlanningWorkdir(todoId) {
+      const todo = store.getTodo(todoId);
+      if (!todo?.planningSessionId) return;
+      if (!sessionStore.get(todo.planningSessionId)) return;
+      // 未绑定回退默认 personal（与 openPlanningSession 一致）；已运行 agent 仍用旧目录，下个新会话生效
+      sessionStore.update(todo.planningSessionId, {
+        workdir: todo.workdir ?? getTodoWorkdir(home),
+      });
     },
 
     worktreePathOf(task) {

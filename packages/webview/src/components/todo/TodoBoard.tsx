@@ -144,11 +144,11 @@ const TodoEditDialog: React.FC<{
     description: string;
     priority: MuseTodoPriority;
     tags: string[];
-    /** 绑定工作目录（编辑弹窗不显示 workdir，传当前值即可）。 */
+    /** 绑定工作目录（未绑定为空串）。 */
     workdir?: string;
   };
   allTags: string[];
-  /** 仅新建弹窗展示 workdir 选择行（编辑不支持修改）。 */
+  /** 展示 workdir 选择行（新建/编辑均支持绑定或修改；编辑时 null = 解除绑定）。 */
   showWorkdir?: boolean;
   /** 调系统目录选择器返回路径（无则隐藏选择按钮）；桌面端由 ChatContainer 注入。 */
   pickDirectory?: () => Promise<string | null>;
@@ -157,7 +157,8 @@ const TodoEditDialog: React.FC<{
     description: string;
     priority: MuseTodoPriority;
     tags: string[];
-    workdir?: string;
+    /** 空串/空白 = 解除绑定（null）。 */
+    workdir: string | null;
   }) => Promise<boolean>;
   onClose: () => void;
 }> = ({ heading, submitText, prefix, initial, allTags, showWorkdir, pickDirectory, onSubmit, onClose }) => {
@@ -187,7 +188,8 @@ const TodoEditDialog: React.FC<{
       description,
       priority,
       tags,
-      ...(workdir.trim() ? { workdir: workdir.trim() } : {}),
+      // 空串/纯空白 → null = 解除绑定（编辑场景）；新建时由调用方忽略 null
+      workdir: workdir.trim() || null,
     });
     if (ok) onClose();
     else setSaving(false);
@@ -478,7 +480,15 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
             pickDirectory={pickDirectory}
             allTags={allTags}
             onSubmit={async (v) => {
-              const todo = await createTodo({ ...v, source: "manual" });
+              // 新建：workdir 为空（null）即不绑定
+              const todo = await createTodo({
+                title: v.title,
+                description: v.description,
+                priority: v.priority,
+                tags: v.tags,
+                source: "manual",
+                ...(v.workdir ? { workdir: v.workdir } : {}),
+              });
               if (todo) {
                 selectTodo(todo.id);
                 return true;
@@ -759,8 +769,11 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
               description: editingTodo.description,
               priority: editingTodo.priority,
               tags: editingTodo.tags,
+              workdir: editingTodo.workdir ?? "",
             }}
             allTags={allTags}
+            showWorkdir
+            pickDirectory={pickDirectory}
             onSubmit={async (v) => !!(await updateTodo(editingTodo.id, v))}
             onClose={() => setEditingTodoId(null)}
           />

@@ -16,7 +16,7 @@ export interface NewTodoInput {
   priority?: MuseTodoPriority;
   source: MuseTodoSource;
   tags?: string[];
-  /** 绑定工作目录（新建时可选；创建后不可改）。 */
+  /** 绑定工作目录（新建时可选；创建后仅 pending 可改，编辑弹窗支持修改/解绑）。 */
   workdir?: string;
 }
 
@@ -58,7 +58,13 @@ interface TodoBoardState {
   setFilterByTodo(v: boolean): void;
   selectTodo(id: string): void;
   createTodo(input: NewTodoInput): Promise<MuseTodo | null>;
-  updateTodo(id: string, patch: Partial<Pick<MuseTodo, "title" | "description" | "priority" | "tags">>): Promise<MuseTodo | null>;
+  updateTodo(
+    id: string,
+    patch: Partial<Pick<MuseTodo, "title" | "description" | "priority" | "tags">> & {
+      /** null = 解除 workdir 绑定；缺省 = 不修改。 */
+      workdir?: string | null;
+    },
+  ): Promise<MuseTodo | null>;
   /** 取消 todo（级联取消未完成任务）：从列表移除 + 选中回退。 */
   cancelTodo(id: string): Promise<boolean>;
   /** 手动标记 todo 已完成（有任务未到终态时服务端 409）：成功从列表移除。 */

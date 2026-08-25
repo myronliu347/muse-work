@@ -40,6 +40,13 @@ function makeScheduler(opts: {
       return s as never;
     }),
     get: (id) => sessions.get(id) as never,
+    update: vi.fn((id, patch) => {
+      const s = sessions.get(id);
+      if (!s) return undefined;
+      const next = { ...s, ...patch };
+      sessions.set(id, next);
+      return next as never;
+    }),
     delete: vi.fn((id) => {
       const s = sessions.get(id);
       sessions.delete(id);
@@ -596,5 +603,150 @@ describe("todoScheduler", () => {
     const unbound = store.createTodo({ title: "t2", source: "session" });
     const opened2 = scheduler.openPlanningSession(unbound.id);
     expect(opened2!.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
+  });
+
+  it("首次执行 prompt 完整（标题+描述+workdir）；再次执行只带增量评论，不重复描述/总结", async () => {
+    const { store, scheduler, runner } = makeScheduler({});
+    const todo = store.createTodo({ title: "T-todo", source: "session" });
+    const task = store.createTask(todo.id, {
+      title: "K-task",
+      description: "任务描述内容",
+      workdir: "/p",
+    });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const execId = store.getTask(task.id)?.executionSessionId!;
+    const sendCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls;
+    const firstPrompt = sendCalls[0][1] as string;
+    // 首次：完整描述 + workdir
+    expect(firstPrompt).toContain("执行 Todo/Task 任务「K-task」");
+    expect(firstPrompt).toContain("任务描述（markdown）：\n任务描述内容");
+    expect(firstPrompt).toContain("工作目录：/p");
+    expect(firstPrompt).not.toContain("继续执行");
+
+    // 第一轮完成 → result 评论；用户/AI 追加评论
+    scheduler.handleTurnSettled(execId, { ok: true });
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("review"));
+    store.addComment(task.id, { author: "user", kind: "note", content: "这里要改一下" });
+    store.addComment(task.id, { author: "ai", kind: "note", content: "【AI 复核】建议补充测试" });
+    store.addComment(task.id, { author: "system", kind: "note", content: "系统备注（不该进 prompt）" });
+
+    // 继续执行（待审核 → 回待执行入队）
+    scheduler.enqueue(task.id);
+    await vi.waitFor(() => expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2));
+    const reexecPrompt = sendCalls[1][1] as string;
+    // 再次：继续执行样式，复用上下文
+    expect(reexecPrompt).toContain("继续执行 Todo/Task 任务「K-task」");
+    expect(reexecPrompt).toContain("工作目录：/p");
+    // 不重复完整描述、不带上次执行总结
+    expect(reexecPrompt).not.toContain("任务描述（markdown）");
+    expect(reexecPrompt).not.toContain("执行完成");
+    // 增量 = 最近 result 之后的 user/ai 评论（system 备注排除）
+    expect(reexecPrompt).toContain("用户：这里要改一下");
+    expect(reexecPrompt).toContain("AI：【AI 复核】建议补充测试");
+    expect(reexecPrompt).not.toContain("系统备注");
+    scheduler.stop();
+  });
+
+  it("再次执行但无 result 评论（执行中取消后恢复）→ 增量收集带全部 user/ai 评论", async () => {
+    const { store, scheduler, runner } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    // 取消（产生 canceled run，无 result 评论）
+    await scheduler.cancel(task.id);
+    expect(store.listRuns(task.id)[0].status).toBe("canceled");
+    // 取消后无法直接入队（cancelled）→ 模拟外部恢复为 pending
+    store.updateTaskStatus(task.id, "pending");
+    store.addComment(task.id, { author: "user", kind: "note", content: "手动加的评论" });
+    scheduler.enqueue(task.id);
+    await vi.waitFor(() => expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2));
+    const prompt = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls[1][1] as string;
+    // 无 result 评论 → 不判再次执行 → 完整 prompt
+    expect(prompt).toContain("（无描述）");
+    expect(prompt).not.toContain("继续执行");
+    scheduler.stop();
+  });
+
+  it("执行中取消删 worktree 后清引用：workdir 重置为主仓库根，requeue 重新建 worktree", async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-requeue-"));
+    execFileSync("git", ["init", "-b", "main"], { cwd: repo });
+    execFileSync("git", ["config", "user.email", "t@t"], { cwd: repo });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: repo });
+    fs.writeFileSync(path.join(repo, "a.txt"), "x\n");
+    execFileSync("git", ["add", "."], { cwd: repo });
+    execFileSync("git", ["commit", "-m", "init"], { cwd: repo });
+    const repoReal = fs.realpathSync(repo);
+
+    const { store, scheduler } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: repo });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    expect(store.getTask(task.id)?.worktreeName).toBe(task.id);
+    const wtPath = path.join(repo, ".wave", "worktrees", task.id);
+    expect(fs.existsSync(wtPath)).toBe(true);
+
+    // 执行中取消 → 删 worktree + 清引用
+    await scheduler.cancel(task.id);
+    expect(fs.existsSync(wtPath)).toBe(false);
+    const cleared = store.getTask(task.id)!;
+    expect(cleared.worktreeName).toBeUndefined();
+    expect(cleared.worktreeRepoRoot).toBeUndefined();
+    // workdir 重置为主仓库根（requeue 后 launch 重新建 worktree，不在已删路径执行）
+    expect(cleared.workdir).toBe(repoReal);
+
+    // requeue（模拟外部恢复 pending 后重新执行）→ 重新建 worktree
+    store.updateTaskStatus(task.id, "pending");
+    scheduler.enqueue(task.id);
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const requeued = store.getTask(task.id)!;
+    expect(requeued.worktreeName).toBe(task.id);
+    expect(requeued.worktreeRepoRoot).toBe(repoReal);
+    expect(fs.existsSync(path.join(repo, ".wave", "worktrees", task.id))).toBe(true);
+    scheduler.stop();
+    fs.rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("规划会话系统上下文含职责说明（规划/拆 task/不直接改代码/并发 3/复核/skill）", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "重构登录", source: "session" });
+    scheduler.openPlanningSession(todo.id);
+    const input = vi.mocked(sessionStore.create).mock.calls[0][0] as {
+      systemPrompt?: string;
+    };
+    expect(input.systemPrompt).toContain("负责分析、规划、拆解 task");
+    expect(input.systemPrompt).toContain("不直接改代码");
+    expect(input.systemPrompt).toContain("一次拆多个 task");
+    expect(input.systemPrompt).toContain("并发 3 并行执行");
+    expect(input.systemPrompt).toContain("复核执行结果");
+    expect(input.systemPrompt).toContain("todo:todo-management skill");
+  });
+
+  it("syncPlanningWorkdir：planning 会话已建时同步 workdir；解绑回退默认 personal", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session", workdir: "/tmp/bound" });
+    scheduler.openPlanningSession(todo.id);
+    const planId = store.getTodo(todo.id)?.planningSessionId!;
+    expect(sessionStore.get(planId)?.workdir).toBe("/tmp/bound");
+
+    // 修改 workdir → 同步
+    store.updateTodo(todo.id, { workdir: "/tmp/new" });
+    scheduler.syncPlanningWorkdir(todo.id);
+    expect(sessionStore.get(planId)?.workdir).toBe("/tmp/new");
+
+    // 解绑 → 回退默认 personal
+    store.updateTodo(todo.id, { workdir: null });
+    scheduler.syncPlanningWorkdir(todo.id);
+    expect(sessionStore.get(planId)?.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
+  });
+
+  it("syncPlanningWorkdir：无 planning 会话 / 无 todo 时静默", async () => {
+    const { store, scheduler } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session", workdir: "/tmp/a" });
+    // 未创建 planning 会话 → 不抛错
+    expect(() => scheduler.syncPlanningWorkdir(todo.id)).not.toThrow();
+    expect(() => scheduler.syncPlanningWorkdir("nope")).not.toThrow();
   });
 });

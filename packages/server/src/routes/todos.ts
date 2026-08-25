@@ -110,13 +110,21 @@ export function createTodoRoutes(
   });
 
   app.patch("/todos/:todoId", async (c) => {
-    let body: { title?: string; description?: string; priority?: string; tags?: unknown } | undefined;
+    let body:
+      | { title?: string; description?: string; priority?: string; tags?: unknown; workdir?: unknown }
+      | undefined;
     try {
       body = await c.req.json();
     } catch {
       body = undefined;
     }
-    const patch: { title?: string; description?: string; priority?: TodoPriority; tags?: string[] } = {};
+    const patch: {
+      title?: string;
+      description?: string;
+      priority?: TodoPriority;
+      tags?: string[];
+      workdir?: string | null;
+    } = {};
     if (body?.title !== undefined) patch.title = body.title.trim();
     if (body?.description !== undefined) patch.description = body.description;
     if (body?.priority !== undefined) {
@@ -124,14 +132,24 @@ export function createTodoRoutes(
       patch.priority = body.priority;
     }
     if (body?.tags !== undefined) patch.tags = isTags(body.tags) ? body.tags : undefined;
-    const todo = store.updateTodo(c.req.param("todoId"), patch);
+    // workdir：trim 后非空才绑定；空串/纯空白 = 解除绑定（null）
+    if (body?.workdir !== undefined) {
+      patch.workdir =
+        typeof body.workdir === "string" && body.workdir.trim()
+          ? body.workdir.trim()
+          : null;
+    }
+    const todoId = c.req.param("todoId");
+    const todo = store.updateTodo(todoId, patch);
     if (!todo) {
       // 区分不存在 vs 状态锁定
-      if (store.getTodo(c.req.param("todoId"))) {
+      if (store.getTodo(todoId)) {
         return c.json({ error: "todo locked (only pending editable)" }, 409);
       }
       return c.json({ error: "todo not found" }, 404);
     }
+    // workdir 变更 → 同步规划会话 workdir（仅 planning 会话已创建时生效；已运行 agent 仍用旧目录）
+    if (patch.workdir !== undefined) scheduler?.syncPlanningWorkdir(todoId);
     changed();
     return c.json({ todo });
   });

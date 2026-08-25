@@ -445,6 +445,8 @@ export class MuseApiClient {
       description?: string;
       priority?: MuseTodoPriority;
       tags?: string[];
+      /** null = 解除 workdir 绑定；缺省 = 不修改。 */
+      workdir?: string | null;
     },
   ): Promise<{ todo: MuseTodo }> {
     const res = await this.request(`/todos/${encodeURIComponent(id)}`, {
