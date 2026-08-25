@@ -40,7 +40,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 .desktop-panel-tab {
@@ -111,6 +113,87 @@
 }
 
 .desktop-panel-tab-close .codicon {
+  font-size: var(--font-size-1);
+}
+
+/* Open file tabs in the dock's top tab bar (VS Code preview-tab semantics):
+   preview tabs are italic (pinned by double-clicking the title), every tab
+   carries a close button that appears on hover like the kind tabs. */
+.file-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  max-width: 180px;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-1);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.file-tab:hover,
+.file-tab--active {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.file-tab--preview {
+  font-style: italic;
+}
+
+.file-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tab-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.file-tab .codicon {
+  font-size: 13px !important;
+}
+
+.file-tab-close {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: var(--gray-4);
+  color: var(--gray-11);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+.file-tab:hover .file-tab-close,
+.file-tab-close:focus-visible {
+  opacity: 1;
+}
+
+.file-tab-close:hover {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.file-tab-close .codicon {
   font-size: var(--font-size-1);
 }
 

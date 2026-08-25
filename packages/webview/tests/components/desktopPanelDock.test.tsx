@@ -5,6 +5,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DesktopPanelDock } from "../../src/components/desktop/DesktopPanelDock";
 import { MuseTheme } from "../../src/ui/theme";
+import type { FileViewState } from "../../src/types";
+
+const fileTab = (
+  path: string,
+  overrides: Partial<FileViewState> = {},
+): FileViewState => ({ path, host: "local", content: "x", ...overrides });
 
 const baseProps = {
   onSelect: () => {},
@@ -139,5 +145,139 @@ describe("DesktopPanelDock", () => {
     expect(screen.getByTestId("desktop-panel-dock").className).toContain(
       "desktop-panel-dock--fullscreen",
     );
+  });
+
+  describe("top-level file tabs", () => {
+    const tabs = [
+      fileTab("/w/app.ts", { pinned: true }),
+      fileTab("/w/b.ts"),
+    ];
+
+    it("replaces the 文件 kind tab with file-name tabs while the file panel is active", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["preview", "file"]}
+            active="file"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      // File-name tabs replace the 文件 kind tab; other kinds stay.
+      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
+      expect(screen.getByTestId("desktop-panel-tab-preview")).toBeInTheDocument();
+      const fileTabEls = screen.getAllByTestId("file-tab");
+      expect(fileTabEls).toHaveLength(2);
+      expect(fileTabEls[0]).toHaveAttribute("data-active", "true");
+      expect(fileTabEls[1]).toHaveAttribute("data-active", "false");
+    });
+
+    it("keeps the 文件 kind tab when no files are open", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["preview", "file"]}
+            active="file"
+            fileTabs={[]}
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(screen.getByTestId("desktop-panel-tab-file")).toBeInTheDocument();
+      expect(screen.queryAllByTestId("file-tab")).toHaveLength(0);
+    });
+
+    it("keeps file tabs visible when another panel is active (switching away does not lose open files)", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["preview", "file"]}
+            active="preview"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(screen.getAllByTestId("file-tab")).toHaveLength(2);
+      expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
+      expect(screen.getByTestId("desktop-panel-tab-preview")).toBeInTheDocument();
+    });
+
+    it("styles preview tabs italic and shows a close button on every tab", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      const fileTabEls = screen.getAllByTestId("file-tab");
+      expect(fileTabEls[0].classList.contains("file-tab--preview")).toBe(false);
+      expect(fileTabEls[1].classList.contains("file-tab--preview")).toBe(true);
+      expect(screen.getAllByTestId("file-tab-close")).toHaveLength(2);
+      expect(screen.queryAllByTestId("file-tab-pin")).toHaveLength(0);
+    });
+
+    it("selects a file tab on click and closes on X without selecting", () => {
+      const onSelectFileTab = vi.fn();
+      const onCloseFileTab = vi.fn();
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+            onSelectFileTab={onSelectFileTab}
+            onCloseFileTab={onCloseFileTab}
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+
+      fireEvent.click(screen.getAllByTestId("file-tab")[1]);
+      expect(onSelectFileTab).toHaveBeenCalledWith("/w/b.ts");
+
+      fireEvent.click(screen.getAllByTestId("file-tab-close")[0]);
+      expect(onCloseFileTab).toHaveBeenCalledWith("/w/app.ts");
+      expect(onSelectFileTab).toHaveBeenCalledTimes(1);
+    });
+
+    it("pins a preview tab on double-click of the title", () => {
+      const onPinFileTab = vi.fn();
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+            onPinFileTab={onPinFileTab}
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      fireEvent.dblClick(screen.getAllByTestId("file-tab")[1]);
+      expect(onPinFileTab).toHaveBeenCalledWith("/w/b.ts");
+    });
   });
 });

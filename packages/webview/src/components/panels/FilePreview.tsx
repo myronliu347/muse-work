@@ -101,6 +101,10 @@ export type FilePreviewProps = {
   /** Whether the find-in-file bar is open (owned by the parent pane). */
   searchOpen?: boolean;
   onCloseSearch?: () => void;
+  /** Preserved scroll offset for this file, restored when the tab re-activates. */
+  savedScrollTop?: number;
+  /** Reports scroll changes so the parent can persist per-file positions. */
+  onScrollChange?: (scrollTop: number) => void;
 };
 
 export const FilePreview: React.FC<FilePreviewProps> = ({
@@ -112,6 +116,8 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   onOpenExternal,
   searchOpen = false,
   onCloseSearch,
+  savedScrollTop,
+  onScrollChange,
 }) => {
   const { effective } = useMuseTheme();
   const dark = effective === "dark";
@@ -165,6 +171,54 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   useEffect(() => {
     if (!searchOpen) setSearchQuery("");
   }, [searchOpen]);
+
+  // Report scroll so the pane can keep per-tab positions. Re-attach when the
+  // rendered branch changes which container carries the scroll ref.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !onScrollChange) return;
+    const onScroll = () => onScrollChange(el.scrollTop);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [
+    onScrollChange,
+    fileView.path,
+    fileView.error,
+    fileView.unsupported,
+    fileView.imageBase64,
+    showCode,
+    markdown,
+  ]);
+
+  // Per-tab scroll memory: when this tab re-activates, restore its saved
+  // offset once the new file's content actually renders (highlighted lines
+  // land asynchronously; the rAF loop waits for them). An explicit startLine
+  // jump always wins over the saved position.
+  const lastRestoredPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastRestoredPathRef.current === fileView.path) return;
+    if (fileView.startLine !== undefined) return;
+    const saved = savedScrollTop;
+    if (saved === undefined || saved <= 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf = 0;
+    const tick = () => {
+      if (!el.isConnected) return;
+      const ready = markdown
+        ? !!el.querySelector(".file-pane-markdown")
+        : el.querySelectorAll(".file-pane-line").length > 0;
+      if (!ready) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastRestoredPathRef.current = fileView.path;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max > 0) el.scrollTop = Math.min(saved, max);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [fileView.path, fileView.startLine, savedScrollTop, markdown]);
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {

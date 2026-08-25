@@ -127,6 +127,66 @@ describe("FileTree", () => {
     expect(onOpenFile).toHaveBeenCalledWith("/work/a.ts");
   });
 
+  it("double-clicking a file opens it as a pinned tab", () => {
+    const tree = openTree({
+      childrenCache: {
+        "": [
+          {
+            name: "a.ts",
+            path: "/work/a.ts",
+            relativePath: "a.ts",
+            isDirectory: false,
+          },
+        ],
+      },
+    });
+    const onOpenFilePinned = vi.fn();
+
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={tree}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+        onOpenFilePinned={onOpenFilePinned}
+      />,
+    );
+
+    fireEvent.dblClick(screen.getByTestId("file-tree-row-a.ts"));
+    expect(onOpenFilePinned).toHaveBeenCalledWith("/work/a.ts");
+  });
+
+  it("does not pin on double-clicking a directory", () => {
+    const tree = openTree({
+      childrenCache: {
+        "": [
+          {
+            name: "src",
+            path: "/work/src",
+            relativePath: "src",
+            isDirectory: true,
+          },
+        ],
+      },
+    });
+    const onOpenFilePinned = vi.fn();
+
+    render(
+      <FileTree
+        workdir="/work"
+        vscode={{ postMessage }}
+        tree={tree}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+        onOpenFilePinned={onOpenFilePinned}
+      />,
+    );
+
+    fireEvent.dblClick(screen.getByTestId("file-tree-row-src"));
+    expect(onOpenFilePinned).not.toHaveBeenCalled();
+  });
+
   it("toggles directory expansion", () => {
     const tree = openTree({
       childrenCache: {

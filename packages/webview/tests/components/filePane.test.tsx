@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, fireEvent, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { FilePane } from "../../src/components/panels/FilePane";
+import { FilePreview } from "../../src/components/panels/FilePreview";
 import type { FileTreeState, FileViewState } from "../../src/types";
 import { emptyFileTreeState } from "../../src/stores/panelGroupStore";
 
@@ -81,6 +82,10 @@ function renderPane(
     vscode,
     rerenderWith,
   };
+}
+
+function makeTab(path: string, overrides: Partial<FileViewState> = {}): FileViewState {
+  return { path, host: "local", content: "const x = 1;\n", ...overrides };
 }
 
 describe("FilePane", () => {
@@ -522,6 +527,102 @@ describe("FilePane", () => {
         },
       });
       expect(screen.queryByTestId("file-search-btn")).toBeNull();
+    });
+  });
+
+  describe("per-tab markdown mode", () => {
+    const mdTab = (path: string): FileViewState => ({
+      path,
+      host: "local",
+      content: "# 标题",
+    });
+
+    it("remembers each tab's preview/source mode across switches", () => {
+      const { rerenderWith } = renderPane({
+        fileView: mdTab("/work/a/A.md"),
+      });
+      // Switch A to source mode.
+      fireEvent.click(screen.getByText("源码"));
+      expect(screen.getByTestId("file-md-toggle")).toBeInTheDocument();
+      const sourceBtn = () =>
+        screen
+          .getByTestId("file-md-toggle")
+          .querySelectorAll("button")[1] as HTMLButtonElement;
+      expect(sourceBtn().getAttribute("aria-pressed")).toBe("true");
+
+      // B still defaults to preview.
+      rerenderWith({
+        fileView: mdTab("/work/a/B.md"),
+      });
+      expect(sourceBtn().getAttribute("aria-pressed")).toBe("false");
+
+      // Back to A: source mode restored.
+      rerenderWith({
+        fileView: mdTab("/work/a/A.md"),
+      });
+      expect(sourceBtn().getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("closes the search bar when switching files", async () => {
+      const { rerenderWith } = renderPane({
+        fileView: makeTab("/work/a/a.ts"),
+      });
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(1);
+      });
+      fireEvent.click(screen.getByTestId("file-search-btn"));
+      expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
+      rerenderWith({
+        fileView: makeTab("/work/a/b.ts"),
+      });
+      expect(screen.queryByTestId("file-search-bar")).toBeNull();
+    });
+  });
+
+  describe("FilePreview scroll memory", () => {
+    it("restores a saved scroll offset once content renders", async () => {
+      render(
+        <FilePreview
+          fileView={makeFileView()}
+          workdir="/work/a"
+          savedScrollTop={120}
+        />,
+      );
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      const body = document.querySelector(
+        ".file-pane-preview-body",
+      ) as HTMLElement;
+      Object.defineProperty(body, "scrollHeight", { value: 1000 });
+      Object.defineProperty(body, "clientHeight", { value: 200 });
+      await waitFor(() => {
+        expect(body.scrollTop).toBe(120);
+      });
+    });
+
+    it("reports scroll changes to the pane", async () => {
+      const onScrollChange = vi.fn();
+      render(
+        <FilePreview
+          fileView={makeFileView()}
+          workdir="/work/a"
+          onScrollChange={onScrollChange}
+        />,
+      );
+      await waitFor(() => {
+        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      const body = document.querySelector(
+        ".file-pane-preview-body",
+      ) as HTMLElement;
+      Object.defineProperty(body, "scrollTop", {
+        value: 88,
+        writable: true,
+        configurable: true,
+      });
+      fireEvent.scroll(body);
+      expect(onScrollChange).toHaveBeenCalledWith(88);
     });
   });
 

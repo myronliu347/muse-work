@@ -37,11 +37,14 @@ describe("prunePanelGroupCache", () => {
 describe("releasePanelContent", () => {
   const groupWithBigPayloads = () => ({
     ...emptyPanelGroup(),
-    fileView: {
-      path: "/w/big.ts",
-      host: "local",
-      content: "export const x = 1;".repeat(1000),
-    },
+    fileTabs: [
+      {
+        path: "/w/big.ts",
+        host: "local",
+        content: "export const x = 1;".repeat(1000),
+      },
+    ],
+    activeFilePath: "/w/big.ts",
     diffView: { mode: "recent" as const, file: { path: "/w/a.ts", hunks: "diff --git ..." } },
     contentSearch: {
       ...emptyContentSearchState(),
@@ -51,9 +54,10 @@ describe("releasePanelContent", () => {
     },
   });
 
-  it("releases file view + search results when the file panel closes", () => {
+  it("releases file tabs + search results when the file panel closes", () => {
     const patch = releasePanelContent(groupWithBigPayloads(), "file");
-    expect(patch.fileView).toBeNull();
+    expect(patch.fileTabs).toEqual([]);
+    expect(patch.activeFilePath).toBeNull();
     expect(patch.contentSearch).toEqual(emptyContentSearchState());
   });
 
@@ -65,7 +69,8 @@ describe("releasePanelContent", () => {
   it("keeps file/diff contents when an unrelated panel closes", () => {
     const group = groupWithBigPayloads();
     const patch = releasePanelContent(group, "preview");
-    expect(patch.fileView).toBeUndefined();
+    expect(patch.fileTabs).toBeUndefined();
+    expect(patch.activeFilePath).toBeUndefined();
     expect(patch.diffView).toBeUndefined();
     expect(patch.contentSearch).toBeUndefined();
   });

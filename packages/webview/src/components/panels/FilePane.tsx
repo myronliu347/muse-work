@@ -35,6 +35,8 @@ export interface FilePaneProps {
   contentSearch?: ContentSearchState;
   onContentSearchChange?: (next: ContentSearchState) => void;
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
+  /** File-tree double-click: open as a permanent (pinned) tab. */
+  onOpenFilePinned?: (path: string) => void;
   /** Local HTML files: open in the built-in browser preview instead of the OS. */
   onOpenInPreview?: (path: string) => void;
   onRevealInFinder?: (path: string) => void;
@@ -59,13 +61,28 @@ export const FilePane: React.FC<FilePaneProps> = ({
   contentSearch = emptyContentSearchState(),
   onContentSearchChange,
   onOpenFile,
+  onOpenFilePinned,
   onOpenInPreview,
   onRevealInFinder,
   isStreaming,
   visible,
 }) => {
   const asideRef = useRef<HTMLElement>(null);
-  const [mdMode, setMdMode] = useState<"preview" | "source">("preview");
+  // Markdown preview/source mode is remembered per file (tab switch restores
+  // each tab's mode). Search-open is NOT per-tab — it resets on path change.
+  const [mdModeByPath, setMdModeByPath] = useState<
+    Record<string, "preview" | "source">
+  >({});
+  const mdMode = fileView
+    ? (mdModeByPath[fileView.path] ?? "preview")
+    : "preview";
+  const setMdModeForActive = (mode: "preview" | "source") => {
+    if (!fileView) return;
+    setMdModeByPath((prev) => ({ ...prev, [fileView.path]: mode }));
+  };
+  // Per-tab scroll offsets, recorded from the preview's scroll container so
+  // switching tabs restores each file's position (see FilePreview props).
+  const scrollTopsRef = useRef<Record<string, number>>({});
   const [searchOpen, setSearchOpen] = useState(false);
   const lastPathRef = useRef<string | null>(null);
   const streamingRef = useRef(false);
@@ -77,7 +94,6 @@ export const FilePane: React.FC<FilePaneProps> = ({
     onFileTreeChange(
       ensureExpandedForFile(fileTree, workdir, fileView.path),
     );
-    setMdMode("preview");
     setSearchOpen(false);
     // Only react to path changes; fileTree identity intentionally omitted
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,7 +221,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
                     type="button"
                     className="preview-pane-button"
                     aria-pressed={mdMode === "preview"}
-                    onClick={() => setMdMode("preview")}
+                    onClick={() => setMdModeForActive("preview")}
                   >
                     预览
                   </button>
@@ -213,7 +229,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
                     type="button"
                     className="preview-pane-button"
                     aria-pressed={mdMode === "source"}
-                    onClick={() => setMdMode("source")}
+                    onClick={() => setMdModeForActive("source")}
                   >
                     源码
                   </button>
@@ -277,6 +293,12 @@ export const FilePane: React.FC<FilePaneProps> = ({
                 }
                 searchOpen={searchOpen}
                 onCloseSearch={() => setSearchOpen(false)}
+                savedScrollTop={
+                  fileView ? scrollTopsRef.current[fileView.path] : undefined
+                }
+                onScrollChange={(scrollTop) => {
+                  scrollTopsRef.current[fileView.path] = scrollTop;
+                }}
               />
             )}
           </div>
@@ -288,6 +310,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
             tree={fileTree}
             onTreeChange={onFileTreeChange}
             onOpenFile={(path) => onOpenFile(path)}
+            onOpenFilePinned={onOpenFilePinned}
             onRefreshFile={refreshOpenFile}
             sidebarMode={fileSidebarMode}
             onSidebarModeChange={onFileSidebarModeChange}

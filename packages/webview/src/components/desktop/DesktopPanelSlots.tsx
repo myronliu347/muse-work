@@ -54,8 +54,14 @@ export interface DesktopPanelSlotsProps {
   diffView: DiffViewState | null;
   recentFiles: WorkspaceDiffFile[];
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
+  onOpenFilePinned: (path: string) => void;
   onSendMessage: (text: string) => void;
   fileView: FileViewState | null;
+  fileTabs: FileViewState[];
+  activeFilePath: string | null;
+  onSelectFileTab: (path: string) => void;
+  onCloseFileTab: (path: string) => void;
+  onPinFileTab: (path: string) => void;
   fileTree: FileTreeState;
   onFileTreeChange: (next: FileTreeState) => void;
   fileSidebarMode: FileSidebarMode;
@@ -101,8 +107,14 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   diffView,
   recentFiles,
   onOpenFile,
+  onOpenFilePinned,
   onSendMessage,
   fileView,
+  fileTabs,
+  activeFilePath,
+  onSelectFileTab,
+  onCloseFileTab,
+  onPinFileTab,
   fileTree,
   onFileTreeChange,
   fileSidebarMode,
@@ -168,6 +180,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           contentSearch={contentSearch}
           onContentSearchChange={onContentSearchChange}
           onOpenFile={onOpenFile}
+          onOpenFilePinned={onOpenFilePinned}
           onOpenInPreview={onOpenInPreview}
           onRevealInFinder={onRevealInFinder}
           isStreaming={isStreaming}
@@ -207,6 +220,11 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       )}
       onWidthChange={onWidthChange}
       maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
+      fileTabs={fileTabs}
+      activeFilePath={activeFilePath}
+      onSelectFileTab={onSelectFileTab}
+      onCloseFileTab={onCloseFileTab}
+      onPinFileTab={onPinFileTab}
     >
       {PANEL_ORDER.filter((kind) => mounted.includes(kind)).map((kind) => (
         <div

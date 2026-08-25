@@ -107,7 +107,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     widths: panelWidths,
     dockFullscreen,
     previewUrl,
-    fileView,
+    fileTabs,
+    activeFilePath,
     diffView,
     fileTree,
     fileSidebarMode,
@@ -116,6 +117,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
+  // Single-file view for the panel body = the active tab (multi-tab: the tab
+  // bar lives in FilePane; everything downstream keeps working on one view).
+  const fileView = useMemo(
+    () => fileTabs.find((t) => t.path === activeFilePath) ?? null,
+    [fileTabs, activeFilePath],
+  );
   const previewUrlRef = useRef(previewUrl);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [chatColumnWidth, setChatColumnWidth] = useState(
@@ -337,6 +344,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   });
   const {
     handleOpenFile,
+    handleOpenFilePin,
+    handleSelectFileTab,
+    handleCloseFileTab,
+    handlePinFileTab,
     handleRevealInFinder,
     handleOpenFileHistoryDiff,
     handleRevertFileHistory,
@@ -623,8 +634,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     diffView,
     recentFiles: recentDiffFiles,
     onOpenFile: handleOpenFile,
+    onOpenFilePinned: handleOpenFilePin,
     onSendMessage: (text) => handleSendMessage(text),
     fileView,
+    fileTabs,
+    activeFilePath,
+    onSelectFileTab: handleSelectFileTab,
+    onCloseFileTab: handleCloseFileTab,
+    onPinFileTab: handlePinFileTab,
     fileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,

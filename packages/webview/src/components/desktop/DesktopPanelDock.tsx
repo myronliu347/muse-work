@@ -1,5 +1,5 @@
 import React from "react";
-import type { DesktopPanelKind, PanelToggleProps } from "../../types";
+import type { DesktopPanelKind, FileViewState, PanelToggleProps } from "../../types";
 import {
   PANEL_ADD_ORDER,
   PANEL_TAB_ICONS,
@@ -9,6 +9,7 @@ import {
 import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
+import { FileIcon } from "../panels/FileIcon";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 
@@ -25,6 +26,13 @@ export interface DesktopPanelDockProps {
   width: number;
   onWidthChange: (width: number) => void;
   maxWidth: number;
+  /** Open file tabs — top-level tabs in the dock's tab bar (VS Code style).
+   * While any files are open the "文件" kind tab yields its place to them. */
+  fileTabs?: FileViewState[];
+  activeFilePath?: string | null;
+  onSelectFileTab?: (path: string) => void;
+  onCloseFileTab?: (path: string) => void;
+  onPinFileTab?: (path: string) => void;
   children: React.ReactNode;
 }
 
@@ -41,6 +49,11 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   width,
   onWidthChange,
   maxWidth,
+  fileTabs = [],
+  activeFilePath = null,
+  onSelectFileTab,
+  onCloseFileTab,
+  onPinFileTab,
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
@@ -66,7 +79,13 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     window.addEventListener("mouseup", onUp);
   };
 
-  const tabs = PANEL_TAB_ORDER.filter((kind) => checked.includes(kind));
+  // Open files live in the dock's top tab bar regardless of which panel is
+  // active (switching to the diff/preview panel keeps the file tabs visible).
+  // While files are open the "文件" kind tab yields its place to them.
+  const showFileTabs = fileTabs.length > 0;
+  const kindTabs = PANEL_TAB_ORDER.filter(
+    (kind) => checked.includes(kind) && !(showFileTabs && kind === "file"),
+  );
   const canAdd = PANEL_ADD_ORDER.some(
     (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
   );
@@ -108,7 +127,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       )}
       <div className="desktop-panel-dock-header">
         <div className="desktop-panel-dock-tabs">
-          {tabs.map((kind) => (
+          {kindTabs.map((kind) => (
             <div
               key={kind}
               className={`desktop-panel-tab${kind === active ? " desktop-panel-tab--active" : ""}`}
@@ -139,6 +158,43 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </button>
             </div>
           ))}
+          {showFileTabs &&
+            fileTabs.map((tab) => {
+              const isActive = tab.path === activeFilePath;
+              const name =
+                tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
+              return (
+                <div
+                  key={tab.path}
+                  className={`file-tab${isActive ? " file-tab--active" : ""}${tab.pinned ? "" : " file-tab--preview"}`}
+                  data-testid="file-tab"
+                  data-path={tab.path}
+                  data-active={isActive ? "true" : "false"}
+                  title={tab.path}
+                  onClick={() => onSelectFileTab?.(tab.path)}
+                  onDoubleClick={() => onPinFileTab?.(tab.path)}
+                >
+                  <FileIcon
+                    name={name}
+                    className="file-tab-icon"
+                  />
+                  <span className="file-tab-label">{name}</span>
+                  <button
+                    type="button"
+                    className="file-tab-close"
+                    data-testid="file-tab-close"
+                    title="关闭"
+                    aria-label="关闭"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseFileTab?.(tab.path);
+                    }}
+                  >
+                    <i className="codicon codicon-close" aria-hidden />
+                  </button>
+                </div>
+              );
+            })}
           {canAdd && (
             <div className="desktop-panel-add">
               <PanelAddMenu

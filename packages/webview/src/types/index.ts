@@ -542,6 +542,12 @@ export interface FileViewState {
   totalLines?: number;
   /** Base64 data URL for remote images, inlined in the panel. */
   imageBase64?: string;
+  /**
+   * Tab pin state (VS Code preview-tab semantics): unpinned tabs are
+   * "preview" — replaced in place when another file opens; pinned tabs are
+   * permanent and never replaced (there is no unpin).
+   */
+  pinned?: boolean;
 }
 
 /**

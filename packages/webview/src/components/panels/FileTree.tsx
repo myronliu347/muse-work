@@ -26,6 +26,8 @@ export type FileTreeProps = {
   tree: FileTreeState;
   onTreeChange: (next: FileTreeState) => void;
   onOpenFile: (absPath: string) => void;
+  /** Double-click a file: open it as a permanent (pinned) tab. */
+  onOpenFilePinned?: (absPath: string) => void;
   onRefreshFile?: () => void;
   sidebarMode?: FileSidebarMode;
   onSidebarModeChange?: (mode: FileSidebarMode) => void;
@@ -79,6 +81,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   tree,
   onTreeChange,
   onOpenFile,
+  onOpenFilePinned,
   onRefreshFile,
   sidebarMode = "tree",
   onSidebarModeChange,
@@ -396,6 +399,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
                 onClick={() => {
                   if (row.isDirectory) toggleDir(row.relativePath);
                   else onOpenFile(row.path);
+                }}
+                onDoubleClick={() => {
+                  if (!row.isDirectory) onOpenFilePinned?.(row.path);
                 }}
               >
                 {row.isDirectory ? (

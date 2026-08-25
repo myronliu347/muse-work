@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { firstPanelTab, type CollapsedTabs } from "../muse/panelTabs";
+import { emptyFileTabsState } from "../muse/fileTabs";
 import type {
   DesktopPanelKind,
   FileSidebarMode,
@@ -92,7 +93,10 @@ export function releasePanelContent(
   kind: DesktopPanelKind,
 ): Partial<PanelGroupState> {
   if (kind === "file") {
-    return { fileView: null, contentSearch: emptyContentSearchState() };
+    return {
+      ...emptyFileTabsState(),
+      contentSearch: emptyContentSearchState(),
+    };
   }
   if (kind === "diff") {
     return { diffView: null };
@@ -117,7 +121,10 @@ export interface PanelGroupState {
   /** Dock covers the chat column; cleared when the dock closes. */
   dockFullscreen: boolean;
   previewUrl: string | null;
-  fileView: FileViewState | null;
+  /** Open file tabs (opening order) — see muse/fileTabs.ts for semantics. */
+  fileTabs: FileViewState[];
+  /** Path of the tab rendered in the file pane (null → placeholder). */
+  activeFilePath: string | null;
   diffView: DiffViewState | null;
   fileTree: FileTreeState;
   fileSidebarMode: FileSidebarMode;
@@ -140,7 +147,8 @@ export function emptyPanelGroup(): PanelGroupState {
     collapsedTabs: null,
     dockFullscreen: false,
     previewUrl: null,
-    fileView: null,
+    fileTabs: [],
+    activeFilePath: null,
     diffView: null,
     fileTree: emptyFileTreeState(),
     fileSidebarMode: "tree",

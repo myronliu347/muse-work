@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import { patchPaneUi, usePanelGroupStore } from "../stores";
 import { useTodoBoardStore } from "../stores/todoBoardStore";
+import { upsertFileContentTab } from "./fileTabs";
 import { stripImageSourceMarkers } from "../utils/messageUtils";
 import type { MuseApiClient } from "./apiClient";
 
@@ -154,13 +155,22 @@ export function createMessageHandler({
       case "desktopFileContent":
         // File panel content reply (file panel spec scenario 1/2). Routed by
         // paneId so a sibling pane's reply never overwrites this pane's view.
+        // Multi-tab: fill the tab for this path (keeping its pin state and
+        // position), or build one and activate it when no tab exists.
         if (!forThisPane(message)) break;
         {
           const key = groupKeyRef.current;
           if (key) {
-            usePanelGroupStore.getState().patchGroup(key, {
-              fileView: message.fileView as FileViewState,
-            });
+            const incoming = message.fileView as FileViewState;
+            usePanelGroupStore.getState().patchGroup(key, (group) =>
+              upsertFileContentTab(
+                {
+                  fileTabs: group.fileTabs ?? [],
+                  activeFilePath: group.activeFilePath ?? null,
+                },
+                incoming,
+              ),
+            );
           }
         }
         break;

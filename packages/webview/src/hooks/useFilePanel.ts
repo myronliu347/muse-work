@@ -6,6 +6,12 @@ import type {
   SessionMetadata,
 } from "../types";
 import type { MuseApiClient } from "../muse/apiClient";
+import {
+  closeFileTab,
+  openFileTab,
+  pinFileTab,
+  selectFileTab,
+} from "../muse/fileTabs";
 import { emptyContentSearchState } from "../stores";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
 import type { ChatAppCore } from "./useChatAppCore";
@@ -14,6 +20,11 @@ import type { PreviewHandlers } from "./usePreview";
 
 export interface FilePanelHandlers {
   handleOpenFile: (path: string, startLine?: number, endLine?: number) => void;
+  /** Open straight into a permanent (pinned) tab — file-tree double-click. */
+  handleOpenFilePin: (path: string) => void;
+  handleSelectFileTab: (path: string) => void;
+  handleCloseFileTab: (path: string) => void;
+  handlePinFileTab: (path: string) => void;
   handleRevealInFinder: (path: string) => void;
   handleOpenFileHistoryDiff: (path: string) => void;
   handleRevertFileHistory: (messageIds: string[]) => void;
@@ -144,29 +155,24 @@ export function useFilePanel({
   // loading stub; the host reads the file (local fs or over ssh) and replies
   // with desktopFileContent to fill it in. The host is captured per-pane so a
   // split-view sibling's click never resolves against this pane's host.
+  // Multi-tab (VS Code preview semantics): already-open files are activated
+  // (same path re-click keeps the old content until the reply lands — soft
+  // refresh), new files enter a preview tab, replacing the existing preview.
   const handleOpenFile = useCallback(
     (path: string, startLine?: number, endLine?: number) => {
       if (!path) return;
       if (!tryOpenPanel("file")) return;
-      // Re-clicking the file already shown re-reads it (soft refresh: keep the
-      // old content until the host reply lands, matching the diff pane).
-      updatePanelGroup((group) => ({
-        fileView:
-          group.fileView && group.fileView.path === path
-            ? {
-                ...group.fileView,
-                loading: true,
-                startLine,
-                endLine,
-              }
-            : {
-                path,
-                host: effectiveHost,
-                loading: true,
-                startLine,
-                endLine,
-              },
-      }));
+      updatePanelGroup((group) =>
+        openFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+          effectiveHost,
+          { startLine, endLine },
+        ),
+      );
       postToHost({
         command: "openFile",
         path,
@@ -183,6 +189,90 @@ export function useFilePanel({
       postToHost,
       updatePanelGroup,
     ],
+  );
+
+  // File-tree double-click: open straight into a permanent (pinned) tab so
+  // it is never replaced by later preview opens.
+  const handleOpenFilePin = useCallback(
+    (path: string) => {
+      if (!path) return;
+      if (!tryOpenPanel("file")) return;
+      updatePanelGroup((group) =>
+        openFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+          effectiveHost,
+          { pinned: true },
+        ),
+      );
+      postToHost({
+        command: "openFile",
+        path,
+        host: effectiveHost,
+        workdir: effectiveWorkdir ?? undefined,
+      });
+    },
+    [
+      tryOpenPanel,
+      effectiveHost,
+      effectiveWorkdir,
+      postToHost,
+      updatePanelGroup,
+    ],
+  );
+
+  // Clicking a file-name tab in the dock's top bar also brings the file panel
+  // forward (the tab bar is shared with the other panels).
+  const handleSelectFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      if (!tryOpenPanel("file")) return;
+      updatePanelGroup((group) =>
+        selectFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+        ),
+      );
+    },
+    [tryOpenPanel, updatePanelGroup],
+  );
+
+  const handleCloseFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      updatePanelGroup((group) =>
+        closeFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+        ),
+      );
+    },
+    [updatePanelGroup],
+  );
+
+  const handlePinFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      updatePanelGroup((group) =>
+        pinFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+        ),
+      );
+    },
+    [updatePanelGroup],
   );
 
   const handleRevealInFinder = useCallback(
@@ -266,6 +356,10 @@ export function useFilePanel({
 
   return {
     handleOpenFile,
+    handleOpenFilePin,
+    handleSelectFileTab,
+    handleCloseFileTab,
+    handlePinFileTab,
     handleRevealInFinder,
     handleOpenFileHistoryDiff,
     handleRevertFileHistory,
