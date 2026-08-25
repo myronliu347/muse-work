@@ -331,3 +331,195 @@
   outline-offset: -1px;
 }
 
+/* 列表/树视图切换按钮（工具栏左侧，紧贴变更范围下拉框） */
+.diff-view-mode-toggle {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.diff-view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-1);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.diff-view-mode-btn:hover {
+  background: var(--gray-4);
+}
+
+.diff-view-mode-btn[aria-pressed="true"] {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+/* 树视图：左侧 = 选中文件的 diff 内容区，右侧 = 变更文件树导航。
+   `.diff-pane-body` 本身是外层滚动容器，这里改为内部各自滚动。 */
+.diff-pane-tree-view {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diff-pane-tree-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-pane-tree-nav {
+  flex-shrink: 0;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--gray-6);
+  background: var(--gray-2);
+}
+
+.diff-pane-tree-header {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  color: var(--gray-12);
+  border-bottom: 1px solid var(--gray-6);
+}
+
+.diff-pane-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-1) 0;
+}
+
+.diff-tree-dir,
+.diff-tree-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.diff-tree-dir:hover,
+.diff-tree-file:hover {
+  background: var(--gray-4);
+}
+
+.diff-tree-file--active {
+  background: color-mix(in srgb, var(--accent-9) 25%, transparent);
+}
+
+.diff-tree-chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--gray-11);
+  opacity: 0.85;
+}
+
+.diff-tree-folder-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  font-size: var(--font-size-2);
+  color: var(--gray-11);
+}
+
+.diff-tree-dir-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-tree-dir-count {
+  flex-shrink: 0;
+  color: var(--gray-9);
+  font-size: var(--font-size-1);
+}
+
+.diff-tree-file-status {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2);
+  color: var(--gray-11);
+}
+
+.diff-tree-file-status .codicon {
+  font-size: var(--font-size-2);
+  color: inherit;
+}
+
+.diff-pane .diff-tree-file-status-added {
+  color: var(--green-11);
+}
+
+.diff-pane .diff-tree-file-status-modified {
+  color: var(--amber-11);
+}
+
+.diff-pane .diff-tree-file-status-deleted {
+  color: var(--red-11);
+}
+
+.diff-pane .diff-tree-file-status-renamed {
+  color: var(--accent-11);
+}
+
+.diff-pane .diff-tree-file-status-untracked {
+  color: var(--gray-11);
+}
+
+.diff-tree-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-tree-file-stats {
+  flex-shrink: 0;
+  display: inline-flex;
+  gap: var(--space-1);
+  font-family: Menlo, Monaco, 'Courier New', monospace;
+  font-size: var(--font-size-1);
+}
+
+.diff-tree-file-stats-add {
+  color: var(--green-11);
+}
+
+.diff-tree-file-stats-del {
+  color: var(--red-11);
+}
+

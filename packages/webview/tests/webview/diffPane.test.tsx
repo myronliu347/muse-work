@@ -956,4 +956,155 @@ describe("DiffPane", () => {
       ).toBe(true);
     });
   });
+
+  describe("tree view (列表/树视图切换)", () => {
+    it("shows the view toggle icons and defaults to list view", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([makeFile()]);
+      expect(screen.getByTestId("diff-view-list")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-view-tree")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-view-list")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByTestId("diff-view-tree")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      // List view still renders the accordion file blocks, no tree nav.
+      expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
+      expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+    });
+
+    it("switching to tree view shows the right-side tree and the first file diff on the left", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([
+        makeFile({ path: "src/a.ts" }),
+        makeFile({ path: "lib/c.ts" }),
+      ]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      expect(screen.getByTestId("diff-view-tree")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      // Right side: change tree with directory nodes.
+      expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-tree-dir-src")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-tree-dir-lib")).toBeInTheDocument();
+      // Left side: the first file's diff block is shown by default.
+      expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
+      expect(screen.getByTestId("pierre-patch-diff")).toBeInTheDocument();
+      expect(screen.getByText("new1")).toBeInTheDocument();
+      // Both files appear as leaf nodes in the tree.
+      expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
+    });
+
+    it("collapses and expands a directory node in the tree", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([
+        makeFile({ path: "src/a.ts" }),
+        makeFile({ path: "lib/c.ts" }),
+      ]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
+      const srcDir = screen.getByTestId("diff-tree-dir-src");
+      expect(srcDir).toHaveAttribute("aria-expanded", "true");
+      fireEvent.click(srcDir);
+      expect(srcDir).toHaveAttribute("aria-expanded", "false");
+      // The src/a.ts leaf is hidden; lib/c.ts remains.
+      const leaves = screen.getAllByTestId("diff-tree-file-modified");
+      expect(leaves).toHaveLength(1);
+      expect(leaves[0]).toHaveAttribute("data-path", "lib/c.ts");
+      fireEvent.click(srcDir);
+      expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
+    });
+
+    it("clicking a tree file switches the left diff content", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([
+        makeFile({
+          path: "src/a.ts",
+          hunks: "@@ -1,1 +1,2 @@\n-old\n+first-file",
+        }),
+        makeFile({
+          path: "lib/c.ts",
+          hunks: "@@ -1,1 +1,2 @@\n-old\n+second-file",
+        }),
+      ]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      // Default selection is the first file (src/a.ts).
+      expect(screen.getByText("first-file")).toBeInTheDocument();
+      const cNode = screen
+        .getAllByTestId("diff-tree-file-modified")
+        .find((el) => el.getAttribute("data-path") === "lib/c.ts") as HTMLElement;
+      fireEvent.click(cNode);
+      expect(cNode).toHaveClass("diff-tree-file--active");
+      expect(screen.getByText("second-file")).toBeInTheDocument();
+      expect(screen.queryByText("first-file")).not.toBeInTheDocument();
+    });
+
+    it("keeps line comments and open-file working in tree view", () => {
+      const onOpenFile = vi.fn();
+      const onAddComment = vi.fn();
+      renderPane({
+        initialMode: "unstaged",
+        workdir: "/repo",
+        onOpenFile,
+        onAddComment,
+      });
+      sendDiffResult([makeFile()]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      // Open-file: clicking the path in the left detail resolves against workdir.
+      fireEvent.click(screen.getByTestId("diff-file-path"));
+      expect(onOpenFile).toHaveBeenCalledWith("/repo/src/a.ts");
+      // Line comment: gutter control still opens the comment box and submits.
+      fireEvent.click(screen.getAllByTestId("diff-comment-add")[0]);
+      expect(screen.getByTestId("diff-comment-box")).toBeInTheDocument();
+      fireEvent.change(screen.getByTestId("diff-comment-input"), {
+        target: { value: "改这里" },
+      });
+      fireEvent.click(screen.getByTestId("diff-comment-submit"));
+      expect(onAddComment).toHaveBeenCalledWith(
+        "**差异评论** · src/a.ts\n`+`「new1」\n\n改这里",
+      );
+      expect(screen.queryByTestId("diff-comment-box")).not.toBeInTheDocument();
+    });
+
+    it("builds the tree relative to workdir for absolute paths under it", () => {
+      renderPane({ initialMode: "unstaged", workdir: "/Users/lyy/repo" });
+      sendDiffResult([
+        makeFile({
+          path: "/Users/lyy/repo/frontend/README.md",
+          hunks: "@@ -1 +1 @@\n-old\n+new-readme",
+        }),
+      ]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      // The tree starts at the workdir root, not the filesystem root.
+      expect(screen.getByTestId("diff-tree-dir-frontend")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("diff-tree-dir-Users"),
+      ).not.toBeInTheDocument();
+      // The file node keeps its original absolute path for open/revert.
+      expect(screen.getByTestId("diff-tree-file-modified")).toHaveAttribute(
+        "data-path",
+        "/Users/lyy/repo/frontend/README.md",
+      );
+    });
+
+    it("merges multi-level single-child directory chains into one node", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([makeFile({ path: "a/b/c/file.ts" })]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      // The whole a/b/c chain collapses into a single directory row.
+      const dirNode = screen.getByTestId("diff-tree-dir-a/b/c");
+      expect(dirNode).toHaveTextContent("a/b/c");
+      expect(screen.getByTestId("diff-tree-file-modified")).toBeInTheDocument();
+      // Collapsing the merged node hides the file underneath.
+      fireEvent.click(dirNode);
+      expect(dirNode).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.queryByTestId("diff-tree-file-modified"),
+      ).not.toBeInTheDocument();
+    });
+  });
 });
