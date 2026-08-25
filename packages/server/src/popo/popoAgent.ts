@@ -19,6 +19,12 @@ export const POPO_DISALLOWED_TOOLS = ["Workflow"] as const;
 
 export interface PopoAgentRunner {
   run(content: string): Promise<string>;
+  /**
+   * 清空该会话的 agent 上下文（/clear 命令）。p2p 常驻 runner 实现为
+   * agent.clearMessages()（SDK 清内存+换新 sessionId，onWaveSessionId 自动落库）；
+   * team runner 每消息新建 agent，无持久上下文可清，空实现。
+   */
+  clear?(): Promise<void>;
 }
 
 export interface PopoAgentFactory {
@@ -188,13 +194,21 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       residentAgents.set(chat.chatKey, agent);
       const runner: PopoAgentRunner = {
         run: (content) => serialized(chat.chatKey, () => runTurn(agent, chat, content)),
+        // 与 run 同链串行：等正在跑的消息结束后再清，避免上下文交错。
+        clear: () =>
+          serialized(chat.chatKey, async () => {
+            await agent.clearMessages?.();
+            return "";
+          }).then(() => undefined),
       };
       residentRunners.set(chat.chatKey, runner);
       return runner;
     }
 
     // 群聊：每条消息新建 agent，用完销毁；有后台任务则等任务结束再销毁。
+    // clear 空实现：每消息新建 agent，无跨消息持久上下文（见 PopoAgentRunner 注释）。
     return {
+      clear: async () => undefined,
       run: (content) =>
         serialized(chat.chatKey, async () => {
           const agent = await createSdkAgent(chat);

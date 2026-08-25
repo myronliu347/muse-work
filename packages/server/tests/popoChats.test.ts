@@ -54,4 +54,29 @@ describe("popo chatStore", () => {
     }
     expect(store.getChat(chat.chatKey)?.messages.map((m) => m.content)).toEqual(["2", "3", "4"]);
   });
+
+  it("clearMessages empties history, keeps waveSessionId, and persists", () => {
+    const home = tempHome();
+    const store = createChatStore({ home });
+    const chat = store.getOrCreateChat("p2p:me@corp.netease.com", "p2p", "me@corp.netease.com");
+    store.setWaveSessionId(chat.chatKey, "wave-1");
+    store.appendMessage(chat.chatKey, { role: "user", content: "hi", at: "t1" });
+    store.appendMessage(chat.chatKey, { role: "assistant", content: "yo", at: "t2" });
+
+    store.clearMessages(chat.chatKey);
+    const got = store.getChat(chat.chatKey);
+    expect(got?.messages).toEqual([]);
+    // agent 侧会话由 runner.clear 换新，展示层不动 waveSessionId
+    expect(got?.waveSessionId).toBe("wave-1");
+
+    const reloaded = createChatStore({ home });
+    const reloadedChat = reloaded.getChat(chat.chatKey);
+    expect(reloadedChat?.messages).toEqual([]);
+    expect(reloadedChat?.waveSessionId).toBe("wave-1");
+  });
+
+  it("clearMessages on missing chat is a no-op", () => {
+    const store = createChatStore({ home: tempHome() });
+    expect(() => store.clearMessages("p2p:nobody@corp.netease.com")).not.toThrow();
+  });
 });

@@ -6,6 +6,9 @@ import type { Sender } from "./sender.js";
 
 export const ACK_MESSAGE = "收到，马上处理，请稍等一会....";
 export const REJECT_MESSAGE = "大胆，只有尊敬的大人可以指挥我做事";
+/** /clear 控制命令：清空上下文后回复的确认消息 */
+export const CLEAR_MESSAGE = "已清空上下文";
+export const CLEAR_COMMAND = "/clear";
 
 export interface PopoHandler {
   handle(eventType: string, eventData: Record<string, unknown>): Promise<void>;
@@ -63,6 +66,33 @@ export function createPopoHandler(options: PopoHandlerOptions): PopoHandler {
     return undefined;
   }
 
+  /** /clear 控制命令：不进入 agent 流程，清 agent 上下文 + 展示历史后回确认。 */
+  async function handleClear(
+    chatKey: string,
+    type: PopoChatType,
+    title: string,
+    receiver: string,
+  ): Promise<void> {
+    chatStore.getOrCreateChat(chatKey, type, title);
+    try {
+      const record = chatStore.getChat(chatKey);
+      const runner = await agentFactory(record ?? { chatKey, type });
+      await runner.clear?.();
+      chatStore.clearMessages(chatKey);
+      await sender.sendText(receiver, CLEAR_MESSAGE);
+      chatStore.appendMessage(chatKey, {
+        role: "assistant",
+        content: CLEAR_MESSAGE,
+        at: new Date().toISOString(),
+        to: receiver,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("popo clear failed", { chatKey, error: message });
+      await sender.sendText(receiver, `处理出错：${message}`);
+    }
+  }
+
   return {
     async handle(eventType, eventData) {
       const chat = toChat(eventType, eventData);
@@ -75,6 +105,13 @@ export function createPopoHandler(options: PopoHandlerOptions): PopoHandler {
       if (from !== config.masterUid) {
         logger.info("popo rejected non-master", { from });
         await sender.sendText(receiver, REJECT_MESSAGE);
+        return;
+      }
+
+      // /clear 控制命令：群聊先剥 @提及再精确匹配，命中则不进入 agent 流程。
+      const body = type === "team" ? stripAtMention(notify) : notify;
+      if (body.trim() === CLEAR_COMMAND) {
+        await handleClear(chatKey, type, title, receiver);
         return;
       }
 

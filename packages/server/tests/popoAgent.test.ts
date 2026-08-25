@@ -308,4 +308,67 @@ describe("popoAgent", () => {
       { type: "local", path: expect.stringMatching(/plugins[\\/]todo$/) },
     ]);
   });
+
+  it("p2p clear calls agent.clearMessages", async () => {
+    let clearCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("x"),
+        clearMessages: async () => {
+          clearCalls += 1;
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.clear?.();
+    expect(clearCalls).toBe(1);
+  });
+
+  it("p2p clear is serialized behind an in-flight run", async () => {
+    const order: string[] = [];
+    let releaseSend: () => void = () => undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        sendMessage: async () => {
+          order.push("run-start");
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+          order.push("run-end");
+        },
+        clearMessages: async () => {
+          order.push("clear");
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runPromise = runner.run("hello");
+    await vi.waitFor(() => expect(order).toContain("run-start"));
+    const clearPromise = runner.clear?.();
+    expect(order).toEqual(["run-start"]);
+    releaseSend();
+    await Promise.all([runPromise, clearPromise]);
+    // clear 等正在跑的消息完整结束后才执行，不与消息交错
+    expect(order).toEqual(["run-start", "run-end", "clear"]);
+  });
+
+  it("team clear is a no-op and does not create an agent", async () => {
+    let createCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => {
+        createCalls += 1;
+        return stubAgent("x");
+      },
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    await runner.clear?.();
+    expect(createCalls).toBe(0);
+  });
 });

@@ -30,6 +30,8 @@ export interface ChatStore {
   listChats(): PopoChat[];
   getOrCreateChat(chatKey: string, type: PopoChatType, title: string): PopoChat;
   appendMessage(chatKey: string, message: PopoMessage): void;
+  /** 清空展示历史（/clear 命令）；不动 waveSessionId（agent 侧由 runner.clear 负责换新会话） */
+  clearMessages(chatKey: string): void;
   setWaveSessionId(chatKey: string, waveSessionId: string): void;
   setProcessing(chatKey: string, processing: boolean): void;
 }
@@ -113,6 +115,13 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
       const chat = chats.get(chatKey);
       if (!chat) return;
       chat.waveSessionId = waveSessionId;
+      persist();
+    },
+    clearMessages(chatKey) {
+      const chat = chats.get(chatKey);
+      if (!chat) return;
+      chat.messages = [];
+      chat.updatedAt = Date.now();
       persist();
     },
     setProcessing(chatKey, processing) {
