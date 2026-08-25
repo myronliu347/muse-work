@@ -67,15 +67,16 @@ const MOCK_PROTOTYPE_HTML = `
 
 /**
  * Mock of the guest comment card, visually faithful to pickerPreload.showCard:
- * 280px wide, themed via the same --vscode-* vars the real palette samples.
+ * 280px wide, themed via the same Muse theme vars (--accent-9 / --gray-*) the
+ * real palette samples from the host.
  */
 const mockCardHtml = (comment: string) => `
-<div id="mock-picker-card" style="position:absolute;width:280px;background:var(--vscode-panel-background,var(--vscode-editor-background));color:var(--vscode-foreground);border:1px solid var(--vscode-panel-border,rgba(128,128,128,0.35));border-radius:6px;padding:6px;font-size:12px;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:20;">
-  <div style="display:flex;flex-direction:column;gap:2px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-focusBorder);border-radius:6px;padding:6px;">
+<div id="mock-picker-card" style="position:absolute;width:280px;background:var(--gray-2,#1e1e1e);color:var(--gray-12,#cccccc);border:1px solid var(--gray-6,rgba(128,128,128,0.35));border-radius:6px;padding:6px;font-size:12px;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:20;">
+  <div style="display:flex;flex-direction:column;gap:2px;background:var(--gray-3,#3c3c3c);color:var(--gray-12,#cccccc);border:1px solid var(--accent-9,#c1292e);border-radius:6px;padding:6px;">
     <div style="width:100%;min-height:40px;">${comment}</div>
     <div style="display:flex;align-items:center;gap:6px;">
-      <div style="flex:1;color:var(--vscode-button-background);font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="#mock-prototype button">button</div>
-      <div style="background:transparent;color:var(--vscode-button-background);border:1px solid var(--vscode-panel-border,rgba(128,128,128,0.35));border-radius:3px;font-size:11px;padding:2px 10px;">添加</div>
+      <div style="flex:1;color:var(--accent-9,#c1292e);font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="#mock-prototype button">button</div>
+      <div style="background:transparent;color:var(--accent-9,#c1292e);border:1px solid var(--gray-6,rgba(128,128,128,0.35));border-radius:3px;font-size:11px;padding:2px 10px;">添加</div>
     </div>
   </div>
 </div>`;
@@ -164,7 +165,7 @@ test.describe("Desktop Preview Pane Screenshots", () => {
         "#mock-chip-shipping",
       ) as HTMLElement | null;
       if (chip) {
-        chip.style.outline = "2px solid var(--vscode-button-background)";
+        chip.style.outline = "2px solid var(--accent-9)";
         chip.style.outlineOffset = "-2px";
       }
     });

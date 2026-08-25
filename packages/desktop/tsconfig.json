@@ -18,6 +18,7 @@
   "include": [
     "src/main/index.ts",
     "src/main/preload.ts",
+    "src/main/pickerPreload.ts",
     "src/main/serverProcess.ts",
     "src/main/window.ts"
   ],

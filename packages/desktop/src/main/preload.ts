@@ -1,4 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { loadUiPrefs } from "./uiPrefs.js";
 
 /**
@@ -28,6 +30,17 @@ contextBridge.exposeInMainWorld("museGetPathForFile", (file: File) => {
     return "";
   }
 });
+
+/**
+ * file:// URL of the element-picker preload for the preview <webview> guest.
+ * It is bundled next to this preload (dist/main/pickerPreload.cjs), so
+ * __dirname resolves identically in dev and inside app.asar in the packaged
+ * app — the same layout desktopPaths() relies on for preload.cjs.
+ */
+contextBridge.exposeInMainWorld(
+  "wavePickerPreloadPath",
+  pathToFileURL(path.join(__dirname, "pickerPreload.cjs")).href,
+);
 
 // additionalArguments are fixed at window creation and stale after live updates.
 // Read ui.json on every preload execution so reloads receive the current preference.

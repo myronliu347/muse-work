@@ -17,6 +17,7 @@ export default defineConfig([
     entry: {
       "main/index": "src/main/index.ts",
       "main/preload": "src/main/preload.ts",
+      "main/pickerPreload": "src/main/pickerPreload.ts",
     },
   },
 ]);
