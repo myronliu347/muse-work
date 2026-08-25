@@ -50,6 +50,186 @@ describe("FileContentSearch", () => {
     expect(onOpenMatch).toHaveBeenCalledWith("/w/a.ts", 3);
   });
 
+  const treeState = (): ContentSearchState => ({
+    ...emptyContentSearchState(),
+    query: "hi",
+    results: [
+      {
+        path: "/w/src/a.ts",
+        relativePath: "src/a.ts",
+        matches: [{ line: 3, text: "hi there", startCol: 0, endCol: 2 }],
+      },
+      {
+        path: "/w/src/b.ts",
+        relativePath: "src/b.ts",
+        matches: [{ line: 5, text: "hi bob", startCol: 0, endCol: 2 }],
+      },
+      {
+        path: "/w/README.md",
+        relativePath: "README.md",
+        matches: [{ line: 1, text: "hi doc", startCol: 0, endCol: 2 }],
+      },
+    ],
+    expandedFiles: [],
+  });
+
+  it("shows view-toggle icons and defaults to list view", () => {
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={treeState()}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    const listBtn = screen.getByTestId("content-search-view-list");
+    const treeBtn = screen.getByTestId("content-search-view-tree");
+    expect(listBtn).toBeInTheDocument();
+    expect(treeBtn).toBeInTheDocument();
+    expect(listBtn).toHaveAttribute("aria-pressed", "true");
+    expect(treeBtn).toHaveAttribute("aria-pressed", "false");
+    // List view is the default: flat file rows, no tree panel.
+    expect(screen.getByTestId("content-search-file-src/a.ts")).toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-tree-panel")).not.toBeInTheDocument();
+  });
+
+  it("switches to tree view: right tree + left matches of first file", () => {
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={treeState()}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    expect(screen.getByTestId("content-search-tree-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("content-search-view-list")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByTestId("content-search-view-tree")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // Right tree: dir node + file nodes.
+    expect(screen.getByTestId("content-search-tree-dir-src")).toBeInTheDocument();
+    expect(screen.getByTestId("content-search-tree-file-src/a.ts")).toBeInTheDocument();
+    // Left: first file's matches by default.
+    expect(screen.getByTestId("content-search-match-src/a.ts-3")).toBeInTheDocument();
+  });
+
+  it("collapses and expands directory nodes in tree view", () => {
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={treeState()}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    expect(screen.getByTestId("content-search-tree-file-src/a.ts")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("content-search-tree-dir-src"));
+    expect(screen.queryByTestId("content-search-tree-file-src/a.ts")).not.toBeInTheDocument();
+    expect(screen.getByTestId("content-search-tree-file-README.md")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("content-search-tree-dir-src"));
+    expect(screen.getByTestId("content-search-tree-file-src/a.ts")).toBeInTheDocument();
+  });
+
+  it("switches the left detail when clicking a tree file node", () => {
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={treeState()}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    expect(screen.getByTestId("content-search-match-src/a.ts-3")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("content-search-tree-file-README.md"));
+    expect(screen.getByTestId("content-search-match-README.md-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-match-src/a.ts-3")).not.toBeInTheDocument();
+  });
+
+  it("still opens matches from the left detail in tree view", () => {
+    const onOpenMatch = vi.fn();
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={treeState()}
+        onStateChange={vi.fn()}
+        onOpenMatch={onOpenMatch}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    fireEvent.click(screen.getByTestId("content-search-match-src/a.ts-3"));
+    expect(onOpenMatch).toHaveBeenCalledWith("/w/src/a.ts", 3);
+  });
+
+  it("merges empty directory chains into a single node", () => {
+    const state: ContentSearchState = {
+      ...emptyContentSearchState(),
+      query: "hi",
+      results: [
+        {
+          path: "/w/src/components/ui/Button.tsx",
+          relativePath: "src/components/ui/Button.tsx",
+          matches: [{ line: 1, text: "hi btn", startCol: 0, endCol: 2 }],
+        },
+      ],
+      expandedFiles: [],
+    };
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={state}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    // One merged dir node for the whole chain, no intermediate dirs.
+    expect(screen.getByTestId("content-search-tree-dir-src/components/ui")).toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-tree-dir-src")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-tree-dir-src/components")).not.toBeInTheDocument();
+    expect(screen.getByTestId("content-search-tree-file-src/components/ui/Button.tsx")).toBeInTheDocument();
+  });
+
+  it("keeps a dir with siblings unmerged but merges its single-child chain", () => {
+    const state: ContentSearchState = {
+      ...emptyContentSearchState(),
+      query: "hi",
+      results: [
+        {
+          path: "/w/src/a.ts",
+          relativePath: "src/a.ts",
+          matches: [{ line: 3, text: "hi there", startCol: 0, endCol: 2 }],
+        },
+        {
+          path: "/w/src/components/ui/Button.tsx",
+          relativePath: "src/components/ui/Button.tsx",
+          matches: [{ line: 1, text: "hi btn", startCol: 0, endCol: 2 }],
+        },
+      ],
+      expandedFiles: [],
+    };
+    render(
+      <FileContentSearch
+        workdir="/w"
+        state={state}
+        onStateChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("content-search-view-tree"));
+    // src has a file sibling, so it stays; components/ui chain merges below it.
+    expect(screen.getByTestId("content-search-tree-dir-src")).toBeInTheDocument();
+    expect(screen.getByTestId("content-search-tree-dir-src/components/ui")).toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-tree-dir-src/components")).not.toBeInTheDocument();
+  });
+
   it("does not emit duplicate-key warnings when matches clip to the same column", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     // Long-line truncation maps both matches to the same clipped startCol; the
