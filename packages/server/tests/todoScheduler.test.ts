@@ -796,29 +796,55 @@ describe("todoScheduler", () => {
     expect(input.systemPrompt).toContain("todo:todo-management skill");
   });
 
-  it("syncPlanningWorkdir：planning 会话已建时同步 workdir；解绑回退默认 personal", async () => {
+  it("syncPlanningSession：planning 会话已建时同步 workdir + 重建 systemPrompt；解绑回退默认 personal", async () => {
     const { store, scheduler, sessionStore } = makeScheduler({});
-    const todo = store.createTodo({ title: "t", source: "session", workdir: "/tmp/bound" });
+    const todo = store.createTodo({ title: "旧标题", source: "session", workdir: "/tmp/bound" });
     scheduler.openPlanningSession(todo.id);
     const planId = store.getTodo(todo.id)?.planningSessionId!;
     expect(sessionStore.get(planId)?.workdir).toBe("/tmp/bound");
 
-    // 修改 workdir → 同步
-    store.updateTodo(todo.id, { workdir: "/tmp/new" });
-    scheduler.syncPlanningWorkdir(todo.id);
-    expect(sessionStore.get(planId)?.workdir).toBe("/tmp/new");
+    // 修改 workdir + 标题 → 同步（一次调用同时刷新 workdir 与 systemPrompt）
+    store.updateTodo(todo.id, { title: "新标题", workdir: "/tmp/new" });
+    scheduler.syncPlanningSession(todo.id);
+    const synced = sessionStore.get(planId)!;
+    expect(synced.workdir).toBe("/tmp/new");
+    expect(synced.systemPrompt).toContain("新标题");
+    expect(synced.systemPrompt).toContain("/tmp/new");
+    // systemPrompt 为新职责版（含职责段 + 绑定目录说明）
+    expect(synced.systemPrompt).toContain("负责分析、规划、拆解 task");
+    expect(synced.systemPrompt).toContain("不直接改代码");
+    expect(synced.systemPrompt).toContain("绑定工作目录");
 
-    // 解绑 → 回退默认 personal
+    // 解绑 → 回退默认 personal（systemPrompt 同步更新为未绑定说明）
     store.updateTodo(todo.id, { workdir: null });
-    scheduler.syncPlanningWorkdir(todo.id);
-    expect(sessionStore.get(planId)?.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
+    scheduler.syncPlanningSession(todo.id);
+    const unbound = sessionStore.get(planId)!;
+    expect(unbound.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
+    expect(unbound.systemPrompt).toContain("未绑定工作目录");
   });
 
-  it("syncPlanningWorkdir：无 planning 会话 / 无 todo 时静默", async () => {
+  it("syncPlanningSession：无 planning 会话 / 无 todo 时静默", async () => {
     const { store, scheduler } = makeScheduler({});
     const todo = store.createTodo({ title: "t", source: "session", workdir: "/tmp/a" });
     // 未创建 planning 会话 → 不抛错
-    expect(() => scheduler.syncPlanningWorkdir(todo.id)).not.toThrow();
-    expect(() => scheduler.syncPlanningWorkdir("nope")).not.toThrow();
+    expect(() => scheduler.syncPlanningSession(todo.id)).not.toThrow();
+    expect(() => scheduler.syncPlanningSession("nope")).not.toThrow();
+  });
+
+  it("openPlanningSession 复用已建会话：返回前刷新 systemPrompt（最新标题/描述 + 职责段）", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "旧标题", source: "session" });
+    scheduler.openPlanningSession(todo.id);
+    const planId = store.getTodo(todo.id)?.planningSessionId!;
+    expect(sessionStore.get(planId)?.systemPrompt).toContain("旧标题");
+
+    // 修改 todo 标题/描述 → 再次 open 复用同一会话 → systemPrompt 刷新为新值
+    store.updateTodo(todo.id, { title: "新标题", description: "新描述" });
+    const reused = scheduler.openPlanningSession(todo.id);
+    expect(reused?.sessionId).toBe(planId);
+    const refreshed = sessionStore.get(planId)!.systemPrompt;
+    expect(refreshed).toContain("新标题");
+    expect(refreshed).toContain("新描述");
+    expect(refreshed).toContain("负责分析、规划、拆解 task");
   });
 });

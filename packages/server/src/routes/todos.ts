@@ -148,8 +148,8 @@ export function createTodoRoutes(
       }
       return c.json({ error: "todo not found" }, 404);
     }
-    // workdir 变更 → 同步规划会话 workdir（仅 planning 会话已创建时生效；已运行 agent 仍用旧目录）
-    if (patch.workdir !== undefined) scheduler?.syncPlanningWorkdir(todoId);
+    // todo 任意字段变更 → 同步规划会话（workdir + 重建 systemPrompt；仅 planning 会话已创建时生效，幂等无害）
+    scheduler?.syncPlanningSession(todoId);
     changed();
     return c.json({ todo });
   });

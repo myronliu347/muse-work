@@ -556,11 +556,11 @@ describe("todo routes PATCH workdir", () => {
     expect(store.getTodo(todo.id)?.workdir).toBeUndefined();
   });
 
-  it("PATCH workdir 变更 → 调 scheduler.syncPlanningWorkdir", async () => {
+  it("PATCH 任意字段变更 → 调 scheduler.syncPlanningSession（含 title/description/workdir）", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-wd-sync-"));
     const store = createTodoStore({ home });
-    const syncPlanningWorkdir = vi.fn();
-    const scheduler = { syncPlanningWorkdir } as unknown as NonNullable<
+    const syncPlanningSession = vi.fn();
+    const scheduler = { syncPlanningSession } as unknown as NonNullable<
       Parameters<typeof createTodoRoutes>[1]
     >;
     const app = createTodoRoutes(store, scheduler);
@@ -572,7 +572,17 @@ describe("todo routes PATCH workdir", () => {
       }),
     );
     const { todo } = (await created.json()) as { todo: { id: string } };
-    // 无 workdir 变更（仅标题）→ 不调
+    // 空 PATCH（无字段变更）→ 成功路径仍调（幂等无害）
+    await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+    );
+    expect(syncPlanningSession).toHaveBeenCalledTimes(1);
+    expect(syncPlanningSession).toHaveBeenCalledWith(todo.id);
+    // 标题变更 → 调
     await app.fetch(
       new Request(`http://x/todos/${todo.id}`, {
         method: "PATCH",
@@ -580,8 +590,17 @@ describe("todo routes PATCH workdir", () => {
         body: JSON.stringify({ title: "t2" }),
       }),
     );
-    expect(syncPlanningWorkdir).not.toHaveBeenCalled();
-    // 带 workdir 变更 → 调
+    expect(syncPlanningSession).toHaveBeenCalledWith(todo.id);
+    // description 变更 → 调
+    await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ description: "d" }),
+      }),
+    );
+    expect(syncPlanningSession).toHaveBeenCalledTimes(3);
+    // workdir 变更 → 调
     await app.fetch(
       new Request(`http://x/todos/${todo.id}`, {
         method: "PATCH",
@@ -589,6 +608,6 @@ describe("todo routes PATCH workdir", () => {
         body: JSON.stringify({ workdir: "/tmp/proj" }),
       }),
     );
-    expect(syncPlanningWorkdir).toHaveBeenCalledWith(todo.id);
+    expect(syncPlanningSession).toHaveBeenCalledTimes(4);
   });
 });

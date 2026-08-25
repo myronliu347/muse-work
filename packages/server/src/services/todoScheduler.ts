@@ -131,8 +131,8 @@ export interface TodoScheduler {
   approve(taskId: string): Promise<void>;
   /** 打开 todo 的规划会话（首次懒创建，每 todo 固定一个）。 */
   openPlanningSession(todoId: string): { sessionId: string; workdir: string } | null;
-  /** todo.workdir 变更后同步规划会话 workdir（planning 会话已创建时；未绑定回退默认 personal）。 */
-  syncPlanningWorkdir(todoId: string): void;
+  /** todo 变更后同步规划会话（workdir + 重建 systemPrompt，planning 会话已创建时；未绑定回退默认 personal）。 */
+  syncPlanningSession(todoId: string): void;
   /** 已存在 worktree 的 task，计算执行目录。 */
   worktreePathOf(task: Task): string | null;
   /** turn 结束回调入口（appContext 绑定到 runner 的 onTurnSettled）。 */
@@ -502,6 +502,18 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     void tick();
   }
 
+  /** todo 变更后同步已创建的规划会话：workdir + 重建 systemPrompt（含最新标题/描述/绑定目录 + 职责段）。 */
+  function syncPlanningSession(todoId: string): void {
+    const todo = store.getTodo(todoId);
+    if (!todo?.planningSessionId) return;
+    if (!sessionStore.get(todo.planningSessionId)) return;
+    // 未绑定回退默认 personal（与 openPlanningSession 一致）；已运行 agent 仍用旧 prompt/目录，新 agent/重开生效
+    sessionStore.update(todo.planningSessionId, {
+      workdir: todo.workdir ?? getTodoWorkdir(home),
+      systemPrompt: buildTodoSystemPrompt(todo),
+    });
+  }
+
   return {
     start() {
       if (started) return;
@@ -539,8 +551,9 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     openPlanningSession(todoId) {
       const todo = store.getTodo(todoId);
       if (!todo) return null;
-      // 已创建且会话仍存在 → 复用
+      // 已创建且会话仍存在 → 复用（先刷新 systemPrompt/workdir，已存在的会话下次打开即获得最新 todo 信息 + 职责段）
       if (todo.planningSessionId && sessionStore.get(todo.planningSessionId)) {
+        syncPlanningSession(todoId);
         const s = sessionStore.get(todo.planningSessionId)!;
         return { sessionId: s.id, workdir: s.workdir };
       }
@@ -564,15 +577,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
       return { sessionId: session.id, workdir: session.workdir };
     },
 
-    syncPlanningWorkdir(todoId) {
-      const todo = store.getTodo(todoId);
-      if (!todo?.planningSessionId) return;
-      if (!sessionStore.get(todo.planningSessionId)) return;
-      // 未绑定回退默认 personal（与 openPlanningSession 一致）；已运行 agent 仍用旧目录，下个新会话生效
-      sessionStore.update(todo.planningSessionId, {
-        workdir: todo.workdir ?? getTodoWorkdir(home),
-      });
-    },
+    syncPlanningSession,
 
     worktreePathOf(task) {
       if (task.worktreeName && task.worktreeRepoRoot) {
