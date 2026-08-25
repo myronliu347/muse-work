@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { createTodoRoutes } from "../src/routes/todos.js";
 import { createTodoStore } from "../src/services/todoStore.js";
@@ -473,5 +473,122 @@ describe("todo routes broadcast todo:changed", () => {
 
     const changed = events.filter((e) => (e as { type?: string }).type === "todo:changed");
     expect(changed.length).toBe(4); // create + patch + add-task + comment
+  });
+});
+
+describe("todo routes PATCH workdir", () => {
+  let home: string;
+  afterEach(() => {
+    if (home) fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("PATCH /todos/:id 绑定/修改/解绑 workdir（trim；空串解绑）", async () => {
+    const { app } = makeApp();
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+
+    // 绑定（trim）
+    const bound = await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "  /tmp/proj  " }),
+      }),
+    );
+    expect(bound.status).toBe(200);
+    expect(((await bound.json()) as { todo: { workdir?: string } }).todo.workdir).toBe("/tmp/proj");
+
+    // 修改
+    const updated = await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/other" }),
+      }),
+    );
+    expect(((await updated.json()) as { todo: { workdir?: string } }).todo.workdir).toBe("/tmp/other");
+
+    // 空串/纯空白 → 解绑
+    const unbound = await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "   " }),
+      }),
+    );
+    expect(unbound.status).toBe(200);
+    const body = (await unbound.json()) as { todo: { workdir?: string } };
+    expect(body.todo.workdir).toBeUndefined();
+  });
+
+  it("PATCH workdir 非 pending → 409（其余字段也不改）", async () => {
+    const { app, store } = makeApp();
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+    // 建 task → todo 转 in_progress（锁定）
+    await app.fetch(
+      new Request(`http://x/todos/${todo.id}/tasks`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "k", workdir: "/p" }),
+      }),
+    );
+    const res = await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/x" }),
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(store.getTodo(todo.id)?.workdir).toBeUndefined();
+  });
+
+  it("PATCH workdir 变更 → 调 scheduler.syncPlanningWorkdir", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-wd-sync-"));
+    const store = createTodoStore({ home });
+    const syncPlanningWorkdir = vi.fn();
+    const scheduler = { syncPlanningWorkdir } as unknown as NonNullable<
+      Parameters<typeof createTodoRoutes>[1]
+    >;
+    const app = createTodoRoutes(store, scheduler);
+    const created = await app.fetch(
+      new Request("http://x/todos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t", source: "session" }),
+      }),
+    );
+    const { todo } = (await created.json()) as { todo: { id: string } };
+    // 无 workdir 变更（仅标题）→ 不调
+    await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "t2" }),
+      }),
+    );
+    expect(syncPlanningWorkdir).not.toHaveBeenCalled();
+    // 带 workdir 变更 → 调
+    await app.fetch(
+      new Request(`http://x/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj" }),
+      }),
+    );
+    expect(syncPlanningWorkdir).toHaveBeenCalledWith(todo.id);
   });
 });

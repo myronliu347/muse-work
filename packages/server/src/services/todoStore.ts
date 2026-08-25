@@ -100,7 +100,10 @@ export interface TodoStore {
   listAllTodos(): Todo[];
   updateTodo(
     id: string,
-    patch: Partial<Pick<Todo, "title" | "description" | "priority" | "tags">>,
+    patch: Partial<Pick<Todo, "title" | "description" | "priority" | "tags">> & {
+      /** 绑定工作目录：null = 解除绑定；缺省 = 不修改。 */
+      workdir?: string | null;
+    },
   ): Todo | undefined;
   updateTodoStatus(id: string, status: TodoStatus): Todo | undefined;
   setPlanningSessionId(id: string, planningSessionId: string): Todo | undefined;
@@ -123,6 +126,8 @@ export interface TodoStore {
     id: string,
     info: { name: string; repoRoot: string; workdir?: string },
   ): Task | undefined;
+  /** 删除 worktree 后清理引用：workdir 重置为主仓库根（下次 launch 重新建 worktree，不会在已删路径执行）。 */
+  clearTaskWorktree(id: string): Task | undefined;
   addComment(
     taskId: string,
     input: { author: CommentAuthor; kind: CommentKind; content: string },
@@ -466,6 +471,11 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
       if (patch.description !== undefined) todo.description = patch.description;
       if (patch.priority !== undefined) todo.priority = patch.priority;
       if (patch.tags !== undefined) todo.tags = normalizeTags(patch.tags);
+      // workdir：null = 解除绑定；字符串 = 绑定（trim 由 routes 层保证）
+      if (patch.workdir !== undefined) {
+        if (patch.workdir === null) delete todo.workdir;
+        else todo.workdir = patch.workdir;
+      }
       touch(todo);
       persistTodos();
       return { ...todo };
@@ -606,6 +616,18 @@ export function createTodoStore(options: CreateTodoStoreOptions = {}): TodoStore
       task.worktreeRepoRoot = info.repoRoot;
       // workdir 同步为最终工作目录（worktree 路径）：agent 实际干活的地方
       if (info.workdir) task.workdir = info.workdir;
+      task.updatedAt = Date.now();
+      persistTasks(task.todoId);
+      return { ...task };
+    },
+
+    clearTaskWorktree(id) {
+      const task = tasks.get(id);
+      if (!task) return undefined;
+      // workdir 重置为主仓库根（即创建 task 时用户指定的目录）：下次 launch 重新建 worktree
+      if (task.worktreeRepoRoot) task.workdir = task.worktreeRepoRoot;
+      delete task.worktreeName;
+      delete task.worktreeRepoRoot;
       task.updatedAt = Date.now();
       persistTasks(task.todoId);
       return { ...task };

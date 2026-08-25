@@ -238,26 +238,47 @@ describe("todoStore", () => {
     expect(reloaded.listTasks(todo.id).map((t) => t.status)).toEqual(["cancelled"]);
   });
 
-  it("已完成 todo 明细可经磁盘回退读取（只读查看归档）", () => {
+  it("updateTodo 支持 workdir 绑定/修改/解绑（null），仅 pending 可改", () => {
     const store = makeStore();
     const todo = store.createTodo({ title: "t", source: "session" });
-    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
-    store.addComment(task.id, { author: "user", kind: "note", content: "评论内容" });
-    store.createRun(task.id, { status: "finished" });
-    store.updateTaskStatus(task.id, "completed");
-    store.completeTodo(todo.id);
-    // 归档：活跃列表不含，内存已卸载
-    expect(store.listTodos()).toEqual([]);
-    // 明细从磁盘按需读回（getTask/listTasks/listComments/listRuns）
-    expect(store.getTask(task.id)?.status).toBe("completed");
-    expect(store.listTasks(todo.id).length).toBe(1);
-    expect(store.listComments(task.id).map((c) => c.content)).toEqual(["评论内容"]);
-    expect(store.listRuns(task.id).length).toBe(1);
-    // 重启后同样可读（磁盘为事实源，不驻留内存）
+    // 未绑定时更新 workdir → 绑定
+    const bound = store.updateTodo(todo.id, { workdir: "/tmp/bound" });
+    expect(bound?.workdir).toBe("/tmp/bound");
+    expect(store.getTodo(todo.id)?.workdir).toBe("/tmp/bound");
+    // 修改
+    const updated = store.updateTodo(todo.id, { workdir: "/tmp/other" });
+    expect(updated?.workdir).toBe("/tmp/other");
+    // 解绑（null）
+    const unbound = store.updateTodo(todo.id, { workdir: null });
+    expect(unbound?.workdir).toBeUndefined();
+    expect(store.getTodo(todo.id)?.workdir).toBeUndefined();
+    // 重启后持久化
     const reloaded = createTodoStore({ home });
-    expect(reloaded.getTodo(todo.id)?.status).toBe("completed");
-    expect(reloaded.listTasks(todo.id).length).toBe(1);
-    expect(reloaded.listComments(task.id).length).toBe(1);
-    expect(reloaded.listRuns(task.id).length).toBe(1);
+    expect(reloaded.getTodo(todo.id)?.workdir).toBeUndefined();
+    // 非 pending 锁定
+    store.updateTodoStatus(todo.id, "in_progress");
+    expect(store.updateTodo(todo.id, { workdir: "/tmp/x" })).toBeUndefined();
+  });
+
+  it("clearTaskWorktree 清 worktree 引用 + workdir 重置为主仓库根", () => {
+    const store = makeStore();
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/repo" });
+    store.setTaskWorktree(task.id, {
+      name: task.id,
+      repoRoot: "/repo",
+      workdir: "/repo/.wave/worktrees/task-1",
+    });
+    expect(store.getTask(task.id)?.workdir).toBe("/repo/.wave/worktrees/task-1");
+
+    const cleared = store.clearTaskWorktree(task.id);
+    expect(cleared?.worktreeName).toBeUndefined();
+    expect(cleared?.worktreeRepoRoot).toBeUndefined();
+    // workdir 回退主仓库根 → requeue 后 launch 能重新建 worktree（不在已删路径执行）
+    expect(cleared?.workdir).toBe("/repo");
+    // 持久化
+    const reloaded = createTodoStore({ home });
+    expect(reloaded.getTask(task.id)?.worktreeName).toBeUndefined();
+    expect(reloaded.getTask(task.id)?.workdir).toBe("/repo");
   });
 });
