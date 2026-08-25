@@ -1,13 +1,34 @@
 #!/usr/bin/env node
 /**
  * Todo/Task 管理 CLI：调本地 muse-work server REST API。
- * 端口从 MUSE_SERVER_PORT 读取（与 webview 一致），默认 8787。
+ * baseURL 解析链：MUSE_SERVER_URL → MUSE_HOME 下 server 落盘的 server-url 文件
+ * （打包版随机端口）→ 默认 8787（MUSE_SERVER_PORT 可覆盖）。
  * 用法见 skills/todo-management/SKILL.md。
  */
 
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+/** server 落盘的实际监听地址文件（与 server 侧 getMuseHomeDir 同构）。 */
+function serverUrlFile() {
+  const home = process.env.MUSE_HOME ?? os.homedir();
+  const dirName = process.env.MUSE_HOME_DIR ?? ".muse-work";
+  return path.join(home, dirName, "server-url");
+}
+
+function readServerUrlFile() {
+  try {
+    const url = fs.readFileSync(serverUrlFile(), "utf8").trim();
+    return url || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const PORT = Number(process.env.MUSE_SERVER_PORT ?? 8787);
-// server 在 listen 后把实际地址写回 MUSE_SERVER_URL（随机端口时 MUSE_SERVER_PORT 可能未设）。
-const BASE = process.env.MUSE_SERVER_URL ?? `http://127.0.0.1:${PORT}`;
+const BASE =
+  process.env.MUSE_SERVER_URL ?? readServerUrlFile() ?? `http://127.0.0.1:${PORT}`;
 
 function usage() {
   console.log(`todo.mjs — Todo/Task 管理 CLI（server 端口 ${PORT}）

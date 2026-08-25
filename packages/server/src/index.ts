@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import path from "node:path";
+import { getMuseHomeDir } from "@muse-work/provider";
 import { createApp } from "./app.js";
 import type { ChatStore } from "./popo/chatStore.js";
 import { loadPopoConfig, type PopoConfig } from "./popo/popoConfig.js";
@@ -87,6 +89,11 @@ const srv = server.listen(port, HOST, () => {
   // 子进程（todo.mjs 等插件脚本）从 env 读 baseURL：随机端口也要写回实际端口。
   process.env.MUSE_SERVER_URL = `http://${HOST}:${addr.port}`;
   process.env.MUSE_SERVER_PORT = String(addr.port);
+  // 外部 shell（用户终端等）读不到进程内 env：把实际地址落盘到 MUSE_HOME 下固定
+  // 文件，todo.mjs 等脚本按 MUSE_SERVER_URL → 端口文件 → 默认 8787 解析。
+  // dev/生产随 MUSE_HOME_DIR 天然分文件；多实例同 home 时最后写赢、重启覆盖。
+  const serverUrlFile = path.join(getMuseHomeDir(ctx.home), "server-url");
+  fs.writeFileSync(serverUrlFile, `http://${HOST}:${addr.port}`);
   // Desktop parses this single JSON line from stdout for the ready port.
   process.stdout.write(
     `${JSON.stringify({ ready: true, port: addr.port, host: HOST })}\n`,
