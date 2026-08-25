@@ -15,7 +15,7 @@ import type { ProviderRegistry } from "@muse-work/provider";
 import { DEFAULT_ACTIVE_MODEL_ID, getTodoWorkdir } from "@muse-work/provider";
 import type { SessionRunner } from "./sessionRunner/index.js";
 import type { SessionStore } from "./sessionStore.js";
-import type { Comment, Task, Todo, TodoStore } from "./todoStore.js";
+import type { Task, Todo, TodoStore } from "./todoStore.js";
 import type { WsHub } from "./wsHub.js";
 import {
   ensureWorktree,
@@ -24,23 +24,6 @@ import {
   type WorktreeRef,
 } from "../utils/gitWorktree.js";
 import { getLogger } from "../utils/logger.js";
-
-/**
- * 收集再次执行的增量评论：最近一条 result 评论之后新增的 user/ai 评论（供继续执行参考）；
- * 无 result 评论时返回全部 user/ai 评论。result 评论本身（上次执行总结）不重复携带。
- */
-function collectIncrementalComments(comments: Comment[]): Comment[] {
-  let lastResultIdx = -1;
-  for (let i = comments.length - 1; i >= 0; i--) {
-    if (comments[i].kind === "result") {
-      lastResultIdx = i;
-      break;
-    }
-  }
-  const candidates =
-    lastResultIdx === -1 ? comments : comments.slice(lastResultIdx + 1);
-  return candidates.filter((c) => c.author === "user" || c.author === "ai");
-}
 
 /** 首次执行：完整 prompt（标题 + 描述 + workdir）。 */
 function buildFirstPrompt(task: Task, workdir: string): string {
@@ -57,35 +40,23 @@ function buildFirstPrompt(task: Task, workdir: string): string {
   ].join("\n");
 }
 
-/** 再次执行：复用执行会话已有上下文（不重复完整描述/上次总结），只带增量评论。 */
-function buildReexecPrompt(
-  task: Task,
-  workdir: string,
-  incremental: Comment[],
-): string {
-  const lines = [
-    `继续执行 Todo/Task 任务「${task.title}」（上次执行已结束，重新入队继续）`,
+/** 再次执行：复用执行会话已有上下文（不重复完整描述/上次总结），指示 AI 自取最新评论并据此修改完善。 */
+function buildReexecPrompt(task: Task, workdir: string): string {
+  return [
+    `重新执行 Todo/Task 任务「${task.title}」（上次执行已结束，重新入队）`,
     ``,
-    `工作目录：${workdir}`,
+    `工作目录：${workdir}；任务 ID：${task.id}（AI 据此查评论）`,
     ``,
-    `沿用执行会话中已有的任务描述与已做工作继续完成剩余部分，不要重复完整任务描述或上次执行总结。`,
-  ];
-  if (incremental.length > 0) {
-    lines.push(``, `上次执行后新增信息（供继续执行参考）：`);
-    for (const c of incremental) {
-      lines.push(`- ${c.author === "user" ? "用户" : "AI"}：${c.content}`);
-    }
-  }
-  lines.push(
+    `本次执行目的=根据最新评论（含用户复核意见）修改完善，不是重复已完成工作。`,
+    `先调 todo-management skill 的 todo.mjs comments ${task.id} 获取最新评论，逐条落实；无评论则继续完成剩余部分；评论未涉及部分保持已有实现不要改动。`,
     ``,
     `请完整执行该任务。完成后用中文总结：做了什么、改了哪些文件、测试/验证是否通过；如有阻塞或需要人工确认的事项，明确说明。`,
-  );
-  return lines.join("\n");
+  ].join("\n");
 }
 
-function buildPrompt(task: Task, workdir: string, isReexec: boolean, incremental: Comment[]): string {
+function buildPrompt(task: Task, workdir: string, isReexec: boolean): string {
   return isReexec
-    ? buildReexecPrompt(task, workdir, incremental)
+    ? buildReexecPrompt(task, workdir)
     : buildFirstPrompt(task, workdir);
 }
 
@@ -257,13 +228,12 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
       sessionId: execSessionId,
       workdir,
     });
-    // 再次执行判定：存在历史执行结果（result 评论）→ 复用执行会话上下文，只带增量评论
+    // 再次执行判定：存在历史执行结果（result 评论）→ 复用执行会话上下文，指示 AI 自取最新评论
     const comments = store.listComments(task.id);
     const isReexec = comments.some((c) => c.kind === "result");
-    const incremental = isReexec ? collectIncrementalComments(comments) : [];
     await runner.sendMessage(
       execSessionId,
-      buildPrompt(task, workdir, isReexec, incremental),
+      buildPrompt(task, workdir, isReexec),
     );
   }
 

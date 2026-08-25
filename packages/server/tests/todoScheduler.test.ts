@@ -243,13 +243,13 @@ describe("todoScheduler", () => {
     const execId2 = store.getTask(task.id)?.executionSessionId!;
     // 新会话（旧会话已销毁），不是复用
     expect(execId2).not.toBe(execId1);
-    // 无 result 评论 → isReexec=false → 首次完整 prompt（不判继续执行）
+    // 无 result 评论 → isReexec=false → 首次完整 prompt（不是重新执行样式）
     const sendCalls = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls;
     expect(sendCalls.length).toBe(2);
     expect(sendCalls[1][0]).toBe(execId2);
     const prompt = sendCalls[1][1] as string;
     expect(prompt).toContain("执行 Todo/Task 任务「k」");
-    expect(prompt).not.toContain("继续执行");
+    expect(prompt).not.toContain("重新执行");
     scheduler.stop();
   });
 
@@ -677,7 +677,7 @@ describe("todoScheduler", () => {
     expect(opened2!.workdir.endsWith(path.join(".muse-work", "personal"))).toBe(true);
   });
 
-  it("首次执行 prompt 完整（标题+描述+workdir）；再次执行只带增量评论，不重复描述/总结", async () => {
+  it("首次执行 prompt 完整（标题+描述+workdir）；再次执行指示 AI 自取评论，不预塞评论/描述/总结", async () => {
     const { store, scheduler, runner } = makeScheduler({});
     const todo = store.createTodo({ title: "T-todo", source: "session" });
     const task = store.createTask(todo.id, {
@@ -694,33 +694,35 @@ describe("todoScheduler", () => {
     expect(firstPrompt).toContain("执行 Todo/Task 任务「K-task」");
     expect(firstPrompt).toContain("任务描述（markdown）：\n任务描述内容");
     expect(firstPrompt).toContain("工作目录：/p");
-    expect(firstPrompt).not.toContain("继续执行");
+    expect(firstPrompt).not.toContain("重新执行");
 
     // 第一轮完成 → result 评论；用户/AI 追加评论
     scheduler.handleTurnSettled(execId, { ok: true });
     await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("review"));
     store.addComment(task.id, { author: "user", kind: "note", content: "这里要改一下" });
     store.addComment(task.id, { author: "ai", kind: "note", content: "【AI 复核】建议补充测试" });
-    store.addComment(task.id, { author: "system", kind: "note", content: "系统备注（不该进 prompt）" });
 
     // 继续执行（待审核 → 回待执行入队）
     scheduler.enqueue(task.id);
     await vi.waitFor(() => expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2));
     const reexecPrompt = sendCalls[1][1] as string;
-    // 再次：继续执行样式，复用上下文
-    expect(reexecPrompt).toContain("继续执行 Todo/Task 任务「K-task」");
+    // 再次：重新执行样式，含任务 ID + 自取评论指示
+    expect(reexecPrompt).toContain("重新执行 Todo/Task 任务「K-task」");
     expect(reexecPrompt).toContain("工作目录：/p");
-    // 不重复完整描述、不带上次执行总结
+    expect(reexecPrompt).toContain(`任务 ID：${task.id}`);
+    expect(reexecPrompt).toContain(`todo.mjs comments ${task.id}`);
+    expect(reexecPrompt).toContain("根据最新评论（含用户复核意见）修改完善");
+    expect(reexecPrompt).toContain("无评论则继续完成剩余部分");
+    // 不重复完整描述、不带上次执行总结、不预塞评论内容（AI 自行获取）
     expect(reexecPrompt).not.toContain("任务描述（markdown）");
     expect(reexecPrompt).not.toContain("执行完成");
-    // 增量 = 最近 result 之后的 user/ai 评论（system 备注排除）
-    expect(reexecPrompt).toContain("用户：这里要改一下");
-    expect(reexecPrompt).toContain("AI：【AI 复核】建议补充测试");
-    expect(reexecPrompt).not.toContain("系统备注");
+    expect(reexecPrompt).not.toContain("这里要改一下");
+    expect(reexecPrompt).not.toContain("建议补充测试");
+    expect(reexecPrompt).not.toContain("上次执行后新增信息");
     scheduler.stop();
   });
 
-  it("再次执行但无 result 评论（执行中取消后恢复）→ 增量收集带全部 user/ai 评论", async () => {
+  it("再次执行但无 result 评论（执行中取消后恢复）→ 非再次执行，走首次完整 prompt", async () => {
     const { store, scheduler, runner } = makeScheduler({});
     const todo = store.createTodo({ title: "t", source: "session" });
     const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
@@ -735,9 +737,10 @@ describe("todoScheduler", () => {
     scheduler.enqueue(task.id);
     await vi.waitFor(() => expect((runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2));
     const prompt = (runner.sendMessage as ReturnType<typeof vi.fn>).mock.calls[1][1] as string;
-    // 无 result 评论 → 不判再次执行 → 完整 prompt
+    // 无 result 评论 → 不判再次执行 → 完整 prompt（不预塞评论，也不带自取评论指示）
     expect(prompt).toContain("（无描述）");
-    expect(prompt).not.toContain("继续执行");
+    expect(prompt).not.toContain("重新执行");
+    expect(prompt).not.toContain("手动加的评论");
     scheduler.stop();
   });
 
