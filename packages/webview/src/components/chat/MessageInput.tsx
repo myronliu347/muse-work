@@ -232,6 +232,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         const mirror = div.innerText ?? div.textContent ?? "";
         setMessage(mirror);
         inputContentRef.current = mirror;
+        saveDraft(sessionId, mirror);
         vscode.postMessage({
           command: "updateInputContent",
           sessionId,
@@ -265,6 +266,15 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // Use a ref to avoid re-running effect on every local message change
     const inputContentRef = useRef(inputContent);
     const prevSessionRef = useRef(sessionId);
+    // Per-session unsent drafts, keyed by sessionId. The host never implements
+    // updateInputContent (desktop main process has no handler), so drafts are
+    // kept here so switching away and back restores what the user was typing.
+    const draftsRef = useRef<Record<string, string>>({});
+    const saveDraft = useCallback((session: string | undefined, text: string) => {
+      if (!session) return;
+      if (text) draftsRef.current[session] = text;
+      else delete draftsRef.current[session];
+    }, []);
     // Mirror the latest local message so the session-switch flush can read it
     // without depending on `message` in the effect deps: a message dep would
     // re-run this effect after every keystroke/appendText and wipe the input
@@ -285,6 +295,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           inputContentTimerRef.current = null;
         }
         const text = textareaRef.current?.innerText ?? messageRef.current;
+        // Save unconditionally: an emptied input must also clear the stale
+        // draft, otherwise switching back would resurrect deleted text.
+        saveDraft(prevSession, text);
         if (text) {
           vscode.postMessage({
             command: "updateInputContent",
@@ -299,15 +312,21 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         sessionChanged ||
         (inputContent !== undefined && inputContent !== inputContentRef.current)
       ) {
-        inputContentRef.current = inputContent ?? "";
-        setMessage(inputContent ?? "");
+        // inputContent wins when the host pushes one (rewind prefill / draft
+        // restore); otherwise fall back to the locally saved draft.
+        const next =
+          inputContent !== undefined
+            ? inputContent
+            : (sessionId ? (draftsRef.current[sessionId] ?? "") : "");
+        inputContentRef.current = next;
+        setMessage(next);
         if (textareaRef.current) {
-          const next = inputContent ?? "";
           textareaRef.current.innerText = next;
           textareaRef.current.textContent = next;
         }
+        if (inputContent !== undefined) saveDraft(sessionId, inputContent);
       }
-    }, [inputContent, sessionId, vscode]);
+    }, [inputContent, sessionId, vscode, saveDraft]);
 
     // Initialize attached images from initialAttachedImages prop
     useEffect(() => {
@@ -364,6 +383,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         textareaRef.current.appendChild(bodyNode);
 
         setMessage(textareaRef.current.innerText);
+        saveDraft(sessionId, textareaRef.current.innerText);
 
         vscode.postMessage({
           command: "updateInputContent",
@@ -379,7 +399,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         selection?.removeAllRanges();
         selection?.addRange(range);
       },
-      [vscode],
+      [vscode, saveDraft],
     );
 
     // Detect @ mention in text
@@ -498,6 +518,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     useEffect(() => {
       if (shouldClearInput) {
         setMessage("");
+        saveDraft(sessionId, "");
         // Clear persisted input content
         vscode.postMessage({
           command: "updateInputContent",
@@ -509,7 +530,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         closeSlashCommandPopup();
         onInputCleared?.();
       }
-    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, closeSlashCommandPopup, sessionId]);
+    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, closeSlashCommandPopup, sessionId, saveDraft]);
 
     const setBrowsePathBoth = useCallback((next: string) => {
       browsePathRef.current = next;
@@ -856,6 +877,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (localCommands.includes(command.name)) {
           textareaRef.current.innerHTML = "";
           setMessage("");
+          saveDraft(sessionId, "");
           vscode.postMessage({ command: "updateInputContent", content: "" });
           closeSlashCommandPopup();
           onSendMessage(`/${command.name}`);
@@ -890,7 +912,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
         closeSlashCommandPopup();
       },
-      [closeSlashCommandPopup, onSendMessage, vscode, slashCommand],
+      [closeSlashCommandPopup, onSendMessage, vscode, slashCommand, saveDraft],
     );
 
     const handleSend = useCallback(() => {
@@ -923,6 +945,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // Clear contenteditable
         textareaRef.current.innerHTML = "";
         setMessage("");
+        saveDraft(sessionId, "");
         // Clear persisted input content
         vscode.postMessage({
           command: "updateInputContent",
@@ -940,6 +963,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       vscode,
       editingQueuedId,
       onSubmitQueuedEdit,
+      saveDraft,
+      sessionId,
     ]);
 
     const handleKeyDown = useCallback(
@@ -1187,6 +1212,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           clearTimeout(inputContentTimerRef.current);
         }
         inputContentTimerRef.current = setTimeout(() => {
+          saveDraft(draftSession, target.innerText);
           vscode.postMessage({
             command: "updateInputContent",
             sessionId: draftSession,
@@ -1204,6 +1230,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         editingQueuedId,
         onCancelQueuedEdit,
         sessionId,
+        saveDraft,
       ],
     );
 

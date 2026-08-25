@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { fireEvent } from "@testing-library/react";
 import {
   renderChatApp,
   screen,
@@ -6,6 +7,7 @@ import {
   sendCommand,
   sendHostMessage,
   setInputText,
+  fireInput,
 } from "./test-utils";
 import { fixtures } from "wave-webview-fixtures";
 import { MockDataGenerator } from "../fixtures/mockData";
@@ -226,5 +228,67 @@ describe("input drafts per session (desktop-app.md 会话管理 scenario 11/12)"
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("switching away and back restores the draft kept locally (no host push)", async () => {
+    renderChatApp();
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionA, messages: [] }),
+      );
+    });
+    const input = screen.getByTestId("message-input");
+
+    // Type into A, then switch to B before the debounced save fires. The
+    // outgoing draft must be kept in the pane so it can come back.
+    await setInputText(input, "1");
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionB, messages: [] }),
+      );
+    });
+    expect(input.innerText).toBe("");
+
+    // Back to A with no inputContent from the host (the desktop host never
+    // pushes drafts) — the locally kept draft is restored.
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionA, messages: [] }),
+      );
+    });
+    expect(input.innerText).toBe("1");
+  });
+
+  it("sending a message clears the draft so it is not restored on return", async () => {
+    renderChatApp();
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionA, messages: [] }),
+      );
+    });
+    const input = screen.getByTestId("message-input");
+
+    // textContent + fireInput (not setInputText): setInputText stubs innerText
+    // on the element, which would survive handleSend's innerHTML clear and
+    // mask the actual DOM state.
+    input.textContent = "hello";
+    await fireInput(input, { inputType: "insertText" });
+    act(() => {
+      fireEvent.click(screen.getByTestId("send-btn"));
+    });
+    expect(input.innerText).toBe("");
+
+    // Switch away and back — the sent text must not resurface.
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionB, messages: [] }),
+      );
+    });
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionA, messages: [] }),
+      );
+    });
+    expect(input.innerText).toBe("");
   });
 });
