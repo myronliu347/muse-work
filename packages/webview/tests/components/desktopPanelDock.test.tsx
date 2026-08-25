@@ -280,4 +280,139 @@ describe("DesktopPanelDock", () => {
       expect(onPinFileTab).toHaveBeenCalledWith("/w/b.ts");
     });
   });
+
+  describe("scrolls the active tab into view", () => {
+    const manyTabs = Array.from({ length: 10 }, (_, i) =>
+      fileTab(`/w/tab-${i}.ts`),
+    );
+    const renderDock = (activeFilePath: string) =>
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={manyTabs}
+            activeFilePath={activeFilePath}
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+    // jsdom has no layout: fake a 200px-wide scroll container where every tab
+    // is 80px wide starting at offsetLeft = index * 80 (i.e. tabs 0-2 visible,
+    // tab 8's right edge at 720 sits well outside the viewport).
+    const mockLayout = (container: HTMLElement) => {
+      Object.defineProperty(container, "clientWidth", {
+        configurable: true,
+        value: 200,
+      });
+      screen.getAllByTestId("file-tab").forEach((el, i) => {
+        Object.defineProperty(el, "offsetLeft", {
+          configurable: true,
+          value: i * 80,
+        });
+        Object.defineProperty(el, "offsetWidth", {
+          configurable: true,
+          value: 80,
+        });
+      });
+    };
+
+    it("does not scroll on initial mount even when the active tab is far right", () => {
+      renderDock("/w/tab-9.ts");
+      const container = document.querySelector(
+        ".desktop-panel-dock-tabs",
+      ) as HTMLElement;
+      mockLayout(container);
+      expect(container.scrollLeft).toBe(0);
+    });
+
+    it("scrolls right when switching to a tab beyond the visible area", () => {
+      const { rerender } = renderDock("/w/tab-0.ts");
+      const container = document.querySelector(
+        ".desktop-panel-dock-tabs",
+      ) as HTMLElement;
+      mockLayout(container);
+
+      rerender(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={manyTabs}
+            activeFilePath="/w/tab-8.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+
+      // Tab 8 right edge (720) is outside clientWidth (200): align it in.
+      expect(container.scrollLeft).toBe(520);
+    });
+
+    it("scrolls back left when the active tab moves out of view to the left", () => {
+      const { rerender } = renderDock("/w/tab-0.ts");
+      const container = document.querySelector(
+        ".desktop-panel-dock-tabs",
+      ) as HTMLElement;
+      mockLayout(container);
+
+      // First jump far right (tab 8) then back to tab 0, now left of the viewport.
+      rerender(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={manyTabs}
+            activeFilePath="/w/tab-8.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(container.scrollLeft).toBe(520);
+      rerender(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={manyTabs}
+            activeFilePath="/w/tab-0.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(container.scrollLeft).toBe(0);
+    });
+
+    it("leaves the scroll position untouched when the tab is already visible", () => {
+      const { rerender } = renderDock("/w/tab-0.ts");
+      const container = document.querySelector(
+        ".desktop-panel-dock-tabs",
+      ) as HTMLElement;
+      mockLayout(container);
+
+      // Tab 1 spans 80-160, fully inside the 200px viewport: no jump needed.
+      rerender(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["file"]}
+            active="file"
+            fileTabs={manyTabs}
+            activeFilePath="/w/tab-1.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(container.scrollLeft).toBe(0);
+    });
+  });
 });

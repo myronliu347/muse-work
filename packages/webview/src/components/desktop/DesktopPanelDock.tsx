@@ -13,6 +13,29 @@ import { FileIcon } from "../panels/FileIcon";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 
+/** Bring the active file tab into view whenever it changes (opening a tab,
+ * clicking one, or activating the left/right neighbor after a close). The
+ * tab bar scrolls horizontally (overflow-x: auto), so a tab outside the
+ * visible area is otherwise unreachable. Nearest alignment — no centering,
+ * so the current reading position is preserved. */
+function scrollActiveTabIntoView(
+  container: HTMLElement,
+  activeFilePath: string,
+) {
+  const activeEl = container.querySelector<HTMLElement>(
+    '[data-testid="file-tab"][data-active="true"]',
+  );
+  if (!activeEl) return;
+  const { scrollLeft, clientWidth } = container;
+  const left = activeEl.offsetLeft;
+  const right = left + activeEl.offsetWidth;
+  if (left < scrollLeft) {
+    container.scrollLeft = left;
+  } else if (right > scrollLeft + clientWidth) {
+    container.scrollLeft = right - clientWidth;
+  }
+}
+
 export interface DesktopPanelDockProps {
   checked: DesktopPanelKind[];
   active: DesktopPanelKind;
@@ -57,6 +80,19 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
+  const tabsRef = React.useRef<HTMLDivElement | null>(null);
+  // The tab bar starts scrolled to the left, so the initially active tab is
+  // always visible; scrolling only makes sense on later activation changes.
+  const mountedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (!tabsRef.current || !activeFilePath) return;
+    scrollActiveTabIntoView(tabsRef.current, activeFilePath);
+  }, [activeFilePath, fileTabs]);
 
   const onDragStart = (e: React.MouseEvent) => {
     if (fullscreen) return;
@@ -126,7 +162,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         />
       )}
       <div className="desktop-panel-dock-header">
-        <div className="desktop-panel-dock-tabs">
+        <div className="desktop-panel-dock-tabs" ref={tabsRef}>
           {kindTabs.map((kind) => (
             <div
               key={kind}
