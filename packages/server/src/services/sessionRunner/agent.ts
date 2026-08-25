@@ -558,7 +558,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
       },
       canUseTool: async (context) => {
-        if (store.get(sessionId)?.permissionMode === "bypassPermissions") {
+        if (
+          store.get(sessionId)?.permissionMode === "bypassPermissions" &&
+          context.toolName !== "AskUserQuestion"
+        ) {
           return { behavior: "allow" as const };
         }
         core.clearIdleTimer(sessionId);
