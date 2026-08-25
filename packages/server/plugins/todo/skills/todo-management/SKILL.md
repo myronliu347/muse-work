@@ -32,8 +32,9 @@ description: "管理本机的 Todo/Task 任务看板：用户说「记个 todo�
 # 创建 todo（source 枚举：session/manual/popo/internal；--workdir 可选：绑定工作目录，task 缺省继承）
 node scripts/todo.mjs create --title "标题" --priority p1 --source session --description "可选 markdown" --workdir /path/to/dir
 
-# 列出未归档 todo
+# 列出未归档 todo（--archived 查看已完成 todo 归档）
 node scripts/todo.mjs list
+node scripts/todo.mjs list --archived
 
 # 查看某 todo 详情与 task
 node scripts/todo.mjs get <todoId>
@@ -42,8 +43,20 @@ node scripts/todo.mjs get <todoId>
 node scripts/todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/dir --description "可选" --branch develop
 node scripts/todo.mjs add-task <todoId> --title "task 标题" --workdir /path/to/git/repo --no-worktree
 
-# 评论 task（审核讨论）
+# 评论 task（审核讨论；--author 默认 user，--kind 默认 note；AI 执行结果用 --author ai --kind result）
 node scripts/todo.mjs comment <taskId> --content "评论内容"
+node scripts/todo.mjs comment <taskId> --content "任务结果摘要" --author ai --kind result
+node scripts/todo.mjs comment <taskId> --content "系统提示" --author system --kind note
+
+# 查看 task 的评论 / 执行记录
+node scripts/todo.mjs comments <taskId>
+node scripts/todo.mjs runs <taskId>
+
+# 编辑 todo（仅 pending 可改，其他状态 409；--workdir 改的是后续 task 的继承值=规划会话目录，task 创建时未指定 workdir 才用）
+node scripts/todo.mjs update <todoId> --title "新标题" --description "新描述" --priority p0 --tags 标签1,标签2 --workdir /path/to/dir
+
+# 编辑 task（仅 pending 可改 title/description；task 的 workdir 不支持修改）
+node scripts/todo.mjs update-task <taskId> --title "新标题" --description "新描述"
 
 # task 状态操作（用户明确指示才执行；确认 task 当前状态后再调用）
 node scripts/todo.mjs approve <taskId>   # 审核通过 → 已完成（保留 worktree 供排查，清理执行会话；仅「待审核」可用）
@@ -53,5 +66,11 @@ node scripts/todo.mjs cancel <taskId>    # 取消任务（执行中会中止会�
 # 标记 todo 已完成（用户明确表示完成时；有任务未到终态会被拒绝）
 node scripts/todo.mjs complete <todoId>
 ```
+
+## 编辑限制
+
+- **todo**：仅 `pending`（待执行）可编辑（`update`）；进行中/已完成/已取消的 todo 改任何字段都会 409。
+- **todo.workdir**：`update --workdir` 修改的是**后续 task 的继承值**（新 task 创建时未指定 workdir 就继承它，规划会话也开在这里）；已存在 task 的 workdir 不受影响。
+- **task**：仅 `pending` 可编辑 `title`/`description`（`update-task`）；task 的 workdir 不支持修改（执行中由 worktree 接管，归档后不可改）。
 
 task 状态操作原则：**必须用户明确指示**（「通过」「继续执行」「取消这个任务」），不要主动替用户操作。不确定状态先 `get <todoId>` 查看。端口从环境变量 `MUSE_SERVER_PORT` 读取（与 webview 一致）；未设置时默认 8787。

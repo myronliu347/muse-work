@@ -14,10 +14,14 @@ function usage() {
 
 用法：
   node todo.mjs create --title <标题> [--priority p0|p1|p2] [--source session|manual|popo|internal] [--description <md>] [--tags 标签1,标签2] [--workdir <目录>]
-  node todo.mjs list
+  node todo.mjs list [--archived]
   node todo.mjs get <todoId>
   node todo.mjs add-task <todoId> --title <标题> [--workdir <目录>] [--description <md>] [--branch <分支>] [--no-worktree]
-  node todo.mjs comment <taskId> --content <文本>
+  node todo.mjs comment <taskId> --content <文本> [--author user|ai|system] [--kind note|result]
+  node todo.mjs comments <taskId>
+  node todo.mjs runs <taskId>
+  node todo.mjs update <todoId> [--title <标题>] [--description <文本>] [--priority p0|p1|p2] [--tags 标签1,标签2] [--workdir <目录>]
+  node todo.mjs update-task <taskId> [--title <标题>] [--description <文本>]
 
 task 操作（状态迁移）：
   node todo.mjs approve <taskId>          # 审核通过 → 已完成（清理 worktree/执行会话）
@@ -26,6 +30,10 @@ task 操作（状态迁移）：
 
 todo 操作：
   node todo.mjs complete <todoId>         # 标记 todo 已完成（有任务待执行/执行中/待审核时被拒绝）
+
+编辑限制：todo/task 均仅 pending（待执行）可编辑，其他状态 PATCH 返回 409；
+todo 的 --workdir 改的是后续 task 的继承值（规划会话目录，task 创建时未指定 workdir 才用）；
+task 的 workdir 不支持修改。
 `);
 }
 
@@ -85,7 +93,12 @@ async function main() {
       return;
     }
     case "list": {
-      const { todos } = await request("GET", "/todos");
+      const archived = has(argv, "--archived");
+      const { todos } = await request("GET", `/todos${archived ? "?archived=1" : ""}`);
+      if (todos.length === 0) {
+        console.log(archived ? "（无已完成 todo）" : "（无待办 todo）");
+        return;
+      }
       for (const t of todos) {
         console.log(`${t.id}\t[${t.priority.toUpperCase()}]\t${t.status}\t${t.title}`);
       }
@@ -126,13 +139,84 @@ async function main() {
     case "comment": {
       const taskId = argv[0];
       const content = arg(argv, "--content");
+      const author = arg(argv, "--author") ?? "user";
+      const kind = arg(argv, "--kind") ?? "note";
       if (!taskId || !content) throw new Error("comment 需要 <taskId> --content <文本>");
       const { comment } = await request("POST", `/tasks/${taskId}/comments`, {
-        author: "user",
-        kind: "note",
+        author,
+        kind,
         content,
       });
       console.log(JSON.stringify(comment, null, 2));
+      return;
+    }
+    case "comments": {
+      const taskId = argv[0];
+      if (!taskId) throw new Error("comments 需要 <taskId>");
+      const { comments } = await request("GET", `/tasks/${taskId}/comments`);
+      if (comments.length === 0) {
+        console.log("（无评论）");
+        return;
+      }
+      for (const c of comments) {
+        const time = new Date(c.createdAt).toLocaleString();
+        console.log(`[${time}] ${c.author}/${c.kind}: ${c.content}`);
+      }
+      return;
+    }
+    case "runs": {
+      const taskId = argv[0];
+      if (!taskId) throw new Error("runs 需要 <taskId>");
+      const { runs } = await request("GET", `/tasks/${taskId}/runs`);
+      if (runs.length === 0) {
+        console.log("（无执行记录）");
+        return;
+      }
+      for (const r of runs) {
+        const time = new Date(r.createdAt).toLocaleString();
+        console.log(`${r.id}\t[${r.status}]\t${time}${r.sessionId ? `\tsession=${r.sessionId}` : ""}`);
+      }
+      return;
+    }
+    case "update": {
+      const todoId = argv[0];
+      if (!todoId) throw new Error("update 需要 <todoId>");
+      const patch = {};
+      const title = arg(argv, "--title");
+      const description = arg(argv, "--description");
+      const priority = arg(argv, "--priority");
+      const tags = arg(argv, "--tags");
+      const workdir = arg(argv, "--workdir");
+      if (title !== undefined) patch.title = title;
+      if (description !== undefined) patch.description = description;
+      if (priority !== undefined) patch.priority = priority;
+      if (tags !== undefined) {
+        patch.tags = tags
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      if (workdir !== undefined) patch.workdir = workdir;
+      if (Object.keys(patch).length === 0) {
+        throw new Error("update 需要至少一个修改项（--title/--description/--priority/--tags/--workdir）");
+      }
+      const { todo } = await request("PATCH", `/todos/${todoId}`, patch);
+      console.log(JSON.stringify(todo, null, 2));
+      return;
+    }
+    case "update-task": {
+      const taskId = argv[0];
+      if (!taskId) throw new Error("update-task 需要 <taskId>");
+      const patch = {};
+      const title = arg(argv, "--title");
+      const description = arg(argv, "--description");
+      if (title !== undefined) patch.title = title;
+      if (description !== undefined) patch.description = description;
+      if (Object.keys(patch).length === 0) {
+        throw new Error("update-task 需要至少一个修改项（--title/--description）");
+      }
+      const { task } = await request("PATCH", `/tasks/${taskId}`, patch);
+      console.log(JSON.stringify(task, null, 2));
       return;
     }
     case "approve": {
