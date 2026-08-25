@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import type { DiffLineAnnotation } from "@pierre/diffs";
 import type { VsCodeApi, DiffViewState } from "../../types";
@@ -55,6 +55,95 @@ const STATUS_ICON: Record<WorkspaceFileStatus, string> = {
   renamed: "codicon-diff-renamed",
   untracked: "codicon-diff-added",
 };
+
+/** One node of the tree view: either a directory (children) or a changed
+ *  file (file). Built from the flat diff file list in buildDiffTree. */
+export interface DiffTreeNode {
+  name: string;
+  /** Directory key ("src/sub") for dirs; the original file path for files. */
+  path: string;
+  isDir: boolean;
+  file?: WorkspaceDiffFile;
+  children?: DiffTreeNode[];
+}
+
+const DIR_PATH_SEP = "/";
+
+/** Split a (relative or absolute) file path into non-empty segments. */
+function pathSegments(path: string): string[] {
+  return path
+    .replace(/\\/g, DIR_PATH_SEP)
+    .split(DIR_PATH_SEP)
+    .filter((s) => s.length > 0);
+}
+
+/** Organize the flat diff file list into a directory tree. Only directories
+ *  affected by the changed files are created; each file becomes a leaf node
+ *  carrying its WorkspaceDiffFile. Paths under workdir are shown relative to
+ *  it (same semantics as the list view); single-child directory chains are
+ *  merged into one node so deep "a/b/c" tunnels do not bury the file. */
+export function buildDiffTree(
+  files: WorkspaceDiffFile[],
+  workdir?: string,
+): DiffTreeNode[] {
+  const dirs = new Map<string, DiffTreeNode>();
+  const roots: DiffTreeNode[] = [];
+  for (const file of files) {
+    const segments = pathSegments(displayFilePath(file.path, workdir));
+    if (segments.length === 0) continue;
+    let siblings = roots;
+    let dirPath = "";
+    for (let i = 0; i < segments.length - 1; i++) {
+      dirPath = dirPath ? `${dirPath}${DIR_PATH_SEP}${segments[i]}` : segments[i];
+      let dirNode = dirs.get(dirPath);
+      if (!dirNode) {
+        const children: DiffTreeNode[] = [];
+        dirNode = { name: segments[i], path: dirPath, isDir: true, children };
+        dirs.set(dirPath, dirNode);
+        siblings.push(dirNode);
+      }
+      siblings = dirNode.children!;
+    }
+    siblings.push({
+      name: segments[segments.length - 1],
+      path: file.path,
+      isDir: false,
+      file,
+    });
+  }
+  return mergeSingleDirChains(roots);
+}
+
+/** Collapse runs of directories whose only child is another directory into a
+ *  single node (GitHub/VS Code compact-folders style): "a/b/c/file.ts"
+ *  renders as one "a/b/c" row plus the file, not three nested rows. */
+function mergeSingleDirChains(nodes: DiffTreeNode[]): DiffTreeNode[] {
+  return nodes.map((node) => {
+    if (!node.isDir) return node;
+    let dir = node;
+    while (
+      dir.children !== undefined &&
+      dir.children.length === 1 &&
+      dir.children[0].isDir
+    ) {
+      const only = dir.children[0];
+      dir = { ...only, name: `${dir.name}${DIR_PATH_SEP}${only.name}` };
+    }
+    return {
+      ...dir,
+      children: mergeSingleDirChains(dir.children ?? []),
+    };
+  });
+}
+
+/** Total number of changed files under a tree node (directories recurse). */
+export function countDiffTreeFiles(node: DiffTreeNode): number {
+  if (!node.isDir) return 1;
+  return (node.children ?? []).reduce(
+    (sum, child) => sum + countDiffTreeFiles(child),
+    0,
+  );
+}
 
 export interface DiffComment {
   path?: string;
@@ -169,6 +258,13 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // for large workspace diffs — data is still loaded once for all files).
   // The expanded path survives refreshes; defaults to the first file.
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
+  // Tree view (列表/树视图切换): list is the default and behaves exactly as
+  // before; tree view splits the panel into a selected-file diff (left) and a
+  // directory-organized change tree (right). Selection and dir collapse are
+  // local UI state, never persisted.
+  const [viewMode, setViewMode] = useState<"list" | "tree">("list");
+  const [treeSelected, setTreeSelected] = useState<string | null>(null);
+  const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
   // True while a refresh request is in flight; drives the toolbar spinner.
   const [refreshing, setRefreshing] = useState(false);
   const [pendingRevert, setPendingRevert] = useState<PendingRevert | null>(
@@ -346,7 +442,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       if (diffView.file?.path) {
         const files = recentFiles ?? [];
         const hit = files.find((f) => f.path === diffView.file!.path);
-        if (hit) setExpandedPath(hit.path);
+        if (hit) {
+          setExpandedPath(hit.path);
+          setTreeSelected(hit.path);
+        }
       }
     }
   }, [diffView, refresh, recentFiles]);
@@ -387,6 +486,38 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     // Mutual exclusion: expanding one file collapses every other.
     setExpandedPath((prev) => (prev === path ? null : path));
     clearComment();
+  };
+
+  // Tree view data derived from the current ok-state files.
+  const diffTree = useMemo(
+    () => (state.kind === "ok" ? buildDiffTree(state.files, workdir) : []),
+    [state, workdir],
+  );
+  const treeFiles = state.kind === "ok" ? state.files : [];
+  // The file shown on the tree view's left side: the tree selection when set,
+  // else the list view's expanded file, else the first file. Falls back to the
+  // first file whenever the picked path is no longer among the files.
+  const activeFile =
+    treeFiles.find((f) => f.path === (treeSelected ?? expandedPath)) ??
+    treeFiles[0] ??
+    null;
+  const activePath = activeFile?.path ?? null;
+
+  // Drop a stale tree selection once its file disappears from the diff.
+  useEffect(() => {
+    if (treeSelected == null || state.kind !== "ok") return;
+    if (!state.files.some((f) => f.path === treeSelected)) {
+      setTreeSelected(null);
+    }
+  }, [state, treeSelected]);
+
+  const toggleDir = (dirPath: string) => {
+    setCollapsedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(dirPath)) next.delete(dirPath);
+      else next.add(dirPath);
+      return next;
+    });
   };
 
   const onDragStart = (e: React.MouseEvent) => {
@@ -526,6 +657,91 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     );
   };
 
+  const renderFilePath = (file: WorkspaceDiffFile) => (
+    <span
+      className="diff-file-path"
+      data-testid="diff-file-path"
+      role="link"
+      tabIndex={0}
+      title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
+        }
+      }}
+    >
+      {displayFilePath(file.path, workdir)}
+    </span>
+  );
+
+  const renderFileStats = (file: WorkspaceDiffFile) => (
+    <span className="diff-file-stats">
+      <span className="diff-file-stats-add">+{file.additions}</span>
+      <span className="diff-file-stats-del">-{file.deletions}</span>
+    </span>
+  );
+
+  /** Shared per-file header row: status icon + clickable path + revert +
+   *  +/- stats. The accordion chevron only renders in list view (onToggle
+   *  given); the tree view's selected-file detail renders the same row. */
+  const renderFileHeader = (
+    file: WorkspaceDiffFile,
+    opts: { expanded: boolean; onToggle?: () => void },
+  ) => {
+    const { expanded, onToggle } = opts;
+    const headerContent = (
+      <>
+        {onToggle && (
+          <i
+            className={`codicon codicon-chevron-${expanded ? "down" : "right"}`}
+          />
+        )}
+        <span
+          className={`diff-file-status diff-file-status-${file.status}`}
+          title={STATUS_LABEL[file.status]}
+          aria-label={STATUS_LABEL[file.status]}
+        >
+          <i className={`codicon ${STATUS_ICON[file.status]}`} />
+        </span>
+        {renderFilePath(file)}
+      </>
+    );
+    return (
+      <div className="diff-file-header-row">
+        {onToggle ? (
+          <button
+            className="diff-file-header"
+            aria-expanded={expanded}
+            onClick={onToggle}
+          >
+            {headerContent}
+          </button>
+        ) : (
+          <div className="diff-file-header">{headerContent}</div>
+        )}
+        <button
+          type="button"
+          className="diff-file-revert preview-pane-button"
+          data-testid="diff-revert-file"
+          data-path={file.path}
+          title="丢弃此文件的改动"
+          aria-label={`丢弃 ${file.path} 的改动`}
+          disabled={reverting}
+          onClick={() => setPendingRevert({ scope: "file", path: file.path })}
+        >
+          <i className="codicon codicon-discard" />
+        </button>
+        {renderFileStats(file)}
+      </div>
+    );
+  };
+
   const renderFile = (file: WorkspaceDiffFile) => {
     const isExpanded = expandedPath === file.path;
     return (
@@ -534,60 +750,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         key={file.path}
         data-testid={`diff-file-${file.status}`}
       >
-        <div className="diff-file-header-row">
-          <button
-            className="diff-file-header"
-            aria-expanded={isExpanded}
-            onClick={() => toggleFile(file.path)}
-          >
-            <i
-              className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
-            />
-            <span
-              className={`diff-file-status diff-file-status-${file.status}`}
-              title={STATUS_LABEL[file.status]}
-              aria-label={STATUS_LABEL[file.status]}
-            >
-              <i className={`codicon ${STATUS_ICON[file.status]}`} />
-            </span>
-            <span
-              className="diff-file-path"
-              data-testid="diff-file-path"
-              role="link"
-              tabIndex={0}
-              title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onOpenFile?.(resolveWorkspaceFilePath(file.path, workdir));
-                }
-              }}
-            >
-              {displayFilePath(file.path, workdir)}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="diff-file-revert preview-pane-button"
-            data-testid="diff-revert-file"
-            data-path={file.path}
-            title="丢弃此文件的改动"
-            aria-label={`丢弃 ${file.path} 的改动`}
-            disabled={reverting}
-            onClick={() => setPendingRevert({ scope: "file", path: file.path })}
-          >
-            <i className="codicon codicon-discard" />
-          </button>
-          <span className="diff-file-stats">
-            <span className="diff-file-stats-add">+{file.additions}</span>
-            <span className="diff-file-stats-del">-{file.deletions}</span>
-          </span>
-        </div>
+        {renderFileHeader(file, {
+          expanded: isExpanded,
+          onToggle: () => toggleFile(file.path),
+        })}
         {isExpanded && (
           <div className="diff-file-body">
             {renderFileBody(file)}
@@ -599,6 +765,107 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       </div>
     );
   };
+
+  /** Tree view's left side: the selected file's full diff (always expanded),
+   *  keeping every list-view interaction (line comments, open file, revert). */
+  const renderFileDetail = (file: WorkspaceDiffFile) => (
+    <div
+      className="diff-file"
+      key={file.path}
+      data-testid={`diff-file-${file.status}`}
+    >
+      {renderFileHeader(file, { expanded: true })}
+      <div className="diff-file-body">
+        {renderFileBody(file)}
+        {file.truncated && (
+          <div className="diff-line-ellipsis">差异过大，已截断…</div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderDiffTreeNode = (
+    node: DiffTreeNode,
+    depth: number,
+  ): React.ReactNode => {
+    if (node.isDir) {
+      const collapsed = collapsedDirs.has(node.path);
+      return (
+        <div key={node.path}>
+          <button
+            type="button"
+            className="diff-tree-dir"
+            data-testid={`diff-tree-dir-${node.path}`}
+            aria-expanded={!collapsed}
+            title={node.path}
+            onClick={() => toggleDir(node.path)}
+            style={{ paddingLeft: 8 + depth * 14 }}
+          >
+            <i
+              className={`codicon ${collapsed ? "codicon-chevron-right" : "codicon-chevron-down"} diff-tree-chevron`}
+              aria-hidden
+            />
+            <i
+              className="codicon codicon-folder diff-tree-folder-icon"
+              aria-hidden
+            />
+            <span className="diff-tree-dir-name">{node.name}</span>
+            <span className="diff-tree-dir-count">
+              {countDiffTreeFiles(node)}
+            </span>
+          </button>
+          {!collapsed &&
+            (node.children ?? []).map((child) =>
+              renderDiffTreeNode(child, depth + 1),
+            )}
+        </div>
+      );
+    }
+    const file = node.file!;
+    const isActive = node.path === activePath;
+    return (
+      <button
+        type="button"
+        key={node.path}
+        className={`diff-tree-file${isActive ? " diff-tree-file--active" : ""}`}
+        data-testid={`diff-tree-file-${file.status}`}
+        data-path={node.path}
+        title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+        aria-current={isActive}
+        onClick={() => {
+          setTreeSelected(node.path);
+          clearComment();
+        }}
+        style={{ paddingLeft: 8 + depth * 14 }}
+      >
+        <span
+          className={`diff-tree-file-status diff-tree-file-status-${file.status}`}
+          title={STATUS_LABEL[file.status]}
+        >
+          <i className={`codicon ${STATUS_ICON[file.status]}`} aria-hidden />
+        </span>
+        <span className="diff-tree-file-name">{node.name}</span>
+        <span className="diff-tree-file-stats">
+          <span className="diff-tree-file-stats-add">+{file.additions}</span>
+          <span className="diff-tree-file-stats-del">-{file.deletions}</span>
+        </span>
+      </button>
+    );
+  };
+
+  const renderTreeView = () => (
+    <div className="diff-pane-tree-view" data-testid="diff-tree-view">
+      <div className="diff-pane-tree-content">
+        {activeFile ? renderFileDetail(activeFile) : null}
+      </div>
+      <nav className="diff-pane-tree-nav" data-testid="diff-tree-nav">
+        <div className="diff-pane-tree-header">变更文件</div>
+        <div className="diff-pane-tree-scroll">
+          {diffTree.map((node) => renderDiffTreeNode(node, 0))}
+        </div>
+      </nav>
+    </div>
+  );
 
   const toolbarActionsDisabled =
     state.kind !== "ok" || state.files.length === 0 || reverting;
@@ -638,6 +905,30 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           </option>
         </select>
         <div className="diff-pane-toolbar-actions">
+        {state.kind === "ok" && state.files.length > 0 && (
+          <div className="diff-view-mode-toggle" role="group" aria-label="视图切换">
+            <button
+              type="button"
+              className="diff-view-mode-btn"
+              data-testid="diff-view-list"
+              aria-pressed={viewMode === "list"}
+              title="列表视图"
+              onClick={() => setViewMode("list")}
+            >
+              <i className="codicon codicon-list-flat" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="diff-view-mode-btn"
+              data-testid="diff-view-tree"
+              aria-pressed={viewMode === "tree"}
+              title="树视图"
+              onClick={() => setViewMode("tree")}
+            >
+              <i className="codicon codicon-list-tree" aria-hidden />
+            </button>
+          </div>
+        )}
         {mode === "unstaged" && (
           <>
             <Tooltip
@@ -712,7 +1003,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           )}
           {state.kind === "ok" &&
             !(mode === "recent" && isStreaming) &&
-            state.files.map(renderFile)}
+            (viewMode === "tree" ? renderTreeView() : state.files.map(renderFile))}
         </div>
       </div>
       {pendingRevert && (
