@@ -679,7 +679,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
             )}
           </div>
         ) : (
-          <ScrollArea className="todo-kanban-scroll">
+          <div className="todo-kanban-scroll">
             <Flex gap="3" align="start" className="todo-kanban-cols">
               {TASK_STATUS_ORDER.map((status) => {
                 // 归档视图只展示「已完成」列（归档 todo 的 task 全是 completed）
@@ -746,7 +746,7 @@ export const TodoBoard: React.FC<TodoBoardProps> = ({
                 );
               })}
             </Flex>
-          </ScrollArea>
+          </div>
         )}
       </div>
       <TaskDrawer

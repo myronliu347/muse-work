@@ -93,10 +93,10 @@
 }
 
 /* Radix Themes 内建 .rt-ScrollAreaViewport > * 会设 width: fit-content——
-   宽度跟随内容 max-content 导致单列/看板列宽度异常，用户拍板删除该行为。
-   左侧列表与右侧看板都覆盖为占满可用宽度（列内元素 flex 平分/省略号依赖定宽）。 */
-.todo-list-scroll .rt-ScrollAreaViewport > *,
-.todo-kanban-scroll .rt-ScrollAreaViewport > * {
+   宽度跟随内容 max-content 导致单列宽度异常，用户拍板删除该行为。
+   左侧列表（仍用 ScrollArea）覆盖为占满可用宽度（省略号依赖定宽）。
+   看板已是原生 div 滚动，无此结构。 */
+.todo-list-scroll .rt-ScrollAreaViewport > * {
   width: 100%;
 }
 
@@ -192,11 +192,8 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-}
-
-/* 看板外层只负责横向滚动（多列超出时横滚）；纵向滚动在各列内
-   （.todo-kanban-col-body），避免出现双层纵向滚动条。 */
-.todo-kanban-scroll .rt-ScrollAreaViewport {
+  /* 原生 div 滚动：只负责横向滚动（多列超出时横滚）；纵向滚动在各列内
+     （.todo-kanban-col-body），避免出现双层纵向滚动条。 */
   overflow-x: auto;
   overflow-y: hidden;
 }
