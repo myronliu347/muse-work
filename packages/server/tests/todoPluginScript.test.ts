@@ -21,6 +21,14 @@ const SCRIPT = path.join(
 );
 
 function execScript(port: number, args: string[]): Promise<string> {
+  return execScriptWithEnv(port, args, { MUSE_SERVER_URL: `http://127.0.0.1:${port}`, MUSE_SERVER_PORT: String(port) });
+}
+
+function execScriptWithEnv(
+  port: number,
+  args: string[],
+  overrides: Record<string, string>,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     // 关键：剥离环境里的 MUSE_SERVER_URL/MUSE_HOME*（宿主 Muse 应用注入的
     // 生产 server 地址），并显式指向测试 server——否则 todo.mjs 优先读
@@ -29,7 +37,7 @@ function execScript(port: number, args: string[]): Promise<string> {
     execFile(
       process.execPath,
       [SCRIPT, ...args],
-      { env: { ...rest, MUSE_SERVER_URL: `http://127.0.0.1:${port}`, MUSE_SERVER_PORT: String(port) } },
+      { env: { ...rest, ...overrides } },
       (err, stdout, stderr) => {
         if (err) reject(new Error(stderr || String(err)));
         else resolve(stdout);
@@ -99,6 +107,23 @@ describe("todo plugin script (todo.mjs)", () => {
     const list = await execScript(port, ["list"]);
     expect(list).toContain(todo.id);
     expect(list).toContain("插件测试 todo");
+  });
+
+  it("无 MUSE_SERVER_URL 时回退读 MUSE_HOME 下 server-url 端口文件（打包版随机端口场景）", async () => {
+    port = await startServer();
+    // server 侧 listen 后会把实际地址写到 <MUSE_HOME>/.muse-work/server-url。
+    const museHome = path.join(home, ".muse-work");
+    fs.mkdirSync(museHome, { recursive: true });
+    fs.writeFileSync(path.join(museHome, "server-url"), `http://127.0.0.1:${port}`);
+
+    const out = await execScriptWithEnv(port, ["create", "--title", "端口文件 todo"], {
+      MUSE_HOME: home,
+    });
+    const todo = JSON.parse(out) as { id: string };
+    expect(todo.title).toBe("端口文件 todo");
+
+    const list = await execScriptWithEnv(port, ["list"], { MUSE_HOME: home });
+    expect(list).toContain(todo.id);
   });
 
   it("add-task creates a task with workdir", async () => {
