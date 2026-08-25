@@ -419,8 +419,9 @@
 .file-path-bar-text {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 路径完整显示（用户要求不压缩）：超长时横向滚动查看，不做省略 */
+  overflow-x: auto;
+  scrollbar-width: thin;
   white-space: nowrap;
   font-size: var(--font-size-1);
 }

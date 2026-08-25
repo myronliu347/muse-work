@@ -1,9 +1,6 @@
 import React from "react";
 import { FileIcon } from "./FileIcon";
-import {
-  displayFilePath,
-  middleEllipsis,
-} from "../../utils/filePathDisplay";
+import { displayFilePath } from "../../utils/filePathDisplay";
 
 export type FilePathBarProps = {
   path: string;
@@ -17,7 +14,7 @@ export const FilePathBar: React.FC<FilePathBarProps> = ({ path, workdir }) => {
     <div className="file-path-bar" data-testid="file-path-bar">
       <FileIcon name={name} className="file-icon" />
       <span className="file-path-bar-text" title={path}>
-        {middleEllipsis(display)}
+        {display}
       </span>
     </div>
   );
