@@ -142,6 +142,14 @@ export class TerminalManager {
     }
   }
 
+  /** Clear the replay buffer so a reattach no longer replays cleared output.
+   * The pty process is left running — only the screen/buffer history is reset. */
+  clear(termId: string): void {
+    const entry = this.terminals.get(termId);
+    if (!entry) return;
+    entry.buffer = "";
+  }
+
   kill(termId: string): void {
     const entry = this.terminals.get(termId);
     if (!entry) return;

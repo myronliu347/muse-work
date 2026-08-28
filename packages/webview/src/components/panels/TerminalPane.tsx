@@ -230,6 +230,26 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         term.open(containerRef.current);
         termRef.current = term;
         fitRef.current = fit;
+        // Cmd/Ctrl+K clears the screen (mirrors VS Code's terminal clear).
+        // Returning false stops xterm from forwarding the chord to the PTY as
+        // ordinary input; the handler reads termIdRef so the latest termId is
+        // used (matches the termIdRef pattern used by onData / resize).
+        term.attachCustomKeyEventHandler((event) => {
+          if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === "k"
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            term.clear();
+            vscode.postMessage({
+              command: "desktopTerminalClear",
+              termId: termIdRef.current,
+            });
+            return false;
+          }
+          return true;
+        });
         term.onData((data) => {
           vscode.postMessage({
             command: "desktopTerminalInput",
