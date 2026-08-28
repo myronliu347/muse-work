@@ -75,6 +75,14 @@ describe("linkifyFilePaths", () => {
     expect(linkifyFilePaths("v1.2.3 released")).toBe("v1.2.3 released");
   });
 
+  it("does not link paths without a file extension (directories)", () => {
+    expect(linkifyFilePaths("/Users/liuyuyang/Documents/projects/exams")).toBe(
+      "/Users/liuyuyang/Documents/projects/exams",
+    );
+    expect(linkifyFilePaths("/Users/me/repo/src")).toBe("/Users/me/repo/src");
+    expect(linkifyFilePaths("a /tmp b")).toBe("a /tmp b");
+  });
+
   it("does not link URLs", () => {
     expect(linkifyFilePaths("see http://example.com/a.ts now")).toBe(
       "see http://example.com/a.ts now",

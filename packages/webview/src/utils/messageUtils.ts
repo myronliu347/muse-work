@@ -202,7 +202,9 @@ const COMMAND_VERBS =
 // Matches a bare file path (relative with a slash, absolute, or ./ ../ ~/
 // prefixed), optionally with a :line or :line:col suffix; plus a bare file
 // name with an extension (e.g. version.ts) unless it directly follows a
-// command verb. Constrained to ASCII path characters, never preceded by `](`
+// command verb. The final path segment must carry a file extension so
+// extensionless paths (usually directories like /path/to/exams) are not
+// linked. Constrained to ASCII path characters, never preceded by `](`
 // (an existing markdown link target) or a URL scheme, and followed by
 // whitespace/punctuation/EOL.
 const FILE_PATH_SOURCE = [
@@ -210,15 +212,21 @@ const FILE_PATH_SOURCE = [
   "(?:^|(?<=[\\s(（]))",
   "(?!\\w+://)",
   "(",
+  // Absolute or ./ ../ ~/ prefixed path. Leading/middle segments may lack an
+  // extension (e.g. /Users/liuyuyang/projects), the final segment must have one.
   "(?:(?:\\.{1,2}|~)/|/)",
-  "[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*",
-  "(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*",
+  "(?:[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*/)*",
+  "[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{2,}",
   "(?::\\d+(?::\\d+)?)?",
   "|",
-  "[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*",
-  "(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)+",
+  // Relative path without a leading ./ or / (e.g. src/foo.ts): at least one
+  // slash, final segment must have an extension.
+  "(?:[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*/)+",
+  "[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{2,}",
   "(?::\\d+(?::\\d+)?)?",
   "|",
+  // Bare file name with an extension (e.g. version.ts) unless it directly
+  // follows a command verb.
   `(?<!\\b(?:${COMMAND_VERBS})\\s)`,
   "[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z0-9_-]{2,})+",
   "(?::\\d+(?::\\d+)?)?",
