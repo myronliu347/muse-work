@@ -17,6 +17,9 @@ export const POPO_SYSTEM_PROMPT = `你是 Muse 机器人，运行在 POPO 即时
 /** POPO 机器人禁用的工具：Workflow 在后台运行、完成后才有通知，本场景无法接收结果。 */
 export const POPO_DISALLOWED_TOOLS = ["Workflow"] as const;
 
+/** 群聊 /btw：没有正在处理的消息时返回的提示。 */
+export const TEAM_BTW_IDLE = "当前没有正在处理的任务，无法询问进度";
+
 export interface PopoAgentRunner {
   run(content: string): Promise<string>;
   /**
@@ -25,6 +28,12 @@ export interface PopoAgentRunner {
    * team runner 每消息新建 agent，无持久上下文可清，空实现。
    */
   clear?(): Promise<void>;
+  /**
+   * 旁路询问当前进度（/btw 命令）。p2p 常驻 runner 实现为 agent.askBtw(q)——
+   * 不走 serialized 串行链（SDK askBtw 是旁路 fork，不打断主 turn，可实时基于当前上下文回答）；
+   * team runner 每消息新建 agent，问「正在处理消息的 agent」实时进度；没有正在处理的消息则返回 TEAM_BTW_IDLE。
+   */
+  askBtw?(question: string): Promise<string>;
 }
 
 export interface PopoAgentFactory {
@@ -98,6 +107,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   const residentRunners = new Map<string, PopoAgentRunner>();
   /** 同一 chat 的消息串行执行（常驻 agent / 共享 session 都要求按序）。 */
   const serialChains = new Map<string, Promise<unknown>>();
+  /** chatKey → 当前正在处理消息的 agent（team 每消息新建，run 期间登记，供 /btw 实时询问）。 */
+  const activeAgents = new Map<string, SessionAgent>();
 
   async function createSdkAgent(
     chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
@@ -200,6 +211,9 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
             await agent.clearMessages?.();
             return "";
           }).then(() => undefined),
+        // 不走 serialized 串行链：SDK askBtw 是旁路 fork，不打断主 turn，
+        // 基于当前上下文实时回答（无工具、不写消息、不落盘）。
+        askBtw: (question) => agent.askBtw?.(question) ?? Promise.resolve(TEAM_BTW_IDLE),
       };
       residentRunners.set(chat.chatKey, runner);
       return runner;
@@ -207,15 +221,23 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
 
     // 群聊：每条消息新建 agent，用完销毁；有后台任务则等任务结束再销毁。
     // clear 空实现：每消息新建 agent，无跨消息持久上下文（见 PopoAgentRunner 注释）。
+    // askBtw：问「正在处理消息的 agent」实时进度；无正在处理的消息则返回提示。
     return {
       clear: async () => undefined,
+      askBtw: async (question) => {
+        const agent = activeAgents.get(chat.chatKey);
+        if (!agent) return TEAM_BTW_IDLE;
+        return agent.askBtw?.(question) ?? TEAM_BTW_IDLE;
+      },
       run: (content) =>
         serialized(chat.chatKey, async () => {
           const agent = await createSdkAgent(chat);
+          activeAgents.set(chat.chatKey, agent);
           const loggerKey = `popo-${sanitizeSessionId(chat.chatKey)}`;
           try {
             return await runTurn(agent, chat, content);
           } finally {
+            activeAgents.delete(chat.chatKey);
             if (agent.hasRunningBackgroundWork?.()) {
               // 注册到共享调度器：任务结束后统一销毁，不阻塞本次回复。
               scheduleDisposeWhenSettled(agent, loggerKey);

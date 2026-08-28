@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ACK_MESSAGE,
+  BTW_DEFAULT_QUESTION,
   CLEAR_MESSAGE,
   REJECT_MESSAGE,
   createPopoHandler,
@@ -286,5 +287,139 @@ describe("popo handler", () => {
       sessionType: 1,
     });
     expect(sent[0].content).toContain("处理出错：clear boom");
+  });
+
+  it("answers /btw with the question via askBtw without running the agent", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const asked: string[] = [];
+    let runCalls = 0;
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-btw" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async () => {
+          runCalls += 1;
+          return "不应被调用";
+        },
+        askBtw: async (q: string) => {
+          asked.push(q);
+          return `进度：${q}`;
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    });
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "/btw 进度如何",
+      sessionType: 1,
+    });
+    expect(asked).toEqual(["进度如何"]); // 剥掉 /btw 前缀
+    expect(runCalls).toBe(0); // 不进 agent 主流程
+    // 不经过 ACK，直接回 /btw 答案
+    expect(sent).toEqual([{ receiver: "master@corp.netease.com", content: "进度：进度如何" }]);
+  });
+
+  it("uses the default question when /btw has no question", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const asked: string[] = [];
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-btw-empty" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async () => "x",
+        askBtw: async (q: string) => {
+          asked.push(q);
+          return "处理中";
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    });
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "/btw",
+      sessionType: 1,
+    });
+    expect(asked).toEqual([BTW_DEFAULT_QUESTION]);
+    expect(sent).toEqual([{ receiver: "master@corp.netease.com", content: "处理中" }]);
+  });
+
+  it("rejects /btw from non-master", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    let btwCalls = 0;
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-btw-nonmaster" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async () => "x",
+        askBtw: async () => {
+          btwCalls += 1;
+          return "x";
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    });
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "intruder@corp.netease.com",
+      notify: "/btw 进度如何",
+      sessionType: 1,
+    });
+    expect(btwCalls).toBe(0);
+    expect(sent).toEqual([{ receiver: "intruder@corp.netease.com", content: REJECT_MESSAGE }]);
+  });
+
+  it("strips @mention and answers /btw in teams", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const asked: string[] = [];
+    let runCalls = 0;
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-btw-team" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async () => {
+          runCalls += 1;
+          return "不应被调用";
+        },
+        askBtw: async (q: string) => {
+          asked.push(q);
+          return `群内进度：${q}`;
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    });
+    await handler.handle("IM_CHAT_TO_ROBOT_AT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "@Muse机器人 /btw 进度如何",
+      sessionType: 3,
+      sessionId: "1696900",
+    });
+    expect(asked).toEqual(["进度如何"]);
+    expect(runCalls).toBe(0);
+    expect(sent).toEqual([{ receiver: "1696900", content: "群内进度：进度如何" }]);
+  });
+
+  it("sends an error message when askBtw throws", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-btw-error" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async () => "x",
+        askBtw: async () => {
+          throw new Error("btw boom");
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    });
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "/btw 进度如何",
+      sessionType: 1,
+    });
+    expect(sent[0].content).toContain("处理出错：btw boom");
   });
 });

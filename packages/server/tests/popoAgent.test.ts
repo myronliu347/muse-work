@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPopoAgentFactory } from "../src/popo/popoAgent.js";
+import { TEAM_BTW_IDLE, createPopoAgentFactory } from "../src/popo/popoAgent.js";
 import type { SessionAgent } from "../src/services/sessionRunner/index.js";
 
 function stubAgent(finalText: string): SessionAgent {
@@ -370,5 +370,131 @@ describe("popoAgent", () => {
     const runner = await factory({ chatKey: "team:1", type: "team" });
     await runner.clear?.();
     expect(createCalls).toBe(0);
+  });
+
+  it("p2p askBtw calls agent.askBtw directly without the serialized chain", async () => {
+    const questions: string[] = [];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        askBtw: async (q: string) => {
+          questions.push(q);
+          return `进度：${q}`;
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    expect(await runner.askBtw?.("进度如何")).toBe("进度：进度如何");
+    expect(questions).toEqual(["进度如何"]);
+  });
+
+  it("p2p askBtw does not wait behind an in-flight run (bypasses serialized chain)", async () => {
+    const order: string[] = [];
+    let releaseSend: () => void = () => undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        sendMessage: async () => {
+          order.push("run-start");
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+          order.push("run-end");
+        },
+        askBtw: async () => {
+          order.push("btw");
+          return "实时进度";
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    const runPromise = runner.run("hello");
+    await vi.waitFor(() => expect(order).toContain("run-start"));
+    // 主 turn 还在跑，/btw 直接旁路回答，不排队等 run 结束
+    expect(await runner.askBtw?.("进度如何")).toBe("实时进度");
+    expect(order).toEqual(["run-start", "btw"]);
+    releaseSend();
+    await runPromise;
+    expect(order).toEqual(["run-start", "btw", "run-end"]);
+  });
+
+  it("team askBtw returns the unsupported message without creating an agent", async () => {
+    let createCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => {
+        createCalls += 1;
+        return stubAgent("x");
+      },
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    expect(await runner.askBtw?.("进度如何")).toBe(TEAM_BTW_IDLE);
+    expect(createCalls).toBe(0);
+  });
+
+  it("team askBtw asks the in-flight agent for progress while a run is active", async () => {
+    const order: string[] = [];
+    const questions: string[] = [];
+    let releaseSend: () => void = () => undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        sendMessage: async () => {
+          order.push("run-start");
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+          order.push("run-end");
+        },
+        askBtw: async (q: string) => {
+          questions.push(q);
+          return `群内进度：${q}`;
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    const runPromise = runner.run("hello");
+    await vi.waitFor(() => expect(order).toContain("run-start"));
+    // 消息处理中：/btw 问当前正在跑的 agent，实时回答
+    expect(await runner.askBtw?.("进度如何")).toBe("群内进度：进度如何");
+    expect(questions).toEqual(["进度如何"]);
+    releaseSend();
+    await runPromise;
+    // run 结束后 agent 已销毁，/btw 回到空闲提示
+    expect(await runner.askBtw?.("进度如何")).toBe(TEAM_BTW_IDLE);
+  });
+
+  it("team askBtw falls back to idle when the in-flight agent has no askBtw", async () => {
+    const order: string[] = [];
+    let releaseSend: () => void = () => undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        askBtw: undefined,
+        sendMessage: async () => {
+          order.push("run-start");
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+          order.push("run-end");
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    const runPromise = runner.run("hello");
+    // 等 agent 登记进 activeAgents（run 里 createSdkAgent 后、sendMessage 前登记）
+    await vi.waitFor(() => expect(order).toContain("run-start"));
+    expect(await runner.askBtw?.("进度如何")).toBe(TEAM_BTW_IDLE);
+    releaseSend();
+    await runPromise;
   });
 });
