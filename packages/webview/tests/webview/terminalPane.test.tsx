@@ -12,9 +12,11 @@ class MockTerminal {
   options: Record<string, unknown>;
   written: string[] = [];
   resetCount = 0;
+  clearCount = 0;
   disposed = false;
   addons: unknown[] = [];
   private dataCb: ((data: string) => void) | null = null;
+  private keyHandler: ((e: { metaKey: boolean; ctrlKey: boolean; key: string; preventDefault(): void; stopPropagation(): void }) => boolean) | null = null;
   constructor(options: Record<string, unknown>) {
     this.options = options;
     mockTerminals.push(this);
@@ -33,11 +35,38 @@ class MockTerminal {
   reset() {
     this.resetCount++;
   }
+  clear() {
+    this.clearCount++;
+  }
   dispose() {
     this.disposed = true;
   }
+  attachCustomKeyEventHandler(
+    handler: (e: {
+      metaKey: boolean;
+      ctrlKey: boolean;
+      key: string;
+      preventDefault(): void;
+      stopPropagation(): void;
+    }) => boolean,
+  ) {
+    this.keyHandler = handler;
+  }
   simulateInput(data: string) {
     this.dataCb?.(data);
+  }
+  simulateKey(e: { metaKey?: boolean; ctrlKey?: boolean; key: string }) {
+    const preventDefault = vi.fn();
+    const stopPropagation = vi.fn();
+    const handled =
+      this.keyHandler?.({
+        metaKey: e.metaKey ?? false,
+        ctrlKey: e.ctrlKey ?? false,
+        key: e.key,
+        preventDefault,
+        stopPropagation,
+      }) ?? true;
+    return { handled, preventDefault, stopPropagation };
   }
 }
 
@@ -225,6 +254,49 @@ describe("TerminalPane", () => {
       error: "终端启动失败：boom",
     });
     expect(screen.getByText("终端启动失败：boom")).toBeInTheDocument();
+  });
+
+  it("Cmd+K clears the xterm buffer, posts desktopTerminalClear, and swallows the key", async () => {
+    const { vscode } = renderPane();
+    await act(async () => {});
+    act(() => {
+      mockTerminals[0].simulateKey({ metaKey: true, key: "k" });
+    });
+    expect(mockTerminals[0].clearCount).toBe(1);
+    expect(postsOf(vscode, "desktopTerminalInput")).toHaveLength(0);
+    expect(postsOf(vscode, "desktopTerminalClear")).toEqual([
+      { command: "desktopTerminalClear", termId: defaultTermId },
+    ]);
+  });
+
+  it("Ctrl+K clears on Windows-style terminals", async () => {
+    const { vscode } = renderPane();
+    await act(async () => {});
+    act(() => {
+      mockTerminals[0].simulateKey({ ctrlKey: true, key: "K" });
+    });
+    expect(mockTerminals[0].clearCount).toBe(1);
+    expect(postsOf(vscode, "desktopTerminalClear")).toEqual([
+      { command: "desktopTerminalClear", termId: defaultTermId },
+    ]);
+    expect(postsOf(vscode, "desktopTerminalInput")).toHaveLength(0);
+  });
+
+  it("plain keys are not swallowed: handler passes them through", async () => {
+    const { vscode } = renderPane();
+    await act(async () => {});
+    let result: { handled: boolean; preventDefault: ReturnType<typeof vi.fn> };
+    act(() => {
+      result = mockTerminals[0].simulateKey({ key: "a" });
+    });
+    expect(result.handled).toBe(true);
+    expect(mockTerminals[0].clearCount).toBe(0);
+    expect(postsOf(vscode, "desktopTerminalClear")).toHaveLength(0);
+    // xterm then forwards the key as normal input — the host still gets it.
+    act(() => mockTerminals[0].simulateInput("a"));
+    expect(postsOf(vscode, "desktopTerminalInput")).toEqual([
+      { command: "desktopTerminalInput", termId: defaultTermId, data: "a" },
+    ]);
   });
 
   it("restart kills then re-creates the PTY and resets the xterm buffer", async () => {

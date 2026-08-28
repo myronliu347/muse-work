@@ -688,6 +688,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         terminalManager.kill(msg.termId);
       }
     }
+
+    if (command === "desktopTerminalClear") {
+      if (typeof msg.termId === "string") {
+        terminalManager.clear(msg.termId);
+      }
+    }
   };
 
   ipc.on(FROM_WEBVIEW, handler);
