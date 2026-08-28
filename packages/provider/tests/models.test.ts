@@ -9,6 +9,7 @@ import {
   getCodeMakerModelsCachePath,
   mergeModels,
   parseRemoteModels,
+  sortModels,
 } from "../src/codemaker/models.js";
 import type { ModelInfo } from "../src/types.js";
 
@@ -131,6 +132,31 @@ describe("mergeModels", () => {
 
   it("returns remote list unchanged when local is empty", () => {
     expect(mergeModels(remote, [])).toEqual(remote);
+  });
+});
+
+describe("sortModels", () => {
+  it("pins deepseek models to the top and sorts the rest by label", () => {
+    const sorted = sortModels([
+      { id: "glm-5.3", label: "GLM 5.3" },
+      { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+      { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+      { id: "deepseek-v4-flash-vision-exp", label: "Deepseek V4 Flash Vision Exp" },
+      { id: "gpt-5.4", label: "GPT-5.4" },
+    ]);
+    expect(sorted.map((m) => m.id)).toEqual([
+      "deepseek-v4-flash",
+      "deepseek-v4-flash-vision-exp",
+      "claude-sonnet-4-6",
+      "glm-5.3",
+      "gpt-5.4",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [{ id: "b", label: "B" }, { id: "a", label: "A" }];
+    sortModels(input);
+    expect(input.map((m) => m.id)).toEqual(["b", "a"]);
   });
 });
 

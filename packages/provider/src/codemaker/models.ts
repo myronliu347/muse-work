@@ -78,6 +78,26 @@ export function mergeModels(
   return [...remote, ...local.filter((m) => !remoteIds.has(m.id))];
 }
 
+function isDeepSeek(m: ModelInfo): boolean {
+  return (
+    m.id.toLowerCase().startsWith("deepseek") ||
+    m.label.toLowerCase().startsWith("deepseek")
+  );
+}
+
+/**
+ * Sort the model list for display: deepseek models pinned to the top (each
+ * group sorted by label), then the rest alphabetically by label.
+ */
+export function sortModels(models: ModelInfo[]): ModelInfo[] {
+  return [...models].sort((a, b) => {
+    const aDeep = isDeepSeek(a) ? 0 : 1;
+    const bDeep = isDeepSeek(b) ? 0 : 1;
+    if (aDeep !== bDeep) return aDeep - bDeep;
+    return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+  });
+}
+
 export interface CodeMakerModelsDeps {
   home?: string;
   fetch?: typeof fetch;

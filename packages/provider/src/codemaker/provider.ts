@@ -12,6 +12,7 @@ import { renewCodeMakerCredentials } from "./refresh.js";
 import {
   createCodeMakerModelsLoader,
   mergeModels,
+  sortModels,
   type CodeMakerModelsLoader,
 } from "./models.js";
 import { createCodeMakerFetch, tokenHashPrefix } from "./sign.js";
@@ -129,10 +130,10 @@ export function createCodeMakerProvider(
     async listModels() {
       const remote = await modelsLoader.list();
       if (remote) {
-        return mergeModels(remote, deps.getConfig().models);
+        return sortModels(mergeModels(remote, deps.getConfig().models));
       }
       // Remote catalog unreachable → fall back to the bundled config list.
-      return deps.getConfig().models;
+      return sortModels(deps.getConfig().models);
     },
 
     async resolveGateway(modelId: string) {
