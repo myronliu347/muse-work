@@ -6,6 +6,7 @@ import {
   CODEMAKER_BASE_URL,
   createCodeMakerProvider,
 } from "../src/codemaker/provider.js";
+import type { CodeMakerModelsLoader } from "../src/codemaker/models.js";
 import type { CodeMakerCreds } from "../src/codemaker/types.js";
 
 const models = [
@@ -29,11 +30,75 @@ describe("createCodeMakerProvider", () => {
     const p = createCodeMakerProvider({
       getConfig: () => ({ enabled: true, models }),
       loadCredentials: () => validCreds,
+      // Deterministic: no remote catalog → falls back to config list.
+      modelsLoader: { list: async () => null },
     });
     expect(p.id).toBe("codemaker");
     expect((await p.listModels()).map((m) => m.id)).toEqual([
       "deepseek-v4-pro",
       "claude-sonnet-4-6",
+    ]);
+  });
+
+  it("listModels merges remote catalog with local config (remote wins)", async () => {
+    const loader: CodeMakerModelsLoader = {
+      list: async () => [
+        {
+          id: "deepseek-v4-flash-vision-exp",
+          label: "Deepseek V4 Flash Vision Exp",
+          capabilities: { vision: true, thinking: true },
+        },
+        { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro (remote)" },
+      ],
+    };
+    const p = createCodeMakerProvider({
+      getConfig: () => ({ enabled: true, models }),
+      loadCredentials: () => validCreds,
+      modelsLoader: loader,
+    });
+    const listed = await p.listModels();
+    expect(listed).toEqual([
+      {
+        id: "deepseek-v4-flash-vision-exp",
+        label: "Deepseek V4 Flash Vision Exp",
+        capabilities: { vision: true, thinking: true },
+      },
+      { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro (remote)" },
+      { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+    ]);
+  });
+
+  it("listModels falls back to config when remote catalog is unavailable", async () => {
+    const loader: CodeMakerModelsLoader = { list: async () => null };
+    const p = createCodeMakerProvider({
+      getConfig: () => ({ enabled: true, models }),
+      loadCredentials: () => validCreds,
+      modelsLoader: loader,
+    });
+    expect(await p.listModels()).toEqual(models);
+  });
+
+  it("listModels keeps user custom models not present remotely", async () => {
+    const loader: CodeMakerModelsLoader = {
+      list: async () => [
+        { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+      ],
+    };
+    const p = createCodeMakerProvider({
+      getConfig: () => ({
+        enabled: true,
+        models: [
+          { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+          { id: "my-private-model", label: "My Private Model" },
+        ],
+      }),
+      loadCredentials: () => validCreds,
+      modelsLoader: loader,
+    });
+    const listed = await p.listModels();
+    expect(listed.map((m) => m.id)).toEqual([
+      "deepseek-v4-flash",
+      "my-private-model",
     ]);
   });
 

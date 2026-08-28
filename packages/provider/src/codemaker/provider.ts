@@ -9,6 +9,11 @@ import {
   type CodeMakerLoginStart,
 } from "./login.js";
 import { renewCodeMakerCredentials } from "./refresh.js";
+import {
+  createCodeMakerModelsLoader,
+  mergeModels,
+  type CodeMakerModelsLoader,
+} from "./models.js";
 import { createCodeMakerFetch, tokenHashPrefix } from "./sign.js";
 import type { CodeMakerCreds } from "./types.js";
 
@@ -23,6 +28,8 @@ export interface CodeMakerProviderDeps {
   createUuid?: () => string;
   /** Test hook: override renew implementation. */
   renewCredentials?: typeof renewCodeMakerCredentials;
+  /** Test hook: override the remote model loader. */
+  modelsLoader?: CodeMakerModelsLoader;
 }
 
 export function createCodeMakerProvider(
@@ -32,6 +39,9 @@ export function createCodeMakerProvider(
     deps.loadCredentials ??
     (() => loadCodeMakerCredentials(deps.home));
   const renew = deps.renewCredentials ?? renewCodeMakerCredentials;
+  const modelsLoader =
+    deps.modelsLoader ??
+    createCodeMakerModelsLoader({ home: deps.home, fetch: deps.fetch });
 
   let activeLogin: CodeMakerLoginStart | null = null;
   /** In-memory override after a successful refresh within this process. */
@@ -117,6 +127,11 @@ export function createCodeMakerProvider(
     },
 
     async listModels() {
+      const remote = await modelsLoader.list();
+      if (remote) {
+        return mergeModels(remote, deps.getConfig().models);
+      }
+      // Remote catalog unreachable → fall back to the bundled config list.
       return deps.getConfig().models;
     },
 

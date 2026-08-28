@@ -79,6 +79,16 @@ export {
 } from "./codemaker/provider.js";
 
 export {
+  CODEMAKER_MODELS_API_URL,
+  CODEMAKER_MODELS_CACHE_TTL_MS,
+  createCodeMakerModelsLoader,
+  getCodeMakerModelsCachePath,
+  mergeModels,
+  parseRemoteModels,
+  type CodeMakerModelsLoader,
+} from "./codemaker/models.js";
+
+export {
   CODEMAKER_USER_QUOTA_USAGE_PATH,
   fetchCodeMakerQuotaUsage,
   normalizeQuotaUsage,
