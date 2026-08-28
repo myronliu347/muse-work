@@ -275,6 +275,12 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
       if (!(codeRoot instanceof HTMLElement)) return;
       const range = lineRangeFromFilePreviewSelection(codeRoot);
       if (!range) return;
+      e.clipboardData?.setData("text/plain", range.text);
+      if (range.startLine === range.endLine) {
+        // Single-line copy: plain text only, no selection tag payload.
+        e.preventDefault();
+        return;
+      }
       const fileName =
         fileView.path.replace(/\\/g, "/").split("/").pop() || fileView.path;
       const payload = {
@@ -288,7 +294,6 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
         FILE_SELECTION_CLIPBOARD_MIME,
         encodeFileSelectionClipboard(payload),
       );
-      e.clipboardData?.setData("text/plain", range.text);
       e.preventDefault();
     };
     root.addEventListener("copy", onCopy);

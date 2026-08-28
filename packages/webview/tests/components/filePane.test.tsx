@@ -6,6 +6,10 @@ import { FilePane } from "../../src/components/panels/FilePane";
 import { FilePreview } from "../../src/components/panels/FilePreview";
 import type { FileTreeState, FileViewState } from "../../src/types";
 import { emptyFileTreeState } from "../../src/stores/panelGroupStore";
+import {
+  FILE_SELECTION_CLIPBOARD_MIME,
+  parseFileSelectionClipboard,
+} from "../../src/utils/filePanelDnD";
 
 vi.mock("../../src/utils/shikiHighlighter", () => ({
   highlightCode: async (code: string) =>
@@ -623,6 +627,91 @@ describe("FilePane", () => {
       });
       fireEvent.scroll(body);
       expect(onScrollChange).toHaveBeenCalledWith(88);
+    });
+  });
+
+  describe("FilePreview copy to clipboard", () => {
+    class MockDataTransfer {
+      data = new Map<string, string>();
+      setData(type: string, value: string) {
+        this.data.set(type, value);
+      }
+      getData(type: string) {
+        return this.data.get(type) ?? "";
+      }
+      get types() {
+        return [...this.data.keys()];
+      }
+    }
+
+    async function renderLines() {
+      const { container } = renderPane();
+      await waitFor(() => {
+        expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
+      });
+      return container;
+    }
+
+    function mockSelection(
+      container: HTMLElement,
+      hitLines: Element[],
+      text: string,
+    ) {
+      const codeRoot = container.querySelector(
+        ".file-pane-code",
+      ) as HTMLElement;
+      const fakeRange = {
+        commonAncestorContainer: codeRoot,
+        intersectsNode: (node: Node) => hitLines.includes(node),
+      };
+      const fakeSel = {
+        isCollapsed: false,
+        rangeCount: 1,
+        getRangeAt: () => fakeRange,
+        toString: () => text,
+      };
+      return vi
+        .spyOn(window, "getSelection")
+        .mockReturnValue(fakeSel as unknown as Selection);
+    }
+
+    function fireCopy(data: MockDataTransfer) {
+      const body = document.querySelector(
+        ".file-pane-preview-body",
+      ) as HTMLElement;
+      const event = new Event("copy", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", { value: data });
+      body.dispatchEvent(event);
+    }
+
+    it("copies single-line selection as plain text without selection tag", async () => {
+      const container = await renderLines();
+      const lines = container.querySelectorAll(".file-pane-line");
+      mockSelection(container, [lines[0]], "const a = 1;");
+
+      const dt = new MockDataTransfer();
+      fireCopy(dt);
+
+      expect(dt.types).not.toContain(FILE_SELECTION_CLIPBOARD_MIME);
+      expect(dt.getData("text/plain")).toBe("const a = 1;");
+    });
+
+    it("copies multi-line selection with a selection tag payload", async () => {
+      const container = await renderLines();
+      const lines = container.querySelectorAll(".file-pane-line");
+      mockSelection(container, [lines[0], lines[1]], "const a = 1;\nconst b = 2;");
+
+      const dt = new MockDataTransfer();
+      fireCopy(dt);
+
+      expect(dt.getData("text/plain")).toBe("const a = 1;\nconst b = 2;");
+      const raw = dt.getData(FILE_SELECTION_CLIPBOARD_MIME);
+      expect(raw).toBeTruthy();
+      const payload = parseFileSelectionClipboard(raw);
+      expect(payload).not.toBeNull();
+      expect(payload?.startLine).toBe(1);
+      expect(payload?.endLine).toBe(2);
+      expect(payload?.filePath).toBe("/work/a/src/app.ts");
     });
   });
 
