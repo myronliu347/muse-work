@@ -534,17 +534,122 @@ describe("installWorkdirHost", () => {
     );
     expect(sent).toContainEqual(
       expect.objectContaining({
+        command: "showToast",
+        toast: { id: "muse-server", message: "文件不存在：" + path.join(dir, "missing.ts") },
+      }),
+    );
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({ command: "desktopFileContent" }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile expands ~/ paths against the home directory", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-tilde-"));
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-home-"));
+    fs.writeFileSync(path.join(home, "dotfile.txt"), "hi from home\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: "/tmp/unrelated-wd",
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      homedir: () => home,
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "~/dotfile.txt" },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
         command: "desktopFileContent",
         fileView: expect.objectContaining({
-          path: path.join(dir, "missing.ts"),
-          error: expect.stringContaining("文件不存在"),
+          path: path.join(home, "dotfile.txt"),
+          content: expect.stringContaining("hi from home"),
         }),
       }),
     );
 
     host.dispose();
     fs.rmSync(userData, { recursive: true, force: true });
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("openFile toasts when an expanded ~/ path does not exist", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-tilde-nf-"));
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-home-nf-"));
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: "/tmp/unrelated-wd",
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      homedir: () => home,
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "~/nope.txt" },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: { id: "muse-server", message: "文件不存在：" + path.join(home, "nope.txt") },
+      }),
+    );
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({ command: "desktopFileContent" }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(home, { recursive: true, force: true });
   });
 
   it("revealInFinder calls showItemInFolder", async () => {

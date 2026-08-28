@@ -42,6 +42,39 @@ describe("linkifyFilePaths", () => {
     expect(linkifyFilePaths("run version.ts now")).toBe("run version.ts now");
   });
 
+  it("links a bare file name with extension in an inline code span", () => {
+    expect(linkifyFilePaths("open `version.ts` now")).toBe(
+      "open [version.ts](version.ts) now",
+    );
+    expect(linkifyFilePaths("see `package.json` here")).toBe(
+      "see [package.json](package.json) here",
+    );
+  });
+
+  it("does not link a bare file name when it follows a command verb", () => {
+    expect(linkifyFilePaths("run version.ts now")).toBe("run version.ts now");
+    expect(linkifyFilePaths("edit README.md")).toBe("edit README.md");
+    expect(linkifyFilePaths("open config.json please")).toBe(
+      "open config.json please",
+    );
+  });
+
+  it("links a bare file name in running text (not a command verb)", () => {
+    expect(linkifyFilePaths("the bug is in version.ts now")).toBe(
+      "the bug is in [version.ts](version.ts) now",
+    );
+    expect(linkifyFilePaths("please fix version.ts.")).toBe(
+      "please fix [version.ts](version.ts).",
+    );
+  });
+
+  it("does not link common words or decimals that look like files", () => {
+    expect(linkifyFilePaths("e.g. this is fine")).toBe("e.g. this is fine");
+    expect(linkifyFilePaths("about 3.14 seconds")).toBe("about 3.14 seconds");
+    expect(linkifyFilePaths("see page1.5 here")).toBe("see page1.5 here");
+    expect(linkifyFilePaths("v1.2.3 released")).toBe("v1.2.3 released");
+  });
+
   it("does not link URLs", () => {
     expect(linkifyFilePaths("see http://example.com/a.ts now")).toBe(
       "see http://example.com/a.ts now",

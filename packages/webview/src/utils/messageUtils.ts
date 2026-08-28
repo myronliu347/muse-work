@@ -194,10 +194,17 @@ export const toRelativePath = (filePath: string, workdir?: string): string => {
   return filePath;
 };
 
+// Command verbs that precede a bare file name to keep it plain text (e.g.
+// "run version.ts" is a shell command, not a file reference).
+const COMMAND_VERBS =
+  "run|build|edit|cat|open|cd|ls|rm|mv|cp|touch|mkdir|grep|read|write|create|delete|view|show|type|exec|start|stop|add|remove|install|test";
+
 // Matches a bare file path (relative with a slash, absolute, or ./ ../ ~/
-// prefixed), optionally with a :line or :line:col suffix. Constrained to
-// ASCII path characters, never preceded by `](` (an existing markdown link
-// target) or a URL scheme, and followed by whitespace/punctuation/EOL.
+// prefixed), optionally with a :line or :line:col suffix; plus a bare file
+// name with an extension (e.g. version.ts) unless it directly follows a
+// command verb. Constrained to ASCII path characters, never preceded by `](`
+// (an existing markdown link target) or a URL scheme, and followed by
+// whitespace/punctuation/EOL.
 const FILE_PATH_SOURCE = [
   "(?<!\\]\\()",
   "(?:^|(?<=[\\s(（]))",
@@ -210,6 +217,10 @@ const FILE_PATH_SOURCE = [
   "|",
   "[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*",
   "(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)+",
+  "(?::\\d+(?::\\d+)?)?",
+  "|",
+  `(?<!\\b(?:${COMMAND_VERBS})\\s)`,
+  "[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z0-9_-]{2,})+",
   "(?::\\d+(?::\\d+)?)?",
   ")",
   "(?=[\\s,;.)\\]}）。，、；：！？!?…]|$)",

@@ -47,6 +47,8 @@ export type WorkdirHostDeps = {
   openInEditor?: (workdir: string) => void;
   /** Open a folder in the system terminal. Injected in tests. */
   openInTerminal?: (workdir: string) => void;
+  /** Home directory for `~/` expansion. Injected in tests. */
+  homedir?: () => string;
   /** Webview reports whether any agent turn is in flight. */
   onAgentBusyChange?: (busy: boolean) => void;
 };
@@ -245,6 +247,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       : () => {});
   const openInEditor = options.openInEditor ?? defaultOpenInEditor;
   const openInTerminal = options.openInTerminal ?? defaultOpenInTerminal;
+  const homedir = options.homedir ?? os.homedir;
 
 
   const state = loadPersistedWorkdirState(options.userDataPath);
@@ -479,19 +482,34 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       if (!filePath) return;
       const workdir =
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      // linkify keeps `~/x` links intact but path.isAbsolute("~/x") is false;
+      // expand the leading `~` to the home directory here (Node context has
+      // os; the webview linkify is pure front-end).
+      const expanded = filePath.startsWith("~/")
+        ? path.join(homedir(), filePath.slice(2))
+        : filePath;
       // Message markdown linkify emits relative paths (e.g. src/foo.ts); resolve
       // them against the workdir. Absolute paths pass through path.resolve
       // unchanged.
       let absPath =
-        workdir && !path.isAbsolute(filePath)
-          ? path.resolve(workdir, filePath)
-          : filePath;
+        workdir && !path.isAbsolute(expanded)
+          ? path.resolve(workdir, expanded)
+          : expanded;
       // Relative links may point at files that live elsewhere in the workdir:
       // when the direct resolution misses, search the whole workdir for the same
       // basename and open the hit; if none exists, the read reports "not found".
-      if (workdir && !path.isAbsolute(filePath) && !fs.existsSync(absPath)) {
-        const hit = findFileByBasename(workdir, filePath);
+      if (workdir && !path.isAbsolute(expanded) && !fs.existsSync(absPath)) {
+        const hit = findFileByBasename(workdir, expanded);
         if (hit) absPath = hit;
+      }
+      // The final path does not exist anywhere: toast instead of silently
+      // opening a "not found" panel, and don't push desktopFileContent.
+      if (!fs.existsSync(absPath)) {
+        pushToWebview(win, {
+          command: "showToast",
+          toast: { id: "muse-server", message: `文件不存在：${absPath}` },
+        });
+        return;
       }
       const fileView = await readLocalFileForPanel(absPath, {
         startLine: msg.startLine,
