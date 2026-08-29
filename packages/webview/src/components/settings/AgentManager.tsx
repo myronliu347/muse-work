@@ -6,7 +6,14 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { Button, Select, TextArea, TextField } from "@radix-ui/themes";
+import {
+  Button,
+  Dialog,
+  Select,
+  Text,
+  TextArea,
+  TextField,
+} from "@radix-ui/themes";
 import {
   MuseApiClient,
   type MuseAgent,
@@ -318,147 +325,212 @@ export const AgentManager = forwardRef<
         )}
       </div>
 
-      {/* 编辑/新增表单 */}
-      {draft && (
-        <div className="agent-manager-form" data-testid="agent-form">
-          <div className="agent-manager-form-grid">
-            <Field label="key" htmlFor="agent-form-key">
-              <TextField.Root
-                id="agent-form-key"
-                data-testid="agent-form-key"
-                value={draft.key}
-                disabled={!isNew || saving}
-                onChange={(e) => setDraft({ ...draft, key: e.target.value })}
-                spellCheck={false}
-              />
-            </Field>
-            <Field label="name" htmlFor="agent-form-name">
-              <TextField.Root
-                id="agent-form-name"
-                data-testid="agent-form-name"
-                value={draft.name}
-                disabled={saving}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              />
-            </Field>
-            <Field label="personality" htmlFor="agent-form-personality">
-              <Select.Root
-                value={draft.personality}
-                onValueChange={(v) => setDraft({ ...draft, personality: v })}
-                disabled={saving}
-              >
-                <Select.Trigger
-                  id="agent-form-personality"
-                  data-testid="agent-form-personality"
-                  aria-label="personality"
-                />
-                <Select.Content>
-                  {PERSONALITIES.map((p) => (
-                    <Select.Item key={p.key} value={p.key}>
-                      {p.label}（{p.description}）
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
-            </Field>
-            <Field label="model" htmlFor="agent-form-model">
-              <MuseModelSelect
-                api={client}
-                modelId={draft.model || undefined}
-                onModelChange={(m) => setDraft({ ...draft, model: m })}
-                testId="agent-form-model"
-              />
-            </Field>
-            <Field
-              label="fastModel"
-              htmlFor="agent-form-fastModel"
-              hint="留空=主模型"
-            >
-              <MuseModelSelect
-                api={client}
-                modelId={draft.fastModel || undefined}
-                onModelChange={(m) => setDraft({ ...draft, fastModel: m })}
-                allowEmpty
-                emptyLabel="（留空）"
-                testId="agent-form-fastModel"
-              />
-            </Field>
-            <Field
-              label="tools"
-              hint="允许工具列表，逗号分隔；留空=全部"
-              htmlFor="agent-form-tools"
-            >
-              <TextField.Root
-                id="agent-form-tools"
-                data-testid="agent-form-tools"
-                value={draft.tools}
-                disabled={saving}
-                onChange={(e) => setDraft({ ...draft, tools: e.target.value })}
-                spellCheck={false}
-              />
-            </Field>
-          </div>
-          <Field
-            label="systemPrompt"
-            hint="留空=内置默认（人格段 + 场景动态上下文）；填写后附加在人格段之后"
-            htmlFor="agent-form-systemPrompt"
-          >
-            <TextArea
-              id="agent-form-systemPrompt"
-              data-testid="agent-form-systemPrompt"
-              value={draft.systemPrompt}
-              disabled={saving}
-              onChange={(e) =>
-                setDraft({ ...draft, systemPrompt: e.target.value })
-              }
-              spellCheck={false}
-              rows={4}
-            />
-          </Field>
-          <Field
-            label="permission"
-            hint="每行一条权限规则；无 ! 前缀=拒绝该工具，! 开头=豁免（如 Bash / !Read）"
-            htmlFor="agent-form-permission"
-          >
-            <TextArea
-              id="agent-form-permission"
-              data-testid="agent-form-permission"
-              value={draft.permission}
-              disabled={saving}
-              onChange={(e) =>
-                setDraft({ ...draft, permission: e.target.value })
-              }
-              spellCheck={false}
-              rows={4}
-            />
-          </Field>
-          {error && <div className="agent-manager-error">{error}</div>}
-          <div className="agent-manager-form-actions">
-            <Button
-              type="button"
-              variant="soft"
-              color="gray"
-              data-testid="agent-form-cancel"
-              onClick={() => {
-                setDraft(null);
-                setIsNew(false);
-                setError(null);
-              }}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              data-testid="agent-form-save"
-              onClick={() => void save()}
-              disabled={saving}
-            >
-              {saving ? "保存中..." : "保存"}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* 编辑/新增表单：独立加宽 Dialog，字段分组成段 */}
+      <Dialog.Root
+        open={!!draft}
+        onOpenChange={(open) => {
+          // Esc / 遮罩点击 → 关闭（Radix Dialog 内建 dismissable）
+          if (!open) {
+            setDraft(null);
+            setIsNew(false);
+            setError(null);
+          }
+        }}
+      >
+        <Dialog.Content
+          className="agent-manager-dialog"
+          data-testid="agent-form"
+          aria-describedby={undefined}
+        >
+          <Dialog.Title className="agent-manager-dialog-title">
+            {isNew ? "新增 Agent" : `编辑 Agent：${draft?.name ?? ""}`}
+          </Dialog.Title>
+
+          {draft && (
+            <div className="agent-manager-form">
+              {/* 基础信息 */}
+              <div className="agent-manager-form-group">
+                <Text size="2" weight="medium" color="gray">
+                  基础信息
+                </Text>
+                <div className="agent-manager-form-grid">
+                  <Field label="key" htmlFor="agent-form-key">
+                    <TextField.Root
+                      id="agent-form-key"
+                      data-testid="agent-form-key"
+                      value={draft.key}
+                      disabled={!isNew || saving}
+                      onChange={(e) =>
+                        setDraft({ ...draft, key: e.target.value })
+                      }
+                      spellCheck={false}
+                    />
+                  </Field>
+                  <Field label="name" htmlFor="agent-form-name">
+                    <TextField.Root
+                      id="agent-form-name"
+                      data-testid="agent-form-name"
+                      value={draft.name}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setDraft({ ...draft, name: e.target.value })
+                      }
+                    />
+                  </Field>
+                  <Field
+                    label="personality"
+                    htmlFor="agent-form-personality"
+                  >
+                    <Select.Root
+                      value={draft.personality}
+                      onValueChange={(v) =>
+                        setDraft({ ...draft, personality: v })
+                      }
+                      disabled={saving}
+                    >
+                      <Select.Trigger
+                        id="agent-form-personality"
+                        data-testid="agent-form-personality"
+                        aria-label="personality"
+                      />
+                      <Select.Content>
+                        {PERSONALITIES.map((p) => (
+                          <Select.Item key={p.key} value={p.key}>
+                            {p.label}（{p.description}）
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+                  </Field>
+                </div>
+              </div>
+
+              {/* 模型 */}
+              <div className="agent-manager-form-group">
+                <Text size="2" weight="medium" color="gray">
+                  模型
+                </Text>
+                <div className="agent-manager-form-grid">
+                  <Field label="model" htmlFor="agent-form-model">
+                    <MuseModelSelect
+                      api={client}
+                      modelId={draft.model || undefined}
+                      onModelChange={(m) => setDraft({ ...draft, model: m })}
+                      testId="agent-form-model"
+                    />
+                  </Field>
+                  <Field
+                    label="fastModel"
+                    htmlFor="agent-form-fastModel"
+                    hint="留空=主模型"
+                  >
+                    <MuseModelSelect
+                      api={client}
+                      modelId={draft.fastModel || undefined}
+                      onModelChange={(m) =>
+                        setDraft({ ...draft, fastModel: m })
+                      }
+                      allowEmpty
+                      emptyLabel="（留空）"
+                      testId="agent-form-fastModel"
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              {/* 工具与权限 */}
+              <div className="agent-manager-form-group">
+                <Text size="2" weight="medium" color="gray">
+                  工具与权限
+                </Text>
+                <Field
+                  label="tools"
+                  hint="允许工具列表，逗号分隔；留空=全部"
+                  htmlFor="agent-form-tools"
+                >
+                  <TextField.Root
+                    id="agent-form-tools"
+                    data-testid="agent-form-tools"
+                    value={draft.tools}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setDraft({ ...draft, tools: e.target.value })
+                    }
+                    spellCheck={false}
+                  />
+                </Field>
+                <Field
+                  label="permission"
+                  hint="每行一条权限规则；无 ! 前缀=拒绝该工具，! 开头=豁免（如 Bash / !Read）"
+                  htmlFor="agent-form-permission"
+                >
+                  <TextArea
+                    id="agent-form-permission"
+                    data-testid="agent-form-permission"
+                    value={draft.permission}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setDraft({ ...draft, permission: e.target.value })
+                    }
+                    spellCheck={false}
+                    rows={4}
+                  />
+                </Field>
+              </div>
+
+              {/* 系统提示 */}
+              <div className="agent-manager-form-group">
+                <Text size="2" weight="medium" color="gray">
+                  系统提示
+                </Text>
+                <Field
+                  label="systemPrompt"
+                  hint="留空=内置默认（人格段 + 场景动态上下文）；填写后附加在人格段之后"
+                  htmlFor="agent-form-systemPrompt"
+                >
+                  <TextArea
+                    id="agent-form-systemPrompt"
+                    data-testid="agent-form-systemPrompt"
+                    value={draft.systemPrompt}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setDraft({ ...draft, systemPrompt: e.target.value })
+                    }
+                    spellCheck={false}
+                    rows={4}
+                  />
+                </Field>
+              </div>
+
+              {error && <div className="agent-manager-error">{error}</div>}
+              <div className="agent-manager-form-actions">
+                <Button
+                  type="button"
+                  variant="soft"
+                  color="gray"
+                  data-testid="agent-form-cancel"
+                  onClick={() => {
+                    setDraft(null);
+                    setIsNew(false);
+                    setError(null);
+                  }}
+                  disabled={saving}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  data-testid="agent-form-save"
+                  onClick={() => void save()}
+                  disabled={saving}
+                >
+                  {saving ? "保存中..." : "保存"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Root>
 
       {/* 场景映射 */}
       <div className="agent-manager-section">

@@ -270,6 +270,71 @@ describe("AgentSettings", () => {
     expect(screen.getByTestId("agent-form-fastModel")).toHaveValue("");
   });
 
+  it("renders the edit form in a grouped Dialog and closes it after save", async () => {
+    const putAgents = vi.fn().mockResolvedValue({
+      version: 1,
+      agents: [
+        {
+          key: "xiaomei",
+          name: "小美",
+          personality: "warm-patient",
+          systemPrompt: "",
+          model: "m2",
+          fastModel: "",
+          tools: [],
+          permission: [],
+        },
+      ],
+    });
+    const api = {
+      ...baseApi(),
+      getAgents: vi.fn().mockResolvedValue({
+        version: 1,
+        agents: [
+          {
+            key: "xiaomei",
+            name: "小美",
+            personality: "warm-patient",
+            systemPrompt: "",
+            model: "m2",
+            fastModel: "",
+            tools: [],
+            permission: [],
+          },
+        ],
+      }),
+      putAgents,
+    } as unknown as MuseApiClient;
+
+    renderAgent(api);
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-edit-xiaomei")).toBeInTheDocument();
+    });
+    // 初始：无 Dialog（表单不展开）
+    expect(screen.queryByTestId("agent-form")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("agent-edit-xiaomei"));
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-form")).toBeInTheDocument();
+    });
+    // 分组成段的小标题
+    expect(screen.getByText("基础信息")).toBeInTheDocument();
+    expect(screen.getByText("模型")).toBeInTheDocument();
+    expect(screen.getByText("工具与权限")).toBeInTheDocument();
+    expect(screen.getByText("系统提示")).toBeInTheDocument();
+    // Dialog 标题
+    expect(screen.getByText("编辑 Agent：小美")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("agent-form-save"));
+    await waitFor(() => {
+      expect(putAgents).toHaveBeenCalled();
+    });
+    // 保存成功后 Dialog 关闭
+    await waitFor(() => {
+      expect(screen.queryByTestId("agent-form")).toBeNull();
+    });
+  });
+
   it("refreshes agentsStore after saving an agent (AgentSelector 即时更新)", async () => {
     const refresh = vi
       .spyOn(useAgentsStore.getState(), "refresh")
