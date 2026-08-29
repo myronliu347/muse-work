@@ -43,6 +43,10 @@ export interface Session {
   disallowedTools?: string[];
   /** agent 豁免工具规则（展开后存会话；SDK AgentOptions.allowedTools）。 */
   allowedTools?: string[];
+  /** 会话 model 是否由用户显式指定（POST body.model / PATCH model）。true 时切换 agent 保留该 model。 */
+  modelExplicit?: boolean;
+  /** 会话 systemPrompt 是否由用户显式指定（POST body.systemPrompt，完全接管）。true 时切换 agent 保留。 */
+  systemPromptExplicit?: boolean;
 }
 
 export type SessionsFile = {
@@ -67,6 +71,8 @@ export interface SessionStore {
     tools?: string[];
     disallowedTools?: string[];
     allowedTools?: string[];
+    modelExplicit?: boolean;
+    systemPromptExplicit?: boolean;
   }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
@@ -183,6 +189,8 @@ export function createSessionStore(
       tools,
       disallowedTools,
       allowedTools,
+      modelExplicit,
+      systemPromptExplicit,
     }): Session {
       const now = Date.now();
       const session: Session = {
@@ -205,6 +213,8 @@ export function createSessionStore(
         ...(tools && tools.length > 0 ? { tools } : {}),
         ...(disallowedTools && disallowedTools.length > 0 ? { disallowedTools } : {}),
         ...(allowedTools && allowedTools.length > 0 ? { allowedTools } : {}),
+        ...(modelExplicit ? { modelExplicit } : {}),
+        ...(systemPromptExplicit ? { systemPromptExplicit } : {}),
       };
       sessions.set(session.id, session);
       persist();

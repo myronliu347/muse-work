@@ -33,6 +33,8 @@ export interface MuseAgent {
   key: string;
   name: string;
   personality: string;
+  /** 性格显示名（server PERSONALITIES 导出，UI 直接展示不重复维护）。 */
+  personalityLabel?: string;
   systemPrompt: string;
   model: string;
   fastModel: string;

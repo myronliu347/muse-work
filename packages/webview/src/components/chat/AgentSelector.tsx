@@ -65,8 +65,8 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
   );
 
   const displayName = currentAgent?.name ?? (currentKey || "默认");
-  const personalityLabel =
-    agents.find((a) => a.key === currentKey)?.personality ?? "";
+  // 性格显示名：直接用 server PERSONALITIES 导出的 personalityLabel（单一数据源）
+  const personalityLabel = currentAgent?.personalityLabel ?? "";
 
   const tooltipContent = (
     <div className="agent-selector-tooltip">
@@ -116,7 +116,7 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
             >
               <span className="agent-selector-item-name">{a.name}</span>
               <span className="agent-selector-item-personality">
-                {personalityDisplay(a.personality)}
+                {a.personalityLabel ?? a.personality}
               </span>
             </li>
           ))}
@@ -125,21 +125,5 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
     </div>
   );
 };
-
-function personalityDisplay(key: string): string {
-  const map: Record<string, string> = {
-    professional: "专业严谨",
-    "warm-patient": "温和耐心",
-    lively: "活泼热情",
-    humorous: "幽默风趣",
-    concise: "简洁干练",
-    rational: "理性冷静",
-    energetic: "元气满满",
-    "wise-terse": "高冷睿智",
-    scholarly: "学术严谨",
-    friendly: "亲切贴心",
-  };
-  return map[key] ?? key;
-}
 
 export default AgentSelector;

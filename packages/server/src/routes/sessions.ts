@@ -103,18 +103,20 @@ sessionsRoutes.post("/sessions", async (c) => {
       : resolveScenarioAgent("session", ctx.home);
   const agent = resolveAgent(agentKey, ctx.home);
   const permission = resolvePermission(agent.permission);
-  const model =
-    typeof body?.model === "string" && body.model.length > 0
-      ? body.model
-      : (agent.model ?? DEFAULT_ACTIVE_MODEL_ID);
+  // model：会话显式传 model 才用，且标记显式（后续切换 agent 时保留）；否则回落 agent.model
+  const modelExplicit = typeof body?.model === "string" && body.model.length > 0;
+  const model = modelExplicit
+    ? (body!.model as string)
+    : (agent.model ?? DEFAULT_ACTIVE_MODEL_ID);
   if (!model) {
     return c.json({ error: "no active model selected" }, 400);
   }
-  // 显式 systemPrompt 完全接管；否则人格合成（人格段 + agent.systemPrompt）
-  const systemPrompt =
-    typeof body?.systemPrompt === "string"
-      ? body.systemPrompt
-      : buildSystemPrompt(agent);
+  // 显式 systemPrompt 完全接管（标记显式，切换 agent 时保留）；否则人格合成（人格段 + agent.systemPrompt）
+  const systemPromptExplicit =
+    typeof body?.systemPrompt === "string" && body.systemPrompt.length > 0;
+  const systemPrompt = systemPromptExplicit
+    ? (body!.systemPrompt as string)
+    : buildSystemPrompt(agent);
   const session = ctx.store.create({
     workdir,
     model,
@@ -143,6 +145,8 @@ sessionsRoutes.post("/sessions", async (c) => {
         : undefined,
     allowedTools:
       permission.allowedTools.length > 0 ? permission.allowedTools : undefined,
+    modelExplicit,
+    systemPromptExplicit,
   });
   getLogger().info("session created", {
     sessionId: session.id,
@@ -195,6 +199,13 @@ session.patch("/", async (c) => {
     lastActiveAt?: number;
     permissionMode?: "acceptEdits" | "bypassPermissions";
     agentName?: string;
+    systemPrompt?: string;
+    fastModel?: string;
+    tools?: string[];
+    disallowedTools?: string[];
+    allowedTools?: string[];
+    modelExplicit?: boolean;
+    systemPromptExplicit?: boolean;
   } = {};
   if (typeof body.title === "string") {
     patch.title = body.title;
@@ -204,6 +215,7 @@ session.patch("/", async (c) => {
   }
   if (typeof body.model === "string") {
     patch.model = body.model;
+    patch.modelExplicit = true;
   }
   if (typeof body.lastActiveAt === "number") {
     patch.lastActiveAt = body.lastActiveAt;
@@ -214,10 +226,38 @@ session.patch("/", async (c) => {
   ) {
     patch.permissionMode = body.permissionMode;
   }
-  if (typeof body.agent === "string") {
+  if (typeof body.agent === "string" && body.agent) {
     // 合法 agent key 才接受；空/非法忽略（保持现状）
     if (loadAgents(ctx.home).has(body.agent)) {
+      const current = ctx.store.get(sessionId);
+      // 展开新 agent 的字段：显式覆盖（model/systemPrompt 由用户显式指定）保留，
+      // 未显式给的回落新 agent。tools/权限 是 agent 属性，随 agent 切换整体重算。
+      const agent = resolveAgent(body.agent, ctx.home);
+      const permission = resolvePermission(agent.permission);
+      // 本次请求显式给了 model → 用显式值；否则看会话历史是否显式（POST/PATCH 时指定过）
+      const modelExplicit = typeof body.model === "string" || (current?.modelExplicit ?? false);
       patch.agentName = body.agent;
+      patch.systemPrompt = current?.systemPromptExplicit
+        ? current.systemPrompt
+        : buildSystemPrompt(agent);
+      patch.systemPromptExplicit = current?.systemPromptExplicit ?? false;
+      patch.model =
+        typeof body.model === "string"
+          ? (body.model as string)
+          : current?.modelExplicit
+            ? (current.model as string)
+            : (agent.model ?? (current?.model as string) ?? DEFAULT_ACTIVE_MODEL_ID);
+      patch.modelExplicit = modelExplicit;
+      patch.fastModel = agent.fastModel;
+      patch.tools = agent.tools;
+      patch.disallowedTools =
+        permission.disallowedTools.length > 0
+          ? permission.disallowedTools
+          : undefined;
+      patch.allowedTools =
+        permission.allowedTools.length > 0
+          ? permission.allowedTools
+          : undefined;
     }
   }
 
@@ -230,7 +270,7 @@ session.patch("/", async (c) => {
   }
   if (patch.agentName) {
     // agent 变更 → 重建 agent（参考 setPermissionMode 的触发重建机制）：
-    // 丢弃身份指纹，下次 ensureAgent 按新 agentName 重建
+    // 丢弃身份指纹，下次 ensureAgent 按新 agentName + 新展开字段重建
     ctx.runner.invalidateAgentIdentities();
     await ctx.runner.disposeAgent(sessionId);
   }

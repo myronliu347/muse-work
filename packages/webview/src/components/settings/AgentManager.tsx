@@ -273,7 +273,7 @@ export const AgentManager = forwardRef<
                   <span className="agent-manager-row-name">{a.name}</span>
                   <span className="agent-manager-row-key">{a.key}</span>
                   <span className="agent-manager-row-personality">
-                    {PERSONALITIES.find((p) => p.key === a.personality)?.label ?? a.personality}
+                    {a.personalityLabel ?? PERSONALITIES.find((p) => p.key === a.personality)?.label ?? a.personality}
                   </span>
                 </div>
                 <div className="agent-manager-row-actions">

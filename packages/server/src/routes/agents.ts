@@ -3,6 +3,7 @@ import type { HonoEnv } from "../honoEnv.js";
 import {
   AGENT_SCENARIO_KEYS,
   loadAgents,
+  personalityLabel,
   resolveScenarioAgent,
   saveAgentScenariosFile,
   saveAgentsFile,
@@ -16,6 +17,8 @@ function toAgentDto(agent: Agent) {
     key: agent.key,
     name: agent.name,
     personality: agent.personality,
+    // 性格显示名由 server PERSONALITIES 单一数据源导出，UI 直接展示不重复维护
+    personalityLabel: personalityLabel(agent.personality),
     systemPrompt: agent.systemPrompt ?? "",
     model: agent.model ?? "",
     fastModel: agent.fastModel ?? "",
