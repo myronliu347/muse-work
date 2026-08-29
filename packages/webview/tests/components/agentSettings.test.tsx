@@ -5,6 +5,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Theme } from "@radix-ui/themes";
 import { AgentSettings } from "../../src/components/settings/AgentSettings";
+import { useAgentsStore } from "../../src/stores/agentsStore";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 
 // radix Select / portal 依赖的指针捕获方法，jsdom 未实现（参考 museProviderSettings.test.tsx）
@@ -71,6 +72,8 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
 describe("AgentSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 还原 refresh 为原始实现，避免跨测试污染（zustand store 模块级单例）
+    vi.restoreAllMocks();
   });
 
   it("loads ~/.wave settings text and blocks save on invalid JSON", async () => {
@@ -265,5 +268,120 @@ describe("AgentSettings", () => {
     });
     // fastModel 留空 → 显示（留空）选项（值 "")
     expect(screen.getByTestId("agent-form-fastModel")).toHaveValue("");
+  });
+
+  it("refreshes agentsStore after saving an agent (AgentSelector 即时更新)", async () => {
+    const refresh = vi
+      .spyOn(useAgentsStore.getState(), "refresh")
+      .mockResolvedValue(undefined);
+    const api = {
+      ...baseApi(),
+      getAgents: vi.fn().mockResolvedValue({
+        version: 1,
+        agents: [
+          {
+            key: "xiaomei",
+            name: "小美",
+            personality: "warm-patient",
+            systemPrompt: "",
+            model: "m2",
+            fastModel: "",
+            tools: [],
+            permission: [],
+          },
+        ],
+      }),
+    } as unknown as MuseApiClient;
+
+    renderAgent(api);
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-edit-xiaomei")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("agent-edit-xiaomei"));
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("agent-form-name"), {
+      target: { value: "小美新" },
+    });
+    fireEvent.click(screen.getByTestId("agent-form-save"));
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalled();
+    });
+  });
+
+  it("refreshes agentsStore after deleting an agent", async () => {
+    const refresh = vi
+      .spyOn(useAgentsStore.getState(), "refresh")
+      .mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const api = {
+      ...baseApi(),
+      getAgents: vi.fn().mockResolvedValue({
+        version: 1,
+        agents: [
+          {
+            key: "xiaomei",
+            name: "小美",
+            personality: "warm-patient",
+            systemPrompt: "",
+            model: "m2",
+            fastModel: "",
+            tools: [],
+            permission: [],
+          },
+        ],
+      }),
+    } as unknown as MuseApiClient;
+
+    renderAgent(api);
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-delete-xiaomei")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("agent-delete-xiaomei"));
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalled();
+    });
+    confirmSpy.mockRestore();
+  });
+
+  it("refreshes agentsStore after saving scenario mapping", async () => {
+    const refresh = vi
+      .spyOn(useAgentsStore.getState(), "refresh")
+      .mockResolvedValue(undefined);
+    const api = baseApi();
+    api.getAgents = vi.fn().mockResolvedValue({
+      version: 1,
+      agents: [
+        {
+          key: "default",
+          name: "Muse",
+          personality: "professional",
+          systemPrompt: "",
+          model: "deepseek-v4-flash",
+          fastModel: "",
+          tools: [],
+          permission: [],
+        },
+        {
+          key: "plan",
+          name: "规划",
+          personality: "rational",
+          systemPrompt: "",
+          model: "deepseek-v4-flash",
+          fastModel: "",
+          tools: [],
+          permission: [],
+        },
+      ],
+    });
+    renderAgent(api as unknown as MuseApiClient);
+    await waitFor(() => {
+      expect(screen.getByTestId("scenarios-save-btn")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("scenarios-save-btn"));
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalled();
+    });
   });
 });
