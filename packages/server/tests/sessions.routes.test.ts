@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import type { Server } from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { closeTestApp, listenTestApp } from "./helpers.js";
+import { agentsConfigPath } from "../src/services/agentConfig.js";
 
 describe("sessions HTTP routes", () => {
   let server: Server | undefined;
@@ -328,5 +331,148 @@ describe("sessions HTTP routes", () => {
       },
     );
     expect(missing.status).toBe(404);
+  });
+});
+
+describe("sessions agent resolution", () => {
+  let server: Server | undefined;
+  let home: string | undefined;
+
+  afterEach(async () => {
+    if (server) {
+      await closeTestApp(server, home);
+      server = undefined;
+      home = undefined;
+    }
+  });
+
+  it("POST /sessions 不传 agent → default agent：model=deepseek-v4-flash + 人格段 systemPrompt", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a" }),
+    }).then((r) => r.json());
+    expect(created.agentName).toBe("default");
+    expect(created.model).toBe("deepseek-v4-flash");
+    expect(created.systemPrompt).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+    // default 内置 systemPrompt 为空 → 人格合成不含额外段
+    expect(created.systemPrompt).toContain("你是Muse。");
+  });
+
+  it("POST /sessions 传自定义 agents.json 里的 agent → agentName 落库 + 人格段 + 自定义 systemPrompt", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    // 自定义 agents.json 定义 xiaomei
+    const agentsPath = agentsConfigPath(home);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          xiaomei: {
+            name: "小美",
+            personality: "warm-patient",
+            systemPrompt: "请用中文回复",
+          },
+        },
+      }),
+    );
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", agent: "xiaomei" }),
+    }).then((r) => r.json());
+    expect(created.agentName).toBe("xiaomei");
+    expect(created.systemPrompt).toContain("你是小美。你的性格：语气柔和、详细解释、循循善诱。");
+    expect(created.systemPrompt).toContain("请用中文回复");
+  });
+
+  it("POST /sessions 传 systemPrompt → 完全接管（不拼人格）", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", systemPrompt: "完全接管" }),
+    }).then((r) => r.json());
+    expect(created.systemPrompt).toBe("完全接管");
+    expect(created.systemPrompt).not.toContain("你是Muse");
+  });
+
+  it("POST /sessions 传非法 agent key → 忽略，回落 default", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", agent: "ghost" }),
+    }).then((r) => r.json());
+    expect(created.agentName).toBe("default");
+  });
+
+  it("POST /sessions 场景映射：todo 场景映射到 plan 的 session 默认仍是 default", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    // session 场景默认映射 default
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a" }),
+    }).then((r) => r.json());
+    expect(created.agentName).toBe("default");
+  });
+
+  it("PATCH /sessions/:id agent → 更新 agentName 并重建 agent（disposeAgent 调用）", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const agentsPath = agentsConfigPath(home);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          xiaomei: { name: "小美", personality: "warm-patient" },
+        },
+      }),
+    );
+
+    const created = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a" }),
+    }).then((r) => r.json());
+    expect(created.agentName).toBe("default");
+
+    const patched = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agent: "xiaomei" }),
+    }).then((r) => r.json());
+    expect(patched.agentName).toBe("xiaomei");
+
+    // 非法 agent key → 忽略，保持原 agent
+    const ignored = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agent: "ghost" }),
+    }).then((r) => r.json());
+    expect(ignored.agentName).toBe("xiaomei");
   });
 });

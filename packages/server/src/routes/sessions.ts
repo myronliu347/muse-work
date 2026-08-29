@@ -10,6 +10,13 @@ import {
   runnerErrorMessage,
   runnerErrorStatus,
 } from "../utils/runnerError.js";
+import {
+  buildSystemPrompt,
+  loadAgents,
+  resolveAgent,
+  resolvePermission,
+  resolveScenarioAgent,
+} from "../services/agentConfig.js";
 
 export const sessionsRoutes = new Hono<HonoEnv>();
 
@@ -73,6 +80,8 @@ sessionsRoutes.post("/sessions", async (c) => {
         worktreeBranch?: string;
         baseBranch?: string;
         worktreeRepoRoot?: string;
+        agent?: string;
+        systemPrompt?: string;
       }
     | undefined;
   try {
@@ -84,13 +93,28 @@ sessionsRoutes.post("/sessions", async (c) => {
     typeof body?.workdir === "string" && body.workdir.trim().length > 0
       ? body.workdir.trim()
       : createDefaultProjectWorkdir(ctx.home);
+  // agent：显式传合法 key 才接受；否则按 session 场景映射解析（回落 default）。
+  // agent 在会话创建时解析并展开存进 Session，创建 SDK agent 时不再查配置。
+  const agentKey =
+    typeof body?.agent === "string" &&
+    body.agent &&
+    loadAgents(ctx.home).has(body.agent)
+      ? body.agent
+      : resolveScenarioAgent("session", ctx.home);
+  const agent = resolveAgent(agentKey, ctx.home);
+  const permission = resolvePermission(agent.permission);
   const model =
     typeof body?.model === "string" && body.model.length > 0
       ? body.model
-      : DEFAULT_ACTIVE_MODEL_ID;
+      : (agent.model ?? DEFAULT_ACTIVE_MODEL_ID);
   if (!model) {
     return c.json({ error: "no active model selected" }, 400);
   }
+  // 显式 systemPrompt 完全接管；否则人格合成（人格段 + agent.systemPrompt）
+  const systemPrompt =
+    typeof body?.systemPrompt === "string"
+      ? body.systemPrompt
+      : buildSystemPrompt(agent);
   const session = ctx.store.create({
     workdir,
     model,
@@ -109,12 +133,23 @@ sessionsRoutes.post("/sessions", async (c) => {
       typeof body?.worktreeRepoRoot === "string"
         ? body.worktreeRepoRoot
         : undefined,
+    agentName: agent.key,
+    systemPrompt,
+    fastModel: agent.fastModel,
+    tools: agent.tools,
+    disallowedTools:
+      permission.disallowedTools.length > 0
+        ? permission.disallowedTools
+        : undefined,
+    allowedTools:
+      permission.allowedTools.length > 0 ? permission.allowedTools : undefined,
   });
   getLogger().info("session created", {
     sessionId: session.id,
     model: session.model,
     workdir: session.workdir,
     worktreeName: session.worktreeName,
+    agentName: session.agentName,
   });
   return c.json(session);
 });
@@ -141,6 +176,7 @@ session.patch("/", async (c) => {
         model?: string;
         lastActiveAt?: number;
         permissionMode?: string;
+        agent?: string;
       }
     | undefined;
   try {
@@ -158,6 +194,7 @@ session.patch("/", async (c) => {
     model?: string;
     lastActiveAt?: number;
     permissionMode?: "acceptEdits" | "bypassPermissions";
+    agentName?: string;
   } = {};
   if (typeof body.title === "string") {
     patch.title = body.title;
@@ -177,6 +214,12 @@ session.patch("/", async (c) => {
   ) {
     patch.permissionMode = body.permissionMode;
   }
+  if (typeof body.agent === "string") {
+    // 合法 agent key 才接受；空/非法忽略（保持现状）
+    if (loadAgents(ctx.home).has(body.agent)) {
+      patch.agentName = body.agent;
+    }
+  }
 
   const updated = ctx.store.update(sessionId, patch);
   if (!updated) {
@@ -184,6 +227,12 @@ session.patch("/", async (c) => {
   }
   if (patch.permissionMode) {
     await ctx.runner.setPermissionMode(sessionId, patch.permissionMode);
+  }
+  if (patch.agentName) {
+    // agent 变更 → 重建 agent（参考 setPermissionMode 的触发重建机制）：
+    // 丢弃身份指纹，下次 ensureAgent 按新 agentName 重建
+    ctx.runner.invalidateAgentIdentities();
+    await ctx.runner.disposeAgent(sessionId);
   }
   return c.json(ctx.store.get(sessionId) ?? updated);
 });

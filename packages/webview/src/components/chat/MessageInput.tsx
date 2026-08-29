@@ -42,6 +42,7 @@ import {
   PermModeBypassIcon,
 } from "../shared/HeaderIcons";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
+import { AgentSelector } from "./AgentSelector";
 import "../../styles/MessageInput.css";
 
 interface AtMentionState {
@@ -121,6 +122,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       onModelChange,
       modelSelectApi,
       workdir,
+      agentName,
+      defaultAgentName,
+      onAgentChange,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -1489,6 +1493,12 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                 data-testid="input-workdir-row"
               >
                 {workdirSelector}
+                <AgentSelector
+                  agentName={agentName}
+                  defaultAgentName={defaultAgentName}
+                  onSelect={onAgentChange}
+                  disabled={disabled}
+                />
                 <Tooltip text="添加文件" position="top">
                   <button
                     type="button"

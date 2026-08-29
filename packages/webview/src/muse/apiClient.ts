@@ -28,6 +28,23 @@ export interface MuseProvidersResponse {
   active: { providerId: string; modelId?: string };
 }
 
+/** 数字人 agent 定义（GET /agents 展开后返回）。 */
+export interface MuseAgent {
+  key: string;
+  name: string;
+  personality: string;
+  systemPrompt: string;
+  model: string;
+  fastModel: string;
+  tools: string[];
+  permission: string[];
+}
+
+/** 场景 → agent key 映射。 */
+export interface MuseAgentScenarios {
+  scenarios: Record<"session" | "todo" | "task" | "popo", string>;
+}
+
 export interface MuseCodeMakerQuota {
   raw: unknown;
   user?: string;
@@ -83,6 +100,10 @@ export interface MuseSession {
   worktreeBranch?: string;
   baseBranch?: string;
   worktreeRepoRoot?: string;
+  /** 会话选用的数字人 agent key（缺省由 session 场景映射解析）。 */
+  agentName?: string;
+  /** 自定义 system prompt（会话级覆盖）。 */
+  systemPrompt?: string;
   /** Runtime-only unread-done flag; may be absent from list payloads. */
   unreadDone?: boolean;
   /** True when the previous process died mid-turn. */
@@ -387,7 +408,12 @@ export class MuseApiClient {
 
   async patchSession(
     id: string,
-    patch: Partial<Pick<MuseSession, "title" | "pinned" | "model" | "permissionMode">>,
+    patch: Partial<
+      Pick<
+        MuseSession,
+        "title" | "pinned" | "model" | "permissionMode" | "agentName"
+      > & { agent?: string }
+    >,
   ): Promise<MuseSession> {
     const res = await this.request(`/sessions/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -871,6 +897,40 @@ export class MuseApiClient {
 
   async getPopoConfig(): Promise<PopoConfigInfo> {
     const res = await this.request("/popo/config");
+    return parseJson(res);
+  }
+
+  async getAgents(): Promise<{ version: number; agents: MuseAgent[] }> {
+    const res = await this.request("/agents");
+    return parseJson(res);
+  }
+
+  async getAgentScenarios(): Promise<MuseAgentScenarios> {
+    const res = await this.request("/agents/scenarios");
+    return parseJson(res);
+  }
+
+  async putAgents(payload: {
+    version?: number;
+    agents: Record<string, Partial<MuseAgent>>;
+  }): Promise<{ version: number; agents: MuseAgent[] }> {
+    const res = await this.request("/agents", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return parseJson(res);
+  }
+
+  async putAgentScenarios(payload: {
+    version?: number;
+    scenarios: Partial<Record<"session" | "todo" | "task" | "popo", string>>;
+  }): Promise<MuseAgentScenarios> {
+    const res = await this.request("/agents/scenarios", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
     return parseJson(res);
   }
 

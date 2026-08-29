@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTodoStore } from "../src/services/todoStore.js";
 import { createTodoScheduler } from "../src/services/todoScheduler.js";
+import { ensureDefaultConfigs } from "../src/services/agentConfig.js";
 import {
   isSystemInjectContent,
   wrapSystemInject,
@@ -30,6 +31,8 @@ function makeScheduler(opts: {
   hub?: Partial<WsHub>;
 }) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-todo-sched-"));
+  // 模拟真实启动：自动生成 agent 配置文件（否则场景映射读空回落 default）
+  ensureDefaultConfigs(home);
   const store = createTodoStore({ home });
   const sessions = new Map<string, Record<string, unknown>>();
   let counter = 0;
@@ -655,6 +658,58 @@ describe("todoScheduler", () => {
     expect(input.systemPrompt).toContain(todo.id);
     expect(input.systemPrompt).toContain("重构登录");
     expect(input.systemPrompt).toContain("把登录逻辑抽成独立模块");
+  });
+
+  it("openPlanningSession 走 todo 场景 agent：agentName=plan + 人格段 + todo 上下文", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({
+      title: "重构登录",
+      description: "把登录逻辑抽成独立模块",
+      source: "session",
+    });
+    scheduler.openPlanningSession(todo.id);
+    const input = vi.mocked(sessionStore.create).mock.calls[0][0] as {
+      agentName?: string;
+      systemPrompt?: string;
+      model?: string;
+    };
+    // todo 场景映射 → plan 内置 agent
+    expect(input.agentName).toBe("plan");
+    // systemPrompt = 人格段 + buildTodoSystemPrompt(todo)
+    expect(input.systemPrompt).toContain("你是规划助手。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+    expect(input.systemPrompt).toContain("负责分析、规划、拆解 task");
+    expect(input.systemPrompt).toContain("重构登录");
+  });
+
+  it("task 执行会话走 task 场景 agent：agentName=execute + systemPrompt 含人格段", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "t", source: "session" });
+    const task = store.createTask(todo.id, { title: "k", workdir: "/p" });
+    scheduler.start();
+    await vi.waitFor(() => expect(store.getTask(task.id)?.status).toBe("running"));
+    const createCall = vi.mocked(sessionStore.create).mock.calls[0][0] as {
+      agentName?: string;
+      systemPrompt?: string;
+      permissionMode?: string;
+    };
+    expect(createCall.agentName).toBe("execute");
+    expect(createCall.permissionMode).toBe("bypassPermissions");
+    // systemPrompt = 人格段 + agent.systemPrompt（execute 内置留空 → 仅人格段）
+    expect(createCall.systemPrompt).toContain("你是执行助手。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+    scheduler.stop();
+  });
+
+  it("syncPlanningSession 重建 systemPrompt 同样走人格合成", async () => {
+    const { store, scheduler, sessionStore } = makeScheduler({});
+    const todo = store.createTodo({ title: "旧标题", source: "session", workdir: "/tmp/bound" });
+    scheduler.openPlanningSession(todo.id);
+    const planId = store.getTodo(todo.id)?.planningSessionId!;
+    store.updateTodo(todo.id, { title: "新标题" });
+    scheduler.syncPlanningSession(todo.id);
+    const synced = sessionStore.get(planId)!;
+    expect(synced.systemPrompt).toContain("你是规划助手。你的性格：");
+    expect(synced.systemPrompt).toContain("新标题");
+    expect(synced.systemPrompt).toContain("负责分析、规划、拆解 task");
   });
 
   it("openPlanningSession 用 todo 绑定 workdir；未绑定回退 personal", async () => {

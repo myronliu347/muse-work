@@ -94,6 +94,20 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     ].join("\0");
   }
 
+  /** agent 身份签名：agentName/systemPrompt/tools/权限 变更时纳入，驱动 ensureAgent 重建。 */
+  function agentIdentity(sessionId: string): string {
+    const s = store.get(sessionId);
+    if (!s) return "none";
+    return JSON.stringify({
+      agentName: s.agentName ?? "",
+      systemPrompt: s.systemPrompt ?? "",
+      fastModel: s.fastModel ?? "",
+      tools: s.tools ?? [],
+      disallowedTools: s.disallowedTools ?? [],
+      allowedTools: s.allowedTools ?? [],
+    });
+  }
+
   function bindAgentTools(sessionId: string): void {
     const pending = pendingAgentToolIds.get(sessionId) ?? [];
     const unbound = unboundSubagentIds.get(sessionId) ?? [];
@@ -265,6 +279,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   ): Promise<SessionAgent> {
     const agentBox: { current: SessionAgent | null } = { current: null };
 
+    const session = store.get(sessionId);
     const agent = await createAgent({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
@@ -273,15 +288,23 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       model: gateway.model,
       logger: createAgentLogger({ home, sessionId }),
       // SDK requires fastModel (used for lightweight sub-tasks). Fall back to main model.
-      fastModel: gateway.fastModel ?? gateway.model,
+      // agents.json 显式给 fastModel（存进 Session.fastModel）才覆盖。
+      fastModel: session?.fastModel ?? gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
       // 会话可携带自定义 system prompt（todo 规划会话注入 todo 上下文）；
       // 缺省时 SDK 用 MUSE_BASE_SYSTEM_PROMPT。
-      systemPrompt: store.get(sessionId)?.systemPrompt,
-      permissionMode:
-        store.get(sessionId)?.permissionMode ?? "acceptEdits",
+      systemPrompt: session?.systemPrompt,
+      permissionMode: session?.permissionMode ?? "acceptEdits",
       restoreSessionId,
+      // agent 的 tools（允许列表）与 permission（拒绝/豁免）展开后存在会话里，透传 SDK
+      ...(session?.tools && session.tools.length > 0 ? { tools: session.tools } : {}),
+      ...(session?.disallowedTools && session.disallowedTools.length > 0
+        ? { disallowedTools: session.disallowedTools }
+        : {}),
+      ...(session?.allowedTools && session.allowedTools.length > 0
+        ? { allowedTools: session.allowedTools }
+        : {}),
       ...(enabledPluginDirs().length > 0
         ? {
             plugins: enabledPluginDirs().map((path) => ({
@@ -619,7 +642,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     }
 
     const gateway = await resolveSessionGateway(sessionId, session.model);
-    const identity = gatewayIdentity(gateway);
+    // 合并网关 + agent 身份签名：model/provider 或 agentName/systemPrompt/tools 变更都驱动重建
+    const identity = `${gatewayIdentity(gateway)}\0${agentIdentity(sessionId)}`;
     const existing = agents.get(sessionId);
     if (existing) {
       if (agentIdentities.get(sessionId) === identity) {

@@ -5,17 +5,18 @@ import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../serv
 import { pluginDirIfPresent } from "../services/museSettings.js";
 import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
+import {
+  POPO_DISALLOWED_TOOLS,
+  POPO_SYSTEM_PROMPT,
+} from "./popoPrompt.js";
+import {
+  buildSystemPrompt,
+  resolveAgent,
+  resolvePermission,
+  resolveScenarioAgent,
+} from "../services/agentConfig.js";
 
-export const POPO_SYSTEM_PROMPT = `你是 Muse 机器人，运行在 POPO 即时通讯上，为你的人类主人服务。
-
-- 消息可能来自私聊或群聊。群聊消息开头可能带 "@机器人名 "，这是群成员 @ 你，正文才是需要你处理的内容。
-- 当消息来自群聊时，如果上下文不完整（例如用户提到群里的历史讨论），可以使用本地 popo-cli（popo-im skill）读取该群的历史消息来补全上下文。
-- 回复保持简洁、直接，使用中文。
-- 只有主人可以直接指挥你；其他人发来的请求一律礼貌拒绝。
-- 禁止后台任务：不要使用 Bash 的 run_in_background 参数，所有命令必须前台执行并等待完成；不要创建定时任务（cron）。你收不到后台任务完成的通知，后台任务只会白跑。`;
-
-/** POPO 机器人禁用的工具：Workflow 在后台运行、完成后才有通知，本场景无法接收结果。 */
-export const POPO_DISALLOWED_TOOLS = ["Workflow"] as const;
+export { POPO_SYSTEM_PROMPT, POPO_DISALLOWED_TOOLS };
 
 export interface PopoAgentRunner {
   run(content: string): Promise<string>;
@@ -116,19 +117,28 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       ? [{ type: "local" as const, path: todoDir }]
       : [];
 
+    // popo 场景 agent：默认 popo 内置（systemPrompt 即 POPO 指令）；工具/权限规则生效
+    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
+    const permission = resolvePermission(agent.permission);
+    // agent 显式给 fastModel 才覆盖；不给保持 gateway.fastModel ?? gateway.model（与现状一致）
+    const fastModel = agent.fastModel ?? gateway.fastModel ?? gateway.model;
+    const popoDisallowed = [...POPO_DISALLOWED_TOOLS, ...permission.disallowedTools];
+
     return (createAgent as CreateAgent)({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
       defaultHeaders: gateway.defaultHeaders,
       fetch: gateway.fetch,
       model: gateway.model,
-      fastModel: gateway.fastModel ?? gateway.model,
+      fastModel,
       workdir,
       stream: true,
       permissionMode: "bypassPermissions",
-      systemPrompt: POPO_SYSTEM_PROMPT,
-      // Workflow 后台运行且结果通知本场景收不到，硬禁用
-      disallowedTools: [...POPO_DISALLOWED_TOOLS],
+      systemPrompt: buildSystemPrompt(agent),
+      // Workflow 后台运行且结果通知本场景收不到，硬禁用；agent 的拒绝规则追加进去
+      disallowedTools: popoDisallowed,
+      ...(permission.allowedTools.length > 0 ? { allowedTools: permission.allowedTools } : {}),
+      ...(agent.tools ? { tools: agent.tools } : {}),
       ...(plugins.length > 0 ? { plugins } : {}),
       logger: createAgentLogger({
         home: options.home,

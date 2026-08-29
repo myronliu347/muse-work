@@ -1,0 +1,118 @@
+/* Agent selector — bottom-left of the message input toolbar. Mirrors the
+   permission-mode dropdown visual language (upward-expanding list). */
+.agent-selector-container {
+  position: relative;
+  display: flex;
+}
+
+.agent-selector-trigger {
+  position: relative;
+  box-sizing: border-box;
+  height: 26px;
+  max-width: 160px;
+  padding: 0 6px 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  line-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.agent-selector-trigger:hover,
+.agent-selector-trigger.open {
+  background-color: var(--gray-3);
+  color: var(--gray-12);
+}
+
+.agent-selector-trigger .codicon-person {
+  font-size: var(--font-size-1);
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+
+.agent-selector-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.agent-selector-caret {
+  font-size: var(--font-size-1);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.agent-selector-trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.agent-selector-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: var(--space-1);
+  list-style: none;
+  margin-top: 0;
+  padding: var(--space-1) 0;
+  background: var(--color-panel);
+  color: var(--gray-12);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
+  z-index: 10000;
+  min-width: 180px;
+  white-space: nowrap;
+  font-size: var(--font-size-1);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.agent-selector-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  color: var(--gray-12);
+}
+
+.agent-selector-item:hover,
+.agent-selector-item.selected {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.agent-selector-item-name {
+  font-weight: 500;
+}
+
+.agent-selector-item-personality {
+  color: var(--gray-10);
+  font-size: var(--font-size-0);
+}
+
+/* Hover detail card: name + personality display name + tone description. */
+.agent-selector-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.agent-selector-tooltip-name {
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
+.agent-selector-tooltip-personality {
+  color: var(--gray-11);
+  font-size: var(--font-size-0);
+}

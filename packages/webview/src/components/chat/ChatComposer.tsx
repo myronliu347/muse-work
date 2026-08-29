@@ -48,6 +48,12 @@ export interface ChatComposerProps {
   patchPane: ChatAppCore["patchPane"];
   modelId?: string;
   onModelChange: (modelId: string) => void;
+  /** 当前会话选用的数字人 agent key。 */
+  agentName?: string;
+  /** session 场景映射默认 agent key（无会话 agentName 时展示）。 */
+  defaultAgentName?: string;
+  /** 用户切换 agent → PATCH /sessions/:id { agent }。 */
+  onAgentChange?: (agentKey: string) => void;
   rewindPopupOpen: boolean;
   rewindCheckpointsLoading: boolean;
   rewindCheckpoints: RewindCheckpoint[];
@@ -91,6 +97,9 @@ export const ChatComposer = forwardRef<
     patchPane,
     modelId,
     onModelChange,
+    agentName,
+    defaultAgentName,
+    onAgentChange,
     rewindPopupOpen,
     rewindCheckpointsLoading,
     rewindCheckpoints,
@@ -125,6 +134,9 @@ export const ChatComposer = forwardRef<
       disabled={host?.type === "desktop" && !effectiveWorkdir && !isDraftSession}
       modelId={modelId}
       onModelChange={onModelChange}
+      agentName={agentName}
+      defaultAgentName={defaultAgentName}
+      onAgentChange={onAgentChange}
       workdir={effectiveWorkdir ?? panelWorkdir}
       workdirSelector={
         host?.type === "desktop" && isDraftSession ? (

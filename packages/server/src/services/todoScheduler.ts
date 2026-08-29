@@ -24,6 +24,12 @@ import {
   type WorktreeRef,
 } from "../utils/gitWorktree.js";
 import { getLogger } from "../utils/logger.js";
+import {
+  buildSystemPrompt,
+  resolveAgent,
+  resolvePermission,
+  resolveScenarioAgent,
+} from "./agentConfig.js";
 
 /** 首次执行：完整 prompt（标题 + 描述 + workdir）。 */
 function buildFirstPrompt(task: Task, workdir: string): string {
@@ -206,7 +212,13 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     let execSessionId = task.executionSessionId;
     if (!execSessionId || !sessionStore.get(execSessionId)) {
       const active = registry.getActive();
-      const model = active.modelId ?? DEFAULT_ACTIVE_MODEL_ID;
+      // task 场景 agent：执行会话 systemPrompt = 人格合成（人格段 + agent.systemPrompt）
+      const agent = resolveAgent(
+        resolveScenarioAgent("task", home),
+        home,
+      );
+      const permission = resolvePermission(agent.permission);
+      const model = active.modelId ?? agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
       const session = sessionStore.create({
         workdir,
         model,
@@ -216,6 +228,18 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         baseBranch: task.baseBranch,
         // 执行会话标题 = task 标题，侧栏一眼认出
         title: task.title,
+        agentName: agent.key,
+        systemPrompt: buildSystemPrompt(agent),
+        fastModel: agent.fastModel,
+        tools: agent.tools,
+        disallowedTools:
+          permission.disallowedTools.length > 0
+            ? permission.disallowedTools
+            : undefined,
+        allowedTools:
+          permission.allowedTools.length > 0
+            ? permission.allowedTools
+            : undefined,
       });
       execSessionId = session.id;
     }
@@ -486,9 +510,11 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     if (!todo?.planningSessionId) return;
     if (!sessionStore.get(todo.planningSessionId)) return;
     // 未绑定回退默认 personal（与 openPlanningSession 一致）；已运行 agent 仍用旧 prompt/目录，新 agent/重开生效
+    // 重建 systemPrompt 同样走人格合成（todo 场景 agent 的人格段 + agent.systemPrompt + todo 上下文）
+    const agent = resolveAgent(resolveScenarioAgent("todo", home), home);
     sessionStore.update(todo.planningSessionId, {
       workdir: todo.workdir ?? getTodoWorkdir(home),
-      systemPrompt: buildTodoSystemPrompt(todo),
+      systemPrompt: buildSystemPrompt(agent, buildTodoSystemPrompt(todo)),
     });
   }
 
@@ -536,7 +562,13 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         return { sessionId: s.id, workdir: s.workdir };
       }
       const active = registry.getActive();
-      const model = active.modelId ?? DEFAULT_ACTIVE_MODEL_ID;
+      // todo 场景 agent：systemPrompt = 人格合成（人格段 + agent.systemPrompt + todo 动态上下文）
+      const agent = resolveAgent(
+        resolveScenarioAgent("todo", home),
+        home,
+      );
+      const permission = resolvePermission(agent.permission);
+      const model = active.modelId ?? agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
       // todo 规划会话 workdir = 绑定的目录；未绑定回退 <museHome>/personal（用户指定默认）
       const workdir = todo.workdir ?? getTodoWorkdir(home);
       fs.mkdirSync(workdir, { recursive: true });
@@ -545,7 +577,18 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         model,
         title: todo.title,
         // 系统上下文注入 todo 基本信息：agent 从会话创建起就了解目标（id/标题/描述）
-        systemPrompt: buildTodoSystemPrompt(todo),
+        systemPrompt: buildSystemPrompt(agent, buildTodoSystemPrompt(todo)),
+        agentName: agent.key,
+        fastModel: agent.fastModel,
+        tools: agent.tools,
+        disallowedTools:
+          permission.disallowedTools.length > 0
+            ? permission.disallowedTools
+            : undefined,
+        allowedTools:
+          permission.allowedTools.length > 0
+            ? permission.allowedTools
+            : undefined,
       });
       store.setPlanningSessionId(todoId, session.id);
       getLogger().info("todo planning session created", {

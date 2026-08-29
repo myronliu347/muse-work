@@ -7,6 +7,7 @@ import { getLogger } from "./utils/logger.js";
 import { accessLog } from "./middleware/accessLog.js";
 import { injectCtx } from "./middleware/injectCtx.js";
 import { authRoutes } from "./routes/auth.js";
+import { agentsRoutes } from "./routes/agents.js";
 import { controlRoutes } from "./routes/control.js";
 import { healthRoutes } from "./routes/health.js";
 import { providersRoutes } from "./routes/providers.js";
@@ -26,6 +27,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", controlRoutes);
   app.route("/", providersRoutes);
   app.route("/", authRoutes);
+  app.route("/", agentsRoutes);
   app.route("/", sessionsRoutes);
   app.route("/", createTodoRoutes(ctx.todoStore, ctx.todoScheduler, ctx.hub));
 

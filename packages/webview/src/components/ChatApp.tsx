@@ -17,6 +17,7 @@ import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { TodoNotifyStack } from "./todo/TodoNotifyStack";
 import { useTodoBoardStore, type TodoNotification } from "../stores/todoBoardStore";
+import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type { WorkspaceDiffFile } from "./panels/DiffPane";
@@ -150,6 +151,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       .getPopoConfig()
       .then((cfg) => setPopoEnabled(cfg.configured))
       .catch(() => setPopoEnabled(false));
+  }, [popoApi]);
+  // 初始化数字人 agent store（GET /agents + /agents/scenarios），选择器/设置页共用
+  useEffect(() => {
+    useAgentsStore.getState().init(popoApi);
   }, [popoApi]);
   // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
   // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
@@ -396,11 +401,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     handleToastAction,
     handleModelSelect,
     handleSessionModelChange,
+    handleAgentChange,
     handleModelPopupClose,
     handleDesktopNewSession,
     handleDesktopNewSessionInWorkdir,
     handleInputCleared,
   } = dialogActions;
+
+  // session 场景映射的默认 agent key（无会话 agentName 时选择器展示它）。
+  const defaultSessionAgentKey = useAgentsStore(
+    (s) => s.scenarios?.session ?? "default",
+  );
 
   // Initialize webview and load sessions on component mount
   useEffect(() => {
@@ -550,6 +561,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       patchPane={patchPane}
       modelId={(state.currentSession as { model?: string } | undefined)?.model}
       onModelChange={handleSessionModelChange}
+      agentName={(state.currentSession as { agentName?: string } | undefined)?.agentName}
+      defaultAgentName={defaultSessionAgentKey}
+      onAgentChange={handleAgentChange}
       rewindPopupOpen={rewindPopupOpen}
       rewindCheckpointsLoading={rewindCheckpointsLoading}
       rewindCheckpoints={rewindCheckpoints}
