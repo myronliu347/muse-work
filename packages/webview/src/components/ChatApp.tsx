@@ -19,6 +19,7 @@ import { TodoNotifyStack } from "./todo/TodoNotifyStack";
 import { useTodoBoardStore, type TodoNotification } from "../stores/todoBoardStore";
 import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
+import { resolveDraftModel } from "../muse/defaultModel";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type { WorkspaceDiffFile } from "./panels/DiffPane";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
@@ -412,6 +413,26 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const defaultSessionAgentKey = useAgentsStore(
     (s) => s.scenarios?.session ?? "default",
   );
+  // agent 列表缓存（设置页与输入框选择器共用），含每个 agent 的 model。
+  const agents = useAgentsStore((s) => s.agents);
+
+  // 已建会话：modelId = currentSession.model（server 按 agent 重算后 emit 回来，已联动）。
+  // draft 态：优先用户手动选的 model（≠默认值）；否则解析 draft 会话绑定的 agent
+  // （先会话所选 agentName，未选则 session 场景默认 agent）的 model，兜底默认模型。
+  const currentSessionModel = (
+    state.currentSession as { model?: string } | undefined
+  )?.model;
+  const sessionAgentName = (
+    state.currentSession as { agentName?: string } | undefined
+  )?.agentName;
+  const resolvedModelId = isDraftSession
+    ? resolveDraftModel(
+        currentSessionModel,
+        sessionAgentName,
+        defaultSessionAgentKey,
+        agents,
+      )
+    : currentSessionModel;
 
   // Initialize webview and load sessions on component mount
   useEffect(() => {
@@ -559,7 +580,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       worktreeBranch={worktreeBranch}
       worktreeChecked={worktreeChecked}
       patchPane={patchPane}
-      modelId={(state.currentSession as { model?: string } | undefined)?.model}
+      modelId={resolvedModelId}
       onModelChange={handleSessionModelChange}
       agentName={(state.currentSession as { agentName?: string } | undefined)?.agentName}
       defaultAgentName={defaultSessionAgentKey}
