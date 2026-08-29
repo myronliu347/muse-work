@@ -449,4 +449,65 @@ describe("AgentSettings", () => {
       expect(refresh).toHaveBeenCalled();
     });
   });
+
+  it("keeps the edit Dialog open when mousedown inside it while mounted in a .configuration-dialog (portal into settings overlay)", async () => {
+    const api = baseApi();
+    api.getAgents = vi.fn().mockResolvedValue({
+      version: 1,
+      agents: [
+        {
+          key: "xiaomei",
+          name: "小美",
+          personality: "warm-patient",
+          systemPrompt: "",
+          model: "m2",
+          fastModel: "",
+          tools: [],
+          permission: [],
+        },
+      ],
+    });
+
+    // 模拟 ConfigDialog 的 document mousedown：点击不在设置弹窗内 → requestClose（onCancel）
+    const containerRef = React.createRef<HTMLDivElement>();
+    const onCancel = vi.fn();
+    const handleClickOutside = (event: MouseEvent) => {
+      const el = containerRef.current;
+      if (el && !el.contains(event.target as Node)) onCancel();
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
+    render(
+      <div className="configuration-dialog" ref={containerRef}>
+        <Theme>
+          <AgentSettings api={api as unknown as MuseApiClient} />
+        </Theme>
+      </div>,
+    );
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByTestId("agent-edit-xiaomei")).toBeInTheDocument();
+      });
+
+      // 打开编辑 Dialog
+      fireEvent.click(screen.getByTestId("agent-edit-xiaomei"));
+      await waitFor(() => {
+        expect(screen.getByTestId("agent-form")).toBeInTheDocument();
+      });
+
+      // Dialog 内容（portal 到 .configuration-dialog 内）上的 mousedown 不应触发关闭
+      fireEvent.mouseDown(screen.getByTestId("agent-form-name"));
+      expect(onCancel).not.toHaveBeenCalled();
+
+      // 设置弹窗之外的 mousedown 仍应触发关闭（验证 handler 本身有效）
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      fireEvent.mouseDown(outside);
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      document.body.removeChild(outside);
+    } finally {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+  });
 });
