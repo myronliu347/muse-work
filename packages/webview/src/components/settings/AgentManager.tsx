@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -117,6 +118,20 @@ export const AgentManager = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // 编辑 Dialog 的 portal 容器。挂载在设置弹窗（.configuration-dialog）内时，
+  // 指向该弹窗 DOM，避免 ConfigDialog 的 document mousedown 把弹窗外的点击
+  // 误判为「点设置弹窗外」而关闭整个设置弹窗；找不到（测试环境）回落 body。
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [dialogContainer, setDialogContainer] = useState<HTMLElement | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setDialogContainer(
+      rootRef.current?.closest<HTMLElement>(".configuration-dialog") ?? null,
+    );
+  }, []);
 
   const reload = useCallback(async () => {
     try {
@@ -264,7 +279,11 @@ export const AgentManager = forwardRef<
   }
 
   return (
-    <div className="agent-manager" data-testid="agent-manager">
+    <div
+      className="agent-manager"
+      data-testid="agent-manager"
+      ref={rootRef}
+    >
       {/* 数字人 agent 管理 */}
       <div className="agent-manager-section">
         <div className="agent-manager-header">
@@ -341,6 +360,7 @@ export const AgentManager = forwardRef<
           className="agent-manager-dialog"
           data-testid="agent-form"
           aria-describedby={undefined}
+          container={dialogContainer ?? undefined}
         >
           <Dialog.Title className="agent-manager-dialog-title">
             {isNew ? "新增 Agent" : `编辑 Agent：${draft?.name ?? ""}`}
