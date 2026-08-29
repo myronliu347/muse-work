@@ -188,6 +188,8 @@ export interface SessionRunner {
     cb: (sessionId: string, result: { ok: boolean; error?: string }) => void,
   ): void;
   disposeSession(sessionId: string): Promise<void>;
+  /** 释放会话的 live agent（不动会话记录/消息）；agent 变更后调用，下次 ensureAgent 重建。 */
+  disposeAgent(sessionId: string): Promise<{ ok: true }>;
   getMessages(sessionId: string): Promise<unknown[]>;
   /**
    * Drop cached agent identity fingerprints so the next ensureAgent recreates

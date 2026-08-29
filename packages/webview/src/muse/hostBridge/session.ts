@@ -22,6 +22,7 @@ export interface SessionModule {
   handleTogglePin: (id: string, pinnedNext: boolean) => Promise<void>;
   handleRenameSession: (id: string, title: string) => Promise<void>;
   handleSetSessionModel: (model: string) => Promise<void>;
+  handleSetSessionAgent: (agent: string) => Promise<void>;
   handleDesktopReady: () => Promise<void>;
   refreshTree: () => Promise<MuseSessionsGrouped>;
   loadMessages: (id: string) => Promise<void>;
@@ -102,6 +103,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         worktreeName: session.worktreeName,
         worktreeBranch: session.worktreeBranch,
         baseBranch: session.baseBranch,
+        agentName: session.agentName,
       },
     });
   };
@@ -273,6 +275,15 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     emitCurrentSession(session);
   };
 
+  // 输入框 agent 选择器 → PATCH /sessions/:id { agent }（仅已建会话；草稿会话由创建时带 agent）。
+  const handleSetSessionAgent = async (agent: string): Promise<void> => {
+    if (!agent) return;
+    if (!ctx.sessionId || ctx.pendingNewSession) return;
+    const session = await ctx.api.patchSession(ctx.sessionId, { agent });
+    patchTreeSession(ctx.sessionId, { agentName: session.agentName });
+    emitCurrentSession(session);
+  };
+
   const handleDesktopReady = async (): Promise<void> => {
     ctx.emitWorkdirState();
     try {
@@ -318,6 +329,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     handleTogglePin,
     handleRenameSession,
     handleSetSessionModel,
+    handleSetSessionAgent,
     handleDesktopReady,
     refreshTree,
     loadMessages,

@@ -10,6 +10,13 @@ import {
   runnerErrorMessage,
   runnerErrorStatus,
 } from "../utils/runnerError.js";
+import {
+  buildSystemPrompt,
+  loadAgents,
+  resolveAgent,
+  resolvePermission,
+  resolveScenarioAgent,
+} from "../services/agentConfig.js";
 
 export const sessionsRoutes = new Hono<HonoEnv>();
 
@@ -73,6 +80,8 @@ sessionsRoutes.post("/sessions", async (c) => {
         worktreeBranch?: string;
         baseBranch?: string;
         worktreeRepoRoot?: string;
+        agent?: string;
+        systemPrompt?: string;
       }
     | undefined;
   try {
@@ -84,13 +93,30 @@ sessionsRoutes.post("/sessions", async (c) => {
     typeof body?.workdir === "string" && body.workdir.trim().length > 0
       ? body.workdir.trim()
       : createDefaultProjectWorkdir(ctx.home);
-  const model =
-    typeof body?.model === "string" && body.model.length > 0
-      ? body.model
-      : DEFAULT_ACTIVE_MODEL_ID;
+  // agent：显式传合法 key 才接受；否则按 session 场景映射解析（回落 default）。
+  // agent 在会话创建时解析并展开存进 Session，创建 SDK agent 时不再查配置。
+  const agentKey =
+    typeof body?.agent === "string" &&
+    body.agent &&
+    loadAgents(ctx.home).has(body.agent)
+      ? body.agent
+      : resolveScenarioAgent("session", ctx.home);
+  const agent = resolveAgent(agentKey, ctx.home);
+  const permission = resolvePermission(agent.permission);
+  // model：会话显式传 model 才用，且标记显式（后续切换 agent 时保留）；否则回落 agent.model
+  const modelExplicit = typeof body?.model === "string" && body.model.length > 0;
+  const model = modelExplicit
+    ? (body!.model as string)
+    : (agent.model ?? DEFAULT_ACTIVE_MODEL_ID);
   if (!model) {
     return c.json({ error: "no active model selected" }, 400);
   }
+  // 显式 systemPrompt 完全接管（标记显式，切换 agent 时保留）；否则人格合成（人格段 + agent.systemPrompt）
+  const systemPromptExplicit =
+    typeof body?.systemPrompt === "string" && body.systemPrompt.length > 0;
+  const systemPrompt = systemPromptExplicit
+    ? (body!.systemPrompt as string)
+    : buildSystemPrompt(agent);
   const session = ctx.store.create({
     workdir,
     model,
@@ -109,12 +135,25 @@ sessionsRoutes.post("/sessions", async (c) => {
       typeof body?.worktreeRepoRoot === "string"
         ? body.worktreeRepoRoot
         : undefined,
+    agentName: agent.key,
+    systemPrompt,
+    fastModel: agent.fastModel,
+    tools: agent.tools,
+    disallowedTools:
+      permission.disallowedTools.length > 0
+        ? permission.disallowedTools
+        : undefined,
+    allowedTools:
+      permission.allowedTools.length > 0 ? permission.allowedTools : undefined,
+    modelExplicit,
+    systemPromptExplicit,
   });
   getLogger().info("session created", {
     sessionId: session.id,
     model: session.model,
     workdir: session.workdir,
     worktreeName: session.worktreeName,
+    agentName: session.agentName,
   });
   return c.json(session);
 });
@@ -141,6 +180,7 @@ session.patch("/", async (c) => {
         model?: string;
         lastActiveAt?: number;
         permissionMode?: string;
+        agent?: string;
       }
     | undefined;
   try {
@@ -158,6 +198,14 @@ session.patch("/", async (c) => {
     model?: string;
     lastActiveAt?: number;
     permissionMode?: "acceptEdits" | "bypassPermissions";
+    agentName?: string;
+    systemPrompt?: string;
+    fastModel?: string;
+    tools?: string[];
+    disallowedTools?: string[];
+    allowedTools?: string[];
+    modelExplicit?: boolean;
+    systemPromptExplicit?: boolean;
   } = {};
   if (typeof body.title === "string") {
     patch.title = body.title;
@@ -167,6 +215,7 @@ session.patch("/", async (c) => {
   }
   if (typeof body.model === "string") {
     patch.model = body.model;
+    patch.modelExplicit = true;
   }
   if (typeof body.lastActiveAt === "number") {
     patch.lastActiveAt = body.lastActiveAt;
@@ -177,6 +226,40 @@ session.patch("/", async (c) => {
   ) {
     patch.permissionMode = body.permissionMode;
   }
+  if (typeof body.agent === "string" && body.agent) {
+    // 合法 agent key 才接受；空/非法忽略（保持现状）
+    if (loadAgents(ctx.home).has(body.agent)) {
+      const current = ctx.store.get(sessionId);
+      // 展开新 agent 的字段：显式覆盖（model/systemPrompt 由用户显式指定）保留，
+      // 未显式给的回落新 agent。tools/权限 是 agent 属性，随 agent 切换整体重算。
+      const agent = resolveAgent(body.agent, ctx.home);
+      const permission = resolvePermission(agent.permission);
+      // 本次请求显式给了 model → 用显式值；否则看会话历史是否显式（POST/PATCH 时指定过）
+      const modelExplicit = typeof body.model === "string" || (current?.modelExplicit ?? false);
+      patch.agentName = body.agent;
+      patch.systemPrompt = current?.systemPromptExplicit
+        ? current.systemPrompt
+        : buildSystemPrompt(agent);
+      patch.systemPromptExplicit = current?.systemPromptExplicit ?? false;
+      patch.model =
+        typeof body.model === "string"
+          ? (body.model as string)
+          : current?.modelExplicit
+            ? (current.model as string)
+            : (agent.model ?? (current?.model as string) ?? DEFAULT_ACTIVE_MODEL_ID);
+      patch.modelExplicit = modelExplicit;
+      patch.fastModel = agent.fastModel;
+      patch.tools = agent.tools;
+      patch.disallowedTools =
+        permission.disallowedTools.length > 0
+          ? permission.disallowedTools
+          : undefined;
+      patch.allowedTools =
+        permission.allowedTools.length > 0
+          ? permission.allowedTools
+          : undefined;
+    }
+  }
 
   const updated = ctx.store.update(sessionId, patch);
   if (!updated) {
@@ -184,6 +267,12 @@ session.patch("/", async (c) => {
   }
   if (patch.permissionMode) {
     await ctx.runner.setPermissionMode(sessionId, patch.permissionMode);
+  }
+  if (patch.agentName) {
+    // agent 变更 → 重建 agent（参考 setPermissionMode 的触发重建机制）：
+    // 丢弃身份指纹，下次 ensureAgent 按新 agentName + 新展开字段重建
+    ctx.runner.invalidateAgentIdentities();
+    await ctx.runner.disposeAgent(sessionId);
   }
   return c.json(ctx.store.get(sessionId) ?? updated);
 });

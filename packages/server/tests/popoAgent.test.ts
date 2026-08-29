@@ -208,6 +208,26 @@ describe("popoAgent", () => {
     expect(String(captured?.systemPrompt)).toContain("不要创建定时任务");
   });
 
+  it("popo 场景 agent：systemPrompt 含人格段 + POPO 指令；disallowedTools 保留 Workflow", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (options) => {
+        captured = options as unknown as Record<string, unknown>;
+        return stubAgent("ok");
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    // popo 场景 agent（默认 popo 内置）→ 人格段 + POPO 指令
+    expect(String(captured?.systemPrompt)).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+    expect(String(captured?.systemPrompt)).toContain("你是 Muse 机器人，运行在 POPO 即时通讯上");
+    expect(captured?.disallowedTools).toEqual(["Workflow"]);
+    // fastModel 不给时保持 gateway.fastModel ?? gateway.model（这里 gateway 无 fastModel → model）
+    expect(captured?.fastModel).toBe("m1");
+  });
+
   it("keeps the agent alive while a background task runs, disposing after it settles", async () => {
     vi.useFakeTimers();
     let running = true;

@@ -16,6 +16,7 @@ import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createTodoStore, type TodoStore } from "./todoStore.js";
 import { createTodoScheduler, type TodoScheduler } from "./todoScheduler.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
+import { ensureDefaultConfigs } from "./agentConfig.js";
 
 export { resolveHome };
 
@@ -79,6 +80,8 @@ export function createAppContext(
   options?: CreateAppContextOptions,
 ): AppContext {
   const home = resolveHome(options?.home);
+  // 启动自动生成 agent 配置文件（agents.json / agent-scenarios.json），无则写默认内置
+  ensureDefaultConfigs(home);
 
   const getConfig = () => loadProvidersConfig(home);
 

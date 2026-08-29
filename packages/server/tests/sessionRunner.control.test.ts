@@ -568,4 +568,56 @@ describe("sessionRunner control plane", () => {
     // The disk lookup must use the SDK's waveSessionId so the file is found.
     expect(loadCalls).toEqual([{ id: "wave-123", workdir: dir }]);
   });
+
+  it("createAgentWithRestore 透传会话 agent 字段：fastModel/tools/disallowedTools/allowedTools", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    let captured: Record<string, unknown> | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        captured = opts as unknown as Record<string, unknown>;
+        return stubAgent();
+      },
+    });
+    const session = store.create({
+      workdir: dir,
+      model: "m1",
+      fastModel: "fast-m",
+      tools: ["Bash", "Read"],
+      disallowedTools: ["Bash(npm run build)"],
+      allowedTools: ["Read"],
+    });
+    await runner.sendMessage(session.id, "hi");
+    await expect.poll(() => captured?.fastModel).toBe("fast-m");
+    expect(captured?.tools).toEqual(["Bash", "Read"]);
+    expect(captured?.disallowedTools).toEqual(["Bash(npm run build)"]);
+    expect(captured?.allowedTools).toEqual(["Read"]);
+  });
+
+  it("createAgentWithRestore 未给 fastModel/tools/权限 时回落默认（不传这些字段）", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    let captured: Record<string, unknown> | undefined;
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      createAgent: async (opts) => {
+        captured = opts as unknown as Record<string, unknown>;
+        return stubAgent();
+      },
+    });
+    const session = store.create({ workdir: dir, model: "m1" });
+    await runner.sendMessage(session.id, "hi");
+    // gateway 无 fastModel → 回落 model
+    await expect.poll(() => captured?.fastModel).toBe("m1");
+    expect(captured?.tools).toBeUndefined();
+    expect(captured?.disallowedTools).toBeUndefined();
+    expect(captured?.allowedTools).toBeUndefined();
+  });
 });

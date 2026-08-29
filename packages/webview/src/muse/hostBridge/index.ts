@@ -278,6 +278,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       const model = typeof msg.model === "string" ? msg.model : undefined;
       if (model) void session.handleSetSessionModel(model);
     },
+    setSessionAgent: (msg) => {
+      const agent = typeof msg.agent === "string" ? msg.agent : undefined;
+      if (agent) void session.handleSetSessionAgent(agent);
+    },
     desktopSelectWorkdir: () => {
       ctx.suppressWorkdirPush = false;
     },

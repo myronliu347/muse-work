@@ -222,6 +222,19 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       store.delete(sessionId);
     },
 
+    /** 释放会话的 live agent（不动会话记录/消息）。agent 变更（如 agentName）后调用，下次 ensureAgent 重建。 */
+    async disposeAgent(sessionId) {
+      const existing = agents.get(sessionId);
+      agents.delete(sessionId);
+      agentIdentities.delete(sessionId);
+      core.clearIdleTimer(sessionId);
+      core.clearStallTimer(sessionId);
+      if (existing) {
+        await existing.dispose();
+      }
+      return { ok: true as const };
+    },
+
     async getMessages(sessionId) {
       core.clearIdleTimer(sessionId);
       const session = store.get(sessionId);

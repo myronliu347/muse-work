@@ -33,6 +33,20 @@ export interface Session {
   interrupted?: boolean;
   /** 自定义 system prompt（规划会话等注入 todo 上下文；缺省用默认 Muse prompt）。 */
   systemPrompt?: string;
+  /** 会话选用的数字人 agent key（缺省由 session 场景映射解析；显式传/改后持久化）。 */
+  agentName?: string;
+  /** 会话级 fastModel（仅 agents.json 显式给或会话显式指定才覆盖默认）。 */
+  fastModel?: string;
+  /** agent 允许工具列表（展开后存会话；SDK AgentOptions.tools）。 */
+  tools?: string[];
+  /** agent 拒绝工具规则（展开后存会话；SDK AgentOptions.disallowedTools）。 */
+  disallowedTools?: string[];
+  /** agent 豁免工具规则（展开后存会话；SDK AgentOptions.allowedTools）。 */
+  allowedTools?: string[];
+  /** 会话 model 是否由用户显式指定（POST body.model / PATCH model）。true 时切换 agent 保留该 model。 */
+  modelExplicit?: boolean;
+  /** 会话 systemPrompt 是否由用户显式指定（POST body.systemPrompt，完全接管）。true 时切换 agent 保留。 */
+  systemPromptExplicit?: boolean;
 }
 
 export type SessionsFile = {
@@ -52,6 +66,13 @@ export interface SessionStore {
     worktreeRepoRoot?: string;
     title?: string;
     systemPrompt?: string;
+    agentName?: string;
+    fastModel?: string;
+    tools?: string[];
+    disallowedTools?: string[];
+    allowedTools?: string[];
+    modelExplicit?: boolean;
+    systemPromptExplicit?: boolean;
   }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
@@ -163,6 +184,13 @@ export function createSessionStore(
       worktreeRepoRoot,
       title,
       systemPrompt,
+      agentName,
+      fastModel,
+      tools,
+      disallowedTools,
+      allowedTools,
+      modelExplicit,
+      systemPromptExplicit,
     }): Session {
       const now = Date.now();
       const session: Session = {
@@ -180,6 +208,13 @@ export function createSessionStore(
         ...(baseBranch ? { baseBranch } : {}),
         ...(worktreeRepoRoot ? { worktreeRepoRoot } : {}),
         ...(systemPrompt ? { systemPrompt } : {}),
+        ...(agentName ? { agentName } : {}),
+        ...(fastModel ? { fastModel } : {}),
+        ...(tools && tools.length > 0 ? { tools } : {}),
+        ...(disallowedTools && disallowedTools.length > 0 ? { disallowedTools } : {}),
+        ...(allowedTools && allowedTools.length > 0 ? { allowedTools } : {}),
+        ...(modelExplicit ? { modelExplicit } : {}),
+        ...(systemPromptExplicit ? { systemPromptExplicit } : {}),
       };
       sessions.set(session.id, session);
       persist();
