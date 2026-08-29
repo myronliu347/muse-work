@@ -12,6 +12,7 @@ import {
   type MuseAgent,
 } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
+import { useAgentsStore } from "../../stores/agentsStore";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
 import { Field } from "../../ui/Field";
 import "../../styles/AgentManager.css";
@@ -173,6 +174,8 @@ export const AgentManager = forwardRef<
       nextAgents[draft.key] = fromForm(draft);
       const res = await client.putAgents({ version: 1, agents: nextAgents });
       setAgents(res.agents);
+      // 刷新全局 agentsStore，让消息输入框 AgentSelector 立即感知变更
+      void useAgentsStore.getState().refresh();
       setDraft(null);
       setIsNew(false);
       return true;
@@ -198,6 +201,8 @@ export const AgentManager = forwardRef<
         }
         const res = await client.putAgents({ version: 1, agents: nextAgents });
         setAgents(res.agents);
+        // 刷新全局 agentsStore，让 AgentSelector 立即移除已删除项
+        void useAgentsStore.getState().refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -221,6 +226,8 @@ export const AgentManager = forwardRef<
         },
       });
       setScenarios(res.scenarios);
+      // 场景映射变更会影响 AgentSelector 的 defaultAgentName，一并刷新全局缓存
+      void useAgentsStore.getState().refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       return false;
