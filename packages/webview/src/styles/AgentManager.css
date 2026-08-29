@@ -81,14 +81,53 @@
   font-size: var(--font-size-1);
 }
 
+/* 编辑/新增表单独立 Dialog：加宽 + 标题栏 + 纵向布局（移出窄设置弹窗） */
+.agent-manager-dialog {
+  width: 600px;
+  max-width: 94vw;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel-solid, var(--gray-1));
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-4);
+  box-shadow: var(--shadow-5);
+  overflow: hidden;
+}
+
+/* Radix Dialog 覆盖：内建 padding 让位给标题栏 + 内容滚动区 */
+.agent-manager-dialog.rt-DialogContent {
+  padding: 0;
+}
+
+.agent-manager-dialog-title {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--gray-4);
+  font-size: var(--font-size-3);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
 .agent-manager-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--gray-6);
-  border-radius: var(--radius-2);
-  background: var(--gray-2);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.agent-manager-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.agent-manager-form-group > *:first-child {
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--gray-4);
+  margin-bottom: var(--space-1);
 }
 
 .agent-manager-form-grid {
@@ -101,6 +140,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+  padding-top: var(--space-1);
 }
 
 /* 表单内 model/fastModel 下拉（MuseModelSelect 原生 select）撑满字段宽 */
