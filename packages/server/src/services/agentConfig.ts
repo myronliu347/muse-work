@@ -16,6 +16,7 @@ import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { getLogger } from "../utils/logger.js";
 import { POPO_SYSTEM_PROMPT } from "../popo/popoPrompt.js";
+import { MUSE_BASE_SYSTEM_PROMPT } from "../constants/musePrompt.js";
 
 export const AGENTS_FILE = "agents.json";
 export const AGENT_SCENARIOS_FILE = "agent-scenarios.json";
@@ -96,28 +97,28 @@ export type AgentScenariosFile = {
   scenarios: Partial<Record<AgentScenarioKey, string>>;
 };
 
-/** 内置默认 agent（default/plan/execute 的 systemPrompt 留空：静态部分内置在代码、动态部分运行时合并）。 */
+/** 内置默认 agent（default/plan/execute 的 systemPrompt 为 Muse 基座指令；popo 为 POPO 指令）。 */
 export function defaultAgents(): Record<string, Agent> {
   return {
     default: {
       key: "default",
       name: "Muse",
       personality: "professional",
-      systemPrompt: "",
+      systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
       model: "deepseek-v4-flash",
     },
     plan: {
       key: "plan",
       name: "规划助手",
       personality: "professional",
-      systemPrompt: "",
+      systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
       model: "deepseek-v4-flash",
     },
     execute: {
       key: "execute",
       name: "执行助手",
       personality: "professional",
-      systemPrompt: "",
+      systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
       model: "deepseek-v4-flash",
     },
     popo: {
@@ -265,8 +266,28 @@ export function resolveAgent(
 }
 
 /**
+ * 内置 agent 的空 systemPrompt 回落基座：default/plan/execute → Muse 基座指令，
+ * popo → POPO 指令；其它（自定义）agent 不加额外段。
+ * 已生成的 agents.json 里内置 agent 的 systemPrompt 可能是空串（旧版写盘），
+ * 读取时回落基座，保持与内置默认一致，无需迁移文件。
+ */
+export function defaultSystemPromptFor(key: string): string | undefined {
+  switch (key) {
+    case "default":
+    case "plan":
+    case "execute":
+      return MUSE_BASE_SYSTEM_PROMPT;
+    case "popo":
+      return POPO_SYSTEM_PROMPT;
+    default:
+      return undefined;
+  }
+}
+
+/**
  * 人格合成：最终 systemPrompt = 人格段 + agent.systemPrompt + 场景动态上下文。
  * 例外：显式 systemPrompt 完全接管（不拼人格、不拼 agent.systemPrompt）。
+ * 内置 agent 的 systemPrompt 为空（undefined/""）时回落基座。
  */
 export function buildSystemPrompt(
   agent: Agent,
@@ -276,8 +297,10 @@ export function buildSystemPrompt(
   if (explicitSystemPrompt !== undefined && explicitSystemPrompt !== "") {
     return explicitSystemPrompt;
   }
+  const systemPrompt =
+    agent.systemPrompt || defaultSystemPromptFor(agent.key) || "";
   const lines = [`你是${agent.name}。你的性格：${personalityDescription(agent.personality)}。`];
-  if (agent.systemPrompt) lines.push(agent.systemPrompt);
+  if (systemPrompt) lines.push(systemPrompt);
   if (extra) lines.push(extra);
   return lines.join("\n\n");
 }

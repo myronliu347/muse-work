@@ -346,7 +346,7 @@ describe("sessions agent resolution", () => {
     }
   });
 
-  it("POST /sessions 不传 agent → default agent：model=deepseek-v4-flash + 人格段 systemPrompt", async () => {
+  it("POST /sessions 不传 agent → default agent：model=deepseek-v4-flash + 人格段 + Muse 基座 systemPrompt", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -359,8 +359,8 @@ describe("sessions agent resolution", () => {
     expect(created.agentName).toBe("default");
     expect(created.model).toBe("deepseek-v4-flash");
     expect(created.systemPrompt).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
-    // default 内置 systemPrompt 为空 → 人格合成不含额外段
-    expect(created.systemPrompt).toContain("你是Muse。");
+    // default 内置 systemPrompt = Muse 基座 → 人格合成含基座指令
+    expect(created.systemPrompt).toContain("You are Muse, an AI coding assistant");
   });
 
   it("POST /sessions 传自定义 agents.json 里的 agent → agentName 落库 + 人格段 + 自定义 systemPrompt", async () => {
