@@ -19,6 +19,7 @@ import {
   saveAgentsFile,
 } from "../src/services/agentConfig.js";
 import { POPO_SYSTEM_PROMPT } from "../src/popo/popoPrompt.js";
+import { MUSE_BASE_SYSTEM_PROMPT } from "../src/constants/musePrompt.js";
 
 let home: string;
 
@@ -153,15 +154,42 @@ describe("agentConfig", () => {
     expect(prompt).toContain("这是额外上下文");
   });
 
-  it("buildSystemPrompt 空 systemPrompt 跳过；无 extra 只含人格段", () => {
+  it("buildSystemPrompt 空 systemPrompt（自定义 agent）→ 跳过，只含人格段", () => {
     const agent = {
+      key: "xiaomei",
+      name: "小美",
+      personality: "professional",
+      systemPrompt: "",
+    };
+    const prompt = buildSystemPrompt(agent);
+    expect(prompt).toBe("你是小美。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+  });
+
+  it("buildSystemPrompt 内置 agent 空 systemPrompt → 回落 Muse 基座；popo 回落 POPO 指令", () => {
+    // 模拟旧版 agents.json 写盘：内置 key 的 systemPrompt 为空串
+    const base = {
       key: "default",
       name: "Muse",
       personality: "professional",
       systemPrompt: "",
     };
-    const prompt = buildSystemPrompt(agent);
-    expect(prompt).toBe("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
+    expect(buildSystemPrompt(base)).toBe(
+      `你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。\n\n${MUSE_BASE_SYSTEM_PROMPT}`,
+    );
+    expect(buildSystemPrompt({ ...base, key: "plan" })).toContain(
+      MUSE_BASE_SYSTEM_PROMPT,
+    );
+    expect(buildSystemPrompt({ ...base, key: "execute" })).toContain(
+      MUSE_BASE_SYSTEM_PROMPT,
+    );
+    const popo = buildSystemPrompt({
+      ...base,
+      key: "popo",
+      name: "Muse",
+      systemPrompt: "",
+    });
+    expect(popo).toContain("你是Muse。你的性格：");
+    expect(popo).toContain(POPO_SYSTEM_PROMPT);
   });
 
   it("buildSystemPrompt 显式 systemPrompt 完全接管（不拼人格）", () => {
@@ -252,11 +280,11 @@ describe("agentConfig", () => {
     ).toThrow(/unknown agent key/);
   });
 
-  it("defaultAgents 4 内置的 systemPrompt：default/plan/execute 为空，popo 为 POPO 指令", () => {
+  it("defaultAgents 4 内置的 systemPrompt：default/plan/execute 为 Muse 基座，popo 为 POPO 指令", () => {
     const agents = defaultAgents();
-    expect(agents.default.systemPrompt).toBe("");
-    expect(agents.plan.systemPrompt).toBe("");
-    expect(agents.execute.systemPrompt).toBe("");
+    expect(agents.default.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
+    expect(agents.plan.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
+    expect(agents.execute.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
     expect(agents.popo.systemPrompt).toBe(POPO_SYSTEM_PROMPT);
   });
 });
