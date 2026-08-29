@@ -287,4 +287,64 @@ describe("agentConfig", () => {
     expect(agents.execute.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
     expect(agents.popo.systemPrompt).toBe(POPO_SYSTEM_PROMPT);
   });
+
+  it("loadAgents 读时回落：内置 key 文件 systemPrompt 空串 → 回落基座（与运行一致）", () => {
+    // 模拟旧版 agents.json 写盘：内置 key 的 systemPrompt 为空串
+    const agentsPath = agentsConfigPath(home);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          default: { name: "Muse", systemPrompt: "" },
+          plan: { name: "规划助手", systemPrompt: "" },
+          execute: { name: "执行助手", systemPrompt: "" },
+          popo: { name: "Muse", systemPrompt: "" },
+        },
+      }),
+    );
+    const loaded = loadAgents(home);
+    expect(loaded.get("default")?.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
+    expect(loaded.get("plan")?.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
+    expect(loaded.get("execute")?.systemPrompt).toBe(MUSE_BASE_SYSTEM_PROMPT);
+    expect(loaded.get("popo")?.systemPrompt).toBe(POPO_SYSTEM_PROMPT);
+    // GET /agents 语义（toAgentDto: systemPrompt ?? ""）：读时回落后返回基座
+    expect(loaded.get("default")?.systemPrompt ?? "").toContain(
+      "You are Muse, an AI coding assistant",
+    );
+  });
+
+  it("loadAgents 读时回落：内置 key 填了自定义 systemPrompt → 用自定义（不回落）", () => {
+    const agentsPath = agentsConfigPath(home);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          default: { name: "Muse", systemPrompt: "自定义指令" },
+        },
+      }),
+    );
+    const loaded = loadAgents(home);
+    expect(loaded.get("default")?.systemPrompt).toBe("自定义指令");
+  });
+
+  it("loadAgents 读时回落：自定义 agent 空串 → 保持空（getAgents 返回 \"\"）", () => {
+    const agentsPath = agentsConfigPath(home);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          xiaomei: { name: "小美", systemPrompt: "" },
+        },
+      }),
+    );
+    const loaded = loadAgents(home);
+    // 自定义 agent 没填就是没有：GET /agents 语义返回 ""
+    expect(loaded.get("xiaomei")?.systemPrompt ?? "").toBe("");
+  });
 });

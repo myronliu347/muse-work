@@ -205,6 +205,16 @@ function parseAgentsFile(home: string): Record<string, Agent> {
     const agent = parseAgent(key, raw);
     if (agent) out[key] = agent; // 同名覆盖内置；非法定义不合并（沿用内置/已有）
   }
+  // 读时回落：内置 key 的 systemPrompt 为空（undefined/""，旧版 agents.json 写盘为空串）
+  // 时回落基座，使 GET /agents 与运行（buildSystemPrompt 回落）一致，无需迁移文件。
+  // 自定义 agent（非内置 key）保持现状：没填就是没有。
+  for (const key of ["default", "plan", "execute", "popo"] as const) {
+    const agent = out[key];
+    if (agent && !agent.systemPrompt) {
+      const fallback = defaultSystemPromptFor(key);
+      if (fallback) agent.systemPrompt = fallback;
+    }
+  }
   return out;
 }
 
