@@ -616,6 +616,77 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("pins draft agent on a new draft and sends it with createSession", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      agentName: "xiaomei",
+      workdir: "/Users/demo/.muse-work/projects/x",
+    };
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    messages.length = 0;
+    // 草稿态选 agent：不 PATCH，记 draftAgent 并 emitDraftSession 带 agentName
+    bridge.postMessage({ command: "setSessionAgent", agent: "xiaomei" });
+    await flush();
+    expect(api.patchSession).not.toHaveBeenCalled();
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateCurrentSession",
+        session: expect.objectContaining({
+          id: "__draft__",
+          agentName: "xiaomei",
+        }),
+      }),
+    );
+
+    messages.length = 0;
+    vi.mocked(api.createSession).mockClear();
+    bridge.postMessage({ command: "sendMessage", text: "hi" });
+    await flush();
+    // 首条消息创建会话时把 draftAgent 带进 POST /sessions body
+    expect(api.createSession).toHaveBeenCalledWith(undefined, {
+      model: "deepseek-v4-flash",
+      permissionMode: "acceptEdits",
+      agent: "xiaomei",
+    });
+  });
+
+  it("PATCHes agent for an existing session", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    // 恢复已建会话（activeSessionId 命中 recent）
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    bridge.postMessage({ command: "setSessionAgent", agent: "xiaomei" });
+    await flush();
+    expect(api.patchSession).toHaveBeenCalledWith("sess-active", {
+      agent: "xiaomei",
+    });
+  });
+
   it("first send keeps session model without auto-PATCHing a title", async () => {
     const created: MuseSession = {
       ...baseSession,

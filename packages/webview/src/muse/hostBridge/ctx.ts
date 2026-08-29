@@ -61,6 +61,7 @@ export interface BridgeCtx {
    */
   suppressWorkdirPush: boolean;
   draftModel: string | undefined;
+  draftAgent: string | undefined;
   draftPermissionMode: "acceptEdits" | "bypassPermissions";
   streamingMessageId: string | null;
   knownAssistantIds: Set<string>;
@@ -156,6 +157,7 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
     pendingNewSession: false,
     suppressWorkdirPush: false,
     draftModel: undefined,
+    draftAgent: undefined,
     draftPermissionMode: "acceptEdits",
     streamingMessageId: null,
     knownAssistantIds: new Set<string>(),

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { Theme } from "@radix-ui/themes";
 import ConfigDialog from "../../src/components/dialogs/ConfigDialog";
 import type { ConfigurationData, VsCodeApi } from "../../src/types";
 
@@ -43,16 +44,18 @@ function renderDialog(overrides?: {
   const onSave = overrides?.onSave ?? vi.fn();
   const onCancel = overrides?.onCancel ?? vi.fn();
   const result = render(
-    <ConfigDialog
-      configurationData={
-        overrides?.configurationData ?? { language: "Chinese" }
-      }
-      isLoading={overrides?.isLoading ?? false}
-      error={overrides?.error}
-      onSave={onSave}
-      onCancel={onCancel}
-      vscode={mockVscode}
-    />,
+    <Theme>
+      <ConfigDialog
+        configurationData={
+          overrides?.configurationData ?? { language: "Chinese" }
+        }
+        isLoading={overrides?.isLoading ?? false}
+        error={overrides?.error}
+        onSave={onSave}
+        onCancel={onCancel}
+        vscode={mockVscode}
+      />
+    </Theme>,
   );
   return { ...result, onSave, onCancel };
 }

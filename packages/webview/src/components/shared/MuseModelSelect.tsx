@@ -14,6 +14,14 @@ export interface MuseModelSelectProps {
   onModelChange?: (modelId: string) => void;
   /** default false — when true, also POST /providers/active (settings only) */
   syncGlobalActive?: boolean;
+  /** When true, prepend an empty option (emptyLabel) whose value is "" — used
+   *  for optional model fields ("留空=主模型"). Picking it calls onModelChange("").
+   *  Default false; existing callers are unaffected. */
+  allowEmpty?: boolean;
+  /** Label for the empty option shown when allowEmpty is true. */
+  emptyLabel?: string;
+  /** data-testid on the native <select>. Defaults to "muse-model-select". */
+  testId?: string;
 }
 
 /**
@@ -26,6 +34,9 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
   modelId,
   onModelChange,
   syncGlobalActive = false,
+  allowEmpty = false,
+  emptyLabel = "",
+  testId = "muse-model-select",
 }) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,18 +84,20 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
   const resolvedModelId = modelId?.trim() ? modelId : undefined;
   const value =
     resolvedModelId ??
-    (onModelChange && !syncGlobalActive
-      ? DEFAULT_SESSION_MODEL_ID
-      : data?.active.modelId) ??
-    data?.active.modelId ??
-    "";
+    (allowEmpty
+      ? ""
+      : (onModelChange && !syncGlobalActive
+          ? DEFAULT_SESSION_MODEL_ID
+          : data?.active.modelId) ??
+        data?.active.modelId ??
+        "");
 
   return (
     <select
-      data-testid="muse-model-select"
+      data-testid={testId}
       aria-label="Model"
       value={value}
-      disabled={!data || models.length === 0}
+      disabled={!data || (models.length === 0 && !allowEmpty)}
       title={
         error ??
         (activeProvider
@@ -122,14 +135,25 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
       }}
       className="muse-model-select"
     >
-      {models.length === 0 ? (
+      {models.length === 0 && !allowEmpty ? (
         <option value="">{error ? "模型不可用" : "加载模型…"}</option>
       ) : (
-        models.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.label || m.id}
-          </option>
-        ))
+        <>
+          {allowEmpty && (
+            <option value="">{emptyLabel || "（留空）"}</option>
+          )}
+          {models.length === 0 ? (
+            <option value="" disabled>
+              {error ? "模型不可用" : "加载模型…"}
+            </option>
+          ) : (
+            models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label || m.id}
+              </option>
+            ))
+          )}
+        </>
       )}
     </select>
   );

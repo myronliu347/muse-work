@@ -2,9 +2,15 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Theme } from "@radix-ui/themes";
 import { AgentSettings } from "../../src/components/settings/AgentSettings";
 import type { MuseApiClient } from "../../src/muse/apiClient";
+
+// radix Select / portal 依赖的指针捕获方法，jsdom 未实现（参考 museProviderSettings.test.tsx）
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
 
 function renderAgent(api: MuseApiClient) {
   return render(
@@ -44,6 +50,20 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
         task: "execute",
         popo: "popo",
       },
+    }),
+    // MuseModelSelect 挂载时拉取 providers
+    listProviders: vi.fn().mockResolvedValue({
+      providers: [
+        {
+          id: "codemaker",
+          displayName: "CodeMaker",
+          models: [
+            { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+            { id: "m2", label: "M2" },
+          ],
+        },
+      ],
+      active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
     }),
   };
 }
@@ -199,9 +219,10 @@ describe("AgentSettings", () => {
     fireEvent.change(screen.getByTestId("agent-form-name"), {
       target: { value: "小美新" },
     });
-    fireEvent.change(screen.getByTestId("agent-form-personality"), {
-      target: { value: "concise" },
-    });
+    // personality 改为 radix Select：打开下拉并点选「简洁干练」（concise）
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("agent-form-personality"));
+    await user.click(await screen.findByRole("option", { name: /简洁干练/ }));
     fireEvent.click(screen.getByTestId("agent-form-save"));
     await waitFor(() => {
       expect(putAgents).toHaveBeenCalled();
@@ -211,5 +232,38 @@ describe("AgentSettings", () => {
     };
     expect(payload.agents.xiaomei.name).toBe("小美新");
     expect(payload.agents.xiaomei.personality).toBe("concise");
+  });
+
+  it("renders model/fastModel as dropdowns bound to provider models", async () => {
+    const api = baseApi();
+    api.getAgents = vi.fn().mockResolvedValue({
+      version: 1,
+      agents: [
+        {
+          key: "xiaomei",
+          name: "小美",
+          personality: "warm-patient",
+          systemPrompt: "",
+          model: "m2",
+          fastModel: "",
+          tools: [],
+          permission: [],
+        },
+      ],
+    });
+    renderAgent(api as unknown as MuseApiClient);
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-edit-xiaomei")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("agent-edit-xiaomei"));
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-form")).toBeInTheDocument();
+    });
+    // model / fastModel 现在是下拉（MuseModelSelect），值为 provider 模型 id
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-form-model")).toHaveValue("m2");
+    });
+    // fastModel 留空 → 显示（留空）选项（值 "")
+    expect(screen.getByTestId("agent-form-fastModel")).toHaveValue("");
   });
 });

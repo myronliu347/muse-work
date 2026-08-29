@@ -23,32 +23,6 @@
   color: var(--gray-12);
 }
 
-.agent-manager-header button,
-.agent-manager-form-actions button,
-.agent-manager-row-actions button {
-  box-sizing: border-box;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--gray-6);
-  border-radius: var(--radius-2);
-  background: var(--gray-2);
-  color: var(--gray-12);
-  font-size: var(--font-size-1);
-  cursor: pointer;
-}
-
-.agent-manager-header button:hover,
-.agent-manager-form-actions button:hover,
-.agent-manager-row-actions button:hover {
-  background: var(--gray-4);
-}
-
-.agent-manager-header button:disabled,
-.agent-manager-form-actions button:disabled,
-.agent-manager-row-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .agent-manager-list {
   list-style: none;
   margin: 0;
@@ -123,36 +97,23 @@
   gap: var(--space-2);
 }
 
-.agent-manager-form input,
-.agent-manager-form select,
-.agent-manager-form textarea {
+.agent-manager-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* 表单内 model/fastModel 下拉（MuseModelSelect 原生 select）撑满字段宽 */
+.agent-manager-form .muse-model-select {
   box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   background: var(--color-panel);
   color: var(--gray-12);
   font-size: var(--font-size-1);
-}
-
-.agent-manager-form textarea {
-  min-height: 64px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.agent-manager-form input:focus,
-.agent-manager-form select:focus,
-.agent-manager-form textarea:focus {
-  outline: 2px solid var(--accent-9);
-  outline-offset: -1px;
-}
-
-.agent-manager-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
 }
 
 .agent-manager-scenarios {
@@ -174,14 +135,7 @@
   font-size: var(--font-size-1);
 }
 
-.agent-manager-scenario-row select {
-  box-sizing: border-box;
+.agent-manager-scenario-row .rt-SelectTrigger {
   flex: 1;
   max-width: 260px;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--gray-6);
-  border-radius: var(--radius-2);
-  background: var(--color-panel);
-  color: var(--gray-12);
-  font-size: var(--font-size-1);
 }
