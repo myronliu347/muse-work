@@ -6,11 +6,13 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Button, Select, TextArea, TextField } from "@radix-ui/themes";
 import {
   MuseApiClient,
   type MuseAgent,
 } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
+import { MuseModelSelect } from "../shared/MuseModelSelect";
 import { Field } from "../../ui/Field";
 import "../../styles/AgentManager.css";
 
@@ -253,15 +255,16 @@ export const AgentManager = forwardRef<
       <div className="agent-manager-section">
         <div className="agent-manager-header">
           <h4>数字人 Agent</h4>
-          <button
+          <Button
             type="button"
-            className="agent-manager-add"
+            variant="soft"
+            color="gray"
             data-testid="agent-add-btn"
             onClick={startNew}
             disabled={saving}
           >
             + 新增 Agent
-          </button>
+          </Button>
         </div>
         {agents.length === 0 ? (
           <div className="agent-manager-empty">加载中…</div>
@@ -277,23 +280,29 @@ export const AgentManager = forwardRef<
                   </span>
                 </div>
                 <div className="agent-manager-row-actions">
-                  <button
+                  <Button
                     type="button"
+                    size="1"
+                    variant="soft"
+                    color="gray"
                     data-testid={`agent-edit-${a.key}`}
                     onClick={() => startEdit(a)}
                     disabled={saving}
                   >
                     编辑
-                  </button>
+                  </Button>
                   {!BUILTIN_AGENT_KEYS.has(a.key) && (
-                    <button
+                    <Button
                       type="button"
+                      size="1"
+                      variant="soft"
+                      color="gray"
                       data-testid={`agent-delete-${a.key}`}
                       onClick={() => void remove(a.key)}
                       disabled={saving}
                     >
                       删除
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>
@@ -307,7 +316,7 @@ export const AgentManager = forwardRef<
         <div className="agent-manager-form" data-testid="agent-form">
           <div className="agent-manager-form-grid">
             <Field label="key" htmlFor="agent-form-key">
-              <input
+              <TextField.Root
                 id="agent-form-key"
                 data-testid="agent-form-key"
                 value={draft.key}
@@ -317,7 +326,7 @@ export const AgentManager = forwardRef<
               />
             </Field>
             <Field label="name" htmlFor="agent-form-name">
-              <input
+              <TextField.Root
                 id="agent-form-name"
                 data-testid="agent-form-name"
                 value={draft.name}
@@ -326,44 +335,45 @@ export const AgentManager = forwardRef<
               />
             </Field>
             <Field label="personality" htmlFor="agent-form-personality">
-              <select
-                id="agent-form-personality"
-                data-testid="agent-form-personality"
+              <Select.Root
                 value={draft.personality}
+                onValueChange={(v) => setDraft({ ...draft, personality: v })}
                 disabled={saving}
-                onChange={(e) =>
-                  setDraft({ ...draft, personality: e.target.value })
-                }
               >
-                {PERSONALITIES.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}（{p.description}）
-                  </option>
-                ))}
-              </select>
+                <Select.Trigger
+                  id="agent-form-personality"
+                  data-testid="agent-form-personality"
+                  aria-label="personality"
+                />
+                <Select.Content>
+                  {PERSONALITIES.map((p) => (
+                    <Select.Item key={p.key} value={p.key}>
+                      {p.label}（{p.description}）
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
             </Field>
             <Field label="model" htmlFor="agent-form-model">
-              <input
-                id="agent-form-model"
-                data-testid="agent-form-model"
-                value={draft.model}
-                disabled={saving}
-                placeholder="deepseek-v4-flash"
-                onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-                spellCheck={false}
+              <MuseModelSelect
+                api={client}
+                modelId={draft.model || undefined}
+                onModelChange={(m) => setDraft({ ...draft, model: m })}
+                testId="agent-form-model"
               />
             </Field>
-            <Field label="fastModel" htmlFor="agent-form-fastModel">
-              <input
-                id="agent-form-fastModel"
-                data-testid="agent-form-fastModel"
-                value={draft.fastModel}
-                disabled={saving}
-                placeholder="（留空=主模型）"
-                onChange={(e) =>
-                  setDraft({ ...draft, fastModel: e.target.value })
-                }
-                spellCheck={false}
+            <Field
+              label="fastModel"
+              htmlFor="agent-form-fastModel"
+              hint="留空=主模型"
+            >
+              <MuseModelSelect
+                api={client}
+                modelId={draft.fastModel || undefined}
+                onModelChange={(m) => setDraft({ ...draft, fastModel: m })}
+                allowEmpty
+                emptyLabel="（留空）"
+                testId="agent-form-fastModel"
               />
             </Field>
             <Field
@@ -371,7 +381,7 @@ export const AgentManager = forwardRef<
               hint="允许工具列表，逗号分隔；留空=全部"
               htmlFor="agent-form-tools"
             >
-              <input
+              <TextField.Root
                 id="agent-form-tools"
                 data-testid="agent-form-tools"
                 value={draft.tools}
@@ -386,7 +396,7 @@ export const AgentManager = forwardRef<
             hint="留空=内置默认（人格段 + 场景动态上下文）；填写后附加在人格段之后"
             htmlFor="agent-form-systemPrompt"
           >
-            <textarea
+            <TextArea
               id="agent-form-systemPrompt"
               data-testid="agent-form-systemPrompt"
               value={draft.systemPrompt}
@@ -395,6 +405,7 @@ export const AgentManager = forwardRef<
                 setDraft({ ...draft, systemPrompt: e.target.value })
               }
               spellCheck={false}
+              rows={4}
             />
           </Field>
           <Field
@@ -402,7 +413,7 @@ export const AgentManager = forwardRef<
             hint="每行一条权限规则；无 ! 前缀=拒绝该工具，! 开头=豁免（如 Bash / !Read）"
             htmlFor="agent-form-permission"
           >
-            <textarea
+            <TextArea
               id="agent-form-permission"
               data-testid="agent-form-permission"
               value={draft.permission}
@@ -411,12 +422,15 @@ export const AgentManager = forwardRef<
                 setDraft({ ...draft, permission: e.target.value })
               }
               spellCheck={false}
+              rows={4}
             />
           </Field>
           {error && <div className="agent-manager-error">{error}</div>}
           <div className="agent-manager-form-actions">
-            <button
+            <Button
               type="button"
+              variant="soft"
+              color="gray"
               data-testid="agent-form-cancel"
               onClick={() => {
                 setDraft(null);
@@ -426,15 +440,15 @@ export const AgentManager = forwardRef<
               disabled={saving}
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               data-testid="agent-form-save"
               onClick={() => void save()}
               disabled={saving}
             >
               {saving ? "保存中..." : "保存"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -443,33 +457,40 @@ export const AgentManager = forwardRef<
       <div className="agent-manager-section">
         <div className="agent-manager-header">
           <h4>场景映射</h4>
-          <button
+          <Button
             type="button"
+            variant="soft"
+            color="gray"
             data-testid="scenarios-save-btn"
             onClick={() => void saveScenarios()}
             disabled={saving || agents.length === 0}
           >
             {saving ? "保存中..." : "保存场景"}
-          </button>
+          </Button>
         </div>
         <div className="agent-manager-scenarios">
           {SCENARIO_LABELS.map((s) => (
             <div key={s.key} className="agent-manager-scenario-row">
               <span className="agent-manager-scenario-label">{s.label}</span>
-              <select
-                data-testid={`scenario-${s.key}`}
+              <Select.Root
                 value={scenarios[s.key] ?? "default"}
-                disabled={saving || agents.length === 0}
-                onChange={(e) =>
-                  setScenarios((prev) => ({ ...prev, [s.key]: e.target.value }))
+                onValueChange={(v) =>
+                  setScenarios((prev) => ({ ...prev, [s.key]: v }))
                 }
+                disabled={saving || agents.length === 0}
               >
-                {agents.map((a) => (
-                  <option key={a.key} value={a.key}>
-                    {a.name}（{a.key}）
-                  </option>
-                ))}
-              </select>
+                <Select.Trigger
+                  data-testid={`scenario-${s.key}`}
+                  aria-label={s.label}
+                />
+                <Select.Content>
+                  {agents.map((a) => (
+                    <Select.Item key={a.key} value={a.key}>
+                      {a.name}（{a.key}）
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
             </div>
           ))}
         </div>

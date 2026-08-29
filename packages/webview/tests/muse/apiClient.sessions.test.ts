@@ -166,4 +166,25 @@ describe("MuseApiClient session APIs", () => {
     expect(bodies[0]).toContain("POST http://127.0.0.1:9/sessions");
     expect(bodies[0]).toContain('"permissionMode":"bypassPermissions"');
   });
+
+  it("createSession posts optional agent", async () => {
+    const bodies: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        bodies.push(`${init?.method} ${url} ${String(init?.body)}`);
+        return new Response(
+          JSON.stringify({ ...sampleSession, agentName: "xiaomei" }),
+          { status: 200 },
+        );
+      },
+    });
+
+    await client.createSession("/tmp/proj", {
+      model: "m2",
+      agent: "xiaomei",
+    });
+    expect(bodies[0]).toContain("POST http://127.0.0.1:9/sessions");
+    expect(bodies[0]).toContain('"agent":"xiaomei"');
+  });
 });

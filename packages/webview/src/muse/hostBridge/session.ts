@@ -41,6 +41,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         model: ctx.draftModel ?? DEFAULT_SESSION_MODEL_ID,
+        agentName: ctx.draftAgent,
       },
     });
     emitPermissionMode(ctx.draftPermissionMode);
@@ -174,6 +175,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.pendingNewSession = true;
     ctx.sessionId = null;
     ctx.draftModel = undefined;
+    ctx.draftAgent = undefined;
     ctx.draftPermissionMode = "acceptEdits";
     ctx.resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
@@ -275,10 +277,15 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     emitCurrentSession(session);
   };
 
-  // 输入框 agent 选择器 → PATCH /sessions/:id { agent }（仅已建会话；草稿会话由创建时带 agent）。
+  // 输入框 agent 选择器 → 草稿会话记 draftAgent（首次发送 POST /sessions 带 agent）；
+  // 已建会话 PATCH /sessions/:id { agent }。
   const handleSetSessionAgent = async (agent: string): Promise<void> => {
     if (!agent) return;
-    if (!ctx.sessionId || ctx.pendingNewSession) return;
+    if (!ctx.sessionId || ctx.pendingNewSession) {
+      ctx.draftAgent = agent;
+      emitDraftSession();
+      return;
+    }
     const session = await ctx.api.patchSession(ctx.sessionId, { agent });
     patchTreeSession(ctx.sessionId, { agentName: session.agentName });
     emitCurrentSession(session);
@@ -307,6 +314,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         ctx.suppressWorkdirPush = true;
         ctx.sessionId = null;
         ctx.draftModel = undefined;
+        ctx.draftAgent = undefined;
         ctx.draftPermissionMode = "acceptEdits";
         postToWebview({ command: "updateMessages", messages: [] });
         ctx.emitWorkdirState({ clearWorkdir: true });

@@ -365,6 +365,7 @@ export class MuseApiClient {
     opts?: {
       model?: string;
       permissionMode?: "acceptEdits" | "bypassPermissions";
+      agent?: string;
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -375,6 +376,7 @@ export class MuseApiClient {
       workdir?: string;
       model?: string;
       permissionMode?: "acceptEdits" | "bypassPermissions";
+      agent?: string;
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -383,6 +385,7 @@ export class MuseApiClient {
     if (workdir) body.workdir = workdir;
     if (opts?.model) body.model = opts.model;
     if (opts?.permissionMode) body.permissionMode = opts.permissionMode;
+    if (opts?.agent) body.agent = opts.agent;
     if (opts?.worktreeName) body.worktreeName = opts.worktreeName;
     if (opts?.worktreeBranch) body.worktreeBranch = opts.worktreeBranch;
     if (opts?.baseBranch) body.baseBranch = opts.baseBranch;
