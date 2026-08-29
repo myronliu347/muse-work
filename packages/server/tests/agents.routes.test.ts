@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import type { Server } from "node:http";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { closeTestApp, listenTestApp } from "./helpers.js";
@@ -146,5 +147,72 @@ describe("agents HTTP routes", () => {
       "execute",
       "popo",
     ]);
+  });
+
+  it("GET /agents 读时回落：内置空串 systemPrompt → 返回基座；自定义空串 → 返回空", async () => {
+    // 预写旧版 agents.json（内置 systemPrompt 空串 + 自定义 agent 空串），
+    // 再启动 server（ensureDefaultConfigs 仅在文件缺失时写入，不会覆盖）
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
+    const agentsPath = path.join(getMuseHomeDir(homeDir), AGENTS_FILE);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          default: { name: "Muse", systemPrompt: "" },
+          plan: { name: "规划助手", systemPrompt: "" },
+          execute: { name: "执行助手", systemPrompt: "" },
+          popo: { name: "Muse", systemPrompt: "" },
+          xiaomei: { name: "小美", systemPrompt: "" },
+        },
+      }),
+    );
+
+    const app = await listenTestApp({ home: homeDir });
+    server = app.server;
+    home = app.home;
+
+    const res = await fetch(`${app.baseUrl}/agents`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const byKey = Object.fromEntries(
+      body.agents.map((a: { key: string }) => [a.key, a]),
+    );
+
+    // 内置 key：空串回落基座（default/plan/execute 含 Muse 编码助手基座，popo 含 POPO 指令）
+    expect(byKey.default.systemPrompt).toContain(
+      "You are Muse, an AI coding assistant",
+    );
+    expect(byKey.plan.systemPrompt).toContain("You are Muse, an AI coding assistant");
+    expect(byKey.execute.systemPrompt).toContain("You are Muse, an AI coding assistant");
+    expect(byKey.popo.systemPrompt).toContain("你是 Muse 机器人");
+    // 自定义 agent：空串就是空（行为不变）
+    expect(byKey.xiaomei.systemPrompt).toBe("");
+  });
+
+  it("GET /agents 读时回落：内置填自定义 systemPrompt → 用自定义（不回落）", async () => {
+    const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
+    const agentsPath = path.join(getMuseHomeDir(homeDir), AGENTS_FILE);
+    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    fs.writeFileSync(
+      agentsPath,
+      JSON.stringify({
+        version: 1,
+        agents: {
+          default: { name: "Muse", systemPrompt: "自定义指令" },
+        },
+      }),
+    );
+
+    const app = await listenTestApp({ home: homeDir });
+    server = app.server;
+    home = app.home;
+
+    const res = await fetch(`${app.baseUrl}/agents`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const def = body.agents.find((a: { key: string }) => a.key === "default");
+    expect(def.systemPrompt).toBe("自定义指令");
   });
 });
