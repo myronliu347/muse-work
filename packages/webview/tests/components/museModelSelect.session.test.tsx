@@ -1,10 +1,17 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, fireEvent, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Theme } from "@radix-ui/themes";
 import { MuseModelSelect } from "../../src/components/shared/MuseModelSelect";
 import { MessageInput } from "../../src/components/chat/MessageInput";
 import type { MuseApiClient } from "../../src/muse/apiClient";
+
+// radix Select / portal 依赖的指针捕获方法，jsdom 未实现
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
 
 vi.mock("../../src/styles/MessageInput.css", () => ({}));
 
@@ -39,28 +46,55 @@ function stubProvidersApi(
   } as unknown as MuseApiClient;
 }
 
+function renderModelSelect(
+  props: Partial<React.ComponentProps<typeof MuseModelSelect>> = {},
+) {
+  const api = props.api ?? stubProvidersApi();
+  return {
+    api: api as MuseApiClient & { setActive: ReturnType<typeof vi.fn> },
+    onModelChange: props.onModelChange ?? vi.fn(),
+    ...render(
+      <Theme>
+        <MuseModelSelect
+          api={api}
+          onModelChange={props.onModelChange ?? (() => {})}
+          {...props}
+        />
+      </Theme>,
+    ),
+  };
+}
+
+/** Open the Radix dropdown and pick an option by its display label. */
+async function pickOption(label: string) {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("combobox", { name: "Model" }));
+  await user.click(await screen.findByRole("option", { name: label }));
+}
+
 describe("MuseModelSelect controlled session mode", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("uses modelId prop and calls onModelChange without setActive", async () => {
-    const api = stubProvidersApi();
     const onModelChange = vi.fn();
+    const api = stubProvidersApi();
 
     render(
-      <MuseModelSelect
-        api={api}
-        modelId="deepseek-v4-flash"
-        onModelChange={onModelChange}
-      />,
+      <Theme>
+        <MuseModelSelect
+          api={api}
+          modelId="deepseek-v4-flash"
+          onModelChange={onModelChange}
+        />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    expect(select).toHaveValue("deepseek-v4-flash");
+    const trigger = await screen.findByTestId("muse-model-select");
+    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
 
-    fireEvent.pointerDown(select);
-    fireEvent.change(select, { target: { value: "deepseek-v4-pro" } });
+    await pickOption("DeepSeek V4 Pro");
 
     await waitFor(() => {
       expect(onModelChange).toHaveBeenCalledWith("deepseek-v4-pro");
@@ -86,15 +120,13 @@ describe("MuseModelSelect controlled session mode", () => {
     });
 
     render(
-      <MuseModelSelect
-        api={api}
-        modelId=""
-        onModelChange={() => {}}
-      />,
+      <Theme>
+        <MuseModelSelect api={api} modelId="" onModelChange={() => {}} />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    expect(select).toHaveValue("deepseek-v4-flash");
+    const trigger = await screen.findByTestId("muse-model-select");
+    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
   });
 
   it("defaults to deepseek-v4-flash in session mode even if global active is opus", async () => {
@@ -114,44 +146,17 @@ describe("MuseModelSelect controlled session mode", () => {
       })),
     });
 
-    render(<MuseModelSelect api={api} onModelChange={() => {}} />);
+    render(
+      <Theme>
+        <MuseModelSelect api={api} onModelChange={() => {}} />
+      </Theme>,
+    );
 
-    const select = await screen.findByTestId("muse-model-select");
-    expect(select).toHaveValue("deepseek-v4-flash");
+    const trigger = await screen.findByTestId("muse-model-select");
+    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
   });
 
-  it("ignores a browser auto-select of models[0] when the option list first loads", async () => {
-    const onModelChange = vi.fn();
-    const api = stubProvidersApi({
-      listProviders: vi.fn(async () => ({
-        ...providersBody,
-        providers: [
-          {
-            ...providersBody.providers[0],
-            models: [
-              { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
-            ],
-          },
-        ],
-        active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
-      })),
-    });
-
-    render(<MuseModelSelect api={api} onModelChange={onModelChange} />);
-
-    const select = await screen.findByTestId("muse-model-select");
-    expect(select).toHaveValue("deepseek-v4-flash");
-
-    // Chromium fires change with the first <option> when the list replaces
-    // the loading placeholder — that is not a user pick.
-    fireEvent.change(select, { target: { value: "claude-opus-4-6" } });
-
-    expect(onModelChange).not.toHaveBeenCalled();
-    expect(select).toHaveValue("deepseek-v4-flash");
-  });
-
-  it("still commits a user pick after pointerdown", async () => {
+  it("commits a user pick via the Radix dropdown", async () => {
     const onModelChange = vi.fn();
     const api = stubProvidersApi({
       listProviders: vi.fn(async () => ({
@@ -170,73 +175,61 @@ describe("MuseModelSelect controlled session mode", () => {
     });
 
     render(
-      <MuseModelSelect
-        api={api}
-        modelId="deepseek-v4-flash"
-        onModelChange={onModelChange}
-      />,
+      <Theme>
+        <MuseModelSelect
+          api={api}
+          modelId="deepseek-v4-flash"
+          onModelChange={onModelChange}
+        />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    fireEvent.pointerDown(select);
-    fireEvent.change(select, { target: { value: "claude-opus-4-6" } });
+    await pickOption("Claude Opus 4.6");
 
     await waitFor(() => {
       expect(onModelChange).toHaveBeenCalledWith("claude-opus-4-6");
     });
   });
 
-  it("does not treat a dismissed open as a later auto-select", async () => {
+  it("allowEmpty maps the empty option back to an empty modelId", async () => {
     const onModelChange = vi.fn();
-    const api = stubProvidersApi({
-      listProviders: vi.fn(async () => ({
-        ...providersBody,
-        providers: [
-          {
-            ...providersBody.providers[0],
-            models: [
-              { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
-            ],
-          },
-        ],
-        active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
-      })),
-    });
+    const api = stubProvidersApi();
 
     render(
-      <MuseModelSelect
-        api={api}
-        modelId="deepseek-v4-flash"
-        onModelChange={onModelChange}
-      />,
+      <Theme>
+        <MuseModelSelect
+          api={api}
+          modelId="deepseek-v4-flash"
+          onModelChange={onModelChange}
+          allowEmpty
+          emptyLabel="（留空）"
+        />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    fireEvent.pointerDown(select);
-    fireEvent.blur(select);
-    fireEvent.change(select, { target: { value: "claude-opus-4-6" } });
+    await pickOption("（留空）");
 
-    expect(onModelChange).not.toHaveBeenCalled();
-    expect(select).toHaveValue("deepseek-v4-flash");
+    await waitFor(() => {
+      expect(onModelChange).toHaveBeenCalledWith("");
+    });
   });
 
   it("syncGlobalActive still posts providers/active", async () => {
-    const api = stubProvidersApi();
     const onModelChange = vi.fn();
+    const api = stubProvidersApi();
 
     render(
-      <MuseModelSelect
-        api={api}
-        modelId="deepseek-v4-pro"
-        onModelChange={onModelChange}
-        syncGlobalActive
-      />,
+      <Theme>
+        <MuseModelSelect
+          api={api}
+          modelId="deepseek-v4-pro"
+          onModelChange={onModelChange}
+          syncGlobalActive
+        />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    fireEvent.pointerDown(select);
-    fireEvent.change(select, { target: { value: "deepseek-v4-flash" } });
+    await pickOption("DeepSeek V4 Flash");
 
     await waitFor(() => {
       expect(api.setActive).toHaveBeenCalledWith(
@@ -245,6 +238,31 @@ describe("MuseModelSelect controlled session mode", () => {
       );
     });
     expect(onModelChange).toHaveBeenCalledWith("deepseek-v4-flash");
+  });
+
+  it("shows a hover tooltip with the full model name", async () => {
+    renderModelSelect({ modelId: "deepseek-v4-flash" });
+
+    const trigger = await screen.findByTestId("muse-model-select");
+    const container = trigger.closest(".tooltip-container") as HTMLElement;
+    expect(container).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.mouseEnter(container);
+    });
+
+    await waitFor(() => {
+      const tooltip = document.querySelector(".tooltip-box.visible");
+      expect(tooltip).not.toBeNull();
+      expect(tooltip).toHaveTextContent("CodeMaker · DeepSeek V4 Flash");
+    });
+
+    await act(async () => {
+      fireEvent.mouseLeave(container);
+    });
+    await waitFor(() => {
+      expect(document.querySelector(".tooltip-box.visible")).toBeNull();
+    });
   });
 });
 
@@ -259,19 +277,21 @@ describe("MessageInput session model select", () => {
     };
 
     render(
-      <MessageInput
-        onSendMessage={() => {}}
-        isStreaming={false}
-        onAbortMessage={() => {}}
-        vscode={vscode}
-        modelId="deepseek-v4-flash"
-        onModelChange={onModelChange}
-        modelSelectApi={api}
-      />,
+      <Theme>
+        <MessageInput
+          onSendMessage={() => {}}
+          isStreaming={false}
+          onAbortMessage={() => {}}
+          vscode={vscode}
+          modelId="deepseek-v4-flash"
+          onModelChange={onModelChange}
+          modelSelectApi={api}
+        />
+      </Theme>,
     );
 
-    const select = await screen.findByTestId("muse-model-select");
-    expect(select).toHaveValue("deepseek-v4-flash");
-    expect(select.closest(".input-container")).not.toBeNull();
+    const trigger = await screen.findByTestId("muse-model-select");
+    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
+    expect(trigger.closest(".input-model-select")).not.toBeNull();
   });
 });

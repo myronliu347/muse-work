@@ -262,12 +262,12 @@ describe("AgentSettings", () => {
     await waitFor(() => {
       expect(screen.getByTestId("agent-form")).toBeInTheDocument();
     });
-    // model / fastModel 现在是下拉（MuseModelSelect），值为 provider 模型 id
+    // model / fastModel 现在是 Radix 下拉（MuseModelSelect），trigger 显示模型 label
     await waitFor(() => {
-      expect(screen.getByTestId("agent-form-model")).toHaveValue("m2");
+      expect(screen.getByTestId("agent-form-model")).toHaveTextContent("M2");
     });
-    // fastModel 留空 → 显示（留空）选项（值 "")
-    expect(screen.getByTestId("agent-form-fastModel")).toHaveValue("");
+    // fastModel 留空 → 显示（留空）选项
+    expect(screen.getByTestId("agent-form-fastModel")).toHaveTextContent("（留空）");
   });
 
   it("renders the edit form in a grouped Dialog and closes it after save", async () => {

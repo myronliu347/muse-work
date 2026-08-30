@@ -7,6 +7,7 @@ import {
   sendExtensionMessage,
 } from "./test-utils";
 import { ChatApp } from "../../src/components/ChatApp";
+import { MuseTheme } from "../../src/ui/theme";
 
 /**
  * Regression test: the chat input (MessageInput) must NOT be disabled while the user is
@@ -25,7 +26,11 @@ describe("Unauthenticated input enabled", () => {
     // initial state (state.initialized). Push authStatusResponse(false) so the
     // app is initialized while isAuthenticated stays false — the real
     // unauthenticated state.
-    render(<ChatApp vscode={vscode as unknown as never} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={vscode as unknown as never} />
+      </MuseTheme>,
+    );
     sendExtensionMessage({
       command: "authStatusResponse",
       isAuthenticated: false,
@@ -37,7 +42,11 @@ describe("Unauthenticated input enabled", () => {
 
   it("remains editable after authenticating (login does not affect editability)", () => {
     const vscode = createMockVscode();
-    render(<ChatApp vscode={vscode as unknown as never} />);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={vscode as unknown as never} />
+      </MuseTheme>,
+    );
 
     sendExtensionMessage({
       command: "authStatusResponse",

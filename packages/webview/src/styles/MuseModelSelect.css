@@ -1,0 +1,8 @@
+/* MuseModelSelect（Radix Select）共享样式：
+ * position="popper" 用普通锚定弹层，不做 item-aligned 高度重算——
+ * 否则滚动时每次重算 contentWrapper 高度对齐选中项到 trigger 中线，越滚越高。
+ * 这里显式固定最大高度，避免被模型列表撑成满视口。
+ */
+.muse-model-select-content.rt-SelectContent {
+  max-height: 300px;
+}

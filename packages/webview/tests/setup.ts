@@ -6,7 +6,10 @@ class ResizeObserverStub {
   unobserve() {}
   disconnect() {}
 }
-vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+// Assign directly (not vi.stubGlobal) so per-test `vi.unstubAllGlobals()`
+// calls do not remove it — jsdom has no native ResizeObserver and Radix
+// Select/ScrollArea mount one even while closed.
+globalThis.ResizeObserver = ResizeObserverStub;
 
 if (typeof HTMLElement !== "undefined") {
   HTMLElement.prototype.scrollIntoView = function scrollIntoView() {};

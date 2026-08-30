@@ -143,16 +143,15 @@
   padding-top: var(--space-1);
 }
 
-/* 表单内 model/fastModel 下拉（MuseModelSelect 原生 select）撑满字段宽 */
+/* 表单内 model/fastModel 下拉（MuseModelSelect Radix trigger）撑满字段宽 */
+.agent-manager-form .muse-model-select-tooltip {
+  width: 100%;
+}
+
 .agent-manager-form .muse-model-select {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--gray-6);
-  border-radius: var(--radius-2);
-  background: var(--color-panel);
-  color: var(--gray-12);
   font-size: var(--font-size-1);
 }
 
