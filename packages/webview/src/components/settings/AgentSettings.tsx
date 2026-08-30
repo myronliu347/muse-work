@@ -120,7 +120,10 @@ export const AgentSettings = forwardRef<
   const error = loadError || saveError || parseError;
 
   return (
-    <div data-testid="agent-settings" className="agent-settings">
+    <div
+      data-testid="agent-settings"
+      className="muse-settings-stack agent-settings"
+    >
       {/* 数字人 agent 管理 + 场景映射（新） */}
       <AgentManager api={client} ref={managerRef} />
 
