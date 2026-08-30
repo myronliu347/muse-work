@@ -384,6 +384,7 @@ export const AgentManager = forwardRef<
                         setDraft({ ...draft, key: e.target.value })
                       }
                       spellCheck={false}
+                      placeholder="如：dev-assistant / customer-service"
                     />
                   </Field>
                   <Field label="name" htmlFor="agent-form-name">
@@ -395,6 +396,7 @@ export const AgentManager = forwardRef<
                       onChange={(e) =>
                         setDraft({ ...draft, name: e.target.value })
                       }
+                      placeholder="如：开发者助手 / 客服小美"
                     />
                   </Field>
                   <Field
@@ -477,6 +479,7 @@ export const AgentManager = forwardRef<
                       setDraft({ ...draft, tools: e.target.value })
                     }
                     spellCheck={false}
+                    placeholder="如：Read, Write, Edit, Bash, Glob, Grep（逗号分隔，留空=全部）"
                   />
                 </Field>
                 <Field
@@ -494,6 +497,10 @@ export const AgentManager = forwardRef<
                     }
                     spellCheck={false}
                     rows={4}
+                    placeholder={`如：
+Bash(rm -rf *)  ← 拒绝
+Edit(**/.env)   ← 拒绝
+!Read           ← 豁免（! 开头）`}
                   />
                 </Field>
               </div>
@@ -518,6 +525,7 @@ export const AgentManager = forwardRef<
                     }
                     spellCheck={false}
                     rows={4}
+                    placeholder="如：你是资深工程师，回答代码问题时先分析再给方案"
                   />
                 </Field>
               </div>
