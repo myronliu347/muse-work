@@ -327,6 +327,11 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           // Sidebar / status must track the full agent turn (including tools),
           // not the first assistant content stage "end".
           if (loading) {
+            // 新一轮（loading 首次拉起）真正开始：turnHadOutput 归零。入队场景
+            // 下 onUserMessageAdded 不重置 turnHadOutput（上一轮残留的收尾 drop
+            // 可能晚到），必须等这轮 loading(true) 才清零，轮次归属才正确——
+            // 否则队列中真空 turn 因沿用上一轮 true 而漏报空 turn。
+            turnHadOutput.set(sessionId, false);
             if (store.get(sessionId)?.status !== "running") {
               store.updateStatus(sessionId, "running");
               hub.broadcast(sessionId, {
@@ -360,7 +365,12 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           // 遗留的 turn 状态，保证本轮真空 turn 仍能被 reportEmptyTurnIfNeeded
           // 捕获（入队场景下 runTurn 保留了上一轮状态，故在此复位）。
           turnEnded.set(sessionId, false);
-          turnHadOutput.set(sessionId, false);
+          // 注意：turnHadOutput 不在派发时重置。上一轮若有真实输出，其残留的
+          // onLoadingChange(false) 收尾可能晚于本条派发到达（同毫秒竞态，实测
+          // 08:24:11.742 派发 / .743 误报）；若在此清掉 turnHadOutput，那次
+          // 收尾会把刚派发的新一轮误判成「模型没有产生输出」。
+          // turnHadOutput 改为在 loading(true)（新一轮真正开始）时重置（见
+          // onLoadingChange），轮次归属正确且不残留。
           // SDK 的 onUserMessageAdded 回调不携带新消息 id；从 agent 消息里取
           // 最近一条非 meta 的 user 消息 id 下发。webview 用它把乐观气泡的
           // 客户端临时 id 对齐成 SDK 真实 id——否则 rewind 等按 id 操作会

@@ -1224,6 +1224,116 @@ describe("sessions + websocket streaming", () => {
     expect(errorEvents).toEqual([]);
   });
 
+  it("does not report empty turn when the previous turn's loading-drop lands after the queued dispatch", async () => {
+    // Real-world race observed in production: a turn B queued behind a running
+    // turn A is dispatched (onUserMessageAdded) at nearly the same instant A's
+    // trailing onLoadingChange(false) settles. If that trailing drop reset the
+    // turn bookkeeping after onUserMessageAdded cleared turnHadOutput, it would
+    // misreport the freshly-dispatched turn as "模型没有产生输出" (empty turn).
+    let cbs: {
+      onLoadingChange?: (loading: boolean) => void;
+      onUserMessageAdded?: (p: { content: string; isMeta?: boolean }) => void;
+      onAssistantContentUpdated?: (p: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => void;
+    } = {};
+    let sendCalls = 0;
+    const createAgent: CreateAgent = async (opts) => {
+      cbs = opts.callbacks as typeof cbs;
+      return {
+        sendMessage: async () => {
+          sendCalls++;
+          if (sendCalls === 1) {
+            // Turn A: loading up, real output, and the loading state stays up.
+            // The trailing onLoadingChange(false) is NOT fired here — it will be
+            // fired by the test after the queued dispatch, mimicking the
+            // production ordering where A's loading only drops when A's agent
+            // loop finally settles (well after B has been enqueued + dispatched).
+            cbs.onLoadingChange?.(true);
+            cbs.onAssistantContentUpdated?.({
+              messageId: "m1",
+              chunk: "first reply",
+              stage: "end",
+            });
+            return;
+          }
+          // Turn B: SDK enqueues while A is busy — returns without callbacks.
+        },
+        dispose: async () => {},
+      };
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const errorEvents: Array<{ type?: string; error?: string }> = [];
+    const origBroadcast = app.ctx.hub.broadcast.bind(app.ctx.hub);
+    app.ctx.hub.broadcast = (sessionId, event) => {
+      if (
+        (event as { type?: string }).type === "error:block" &&
+        (event as { error?: string }).error?.includes("没有产生输出")
+      ) {
+        errorEvents.push(event as { type?: string; error?: string });
+      }
+      return origBroadcast(sessionId, event);
+    };
+
+    const first = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "first" }),
+      },
+    );
+    expect(first.status).toBe(200);
+
+    const second = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "second" }),
+      },
+    );
+    expect(second.status).toBe(200);
+
+    // Give B's runTurn a chance to (wrongly) fire its setImmediate fallback.
+    await new Promise((r) => setImmediate(r));
+    expect(errorEvents).toEqual([]);
+
+    // Production ordering (logs 08:24:11.742 / .743): the queued message B is
+    // dispatched (onUserMessageAdded) and, ~1ms later, A's trailing
+    // onLoadingChange(false) settles — BEFORE B has produced any output. The
+    // trailing drop must NOT be misread as "B produced no output".
+    cbs.onUserMessageAdded?.({ content: "second" });
+    cbs.onLoadingChange?.(false); // A's trailing drop lands here
+
+    // B then runs normally and produces output.
+    cbs.onLoadingChange?.(true);
+    cbs.onAssistantContentUpdated?.({
+      messageId: "m2",
+      chunk: "second reply",
+      stage: "end",
+    });
+    cbs.onLoadingChange?.(false);
+
+    await expect
+      .poll(() => app.ctx.store.get(session.id)?.status)
+      .toBe("idle");
+    expect(errorEvents).toEqual([]);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},
