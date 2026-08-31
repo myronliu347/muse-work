@@ -122,4 +122,51 @@ describe("ConfigDialog", () => {
       vi.useRealTimers();
     }
   });
+
+  it("does not close when mousedown lands on a Radix popup (Select dropdown portal to body)", () => {
+    vi.useFakeTimers();
+    try {
+      const { onCancel } = renderDialog();
+      vi.advanceTimersByTime(0);
+
+      // 模拟 Radix Select 下拉 portal 到 body 的弹层（item-aligned 外层 plain div，
+      // popper 变体是 data-radix-popper-content-wrapper；都内含 role="listbox"）。
+      for (const popup of [
+        { attrs: { "data-radix-popper-content-wrapper": "" }, role: "listbox" },
+        { attrs: {}, role: "listbox" },
+      ]) {
+        const el = document.createElement("div");
+        for (const [k, v] of Object.entries(popup.attrs)) el.setAttribute(k, v);
+        if (popup.role) el.setAttribute("role", popup.role);
+        const option = document.createElement("div");
+        option.setAttribute("role", "option");
+        el.appendChild(option);
+        document.body.appendChild(el);
+
+        fireEvent.mouseDown(option);
+        expect(onCancel).not.toHaveBeenCalled();
+
+        document.body.removeChild(el);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes when mousedown lands on the settings overlay outside the dialog (radix popup guard does not over-exempt)", () => {
+    vi.useFakeTimers();
+    try {
+      const { onCancel } = renderDialog();
+      vi.advanceTimersByTime(0);
+
+      // 设置弹窗外、但不是任何 Radix 弹层的普通节点 → 应关闭
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      fireEvent.mouseDown(outside);
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      document.body.removeChild(outside);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
