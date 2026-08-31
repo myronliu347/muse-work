@@ -218,7 +218,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         home,
       );
       const permission = resolvePermission(agent.permission);
-      const model = active.modelId ?? agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
+      const model = agent.model ?? active.modelId ?? DEFAULT_ACTIVE_MODEL_ID;
       const session = sessionStore.create({
         workdir,
         model,
@@ -512,8 +512,11 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
     // 未绑定回退默认 personal（与 openPlanningSession 一致）；已运行 agent 仍用旧 prompt/目录，新 agent/重开生效
     // 重建 systemPrompt 同样走人格合成（todo 场景 agent 的人格段 + agent.systemPrompt + todo 上下文）
     const agent = resolveAgent(resolveScenarioAgent("todo", home), home);
+    const active = registry.getActive();
     sessionStore.update(todo.planningSessionId, {
       workdir: todo.workdir ?? getTodoWorkdir(home),
+      // 模型同样以 agent.model 为准（active.modelId 兜底），复用已建会话也能拿到最新 agent 模型
+      model: agent.model ?? active.modelId ?? DEFAULT_ACTIVE_MODEL_ID,
       systemPrompt: buildSystemPrompt(agent, buildTodoSystemPrompt(todo)),
     });
   }
@@ -568,7 +571,7 @@ export function createTodoScheduler(options: TodoSchedulerOptions): TodoSchedule
         home,
       );
       const permission = resolvePermission(agent.permission);
-      const model = active.modelId ?? agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
+      const model = agent.model ?? active.modelId ?? DEFAULT_ACTIVE_MODEL_ID;
       // todo 规划会话 workdir = 绑定的目录；未绑定回退 <museHome>/personal（用户指定默认）
       const workdir = todo.workdir ?? getTodoWorkdir(home);
       fs.mkdirSync(workdir, { recursive: true });
