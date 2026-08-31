@@ -1,4 +1,4 @@
-import { DEFAULT_SESSION_MODEL_ID, newId, postToWebview, showServerToast } from "./utils.js";
+import { newId, postToWebview, showServerToast } from "./utils.js";
 import type { BridgeCtx, WorkdirStatePatch } from "./ctx.js";
 
 export type DesktopCreateWorktreeMsg = {
@@ -237,7 +237,7 @@ export function createDesktopModule(ctx: BridgeCtx): DesktopModule {
     try {
       await ctx.ensureWs();
       const session = await ctx.api.createSession(created.path, {
-        model: ctx.draftModel ?? DEFAULT_SESSION_MODEL_ID,
+        ...(ctx.draftModel ? { model: ctx.draftModel } : {}),
         permissionMode: ctx.draftPermissionMode,
         worktreeName: created.name,
         worktreeBranch: created.branch,

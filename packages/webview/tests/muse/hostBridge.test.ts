@@ -491,7 +491,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(api.createSession).toHaveBeenCalledTimes(1);
     // New session clears workdir; server mints ~/.muse-work/projects/...
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
-      model: "deepseek-v4-flash",
       permissionMode: "acceptEdits",
     });
     expect(api.sendMessage).toHaveBeenCalledWith(
@@ -567,12 +566,11 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     await flush();
 
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
-      model: "deepseek-v4-flash",
       permissionMode: "bypassPermissions",
     });
   });
 
-  it("pins deepseek-v4-flash on a new draft and createSession", async () => {
+  it("emits default model on a new draft but does not pin it to createSession", async () => {
     const created: MuseSession = {
       ...baseSession,
       id: "sess-created",
@@ -610,8 +608,8 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     vi.mocked(api.createSession).mockClear();
     bridge.postMessage({ command: "sendMessage", text: "hi" });
     await flush();
+    // 未手动选模型时不传 model，让 server 回落 agent.model（勿用默认值覆盖）
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
-      model: "deepseek-v4-flash",
       permissionMode: "acceptEdits",
     });
   });
@@ -660,9 +658,9 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     vi.mocked(api.createSession).mockClear();
     bridge.postMessage({ command: "sendMessage", text: "hi" });
     await flush();
-    // 首条消息创建会话时把 draftAgent 带进 POST /sessions body
+    // 首条消息创建会话时把 draftAgent 带进 POST /sessions body（不传 model，
+    // server 按 agent 解析模型）
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
-      model: "deepseek-v4-flash",
       permissionMode: "acceptEdits",
       agent: "xiaomei",
     });
@@ -1057,7 +1055,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     bridge.postMessage({ command: "sendMessage", text: "hi" });
     await flush();
     expect(api.createSession).toHaveBeenCalledWith("/repo/beta", {
-      model: "deepseek-v4-flash",
       permissionMode: "acceptEdits",
     });
   });
@@ -1313,7 +1310,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     await flush();
 
     expect(api.createSession).toHaveBeenCalledWith("/new-project", {
-      model: "deepseek-v4-flash",
       permissionMode: "acceptEdits",
     });
     expect(api.selectSession).toHaveBeenCalledWith("sess-new");

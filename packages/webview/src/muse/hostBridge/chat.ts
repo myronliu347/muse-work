@@ -1,6 +1,5 @@
 import type { MuseWsEvent } from "../wsClient.js";
 import {
-  DEFAULT_SESSION_MODEL_ID,
   emitCompacting,
   emitPermissionMode,
   newId,
@@ -319,7 +318,9 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       const session = await ctx.api.createSession(
         ctx.currentWorkdir || undefined,
         {
-          model: ctx.draftModel ?? DEFAULT_SESSION_MODEL_ID,
+          // 仅用户手动选过模型（draftModel 有值）才传 model；否则不传，让 server
+          // 回落 agent.model（勿用默认值兜底，否则会覆盖 agent 预设的模型）。
+          ...(ctx.draftModel ? { model: ctx.draftModel } : {}),
           permissionMode: ctx.draftPermissionMode,
           agent: ctx.draftAgent,
         },
