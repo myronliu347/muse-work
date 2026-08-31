@@ -511,7 +511,13 @@ export function createMessageHandler({
           typeof um.id === "string" && um.id.length > 0 ? um.id : undefined;
         // 乐观气泡可能已被插队的错误块（如空 turn 提示）压到非最后一条，
         // 只比对最后一条会漏掉匹配、重复渲染同一条用户气泡。向上找最近
-        // 一条用户消息做去重；5s 时间窗保证不会误配更早的同内容消息。
+        // 一条用户消息做去重。判据是「未对齐的乐观气泡」而非时间窗：SDK
+        // 排队（上轮慢流未结束）时 echo 可能在发送数秒后才广播，时间窗会
+        // 误判为新消息、重复渲染；而乐观气泡用客户端临时 id（user_/user-
+        // 前缀），对齐后变成 SDK 真实 id（msg- 前缀）。所以只有 id 仍为
+        // 临时前缀、或已等于本 echo 真实 id（幂等重播）的消息才是去重目标
+        // ——已对齐的历史消息（真实 id）不会被误配，连续发送的相同内容也
+        // 不会被错误合并。
         let lastMsg: (typeof stateRef.current.messages)[number] | undefined;
         for (let i = stateRef.current.messages.length - 1; i >= 0; i--) {
           const m = stateRef.current.messages[i];
@@ -520,14 +526,13 @@ export function createMessageHandler({
             break;
           }
         }
-        const lastTs = lastMsg?.timestamp
-          ? new Date(lastMsg.timestamp).getTime()
-          : 0;
-        const recent = Date.now() - lastTs < 5000;
+        const isOptimisticId = (id: string) =>
+          id.startsWith("user_") || id.startsWith("user-");
         if (
-          lastMsg?.role === "user" &&
-          recent &&
+          lastMsg != null &&
           content &&
+          (isOptimisticId(lastMsg.id) ||
+            (realId != null && lastMsg.id === realId)) &&
           lastMsg.blocks?.some(
             (b) => b.type === "text" && b.content === content,
           )

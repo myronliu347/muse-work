@@ -131,4 +131,34 @@ describe("user:message dedupe with [Image source: ...] markers", () => {
     const id = getMessageIds()[0];
     expect(id).toMatch(/^user-/);
   });
+
+  it("dedupes a late echo (>5s) against the optimistic bubble (queued-send slow turn)", async () => {
+    // Regression: when the SDK actually queues the send behind a long-running
+    // turn, the user:message echo only arrives after that turn settles — which
+    // can be well beyond the 5s recency window. The optimistic bubble is then
+    // older than the window, so a recency-based dedupe appends a second copy.
+    renderChatApp();
+
+    // Optimistic bubble appended at send time (60s ago, i.e. past the window).
+    const oldTs = new Date(Date.now() - 60_000).toISOString();
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_opt_late",
+        role: "user",
+        timestamp: oldTs,
+        blocks: [{ type: "text", content: "queued hello" }],
+      },
+    });
+
+    // The echo finally arrives long after the bubble was created.
+    sendCommand("user:message", {
+      id: "msg-real-uuid",
+      content: "queued hello",
+    });
+
+    await waitFor(() => {
+      expect(getMessages()).toHaveLength(1);
+    });
+    expect(getMessageIds()[0]).toBe("msg-real-uuid");
+  });
 });
