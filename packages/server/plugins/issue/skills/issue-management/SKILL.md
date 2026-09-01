@@ -13,6 +13,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 
 - **只有用户明确说要创建 issue / 待办 / 记一个任务** 时才 `create`。
 - 不要根据闲聊或猜测擅自建 Issue。
+- **从对话创建时只建 pending Issue**：`create` 只填 title / description / priority / tags 等元数据，**不要**附带或预填当前会话的 workdir。workdir 在用户后续「打开规划会话」时再选择绑定。
 
 ## 规划与调度
 
@@ -20,7 +21,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 2. 清单就绪后按项 `dispatch`（可带 `--prompt` 补充执行说明）。
 3. 收到正文以 `来源：执行会话` 开头的系统注入时：这是**执行回合回报**（成功/失败），**不是**用户又提了新需求。据此决定继续 `dispatch` 下一项，或向用户汇报进度/问题。
 4. Issue 进入待审核后，可选用子代理做 E2E 或 code review（**非强制**）；有问题再 `dispatch` 返工。
-5. **用户明确说关掉 / 完成 / 取消** 时才 `complete` 或 `cancel`。不要替用户关单。
+5. **用户明确说关掉 / 完成 / 取消** 时立即 `complete` 或 `cancel`；**不要求**清单项全部 done，用户随时可关单。不要替用户关单。
 
 ## 命令速查
 
