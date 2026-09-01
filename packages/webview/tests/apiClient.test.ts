@@ -113,3 +113,61 @@ describe("MuseApiClient", () => {
     });
   });
 });
+
+describe("MuseApiClient issues", () => {
+  it("listIssues GETs /issues", async () => {
+    const fetches: string[] = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push(`${init?.method ?? "GET"} ${url}`);
+        return new Response(
+          JSON.stringify({
+            issues: [
+              {
+                id: "i1",
+                title: "修登录",
+                description: "",
+                priority: "p1",
+                tags: ["auth"],
+                status: "pending",
+                items: [],
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      },
+    });
+    const body = await client.listIssues();
+    expect(fetches[0]).toBe("GET http://127.0.0.1:9/issues");
+    expect(body.issues[0]?.priority).toBe("p1");
+  });
+
+  it("createIssue POSTs /issues with body", async () => {
+    const fetches: Array<{ method?: string; url: string; body?: string }> = [];
+    const client = new MuseApiClient({
+      baseUrl: "http://127.0.0.1:9",
+      fetch: async (url, init) => {
+        fetches.push({ method: init?.method, url, body: init?.body as string });
+        return new Response(JSON.stringify({ issue: { id: "i9" } }), {
+          status: 201,
+        });
+      },
+    });
+    await client.createIssue({
+      title: "x",
+      priority: "p0",
+      tags: ["urgent"],
+    });
+    expect(fetches[0]?.method).toBe("POST");
+    expect(fetches[0]?.url).toBe("http://127.0.0.1:9/issues");
+    expect(JSON.parse(fetches[0]?.body ?? "{}")).toEqual({
+      title: "x",
+      priority: "p0",
+      tags: ["urgent"],
+    });
+  });
+});

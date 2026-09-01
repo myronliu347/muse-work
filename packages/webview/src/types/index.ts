@@ -217,6 +217,11 @@ export interface DesktopHostProps {
    * its sessions. Pushed via the `desktopSessionTree` message.
    */
   sessionTree: DesktopSessionGroup[];
+  /**
+   * Issue 分组（侧栏「待办事项」折叠）：每个 Issue 的规划会话 + 执行会话归一组，
+   * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
+   */
+  issueGroups?: DesktopIssueGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index; also removes worktree+branch if applicable. */
@@ -257,6 +262,17 @@ export interface DesktopSessionGroup {
   /** Host the group's sessions run on ('local' or an SSH host name) — the group key is (host, workdir). */
   host: string;
   workdir: string;
+  sessions: DesktopSessionEntry[];
+}
+
+/** Issue 分组：同一 Issue 的规划会话 + 执行会话（侧栏按 Issue 折叠展示）。 */
+export interface DesktopIssueGroup {
+  issueId: string;
+  title: string;
+  /** p0 | p1 | p2 */
+  priority: string;
+  status: string;
+  items: Array<{ id: string; content: string; status: string }>;
   sessions: DesktopSessionEntry[];
 }
 

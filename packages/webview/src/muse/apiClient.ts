@@ -112,10 +112,56 @@ export interface MuseSession {
   interrupted?: boolean;
 }
 
+export type MuseIssuePriority = "p0" | "p1" | "p2";
+export type MuseIssueStatus =
+  | "pending"
+  | "planning"
+  | "executing"
+  | "review"
+  | "completed"
+  | "cancelled";
+export type MuseChecklistItemStatus = "pending" | "running" | "done";
+
+export interface MuseChecklistItem {
+  id: string;
+  content: string;
+  status: MuseChecklistItemStatus;
+}
+
+/** Issue 实体，字段与 server `Issue` 对齐。 */
+export interface MuseIssue {
+  id: string;
+  title: string;
+  description: string;
+  priority: MuseIssuePriority;
+  tags: string[];
+  status: MuseIssueStatus;
+  workdir?: string;
+  worktreeEnabled?: boolean;
+  baseBranch?: string;
+  planningSessionId?: string;
+  executionSessionId?: string;
+  items: MuseChecklistItem[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Issue 侧栏分组：规划/执行会话（sessions 为 MuseSession，emit 时再 toEntry）。 */
+export interface MuseIssueGroup {
+  issueId: string;
+  title: string;
+  priority: string;
+  status: string;
+  items: MuseChecklistItem[];
+  sessions: MuseSession[];
+}
+
 export interface MuseSessionsGrouped {
   pinned: MuseSession[];
   recent: MuseSession[];
   activeSessionId?: string;
+  /** Issue 分组：规划会话 + 执行会话（侧栏按 Issue 折叠展示）。 */
+  issueGroups?: MuseIssueGroup[];
 }
 
 export interface PopoConfigInfo {
@@ -652,6 +698,114 @@ export class MuseApiClient {
 
   async getPopoConfig(): Promise<PopoConfigInfo> {
     const res = await this.request("/popo/config");
+    return parseJson(res);
+  }
+
+  async listIssues(): Promise<{ issues: MuseIssue[] }> {
+    const res = await this.request("/issues");
+    return parseJson(res);
+  }
+
+  async createIssue(input: {
+    title: string;
+    description?: string;
+    priority?: MuseIssuePriority;
+    tags?: string[];
+  }): Promise<{ issue: MuseIssue }> {
+    const res = await this.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    return parseJson(res);
+  }
+
+  async updateIssue(
+    id: string,
+    patch: {
+      title?: string;
+      description?: string;
+      priority?: MuseIssuePriority;
+      tags?: string[];
+    },
+  ): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(`/issues/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return parseJson(res);
+  }
+
+  async completeIssue(id: string): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/complete`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async cancelIssue(id: string): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/cancel`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async openPlanningSession(
+    id: string,
+    body: {
+      workdir: string;
+      worktreeEnabled: boolean;
+      baseBranch?: string;
+      worktreeName?: string;
+      worktreeBranch?: string;
+      worktreeRepoRoot?: string;
+    },
+  ): Promise<{ sessionId: string; workdir: string }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    return parseJson(res);
+  }
+
+  async setIssueItems(
+    id: string,
+    items: Array<{
+      id?: string;
+      content: string;
+      status?: MuseChecklistItemStatus;
+    }>,
+  ): Promise<{ issue: MuseIssue }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/items`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items }),
+      },
+    );
+    return parseJson(res);
+  }
+
+  async dispatchIssue(
+    id: string,
+    input: { itemId: string; prompt?: string },
+  ): Promise<{ executionSessionId: string }> {
+    const res = await this.request(
+      `/issues/${encodeURIComponent(id)}/dispatch`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
     return parseJson(res);
   }
 

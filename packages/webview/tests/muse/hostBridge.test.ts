@@ -230,6 +230,136 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("desktopReady carries issueGroups into the desktopSessionTree message", async () => {
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [baseSession],
+        activeSessionId: "sess-active",
+        issueGroups: [
+          {
+            issueId: "issue-1",
+            title: "设计评审",
+            priority: "p1",
+            status: "planning",
+            items: [{ id: "c1", content: "写方案", status: "pending" as const }],
+            sessions: [
+              { ...baseSession, id: "sess-plan", title: "设计评审" },
+              { ...baseSession, id: "sess-exec", title: "执行" },
+            ],
+          },
+        ],
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        issueGroups: [
+          {
+            issueId: "issue-1",
+            title: "设计评审",
+            priority: "p1",
+            status: "planning",
+            items: [{ id: "c1", content: "写方案", status: "pending" }],
+            sessions: [
+              expect.objectContaining({ sessionId: "sess-plan" }),
+              expect.objectContaining({ sessionId: "sess-exec" }),
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  it("desktopRefreshSessionTree 重新拉 grouped 并广播新会话树（issue 完成/取消后刷新侧栏）", async () => {
+    let calls = 0;
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => {
+        calls++;
+        return {
+          pinned: [],
+          recent: calls === 1 ? [baseSession] : [],
+          activeSessionId: "sess-active",
+          issueGroups:
+            calls === 1
+              ? [
+                  {
+                    issueId: "issue-1",
+                    title: "设计评审",
+                    priority: "p1",
+                    status: "planning",
+                    items: [],
+                    sessions: [
+                      { ...baseSession, id: "sess-plan", title: "设计评审" },
+                    ],
+                  },
+                ]
+              : [],
+        };
+      }),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flushUntil(() => calls >= 1);
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        issueGroups: [expect.objectContaining({ issueId: "issue-1" })],
+      }),
+    );
+
+    bridge.postMessage({ command: "desktopRefreshSessionTree" });
+    await flushUntil(() => calls >= 2);
+    expect(calls).toBe(2);
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "desktopSessionTree",
+        issueGroups: [],
+        groups: expect.arrayContaining([
+          expect.objectContaining({ workdir: "recent", sessions: [] }),
+        ]),
+      }),
+    );
+  });
+
+  it("issue:changed WS posts issue:changed to webview (all panes)", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({ type: "issue:changed", sessionId: "*" });
+    await flush();
+
+    expect(messages).toContainEqual({ command: "issue:changed" });
+  });
+
   it("desktopReady loads the session tree even when WS connect fails", async () => {
     const ws = stubWs();
     vi.mocked(ws.connect).mockRejectedValue(new Error("ws down"));

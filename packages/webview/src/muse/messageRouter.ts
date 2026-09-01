@@ -359,6 +359,10 @@ export function createMessageHandler({
         break;
       case "desktopThemeChange":
         break;
+      case "issue:changed":
+        // 对话内（AI 跑 issue.mjs）等非 UI 来源的 Issue 变更 → 刷新侧栏分组。
+        vscode.postMessage({ command: "desktopRefreshSessionTree" });
+        break;
       case "showToast":
         // Toasts are window-global (no paneId) — only the root instance (the
         // one that renders the shell/sidebar, never a split-view pane) tracks

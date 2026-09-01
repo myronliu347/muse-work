@@ -18,16 +18,20 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
   const {
     workdirState,
     sessionTree,
+    issueGroups,
     panes,
     rowHeights,
     focusedPaneId,
     setWorkdirState,
     setSessionTree,
+    setIssueGroups,
     setPanes,
   } = useDesktopShell();
 
   const sessionTreeRef = useRef(sessionTree);
   sessionTreeRef.current = sessionTree;
+  const issueGroupsRef = useRef(issueGroups);
+  issueGroupsRef.current = issueGroups;
 
   useEffect(() => {
     const prunePanels = () => {
@@ -36,6 +40,12 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         useDesktopStore.getState().workdirState?.workdir?.trim();
       if (currentWd) keep.add(currentWd);
       for (const g of sessionTreeRef.current) {
+        for (const s of g.sessions) {
+          if (s.workdir) keep.add(s.workdir);
+        }
+      }
+      // Issue 会话已从 recent 移入 issueGroups，workdir 同样保留（否则面板被误裁剪）
+      for (const g of issueGroupsRef.current) {
         for (const s of g.sessions) {
           if (s.workdir) keep.add(s.workdir);
         }
@@ -59,6 +69,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
       } else if (message.command === "desktopSessionTree") {
         sessionTreeRef.current = message.groups ?? [];
         setSessionTree(sessionTreeRef.current);
+        setIssueGroups(message.issueGroups ?? []);
         prunePanels();
       } else if (message.command === "desktopPanes") {
         const nextPanes = message.panes ?? [];
@@ -69,7 +80,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
     window.addEventListener("message", handleMessage);
     vscode.postMessage({ command: "desktopReady" });
     return () => window.removeEventListener("message", handleMessage);
-  }, [vscode, setWorkdirState, setSessionTree, setPanes]);
+  }, [vscode, setWorkdirState, setSessionTree, setIssueGroups, setPanes]);
 
   const handleSelectWorkdir = useCallback(() => {
     vscode.postMessage({ command: "desktopSelectWorkdir" });
@@ -161,6 +172,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         onSelectRecentWorkdir: handleSelectRecentWorkdir,
         onRemoveRecentWorkdir: handleRemoveRecentWorkdir,
         sessionTree,
+        issueGroups,
         onSelectSession: handleSelectSession,
         onDeleteSession: handleDeleteSession,
         onTogglePin: handleTogglePin,

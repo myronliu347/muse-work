@@ -126,6 +126,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    // Issue 任何变更（REST / 插件脚本）：broadcastAll 的 sessionId 恒为 "*"，
+    // 不能走下方活跃会话过滤。所有 pane 都收，由 messageRouter 触发树刷新。
+    if (event.type === "issue:changed") {
+      postToWebview({ command: "issue:changed" });
+      return;
+    }
+
     if (event.type === "permission:request") {
       const pending: PendingPermission = {
         permissionId: event.permissionId,
