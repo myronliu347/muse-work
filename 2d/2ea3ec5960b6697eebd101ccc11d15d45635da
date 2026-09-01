@@ -1,0 +1,36 @@
+packages/server/tests/sessions.routes.test.ts
+  90fff2c6fb410c2b 48-120
+packages/server/src/routes/sessions.ts
+  90fff2c6fb410c2b 25-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2d2ea3ec5960b6697eebd101ccc11d15d45635da",
+  "prompts": {
+    "90fff2c6fb410c2b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a5e8d8d-aec8-408a-8ebb-bae797f5fc55",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 102,
+      "total_deletions": 1,
+      "accepted_lines": 102,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 29,
+          "deletions": 1,
+          "accepted_lines": 29
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 73,
+          "accepted_lines": 73
+        }
+      }
+    }
+  }
+}
