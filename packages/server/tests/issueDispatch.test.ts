@@ -63,4 +63,61 @@ describe("issueDispatch", () => {
     expect(issues.get(issue.id)?.status).toBe("review");
     fs.rmSync(home, { recursive: true, force: true });
   });
+
+  it("dispatch while inflight rejects with 409 and does not change mapped item", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-inflight-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const runner = {
+      sendMessage: async () => ({ accepted: true as const }),
+    };
+    const hub = { broadcastAll: () => {} };
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: runner as never,
+      hub: hub as never,
+    });
+    const issue = issues.create({ title: "并发" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "并发",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "第一项", status: "pending" },
+      { id: "i2", content: "第二项", status: "pending" },
+    ]);
+
+    const first = await dispatcher.dispatch(issue.id, "i1");
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "running",
+    );
+
+    let err: unknown;
+    try {
+      await dispatcher.dispatch(issue.id, "i2");
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toMatchObject({ statusCode: 409 });
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+
+    dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "done",
+    );
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
 });

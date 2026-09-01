@@ -10,6 +10,7 @@ import {
   resolveScenarioAgent,
 } from "./agentConfig.js";
 import { resolveHome } from "../utils/paths.js";
+import { getLogger } from "../utils/logger.js";
 
 function httpError(statusCode: number, message: string): Error {
   return Object.assign(new Error(message), { statusCode });
@@ -124,6 +125,9 @@ export function createIssueDispatcher(opts: {
       throw httpError(404, "not found");
     }
     const executionSessionId = ensureExecutionSession(issueId);
+    if (inflight.has(executionSessionId)) {
+      throw httpError(409, "dispatch already in flight");
+    }
     if (issues.get(issueId)?.status === "planning") {
       issues.markExecuting(issueId);
     }
@@ -162,7 +166,13 @@ export function createIssueDispatcher(opts: {
       });
       void runner
         .sendMessage(issue.planningSessionId, report, undefined, "system-inject")
-        .catch(() => {});
+        .catch((err: unknown) => {
+          getLogger().error("planning session inject failed", {
+            sessionId: issue.planningSessionId,
+            issueId: mapped.issueId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
     }
     hub.broadcastAll({ type: "issue:changed" });
   }
