@@ -1,0 +1,76 @@
+packages/server/tests/providers.routes.test.ts
+  2ad05f849ba9d486 19,469-479,484-485
+packages/server/tests/issues.routes.test.ts
+  2ad05f849ba9d486 3-6,66-105
+packages/server/src/services/appContext.ts
+  2ad05f849ba9d486 18,32,111-128
+packages/server/tests/sessions.control.routes.test.ts
+  2ad05f849ba9d486 23,86-96,101-102
+packages/server/src/routes/issues.ts
+  2ad05f849ba9d486 4-8,222-298
+packages/server/tests/sessions.ws.test.ts
+  2ad05f849ba9d486 25,1623-1633,1638-1639
+packages/server/tests/issueDispatch.test.ts
+  2ad05f849ba9d486 1-66
+packages/server/src/services/issueDispatch.ts
+  2ad05f849ba9d486 1-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "89fd58f177cdf2a85a4b59101700318d8888c85f",
+  "prompts": {
+    "2ad05f849ba9d486": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9bfbb870-bb6c-40a3-8e03-65b9a810ddaf",
+        "model": "cursor-grok-4.6-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 425,
+      "total_deletions": 6,
+      "accepted_lines": 425,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 66,
+          "accepted_lines": 66
+        },
+        "packages/server/tests/providers.routes.test.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 82,
+          "deletions": 1,
+          "accepted_lines": 82
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 171,
+          "accepted_lines": 171
+        },
+        "packages/server/tests/sessions.control.routes.test.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 44,
+          "accepted_lines": 44
+        }
+      }
+    }
+  }
+}
