@@ -1,0 +1,92 @@
+packages/webview/src/muse/wsClient.ts
+  010193b1c681c6dc 86-87
+packages/webview/src/muse/messageRouter.ts
+  010193b1c681c6dc 362-365
+packages/webview/tests/apiClient.test.ts
+  010193b1c681c6dc 116-173
+packages/webview/src/stores/desktopStore.ts
+  010193b1c681c6dc 4,13,19,31,38,46,59,65
+packages/webview/src/muse/hostBridge/index.ts
+  010193b1c681c6dc 129-135
+packages/webview/src/muse/hostBridge/ctx.ts
+  010193b1c681c6dc 87-95,182,193
+packages/webview/tests/muse/hostBridge.test.ts
+  010193b1c681c6dc 233-362
+packages/webview/src/components/DesktopApp.tsx
+  010193b1c681c6dc 21,27,33-34,47-52,72,83,175
+packages/webview/src/muse/hostBridge/session.ts
+  010193b1c681c6dc 54-61,70-73,85-88,218,299-301,304-306,313-315
+packages/webview/src/muse/apiClient.ts
+  010193b1c681c6dc 115-158,163-164,704-811
+packages/webview/src/types/index.ts
+  010193b1c681c6dc 220-224,268-278
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bc71d30009471df2f446d66e7ca1f0b06834d151",
+  "prompts": {
+    "010193b1c681c6dc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b3b8100c-0399-49bd-93c4-66757bcb2025",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 429,
+      "total_deletions": 6,
+      "accepted_lines": 429,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 130,
+          "accepted_lines": 130
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 154,
+          "accepted_lines": 154
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/stores/desktopStore.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 26,
+          "deletions": 4,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
