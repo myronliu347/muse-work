@@ -15,6 +15,7 @@ import {
   createSessionServices,
   type AppContext,
 } from "../src/services/appContext.js";
+import { createIssueStore } from "../src/services/issueStore.js";
 
 describe("providers + auth routes", () => {
   let server: Server | undefined;
@@ -464,7 +465,12 @@ async function listenWithStubs(providers: AiProvider[]) {
   );
   const registry = createProviderRegistry(providers, home);
   const sessions = createSessionServices({ home, registry });
-  const ctx: AppContext = { home, registry, ...sessions };
+  const ctx: AppContext = {
+    home,
+    registry,
+    ...sessions,
+    issueStore: createIssueStore({ home }),
+  };
   const server = createApp(ctx);
   await new Promise<void>((resolve, reject) => {
     server.listen(0, "127.0.0.1", () => resolve());

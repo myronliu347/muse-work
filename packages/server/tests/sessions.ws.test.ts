@@ -21,6 +21,7 @@ import {
   type CreateAgent,
   type SessionAgent,
 } from "../src/services/appContext.js";
+import { createIssueStore } from "../src/services/issueStore.js";
 
 type WsEvent = Record<string, unknown> & { type: string };
 
@@ -1618,7 +1619,12 @@ async function listenSessionsApp(options: {
     createAgent: options.createAgent,
     loadSubagentMessages: options.loadSubagentMessages,
   });
-  const ctx: AppContext = { home, registry, ...sessions };
+  const ctx: AppContext = {
+    home,
+    registry,
+    ...sessions,
+    issueStore: createIssueStore({ home }),
+  };
   const server = createApp(ctx);
 
   await new Promise<void>((resolve, reject) => {

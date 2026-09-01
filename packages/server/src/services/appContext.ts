@@ -15,6 +15,7 @@ import {
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
 import { ensureDefaultConfigs } from "./agentConfig.js";
+import { createIssueStore, type IssueStore } from "./issueStore.js";
 
 export { resolveHome };
 
@@ -26,6 +27,7 @@ export interface AppContext {
   store: SessionStore;
   hub: WsHub;
   runner: SessionRunner;
+  issueStore: IssueStore;
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
@@ -104,5 +106,6 @@ export function createAppContext(
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
   });
-  return { home, registry, ...sessions };
+  const issueStore = createIssueStore({ home });
+  return { home, registry, ...sessions, issueStore };
 }
