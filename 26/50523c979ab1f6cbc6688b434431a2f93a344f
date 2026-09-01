@@ -1,0 +1,37 @@
+docs/superpowers/specs/2026-09-01-issue-design.md
+  442440ce7046c502 1-144
+CONTEXT.md
+  442440ce7046c502 1,3-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2650523c979ab1f6cbc6688b434431a2f93a344f",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 180,
+      "total_deletions": 4,
+      "accepted_lines": 178,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CONTEXT.md": {
+          "additions": 34,
+          "deletions": 2,
+          "accepted_lines": 34
+        },
+        "docs/superpowers/specs/2026-09-01-issue-design.md": {
+          "additions": 146,
+          "deletions": 2,
+          "accepted_lines": 144
+        }
+      }
+    }
+  }
+}
