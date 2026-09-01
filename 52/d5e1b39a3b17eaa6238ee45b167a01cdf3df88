@@ -1,0 +1,79 @@
+packages/webview/tests/components/DesktopApp.test.tsx
+  5a70089eb4c41c3e 55-87
+packages/webview/src/styles/DesktopApp.css
+  5a70089eb4c41c3e 157-199,391-482
+packages/webview/src/components/ChatApp.tsx
+  5a70089eb4c41c3e 17,142,752-768,780,782,810,842
+packages/webview/src/components/issue/NewIssueDialog.tsx
+  5a70089eb4c41c3e 1-154
+packages/webview/src/components/desktop/DesktopShell.tsx
+  5a70089eb4c41c3e 32-35,61-63,627-629
+packages/webview/src/styles/NewIssueDialog.css
+  5a70089eb4c41c3e 1-65
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  5a70089eb4c41c3e 17,60-61,81-84,106,117-118,164,177-178
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  5a70089eb4c41c3e 15,35-50,629-690
+packages/webview/src/components/session/SessionTree.tsx
+  5a70089eb4c41c3e 9,117,123-124,137-140,161,167,180-181,191,265-273,472-473,477-495,528-664,796
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "52d5e1b39a3b17eaa6238ee45b167a01cdf3df88",
+  "prompts": {
+    "5a70089eb4c41c3e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "09366152-44e1-46d6-800d-2091b6ec92e8",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 700,
+      "total_deletions": 20,
+      "accepted_lines": 699,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 135,
+          "accepted_lines": 135
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/issue/NewIssueDialog.tsx": {
+          "additions": 154,
+          "accepted_lines": 154
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 184,
+          "deletions": 19,
+          "accepted_lines": 183
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 83,
+          "deletions": 1,
+          "accepted_lines": 83
+        },
+        "packages/webview/src/styles/NewIssueDialog.css": {
+          "additions": 65,
+          "accepted_lines": 65
+        }
+      }
+    }
+  }
+}
