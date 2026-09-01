@@ -4,6 +4,7 @@ import {
 } from "wave-agent-sdk";
 import type { GatewayResolution } from "@muse-work/provider";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { resolveScenarioAgent } from "../agentConfig.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
 import { MUSE_IDENTITY_REV } from "../museSystemPrompt.js";
 import type { WsEvent } from "../wsHub.js";
@@ -63,21 +64,33 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   } = ctx;
   const core = ctx.core;
 
-  /** Paths of built-in plugins enabled in settings whose dirs are present. */
-  function enabledPluginDirs(): string[] {
+  /**
+   * Paths of built-in plugins whose dirs are present.
+   * Settings gate superpowers/mattpocock; issue mounts for all sessions
+   * except the issue-exec agent (so execution turns cannot close issues).
+   */
+  function enabledPluginDirs(session?: { agentName?: string }): string[] {
     const plugins = loadMuseSettings(home).plugins;
-    return ["superpowers", "mattpocock"].flatMap((name) => {
+    const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
       const dir = pluginDirIfPresent(name);
       return dir ? [dir] : [];
     });
+    if (session?.agentName !== resolveScenarioAgent("issue-exec", home)) {
+      const issueDir = pluginDirIfPresent("issue");
+      if (issueDir) dirs.push(issueDir);
+    }
+    return dirs;
   }
 
-  function pluginsFlag(): string {
-    return enabledPluginDirs().join(",") || "none";
+  function pluginsFlag(session?: { agentName?: string }): string {
+    return enabledPluginDirs(session).join(",") || "none";
   }
 
-  function gatewayIdentity(gateway: GatewayResolution): string {
+  function gatewayIdentity(
+    gateway: GatewayResolution,
+    session?: { agentName?: string },
+  ): string {
     const credential =
       gateway.credentialFingerprint ?? gateway.apiKey ?? "";
     return [
@@ -86,7 +99,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       credential,
       gateway.fastModel ?? "",
       MUSE_IDENTITY_REV,
-      pluginsFlag(),
+      pluginsFlag(session),
     ].join("\0");
   }
 
@@ -276,6 +289,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     const agentBox: { current: SessionAgent | null } = { current: null };
 
     const session = store.get(sessionId);
+    const pluginDirs = enabledPluginDirs(session);
     const agent = await createAgent({
       apiKey: gateway.apiKey,
       baseURL: gateway.baseURL,
@@ -301,9 +315,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       ...(session?.allowedTools && session.allowedTools.length > 0
         ? { allowedTools: session.allowedTools }
         : {}),
-      ...(enabledPluginDirs().length > 0
+      ...(pluginDirs.length > 0
         ? {
-            plugins: enabledPluginDirs().map((path) => ({
+            plugins: pluginDirs.map((path) => ({
               type: "local" as const,
               path,
             })),
@@ -649,7 +663,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
     const gateway = await resolveSessionGateway(sessionId, session.model);
     // 合并网关 + agent 身份签名：model/provider 或 agentName/systemPrompt/tools 变更都驱动重建
-    const identity = `${gatewayIdentity(gateway)}\0${agentIdentity(sessionId)}`;
+    const identity = `${gatewayIdentity(gateway, session)}\0${agentIdentity(sessionId)}`;
     const existing = agents.get(sessionId);
     if (existing) {
       if (agentIdentities.get(sessionId) === identity) {

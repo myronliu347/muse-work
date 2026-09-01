@@ -588,6 +588,10 @@ describe("sessionRunner concurrency / dispose", () => {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]mattpocock$/),
       },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]issue$/),
+      },
     ]);
   });
 
@@ -669,8 +673,13 @@ describe("sessionRunner concurrency / dispose", () => {
     runner.invalidateAgentIdentities();
     await runner.sendMessage(session.id, "again");
     await expect.poll(() => pluginSnapshots.length).toBe(2);
-    // settings 全关后无内置插件，身份变化 → agent 重建
-    expect(pluginSnapshots[1]).toBeUndefined();
+    // settings 全关后仍挂内置 issue；身份变化 → agent 重建
+    expect(pluginSnapshots[1]).toEqual([
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]issue$/),
+      },
+    ]);
     expect(disposeCount).toBe(1);
   });
 
@@ -966,5 +975,79 @@ describe("sessionRunner concurrency / dispose", () => {
 
     releaseSend();
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+  });
+
+  it("mounts issue plugin on default sessions but not issue-exec", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-issue-plugin-"));
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+      },
+      home,
+    );
+
+    const provider: AiProvider = {
+      id: "openai-compatible",
+      displayName: "OpenAI Compatible",
+      async getAuthStatus(): Promise<AuthStatus> {
+        return {
+          state: "authenticated",
+          providerId: "openai-compatible",
+          user: "t",
+        };
+      },
+      async beginLogin() {
+        return { reused: true };
+      },
+      async completeLogin() {
+        return { state: "authenticated", providerId: "openai-compatible" };
+      },
+      async logout() {},
+      async listModels(): Promise<ModelInfo[]> {
+        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
+      },
+      async resolveGateway(modelId: string) {
+        return {
+          baseURL: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: modelId,
+        };
+      },
+    };
+
+    const seen: Array<{ agentName?: string; plugins?: unknown }> = [];
+    const store = createSessionStore({ home });
+    const hub = createWsHub();
+    const registry = createProviderRegistry([provider], home);
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      createAgent: async (options) => {
+        seen.push({ plugins: options.plugins });
+        return { sendMessage: async () => {}, dispose: async () => {} };
+      },
+    });
+
+    const normal = store.create({
+      workdir: home,
+      model: "gpt-4.1",
+      agentName: "default",
+    });
+    await runner.sendMessage(normal.id, "hi");
+    await expect.poll(() => seen.length).toBe(1);
+    expect(JSON.stringify(seen[0].plugins)).toContain("plugins/issue");
+
+    const exec = store.create({
+      workdir: home,
+      model: "gpt-4.1",
+      agentName: "execute",
+    });
+    await runner.sendMessage(exec.id, "hi");
+    await expect.poll(() => seen.length).toBe(2);
+    expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/issue");
   });
 });
