@@ -1,7 +1,11 @@
 import { Hono } from "hono";
 import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { HonoEnv } from "../honoEnv.js";
-import type { Issue, IssuePriority } from "../services/issueStore.js";
+import type { Issue, IssuePriority, ChecklistItemStatus } from "../services/issueStore.js";
+import {
+  runnerErrorMessage,
+  runnerErrorStatus,
+} from "../utils/runnerError.js";
 import {
   buildSystemPrompt,
   resolveAgent,
@@ -215,3 +219,80 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
   broadcastIssueChanged(ctx);
   return c.json({ sessionId: session.id, workdir });
 });
+
+function parseChecklistStatus(value: unknown): ChecklistItemStatus {
+  return value === "running" || value === "done" ? value : "pending";
+}
+
+/** PUT /issues/:id/items — replace checklist; missing id → UUID, missing status → pending */
+issuesRoutes.put("/issues/:id/items", async (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const existing = ctx.issueStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (isTerminal(existing.status)) {
+    return c.json({ error: "issue is terminal" }, 409);
+  }
+  let body: {
+    items?: Array<{ id?: string; content?: string; status?: ChecklistItemStatus }>;
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+  if (!Array.isArray(body.items)) {
+    return c.json({ error: "items required" }, 400);
+  }
+  const items = [];
+  for (const raw of body.items) {
+    const content = typeof raw?.content === "string" ? raw.content : "";
+    if (!content) {
+      return c.json({ error: "item content required" }, 400);
+    }
+    items.push({
+      id: typeof raw.id === "string" && raw.id ? raw.id : crypto.randomUUID(),
+      content,
+      status: parseChecklistStatus(raw.status),
+    });
+  }
+  const issue = ctx.issueStore.setItems(id, items);
+  if (!issue) {
+    return c.json({ error: "not found" }, 404);
+  }
+  broadcastIssueChanged(ctx);
+  return c.json({ issue });
+});
+
+/** POST /issues/:id/dispatch — run one checklist item on the execution session */
+issuesRoutes.post("/issues/:id/dispatch", async (c) => {
+  const ctx = c.get("ctx");
+  let body: { itemId?: string; prompt?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+  const itemId = typeof body.itemId === "string" ? body.itemId : "";
+  if (!itemId) {
+    return c.json({ error: "itemId required" }, 400);
+  }
+  const prompt = typeof body.prompt === "string" ? body.prompt : undefined;
+  try {
+    const result = await ctx.issueDispatcher.dispatch(
+      c.req.param("id"),
+      itemId,
+      prompt,
+    );
+    return c.json(result);
+  } catch (err) {
+    const status = runnerErrorStatus(err);
+    return c.json(
+      { error: runnerErrorMessage(err) },
+      status as 400,
+    );
+  }
+});
+

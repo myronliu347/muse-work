@@ -16,6 +16,7 @@ import {
   type AppContext,
 } from "../src/services/appContext.js";
 import { createIssueStore } from "../src/services/issueStore.js";
+import { createIssueDispatcher } from "../src/services/issueDispatch.js";
 
 describe("providers + auth routes", () => {
   let server: Server | undefined;
@@ -465,11 +466,23 @@ async function listenWithStubs(providers: AiProvider[]) {
   );
   const registry = createProviderRegistry(providers, home);
   const sessions = createSessionServices({ home, registry });
+  const issues = createIssueStore({ home });
+  const dispatcher = createIssueDispatcher({
+    issues,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    hub: sessions.hub,
+    home,
+  });
+  sessions.runner.setOnTurnSettled((sessionId, result) => {
+    dispatcher.handleTurnSettled(sessionId, result);
+  });
   const ctx: AppContext = {
     home,
     registry,
     ...sessions,
-    issueStore: createIssueStore({ home }),
+    issueStore: issues,
+    issueDispatcher: dispatcher,
   };
   const server = createApp(ctx);
   await new Promise<void>((resolve, reject) => {

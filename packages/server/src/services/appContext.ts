@@ -15,6 +15,7 @@ import {
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
 import { ensureDefaultConfigs } from "./agentConfig.js";
+import { createIssueDispatcher } from "./issueDispatch.js";
 import { createIssueStore, type IssueStore } from "./issueStore.js";
 
 export { resolveHome };
@@ -28,6 +29,7 @@ export interface AppContext {
   hub: WsHub;
   runner: SessionRunner;
   issueStore: IssueStore;
+  issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
@@ -106,6 +108,22 @@ export function createAppContext(
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
   });
-  const issueStore = createIssueStore({ home });
-  return { home, registry, ...sessions, issueStore };
+  const issues = createIssueStore({ home });
+  const dispatcher = createIssueDispatcher({
+    issues,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    hub: sessions.hub,
+    home,
+  });
+  sessions.runner.setOnTurnSettled((sessionId, result) => {
+    dispatcher.handleTurnSettled(sessionId, result);
+  });
+  return {
+    ...sessions,
+    home,
+    registry,
+    issueStore: issues,
+    issueDispatcher: dispatcher,
+  };
 }

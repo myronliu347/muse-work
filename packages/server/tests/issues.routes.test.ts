@@ -1,5 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import type { Server } from "node:http";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createAppContext } from "../src/services/appContext.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
 
 describe("issues HTTP", () => {
@@ -58,5 +62,45 @@ describe("issues HTTP", () => {
       body: JSON.stringify({ workdir: "/tmp/other", worktreeEnabled: false }),
     }).then((r) => r.json());
     expect(second.sessionId).toBe(first.sessionId);
+  });
+
+  it("PUT items then POST dispatch returns executionSessionId", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
+    const ctx = createAppContext({
+      home: tmp,
+      createAgent: async () => ({
+        sendMessage: async () => {},
+        dispose: async () => {},
+      }),
+    });
+    const app = await listenTestApp({ home: tmp, ctx });
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "修登录" }),
+    }).then((r) => r.json());
+    await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+    });
+    const put = await fetch(`${app.baseUrl}/issues/${issue.id}/items`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ content: "改登录" }] }),
+    });
+    expect(put.status).toBe(200);
+    const { issue: withItems } = await put.json();
+    const itemId = withItems.items[0].id as string;
+    const dispatch = await fetch(`${app.baseUrl}/issues/${issue.id}/dispatch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ itemId }),
+    });
+    expect(dispatch.status).toBe(200);
+    const body = await dispatch.json();
+    expect(body.executionSessionId).toBeTruthy();
   });
 });
