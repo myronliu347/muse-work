@@ -710,6 +710,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       messages={state.messages}
       onOpenSettings={handleOpenSettings}
       onLogin={handleLogin}
+      onSelectPrompt={(text) => messageInputRef.current?.setText(text)}
       onLogout={handleLogout}
       isAuthenticated={state.isAuthenticated}
       dispatch={dispatch}

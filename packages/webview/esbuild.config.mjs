@@ -18,6 +18,7 @@ const frontendConfig = {
     ".woff": "dataurl",
     ".woff2": "dataurl",
     ".png": "dataurl",
+    ".webp": "dataurl",
     ".svg": "dataurl",
   },
   define: {

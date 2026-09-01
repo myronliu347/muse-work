@@ -40,7 +40,7 @@ test.describe("Desktop New Session Sender Cat", () => {
     await expect(
       webviewPage.getByTestId("new-session-sender-cat"),
     ).toBeVisible();
-    await expect(webviewPage.getByText("Hi~ 欢迎使用 Muse")).toBeVisible();
+    await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
 
     // Match typical desktop dark chrome for the review screenshot.
     await webviewPage.evaluate(() => {

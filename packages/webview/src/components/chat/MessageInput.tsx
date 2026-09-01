@@ -95,6 +95,8 @@ const permissionModeIcon = (m?: PermissionMode): React.ReactNode => {
 export interface MessageInputHandle {
   focus: () => void;
   appendText: (text: string) => void;
+  /** Replace the current draft and focus, used by welcome prompt cards. */
+  setText: (text: string) => void;
   loadQueuedEditContent: (text: string) => void;
 }
 
@@ -244,6 +246,35 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         });
         div.focus();
         // Caret to the end so the user can keep typing seamlessly.
+        const sel = window.getSelection();
+        if (sel) {
+          const range = document.createRange();
+          range.selectNodeContents(div);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      },
+      setText: (text: string) => {
+        const div = textareaRef.current;
+        if (!div) return;
+        div.replaceChildren();
+        if (text) {
+          text.split("\n").forEach((line, i) => {
+            if (i > 0) div.appendChild(document.createElement("br"));
+            div.appendChild(document.createTextNode(line));
+          });
+        }
+        const mirror = div.innerText ?? div.textContent ?? "";
+        setMessage(mirror);
+        inputContentRef.current = mirror;
+        saveDraft(sessionId, mirror);
+        vscode.postMessage({
+          command: "updateInputContent",
+          sessionId,
+          content: mirror,
+        });
+        div.focus();
         const sel = window.getSelection();
         if (sel) {
           const range = document.createRange();

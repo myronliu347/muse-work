@@ -163,7 +163,7 @@ test.describe("Desktop App Screenshots", () => {
     // page, not the LoadingLogo sweep. The sweep appeared before because
     // setInitialState was dispatched before ChatApp's listener attached.
     await expect(webviewPage.locator(".loading-logo")).toHaveCount(0);
-    await expect(webviewPage.getByText("Hi~ 欢迎使用 Muse")).toBeVisible();
+    await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-first-launch.webp",

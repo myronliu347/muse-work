@@ -37,7 +37,7 @@ describe("Desktop draft NewSessionPage", () => {
 
     expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
     expect(screen.getByTestId("message-input")).toBeInTheDocument();
-    expect(screen.getByTestId("welcome-muse-logo")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
     expect(screen.queryByTestId("desktop-panel-dock")).not.toBeInTheDocument();
   });
 

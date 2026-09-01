@@ -29,6 +29,8 @@ export interface ChatBodyProps {
   isAuthenticated: boolean;
   configurationData?: ConfigurationData;
   onLogin: () => void;
+  /** Fill the composer with a welcome-card prompt; do not send. */
+  onSelectPrompt?: (text: string) => void;
   queuedMessages: QueuedMessage[];
   isStreaming: boolean;
   isCompacting: boolean;
@@ -76,6 +78,7 @@ export const ChatBody = forwardRef<
     isAuthenticated,
     configurationData,
     onLogin,
+    onSelectPrompt,
     queuedMessages,
     isStreaming,
     isCompacting,
@@ -136,6 +139,7 @@ export const ChatBody = forwardRef<
             isAuthenticated={isAuthenticated}
             hasDirectConnectConfig={hasDirectConnectConfig}
             onLogin={onLogin}
+            onSelectPrompt={onSelectPrompt}
           />
         }
         composer={composer}
@@ -160,6 +164,7 @@ export const ChatBody = forwardRef<
           isAuthenticated={isAuthenticated}
           hasDirectConnectConfig={hasDirectConnectConfig}
           onLogin={onLogin}
+          onSelectPrompt={onSelectPrompt}
         />
       ) : showWelcome ? (
         <LoadingLogo />

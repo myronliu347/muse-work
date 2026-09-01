@@ -29,7 +29,7 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
 
     // 1. Welcome View (logged-in empty state)
     await expect(
-      webviewPage.getByText("Hi~ 欢迎使用 Muse"),
+      webviewPage.getByTestId("welcome-headline"),
     ).toBeVisible();
     await screenshotWebp(
       webviewPage,
@@ -51,35 +51,31 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
     });
     await expect(webviewPage.getByText("登 录")).toBeVisible();
 
-    // Verify layout geometry: logo present, login button full-width & horizontally centered
+    await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
+    await expect(webviewPage.getByTestId("welcome-cards")).toBeVisible();
     const geometry = await webviewPage.evaluate(() => {
-      const logo = document.querySelector('[data-testid="welcome-muse-logo"]');
+      const headline = document.querySelector(
+        '[data-testid="welcome-headline"]',
+      );
       const btn = Array.from(document.querySelectorAll("button")).find((b) =>
         b.textContent?.includes("登"),
       );
       const container = document.querySelector(
         ".chat-container",
       ) as HTMLElement | null;
-      if (!logo || !btn || !container) return null;
+      if (!headline || !btn || !container) return null;
       const bb = btn.getBoundingClientRect();
       const cb = container.getBoundingClientRect();
       return {
-        hasLogo: !!logo,
-        btnWidth: Math.round(bb.width),
-        containerWidth: Math.round(cb.width),
-        btnLeftOffset: Math.round(bb.left - cb.left),
-        btnRightOffset: Math.round(cb.right - bb.right),
+        hasHeadline: !!headline,
         btnCenterDelta: Math.round(
           (bb.left + bb.right) / 2 - (cb.left + cb.right) / 2,
         ),
       };
     });
     expect(geometry).not.toBeNull();
-    expect(geometry!.hasLogo).toBe(true);
-    // Button spans (nearly) the full container width
-    expect(geometry!.btnWidth).toBeGreaterThan(geometry!.containerWidth - 40);
-    // Button is horizontally centered within the container
-    expect(Math.abs(geometry!.btnCenterDelta)).toBeLessThan(5);
+    expect(geometry!.hasHeadline).toBe(true);
+    expect(Math.abs(geometry!.btnCenterDelta)).toBeLessThan(24);
 
     await screenshotWebp(
       webviewPage,

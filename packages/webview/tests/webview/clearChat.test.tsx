@@ -29,7 +29,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify welcome view is shown (empty + authenticated)
-    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
   });
 
   it("should request a new session via the desktop sidebar button", () => {
@@ -173,7 +173,7 @@ describe("Clear Chat Functionality", () => {
       sendCommand("updateMessages", { messages: [] });
     });
 
-    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
     expect(abortBtn).toBeInTheDocument();
 
     act(() => {
@@ -207,7 +207,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify welcome view is shown
-    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
 
     // Error message should no longer be visible
     expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
@@ -232,7 +232,7 @@ describe("Clear Chat Functionality", () => {
     });
 
     // Verify cleared (welcome view shown)
-    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
 
     // Clear message log
     vscode.postMessage.mockClear();

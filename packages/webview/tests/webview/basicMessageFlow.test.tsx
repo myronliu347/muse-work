@@ -35,7 +35,7 @@ describe("Basic Message Flow", () => {
     const { vscode } = renderChatApp();
 
     // Verify initial state - empty + authenticated shows the welcome view
-    expect(screen.getByText("Hi~ 欢迎使用 Muse")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-headline")).toBeInTheDocument();
 
     // Clear message log
     vscode.postMessage.mockClear();
