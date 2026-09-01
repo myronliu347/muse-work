@@ -15,6 +15,7 @@ import { ChatContainer } from "./chat/ChatContainer";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
+import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
@@ -140,6 +141,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
   const [popoEnabled, setPopoEnabled] = useState(false);
   const [showNewIssue, setShowNewIssue] = useState(false);
+  const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
   useEffect(() => {
     popoApi
       .getPopoConfig()
@@ -749,11 +751,24 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
 
   if (host?.type === "desktop") {
+    const refreshSessionTree = () =>
+      postToHost({ command: "desktopRefreshSessionTree" });
     const issueSidebarProps = {
       issueGroups: host.issueGroups,
       onNewIssue: () => setShowNewIssue(true),
-      // Task 9 实现 OpenPlanningDialog；本期仅透传回调占位。
-      onOpenPlanning: (_issueId: string) => {},
+      onOpenPlanning: (issueId: string) => setPlanningIssueId(issueId),
+      onCompleteIssue: (issueId: string) => {
+        void popoApi
+          .completeIssue(issueId)
+          .then(refreshSessionTree)
+          .catch(() => {});
+      },
+      onCancelIssue: (issueId: string) => {
+        void popoApi
+          .cancelIssue(issueId)
+          .then(refreshSessionTree)
+          .catch(() => {});
+      },
     };
     const newIssueDialog = showNewIssue ? (
       <NewIssueDialog
@@ -761,7 +776,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         onCancel={() => setShowNewIssue(false)}
         onCreated={() => {
           setShowNewIssue(false);
-          postToHost({ command: "desktopRefreshSessionTree" });
+          refreshSessionTree();
+        }}
+      />
+    ) : null;
+    const openPlanningDialog = planningIssueId ? (
+      <OpenPlanningDialog
+        issueId={planningIssueId}
+        api={popoApi}
+        postToHost={postToHost}
+        onCancel={() => setPlanningIssueId(null)}
+        onOpened={({ sessionId, workdir }) => {
+          setPlanningIssueId(null);
+          host.onSelectSession(workdir, sessionId);
+          refreshSessionTree();
         }}
       />
     ) : null;
@@ -780,6 +808,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             {...issueSidebarProps}
           />
           {newIssueDialog}
+          {openPlanningDialog}
           <ChatDialogs {...dialogProps} />
         </>
       );
@@ -840,6 +869,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         />
         {chatContainer}
         {newIssueDialog}
+        {openPlanningDialog}
         <ChatDialogs {...dialogProps} />
       </div>
     );

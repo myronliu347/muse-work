@@ -1,0 +1,292 @@
+import React, { useEffect, useState } from "react";
+import type { MuseApiClient } from "../../muse/apiClient";
+import "../../styles/ConfirmDialog.css";
+import "../../styles/NewIssueDialog.css";
+import "../../styles/OpenPlanningDialog.css";
+
+export const PICK_DIRECTORY_TIMEOUT_MS = 15_000;
+
+export type PostToHost = (msg: Record<string, unknown>) => void;
+
+export type WorktreeCreated = {
+  name: string;
+  path: string;
+  branch: string;
+  baseBranch: string;
+  repoRoot: string;
+};
+
+export interface OpenPlanningDialogProps {
+  issueId: string;
+  api: MuseApiClient;
+  postToHost: PostToHost;
+  onOpened: (result: { sessionId: string; workdir: string }) => void;
+  onCancel: () => void;
+  /** Injectable for tests; default uses `desktopPickDirectory` (15s timeout). */
+  pickDirectory?: () => Promise<string | null>;
+}
+
+const NOT_GIT_HINT = "非 git 目录，开关无效，将直接在该目录执行";
+
+function isNotGitError(error: string): boolean {
+  return /not a git repository|not a git repo|不是 git|非 git/i.test(error);
+}
+
+/** Pick a directory via Electron; canceled/timeout → null. */
+export function pickDirectoryViaHost(
+  postToHost: PostToHost,
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => {
+      window.removeEventListener("message", onMessage);
+      resolve(null);
+    }, PICK_DIRECTORY_TIMEOUT_MS);
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data as { command?: string; path?: string };
+      if (msg?.command !== "desktopPickDirectoryResult") return;
+      window.clearTimeout(timer);
+      window.removeEventListener("message", onMessage);
+      resolve(typeof msg.path === "string" && msg.path ? msg.path : null);
+    };
+    window.addEventListener("message", onMessage);
+    postToHost({ command: "desktopPickDirectory" });
+  });
+}
+
+function createWorktreeViaHost(
+  postToHost: PostToHost,
+  opts: { workdir: string; baseBranch?: string },
+): Promise<
+  | { ok: true; worktree: WorktreeCreated }
+  | { ok: false; error: string }
+> {
+  const requestId = `wt_${Math.random().toString(36).slice(2, 10)}`;
+  return new Promise((resolve) => {
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data as {
+        command?: string;
+        requestId?: string;
+        error?: string;
+        name?: string;
+        path?: string;
+        branch?: string;
+        baseBranch?: string;
+        repoRoot?: string;
+      };
+      if (msg?.command !== "desktopWorktreeCreated") return;
+      if (msg.requestId !== requestId) return;
+      window.removeEventListener("message", onMessage);
+      if (typeof msg.error === "string" && msg.error) {
+        resolve({ ok: false, error: msg.error });
+        return;
+      }
+      if (
+        typeof msg.name === "string" &&
+        typeof msg.path === "string" &&
+        typeof msg.branch === "string" &&
+        typeof msg.repoRoot === "string"
+      ) {
+        resolve({
+          ok: true,
+          worktree: {
+            name: msg.name,
+            path: msg.path,
+            branch: msg.branch,
+            baseBranch:
+              typeof msg.baseBranch === "string" ? msg.baseBranch : "HEAD",
+            repoRoot: msg.repoRoot,
+          },
+        });
+        return;
+      }
+      resolve({ ok: false, error: "创建 worktree 返回不完整" });
+    };
+    window.addEventListener("message", onMessage);
+    postToHost({
+      command: "desktopCreateWorktree",
+      workdir: opts.workdir,
+      baseBranch: opts.baseBranch,
+      requestId,
+    });
+  });
+}
+
+/**
+ * Modal to bind an Issue's planning session: pick workdir, optional worktree.
+ * Git worktree is created by the desktop host, never by the server.
+ */
+export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
+  issueId,
+  api,
+  postToHost,
+  onOpened,
+  onCancel,
+  pickDirectory,
+}) => {
+  const [workdir, setWorkdir] = useState("");
+  const [worktreeEnabled, setWorktreeEnabled] = useState(false);
+  const [baseBranch, setBaseBranch] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
+  const handlePick = async () => {
+    setError(null);
+    const pick = pickDirectory ?? (() => pickDirectoryViaHost(postToHost));
+    const path = await pick();
+    if (path) setWorkdir(path);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const path = workdir.trim();
+    if (!path || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const branch = baseBranch.trim() || undefined;
+    let sessionWorkdir = path;
+    let enabled = worktreeEnabled;
+    let worktreeName: string | undefined;
+    let worktreeBranch: string | undefined;
+    let worktreeRepoRoot: string | undefined;
+    let resolvedBase = branch;
+
+    if (worktreeEnabled) {
+      const created = await createWorktreeViaHost(postToHost, {
+        workdir: path,
+        baseBranch: branch,
+      });
+      if (!created.ok) {
+        if (isNotGitError(created.error)) {
+          enabled = false;
+          setError(NOT_GIT_HINT);
+        } else {
+          setError(`创建 worktree 失败：${created.error}`);
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        sessionWorkdir = created.worktree.path;
+        worktreeName = created.worktree.name;
+        worktreeBranch = created.worktree.branch;
+        worktreeRepoRoot = created.worktree.repoRoot;
+        resolvedBase = created.worktree.baseBranch;
+      }
+    }
+
+    try {
+      const result = await api.openPlanningSession(issueId, {
+        workdir: sessionWorkdir,
+        worktreeEnabled: enabled,
+        ...(resolvedBase ? { baseBranch: resolvedBase } : {}),
+        ...(worktreeName ? { worktreeName } : {}),
+        ...(worktreeBranch ? { worktreeBranch } : {}),
+        ...(worktreeRepoRoot ? { worktreeRepoRoot } : {}),
+      });
+      onOpened(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="confirm-dialog-overlay"
+      data-testid="open-planning-dialog-overlay"
+    >
+      <form
+        className="confirm-dialog new-issue-dialog open-planning-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="打开规划会话"
+        onSubmit={handleSubmit}
+      >
+        <div className="confirm-dialog-title">打开规划会话</div>
+        <label className="new-issue-field">
+          <span className="new-issue-label">工作目录</span>
+          <div className="open-planning-workdir-row">
+            <span
+              className="open-planning-workdir"
+              data-testid="open-planning-workdir"
+              title={workdir || undefined}
+            >
+              {workdir || "未选择"}
+            </span>
+            <button
+              type="button"
+              className="confirm-dialog-btn confirm-dialog-btn-cancel"
+              data-testid="open-planning-pick-directory"
+              onClick={() => void handlePick()}
+              disabled={submitting}
+            >
+              选择目录
+            </button>
+          </div>
+        </label>
+        <label className="open-planning-worktree-row">
+          <input
+            type="checkbox"
+            checked={worktreeEnabled}
+            onChange={(e) => setWorktreeEnabled(e.target.checked)}
+            data-testid="open-planning-worktree"
+            disabled={submitting}
+          />
+          <span>worktree 模式</span>
+        </label>
+        <p className="open-planning-hint">
+          非 git 目录时开关无效，将直接在该目录执行
+        </p>
+        {worktreeEnabled ? (
+          <label className="new-issue-field">
+            <span className="new-issue-label">baseBranch（可选）</span>
+            <input
+              className="new-issue-input"
+              value={baseBranch}
+              onChange={(e) => setBaseBranch(e.target.value)}
+              data-testid="open-planning-base-branch"
+              placeholder="HEAD"
+              disabled={submitting}
+            />
+          </label>
+        ) : null}
+        {error ? (
+          <div className="new-issue-error" data-testid="open-planning-error">
+            {error}
+          </div>
+        ) : null}
+        <div className="confirm-dialog-actions">
+          <button
+            type="button"
+            className="confirm-dialog-btn confirm-dialog-btn-cancel"
+            data-testid="open-planning-cancel"
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            取消
+          </button>
+          <button
+            type="submit"
+            className="confirm-dialog-btn confirm-dialog-btn-confirm"
+            data-testid="open-planning-submit"
+            disabled={submitting || !workdir.trim()}
+          >
+            打开
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default OpenPlanningDialog;

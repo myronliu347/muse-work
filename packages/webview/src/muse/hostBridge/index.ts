@@ -317,10 +317,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     getWorkflowRuns: () => void tasks.handleGetWorkflowRuns(),
     stopWorkflowRun: (msg) =>
       void tasks.handleStopWorkflowRun(msg as { runId?: string }),
-    desktopCreateWorktree: (msg) =>
+    desktopCreateWorktree: (msg) => {
+      // Open-planning (and any create-only caller) tags requestId and waits
+      // for desktopWorktreeCreated. Forward to Electron; do not mint a session.
+      if (typeof msg.requestId === "string" && msg.requestId) {
+        opts.outer?.postMessage(msg);
+        return;
+      }
       void ctx.handleDesktopCreateWorktree(
         msg as DesktopCreateWorktreeMsg,
-      ),
+      );
+    },
     confirmationResponse: (msg) =>
       void confirm.handleConfirmationResponse(msg as ConfirmationResponseMsg),
     webviewReady: () => void ctx.refreshAuth(),

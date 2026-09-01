@@ -7,6 +7,8 @@ export type DesktopCreateWorktreeMsg = {
   name?: string;
   text?: string;
   images?: unknown;
+  /** When set, hostBridge forwards to Electron without minting a session. */
+  requestId?: string;
 };
 
 export interface DesktopModule {

@@ -138,6 +138,10 @@ export interface SessionTreeProps {
   onNewIssue?: () => void;
   /** 无会话的 Issue 空态：「打开规划会话」。 */
   onOpenPlanning?: (issueId: string) => void;
+  /** 分组行更多菜单「完成」。 */
+  onCompleteIssue?: (issueId: string) => void;
+  /** 分组行更多菜单「取消」。 */
+  onCancelIssue?: (issueId: string) => void;
 }
 
 function CollapsibleBody({
@@ -179,11 +183,18 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onRevealInFinder,
   onNewIssue,
   onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
     title: string;
     description?: string;
+  } | null>(null);
+  const [pendingIssueAction, setPendingIssueAction] = useState<{
+    issueId: string;
+    title: string;
+    kind: "complete" | "cancel";
   } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
     () => new Set(),
@@ -201,10 +212,18 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     y: number;
     workdir: string;
   } | null>(null);
+  const [issueMenu, setIssueMenu] = useState<{
+    x: number;
+    y: number;
+    issueId: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (!workdirMenu) return;
-    const close = () => setWorkdirMenu(null);
+    if (!workdirMenu && !issueMenu) return;
+    const close = () => {
+      setWorkdirMenu(null);
+      setIssueMenu(null);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -214,7 +233,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", onKey);
     };
-  }, [workdirMenu]);
+  }, [workdirMenu, issueMenu]);
 
   const { pinnedSessions, recentSessions } = resolveSidebarSessions({
     sessionTree,
@@ -598,6 +617,27 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       <span className="desktop-session-count">
                         {group.sessions.length}
                       </span>
+                      {onCompleteIssue || onCancelIssue ? (
+                        <button
+                          type="button"
+                          className="desktop-session-workdir-add issue-sidebar-more"
+                          data-testid={`desktop-session-issue-more-${group.issueId}`}
+                          aria-label="更多"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIssueMenu({
+                              x: e.clientX,
+                              y: e.clientY,
+                              issueId: group.issueId,
+                            });
+                          }}
+                        >
+                          <span
+                            className="codicon codicon-ellipsis"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ) : null}
                     </div>
                     <CollapsibleBody open={!collapsed}>
                       {group.items.length > 0 ? (
@@ -807,6 +847,77 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           }}
           onCancel={() => setPendingDelete(null)}
         />
+      )}
+      {pendingIssueAction && (
+        <ConfirmDialog
+          title={
+            pendingIssueAction.kind === "complete"
+              ? `完成「${pendingIssueAction.title}」？`
+              : `取消「${pendingIssueAction.title}」？`
+          }
+          description="关闭后不会删除会话，仅从待办事项中消失。"
+          confirmText={
+            pendingIssueAction.kind === "complete" ? "完成" : "取消 Issue"
+          }
+          onConfirm={() => {
+            if (pendingIssueAction.kind === "complete") {
+              onCompleteIssue?.(pendingIssueAction.issueId);
+            } else {
+              onCancelIssue?.(pendingIssueAction.issueId);
+            }
+            setPendingIssueAction(null);
+          }}
+          onCancel={() => setPendingIssueAction(null)}
+        />
+      )}
+      {issueMenu && (
+        <div
+          className="desktop-context-menu"
+          style={{ left: issueMenu.x, top: issueMenu.y }}
+          data-testid={`desktop-session-issue-menu-${issueMenu.issueId}`}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {onCompleteIssue ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid={`desktop-session-issue-complete-${issueMenu.issueId}`}
+              onClick={() => {
+                const group = (issueGroups ?? []).find(
+                  (g) => g.issueId === issueMenu.issueId,
+                );
+                setIssueMenu(null);
+                setPendingIssueAction({
+                  issueId: issueMenu.issueId,
+                  title: group?.title ?? issueMenu.issueId,
+                  kind: "complete",
+                });
+              }}
+            >
+              完成
+            </button>
+          ) : null}
+          {onCancelIssue ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid={`desktop-session-issue-cancel-${issueMenu.issueId}`}
+              onClick={() => {
+                const group = (issueGroups ?? []).find(
+                  (g) => g.issueId === issueMenu.issueId,
+                );
+                setIssueMenu(null);
+                setPendingIssueAction({
+                  issueId: issueMenu.issueId,
+                  title: group?.title ?? issueMenu.issueId,
+                  kind: "cancel",
+                });
+              }}
+            >
+              取消
+            </button>
+          ) : null}
+        </div>
       )}
       {workdirMenu && (
         <div

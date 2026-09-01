@@ -688,6 +688,22 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(onOpenPlanning).toHaveBeenCalledWith("empty-1");
   });
 
+  it("shows complete and cancel in the issue group more menu", () => {
+    renderSidebar({
+      issueGroups: [issueGroup()],
+      onCompleteIssue: vi.fn(),
+      onCancelIssue: vi.fn(),
+    });
+
+    fireEvent.click(screen.getByTestId("desktop-session-issue-more-issue-1"));
+    expect(
+      screen.getByTestId("desktop-session-issue-complete-issue-1"),
+    ).toHaveTextContent("完成");
+    expect(
+      screen.getByTestId("desktop-session-issue-cancel-issue-1"),
+    ).toHaveTextContent("取消");
+  });
+
   it("keeps worktree rows as direct li children of the session ul", () => {
     const { container } = renderSidebar({
       recentSessions: [

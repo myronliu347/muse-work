@@ -367,7 +367,8 @@
   justify-content: center;
 }
 
-.desktop-session-workdir-row:hover .desktop-session-workdir-add {
+.desktop-session-workdir-row:hover .desktop-session-workdir-add,
+.desktop-session-workdir-row:hover .issue-sidebar-more {
   visibility: visible;
   opacity: 0.75;
 }

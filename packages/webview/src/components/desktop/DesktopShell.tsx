@@ -33,6 +33,8 @@ interface DesktopShellProps {
   issueGroups?: DesktopHostProps["issueGroups"];
   onNewIssue?: () => void;
   onOpenPlanning?: (issueId: string) => void;
+  onCompleteIssue?: (issueId: string) => void;
+  onCancelIssue?: (issueId: string) => void;
 }
 
 /**
@@ -61,6 +63,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   issueGroups,
   onNewIssue,
   onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
@@ -627,6 +631,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         issueGroups={issueGroups ?? host.issueGroups}
         onNewIssue={onNewIssue}
         onOpenPlanning={onOpenPlanning}
+        onCompleteIssue={onCompleteIssue}
+        onCancelIssue={onCancelIssue}
         currentSessionId={focusedSessionId}
         visibleSessionIds={visibleSessionIds}
         onSelectSession={host.onSelectSession}

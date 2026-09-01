@@ -80,8 +80,12 @@ export interface DesktopSidebarProps {
   onRevealInFinder?: (workdir: string) => void;
   /** 待办事项 section「+」→ 新建 Issue。 */
   onNewIssue?: () => void;
-  /** 无会话 Issue 空态 → 打开规划（Task 9 实现对话框）。 */
+  /** 无会话 Issue 空态 → 打开规划。 */
   onOpenPlanning?: (issueId: string) => void;
+  /** 分组行更多菜单 → 完成 Issue。 */
+  onCompleteIssue?: (issueId: string) => void;
+  /** 分组行更多菜单 → 取消 Issue。 */
+  onCancelIssue?: (issueId: string) => void;
   /** Toggle the POPO robot view (rendered in place of the chat body). */
   onTogglePopoRobot: () => void;
   /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
@@ -116,6 +120,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onRevealInFinder,
   onNewIssue,
   onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
   onTogglePopoRobot,
   popoEnabled,
   activeMenu,
@@ -176,6 +182,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onRevealInFinder={onRevealInFinder}
         onNewIssue={onNewIssue}
         onOpenPlanning={onOpenPlanning}
+        onCompleteIssue={onCompleteIssue}
+        onCancelIssue={onCancelIssue}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">
