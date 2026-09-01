@@ -1,0 +1,292 @@
+packages/server/src/services/agentConfig.ts
+  442440ce7046c502 8,25,134,232
+packages/server/src/services/sessionRunner/agent.ts
+  442440ce7046c502 66,69,291
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  442440ce7046c502 83
+packages/server/src/utils/shutdown.ts
+  442440ce7046c502 14
+packages/server/src/routes/sessions.ts
+  442440ce7046c502 25
+packages/server/src/popo/popoAgent.ts
+  442440ce7046c502 124
+packages/server/tests/agents.routes.test.ts
+  442440ce7046c502 43,116
+packages/server/tests/sessionRunner.test.ts
+  442440ce7046c502 594,672-673
+packages/server/src/services/appContext.ts
+  442440ce7046c502 107
+packages/desktop/src/main/workdirHost.ts
+  442440ce7046c502 364
+packages/webview/src/components/session/SessionTree.tsx
+  442440ce7046c502 116,154,501
+packages/webview/tests/components/agentSelector.test.tsx
+  442440ce7046c502 39-42
+packages/server/tests/sessions.routes.test.ts
+  442440ce7046c502 308
+packages/webview/src/muse/wsClient.ts
+  442440ce7046c502 86
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  442440ce7046c502 15
+packages/server/src/routes/agents.ts
+  442440ce7046c502 37
+packages/webview/tests/muse/apiClient.agents.test.ts
+  442440ce7046c502 41,49,81
+packages/desktop/src/main/index.ts
+  442440ce7046c502 55,238
+packages/webview/src/styles/globals.css
+  442440ce7046c502 3
+CONTEXT.md
+  442440ce7046c502 1,3
+packages/server/src/services/sessionStore.ts
+  442440ce7046c502 34
+packages/server/src/index.ts
+  442440ce7046c502 90
+packages/server/src/services/sessionRunner/ctx.ts
+  442440ce7046c502 283
+packages/webview/src/components/ChatApp.tsx
+  442440ce7046c502 49,221,814-816
+packages/webview/src/muse/apiClient.ts
+  442440ce7046c502 47,682
+packages/webview/src/components/settings/AgentManager.tsx
+  442440ce7046c502 90
+packages/webview/src/styles/Message.css
+  442440ce7046c502 88
+packages/webview/src/components/message/Message.tsx
+  442440ce7046c502 164
+packages/server/tests/popoAgent.test.ts
+  442440ce7046c502 315,325-327
+packages/server/tests/agentConfig.test.ts
+  442440ce7046c502 117,121
+packages/server/vitest.config.ts
+  442440ce7046c502 5
+packages/webview/src/components/chat/ChatContainer.tsx
+  442440ce7046c502 1,32,36,78
+packages/server/src/services/wsEvents.ts
+  442440ce7046c502 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5944183d5d0bb0d529d42d4efe9897393a6f6b72",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 66,
+      "total_deletions": 596,
+      "accepted_lines": 63,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 25,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 4,
+          "deletions": 13,
+          "accepted_lines": 3
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 1,
+          "deletions": 20,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/stores/desktopStore.ts": {
+          "deletions": 8
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 1,
+          "deletions": 40,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "additions": 5,
+          "deletions": 65,
+          "accepted_lines": 4
+        },
+        "packages/server/vitest.config.ts": {
+          "additions": 1,
+          "deletions": 6,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "deletions": 14
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 3,
+          "deletions": 98,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 1,
+          "deletions": 26,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/agents.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/app.ts": {
+          "deletions": 2
+        },
+        "packages/server/src/services/sessionStore.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/provider/src/index.ts": {
+          "deletions": 1
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/apiClient.agents.test.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "deletions": 11,
+          "accepted_lines": 1
+        },
+        "packages/server/src/utils/shutdown.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "deletions": 12
+        },
+        "CONTEXT.md": {
+          "additions": 2,
+          "deletions": 41,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "deletions": 22
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 26,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/agentConfig.ts": {
+          "additions": 4,
+          "deletions": 6,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "deletions": 4
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 14
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "deletions": 10,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/agents.routes.test.ts": {
+          "additions": 2,
+          "deletions": 6,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "deletions": 41
+        },
+        "packages/server/src/index.ts": {
+          "additions": 1,
+          "deletions": 6,
+          "accepted_lines": 1
+        },
+        "packages/provider/src/defaultProject.ts": {
+          "deletions": 5
+        },
+        "packages/webview/tests/components/agentSelector.test.tsx": {
+          "additions": 4,
+          "deletions": 6,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "deletions": 9,
+          "accepted_lines": 2
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 1,
+          "deletions": 6,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 3,
+          "deletions": 7,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 5,
+          "deletions": 7,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/agentConfig.test.ts": {
+          "additions": 2,
+          "deletions": 13,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "deletions": 4
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 1,
+          "deletions": 3,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
