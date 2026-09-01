@@ -1,0 +1,94 @@
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  da6c8508b7b36329 1-292
+packages/webview/src/components/desktop/DesktopShell.tsx
+  da6c8508b7b36329 36-37,66-67,634-635
+packages/webview/src/styles/DesktopApp.css
+  da6c8508b7b36329 370-371
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  da6c8508b7b36329 1-66
+packages/webview/src/components/session/SessionTree.tsx
+  da6c8508b7b36329 141-144,186-187,194-197,215-219,222-226,236,620-640,851-921
+packages/webview/src/muse/hostBridge/desktop.ts
+  da6c8508b7b36329 10-11
+packages/webview/src/styles/OpenPlanningDialog.css
+  da6c8508b7b36329 1-35
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  da6c8508b7b36329 83,85-88,123-124,185-186
+packages/webview/src/components/ChatApp.tsx
+  da6c8508b7b36329 18,144,754-755,759-771,779-792,811,872
+packages/webview/src/muse/hostBridge/index.ts
+  da6c8508b7b36329 320-326,329-330
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  da6c8508b7b36329 691-706
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c4615062bc58f159486d45e5b31a51f2dbf71962",
+  "prompts": {
+    "da6c8508b7b36329": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "fc0cee68-5783-46c1-8e4f-42fd49bbe0d3",
+        "model": "cursor-grok-4.6-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 586,
+      "total_deletions": 12,
+      "accepted_lines": 585,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 292,
+          "accepted_lines": 292
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 116,
+          "deletions": 5,
+          "accepted_lines": 115
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 66,
+          "accepted_lines": 66
+        }
+      }
+    }
+  }
+}
