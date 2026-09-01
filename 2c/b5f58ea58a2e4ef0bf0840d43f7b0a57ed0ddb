@@ -1,0 +1,82 @@
+packages/server/tests/issueStore.test.ts
+  fea6bea41442f9f2 24-58
+packages/webview/src/muse/hostBridge/ctx.ts
+  fea6bea41442f9f2 4,200
+packages/webview/src/muse/hostBridge/desktop.ts
+  fea6bea41442f9f2 1,114
+packages/server/src/services/issueStore.ts
+  fea6bea41442f9f2 296,316
+packages/webview/src/muse/hostBridge/utils.ts
+  fea6bea41442f9f2 16-28
+packages/webview/src/muse/hostBridge/index.ts
+  fea6bea41442f9f2 10,76,78,83
+packages/webview/tests/muse/hostBridge.test.ts
+  fea6bea41442f9f2 2410-2451
+packages/server/src/services/issueDispatch.ts
+  fea6bea41442f9f2 136-147
+packages/server/tests/issueDispatch.test.ts
+  fea6bea41442f9f2 123-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2cb5f58ea58a2e4ef0bf0840d43f7b0a57ed0ddb",
+  "prompts": {
+    "fea6bea41442f9f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7503fb65-4391-4483-8993-8b0d453617f0",
+        "model": "cursor-grok-4.6-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 162,
+      "total_deletions": 18,
+      "accepted_lines": 162,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        }
+      }
+    }
+  }
+}
