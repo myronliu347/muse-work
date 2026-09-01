@@ -12,7 +12,7 @@ import {
   isTaskProjectWorkdir,
   partitionRecentSessions,
 } from "../../src/components/desktop/DesktopSidebar";
-import type { DesktopSessionEntry } from "../../src/types";
+import type { DesktopIssueGroup, DesktopSessionEntry } from "../../src/types";
 
 afterEach(() => {
   cleanup();
@@ -28,6 +28,26 @@ function entry(
     lastActiveAt: overrides.lastActiveAt ?? Date.now(),
     hasWorktree: overrides.hasWorktree ?? false,
     workdir: overrides.workdir ?? "/work/demo",
+    ...overrides,
+  };
+}
+
+function issueGroup(
+  overrides: Partial<DesktopIssueGroup> = {},
+): DesktopIssueGroup {
+  return {
+    issueId: "issue-1",
+    title: "设计评审",
+    priority: "p1",
+    status: "pending",
+    items: [
+      { id: "i1", content: "写方案", status: "done" },
+      { id: "i2", content: "改登录", status: "pending" },
+    ],
+    sessions: [
+      entry({ sessionId: "plan-1", title: "设计评审 · 规划" }),
+      entry({ sessionId: "exec-1", title: "设计评审 · 执行" }),
+    ],
     ...overrides,
   };
 }
@@ -604,6 +624,68 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(card.textContent).toContain("a");
     expect(card.textContent).toContain("/repo/.wave/worktrees/a");
     expect(card.textContent).toContain("Worktree");
+  });
+
+  it("renders 待办事项 between pin and tasks with priority badge", () => {
+    renderSidebar({
+      pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
+      issueGroups: [issueGroup({ priority: "p0" })],
+      recentSessions: [
+        entry({
+          sessionId: "t1",
+          workdir: "/home/u/.muse-work/projects/20260813-aaaa",
+        }),
+      ],
+    });
+
+    const section = screen.getByTestId("desktop-session-section-issues");
+    expect(section).toHaveTextContent("待办事项");
+    expect(
+      screen.getByTestId("desktop-session-issue-group-issue-1"),
+    ).toHaveTextContent("设计评审");
+    const badge = section.querySelector(".issue-sidebar-priority-p0");
+    expect(badge).toBeTruthy();
+    expect(badge).toHaveTextContent("P0");
+
+    const tree = screen.getByTestId("desktop-session-tree");
+    const pinIdx = tree.innerHTML.indexOf(
+      'data-testid="desktop-session-section-pin"',
+    );
+    const issuesIdx = tree.innerHTML.indexOf(
+      'data-testid="desktop-session-section-issues"',
+    );
+    const tasksIdx = tree.innerHTML.indexOf(
+      'data-testid="desktop-session-section-tasks"',
+    );
+    expect(pinIdx).toBeLessThan(issuesIdx);
+    expect(issuesIdx).toBeLessThan(tasksIdx);
+  });
+
+  it("hides pin/delete on issue sessions and offers open-planning when empty", () => {
+    const onOpenPlanning = vi.fn();
+    renderSidebar({
+      issueGroups: [
+        issueGroup({
+          issueId: "empty-1",
+          title: "空 Issue",
+          sessions: [],
+        }),
+        issueGroup(),
+      ],
+      onOpenPlanning,
+    });
+
+    expect(
+      screen.queryByTestId("desktop-session-pin-plan-1"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("desktop-session-delete-plan-1"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByTestId("desktop-session-issue-open-planning-empty-1"),
+    );
+    expect(onOpenPlanning).toHaveBeenCalledWith("empty-1");
   });
 
   it("keeps worktree rows as direct li children of the session ul", () => {

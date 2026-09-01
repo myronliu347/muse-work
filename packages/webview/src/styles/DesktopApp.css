@@ -154,6 +154,49 @@
   user-select: none;
 }
 
+.desktop-session-section-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.desktop-session-section-header-row .desktop-session-section-header--toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-session-section-add {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: var(--space-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.desktop-session-section-header-row:hover .desktop-session-section-add,
+.desktop-session-section-add:focus-visible {
+  opacity: 1;
+}
+
+.desktop-session-section-add:hover {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.desktop-session-section-add .codicon {
+  font-size: var(--font-size-1);
+}
+
 .desktop-session-section-header--toggle {
   display: flex;
   align-items: center;
@@ -343,6 +386,98 @@
   margin-left: var(--space-1);
   color: var(--gray-10);
   font-size: var(--font-size-00);
+}
+
+/* Issue 分组行：优先级徽标 + 会话计数（待办事项 section 内按 Issue 折叠）。 */
+.issue-sidebar-priority {
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+  padding: 0 4px;
+  border-radius: var(--radius-1);
+  background: var(--gray-4);
+  color: var(--gray-11);
+  font-size: var(--font-size-00);
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.issue-sidebar-priority-p0 {
+  background: var(--red-4);
+  color: var(--red-11);
+}
+
+.issue-sidebar-priority-p1 {
+  background: var(--orange-4);
+  color: var(--orange-11);
+}
+
+.issue-sidebar-priority-p2 {
+  background: var(--gray-4);
+  color: var(--gray-11);
+}
+
+.issue-sidebar-checklist {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 18px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.issue-sidebar-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-00);
+  line-height: 16px;
+}
+
+.issue-sidebar-checklist-item .codicon-check {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--green-11);
+}
+
+.issue-sidebar-checklist-empty {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-top: 3px;
+  border: 1px solid var(--gray-8);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.issue-sidebar-checklist-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-sidebar-empty {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: calc(var(--space-2) + 18px);
+}
+
+.issue-sidebar-open-planning {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-11);
+  font: inherit;
+  font-size: var(--font-size-00);
+  cursor: pointer;
+}
+
+.issue-sidebar-open-planning:hover {
+  text-decoration: underline;
 }
 
 .desktop-context-menu {

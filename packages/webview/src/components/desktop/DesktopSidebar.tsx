@@ -14,6 +14,7 @@ import {
 import type {
   DesktopSessionGroup,
   DesktopSessionEntry,
+  DesktopIssueGroup,
 } from "../../types";
 import "../../styles/DesktopApp.css";
 
@@ -56,6 +57,8 @@ export interface DesktopSidebarProps {
   pinnedSessions?: DesktopSessionEntry[];
   /** Sessions in the 工作空间 / 任务 sections (split by workdir kind). */
   recentSessions?: DesktopSessionEntry[];
+  /** Issue 分组（侧栏「待办事项」）。 */
+  issueGroups?: DesktopIssueGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
@@ -75,6 +78,10 @@ export interface DesktopSidebarProps {
   onOpenInTerminal?: (workdir: string) => void;
   /** Reveal the workdir in the system file manager. */
   onRevealInFinder?: (workdir: string) => void;
+  /** 待办事项 section「+」→ 新建 Issue。 */
+  onNewIssue?: () => void;
+  /** 无会话 Issue 空态 → 打开规划（Task 9 实现对话框）。 */
+  onOpenPlanning?: (issueId: string) => void;
   /** Toggle the POPO robot view (rendered in place of the chat body). */
   onTogglePopoRobot: () => void;
   /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
@@ -96,6 +103,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   sessionTree,
   pinnedSessions,
   recentSessions,
+  issueGroups,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
@@ -106,6 +114,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  onNewIssue,
+  onOpenPlanning,
   onTogglePopoRobot,
   popoEnabled,
   activeMenu,
@@ -151,6 +161,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         sessionTree={sessionTree}
         pinnedSessions={pinnedSessions}
         recentSessions={recentSessions}
+        issueGroups={issueGroups}
         currentSessionId={currentSessionId}
         visibleSessionIds={visibleSessionIds}
         isStreaming={isStreaming}
@@ -163,6 +174,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onOpenInEditor={onOpenInEditor}
         onOpenInTerminal={onOpenInTerminal}
         onRevealInFinder={onRevealInFinder}
+        onNewIssue={onNewIssue}
+        onOpenPlanning={onOpenPlanning}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

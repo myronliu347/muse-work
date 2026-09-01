@@ -14,6 +14,7 @@ import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
+import { NewIssueDialog } from "./issue/NewIssueDialog";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
@@ -138,6 +139,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
   // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
   const [popoEnabled, setPopoEnabled] = useState(false);
+  const [showNewIssue, setShowNewIssue] = useState(false);
   useEffect(() => {
     popoApi
       .getPopoConfig()
@@ -747,6 +749,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   );
 
   if (host?.type === "desktop") {
+    const issueSidebarProps = {
+      issueGroups: host.issueGroups,
+      onNewIssue: () => setShowNewIssue(true),
+      // Task 9 实现 OpenPlanningDialog；本期仅透传回调占位。
+      onOpenPlanning: (_issueId: string) => {},
+    };
+    const newIssueDialog = showNewIssue ? (
+      <NewIssueDialog
+        api={popoApi}
+        onCancel={() => setShowNewIssue(false)}
+        onCreated={() => {
+          setShowNewIssue(false);
+          postToHost({ command: "desktopRefreshSessionTree" });
+        }}
+      />
+    ) : null;
+
     // FR-032 split-view: when the host has pushed a pane layout, DesktopShell
     // owns the row of paneId-scoped ChatApp instances. This instance then only
     // contributes its pane-scoped chatContainer (rendered below); without a
@@ -758,7 +777,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             vscode={vscode}
             host={host}
             onOpenSettings={handleOpenSettings}
+            {...issueSidebarProps}
           />
+          {newIssueDialog}
           <ChatDialogs {...dialogProps} />
         </>
       );
@@ -786,6 +807,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           disabled={false}
           onOpenSettings={handleOpenSettings}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
+          {...issueSidebarProps}
           currentSessionId={state.currentSession?.id}
           onSelectSession={(workdir, sessionId) => {
             // 点侧栏会话立即回到聊天视图：即使点的是当前会话（host 不推
@@ -817,6 +839,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           }
         />
         {chatContainer}
+        {newIssueDialog}
         <ChatDialogs {...dialogProps} />
       </div>
     );

@@ -52,4 +52,37 @@ describe("DesktopApp host → sidebar 会话树", () => {
 
     expect(screen.getByTestId("desktop-session-item-sess-1")).toBeTruthy();
   });
+
+  it("desktopSessionTree issueGroups 渲染待办事项与优先级徽标", () => {
+    const vscode = mockVscode();
+    render(<DesktopApp vscode={vscode} />);
+
+    postToWindow({
+      command: "desktopWorkdirState",
+      workdir: "/tmp/proj",
+      recentWorkdirs: ["/tmp/proj"],
+      host: "local",
+    });
+    postToWindow({
+      command: "desktopSessionTree",
+      groups: [],
+      issueGroups: [
+        {
+          issueId: "issue-1",
+          title: "侧栏 Issue",
+          priority: "p2",
+          status: "pending",
+          items: [],
+          sessions: [entry("plan-1")],
+        },
+      ],
+    });
+
+    const section = screen.getByTestId("desktop-session-section-issues");
+    expect(section).toHaveTextContent("待办事项");
+    expect(section).toHaveTextContent("侧栏 Issue");
+    const badge = section.querySelector(".issue-sidebar-priority-p2");
+    expect(badge).toBeTruthy();
+    expect(badge).toHaveTextContent("P2");
+  });
 });

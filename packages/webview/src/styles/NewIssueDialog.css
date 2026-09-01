@@ -1,0 +1,65 @@
+.new-issue-dialog {
+  width: 400px;
+  gap: var(--space-3);
+}
+
+.new-issue-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.new-issue-label {
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  color: var(--gray-11);
+}
+
+.new-issue-input,
+.new-issue-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--gray-1);
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-1);
+}
+
+.new-issue-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.new-issue-priority {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.new-issue-priority .new-issue-label,
+.new-issue-priority legend {
+  width: 100%;
+  padding: 0;
+}
+
+.new-issue-priority-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
+  color: var(--gray-12);
+  cursor: pointer;
+}
+
+.new-issue-error {
+  color: var(--red-11);
+  font-size: var(--font-size-1);
+}

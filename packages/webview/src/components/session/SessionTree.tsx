@@ -6,6 +6,7 @@ import { formatRelativeActiveAt } from "../../utils/time";
 import type {
   DesktopSessionGroup,
   DesktopSessionEntry,
+  DesktopIssueGroup,
 } from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
@@ -113,12 +114,14 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "tasks" | "workspace";
+type SectionId = "pin" | "issues" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
   pinnedSessions?: DesktopSessionEntry[];
   recentSessions?: DesktopSessionEntry[];
+  /** Issue 分组：规划会话 + 执行会话（侧栏「待办事项」折叠展示）。 */
+  issueGroups?: DesktopIssueGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -131,6 +134,10 @@ export interface SessionTreeProps {
   onOpenInEditor?: (workdir: string) => void;
   onOpenInTerminal?: (workdir: string) => void;
   onRevealInFinder?: (workdir: string) => void;
+  /** 待办事项 section 头「+」：打开新建 Issue 对话框。 */
+  onNewIssue?: () => void;
+  /** 无会话的 Issue 空态：「打开规划会话」。 */
+  onOpenPlanning?: (issueId: string) => void;
 }
 
 function CollapsibleBody({
@@ -151,12 +158,13 @@ function CollapsibleBody({
 }
 
 /**
- * Pin / 任务 / 工作空间 session tree for the desktop sidebar.
+ * Pin / 待办事项 / 任务 / 工作空间 session tree for the desktop sidebar.
  */
 export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
+  issueGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -169,6 +177,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  onNewIssue,
+  onOpenPlanning,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
@@ -176,6 +186,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     description?: string;
   } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [collapsedIssues, setCollapsedIssues] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
@@ -245,6 +258,15 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       const next = new Set(prev);
       if (next.has(sectionId)) next.delete(sectionId);
       else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const toggleIssueCollapsed = (issueId: string) => {
+    setCollapsedIssues((prev) => {
+      const next = new Set(prev);
+      if (next.has(issueId)) next.delete(issueId);
+      else next.add(issueId);
       return next;
     });
   };
@@ -447,25 +469,30 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     testId: string;
     /** 会话数量，跟随标题展示（如「置顶（2）」）。 */
     count?: number;
+    /** 标题行右侧额外操作（如「+」新建）。 */
+    trailing?: React.ReactNode;
   }) => {
     const collapsed = collapsedSections.has(opts.sectionId);
     return (
-      <button
-        type="button"
-        className="desktop-session-section-header desktop-session-section-header--toggle"
-        onClick={() => toggleSectionCollapsed(opts.sectionId)}
-        data-testid={`${opts.testId}-toggle`}
-        aria-expanded={!collapsed}
-      >
-        <span className="desktop-session-section-title">{opts.title}</span>
-        {opts.count !== undefined ? (
-          <span className="desktop-session-count">（{opts.count}）</span>
-        ) : null}
-        <span
-          className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
-          aria-hidden="true"
-        />
-      </button>
+      <div className="desktop-session-section-header-row">
+        <button
+          type="button"
+          className="desktop-session-section-header desktop-session-section-header--toggle"
+          onClick={() => toggleSectionCollapsed(opts.sectionId)}
+          data-testid={`${opts.testId}-toggle`}
+          aria-expanded={!collapsed}
+        >
+          <span className="desktop-session-section-title">{opts.title}</span>
+          {opts.count !== undefined ? (
+            <span className="desktop-session-count">（{opts.count}）</span>
+          ) : null}
+          <span
+            className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
+            aria-hidden="true"
+          />
+        </button>
+        {opts.trailing}
+      </div>
     );
   };
 
@@ -492,6 +519,143 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 renderSession(session, { hideWorkdir: opts.hideWorkdir }),
               )}
             </ul>
+          )}
+        </CollapsibleBody>
+      </div>
+    );
+  };
+
+  /** 待办事项 section：Issue 分组（规划/执行会话 + 只读清单）。 */
+  const renderIssuesSection = () => {
+    const open = !collapsedSections.has("issues");
+    const groups = issueGroups ?? [];
+    const count = groups.reduce((sum, g) => sum + g.sessions.length, 0);
+    return (
+      <div
+        className="desktop-session-section"
+        data-testid="desktop-session-section-issues"
+      >
+        {renderSectionHeader({
+          sectionId: "issues",
+          title: "待办事项",
+          testId: "desktop-session-section-issues",
+          count,
+          trailing: onNewIssue ? (
+            <Tooltip text="新建 Issue" position="top">
+              <button
+                type="button"
+                className="desktop-session-section-add"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNewIssue();
+                }}
+                data-testid="desktop-session-section-issues-add"
+                aria-label="新建 Issue"
+              >
+                <span className="codicon codicon-add" aria-hidden="true" />
+              </button>
+            </Tooltip>
+          ) : null,
+        })}
+        <CollapsibleBody open={open}>
+          {groups.length === 0 ? (
+            <div className="desktop-session-empty">无会话</div>
+          ) : (
+            <>
+              {groups.map((group) => {
+                const collapsed = collapsedIssues.has(group.issueId);
+                return (
+                  <div
+                    key={group.issueId}
+                    className="desktop-session-workdir-group"
+                    data-testid={`desktop-session-issue-group-${group.issueId}`}
+                  >
+                    <div
+                      className="desktop-session-workdir-row"
+                      onClick={() => toggleIssueCollapsed(group.issueId)}
+                      data-testid={`desktop-session-issue-row-${group.issueId}`}
+                    >
+                      <span
+                        className="desktop-session-workdir-icon-slot"
+                        aria-hidden="true"
+                      >
+                        <span className="codicon codicon-tasklist desktop-session-workdir-folder" />
+                        <span
+                          className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                        />
+                      </span>
+                      <span
+                        className="desktop-session-workdir-label"
+                        title={group.title}
+                      >
+                        {group.title}
+                      </span>
+                      <span
+                        className={`issue-sidebar-priority issue-sidebar-priority-${group.priority}`}
+                      >
+                        {group.priority.toUpperCase()}
+                      </span>
+                      <span className="desktop-session-count">
+                        {group.sessions.length}
+                      </span>
+                    </div>
+                    <CollapsibleBody open={!collapsed}>
+                      {group.items.length > 0 ? (
+                        <ul
+                          className="issue-sidebar-checklist"
+                          data-testid={`desktop-session-issue-checklist-${group.issueId}`}
+                        >
+                          {group.items.map((item) => (
+                            <li
+                              key={item.id}
+                              className="issue-sidebar-checklist-item"
+                            >
+                              <span
+                                className={
+                                  item.status === "done"
+                                    ? "codicon codicon-check"
+                                    : "issue-sidebar-checklist-empty"
+                                }
+                                aria-hidden="true"
+                              />
+                              <span className="issue-sidebar-checklist-text">
+                                {item.content}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {group.sessions.length === 0 ? (
+                        <div className="desktop-session-empty issue-sidebar-empty">
+                          {onOpenPlanning ? (
+                            <button
+                              type="button"
+                              className="issue-sidebar-open-planning"
+                              data-testid={`desktop-session-issue-open-planning-${group.issueId}`}
+                              onClick={() => onOpenPlanning(group.issueId)}
+                            >
+                              打开规划会话
+                            </button>
+                          ) : (
+                            "无会话"
+                          )}
+                        </div>
+                      ) : (
+                        <ul className="desktop-session-items desktop-session-items--nested">
+                          {group.sessions.map((session) =>
+                            renderSession(session, {
+                              hideWorkdir: true,
+                              // 待办事项（Issue 规划/执行）会话不允许置顶/删除
+                              hideActions: true,
+                            }),
+                          )}
+                        </ul>
+                      )}
+                    </CollapsibleBody>
+                  </div>
+                );
+              })}
+            </>
           )}
         </CollapsibleBody>
       </div>
@@ -629,6 +793,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         testId: "desktop-session-section-pin",
         sessions: pinnedSessions,
       })}
+      {renderIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 
