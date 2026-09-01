@@ -1,0 +1,160 @@
+packages/webview/src/components/chat/welcomeWallpapers.ts
+  380f3371c4740115 1-42
+packages/webview/tests/components/welcomeView.test.tsx
+  380f3371c4740115 1-57
+packages/webview/tests/webview/basicMessageFlow.test.tsx
+  380f3371c4740115 38
+packages/webview/src/styles/NewSessionPage.css
+  380f3371c4740115 4-5,13,18-19,21,25-57,67
+packages/webview/e2e/demo/desktop-app.demo.ts
+  380f3371c4740115 166
+packages/webview/src/components/ChatApp.tsx
+  380f3371c4740115 713
+packages/webview/tests/components/newSessionPage.desktop.test.tsx
+  380f3371c4740115 40
+packages/webview/tests/webview/clearChat.test.tsx
+  380f3371c4740115 32,176,210,235
+packages/webview/src/components/chat/welcomePrompts.ts
+  380f3371c4740115 1-38
+packages/webview/src/components/chat/useWelcomeWallpaper.ts
+  380f3371c4740115 1-30
+packages/webview/e2e/demo/product-spec-ui-basic.demo.ts
+  380f3371c4740115 32,54-55,57-59,66,70,77-78
+packages/webview/src/png.d.ts
+  380f3371c4740115 5-9
+docs/superpowers/specs/2026-09-01-welcome-view-design.md
+  380f3371c4740115 1-76
+packages/webview/src/components/chat/ChatBody.tsx
+  380f3371c4740115 32-33,81,142,167
+packages/webview/src/styles/WelcomeView.css
+  380f3371c4740115 1-239
+packages/webview/tests/components/welcomeWallpaper.test.ts
+  380f3371c4740115 1-27
+packages/webview/src/components/chat/WelcomeView.tsx
+  380f3371c4740115 2-3,11-12,20,24-29,31,33-35,37-41,43,45-53,59
+packages/webview/src/components/chat/MessageInput.tsx
+  380f3371c4740115 98-99,258-280
+packages/webview/e2e/demo/desktop-sender-cat.demo.ts
+  380f3371c4740115 43
+packages/webview/src/components/chat/NewSessionPage.tsx
+  380f3371c4740115 3,5,16-36,39-40
+packages/webview/esbuild.config.mjs
+  380f3371c4740115 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c86720d0d49a851c4c1181d10e5bb461b4c7995b",
+  "prompts": {
+    "380f3371c4740115": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "70327423-ac50-4bcc-b5b3-cd5ecffeb65d",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 736,
+      "total_deletions": 228,
+      "accepted_lines": 666,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/welcomePrompts.ts": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/png.d.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 271,
+          "deletions": 32,
+          "accepted_lines": 239
+        },
+        "packages/webview/tests/components/newSessionPage.desktop.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/demo/desktop-sender-cat.demo.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/basicMessageFlow.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 31,
+          "deletions": 18,
+          "accepted_lines": 25
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/useWelcomeWallpaper.ts": {
+          "additions": 50,
+          "deletions": 20,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/e2e/demo/product-spec-ui-basic.demo.ts": {
+          "additions": 10,
+          "deletions": 14,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 40,
+          "deletions": 130,
+          "accepted_lines": 31
+        },
+        "docs/superpowers/specs/2026-09-01-welcome-view-design.md": {
+          "additions": 76,
+          "accepted_lines": 76
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 43,
+          "deletions": 6,
+          "accepted_lines": 40
+        },
+        "packages/webview/tests/components/welcomeWallpaper.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/chat/welcomeWallpapers.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/tests/components/welcomeView.test.tsx": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/tests/webview/clearChat.test.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
