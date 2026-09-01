@@ -45,6 +45,79 @@ describe("sessions HTTP routes", () => {
     expect(grouped.recent).toEqual([]);
   });
 
+  it("grouped exposes issueGroups and strips those sessions from recent", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "修登录" }),
+    }).then((r) => r.json());
+
+    const { sessionId } = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+
+    // Normal session that appears in recent (title ≠ 新对话 → isStartedSession).
+    const normal = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/a", model: "m1" }),
+    }).then((r) => r.json());
+    await fetch(`${app.baseUrl}/sessions/${normal.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "普通会话" }),
+    });
+
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.issueGroups).toHaveLength(1);
+    expect(grouped.issueGroups[0]).toMatchObject({
+      issueId: issue.id,
+      title: "修登录",
+      status: "planning",
+    });
+    expect(grouped.issueGroups[0].sessions).toHaveLength(1);
+    expect(grouped.issueGroups[0].sessions[0].id).toBe(sessionId);
+    expect(grouped.recent.map((s: { id: string }) => s.id)).not.toContain(
+      grouped.issueGroups[0].sessions[0].id,
+    );
+    expect(grouped.recent.map((s: { id: string }) => s.id)).toContain(normal.id);
+  });
+
+  it("grouped includes pending issues with empty sessions", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "待规划" }),
+    }).then((r) => r.json());
+
+    const grouped = await fetch(`${app.baseUrl}/sessions?grouped=1`).then((r) =>
+      r.json(),
+    );
+    expect(grouped.issueGroups).toEqual([
+      expect.objectContaining({
+        issueId: issue.id,
+        title: "待规划",
+        status: "pending",
+        sessions: [],
+      }),
+    ]);
+  });
+
   it("two sessions keep independent models after PATCH", async () => {
     const app = await listenTestApp();
     server = app.server;

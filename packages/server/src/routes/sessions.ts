@@ -22,7 +22,35 @@ export const sessionsRoutes = new Hono<HonoEnv>();
 sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
-    return c.json(ctx.store.listGrouped());
+    const grouped = ctx.store.listGrouped();
+    const issueGroups = ctx.issueStore.listActive().map((issue) => {
+      const sessions = [];
+      if (issue.planningSessionId) {
+        const planning = ctx.store.get(issue.planningSessionId);
+        if (planning) sessions.push(planning);
+      }
+      if (issue.executionSessionId) {
+        const execution = ctx.store.get(issue.executionSessionId);
+        if (execution) sessions.push(execution);
+      }
+      return {
+        issueId: issue.id,
+        title: issue.title,
+        priority: issue.priority,
+        status: issue.status,
+        items: issue.items,
+        sessions,
+      };
+    });
+    const issueSessionIds = new Set(
+      issueGroups.flatMap((g) => g.sessions.map((s) => s.id)),
+    );
+    return c.json({
+      ...grouped,
+      pinned: grouped.pinned.filter((s) => !issueSessionIds.has(s.id)),
+      recent: grouped.recent.filter((s) => !issueSessionIds.has(s.id)),
+      issueGroups,
+    });
   }
   return c.json({
     sessions: ctx.store.list(),
