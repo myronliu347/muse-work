@@ -1,0 +1,88 @@
+packages/webview/src/components/settings/AgentManager.tsx
+  e0ddf8eef7033308 90-93,96-97,249-250
+packages/webview/tests/muse/apiClient.agents.test.ts
+  e0ddf8eef7033308 41-46,86-91
+packages/server/tests/agentConfig.test.ts
+  e0ddf8eef7033308 58-59,114-115,266-267
+packages/server/tests/issues.routes.test.ts
+  e0ddf8eef7033308 35-61
+packages/webview/src/muse/apiClient.ts
+  e0ddf8eef7033308 47,682
+packages/server/src/services/agentConfig.ts
+  e0ddf8eef7033308 25,30-31,136-141
+packages/server/src/routes/issues.ts
+  e0ddf8eef7033308 2,5-11,125-217
+packages/webview/tests/components/agentSettings.test.tsx
+  e0ddf8eef7033308 42-43,51-52
+packages/webview/tests/components/agentSelector.test.tsx
+  e0ddf8eef7033308 42-43
+packages/server/tests/agents.routes.test.ts
+  e0ddf8eef7033308 54-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a5a491253d3030d09bcfc5f8aec148930d93f58f",
+  "prompts": {
+    "e0ddf8eef7033308": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3e8d117e-d3a9-478a-ac61-b172ac362f08",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 174,
+      "total_deletions": 8,
+      "accepted_lines": 173,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/apiClient.agents.test.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/agentConfig.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 102,
+          "deletions": 1,
+          "accepted_lines": 101
+        },
+        "packages/server/tests/agents.routes.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/agentConfig.test.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/agentSelector.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
