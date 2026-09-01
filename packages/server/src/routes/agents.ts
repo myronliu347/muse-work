@@ -34,7 +34,7 @@ agentsRoutes.get("/agents", (c) => {
   return c.json({ version: 1, agents });
 });
 
-/** GET /agents/scenarios：返回 4 场景实际 key（已回落解析，与 resolveScenarioAgent 一致）。 */
+/** GET /agents/scenarios：返回场景实际 key（已回落解析，与 resolveScenarioAgent 一致）。 */
 agentsRoutes.get("/agents/scenarios", (c) => {
   const ctx = c.get("ctx");
   const resolved: Record<string, string> = {};

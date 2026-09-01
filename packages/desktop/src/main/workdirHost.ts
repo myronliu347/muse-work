@@ -361,7 +361,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     }
 
     if (command === "desktopPickDirectory") {
-      // 只选目录回传路径（todo 绑定 workdir 等），不动工作目录状态
+      // 只选目录回传路径，不动工作目录状态
       if (!win) return;
       const result = await showOpenDialog(win, {
         properties: ["openDirectory", "createDirectory"],

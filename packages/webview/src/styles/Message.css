@@ -85,7 +85,7 @@
   width: 100%;
 }
 
-/* 系统注入消息（todo 进度/AI 复核等）：灰条，宽度撑满消息列，区别于用户气泡 */
+/* 系统注入消息：灰条，宽度撑满消息列，区别于用户气泡 */
 .message.user.system-inject {
   padding: var(--space-1) 0;
 }

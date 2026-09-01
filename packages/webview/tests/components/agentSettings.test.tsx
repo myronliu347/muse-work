@@ -38,8 +38,6 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
       .mockResolvedValue({
         scenarios: {
           session: "default",
-          todo: "plan",
-          task: "execute",
           popo: "popo",
         },
       }),
@@ -47,8 +45,6 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
     putAgentScenarios: vi.fn().mockResolvedValue({
       scenarios: {
         session: "default",
-        todo: "plan",
-        task: "execute",
         popo: "popo",
       },
     }),

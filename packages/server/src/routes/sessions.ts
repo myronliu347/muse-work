@@ -5,7 +5,6 @@ import {
 } from "@muse-work/provider";
 import type { HonoEnv } from "../honoEnv.js";
 import { getLogger } from "../utils/logger.js";
-import type { Session } from "../services/sessionStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
@@ -23,45 +22,7 @@ export const sessionsRoutes = new Hono<HonoEnv>();
 sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
-    const grouped = ctx.store.listGrouped();
-    // Todo 分组：todo 的规划会话 + 执行会话归入一组（侧栏按 todo 折叠展示）。
-    // 直接带完整 session 对象（这些会话已从 recent 剔除，webview 无法用 id 反查）。
-    const todoGroups: Array<{
-      todoId: string;
-      todoTitle: string;
-      priority: string;
-      sessions: Session[];
-    }> = [];
-    for (const todo of ctx.todoStore.listTodos()) {
-      const sessions: Session[] = [];
-      const ids = [todo.planningSessionId];
-      for (const task of ctx.todoStore.listTasks(todo.id)) {
-        if (task.executionSessionId) ids.push(task.executionSessionId);
-      }
-      for (const id of ids) {
-        const s = id ? ctx.store.get(id) : undefined;
-        if (s) sessions.push(s);
-      }
-      if (sessions.length > 0) {
-        todoGroups.push({
-          todoId: todo.id,
-          todoTitle: todo.title,
-          priority: todo.priority,
-          sessions,
-        });
-      }
-    }
-    // 从 recent 中剔除 todo 会话（已归入 todo 分组，避免重复显示）
-    const todoSessionIds = new Set(todoGroups.flatMap((g) => g.sessions.map((s) => s.id)));
-    // 已完成/已取消 todo 的规划会话同样剔除（todo 结束后其会话不回流 recent/任务分组）
-    for (const todo of ctx.todoStore.listAllTodos()) {
-      if (todo.planningSessionId) todoSessionIds.add(todo.planningSessionId);
-    }
-    return c.json({
-      ...grouped,
-      recent: grouped.recent.filter((s) => !todoSessionIds.has(s.id)),
-      todoGroups,
-    });
+    return c.json(ctx.store.listGrouped());
   }
   return c.json({
     sessions: ctx.store.list(),

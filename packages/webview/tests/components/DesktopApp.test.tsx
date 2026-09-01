@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
-import type { DesktopSessionEntry, DesktopTodoGroup, VsCodeApi } from "../../src/types";
+import type { DesktopSessionEntry, VsCodeApi } from "../../src/types";
 
 function mockVscode(): VsCodeApi {
   return {
@@ -23,24 +23,14 @@ function entry(sessionId: string): DesktopSessionEntry {
   };
 }
 
-function todoGroup(): DesktopTodoGroup {
-  return {
-    todoId: "todo-1",
-    todoTitle: "设计评审",
-    priority: "p1",
-    sessions: [entry("sess-plan"), entry("sess-exec")],
-  };
-}
-
 function postToWindow(data: unknown): void {
   fireEvent(window, new MessageEvent("message", { data }));
 }
 
-describe("DesktopApp host → sidebar todoGroups 链路", () => {
-  it("desktopSessionTree 携带 todoGroups 时侧栏任务 section 按 todo 分组渲染", () => {
+describe("DesktopApp host → sidebar 会话树", () => {
+  it("desktopSessionTree 推送后渲染工作空间会话", () => {
     const vscode = mockVscode();
     render(<DesktopApp vscode={vscode} />);
-    // 无 workdir 前处于 loading，不渲染布局
     expect(screen.getByTestId("desktop-loading")).toBeTruthy();
 
     postToWindow({
@@ -51,14 +41,15 @@ describe("DesktopApp host → sidebar todoGroups 链路", () => {
     });
     postToWindow({
       command: "desktopSessionTree",
-      groups: [],
-      todoGroups: [todoGroup()],
+      groups: [
+        {
+          host: "local",
+          workdir: "recent",
+          sessions: [entry("sess-1")],
+        },
+      ],
     });
 
-    const group = screen.getByTestId("desktop-session-todo-group-todo-1");
-    expect(group).toBeTruthy();
-    expect(screen.getByText("设计评审")).toBeTruthy();
-    expect(screen.getByTestId("desktop-session-item-sess-plan")).toBeTruthy();
-    expect(screen.getByTestId("desktop-session-item-sess-exec")).toBeTruthy();
+    expect(screen.getByTestId("desktop-session-item-sess-1")).toBeTruthy();
   });
 });

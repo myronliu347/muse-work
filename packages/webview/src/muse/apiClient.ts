@@ -44,7 +44,7 @@ export interface MuseAgent {
 
 /** 场景 → agent key 映射。 */
 export interface MuseAgentScenarios {
-  scenarios: Record<"session" | "todo" | "task" | "popo", string>;
+  scenarios: Record<"session" | "popo", string>;
 }
 
 export interface MuseCodeMakerQuota {
@@ -116,74 +116,6 @@ export interface MuseSessionsGrouped {
   pinned: MuseSession[];
   recent: MuseSession[];
   activeSessionId?: string;
-  /** Todo 分组：todo 的规划会话 + 执行会话（侧栏按 todo 折叠展示，见 sessions.ts grouped handler）。 */
-  todoGroups?: Array<{
-    todoId: string;
-    todoTitle: string;
-    priority: MuseTodoPriority;
-    sessions: MuseSession[];
-  }>;
-}
-
-/** Todo/Task 两级任务管理实体（spec 2026-08-21）。 */
-export type MuseTodoSource = "session" | "manual" | "popo" | "internal";
-export type MuseTodoPriority = "p0" | "p1" | "p2";
-export type MuseTodoStatus = "pending" | "in_progress" | "completed" | "cancelled";
-export type MuseTaskStatus = "pending" | "running" | "review" | "completed" | "cancelled";
-
-export interface MuseTodo {
-  id: string;
-  title: string;
-  description: string;
-  priority: MuseTodoPriority;
-  source: MuseTodoSource;
-  status: MuseTodoStatus;
-  /** 标签（server 已规范化：trim/去重/小写）。 */
-  tags: string[];
-  /** 绑定工作目录（规划会话开在这里，新 task 未指定 workdir 时继承）；未绑定为 undefined。 */
-  workdir?: string;
-  planningSessionId?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface MuseTask {
-  id: string;
-  todoId: string;
-  title: string;
-  description: string;
-  status: MuseTaskStatus;
-  workdir: string;
-  worktreeName?: string;
-  /** worktree 的 base 分支（创建 worktree 时从该分支 checkout）。 */
-  baseBranch?: string;
-  /** 显式 false = git 项目直接在原目录执行（不用 worktree）；缺省 undefined = 隔离。 */
-  worktreeEnabled?: boolean;
-  executionSessionId?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export type MuseCommentAuthor = "user" | "ai" | "system";
-export type MuseCommentKind = "note" | "result";
-export type MuseRunStatus = "queued" | "running" | "finished" | "canceled";
-
-export interface MuseComment {
-  id: string;
-  taskId: string;
-  author: MuseCommentAuthor;
-  kind: MuseCommentKind;
-  content: string;
-  createdAt: number;
-}
-
-export interface MuseRun {
-  id: string;
-  taskId: string;
-  status: MuseRunStatus;
-  createdAt: number;
-  startedAt?: number;
-  finishedAt?: number;
 }
 
 export interface PopoConfigInfo {
@@ -439,188 +371,6 @@ export class MuseApiClient {
     const res = await this.request(
       `/sessions/${encodeURIComponent(id)}/messages`,
     );
-    return parseJson(res);
-  }
-
-  async listTodos(): Promise<{ todos: MuseTodo[] }> {
-    const res = await this.request("/todos");
-    return parseJson(res);
-  }
-
-  /** 已完成 todo 列表（看板「已完成」归档视图；只读）。 */
-  async listArchivedTodos(): Promise<{ todos: MuseTodo[] }> {
-    const res = await this.request("/todos?archived=1");
-    return parseJson(res);
-  }
-
-  async createTodo(input: {
-    title: string;
-    description?: string;
-    priority?: "p0" | "p1" | "p2";
-    source: MuseTodoSource;
-    tags?: string[];
-    workdir?: string;
-  }): Promise<{ todo: MuseTodo }> {
-    const res = await this.request("/todos", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-    return parseJson(res);
-  }
-
-  async updateTodo(
-    id: string,
-    patch: {
-      title?: string;
-      description?: string;
-      priority?: MuseTodoPriority;
-      tags?: string[];
-      /** null = 解除 workdir 绑定；缺省 = 不修改。 */
-      workdir?: string | null;
-    },
-  ): Promise<{ todo: MuseTodo }> {
-    const res = await this.request(`/todos/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    return parseJson(res);
-  }
-
-  /** 取消 todo（级联取消未完成任务）。 */
-  async cancelTodo(todoId: string): Promise<{ ok: boolean }> {
-    const res = await this.request(
-      `/todos/${encodeURIComponent(todoId)}/cancel`,
-      { method: "POST" },
-    );
-    return parseJson(res);
-  }
-
-  /** 手动标记 todo 已完成（有任务未到终态时被 409 拒绝）。 */
-  async completeTodo(todoId: string): Promise<{ ok: true }> {
-    const res = await this.request(
-      `/todos/${encodeURIComponent(todoId)}/complete`,
-      { method: "POST" },
-    );
-    return parseJson(res);
-  }
-
-  /** 打开 todo 的规划会话（首次懒创建，每 todo 固定一个）。 */
-  async openPlanningSession(todoId: string): Promise<{ sessionId: string; workdir: string }> {
-    const res = await this.request(
-      `/todos/${encodeURIComponent(todoId)}/planning-session`,
-      { method: "POST" },
-    );
-    return parseJson(res);
-  }
-
-  async listTasks(todoId: string): Promise<{ tasks: MuseTask[] }> {
-    const res = await this.request(
-      `/todos/${encodeURIComponent(todoId)}/tasks`,
-    );
-    return parseJson(res);
-  }
-
-  /** 给 todo 加 task（workdir 必填；baseBranch 指定 worktree 的 base 分支，可选）。 */
-  async createTask(
-    todoId: string,
-    input: { title: string; description?: string; workdir: string; baseBranch?: string },
-  ): Promise<{ task: MuseTask }> {
-    const res = await this.request(
-      `/todos/${encodeURIComponent(todoId)}/tasks`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(input),
-      },
-    );
-    return parseJson(res);
-  }
-
-  async updateTask(
-    id: string,
-    patch: { title?: string; description?: string },
-  ): Promise<{ task: MuseTask }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    return parseJson(res);
-  }
-
-  /** 开始执行（待执行）/ 继续执行（待审核）：入队并立即调度。 */
-  async enqueueTask(taskId: string): Promise<{ ok: true }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/enqueue`, {
-      method: "POST",
-    });
-    return parseJson(res);
-  }
-
-  /** 取消 task（执行中则中止会话 + 删 worktree）。 */
-  async cancelTask(taskId: string): Promise<{ ok: true }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
-      method: "POST",
-    });
-    return parseJson(res);
-  }
-
-  /** 审核通过（仅待审核）：task 已完成 + 清理 worktree/执行会话。 */
-  async approveTask(taskId: string): Promise<{ ok: true }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/approve`, {
-      method: "POST",
-    });
-    return parseJson(res);
-  }
-
-  async listComments(taskId: string): Promise<{ comments: MuseComment[] }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/comments`);
-    return parseJson(res);
-  }
-
-  async addComment(
-    taskId: string,
-    input: {
-      author: MuseCommentAuthor;
-      kind: MuseCommentKind;
-      content: string;
-    },
-  ): Promise<{ comment: MuseComment }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/comments`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-    return parseJson(res);
-  }
-
-  async listRuns(taskId: string): Promise<{ runs: MuseRun[] }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/runs`);
-    return parseJson(res);
-  }
-
-  async createRun(
-    taskId: string,
-    input: { status: MuseRunStatus },
-  ): Promise<{ run: MuseRun }> {
-    const res = await this.request(`/tasks/${encodeURIComponent(taskId)}/runs`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-    return parseJson(res);
-  }
-
-  async updateRunStatus(
-    runId: string,
-    status: MuseRunStatus,
-  ): Promise<{ run: MuseRun }> {
-    const res = await this.request(`/runs/${encodeURIComponent(runId)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
     return parseJson(res);
   }
 
@@ -929,7 +679,7 @@ export class MuseApiClient {
 
   async putAgentScenarios(payload: {
     version?: number;
-    scenarios: Partial<Record<"session" | "todo" | "task" | "popo", string>>;
+    scenarios: Partial<Record<"session" | "popo", string>>;
   }): Promise<MuseAgentScenarios> {
     const res = await this.request("/agents/scenarios", {
       method: "PUT",

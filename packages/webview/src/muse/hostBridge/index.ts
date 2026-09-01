@@ -201,27 +201,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       ctx.setRunningWork(event.sessionId, "workflows", event.runs);
     }
 
-    // 全局通知（task 进待审核）：不依赖当前会话，所有 pane 都收。
-    if (event.type === "todo:notify") {
-      postToWebview({
-        command: "todo:notify",
-        todoId: event.todoId,
-        taskId: event.taskId,
-        todoTitle: event.todoTitle,
-        taskTitle: event.taskTitle,
-        priority: event.priority,
-      });
-      return;
-    }
-
-    // todo/task 任何变更（REST 直改 store，如对话内 AI 跑 todo.mjs approve/requeue/complete）：
-    // broadcastAll 事件 sessionId 恒为 "*"，不能走下方活跃会话过滤（否则永远被丢弃，
-    // 看板停留在旧状态——文件已 completed、面板仍显示 review）。所有 pane 都收。
-    if (event.type === "todo:changed") {
-      postToWebview({ command: "todo:changed" });
-      return;
-    }
-
     // Chat / streaming events only drive ChatApp for the active session.
     if (event.sessionId !== ctx.sessionId) return;
     ctx.emitChatWs(event);
@@ -316,7 +295,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     setPermissionMode: (msg) =>
       void chat.handleSetPermissionMode(msg as { mode?: string }),
     desktopRefreshSessionTree: () =>
-      // todo 完成/取消后侧栏任务分组需要重拉（server recent 剔除已变化）
       void ctx.refreshTree().catch(() => {
         // 侧栏保持旧数据，下次任意刷新兜底
       }),

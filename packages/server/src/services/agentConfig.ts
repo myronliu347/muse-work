@@ -5,7 +5,7 @@
  * - `agents.json`：命名 agent 定义。内置 default/plan/execute/popo 四个，
  *   文件里同名 key 覆盖内置；未出现的 key 只读内置。文件缺失/损坏 → 仅内置。
  * - `agent-scenarios.json`：场景 → agent key 映射。场景 key：
- *   session/todo/task/popo，未列出的场景一律回落 default。
+ *   session/popo，未列出的场景一律回落 default。
  *
  * 读取容错风格参考 museSettings.ts：try/catch + getLogger().warn。
  */
@@ -22,12 +22,10 @@ export const AGENTS_FILE = "agents.json";
 export const AGENT_SCENARIOS_FILE = "agent-scenarios.json";
 
 /** 场景 key（agent-scenarios.json 的键）。 */
-export type AgentScenarioKey = "session" | "todo" | "task" | "popo";
+export type AgentScenarioKey = "session" | "popo";
 
 export const AGENT_SCENARIO_KEYS: AgentScenarioKey[] = [
   "session",
-  "todo",
-  "task",
   "popo",
 ];
 
@@ -133,7 +131,7 @@ export function defaultAgents(): Record<string, Agent> {
 
 /** 内置默认场景映射。 */
 export function defaultScenarios(): Record<AgentScenarioKey, string> {
-  return { session: "default", todo: "plan", task: "execute", popo: "popo" };
+  return { session: "default", popo: "popo" };
 }
 
 export function agentsConfigPath(home = os.homedir()): string {
@@ -231,7 +229,7 @@ function parseScenariosFile(home: string): Partial<Record<AgentScenarioKey, stri
     parsed = JSON.parse(fs.readFileSync(file, "utf8"));
   } catch (err) {
     // 文件缺失/损坏 → 内置默认映射（不写配置文件时各场景行为与现状一致：
-    // session=default / todo=plan / task=execute / popo=popo）
+    // session=default / popo=popo）
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
       getLogger().warn("agent-scenarios.json unreadable, using defaults", {
         file,

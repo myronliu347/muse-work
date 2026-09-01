@@ -63,18 +63,14 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   } = ctx;
   const core = ctx.core;
 
-  /** Paths of built-in plugins enabled in settings whose dirs are present,
-   *  plus the always-on todo plugin (内置能力，非 settings 开关). */
+  /** Paths of built-in plugins enabled in settings whose dirs are present. */
   function enabledPluginDirs(): string[] {
     const plugins = loadMuseSettings(home).plugins;
-    const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
+    return ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
       const dir = pluginDirIfPresent(name);
       return dir ? [dir] : [];
     });
-    const todoDir = pluginDirIfPresent("todo");
-    if (todoDir) dirs.push(todoDir);
-    return dirs;
   }
 
   function pluginsFlag(): string {
@@ -292,7 +288,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       fastModel: session?.fastModel ?? gateway.fastModel ?? gateway.model,
       workdir,
       stream: true,
-      // 会话可携带自定义 system prompt（todo 规划会话注入 todo 上下文）；
+      // 会话可携带自定义 system prompt；
       // 缺省时 SDK 用 MUSE_BASE_SYSTEM_PROMPT。
       systemPrompt: session?.systemPrompt,
       permissionMode: session?.permissionMode ?? "acceptEdits",

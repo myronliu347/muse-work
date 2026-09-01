@@ -54,8 +54,6 @@ describe("agentConfig", () => {
     const scenarios = JSON.parse(fs.readFileSync(scenariosPath, "utf8"));
     expect(scenarios.scenarios).toEqual({
       session: "default",
-      todo: "plan",
-      task: "execute",
       popo: "popo",
     });
     // 已存在时不覆盖（文件为准）
@@ -110,27 +108,22 @@ describe("agentConfig", () => {
     ensureDefaultConfigs(home);
     expect(loadScenarios(home)).toEqual({
       session: "default",
-      todo: "plan",
-      task: "execute",
       popo: "popo",
     });
     fs.writeFileSync(
       path.join(getMuseHomeDir(home), AGENT_SCENARIOS_FILE),
       JSON.stringify({
         version: 1,
-        scenarios: { session: "nope", todo: "plan", task: "execute", popo: "popo" },
+        scenarios: { session: "nope", popo: "popo" },
       }),
     );
     expect(resolveScenarioAgent("session", home)).toBe("default");
-    expect(resolveScenarioAgent("todo", home)).toBe("plan");
-    // 未列场景（新增场景）回落 default
-    expect(loadScenarios(home).task).toBe("execute");
+    expect(resolveScenarioAgent("popo", home)).toBe("popo");
   });
 
   it("resolveScenarioAgent 未列场景回落 default", () => {
     ensureDefaultConfigs(home);
     expect(resolveScenarioAgent("popo", home)).toBe("popo");
-    expect(resolveScenarioAgent("task", home)).toBe("execute");
   });
 
   it("resolveAgent 引用不存在 key 回落内置 default", () => {
@@ -258,8 +251,6 @@ describe("agentConfig", () => {
         version: 1,
         scenarios: {
           session: "default",
-          todo: "plan",
-          task: "execute",
           popo: "popo",
         },
       },
@@ -267,8 +258,6 @@ describe("agentConfig", () => {
     );
     expect(resolved).toEqual({
       session: "default",
-      todo: "plan",
-      task: "execute",
       popo: "popo",
     });
     // 引用不存在的 key → 抛错

@@ -6,7 +6,6 @@ import { formatRelativeActiveAt } from "../../utils/time";
 import type {
   DesktopSessionGroup,
   DesktopSessionEntry,
-  DesktopTodoGroup,
 } from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
@@ -114,14 +113,12 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "todos" | "tasks" | "workspace";
+type SectionId = "pin" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
   pinnedSessions?: DesktopSessionEntry[];
   recentSessions?: DesktopSessionEntry[];
-  /** Todo 分组：每个 todo 的规划会话 + 执行会话（任务 section 内折叠展示）。 */
-  todoGroups?: DesktopTodoGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -154,13 +151,12 @@ function CollapsibleBody({
 }
 
 /**
- * Pin / 待办事项 / 任务 / 工作空间 session tree for the desktop sidebar.
+ * Pin / 任务 / 工作空间 session tree for the desktop sidebar.
  */
 export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
-  todoGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -180,9 +176,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     description?: string;
   } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [collapsedTodos, setCollapsedTodos] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
@@ -243,15 +236,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       const next = new Set(prev);
       if (next.has(workdir)) next.delete(workdir);
       else next.add(workdir);
-      return next;
-    });
-  };
-
-  const toggleTodoCollapsed = (todoId: string) => {
-    setCollapsedTodos((prev) => {
-      const next = new Set(prev);
-      if (next.has(todoId)) next.delete(todoId);
-      else next.add(todoId);
       return next;
     });
   };
@@ -514,85 +498,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  /** 待办事项 section：todo 分组（规划会话 + 执行会话按 todo 折叠展示）。 */
-  const renderTodosSection = () => {
-    const open = !collapsedSections.has("todos");
-    const groups = todoGroups ?? [];
-    const count = groups.reduce((sum, g) => sum + g.sessions.length, 0);
-    return (
-      <div className="desktop-session-section" data-testid="desktop-session-section-todos">
-        {renderSectionHeader({
-          sectionId: "todos",
-          title: "待办事项",
-          testId: "desktop-session-section-todos",
-          count,
-        })}
-        <CollapsibleBody open={open}>
-          {groups.length === 0 ? (
-            <div className="desktop-session-empty">无会话</div>
-          ) : (
-            <>
-              {groups.map((group) => {
-                const collapsed = collapsedTodos.has(group.todoId);
-                return (
-                  <div
-                    key={group.todoId}
-                    className="desktop-session-workdir-group"
-                    data-testid={`desktop-session-todo-group-${group.todoId}`}
-                  >
-                    <div
-                      className="desktop-session-workdir-row"
-                      onClick={() => toggleTodoCollapsed(group.todoId)}
-                      data-testid={`desktop-session-todo-row-${group.todoId}`}
-                    >
-                      <span
-                        className="desktop-session-workdir-icon-slot"
-                        aria-hidden="true"
-                      >
-                        <span
-                          className="codicon codicon-tasklist desktop-session-workdir-folder"
-                        />
-                        <span
-                          className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
-                        />
-                      </span>
-                      <span
-                        className="desktop-session-workdir-label"
-                        title={group.todoTitle}
-                      >
-                        {group.todoTitle}
-                      </span>
-                      <span
-                        className={`todo-sidebar-priority todo-sidebar-priority-${group.priority}`}
-                      >
-                        {group.priority.toUpperCase()}
-                      </span>
-                      <span className="desktop-session-count">
-                        {group.sessions.length}
-                      </span>
-                    </div>
-                    <CollapsibleBody open={!collapsed}>
-                      <ul className="desktop-session-items desktop-session-items--nested">
-                        {group.sessions.map((session) =>
-                          renderSession(session, {
-                            hideWorkdir: true,
-                            // 待办事项（todo 规划/执行）会话不允许置顶/删除
-                            hideActions: true,
-                          }),
-                        )}
-                      </ul>
-                    </CollapsibleBody>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </CollapsibleBody>
-      </div>
-    );
-  };
-
-  /** 任务 section：遗留自动任务会话（不在任何 todo 分组下的 task project 会话）。 */
+  /** 任务 section：自动任务项目会话。 */
   const renderTasksSection = () => {
     const open = !collapsedSections.has("tasks");
     return (
@@ -723,7 +629,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         testId: "desktop-session-section-pin",
         sessions: pinnedSessions,
       })}
-      {renderTodosSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 

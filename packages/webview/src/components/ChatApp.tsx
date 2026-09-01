@@ -15,8 +15,6 @@ import { ChatContainer } from "./chat/ChatContainer";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
-import { TodoNotifyStack } from "./todo/TodoNotifyStack";
-import { useTodoBoardStore, type TodoNotification } from "../stores/todoBoardStore";
 import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
@@ -48,7 +46,7 @@ export { prunePanelGroupCache } from "../stores";
 const CHAT_MAIN_MIN_WIDTH = 520;
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-robot" | "todo-board";
+export type MainView = "newChat" | "chat" | "popo-robot";
 
 export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -138,13 +136,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
     [],
   );
-  // 待审核 task 计数（侧栏 badge）+ 通知点击跳转
-  const todoReviewCount = useTodoBoardStore((s) => s.reviewCount);
-  const openTodoNotification = (n: TodoNotification) => {
-    useTodoBoardStore.getState().selectTodo(n.todoId);
-    useTodoBoardStore.getState().selectTask(n.taskId);
-    setView("todo-board");
-  };
   // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
   const [popoEnabled, setPopoEnabled] = useState(false);
   useEffect(() => {
@@ -216,7 +207,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       createMessageHandler({
         dispatch,
         vscode,
-        popoApi,
         refs: {
           paneIdRef,
           stateRef,
@@ -228,7 +218,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           groupKeyRef,
         },
       }),
-    [dispatch, vscode, popoApi],
+    [dispatch, vscode],
   );
   useEffect(() => {
     window.addEventListener("message", handleMessage);
@@ -694,8 +684,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       queueEditWarning={queueEditWarning}
       onDismissQueueEditWarning={() => patchPane({ queueEditWarning: null })}
       view={view}
-      setView={setView}
-      host={host}
       postToHost={postToHost}
       patchPane={patchPane}
       popoApi={popoApi}
@@ -798,7 +786,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           disabled={false}
           onOpenSettings={handleOpenSettings}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
-          todoGroups={host.todoGroups}
           currentSessionId={state.currentSession?.id}
           onSelectSession={(workdir, sessionId) => {
             // 点侧栏会话立即回到聊天视图：即使点的是当前会话（host 不推
@@ -820,24 +807,17 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
             postToHost({ command: "revealInFinder", path: workdir })
           }
           onTogglePopoRobot={() => setView((v) => (v === "popo-robot" ? "chat" : "popo-robot"))}
-          onToggleTodoBoard={() =>
-            setView((v) => (v === "todo-board" ? "chat" : "todo-board"))
-          }
-          todoReviewCount={todoReviewCount}
           popoEnabled={popoEnabled}
           activeMenu={
             view === "popo-robot"
               ? "popo-robot"
-              : view === "todo-board"
-                ? "todo-board"
-                : view === "newChat" || showNewSessionPage
-                  ? "newChat"
-                  : undefined
+              : view === "newChat" || showNewSessionPage
+                ? "newChat"
+                : undefined
           }
         />
         {chatContainer}
         <ChatDialogs {...dialogProps} />
-        <TodoNotifyStack onOpen={openTodoNotification} />
       </div>
     );
   }

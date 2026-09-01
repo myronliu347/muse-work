@@ -1,9 +1,4 @@
-import type {
-  Dispatch,
-  RefObject,
-  SetStateAction,
-} from "react";
-import { TodoBoard } from "../todo/TodoBoard";
+import type { FC, RefObject } from "react";
 import { PopoRobotView } from "../popo/PopoRobotView";
 import LoadingLogo from "./LoadingLogo";
 import { ChatBody } from "./ChatBody";
@@ -11,34 +6,11 @@ import { ChatChrome, type ChatChromeProps } from "./ChatChrome";
 import { DesktopPanelSlots, type DesktopPanelSlotsProps } from "../desktop/DesktopPanelSlots";
 import type { MainView } from "../ChatApp";
 import type {
-  DesktopHostProps,
   SessionMetadata,
   VsCodeApi,
 } from "../../types";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type { ChatAppCore } from "../../hooks/useChatAppCore";
-
-/** 调主进程系统目录选择器，一次性等待 desktopPickDirectoryResult 回传路径。 */
-function pickDirectoryViaHost(
-  postToHost: ChatAppCore["postToHost"],
-): Promise<string | null> {
-  return new Promise((resolve) => {
-    const handler = (event: MessageEvent) => {
-      const data = event.data;
-      if (data?.command !== "desktopPickDirectoryResult") return;
-      window.removeEventListener("message", handler);
-      clearTimeout(timer);
-      resolve(typeof data.path === "string" && data.path ? data.path : null);
-    };
-    window.addEventListener("message", handler);
-    postToHost({ command: "desktopPickDirectory" });
-    // 非桌面环境（独立 dev）主进程不响应 → 超时兜底，避免 Promise 悬挂
-    const timer = setTimeout(() => {
-      window.removeEventListener("message", handler);
-      resolve(null);
-    }, 15_000);
-  });
-}
 
 export interface ChatContainerProps extends ChatChromeProps {
   /** The chat column element; measured for dock width planning + focus routing. */
@@ -46,8 +18,6 @@ export interface ChatContainerProps extends ChatChromeProps {
   queueEditWarning: string | null;
   onDismissQueueEditWarning: () => void;
   view: MainView;
-  setView: Dispatch<SetStateAction<MainView>>;
-  host?: DesktopHostProps;
   postToHost: ChatAppCore["postToHost"];
   popoApi: MuseApiClient;
   currentSession?: SessionMetadata;
@@ -59,17 +29,15 @@ export interface ChatContainerProps extends ChatChromeProps {
 }
 
 /**
- * The chat column: queue-edit warning bar, the view router (todo board / POPO
+ * The chat column: queue-edit warning bar, the view router (POPO
  * robot / new-session page / conversation chrome) and the shared panel dock.
  * isDraftSession / showNewSessionPage are re-derived from the session props.
  */
-export const ChatContainer: React.FC<ChatContainerProps> = ({
+export const ChatContainer: FC<ChatContainerProps> = ({
   chatContainerRef,
   queueEditWarning,
   onDismissQueueEditWarning,
   view,
-  setView,
-  host,
   postToHost,
   popoApi,
   currentSession,
@@ -107,35 +75,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       )}
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          {view === "todo-board" ? (
-            <TodoBoard
-              api={popoApi}
-              onOpenPlanningSession={(sessionId, workdir) => {
-                // 打开规划会话：切回聊天视图并选中该会话
-                if (!host) return;
-                setView("chat");
-                host.onSelectSession(workdir, sessionId);
-              }}
-              onOpenExecutionSession={(sessionId) => {
-                // 打开执行会话：切回聊天视图并选中该会话
-                if (!host) return;
-                setView("chat");
-                host.onSelectSession("", sessionId);
-              }}
-              onOpenInEditor={(workdir) =>
-                postToHost({ command: "desktopOpenInEditor", workdir })
-              }
-              onOpenInTerminal={(workdir) =>
-                postToHost({ command: "desktopOpenInTerminal", workdir })
-              }
-              onTodosChanged={() =>
-                postToHost({ command: "desktopRefreshSessionTree" })
-              }
-              pickDirectory={() =>
-                pickDirectoryViaHost(postToHost)
-              }
-            />
-          ) : view === "popo-robot" ? (
+          {view === "popo-robot" ? (
             <PopoRobotView api={popoApi} vscode={vscode} />
           ) : isDraftSession && !initialized ? (
             <LoadingLogo />

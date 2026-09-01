@@ -51,12 +51,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     postToWebview({
       command: "desktopSessionTree",
       groups: buildSidebarModel({ pinned: ctx.pinned, recent: ctx.recent }),
-      todoGroups: ctx.todoGroups.map((g) => ({
-        todoId: g.todoId,
-        todoTitle: g.todoTitle,
-        priority: g.priority,
-        sessions: g.sessions.map(toEntry),
-      })),
     });
     ctx.publishAgentBusy();
   };
@@ -65,10 +59,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     const prev = ctx.treeById();
     ctx.pinned = mergeRuntimeFields(grouped.pinned, prev);
     ctx.recent = mergeRuntimeFields(grouped.recent, prev);
-    ctx.todoGroups = (grouped.todoGroups ?? []).map((g) => ({
-      ...g,
-      sessions: mergeRuntimeFields(g.sessions, prev),
-    }));
     emitSessionTree();
   };
 
@@ -80,10 +70,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
       list.map((s) => (s.id === id ? { ...s, ...patch } : s));
     ctx.pinned = apply(ctx.pinned);
     ctx.recent = apply(ctx.recent);
-    ctx.todoGroups = ctx.todoGroups.map((g) => ({
-      ...g,
-      sessions: apply(g.sessions),
-    }));
     emitSessionTree();
   };
 

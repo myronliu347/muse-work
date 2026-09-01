@@ -87,10 +87,8 @@ function fromForm(form: AgentForm): Partial<MuseAgent> {
   return agent;
 }
 
-const SCENARIO_LABELS: Array<{ key: "session" | "todo" | "task" | "popo"; label: string }> = [
+const SCENARIO_LABELS: Array<{ key: "session" | "popo"; label: string }> = [
   { key: "session", label: "普通会话" },
-  { key: "todo", label: "Todo 规划" },
-  { key: "task", label: "Task 执行" },
   { key: "popo", label: "POPO 机器人" },
 ];
 
@@ -242,8 +240,6 @@ export const AgentManager = forwardRef<
         version: 1,
         scenarios: {
           session: scenarios.session,
-          todo: scenarios.todo,
-          task: scenarios.task,
           popo: scenarios.popo,
         },
       });

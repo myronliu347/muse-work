@@ -1,8 +1,0 @@
-{
-  "name": "todo",
-  "description": "Todo/Task 两级任务管理（muse-work 看板）：记 todo、创建 task、查询看板",
-  "version": "1.0.0",
-  "author": {
-    "name": "muse-work"
-  }
-}

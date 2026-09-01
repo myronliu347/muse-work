@@ -312,7 +312,7 @@ describe("popoAgent", () => {
     expect(await runner.run("hello")).toBe("最终回复");
   });
 
-  it("passes the always-on todo plugin into the SDK agent", async () => {
+  it("does not attach a todo plugin to the SDK agent", async () => {
     let seenPlugins: unknown;
     const factory = createPopoAgentFactory({
       home: "/tmp",
@@ -322,11 +322,9 @@ describe("popoAgent", () => {
         return stubAgent("ok");
       },
     });
-    const runner = await factory({ chatKey: "team:todo", type: "team" });
-    await runner.run("记个 todo：xxx");
-    expect(seenPlugins).toEqual([
-      { type: "local", path: expect.stringMatching(/plugins[\\/]todo$/) },
-    ]);
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    await runner.run("hello");
+    expect(seenPlugins).toBeUndefined();
   });
 
   it("p2p clear calls agent.clearMessages", async () => {

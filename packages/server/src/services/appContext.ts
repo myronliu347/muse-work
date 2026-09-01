@@ -13,8 +13,6 @@ import {
   type SessionRunner,
 } from "./sessionRunner/index.js";
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
-import { createTodoStore, type TodoStore } from "./todoStore.js";
-import { createTodoScheduler, type TodoScheduler } from "./todoScheduler.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
 import { ensureDefaultConfigs } from "./agentConfig.js";
 
@@ -28,10 +26,6 @@ export interface AppContext {
   store: SessionStore;
   hub: WsHub;
   runner: SessionRunner;
-  /** Todo/Task 任务管理存储（spec 2026-08-21）。 */
-  todoStore: TodoStore;
-  /** Todo/Task 常驻执行调度器（server 启动后 start()）。 */
-  todoScheduler: TodoScheduler;
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
@@ -110,18 +104,5 @@ export function createAppContext(
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
   });
-  const todoStore = createTodoStore({ home });
-
-  const todoScheduler = createTodoScheduler({
-    store: todoStore,
-    runner: sessions.runner,
-    sessionStore: sessions.store,
-    registry,
-    hub: sessions.hub,
-    home,
-  });
-  // runner ↔ scheduler 循环引用：runner 先建，turn 结束回调后绑定。
-  sessions.runner.setOnTurnSettled?.(todoScheduler.handleTurnSettled);
-
-  return { home, registry, ...sessions, todoStore, todoScheduler };
+  return { home, registry, ...sessions };
 }

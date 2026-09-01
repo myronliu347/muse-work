@@ -36,12 +36,10 @@ function apiStub() {
       ],
     }),
     getAgentScenarios: vi.fn().mockResolvedValue({
-      scenarios: {
-        session: "default",
-        todo: "plan",
-        task: "execute",
-        popo: "popo",
-      },
+        scenarios: {
+          session: "default",
+          popo: "popo",
+        },
     }),
   } as unknown as MuseApiClient;
 }

@@ -18,20 +18,16 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
   const {
     workdirState,
     sessionTree,
-    todoGroups,
     panes,
     rowHeights,
     focusedPaneId,
     setWorkdirState,
     setSessionTree,
-    setTodoGroups,
     setPanes,
   } = useDesktopShell();
 
   const sessionTreeRef = useRef(sessionTree);
   sessionTreeRef.current = sessionTree;
-  const todoGroupsRef = useRef(todoGroups);
-  todoGroupsRef.current = todoGroups;
 
   useEffect(() => {
     const prunePanels = () => {
@@ -40,12 +36,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         useDesktopStore.getState().workdirState?.workdir?.trim();
       if (currentWd) keep.add(currentWd);
       for (const g of sessionTreeRef.current) {
-        for (const s of g.sessions) {
-          if (s.workdir) keep.add(s.workdir);
-        }
-      }
-      // todo 会话已从 recent 移入 todoGroups，workdir 同样保留（否则面板被误裁剪）
-      for (const g of todoGroupsRef.current) {
         for (const s of g.sessions) {
           if (s.workdir) keep.add(s.workdir);
         }
@@ -69,7 +59,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
       } else if (message.command === "desktopSessionTree") {
         sessionTreeRef.current = message.groups ?? [];
         setSessionTree(sessionTreeRef.current);
-        setTodoGroups(message.todoGroups ?? []);
         prunePanels();
       } else if (message.command === "desktopPanes") {
         const nextPanes = message.panes ?? [];
@@ -172,7 +161,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         onSelectRecentWorkdir: handleSelectRecentWorkdir,
         onRemoveRecentWorkdir: handleRemoveRecentWorkdir,
         sessionTree,
-        todoGroups,
         onSelectSession: handleSelectSession,
         onDeleteSession: handleDeleteSession,
         onTogglePin: handleTogglePin,
