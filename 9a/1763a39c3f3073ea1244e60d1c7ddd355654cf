@@ -1,0 +1,30 @@
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  edcf4862225a79ee 16,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9a1763a39c3f3073ea1244e60d1c7ddd355654cf",
+  "prompts": {
+    "edcf4862225a79ee": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e29eb77d-f078-47e2-a784-e01d65fb56d6",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
