@@ -1,6 +1,14 @@
 import { Hono } from "hono";
+import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { HonoEnv } from "../honoEnv.js";
 import type { Issue, IssuePriority } from "../services/issueStore.js";
+import {
+  buildSystemPrompt,
+  resolveAgent,
+  resolvePermission,
+  resolveScenarioAgent,
+} from "../services/agentConfig.js";
+import { getLogger } from "../utils/logger.js";
 
 export const issuesRoutes = new Hono<HonoEnv>();
 
@@ -113,4 +121,97 @@ issuesRoutes.post("/issues/:id/cancel", (c) => {
   }
   broadcastIssueChanged(ctx);
   return c.json({ issue });
+});
+
+/** POST /issues/:id/planning-session — open or reuse planning session */
+issuesRoutes.post("/issues/:id/planning-session", async (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const existing = ctx.issueStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (isTerminal(existing.status)) {
+    return c.json({ error: "issue is terminal" }, 409);
+  }
+  if (existing.planningSessionId) {
+    return c.json({
+      sessionId: existing.planningSessionId,
+      workdir: existing.workdir,
+    });
+  }
+
+  let body: {
+    workdir?: string;
+    worktreeEnabled?: boolean;
+    baseBranch?: string;
+    worktreeName?: string;
+    worktreeBranch?: string;
+    worktreeRepoRoot?: string;
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+
+  const workdir =
+    typeof body.workdir === "string" ? body.workdir.trim() : "";
+  if (!workdir) {
+    return c.json({ error: "workdir required" }, 400);
+  }
+  const worktreeEnabled = Boolean(body.worktreeEnabled);
+
+  const agentKey = resolveScenarioAgent("issue-plan", ctx.home);
+  const agent = resolveAgent(agentKey, ctx.home);
+  const permission = resolvePermission(agent.permission);
+  const model = agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
+  if (!model) {
+    return c.json({ error: "no active model selected" }, 400);
+  }
+  const systemPrompt = buildSystemPrompt(agent);
+  const session = ctx.store.create({
+    workdir,
+    model,
+    title: existing.title,
+    worktreeName:
+      typeof body.worktreeName === "string" ? body.worktreeName : undefined,
+    worktreeBranch:
+      typeof body.worktreeBranch === "string" ? body.worktreeBranch : undefined,
+    baseBranch:
+      typeof body.baseBranch === "string" ? body.baseBranch : undefined,
+    worktreeRepoRoot:
+      typeof body.worktreeRepoRoot === "string"
+        ? body.worktreeRepoRoot
+        : undefined,
+    agentName: agent.key,
+    systemPrompt,
+    fastModel: agent.fastModel,
+    tools: agent.tools,
+    disallowedTools:
+      permission.disallowedTools.length > 0
+        ? permission.disallowedTools
+        : undefined,
+    allowedTools:
+      permission.allowedTools.length > 0 ? permission.allowedTools : undefined,
+  });
+  getLogger().info("issue planning session created", {
+    issueId: id,
+    sessionId: session.id,
+    workdir: session.workdir,
+    agentName: session.agentName,
+  });
+
+  const updated = ctx.issueStore.setPlanning(id, {
+    planningSessionId: session.id,
+    workdir,
+    worktreeEnabled,
+    baseBranch:
+      typeof body.baseBranch === "string" ? body.baseBranch : undefined,
+  });
+  if (!updated) {
+    return c.json({ error: "conflict" }, 409);
+  }
+  broadcastIssueChanged(ctx);
+  return c.json({ sessionId: session.id, workdir });
 });

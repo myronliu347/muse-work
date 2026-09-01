@@ -32,4 +32,31 @@ describe("issues HTTP", () => {
     const list2 = await fetch(`${app.baseUrl}/issues`).then((r) => r.json());
     expect(list2.issues.map((i: { id: string }) => i.id)).not.toContain(issue.id);
   });
+
+  it("POST planning-session creates one planning session and is idempotent", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "设计评审" }),
+    }).then((r) => r.json());
+    const res = await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+    });
+    expect(res.status).toBe(200);
+    const first = await res.json();
+    const session = app.ctx.store.get(first.sessionId);
+    expect(session?.agentName).toBe("plan");
+    expect(app.ctx.issueStore.get(issue.id)?.status).toBe("planning");
+    const second = await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/other", worktreeEnabled: false }),
+    }).then((r) => r.json());
+    expect(second.sessionId).toBe(first.sessionId);
+  });
 });

@@ -55,6 +55,8 @@ describe("agentConfig", () => {
     expect(scenarios.scenarios).toEqual({
       session: "default",
       popo: "popo",
+      "issue-plan": "plan",
+      "issue-exec": "execute",
     });
     // 已存在时不覆盖（文件为准）
     fs.writeFileSync(
@@ -109,6 +111,8 @@ describe("agentConfig", () => {
     expect(loadScenarios(home)).toEqual({
       session: "default",
       popo: "popo",
+      "issue-plan": "plan",
+      "issue-exec": "execute",
     });
     fs.writeFileSync(
       path.join(getMuseHomeDir(home), AGENT_SCENARIOS_FILE),
@@ -259,6 +263,8 @@ describe("agentConfig", () => {
     expect(resolved).toEqual({
       session: "default",
       popo: "popo",
+      "issue-plan": "plan",
+      "issue-exec": "execute",
     });
     // 引用不存在的 key → 抛错
     expect(() =>

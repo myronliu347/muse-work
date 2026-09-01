@@ -38,7 +38,12 @@ describe("MuseApiClient agent APIs", () => {
         fetches.push(`${init?.method ?? "GET"} ${url}`);
         return new Response(
           JSON.stringify({
-            scenarios: { session: "default", popo: "popo" },
+            scenarios: {
+              session: "default",
+              popo: "popo",
+              "issue-plan": "plan",
+              "issue-exec": "execute",
+            },
           }),
           { status: 200 },
         );
@@ -78,7 +83,12 @@ describe("MuseApiClient agent APIs", () => {
         fetches.push(`${init?.method ?? "GET"} ${url}`);
         return new Response(
           JSON.stringify({
-            scenarios: { session: "default", popo: "popo" },
+            scenarios: {
+              session: "default",
+              popo: "popo",
+              "issue-plan": "plan",
+              "issue-exec": "execute",
+            },
           }),
           { status: 200 },
         );

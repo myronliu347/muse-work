@@ -44,7 +44,7 @@ export interface MuseAgent {
 
 /** 场景 → agent key 映射。 */
 export interface MuseAgentScenarios {
-  scenarios: Record<"session" | "popo", string>;
+  scenarios: Record<"session" | "popo" | "issue-plan" | "issue-exec", string>;
 }
 
 export interface MuseCodeMakerQuota {
@@ -679,7 +679,7 @@ export class MuseApiClient {
 
   async putAgentScenarios(payload: {
     version?: number;
-    scenarios: Partial<Record<"session" | "popo", string>>;
+    scenarios: Partial<Record<"session" | "popo" | "issue-plan" | "issue-exec", string>>;
   }): Promise<MuseAgentScenarios> {
     const res = await this.request("/agents/scenarios", {
       method: "PUT",

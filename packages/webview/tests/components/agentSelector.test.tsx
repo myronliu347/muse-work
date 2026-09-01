@@ -39,6 +39,8 @@ function apiStub() {
         scenarios: {
           session: "default",
           popo: "popo",
+          "issue-plan": "plan",
+          "issue-exec": "execute",
         },
     }),
   } as unknown as MuseApiClient;

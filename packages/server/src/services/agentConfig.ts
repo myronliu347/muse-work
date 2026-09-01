@@ -22,11 +22,13 @@ export const AGENTS_FILE = "agents.json";
 export const AGENT_SCENARIOS_FILE = "agent-scenarios.json";
 
 /** 场景 key（agent-scenarios.json 的键）。 */
-export type AgentScenarioKey = "session" | "popo";
+export type AgentScenarioKey = "session" | "popo" | "issue-plan" | "issue-exec";
 
 export const AGENT_SCENARIO_KEYS: AgentScenarioKey[] = [
   "session",
   "popo",
+  "issue-plan",
+  "issue-exec",
 ];
 
 /** 性格 key（内置 10 选一；非法 key 回落 professional）。 */
@@ -131,7 +133,12 @@ export function defaultAgents(): Record<string, Agent> {
 
 /** 内置默认场景映射。 */
 export function defaultScenarios(): Record<AgentScenarioKey, string> {
-  return { session: "default", popo: "popo" };
+  return {
+    session: "default",
+    popo: "popo",
+    "issue-plan": "plan",
+    "issue-exec": "execute",
+  };
 }
 
 export function agentsConfigPath(home = os.homedir()): string {

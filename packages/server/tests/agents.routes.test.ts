@@ -51,6 +51,8 @@ describe("agents HTTP routes", () => {
     expect(body.scenarios).toEqual({
       session: "default",
       popo: "popo",
+      "issue-plan": "plan",
+      "issue-exec": "execute",
     });
   });
 
