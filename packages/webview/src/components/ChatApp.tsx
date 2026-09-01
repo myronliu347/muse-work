@@ -761,13 +761,21 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
         void popoApi
           .completeIssue(issueId)
           .then(refreshSessionTree)
-          .catch(() => {});
+          .catch((err) => {
+            window.alert(
+              err instanceof Error ? err.message : "完成 Issue 失败",
+            );
+          });
       },
       onCancelIssue: (issueId: string) => {
         void popoApi
           .cancelIssue(issueId)
           .then(refreshSessionTree)
-          .catch(() => {});
+          .catch((err) => {
+            window.alert(
+              err instanceof Error ? err.message : "取消 Issue 失败",
+            );
+          });
       },
     };
     const newIssueDialog = showNewIssue ? (

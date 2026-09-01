@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { MuseApiClient } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
@@ -27,6 +27,7 @@ export interface OpenPlanningDialogProps {
 }
 
 const NOT_GIT_HINT = "非 git 目录，开关无效，将直接在该目录执行";
+const WORKTREE_TIMEOUT_ERROR = "创建 worktree 超时";
 
 function isNotGitError(error: string): boolean {
   return /not a git repository|not a git repo|不是 git|非 git/i.test(error);
@@ -56,12 +57,41 @@ export function pickDirectoryViaHost(
 function createWorktreeViaHost(
   postToHost: PostToHost,
   opts: { workdir: string; baseBranch?: string },
+  signal?: AbortSignal,
 ): Promise<
   | { ok: true; worktree: WorktreeCreated }
-  | { ok: false; error: string }
+  | { ok: false; error: string; aborted?: boolean }
 > {
   const requestId = `wt_${Math.random().toString(36).slice(2, 10)}`;
   return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve({ ok: false, error: "aborted", aborted: true });
+      return;
+    }
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("message", onMessage);
+      signal?.removeEventListener("abort", onAbort);
+    };
+
+    const finish = (
+      result:
+        | { ok: true; worktree: WorktreeCreated }
+        | { ok: false; error: string; aborted?: boolean },
+    ) => {
+      cleanup();
+      resolve(result);
+    };
+
+    const onAbort = () => {
+      finish({ ok: false, error: "aborted", aborted: true });
+    };
+
+    const timer = window.setTimeout(() => {
+      finish({ ok: false, error: WORKTREE_TIMEOUT_ERROR });
+    }, PICK_DIRECTORY_TIMEOUT_MS);
+
     const onMessage = (event: MessageEvent) => {
       const msg = event.data as {
         command?: string;
@@ -75,9 +105,8 @@ function createWorktreeViaHost(
       };
       if (msg?.command !== "desktopWorktreeCreated") return;
       if (msg.requestId !== requestId) return;
-      window.removeEventListener("message", onMessage);
       if (typeof msg.error === "string" && msg.error) {
-        resolve({ ok: false, error: msg.error });
+        finish({ ok: false, error: msg.error });
         return;
       }
       if (
@@ -86,7 +115,7 @@ function createWorktreeViaHost(
         typeof msg.branch === "string" &&
         typeof msg.repoRoot === "string"
       ) {
-        resolve({
+        finish({
           ok: true,
           worktree: {
             name: msg.name,
@@ -99,8 +128,10 @@ function createWorktreeViaHost(
         });
         return;
       }
-      resolve({ ok: false, error: "创建 worktree 返回不完整" });
+      finish({ ok: false, error: "创建 worktree 返回不完整" });
     };
+
+    signal?.addEventListener("abort", onAbort);
     window.addEventListener("message", onMessage);
     postToHost({
       command: "desktopCreateWorktree",
@@ -128,22 +159,36 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
   const [baseBranch, setBaseBranch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    const ac = new AbortController();
+    abortRef.current = ac;
+    return () => {
+      cancelledRef.current = true;
+      ac.abort();
+      abortRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onCancel();
+        if (!submitting) onCancel();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
+  }, [onCancel, submitting]);
 
   const handlePick = async () => {
     setError(null);
     const pick = pickDirectory ?? (() => pickDirectoryViaHost(postToHost));
     const path = await pick();
+    if (cancelledRef.current) return;
     if (path) setWorkdir(path);
   };
 
@@ -162,10 +207,15 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
     let resolvedBase = branch;
 
     if (worktreeEnabled) {
-      const created = await createWorktreeViaHost(postToHost, {
-        workdir: path,
-        baseBranch: branch,
-      });
+      const created = await createWorktreeViaHost(
+        postToHost,
+        {
+          workdir: path,
+          baseBranch: branch,
+        },
+        abortRef.current?.signal,
+      );
+      if (cancelledRef.current || created.aborted) return;
       if (!created.ok) {
         if (isNotGitError(created.error)) {
           enabled = false;
@@ -193,8 +243,10 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
         ...(worktreeBranch ? { worktreeBranch } : {}),
         ...(worktreeRepoRoot ? { worktreeRepoRoot } : {}),
       });
+      if (cancelledRef.current) return;
       onOpened(result);
     } catch (err) {
+      if (cancelledRef.current) return;
       setError(err instanceof Error ? err.message : String(err));
       setSubmitting(false);
     }
