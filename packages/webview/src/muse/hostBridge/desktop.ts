@@ -1,4 +1,4 @@
-import { newId, postToWebview, showServerToast } from "./utils.js";
+import { allTreeSessions, newId, postToWebview, showServerToast } from "./utils.js";
 import type { BridgeCtx, WorkdirStatePatch } from "./ctx.js";
 
 export type DesktopCreateWorktreeMsg = {
@@ -111,7 +111,7 @@ export function createDesktopModule(ctx: BridgeCtx): DesktopModule {
       void (async () => {
         const ids = new Set<string>();
         if (ctx.sessionId && !ctx.pendingNewSession) ids.add(ctx.sessionId);
-        for (const s of [...ctx.pinned, ...ctx.recent]) {
+        for (const s of allTreeSessions(ctx)) {
           if (s.running) ids.add(s.id);
         }
         await ctx.handleAbortMessage();

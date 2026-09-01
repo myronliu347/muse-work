@@ -293,7 +293,7 @@ export function createIssueStore(
       issue.items = items.map((item) => ({ ...item }));
       issue.updatedAt = Date.now();
       persist();
-      return cloneIssue(issue);
+      return this.maybeEnterReview(id);
     },
 
     patchItem(id, itemId, patch): Issue | undefined {
@@ -313,7 +313,7 @@ export function createIssueStore(
       }
       issue.updatedAt = Date.now();
       persist();
-      return cloneIssue(issue);
+      return this.maybeEnterReview(id);
     },
 
     complete(id): Issue | undefined {

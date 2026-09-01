@@ -2407,6 +2407,48 @@ describe("createHostBridge reconnect", () => {
     expect(api.getMessages).toHaveBeenCalledWith("sess-active");
   });
 
+  it("keeps streaming when reconnected issue planning session is still running", async () => {
+    const planningSession = {
+      ...baseSession,
+      id: "sess-plan",
+      title: "修登录 · 规划",
+      status: "running" as const,
+    };
+    const { ws, emitStatus } = stubWsStatus();
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: "sess-plan",
+        issueGroups: [
+          {
+            issueId: "issue-1",
+            title: "修登录",
+            priority: "p1",
+            status: "planning",
+            items: [],
+            sessions: [planningSession],
+          },
+        ],
+      })),
+      selectSession: vi.fn(async (id: string) => ({
+        session: { ...planningSession, id },
+      })),
+    });
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    emitStatus("open");
+    messages.length = 0;
+    emitStatus("closed");
+    emitStatus("open");
+    await flush();
+
+    expect(messages).not.toContainEqual({ command: "endStreaming" });
+    expect(api.getMessages).toHaveBeenCalledWith("sess-plan");
+  });
+
   it("shows a persistent toast and stops streaming when the local server is dead", async () => {
     const { ws } = stubWsStatus();
     const api = stubApi();

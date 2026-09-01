@@ -13,6 +13,19 @@ export type TreeSession = MuseSession & {
   waitingConfirmation?: boolean;
 };
 
+/** pinned + recent + issueGroups sessions (Issue 会话已从 recent 拆出). */
+export function allTreeSessions<T>(source: {
+  pinned: T[];
+  recent: T[];
+  issueGroups?: Array<{ sessions: T[] }>;
+}): T[] {
+  return [
+    ...source.pinned,
+    ...source.recent,
+    ...(source.issueGroups ?? []).flatMap((g) => g.sessions),
+  ];
+}
+
 export function postToWebview(data: Record<string, unknown>): void {
   window.dispatchEvent(new MessageEvent("message", { data }));
 }

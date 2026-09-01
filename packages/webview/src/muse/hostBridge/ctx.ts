@@ -1,7 +1,7 @@
 import type { VsCodeApi } from "../../types";
 import type { MuseApiClient, MuseSession, MuseSessionsGrouped } from "../apiClient.js";
 import type { MuseWsClient, MuseWsEvent } from "../wsClient.js";
-import { postToWebview } from "./utils.js";
+import { allTreeSessions, postToWebview } from "./utils.js";
 import type { PendingPermission, TreeSession } from "./utils.js";
 
 export interface HostBridgeOptions {
@@ -197,8 +197,7 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
     publishAgentBusy(): void {
       const anyRunning =
         ctx.loading ||
-        ctx.pinned.some((s) => s.running) ||
-        ctx.recent.some((s) => s.running) ||
+        allTreeSessions(ctx).some((s) => s.running) ||
         [...ctx.runningWorkBySession.values()].some(
           (flags) => flags.tasks || flags.workflows,
         );

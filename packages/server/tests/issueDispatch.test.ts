@@ -120,4 +120,54 @@ describe("issueDispatch", () => {
     );
     fs.rmSync(home, { recursive: true, force: true });
   });
+
+  it("rolls item back to pending when sendMessage throws after inflight", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-throw-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    let fail = true;
+    const runner = {
+      sendMessage: async () => {
+        if (fail) throw new Error("send failed");
+        return { accepted: true as const };
+      },
+    };
+    const hub = { broadcastAll: () => {} };
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: runner as never,
+      hub: hub as never,
+    });
+    const issue = issues.create({ title: "回滚" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "回滚",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "第一项", status: "pending" },
+    ]);
+
+    await expect(dispatcher.dispatch(issue.id, "i1")).rejects.toThrow(
+      "send failed",
+    );
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "pending",
+    );
+
+    fail = false;
+    const second = await dispatcher.dispatch(issue.id, "i1");
+    expect(second.executionSessionId).toBeTruthy();
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "running",
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
 });

@@ -7,7 +7,7 @@ import { createBridgeCtx, type HostBridgeOptions } from "./ctx.js";
 import { createDesktopModule, type DesktopCreateWorktreeMsg } from "./desktop.js";
 import { createSessionModule } from "./session.js";
 import { createTasksModule } from "./tasks.js";
-import { postToWebview, showServerToast } from "./utils.js";
+import { allTreeSessions, postToWebview, showServerToast } from "./utils.js";
 import type { PendingPermission } from "./utils.js";
 
 export { buildSidebarModel, isAuthError } from "./utils.js";
@@ -73,15 +73,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const resyncAfterReconnect = async (): Promise<void> => {
     try {
       const grouped = await ctx.refreshTree();
+      const sessions = allTreeSessions(grouped);
       const runningIds = new Set(
-        [...grouped.pinned, ...grouped.recent]
-          .filter((s) => s.status === "running")
-          .map((s) => s.id),
+        sessions.filter((s) => s.status === "running").map((s) => s.id),
       );
       for (const id of [...ctx.pendingPermissions.keys()]) {
         if (!runningIds.has(id)) ctx.pendingPermissions.delete(id);
       }
-      for (const s of [...grouped.pinned, ...grouped.recent]) {
+      for (const s of sessions) {
         if (!runningIds.has(s.id)) {
           ctx.patchTreeSession(s.id, { waitingConfirmation: false });
         }

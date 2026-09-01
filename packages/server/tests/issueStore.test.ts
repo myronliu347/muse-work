@@ -21,6 +21,41 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("setItems with all done while executing enters review", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "t" });
+    store.setPlanning(issue.id, {
+      planningSessionId: "p",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+    });
+    store.markExecuting(issue.id);
+    store.setItems(issue.id, [{ id: "i1", content: "a", status: "done" }]);
+    expect(store.get(issue.id)?.status).toBe("review");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("patchItem to last done while executing enters review", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "t" });
+    store.setPlanning(issue.id, {
+      planningSessionId: "p",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+    });
+    store.markExecuting(issue.id);
+    store.setItems(issue.id, [
+      { id: "i1", content: "a", status: "done" },
+      { id: "i2", content: "b", status: "pending" },
+    ]);
+    expect(store.get(issue.id)?.status).toBe("executing");
+    store.patchItem(issue.id, "i2", { status: "done" });
+    expect(store.get(issue.id)?.status).toBe("review");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("maybeEnterReview stays review after items bounce", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });

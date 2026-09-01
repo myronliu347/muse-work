@@ -133,12 +133,18 @@ export function createIssueDispatcher(opts: {
     }
     issues.patchItem(issueId, itemId, { status: "running" });
     inflight.set(executionSessionId, { issueId, itemId });
-    await runner.sendMessage(
-      executionSessionId,
-      formatExecPrompt(item.content, prompt),
-      undefined,
-      "system-inject",
-    );
+    try {
+      await runner.sendMessage(
+        executionSessionId,
+        formatExecPrompt(item.content, prompt),
+        undefined,
+        "system-inject",
+      );
+    } catch (err) {
+      inflight.delete(executionSessionId);
+      issues.patchItem(issueId, itemId, { status: "pending" });
+      throw err;
+    }
     hub.broadcastAll({ type: "issue:changed" });
     return { executionSessionId };
   }
