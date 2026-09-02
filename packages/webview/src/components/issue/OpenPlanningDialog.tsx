@@ -16,6 +16,11 @@ export type WorktreeCreated = {
   repoRoot: string;
 };
 
+export type GitBranchesResult = {
+  branches: string[];
+  current: string | null;
+};
+
 export interface OpenPlanningDialogProps {
   issueId: string;
   api: MuseApiClient;
@@ -24,6 +29,8 @@ export interface OpenPlanningDialogProps {
   onCancel: () => void;
   /** Injectable for tests; default uses `desktopPickDirectory` (15s timeout). */
   pickDirectory?: () => Promise<string | null>;
+  /** Injectable for tests; default uses `desktopListGitBranches`. */
+  listBranches?: (workdir: string) => Promise<GitBranchesResult | null>;
 }
 
 const NOT_GIT_HINT = "非 git 目录，开关无效，将直接在该目录执行";
@@ -31,6 +38,33 @@ const WORKTREE_TIMEOUT_ERROR = "创建 worktree 超时";
 
 function isNotGitError(error: string): boolean {
   return /not a git repository|not a git repo|不是 git|非 git/i.test(error);
+}
+
+/** List git branches via Electron; timeout / non-git → null. */
+export function listBranchesViaHost(
+  postToHost: PostToHost,
+  workdir: string,
+): Promise<GitBranchesResult | null> {
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => {
+      window.removeEventListener("message", onMessage);
+      resolve(null);
+    }, PICK_DIRECTORY_TIMEOUT_MS);
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data as {
+        command?: string;
+        workdir?: string;
+        result?: GitBranchesResult | null;
+      };
+      if (msg?.command !== "desktopGitBranches") return;
+      if (msg.workdir && msg.workdir !== workdir) return;
+      window.clearTimeout(timer);
+      window.removeEventListener("message", onMessage);
+      resolve(msg.result ?? null);
+    };
+    window.addEventListener("message", onMessage);
+    postToHost({ command: "desktopListGitBranches", workdir });
+  });
 }
 
 /** Pick a directory via Electron; canceled/timeout → null. */
@@ -153,10 +187,12 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
   onOpened,
   onCancel,
   pickDirectory,
+  listBranches,
 }) => {
   const [workdir, setWorkdir] = useState("");
   const [worktreeEnabled, setWorktreeEnabled] = useState(false);
   const [baseBranch, setBaseBranch] = useState("");
+  const [gitBranches, setGitBranches] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cancelledRef = useRef(false);
@@ -189,8 +225,34 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
     const pick = pickDirectory ?? (() => pickDirectoryViaHost(postToHost));
     const path = await pick();
     if (cancelledRef.current) return;
-    if (path) setWorkdir(path);
+    if (path) {
+      setWorkdir(path);
+      setBaseBranch("");
+      setGitBranches([]);
+    }
   };
+
+  useEffect(() => {
+    const path = workdir.trim();
+    if (!path) {
+      setGitBranches([]);
+      return;
+    }
+    let cancelled = false;
+    const load = listBranches ?? ((wd: string) => listBranchesViaHost(postToHost, wd));
+    void load(path).then((result) => {
+      if (cancelled) return;
+      const branches = result?.branches ?? [];
+      setGitBranches(branches);
+      const preferred = result?.current || branches[0] || "";
+      if (preferred) {
+        setBaseBranch((prev) => prev || preferred);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workdir, listBranches, postToHost]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,52 +326,63 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
         aria-label="打开规划会话"
         onSubmit={handleSubmit}
       >
-        <div className="confirm-dialog-title">打开规划会话</div>
-        <label className="new-issue-field">
+        <div className="new-issue-dialog-head">
+          <div className="confirm-dialog-title">打开规划会话</div>
+          <p className="new-issue-dialog-lead">选定工作目录后再开始规划；改代码会派发到执行会话</p>
+        </div>
+        <div className="new-issue-field">
           <span className="new-issue-label">工作目录</span>
-          <div className="open-planning-workdir-row">
+          <button
+            type="button"
+            className={`open-planning-pick${workdir ? " has-path" : ""}`}
+            data-testid="open-planning-pick-directory"
+            onClick={() => void handlePick()}
+            disabled={submitting}
+          >
+            <span className="codicon codicon-folder" aria-hidden="true" />
             <span
               className="open-planning-workdir"
               data-testid="open-planning-workdir"
               title={workdir || undefined}
             >
-              {workdir || "未选择"}
+              {workdir || "选择项目目录…"}
             </span>
-            <button
-              type="button"
-              className="confirm-dialog-btn confirm-dialog-btn-cancel"
-              data-testid="open-planning-pick-directory"
-              onClick={() => void handlePick()}
-              disabled={submitting}
-            >
-              选择目录
-            </button>
-          </div>
-        </label>
-        <label className="open-planning-worktree-row">
-          <input
-            type="checkbox"
-            checked={worktreeEnabled}
-            onChange={(e) => setWorktreeEnabled(e.target.checked)}
-            data-testid="open-planning-worktree"
-            disabled={submitting}
-          />
-          <span>worktree 模式</span>
-        </label>
-        <p className="open-planning-hint">
-          非 git 目录时开关无效，将直接在该目录执行
-        </p>
-        {worktreeEnabled ? (
-          <label className="new-issue-field">
-            <span className="new-issue-label">baseBranch（可选）</span>
+          </button>
+        </div>
+        <label className="open-planning-switch-row">
+          <span className="open-planning-switch-copy">
+            <span className="open-planning-switch-title">独立 worktree</span>
+            <span className="open-planning-hint">
+              非 git 目录时开关无效，将直接在该目录执行
+            </span>
+          </span>
+          <span className="open-planning-switch">
             <input
-              className="new-issue-input"
+              type="checkbox"
+              checked={worktreeEnabled}
+              onChange={(e) => setWorktreeEnabled(e.target.checked)}
+              data-testid="open-planning-worktree"
+              disabled={submitting}
+            />
+            <span className="open-planning-switch-track" aria-hidden="true" />
+          </span>
+        </label>
+        {worktreeEnabled && gitBranches.length > 0 ? (
+          <label className="new-issue-field">
+            <span className="new-issue-label">基础分支</span>
+            <select
+              className="new-issue-input open-planning-branch-select"
               value={baseBranch}
               onChange={(e) => setBaseBranch(e.target.value)}
               data-testid="open-planning-base-branch"
-              placeholder="HEAD"
               disabled={submitting}
-            />
+            >
+              {gitBranches.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </select>
           </label>
         ) : null}
         {error ? (

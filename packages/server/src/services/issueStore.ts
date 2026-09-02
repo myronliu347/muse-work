@@ -75,6 +75,8 @@ export interface IssueStore {
   cancel(id: string): Issue | undefined;
   maybeEnterReview(id: string): Issue | undefined;
   markExecuting(id: string): Issue | undefined;
+  /** True when this session id is some Issue's planning session. */
+  hasPlanningSession(sessionId: string): boolean;
 }
 
 export interface CreateIssueStoreOptions {
@@ -82,6 +84,26 @@ export interface CreateIssueStoreOptions {
 }
 
 const PRIORITY_ORDER: Record<IssuePriority, number> = { p0: 0, p1: 1, p2: 2 };
+const KNOWN_STATUSES = new Set<IssueStatus>([
+  "pending",
+  "planning",
+  "executing",
+  "review",
+  "completed",
+  "cancelled",
+]);
+const KNOWN_PRIORITIES = new Set<IssuePriority>(["p0", "p1", "p2"]);
+
+function isKnownStatus(status: unknown): status is IssueStatus {
+  return typeof status === "string" && KNOWN_STATUSES.has(status as IssueStatus);
+}
+
+function normalizePriority(priority: unknown): IssuePriority {
+  return typeof priority === "string" &&
+    KNOWN_PRIORITIES.has(priority as IssuePriority)
+    ? (priority as IssuePriority)
+    : "p1";
+}
 
 function getIssuesIndexPath(home: string): string {
   return path.join(getMuseHomeDir(home), "db", "issues.json");
@@ -168,8 +190,12 @@ export function createIssueStore(
   const issues = new Map<string, Issue>();
 
   for (const record of file.issues) {
+    if (!record?.id || !record.title) continue;
     issues.set(record.id, {
       ...record,
+      title: record.title,
+      description: record.description ?? "",
+      priority: normalizePriority(record.priority),
       tags: normalizeTags(record.tags),
       items: record.items ?? [],
     });
@@ -215,7 +241,9 @@ export function createIssueStore(
 
     listActive(): Issue[] {
       return [...issues.values()]
-        .filter((issue) => !isTerminal(issue.status))
+        .filter(
+          (issue) => isKnownStatus(issue.status) && !isTerminal(issue.status),
+        )
         .sort((a, b) => {
           const priorityDiff =
             PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
@@ -373,6 +401,13 @@ export function createIssueStore(
         return cloneIssue(issue);
       }
       return undefined;
+    },
+
+    hasPlanningSession(sessionId): boolean {
+      for (const issue of issues.values()) {
+        if (issue.planningSessionId === sessionId) return true;
+      }
+      return false;
     },
   };
 }

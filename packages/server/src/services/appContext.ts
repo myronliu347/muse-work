@@ -54,6 +54,7 @@ export interface CreateSessionServicesOptions {
   createAgent?: CreateAgent;
   idleTtlMs?: number;
   loadSubagentMessages?: CreateAppContextOptions["loadSubagentMessages"];
+  isIssuePlanningSession?: (sessionId: string) => boolean;
 }
 
 export function createSessionServices(
@@ -69,6 +70,7 @@ export function createSessionServices(
     createAgent: options.createAgent,
     idleTtlMs: options.idleTtlMs,
     loadSubagentMessages: options.loadSubagentMessages,
+    isIssuePlanningSession: options.isIssuePlanningSession,
   });
   hub.setSnapshotProvider(() => runner.snapshotEvents());
   return { store, hub, runner };
@@ -101,14 +103,15 @@ export function createAppContext(
   });
 
   const registry = createProviderRegistry([codemaker, openai], home);
+  const issues = createIssueStore({ home });
   const sessions = createSessionServices({
     home,
     registry,
     createAgent: options?.createAgent,
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
+    isIssuePlanningSession: (sessionId) => issues.hasPlanningSession(sessionId),
   });
-  const issues = createIssueStore({ home });
   const dispatcher = createIssueDispatcher({
     issues,
     sessions: sessions.store,

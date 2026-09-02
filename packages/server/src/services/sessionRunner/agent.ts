@@ -5,6 +5,7 @@ import {
 import type { GatewayResolution } from "@muse-work/provider";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 import { resolveScenarioAgent } from "../agentConfig.js";
+import { planningCodeWriteDecision } from "../issuePlanning.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
 import { MUSE_IDENTITY_REV } from "../museSystemPrompt.js";
 import type { WsEvent } from "../wsHub.js";
@@ -601,6 +602,14 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
       },
       canUseTool: async (context) => {
+        if (options.isIssuePlanningSession?.(sessionId)) {
+          const toolInput =
+            context.toolInput && typeof context.toolInput === "object"
+              ? (context.toolInput as Record<string, unknown>)
+              : undefined;
+          const blocked = planningCodeWriteDecision(context.toolName, toolInput);
+          if (blocked) return blocked;
+        }
         if (
           store.get(sessionId)?.permissionMode === "bypassPermissions" &&
           context.toolName !== "AskUserQuestion"

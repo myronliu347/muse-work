@@ -13,6 +13,7 @@ import {
   resolveScenarioAgent,
 } from "../services/agentConfig.js";
 import { getLogger } from "../utils/logger.js";
+import { buildIssuePlanningExtra } from "../services/issuePlanning.js";
 
 export const issuesRoutes = new Hono<HonoEnv>();
 
@@ -173,7 +174,10 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
   if (!model) {
     return c.json({ error: "no active model selected" }, 400);
   }
-  const systemPrompt = buildSystemPrompt(agent);
+  const systemPrompt = buildSystemPrompt(
+    agent,
+    buildIssuePlanningExtra(existing),
+  );
   const session = ctx.store.create({
     workdir,
     model,

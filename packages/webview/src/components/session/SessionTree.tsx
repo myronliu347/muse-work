@@ -15,6 +15,13 @@ export const SESSION_DRAG_MIME = "application/x-wave-session";
 const dirName = (workdir: string): string =>
   workdir.split(/[\\/]/).filter(Boolean).pop() ?? workdir;
 
+const ISSUE_STATUS_LABEL: Record<string, string> = {
+  pending: "待规划",
+  planning: "规划中",
+  executing: "执行中",
+  review: "待审核",
+};
+
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().startsWith("MAC");
@@ -548,7 +555,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   const renderIssuesSection = () => {
     const open = !collapsedSections.has("issues");
     const groups = issueGroups ?? [];
-    const count = groups.reduce((sum, g) => sum + g.sessions.length, 0);
+    const count = groups.reduce(
+      (sum, g) => sum + (g.sessions?.length ?? 0),
+      0,
+    );
     return (
       <div
         className="desktop-session-section"
@@ -578,19 +588,26 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         })}
         <CollapsibleBody open={open}>
           {groups.length === 0 ? (
-            <div className="desktop-session-empty">无会话</div>
+            <div className="desktop-session-empty issue-sidebar-section-empty">
+              暂无 Issue
+            </div>
           ) : (
             <>
               {groups.map((group) => {
                 const collapsed = collapsedIssues.has(group.issueId);
+                const priority = group.priority || "p1";
+                const items = group.items ?? [];
+                const sessions = group.sessions ?? [];
+                const statusLabel =
+                  ISSUE_STATUS_LABEL[group.status] ?? group.status;
                 return (
                   <div
                     key={group.issueId}
-                    className="desktop-session-workdir-group"
+                    className="issue-sidebar-group"
                     data-testid={`desktop-session-issue-group-${group.issueId}`}
                   >
                     <div
-                      className="desktop-session-workdir-row"
+                      className="issue-sidebar-row"
                       onClick={() => toggleIssueCollapsed(group.issueId)}
                       data-testid={`desktop-session-issue-row-${group.issueId}`}
                     >
@@ -604,18 +621,22 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         />
                       </span>
                       <span
-                        className="desktop-session-workdir-label"
+                        className="issue-sidebar-title"
                         title={group.title}
                       >
                         {group.title}
                       </span>
+                      {statusLabel ? (
+                        <span
+                          className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
+                        >
+                          {statusLabel}
+                        </span>
+                      ) : null}
                       <span
-                        className={`issue-sidebar-priority issue-sidebar-priority-${group.priority}`}
+                        className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
                       >
-                        {group.priority.toUpperCase()}
-                      </span>
-                      <span className="desktop-session-count">
-                        {group.sessions.length}
+                        {priority.toUpperCase()}
                       </span>
                       {onCompleteIssue || onCancelIssue ? (
                         <button
@@ -640,24 +661,24 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       ) : null}
                     </div>
                     <CollapsibleBody open={!collapsed}>
-                      {group.items.length > 0 ? (
+                      {items.length > 0 ? (
                         <ul
                           className="issue-sidebar-checklist"
                           data-testid={`desktop-session-issue-checklist-${group.issueId}`}
                         >
-                          {group.items.map((item) => (
+                          {items.map((item) => (
                             <li
                               key={item.id}
-                              className="issue-sidebar-checklist-item"
+                              className={`issue-sidebar-checklist-item issue-sidebar-checklist-item--${item.status}`}
                             >
                               <span
-                                className={
-                                  item.status === "done"
-                                    ? "codicon codicon-check"
-                                    : "issue-sidebar-checklist-empty"
-                                }
+                                className={`issue-sidebar-check issue-sidebar-check--${item.status === "done" ? "done" : item.status === "running" ? "running" : "pending"}`}
                                 aria-hidden="true"
-                              />
+                              >
+                                {item.status === "done" ? (
+                                  <span className="codicon codicon-check" />
+                                ) : null}
+                              </span>
                               <span className="issue-sidebar-checklist-text">
                                 {item.content}
                               </span>
@@ -665,7 +686,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           ))}
                         </ul>
                       ) : null}
-                      {group.sessions.length === 0 ? (
+                      {sessions.length === 0 ? (
                         <div className="desktop-session-empty issue-sidebar-empty">
                           {onOpenPlanning ? (
                             <button
@@ -674,6 +695,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                               data-testid={`desktop-session-issue-open-planning-${group.issueId}`}
                               onClick={() => onOpenPlanning(group.issueId)}
                             >
+                              <span
+                                className="codicon codicon-play"
+                                aria-hidden="true"
+                              />
                               打开规划会话
                             </button>
                           ) : (
@@ -682,7 +707,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </div>
                       ) : (
                         <ul className="desktop-session-items desktop-session-items--nested">
-                          {group.sessions.map((session) =>
+                          {sessions.map((session) =>
                             renderSession(session, {
                               hideWorkdir: true,
                               // 待办事项（Issue 规划/执行）会话不允许置顶/删除

@@ -55,6 +55,8 @@ describe("issues HTTP", () => {
     const first = await res.json();
     const session = app.ctx.store.get(first.sessionId);
     expect(session?.agentName).toBe("plan");
+    expect(session?.systemPrompt).toContain(`Issue ID：${issue.id}`);
+    expect(session?.systemPrompt).toContain("禁止 Edit/Write 修改源码");
     expect(app.ctx.issueStore.get(issue.id)?.status).toBe("planning");
     const second = await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
       method: "POST",

@@ -688,6 +688,25 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(onOpenPlanning).toHaveBeenCalledWith("empty-1");
   });
 
+  it("renders leftover issue groups that omit priority without throwing", () => {
+    expect(() =>
+      renderSidebar({
+        issueGroups: [
+          {
+            issueId: "legacy-1",
+            title: "测试任务看板功能",
+            status: "reviewing",
+            items: [],
+            sessions: [],
+          } as DesktopIssueGroup,
+        ],
+      }),
+    ).not.toThrow();
+    expect(
+      screen.getByTestId("desktop-session-issue-group-legacy-1"),
+    ).toHaveTextContent("测试任务看板功能");
+  });
+
   it("shows complete and cancel in the issue group more menu", () => {
     renderSidebar({
       issueGroups: [issueGroup()],

@@ -206,4 +206,52 @@ describe("OpenPlanningDialog", () => {
     });
     expect(onOpened).not.toHaveBeenCalled();
   });
+
+  it("worktree 开启后基础分支从列表选择", async () => {
+    const api = mockApi();
+    const postToHost = vi.fn();
+    const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
+    const listBranches = vi.fn().mockResolvedValue({
+      branches: ["main", "dev"],
+      current: "main",
+    });
+
+    render(
+      <OpenPlanningDialog
+        issueId="issue-1"
+        api={api}
+        postToHost={postToHost}
+        pickDirectory={pickDirectory}
+        listBranches={listBranches}
+        onOpened={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("open-planning-pick-directory"));
+    await waitFor(() => {
+      expect(screen.getByTestId("open-planning-workdir")).toHaveTextContent(
+        "/repo/demo",
+      );
+    });
+    await waitFor(() => {
+      expect(listBranches).toHaveBeenCalledWith("/repo/demo");
+    });
+
+    fireEvent.click(screen.getByTestId("open-planning-worktree"));
+    const select = await screen.findByTestId("open-planning-base-branch");
+    expect(select).toHaveValue("main");
+    fireEvent.change(select, { target: { value: "dev" } });
+
+    fireEvent.click(screen.getByTestId("open-planning-submit"));
+    await waitFor(() => {
+      expect(postToHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "desktopCreateWorktree",
+          workdir: "/repo/demo",
+          baseBranch: "dev",
+        }),
+      );
+    });
+  });
 });

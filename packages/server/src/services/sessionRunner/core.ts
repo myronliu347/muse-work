@@ -280,7 +280,12 @@ export function createCore(ctx: RunnerContext): CoreLayer {
       markUnreadDoneIfInactive(sessionId);
       // interruptTurn(abort) calls markIdle directly while aborting is set;
       // SDK-driven loading=false settles are genuine turn ends.
-      ctx.onTurnSettled?.(sessionId, { ok: !aborting.has(sessionId) });
+      ctx.onTurnSettled?.(
+        sessionId,
+        aborting.has(sessionId)
+          ? { ok: false, error: "interrupted" }
+          : { ok: true },
+      );
     }
     scheduleIdleDestroy(sessionId);
   }

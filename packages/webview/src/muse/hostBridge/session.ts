@@ -57,7 +57,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         priority: g.priority,
         status: g.status,
         items: g.items,
-        sessions: g.sessions.map(toEntry),
+        sessions: (g.sessions ?? []).map(toEntry),
       })),
     });
     ctx.publishAgentBusy();
@@ -69,7 +69,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.recent = mergeRuntimeFields(grouped.recent, prev);
     ctx.issueGroups = (grouped.issueGroups ?? []).map((g) => ({
       ...g,
-      sessions: mergeRuntimeFields(g.sessions, prev),
+      sessions: mergeRuntimeFields(g.sessions ?? [], prev),
     }));
     emitSessionTree();
   };

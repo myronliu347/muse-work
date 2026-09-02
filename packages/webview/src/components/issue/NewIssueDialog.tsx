@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { MuseApiClient, MuseIssuePriority } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
@@ -20,9 +20,11 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<MuseIssuePriority>("p1");
-  const [tagsText, setTagsText] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagDraft, setTagDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,15 +44,17 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const tags = tagsText
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const pending = tagDraft.trim();
+      const nextTags = pending
+        ? tags.some((t) => t.toLowerCase() === pending.toLowerCase())
+          ? tags
+          : [...tags, pending]
+        : tags;
       await api.createIssue({
         title: trimmed,
         description: description.trim() || undefined,
         priority,
-        tags: tags.length > 0 ? tags : undefined,
+        tags: nextTags.length > 0 ? nextTags : undefined,
       });
       onCreated();
     } catch (err) {
@@ -71,7 +75,10 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
         aria-label="新建 Issue"
         onSubmit={handleSubmit}
       >
-        <div className="confirm-dialog-title">新建 Issue</div>
+        <div className="new-issue-dialog-head">
+          <div className="confirm-dialog-title">新建 Issue</div>
+          <p className="new-issue-dialog-lead">登记一件要做成的事，稍后打开规划会话</p>
+        </div>
         <label className="new-issue-field">
           <span className="new-issue-label">标题</span>
           <input
@@ -82,6 +89,7 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
             autoFocus
             required
             disabled={submitting}
+            placeholder="例如：修复登录校验"
           />
         </label>
         <label className="new-issue-field">
@@ -93,35 +101,100 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
             data-testid="new-issue-description"
             rows={3}
             disabled={submitting}
+            placeholder="可选，补充背景或验收标准"
           />
         </label>
         <fieldset className="new-issue-field new-issue-priority" disabled={submitting}>
           <legend className="new-issue-label">优先级</legend>
-          {(["p0", "p1", "p2"] as MuseIssuePriority[]).map((p) => (
-            <label key={p} className="new-issue-priority-option">
-              <input
-                type="radio"
-                name="new-issue-priority"
-                value={p}
-                checked={priority === p}
-                onChange={() => setPriority(p)}
-                data-testid={`new-issue-priority-${p}`}
-              />
-              {p.toUpperCase()}
-            </label>
-          ))}
+          <div className="new-issue-priority-chips">
+            {(
+              [
+                { id: "p0", name: "紧急" },
+                { id: "p1", name: "普通" },
+                { id: "p2", name: "较低" },
+              ] as const
+            ).map((p) => (
+              <label
+                key={p.id}
+                className={`new-issue-priority-chip new-issue-priority-chip-${p.id}${priority === p.id ? " is-selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="new-issue-priority"
+                  value={p.id}
+                  checked={priority === p.id}
+                  onChange={() => setPriority(p.id)}
+                  data-testid={`new-issue-priority-${p.id}`}
+                />
+                <span className="new-issue-priority-key">{p.id.toUpperCase()}</span>
+                <span className="new-issue-priority-name">{p.name}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
-        <label className="new-issue-field">
-          <span className="new-issue-label">标签（逗号分隔）</span>
-          <input
-            className="new-issue-input"
-            value={tagsText}
-            onChange={(e) => setTagsText(e.target.value)}
-            data-testid="new-issue-tags"
-            placeholder="bug, frontend"
-            disabled={submitting}
-          />
-        </label>
+        <div className="new-issue-field">
+          <span className="new-issue-label">标签</span>
+          <div
+            className="new-issue-chips"
+            onClick={() => tagInputRef.current?.focus()}
+          >
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="new-issue-chip"
+                data-testid={`new-issue-tag-${tag}`}
+              >
+                {tag}
+                <button
+                  type="button"
+                  className="new-issue-chip-remove"
+                  aria-label={`移除 ${tag}`}
+                  disabled={submitting}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTags((prev) => prev.filter((t) => t !== tag));
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <input
+              ref={tagInputRef}
+              className="new-issue-chip-input"
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  const next = tagDraft.trim().replace(/,$/, "");
+                  if (
+                    next &&
+                    !tags.some((t) => t.toLowerCase() === next.toLowerCase())
+                  ) {
+                    setTags((prev) => [...prev, next]);
+                  }
+                  setTagDraft("");
+                } else if (e.key === "Backspace" && !tagDraft && tags.length) {
+                  setTags((prev) => prev.slice(0, -1));
+                }
+              }}
+              onBlur={() => {
+                const next = tagDraft.trim();
+                if (
+                  next &&
+                  !tags.some((t) => t.toLowerCase() === next.toLowerCase())
+                ) {
+                  setTags((prev) => [...prev, next]);
+                }
+                setTagDraft("");
+              }}
+              data-testid="new-issue-tags"
+              placeholder={tags.length === 0 ? "输入后回车添加" : ""}
+              disabled={submitting}
+            />
+          </div>
+        </div>
         {error ? (
           <div className="new-issue-error" data-testid="new-issue-error">
             {error}

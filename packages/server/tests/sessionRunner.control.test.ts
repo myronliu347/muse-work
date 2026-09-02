@@ -620,4 +620,51 @@ describe("sessionRunner control plane", () => {
     expect(captured?.disallowedTools).toBeUndefined();
     expect(captured?.allowedTools).toBeUndefined();
   });
+
+  it("planning session denies Write/Edit on source even in bypassPermissions", async () => {
+    const { store, hub, registry, home: dir } = setup();
+    type ToolCtx = {
+      toolName: string;
+      toolInput?: Record<string, unknown>;
+    };
+    let canUseTool:
+      | ((context: ToolCtx) => Promise<{ behavior: string; message?: string }>)
+      | undefined;
+    const planningIds = new Set<string>();
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home: dir,
+      idleTtlMs: 60_000,
+      isIssuePlanningSession: (id) => planningIds.has(id),
+      createAgent: async (opts) => {
+        canUseTool = opts.canUseTool as typeof canUseTool;
+        return stubAgent();
+      },
+    });
+    const session = store.create({
+      workdir: dir,
+      model: "m1",
+      permissionMode: "bypassPermissions",
+    });
+    planningIds.add(session.id);
+    await runner.sendMessage(session.id, "hi");
+    await expect.poll(() => canUseTool).toBeTruthy();
+    const denied = await canUseTool!({
+      toolName: "Write",
+      toolInput: { path: "src/App.vue" },
+    });
+    expect(denied.behavior).toBe("deny");
+    const docs = await canUseTool!({
+      toolName: "Write",
+      toolInput: { path: "docs/plan.md" },
+    });
+    expect(docs.behavior).toBe("allow");
+    const read = await canUseTool!({
+      toolName: "Read",
+      toolInput: { path: "src/App.vue" },
+    });
+    expect(read.behavior).toBe("allow");
+  });
 });

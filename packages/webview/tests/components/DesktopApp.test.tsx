@@ -85,4 +85,33 @@ describe("DesktopApp host → sidebar 会话树", () => {
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P2");
   });
+
+  it("desktopSessionTree 缺少 priority 的遗留 Issue 不白屏", () => {
+    const vscode = mockVscode();
+    render(<DesktopApp vscode={vscode} />);
+
+    postToWindow({
+      command: "desktopWorkdirState",
+      workdir: "/tmp/proj",
+      recentWorkdirs: ["/tmp/proj"],
+      host: "local",
+    });
+    postToWindow({
+      command: "desktopSessionTree",
+      groups: [],
+      issueGroups: [
+        {
+          issueId: "legacy-1",
+          title: "测试任务看板功能",
+          status: "reviewing",
+          items: [],
+          sessions: [],
+        },
+      ],
+    });
+
+    expect(screen.getByTestId("desktop-session-section-issues")).toHaveTextContent(
+      "测试任务看板功能",
+    );
+  });
 });
