@@ -1,0 +1,58 @@
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 142-146,249,253-255,258-259,406,431,433-434,436-440,442,445-460,464,475-478,499-509
+packages/webview/src/components/session/SessionTree.tsx
+  b269e5c36bd23fae 644-651,653,655,657-677,680,909
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  b269e5c36bd23fae 199
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  b269e5c36bd23fae 212-217,220-242
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  b269e5c36bd23fae 271-286,684-699
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1f31583566bba2d059f967ae2d13ec4ff344cdf8",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 194,
+      "total_deletions": 82,
+      "accepted_lines": 155,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 54,
+          "deletions": 22,
+          "accepted_lines": 32
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 75,
+          "deletions": 27,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 33,
+          "deletions": 31,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
