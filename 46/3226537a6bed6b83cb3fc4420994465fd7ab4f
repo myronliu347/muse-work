@@ -1,0 +1,119 @@
+packages/server/src/services/issuePlanning.ts
+  442440ce7046c502 16-60,96-98,100-102
+packages/server/src/routes/issues.ts
+  442440ce7046c502 4,52,59-68,70,76-78,241-275,277,288,294,297,299,303,305,313-341,344-374
+packages/server/tests/issueStore.test.ts
+  442440ce7046c502 37-38,96-147
+packages/server/src/services/issueDispatch.ts
+  442440ce7046c502 150,185,191-210,224,251-252,322-333,342,360-420,427,431-432
+packages/server/tests/issues.routes.test.ts
+  442440ce7046c502 40-60,80,119-130
+packages/server/src/services/issueStore.ts
+  442440ce7046c502 69-74,86,334-394,475-478,480,482
+packages/server/tests/issueDispatch.test.ts
+  442440ce7046c502 9,15,20-23,27,29-30,62,66-79,171-172,175-178,184,186-187,334,443-515,518-616
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 3,14,16-19,23,25-32,42,44-46,52
+packages/server/tests/sessionRunner.control.test.ts
+  442440ce7046c502 668-677
+docs/superpowers/specs/2026-09-01-issue-design.md
+  442440ce7046c502 59,84,88,90-91,94,105
+packages/server/tests/issuePlanning.test.ts
+  442440ce7046c502 6,34-49,60,62,65
+packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs
+  442440ce7046c502 38,40-43,105-122,143-149,152-173,177,179,182,190
+CONTEXT.md
+  442440ce7046c502 12,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "463226537a6bed6b83cb3fc4420994465fd7ab4f",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 789,
+      "total_deletions": 220,
+      "accepted_lines": 767,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 26,
+          "deletions": 19,
+          "accepted_lines": 20
+        },
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 212,
+          "deletions": 10,
+          "accepted_lines": 211
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "deletions": 70
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 74,
+          "deletions": 2,
+          "accepted_lines": 74
+        },
+        "CONTEXT.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 51,
+          "deletions": 18,
+          "accepted_lines": 51
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 107,
+          "deletions": 11,
+          "accepted_lines": 106
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 131,
+          "deletions": 29,
+          "accepted_lines": 122
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 34,
+          "deletions": 2,
+          "accepted_lines": 34
+        },
+        "docs/superpowers/specs/2026-09-01-issue-design.md": {
+          "additions": 8,
+          "deletions": 8,
+          "accepted_lines": 7
+        },
+        "packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs": {
+          "additions": 58,
+          "deletions": 18,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "deletions": 26
+        }
+      }
+    }
+  }
+}
