@@ -196,7 +196,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           ))}
           {showFileTabs &&
             fileTabs.map((tab) => {
-              const isActive = tab.path === activeFilePath;
+              const isActive = active === "file" && tab.path === activeFilePath;
               const name =
                 tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
               return (

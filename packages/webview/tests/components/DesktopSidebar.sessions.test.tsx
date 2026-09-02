@@ -268,6 +268,22 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
+  it("clips closed section bodies so nested workdir lists do not add header gap", () => {
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/DesktopApp.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.desktop-session-collapse--closed\s*\{[^}]*height:\s*0/s,
+    );
+    expect(css).toMatch(
+      /\.desktop-session-tree\s*\{[^}]*gap:\s*var\(--space-2\)/s,
+    );
+    expect(css).toMatch(
+      /\.desktop-session-tree\s*\{[^}]*padding:\s*calc\(var\(--space-1\)\s*\+\s*var\(--space-2\)\)/s,
+    );
+  });
+
   it("keeps space between workdir folder icon and name", () => {
     const css = fs.readFileSync(
       path.join(__dirname, "../../src/styles/DesktopApp.css"),
@@ -663,6 +679,22 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
     expect(pinIdx).toBeLessThan(issuesIdx);
     expect(issuesIdx).toBeLessThan(tasksIdx);
+  });
+
+  it("overlays issue status/more on hover so the title does not reflow", () => {
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/DesktopApp.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.issue-sidebar-title\s*\{[^}]*-webkit-line-clamp:\s*2/s,
+    );
+    expect(css).toMatch(
+      /\.issue-sidebar-meta\s*\{[^}]*position:\s*absolute/s,
+    );
+    expect(css).toMatch(
+      /\.issue-sidebar-status\s*\{[^}]*display:\s*none/s,
+    );
   });
 
   it("hides pin/delete on issue sessions and offers open-planning when empty", () => {

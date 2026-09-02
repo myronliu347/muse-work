@@ -139,11 +139,11 @@
 .desktop-session-tree {
   flex: 1;
   overflow-y: auto;
-  padding: 0 var(--space-2) var(--space-2);
-}
-
-.desktop-session-section + .desktop-session-section {
-  margin-top: var(--space-2);
+  /* Top pad = section gap + header padding, so 置顶↔分割线 equals 置顶↔下一组标题 */
+  padding: calc(var(--space-1) + var(--space-2)) var(--space-2) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .desktop-session-section-header {
@@ -246,11 +246,17 @@
 .desktop-session-collapse {
   display: grid;
   grid-template-rows: 1fr;
+  min-height: 0;
   transition: grid-template-rows 0.22s ease;
 }
 
+/* Closed sections must not keep layout height. Nested workdir/issue lists
+   stay `1fr` while open; 0fr alone still min-sizes to that content, which
+   showed up as extra gap before the next header (工作空间 → POPO). */
 .desktop-session-collapse--closed {
   grid-template-rows: 0fr;
+  height: 0;
+  overflow: hidden;
 }
 
 .desktop-session-collapse-inner {
@@ -397,6 +403,7 @@
 }
 
 .issue-sidebar-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -421,16 +428,40 @@
 }
 
 .issue-sidebar-title {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  /* Leave a slot for the always-visible P2 badge; hover meta overlays. */
+  padding-right: 28px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  word-break: break-word;
   font-weight: 500;
+  line-height: 1.3;
+}
+
+.issue-sidebar-meta {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: calc(100% - 36px);
+  padding-left: var(--space-2);
+  background: transparent;
+  pointer-events: none;
+}
+
+.issue-sidebar-row:hover .issue-sidebar-meta {
+  background: var(--gray-4);
 }
 
 .issue-sidebar-status {
-  flex-shrink: 0;
+  display: none;
   max-width: 52px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -439,6 +470,10 @@
   font-size: 10px;
   font-weight: 500;
   line-height: 16px;
+}
+
+.issue-sidebar-row:hover .issue-sidebar-status {
+  display: block;
 }
 
 .issue-sidebar-status-executing {
@@ -459,6 +494,19 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 16px;
+}
+
+.issue-sidebar-row .issue-sidebar-more {
+  pointer-events: auto;
+  width: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.issue-sidebar-row:hover .issue-sidebar-meta .issue-sidebar-more {
+  width: 20px;
 }
 
 .issue-sidebar-priority-p0 {

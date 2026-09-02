@@ -209,7 +209,37 @@ describe("DesktopPanelDock", () => {
       );
       expect(screen.getAllByTestId("file-tab")).toHaveLength(2);
       expect(screen.queryByTestId("desktop-panel-tab-file")).toBeNull();
-      expect(screen.getByTestId("desktop-panel-tab-preview")).toBeInTheDocument();
+      expect(screen.getByTestId("desktop-panel-tab-preview")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(
+        screen.getAllByTestId("file-tab").every((el) => el.getAttribute("data-active") === "false"),
+      ).toBe(true);
+    });
+
+    it("does not highlight a file tab while 终端 is the active panel", () => {
+      render(
+        <MuseTheme>
+          <DesktopPanelDock
+            {...baseProps}
+            checked={["diff", "terminal", "file"]}
+            active="terminal"
+            fileTabs={tabs}
+            activeFilePath="/w/app.ts"
+          >
+            <div>body</div>
+          </DesktopPanelDock>
+        </MuseTheme>,
+      );
+      expect(screen.getByTestId("desktop-panel-tab-terminal")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(screen.getByTestId("desktop-panel-tab-diff")).not.toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      const fileTabEls = screen.getAllByTestId("file-tab");
+      expect(fileTabEls[0]).toHaveAttribute("data-active", "false");
+      expect(fileTabEls[0]).not.toHaveClass("file-tab--active");
     });
 
     it("styles preview tabs italic and shows a close button on every tab", () => {

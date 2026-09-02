@@ -641,41 +641,43 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       >
                         {group.title}
                       </span>
-                      {statusLabel ? (
-                        <span
-                          className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
-                        >
-                          {statusLabel}
-                        </span>
-                      ) : null}
-                      <span
-                        className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
-                      >
-                        {priority.toUpperCase()}
-                      </span>
-                      {onCompleteIssue || onCancelIssue ? (
-                        <button
-                          type="button"
-                          className="desktop-session-workdir-add issue-sidebar-more"
-                          data-testid={`desktop-session-issue-more-${group.issueId}`}
-                          aria-label="更多"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIssueMenu({
-                              x: e.clientX,
-                              y: e.clientY,
-                              issueId: group.issueId,
-                            });
-                          }}
-                        >
+                      <span className="issue-sidebar-meta">
+                        {statusLabel ? (
                           <span
-                            className="codicon codicon-ellipsis"
-                            aria-hidden="true"
-                          />
-                        </button>
-                      ) : null}
+                            className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
+                          >
+                            {statusLabel}
+                          </span>
+                        ) : null}
+                        <span
+                          className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
+                        >
+                          {priority.toUpperCase()}
+                        </span>
+                        {onCompleteIssue || onCancelIssue ? (
+                          <button
+                            type="button"
+                            className="desktop-session-workdir-add issue-sidebar-more"
+                            data-testid={`desktop-session-issue-more-${group.issueId}`}
+                            aria-label="更多"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIssueMenu({
+                                x: e.clientX,
+                                y: e.clientY,
+                                issueId: group.issueId,
+                              });
+                            }}
+                          >
+                            <span
+                              className="codicon codicon-ellipsis"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        ) : null}
+                      </span>
                     </div>
-                    <CollapsibleBody open={!collapsed}>
+                    <CollapsibleBody open={open && !collapsed}>
                       {sessions.length === 0 ? (
                         <div className="desktop-session-empty issue-sidebar-empty">
                           {onOpenPlanning ? (
@@ -904,7 +906,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </Tooltip>
                       ) : null}
                     </div>
-                    <CollapsibleBody open={!collapsed}>
+                    <CollapsibleBody open={open && !collapsed}>
                       <ul className="desktop-session-items desktop-session-items--nested">
                         {group.sessions.map((session) =>
                           renderSession(session, { hideWorkdir: true }),
