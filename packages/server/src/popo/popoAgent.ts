@@ -252,7 +252,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       residentAgents.set(chat.chatKey, created.agent);
       residentIdentities.set(chat.chatKey, created.identity);
       const runner: PopoAgentRunner = {
-        run: (content) =>
+        run: (content: string) =>
           serialized(chat.chatKey, async () => {
             await refreshResidentAgent(chat, agentBox);
             return runTurn(agentBox.current, chat, content);
@@ -265,7 +265,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
           }).then(() => undefined),
         // 不走 serialized 串行链：SDK askBtw 是旁路 fork，不打断主 turn，
         // 基于当前上下文实时回答（无工具、不写消息、不落盘）。
-        askBtw: (question) =>
+        askBtw: (question: string) =>
           agentBox.current.askBtw?.(question) ?? Promise.resolve(TEAM_BTW_IDLE),
       };
       residentRunners.set(chat.chatKey, runner);
@@ -277,12 +277,12 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     // askBtw：问「正在处理消息的 agent」实时进度；无正在处理的消息则返回提示。
     return {
       clear: async () => undefined,
-      askBtw: async (question) => {
+      askBtw: async (question: string) => {
         const agent = activeAgents.get(chat.chatKey);
         if (!agent) return TEAM_BTW_IDLE;
         return agent.askBtw?.(question) ?? TEAM_BTW_IDLE;
       },
-      run: (content) =>
+      run: (content: string) =>
         serialized(chat.chatKey, async () => {
           const { agent } = await createSdkAgent(chat);
           activeAgents.set(chat.chatKey, agent);
