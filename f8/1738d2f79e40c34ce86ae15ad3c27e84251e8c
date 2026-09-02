@@ -1,0 +1,26 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f81738d2f79e40c34ce86ae15ad3c27e84251e8c",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 15,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/issueStore.ts": {
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
