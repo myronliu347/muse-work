@@ -1,0 +1,57 @@
+packages/webview/src/styles/UserMessageNav.css
+  442440ce7046c502 3,11-13,21-23
+packages/webview/src/styles/DesktopApp.css
+  442440ce7046c502 1293
+packages/webview/src/styles/MessageList.css
+  442440ce7046c502 5,10-11,21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "90eff4e7b50d88981f8e7ed306feed5c79338f80",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 21,
+      "total_deletions": 9,
+      "accepted_lines": 19,
+      "overriden_lines": 2,
+      "per_file_stats": {
+        "packages/webview/src/styles/UserMessageNav.css": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/DiffViewer.css": {
+          "additions": 3,
+          "deletions": 2,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
