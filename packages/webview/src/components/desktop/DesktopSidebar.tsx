@@ -92,6 +92,7 @@ export interface DesktopSidebarProps {
   popoChats?: PopoChatSummary[];
   selectedPopoChatKey?: string | null;
   onSelectPopoChat?: (chatKey: string) => void;
+  onDeletePopoChat?: (chatKey: string) => void;
   /** 当前高亮的菜单项（选中态） */
   activeMenu?: "newChat";
 }
@@ -128,6 +129,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   popoChats,
   selectedPopoChatKey,
   onSelectPopoChat,
+  onDeletePopoChat,
   activeMenu,
 }) => {
   return (
@@ -181,6 +183,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         popoChats={popoChats}
         selectedPopoChatKey={selectedPopoChatKey}
         onSelectPopoChat={onSelectPopoChat}
+        onDeletePopoChat={onDeletePopoChat}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

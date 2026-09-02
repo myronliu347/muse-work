@@ -79,4 +79,21 @@ describe("popo chatStore", () => {
     const store = createChatStore({ home: tempHome() });
     expect(() => store.clearMessages("p2p:nobody@corp.netease.com")).not.toThrow();
   });
+
+  it("deleteChat removes the chat and persists", () => {
+    const home = tempHome();
+    const store = createChatStore({ home });
+    store.getOrCreateChat("p2p:me@corp.netease.com", "p2p", "me@corp.netease.com");
+    store.appendMessage("p2p:me@corp.netease.com", { role: "user", content: "hi", at: "t1" });
+    expect(store.deleteChat("p2p:me@corp.netease.com")).toBe(true);
+    expect(store.getChat("p2p:me@corp.netease.com")).toBeUndefined();
+    expect(store.listChats()).toEqual([]);
+    const reloaded = createChatStore({ home });
+    expect(reloaded.getChat("p2p:me@corp.netease.com")).toBeUndefined();
+  });
+
+  it("deleteChat returns false for a missing chat", () => {
+    const store = createChatStore({ home: tempHome() });
+    expect(store.deleteChat("p2p:nobody@corp.netease.com")).toBe(false);
+  });
 });

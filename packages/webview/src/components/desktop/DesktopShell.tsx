@@ -663,6 +663,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         popoChats={popoUi.chats}
         selectedPopoChatKey={popoUi.selectedChatKey}
         onSelectPopoChat={popoUi.selectChat}
+        onDeletePopoChat={(chatKey) => {
+          void popoUi.deleteChat(chatKey).catch((err) => {
+            window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
+          });
+        }}
       />
       <div
         className="desktop-pane-rows"

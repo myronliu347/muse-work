@@ -856,4 +856,11 @@ export class MuseApiClient {
     const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`);
     return parseJson(res);
   }
+
+  async deletePopoChat(chatKey: string): Promise<{ ok: true }> {
+    const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`, {
+      method: "DELETE",
+    });
+    return parseJson(res);
+  }
 }

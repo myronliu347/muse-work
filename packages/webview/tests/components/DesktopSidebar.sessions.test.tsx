@@ -833,15 +833,31 @@ describe("DesktopSidebar popo section", () => {
     expect(row.querySelector(".codicon-loading")).not.toBeNull();
   });
 
-  it("calls onSelectPopoChat on click and has no pin/delete actions", async () => {
+  it("calls onSelectPopoChat on click and has no pin action", async () => {
     const user = userEvent.setup();
     const onSelectPopoChat = vi.fn();
     renderSidebar({ popoChats: chats, onSelectPopoChat });
     await user.click(screen.getByTestId("desktop-popo-item-team:1696900"));
     expect(onSelectPopoChat).toHaveBeenCalledWith("team:1696900");
     expect(
-      screen.getByTestId("desktop-popo-item-team:1696900").querySelector(".desktop-session-actions"),
+      screen.queryByTestId("desktop-session-pin-team:1696900"),
     ).toBeNull();
+    expect(
+      screen.getByTestId("desktop-popo-delete-team:1696900"),
+    ).toBeInTheDocument();
+  });
+
+  it("confirms before calling onDeletePopoChat", async () => {
+    const user = userEvent.setup();
+    const onDeletePopoChat = vi.fn();
+    const onSelectPopoChat = vi.fn();
+    renderSidebar({ popoChats: chats, onDeletePopoChat, onSelectPopoChat });
+    await user.click(screen.getByTestId("desktop-popo-delete-team:1696900"));
+    expect(onSelectPopoChat).not.toHaveBeenCalled();
+    expect(onDeletePopoChat).not.toHaveBeenCalled();
+    expect(screen.getByTestId("confirm-dialog-overlay")).toBeInTheDocument();
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
+    expect(onDeletePopoChat).toHaveBeenCalledWith("team:1696900");
   });
 
   it("highlights the 新对话 menu item when active", () => {

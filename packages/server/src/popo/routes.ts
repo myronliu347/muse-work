@@ -69,5 +69,14 @@ export function createPopoRoutes(runtime: PopoRuntime, options?: PopoRoutesOptio
     return c.json({ chat: { ...chat, processing: chat.processing ?? false }, messages });
   });
 
+  app.delete("/popo/chats/:chatKey", async (c) => {
+    const chatKey = decodeURIComponent(c.req.param("chatKey"));
+    if (!runtime.chatStore?.deleteChat(chatKey)) {
+      return c.json({ error: "chat not found" }, 404);
+    }
+    await runtime.disposeChat?.(chatKey);
+    return c.json({ ok: true });
+  });
+
   return app;
 }

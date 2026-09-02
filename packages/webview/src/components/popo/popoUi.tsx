@@ -16,6 +16,7 @@ export interface PopoUiValue {
   chats: PopoChatSummary[];
   selectedChatKey: string | null;
   selectChat: (chatKey: string | null) => void;
+  deleteChat: (chatKey: string) => Promise<void>;
 }
 
 const PopoUiContext = createContext<PopoUiValue | null>(null);
@@ -57,14 +58,24 @@ export function PopoUiProvider({
     return () => clearInterval(timer);
   }, [enabled, anyProcessing, refreshChats]);
 
+  const deleteChat = useCallback(
+    async (chatKey: string) => {
+      await api.deletePopoChat(chatKey);
+      setSelectedChatKey((current) => (current === chatKey ? null : current));
+      await refreshChats();
+    },
+    [api, refreshChats],
+  );
+
   const value = useMemo<PopoUiValue>(
     () => ({
       enabled,
       chats,
       selectedChatKey,
       selectChat: setSelectedChatKey,
+      deleteChat,
     }),
-    [enabled, chats, selectedChatKey],
+    [enabled, chats, selectedChatKey, deleteChat],
   );
 
   return (
@@ -77,6 +88,7 @@ const EMPTY: PopoUiValue = {
   chats: [],
   selectedChatKey: null,
   selectChat: () => undefined,
+  deleteChat: async () => undefined,
 };
 
 export function usePopoUi(): PopoUiValue {

@@ -148,4 +148,16 @@ describe("popo routes", () => {
     const detailRes = await app.fetch(new Request("http://x/popo/chats/p2p%3Amaster%40corp.netease.com"));
     expect(detailRes.status).toBe(404);
   });
+
+  it("DELETE /popo/chats/:chatKey removes the chat", async () => {
+    const rt = runtime();
+    const app = createPopoRoutes(rt);
+    const chatKey = "p2p%3Amaster%40corp.netease.com";
+    const res = await app.fetch(new Request(`http://x/popo/chats/${chatKey}`, { method: "DELETE" }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(rt.chatStore.getChat("p2p:master@corp.netease.com")).toBeUndefined();
+    const missing = await app.fetch(new Request(`http://x/popo/chats/${chatKey}`, { method: "DELETE" }));
+    expect(missing.status).toBe(404);
+  });
 });

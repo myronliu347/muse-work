@@ -887,6 +887,11 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             popoUi.selectChat(chatKey);
             setView("popo-chat");
           }}
+          onDeletePopoChat={(chatKey) => {
+            void popoUi.deleteChat(chatKey).catch((err) => {
+              window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
+            });
+          }}
           activeMenu={
             view === "newChat" || showNewSessionPage ? "newChat" : undefined
           }

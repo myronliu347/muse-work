@@ -155,6 +155,7 @@ export interface SessionTreeProps {
   popoChats?: PopoChatSummary[];
   selectedPopoChatKey?: string | null;
   onSelectPopoChat?: (chatKey: string) => void;
+  onDeletePopoChat?: (chatKey: string) => void;
 }
 
 function CollapsibleBody({
@@ -202,11 +203,16 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   popoChats,
   selectedPopoChatKey,
   onSelectPopoChat,
+  onDeletePopoChat,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
     title: string;
     description?: string;
+  } | null>(null);
+  const [pendingPopoDelete, setPendingPopoDelete] = useState<{
+    chatKey: string;
+    title: string;
   } | null>(null);
   const [pendingIssueAction, setPendingIssueAction] = useState<{
     issueId: string;
@@ -762,6 +768,25 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       <span className="desktop-session-active-at">
                         {formatRelativeActiveAt(chat.updatedAt)}
                       </span>
+                      <span className="desktop-session-actions">
+                          <Tooltip text="删除会话" position="top">
+                            <button
+                              type="button"
+                              className="desktop-session-delete"
+                              data-testid={`desktop-popo-delete-${chat.chatKey}`}
+                              aria-label="删除会话"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingPopoDelete({
+                                  chatKey: chat.chatKey,
+                                  title: chat.title,
+                                });
+                              }}
+                            >
+                              <span className="codicon codicon-trash" />
+                            </button>
+                          </Tooltip>
+                        </span>
                     </div>
                   </li>
                 );
@@ -918,6 +943,17 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             setPendingDelete(null);
           }}
           onCancel={() => setPendingDelete(null)}
+        />
+      )}
+      {pendingPopoDelete && (
+        <ConfirmDialog
+          title={`确定删除会话「${pendingPopoDelete.title}」？`}
+          description="仅从 Muse 侧栏移除记录；之后该会话再有 POPO 消息会重新出现。"
+          onConfirm={() => {
+            onDeletePopoChat?.(pendingPopoDelete.chatKey);
+            setPendingPopoDelete(null);
+          }}
+          onCancel={() => setPendingPopoDelete(null)}
         />
       )}
       {pendingIssueAction && (

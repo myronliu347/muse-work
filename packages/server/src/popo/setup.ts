@@ -24,6 +24,8 @@ export type PopoRuntime = {
   workdir: string;
   /** 本地是否存在 popo 配置（~/.popo-config.json）；缺失时前端不显示机器人入口 */
   configured: boolean;
+  /** 删除侧栏会话时释放常驻 agent。 */
+  disposeChat?: (chatKey: string) => Promise<void>;
 };
 
 export function getLanIPv4(): string | undefined {
@@ -86,6 +88,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
       chatStore.setWaveSessionId(chatKey, waveSessionId);
     },
   });
+  runtime.disposeChat = (chatKey) => agentFactory.disposeChat?.(chatKey) ?? Promise.resolve();
   const handler = createPopoHandler({ config, chatStore, sender, agentFactory, logger });
   const app = createCallbackApp({
     config,

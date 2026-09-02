@@ -34,6 +34,8 @@ export interface ChatStore {
   clearMessages(chatKey: string): void;
   setWaveSessionId(chatKey: string, waveSessionId: string): void;
   setProcessing(chatKey: string, processing: boolean): void;
+  /** 删除会话记录；不存在时返回 false。 */
+  deleteChat(chatKey: string): boolean;
 }
 
 export type ChatStoreOptions = {
@@ -129,6 +131,12 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
       if (!chat) return;
       chat.processing = processing;
       persist();
+    },
+    deleteChat(chatKey) {
+      if (!chats.has(chatKey)) return false;
+      chats.delete(chatKey);
+      persist();
+      return true;
     },
   };
 }

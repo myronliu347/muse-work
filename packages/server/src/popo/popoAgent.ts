@@ -39,6 +39,7 @@ export interface PopoAgentRunner {
 
 export interface PopoAgentFactory {
   (chat: { chatKey: string; type: PopoChatType; waveSessionId?: string }): Promise<PopoAgentRunner>;
+  disposeChat?(chatKey: string): Promise<void>;
 }
 
 export type PopoAgentFactoryOptions = {
@@ -240,7 +241,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     return next;
   }
 
-  return async (chat) => {
+  const create: PopoAgentFactory = Object.assign(
+    async (chat: { chatKey: string; type: PopoChatType; waveSessionId?: string }) => {
     // p2p 私聊：常驻 agent，复用 runner，不销毁也不轮询后台任务。
     if (chat.type === "p2p") {
       const existing = residentRunners.get(chat.chatKey);
@@ -304,5 +306,24 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
           }
         }),
     };
-  };
+  },
+    {
+      disposeChat: async (chatKey: string) => {
+        residentRunners.delete(chatKey);
+        residentIdentities.delete(chatKey);
+        serialChains.delete(chatKey);
+        const agent = residentAgents.get(chatKey);
+        residentAgents.delete(chatKey);
+        if (!agent) return;
+        try {
+          await agent.dispose();
+        } catch {
+          // 释放失败不挡住会话记录删除。
+        } finally {
+          closeAgentLogger(`popo-${sanitizeSessionId(chatKey)}`);
+        }
+      },
+    },
+  );
+  return create;
 }

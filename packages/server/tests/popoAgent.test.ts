@@ -95,6 +95,31 @@ describe("popoAgent", () => {
     expect(disposeCalls).toBe(0); // 不销毁
   });
 
+  it("disposeChat drops the resident p2p agent so the next factory call creates a new one", async () => {
+    let createCalls = 0;
+    let disposeCalls = 0;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => {
+        createCalls += 1;
+        return {
+          ...stubAgent("最终回复"),
+          dispose: () => {
+            disposeCalls += 1;
+          },
+        };
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    await factory.disposeChat("p2p:x");
+    expect(disposeCalls).toBe(1);
+    const next = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await next.run("hello again");
+    expect(createCalls).toBe(2);
+  });
+
   it("recreates p2p agent when credential fingerprint changes (token renew)", async () => {
     let fingerprint = "cred-v1";
     const restoreIds: Array<string | undefined> = [];
