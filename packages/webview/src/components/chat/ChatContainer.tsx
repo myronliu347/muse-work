@@ -1,5 +1,5 @@
 import type { FC, RefObject } from "react";
-import { PopoRobotView } from "../popo/PopoRobotView";
+import { PopoChatDetail } from "../popo/PopoChatDetail";
 import LoadingLogo from "./LoadingLogo";
 import { ChatBody } from "./ChatBody";
 import { ChatChrome, type ChatChromeProps } from "./ChatChrome";
@@ -18,6 +18,8 @@ export interface ChatContainerProps extends ChatChromeProps {
   queueEditWarning: string | null;
   onDismissQueueEditWarning: () => void;
   view: MainView;
+  /** 选中的 POPO 会话：中间栏只读详情，无发送框、无右侧面板。 */
+  popoChatKey?: string | null;
   postToHost: ChatAppCore["postToHost"];
   popoApi: MuseApiClient;
   currentSession?: SessionMetadata;
@@ -38,6 +40,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   queueEditWarning,
   onDismissQueueEditWarning,
   view,
+  popoChatKey,
   postToHost,
   popoApi,
   currentSession,
@@ -50,6 +53,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const isDraftSession =
     !currentSession?.id || currentSession.id === "__draft__";
   const showNewSessionPage = isDraftSession && initialized;
+  const showPopo = Boolean(popoChatKey);
 
   return (
     <div
@@ -75,8 +79,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
       )}
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          {view === "popo-robot" ? (
-            <PopoRobotView api={popoApi} vscode={vscode} />
+          {showPopo && popoChatKey ? (
+            <PopoChatDetail api={popoApi} vscode={vscode} chatKey={popoChatKey} />
           ) : isDraftSession && !initialized ? (
             <LoadingLogo />
           ) : view === "newChat" || showNewSessionPage ? (
@@ -98,10 +102,11 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             />
           )}
         </div>
-        {/* 文件/变更等面板只在会话详情（chat 视图）显示，机器人页/新会话页隐藏 */}
-        {view === "chat" && !isDraftSession && dock.checked.length > 0 && dock.active && (
-          <DesktopPanelSlots {...dock} />
-        )}
+        {view === "chat" &&
+          !showPopo &&
+          !isDraftSession &&
+          dock.checked.length > 0 &&
+          dock.active && <DesktopPanelSlots {...dock} />}
       </div>
     </div>
   );

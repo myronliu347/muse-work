@@ -632,6 +632,12 @@
   white-space: nowrap;
 }
 
+.desktop-popo-type {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--gray-9);
+}
+
 .desktop-session-title-input {
   width: 100%;
   min-width: 0;

@@ -16,6 +16,7 @@ import type {
   DesktopSessionEntry,
   DesktopIssueGroup,
 } from "../../types";
+import type { PopoChatSummary } from "../../muse/apiClient";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -86,12 +87,13 @@ export interface DesktopSidebarProps {
   onCompleteIssue?: (issueId: string) => void;
   /** 分组行更多菜单 → 取消 Issue。 */
   onCancelIssue?: (issueId: string) => void;
-  /** Toggle the POPO robot view (rendered in place of the chat body). */
-  onTogglePopoRobot: () => void;
-  /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
+  /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示 POPO 会话栏 */
   popoEnabled?: boolean;
+  popoChats?: PopoChatSummary[];
+  selectedPopoChatKey?: string | null;
+  onSelectPopoChat?: (chatKey: string) => void;
   /** 当前高亮的菜单项（选中态） */
-  activeMenu?: "newChat" | "popo-robot";
+  activeMenu?: "newChat";
 }
 
 /**
@@ -122,8 +124,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenPlanning,
   onCompleteIssue,
   onCancelIssue,
-  onTogglePopoRobot,
   popoEnabled,
+  popoChats,
+  selectedPopoChatKey,
+  onSelectPopoChat,
   activeMenu,
 }) => {
   return (
@@ -150,17 +154,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           <NewSessionIcon className="app-menu-icon" />
           <span>新对话</span>
         </button>
-        {popoEnabled && (
-          <button
-            type="button"
-            className={`app-menu${activeMenu === "popo-robot" ? " active" : ""}`}
-            onClick={onTogglePopoRobot}
-            data-testid="desktop-popo-robot"
-          >
-            <i className="codicon codicon-robot app-menu-icon" />
-            <span>POPO 机器人</span>
-          </button>
-        )}
       </div>
       <div className="divider" />
       <SessionTree
@@ -184,6 +177,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onOpenPlanning={onOpenPlanning}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
+        popoEnabled={popoEnabled}
+        popoChats={popoChats}
+        selectedPopoChatKey={selectedPopoChatKey}
+        onSelectPopoChat={onSelectPopoChat}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

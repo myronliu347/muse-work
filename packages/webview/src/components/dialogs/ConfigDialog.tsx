@@ -13,6 +13,7 @@ import {
 } from "../settings/MuseProviderSettings";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { PluginSettings } from "../settings/PluginSettings";
+import { PopoSettings } from "../settings/PopoSettings";
 import {
   AgentSettings,
   type AgentSettingsHandle,
@@ -42,7 +43,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   const agentSettingsRef = useRef<AgentSettingsHandle>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "appearance" | "plugins" | "agent" | "provider"
+    "appearance" | "plugins" | "agent" | "provider" | "popo"
   >("appearance");
   const savingRef = useRef(false);
   const reduceMotion =
@@ -245,6 +246,32 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               />
             )}
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "popo"}
+            aria-controls="config-popo-panel"
+            className={`config-tab${activeTab === "popo" ? " active" : ""}`}
+            onClick={() => setActiveTab("popo")}
+            style={{ position: "relative", borderBottomColor: "transparent" }}
+          >
+            POPO
+            {activeTab === "popo" && (
+              <motion.span
+                className="settings-tab-underline"
+                layoutId="settings-tab-underline"
+                transition={tabUnderlineTransition}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: -1,
+                  left: 0,
+                  height: 2,
+                  backgroundColor: "var(--accent-9)",
+                }}
+              />
+            )}
+          </button>
         </div>
 
         <div className="configuration-form">
@@ -279,6 +306,13 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 ref={settingsRef}
                 onSavingChange={setSaving}
               />
+            </div>
+            <div
+              id="config-popo-panel"
+              role="tabpanel"
+              hidden={activeTab !== "popo"}
+            >
+              <PopoSettings />
             </div>
           </div>
 

@@ -8,6 +8,7 @@ import type {
   DesktopSessionEntry,
   DesktopIssueGroup,
 } from "../../types";
+import type { PopoChatSummary } from "../../muse/apiClient";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
 export const SESSION_DRAG_MIME = "application/x-wave-session";
@@ -121,7 +122,7 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "issues" | "tasks" | "workspace";
+type SectionId = "pin" | "issues" | "popo" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
@@ -149,6 +150,11 @@ export interface SessionTreeProps {
   onCompleteIssue?: (issueId: string) => void;
   /** 分组行更多菜单「取消」。 */
   onCancelIssue?: (issueId: string) => void;
+  /** 本地已配置 POPO 时展示侧栏会话栏。 */
+  popoEnabled?: boolean;
+  popoChats?: PopoChatSummary[];
+  selectedPopoChatKey?: string | null;
+  onSelectPopoChat?: (chatKey: string) => void;
 }
 
 function CollapsibleBody({
@@ -169,7 +175,7 @@ function CollapsibleBody({
 }
 
 /**
- * Pin / 待办事项 / 任务 / 工作空间 session tree for the desktop sidebar.
+ * Pin / 待办事项 / 任务 / 工作空间 / POPO session tree for the desktop sidebar.
  */
 export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
@@ -192,6 +198,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onOpenPlanning,
   onCompleteIssue,
   onCancelIssue,
+  popoEnabled,
+  popoChats,
+  selectedPopoChatKey,
+  onSelectPopoChat,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
@@ -701,6 +711,68 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
+  const renderPopoSection = () => {
+    if (!popoEnabled) return null;
+    const chats = popoChats ?? [];
+    const open = !collapsedSections.has("popo");
+    return (
+      <div
+        className="desktop-session-section"
+        data-testid="desktop-session-section-popo"
+      >
+        {renderSectionHeader({
+          sectionId: "popo",
+          title: "POPO",
+          testId: "desktop-session-section-popo",
+          count: chats.length,
+        })}
+        <CollapsibleBody open={open}>
+          {chats.length === 0 ? (
+            <div className="desktop-session-empty">暂无会话</div>
+          ) : (
+            <ul className="desktop-session-items">
+              {chats.map((chat) => {
+                const current = selectedPopoChatKey === chat.chatKey;
+                return (
+                  <li key={chat.chatKey}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`desktop-session-item${current ? " desktop-session-item--current" : ""}`}
+                      data-testid={`desktop-popo-item-${chat.chatKey}`}
+                      onClick={() => onSelectPopoChat?.(chat.chatKey)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelectPopoChat?.(chat.chatKey);
+                        }
+                      }}
+                    >
+                      <span className="desktop-session-status-slot" aria-hidden="true">
+                        {chat.processing ? (
+                          <i className="codicon codicon-loading codicon-modifier-spin desktop-session-status-icon" />
+                        ) : null}
+                      </span>
+                      <span className="desktop-session-title" title={chat.title}>
+                        {chat.title}
+                      </span>
+                      <span className="desktop-popo-type">
+                        {chat.type === "team" ? "群聊" : "私聊"}
+                      </span>
+                      <span className="desktop-session-active-at">
+                        {formatRelativeActiveAt(chat.updatedAt)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CollapsibleBody>
+      </div>
+    );
+  };
+
   /** 任务 section：自动任务项目会话。 */
   const renderTasksSection = () => {
     const open = !collapsedSections.has("tasks");
@@ -835,6 +907,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       {renderIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
+      {renderPopoSection()}
 
       {pendingDelete && (
         <ConfirmDialog

@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
+import { usePopoUi } from "../popo/popoUi";
 import type {
   DesktopHostProps,
   DesktopPane,
@@ -67,6 +68,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   onCancelIssue,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
+  const popoUi = usePopoUi();
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
   // non-empty and at most two rows exist.
@@ -617,7 +619,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   return (
     <div className="desktop-layout" data-testid="desktop-shell">
       <DesktopSidebar
-        onNewSession={() => vscode.postMessage({ command: "newSession" })}
+        onNewSession={() => {
+          popoUi.selectChat(null);
+          vscode.postMessage({ command: "newSession" });
+        }}
         onNewSessionInPane={() =>
           vscode.postMessage({ command: "desktopNewSessionInPane" })
         }
@@ -633,9 +638,14 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onOpenPlanning={onOpenPlanning}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
-        currentSessionId={focusedSessionId}
+        currentSessionId={
+          popoUi.selectedChatKey ? undefined : focusedSessionId
+        }
         visibleSessionIds={visibleSessionIds}
-        onSelectSession={host.onSelectSession}
+        onSelectSession={(workdir, sessionId) => {
+          popoUi.selectChat(null);
+          host.onSelectSession(workdir, sessionId);
+        }}
         onOpenPane={handleOpenPane}
         onDeleteSession={host.onDeleteSession}
         onTogglePin={host.onTogglePin}
@@ -649,9 +659,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onRevealInFinder={(workdir) =>
           vscode.postMessage({ command: "revealInFinder", path: workdir })
         }
-        // Split-view shell has no robot-view slot (the popo view replaces the
-        // chat body in the single-pane ChatApp layout); keep the entry inert.
-        onTogglePopoRobot={() => {}}
+        popoEnabled={popoUi.enabled}
+        popoChats={popoUi.chats}
+        selectedPopoChatKey={popoUi.selectedChatKey}
+        onSelectPopoChat={popoUi.selectChat}
       />
       <div
         className="desktop-pane-rows"

@@ -5,6 +5,9 @@ import ConfigDialog from "../../src/components/dialogs/ConfigDialog";
 import type { ConfigurationData, VsCodeApi } from "../../src/types";
 
 vi.mock("../../src/styles/ConfigurationDialog.css", () => ({}));
+vi.mock("../../src/components/settings/PopoSettings", () => ({
+  PopoSettings: () => <div data-testid="popo-settings">popo settings</div>,
+}));
 vi.mock("../../src/components/settings/MuseProviderSettings", () => {
   const React = require("react") as typeof import("react");
   return {

@@ -34,6 +34,10 @@ vi.mock("../../src/components/settings/PluginSettings", () => ({
   PluginSettings: () => <div data-testid="plugin-settings">plugin settings</div>,
 }));
 
+vi.mock("../../src/components/settings/PopoSettings", () => ({
+  PopoSettings: () => <div data-testid="popo-settings">popo settings</div>,
+}));
+
 const vscode = {
   postMessage: vi.fn(),
   getState: vi.fn(),
@@ -75,6 +79,8 @@ describe("ConfigDialog appearance tab", () => {
     fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
 
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
+    expect(screen.getByTestId("popo-settings")).toBeTruthy();
   });
 
   it("renders tab underlines when prefers-reduced-motion is enabled", () => {

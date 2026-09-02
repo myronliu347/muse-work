@@ -16,6 +16,7 @@ import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
 import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
+import { PopoUiProvider, usePopoUi } from "./popo/popoUi";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { useAgentsStore } from "../stores/agentsStore";
 import { MuseApiClient } from "../muse/apiClient";
@@ -48,9 +49,29 @@ export { prunePanelGroupCache } from "../stores";
 const CHAT_MAIN_MIN_WIDTH = 520;
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-robot";
+export type MainView = "newChat" | "chat" | "popo-chat";
 
-export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
+export const ChatApp: React.FC<ChatAppProps> = (props) => {
+  const popoApi = useMemo(
+    () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
+    [],
+  );
+  if (props.paneId !== undefined) {
+    return <ChatAppInner {...props} popoApi={popoApi} />;
+  }
+  return (
+    <PopoUiProvider api={popoApi}>
+      <ChatAppInner {...props} popoApi={popoApi} />
+    </PopoUiProvider>
+  );
+};
+
+const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
+  vscode,
+  host,
+  paneId,
+  popoApi,
+}) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const paneUi = usePaneUi(paneId);
   const {
@@ -134,20 +155,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
   // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / POPO 机器人页。
   // 独立于 host 推送的会话状态，任何导航入口显式切换。
   const [view, setView] = useState<MainView>("chat");
-  const popoApi = useMemo(
-    () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
-    [],
-  );
-  // 本地是否已配置 POPO（~/.popo-config.json）：未配置时隐藏侧栏入口、不渲染机器人页。
-  const [popoEnabled, setPopoEnabled] = useState(false);
+  const popoUi = usePopoUi();
   const [showNewIssue, setShowNewIssue] = useState(false);
   const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
-  useEffect(() => {
-    popoApi
-      .getPopoConfig()
-      .then((cfg) => setPopoEnabled(cfg.configured))
-      .catch(() => setPopoEnabled(false));
-  }, [popoApi]);
   // 初始化数字人 agent store（GET /agents + /agents/scenarios），选择器/设置页共用
   useEffect(() => {
     useAgentsStore.getState().init(popoApi);
@@ -688,6 +698,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
       queueEditWarning={queueEditWarning}
       onDismissQueueEditWarning={() => patchPane({ queueEditWarning: null })}
       view={view}
+      popoChatKey={popoUi.selectedChatKey}
       postToHost={postToHost}
       patchPane={patchPane}
       popoApi={popoApi}
@@ -834,7 +845,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
     return (
       <div className="desktop-layout">
         <DesktopSidebar
-          onNewSession={handleDesktopNewSession}
+          onNewSession={() => {
+            popoUi.selectChat(null);
+            handleDesktopNewSession();
+          }}
           onNewSessionInPane={() => {
             setView("chat");
             postToHost({ command: "desktopNewSessionInPane" });
@@ -845,10 +859,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onOpenSettings={handleOpenSettings}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           {...issueSidebarProps}
-          currentSessionId={state.currentSession?.id}
+          currentSessionId={
+            popoUi.selectedChatKey ? undefined : state.currentSession?.id
+          }
           onSelectSession={(workdir, sessionId) => {
-            // 点侧栏会话立即回到聊天视图：即使点的是当前会话（host 不推
-            // updateCurrentSession、effect 不触发），机器人页等视图也能退出。
+            popoUi.selectChat(null);
             setView("chat");
             host.onSelectSession(workdir, sessionId);
           }}
@@ -865,14 +880,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ vscode, host, paneId }) => {
           onRevealInFinder={(workdir) =>
             postToHost({ command: "revealInFinder", path: workdir })
           }
-          onTogglePopoRobot={() => setView((v) => (v === "popo-robot" ? "chat" : "popo-robot"))}
-          popoEnabled={popoEnabled}
+          popoEnabled={popoUi.enabled}
+          popoChats={popoUi.chats}
+          selectedPopoChatKey={popoUi.selectedChatKey}
+          onSelectPopoChat={(chatKey) => {
+            popoUi.selectChat(chatKey);
+            setView("popo-chat");
+          }}
           activeMenu={
-            view === "popo-robot"
-              ? "popo-robot"
-              : view === "newChat" || showNewSessionPage
-                ? "newChat"
-                : undefined
+            view === "newChat" || showNewSessionPage ? "newChat" : undefined
           }
         />
         {chatContainer}
