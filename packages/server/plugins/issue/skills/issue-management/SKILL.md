@@ -36,7 +36,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办/清单�
 
 ## 命令速查
 
-在 skill 的 `scripts/` 目录执行（Base URL：`MUSE_SERVER_URL`，或 `~/.muse-work/server-url`，否则 `http://127.0.0.1:8787`）：
+在 skill 的 `scripts/` 目录执行（Base URL：`MUSE_SERVER_URL`，或 `MUSE_HOME` 下的 `server-url` 文件，否则 `http://127.0.0.1:$MUSE_SERVER_PORT`，端口默认 8787）：
 
 ```bash
 node issue.mjs create --title "标题" [--description D] [--priority p0|p1|p2] [--tags a,b] [--add-json '[{ "content": "改登录" }]']

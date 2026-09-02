@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Issue 管理 CLI：调本地 muse-work server REST API。
- * Base URL：MUSE_SERVER_URL → ~/.muse-work/server-url → http://127.0.0.1:8787
+ * baseURL 解析链：MUSE_SERVER_URL → MUSE_HOME 下 server 落盘的 server-url 文件
+ * （打包版随机端口）→ 默认 8787（MUSE_SERVER_PORT 可覆盖）。
  * 用法见同目录上级 SKILL.md。
  */
 
@@ -9,27 +10,27 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-function getMuseHomeDir(
-  home = os.homedir(),
-  dirName = process.env.MUSE_HOME_DIR ?? ".muse-work",
-) {
-  return path.join(home, dirName);
+/** server 落盘的实际监听地址文件（与 server 侧 getMuseHomeDir 同构）。 */
+function serverUrlFile() {
+  const home = process.env.MUSE_HOME ?? os.homedir();
+  const dirName = process.env.MUSE_HOME_DIR ?? ".muse-work";
+  return path.join(home, dirName, "server-url");
 }
 
-function resolveBaseUrl() {
-  const fromEnv = process.env.MUSE_SERVER_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
+function readServerUrlFile() {
   try {
-    const file = path.join(getMuseHomeDir(), "server-url");
-    const fromFile = fs.readFileSync(file, "utf8").trim();
-    if (fromFile) return fromFile.replace(/\/$/, "");
+    const url = fs.readFileSync(serverUrlFile(), "utf8").trim();
+    return url || undefined;
   } catch {
-    // ignore
+    return undefined;
   }
-  return "http://127.0.0.1:8787";
 }
 
-const BASE = resolveBaseUrl();
+const PORT = Number(process.env.MUSE_SERVER_PORT ?? 8787);
+const BASE =
+  process.env.MUSE_SERVER_URL ??
+  readServerUrlFile() ??
+  `http://127.0.0.1:${PORT}`;
 
 function usage() {
   console.log(`issue.mjs — Issue 管理 CLI（${BASE}）
