@@ -1,0 +1,209 @@
+CONTEXT.md
+  442440ce7046c502 16,24
+packages/webview/tests/components/DesktopApp.test.tsx
+  442440ce7046c502 88-116
+packages/webview/src/styles/NewIssueDialog.css
+  442440ce7046c502 2-3,6-16,22,39,41,45-66,69-101,103-137,142,146,151-152,155-223,232-234
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 20-21,23-29
+packages/webview/src/muse/hostBridge/session.ts
+  442440ce7046c502 60,72
+packages/webview/tests/components/NewIssueDialog.test.tsx
+  442440ce7046c502 1-43
+packages/server/src/services/issuePlanning.ts
+  442440ce7046c502 1-71
+packages/server/src/services/issueStore.ts
+  442440ce7046c502 78-79,87-106,193,196-198,244-246,405-411
+packages/webview/src/components/session/SessionTree.tsx
+  442440ce7046c502 18-23,558-561,591-593,598-602,606,610,624,629-635,637,639,664,669,672,675,677-681,689,698-701,710
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  442440ce7046c502 209-256
+packages/server/tests/issues.routes.test.ts
+  442440ce7046c502 58-59
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  442440ce7046c502 19-23,32-33,43-67,190,195,228-232,235-255,329-333,335-342,348,350-356,358-364,366-368,370,372-374,379-385
+packages/server/tests/sessionRunner.control.test.ts
+  442440ce7046c502 623-669
+packages/webview/src/components/issue/NewIssueDialog.tsx
+  442440ce7046c502 1,23-24,27,47-52,57,78-81,92,104,109-133,135-197
+packages/webview/src/styles/OpenPlanningDialog.css
+  442440ce7046c502 5,8-35,38-41,50,53,55-62,66-76,82-146
+packages/server/src/services/sessionRunner/core.ts
+  442440ce7046c502 283-288
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  442440ce7046c502 691-709
+packages/webview/src/styles/Message.css
+  442440ce7046c502 102-103
+packages/webview/src/styles/DesktopApp.css
+  442440ce7046c502 371-372,393-451,454-455,458,460,475,481-482,486-489,494-495,497-499,504-505,508-510,513,515-516,518-523,526-528,531-539,549-550,556,560-562,564-568,571-572,576-578,582-584
+packages/server/tests/issueDispatch.test.ts
+  442440ce7046c502 1,7-11,13-106,154-159,168-256,363-416
+packages/server/src/routes/issues.ts
+  442440ce7046c502 16,177-180
+packages/server/tests/issuePlanning.test.ts
+  442440ce7046c502 1-51
+packages/server/src/services/appContext.ts
+  442440ce7046c502 57,73,106,113
+docs/superpowers/specs/2026-09-01-issue-design.md
+  442440ce7046c502 82,89-91,94
+packages/server/src/services/issueDispatch.ts
+  442440ce7046c502 14,16-17,23-48,51-135,140-144,146-198,203-204,206,208,341-351,355-372,374-386
+packages/server/tests/issueStore.test.ts
+  442440ce7046c502 5,25-39,105-138
+packages/server/src/services/sessionRunner/agent.ts
+  442440ce7046c502 8,605-612
+packages/server/src/services/sessionRunner/ctx.ts
+  442440ce7046c502 287-288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cd5d4526497bb2b859b2cdd00494797273ffd24d",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1706,
+      "total_deletions": 274,
+      "accepted_lines": 1621,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "docs/superpowers/specs/2026-09-01-issue-design.md": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 14,
+          "deletions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/NewIssueDialog.test.tsx": {
+          "additions": 43,
+          "accepted_lines": 43
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 36,
+          "deletions": 1,
+          "accepted_lines": 36
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 48,
+          "accepted_lines": 48
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 126,
+          "deletions": 14,
+          "accepted_lines": 123
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 74,
+          "deletions": 3,
+          "accepted_lines": 71
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 54,
+          "deletions": 29,
+          "accepted_lines": 49
+        },
+        "CONTEXT.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 230,
+          "deletions": 25,
+          "accepted_lines": 221
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 109,
+          "deletions": 36,
+          "accepted_lines": 108
+        },
+        "packages/server/src/services/sessionRunner/core.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/webview/src/styles/NewIssueDialog.css": {
+          "additions": 190,
+          "deletions": 20,
+          "accepted_lines": 188
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 177,
+          "deletions": 74,
+          "accepted_lines": 135
+        },
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 254,
+          "deletions": 10,
+          "accepted_lines": 250
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 51,
+          "accepted_lines": 51
+        },
+        "packages/webview/src/components/issue/NewIssueDialog.tsx": {
+          "additions": 112,
+          "deletions": 39,
+          "accepted_lines": 105
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
