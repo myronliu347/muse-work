@@ -4,6 +4,7 @@ import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 
 export type IssueAgentMode = "single" | "split";
+export type IssuePriority = "p0" | "p1" | "p2";
 export type IssueStatus =
   | "pending"
   | "planning"
