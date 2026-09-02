@@ -1,0 +1,101 @@
+packages/webview/src/muse/apiClient.ts
+  442440ce7046c502 139,768
+packages/server/tests/issues.routes.test.ts
+  442440ce7046c502 90-123
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  442440ce7046c502 64,76-98,105
+packages/server/src/services/issueStore.ts
+  442440ce7046c502 6,29-30,68,196-199,208,272,350-352
+packages/server/tests/issuePlanning.test.ts
+  442440ce7046c502 5,69-82
+packages/server/src/services/appContext.ts
+  442440ce7046c502 113-116
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  442440ce7046c502 39-40,195,306,335-339,341-377
+packages/server/src/routes/issues.ts
+  442440ce7046c502 4-5,182,196-197,199-200,207-211,250
+packages/server/src/services/issueDispatch.ts
+  442440ce7046c502 357-359
+packages/server/src/services/issuePlanning.ts
+  442440ce7046c502 105-124
+packages/webview/src/styles/OpenPlanningDialog.css
+  442440ce7046c502 5-42
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 10-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "54e9e71974c0de926b0351ba05b5d14138defed9",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 235,
+      "total_deletions": 20,
+      "accepted_lines": 234,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 46,
+          "deletions": 1,
+          "accepted_lines": 46
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 43,
+          "deletions": 8,
+          "accepted_lines": 42
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 13,
+          "deletions": 7,
+          "accepted_lines": 13
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 34,
+          "accepted_lines": 34
+        }
+      }
+    }
+  }
+}
