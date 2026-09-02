@@ -92,6 +92,26 @@ describe("sessions HTTP routes", () => {
       grouped.issueGroups[0].sessions[0].id,
     );
     expect(grouped.recent.map((s: { id: string }) => s.id)).toContain(normal.id);
+
+    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+    });
+    const afterClose = await fetch(`${app.baseUrl}/sessions?grouped=1`).then(
+      (r) => r.json(),
+    );
+    expect(afterClose.issueGroups).toEqual([]);
+    expect(afterClose.closedIssueGroups).toHaveLength(1);
+    expect(afterClose.closedIssueGroups[0]).toMatchObject({
+      issueId: issue.id,
+      status: "completed",
+    });
+    expect(afterClose.closedIssueGroups[0].sessions[0].id).toBe(sessionId);
+    expect(afterClose.recent.map((s: { id: string }) => s.id)).not.toContain(
+      sessionId,
+    );
+    expect(afterClose.recent.map((s: { id: string }) => s.id)).toContain(
+      normal.id,
+    );
   });
 
   it("grouped includes pending issues with empty sessions", async () => {

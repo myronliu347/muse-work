@@ -157,6 +157,90 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("complete and cancel persist in issues-closed.json, not issues.json", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const done = store.create({ title: "已完成" });
+    const dropped = store.create({ title: "已取消" });
+    store.create({ title: "进行中" });
+    store.complete(done.id);
+    store.cancel(dropped.id);
+
+    const db = path.join(getMuseHomeDir(home), "db");
+    const activeFile = JSON.parse(
+      fs.readFileSync(path.join(db, "issues.json"), "utf-8"),
+    ) as { issues: Array<{ title: string }> };
+    const closedFile = JSON.parse(
+      fs.readFileSync(path.join(db, "issues-closed.json"), "utf-8"),
+    ) as { issues: Array<{ title: string; status: string }> };
+
+    expect(activeFile.issues.map((issue) => issue.title)).toEqual(["进行中"]);
+    expect(closedFile.issues.map((issue) => issue.title).sort()).toEqual([
+      "已取消",
+      "已完成",
+    ]);
+    expect(store.listActive().map((issue) => issue.title)).toEqual(["进行中"]);
+    expect(store.listClosed().map((issue) => issue.status).sort()).toEqual([
+      "cancelled",
+      "completed",
+    ]);
+    expect(store.get(done.id)?.status).toBe("completed");
+
+    const reloaded = createIssueStore({ home });
+    expect(reloaded.listActive().map((issue) => issue.title)).toEqual([
+      "进行中",
+    ]);
+    expect(reloaded.get(done.id)?.status).toBe("completed");
+    expect(reloaded.get(dropped.id)?.status).toBe("cancelled");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("migrates leftover completed issues out of issues.json on load", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const dbDir = path.join(getMuseHomeDir(home), "db");
+    fs.mkdirSync(dbDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dbDir, "issues.json"),
+      JSON.stringify({
+        version: 1,
+        issues: [
+          {
+            id: "live-1",
+            title: "还活着",
+            status: "pending",
+            priority: "p1",
+            tags: [],
+            items: [],
+            createdAt: 1,
+            updatedAt: 2,
+          },
+          {
+            id: "old-done",
+            title: "旧完成",
+            status: "completed",
+            priority: "p1",
+            tags: [],
+            items: [],
+            createdAt: 1,
+            updatedAt: 3,
+          },
+        ],
+      }),
+    );
+    const store = createIssueStore({ home });
+    expect(store.listActive().map((issue) => issue.id)).toEqual(["live-1"]);
+    expect(store.get("old-done")?.status).toBe("completed");
+    const activeFile = JSON.parse(
+      fs.readFileSync(path.join(dbDir, "issues.json"), "utf-8"),
+    ) as { issues: Array<{ id: string }> };
+    const closedFile = JSON.parse(
+      fs.readFileSync(path.join(dbDir, "issues-closed.json"), "utf-8"),
+    ) as { issues: Array<{ id: string }> };
+    expect(activeFile.issues.map((issue) => issue.id)).toEqual(["live-1"]);
+    expect(closedFile.issues.map((issue) => issue.id)).toEqual(["old-done"]);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("listActive skips leftover todo-board issues with unknown status and no priority", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const dbDir = path.join(getMuseHomeDir(home), "db");

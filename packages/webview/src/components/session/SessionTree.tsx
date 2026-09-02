@@ -551,7 +551,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  /** 待办事项 section：Issue 分组（规划/执行会话 + 只读清单）。 */
+  /** 待办事项 section：Issue 分组（规划/执行会话）。 */
   const renderIssuesSection = () => {
     const open = !collapsedSections.has("issues");
     const groups = issueGroups ?? [];

@@ -646,6 +646,12 @@ describe("DesktopSidebar pin/recent sessions", () => {
     const badge = section.querySelector(".issue-sidebar-priority-p0");
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
+    expect(
+      screen.queryByTestId("desktop-session-issue-checklist-issue-1"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("desktop-session-issue-group-issue-1"),
+    ).not.toHaveTextContent("写方案");
 
     const tree = screen.getByTestId("desktop-session-tree");
     const pinIdx = tree.innerHTML.indexOf(
@@ -705,6 +711,24 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-issue-group-legacy-1"),
     ).toHaveTextContent("测试任务看板功能");
+  });
+
+  it("does not show closed issues in the sidebar", () => {
+    renderSidebar({
+      issueGroups: [issueGroup({ title: "进行中的事" })],
+      recentSessions: [
+        entry({ sessionId: "plain", title: "普通聊天", workdir: "/repo" }),
+      ],
+    });
+
+    const openSection = screen.getByTestId("desktop-session-section-issues");
+    expect(openSection).toHaveTextContent("进行中的事");
+    expect(
+      screen.queryByTestId("desktop-session-section-issues-closed"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("desktop-session-tree")).not.toHaveTextContent(
+      "已关闭",
+    );
   });
 
   it("shows complete and cancel in the issue group more menu", () => {

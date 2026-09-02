@@ -222,6 +222,8 @@ export interface DesktopHostProps {
    * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
    */
   issueGroups?: DesktopIssueGroup[];
+  /** 已完成 / 已取消 Issue 的会话分组；侧栏暂不展示，仅避免混入工作空间。 */
+  closedIssueGroups?: DesktopIssueGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index; also removes worktree+branch if applicable. */

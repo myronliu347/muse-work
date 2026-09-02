@@ -18,11 +18,13 @@ export function allTreeSessions<T>(source: {
   pinned: T[];
   recent: T[];
   issueGroups?: Array<{ sessions: T[] }>;
+  closedIssueGroups?: Array<{ sessions: T[] }>;
 }): T[] {
   return [
     ...source.pinned,
     ...source.recent,
     ...(source.issueGroups ?? []).flatMap((g) => g.sessions),
+    ...(source.closedIssueGroups ?? []).flatMap((g) => g.sessions),
   ];
 }
 

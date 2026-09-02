@@ -23,7 +23,15 @@ sessionsRoutes.get("/sessions", (c) => {
   const ctx = c.get("ctx");
   if (c.req.query("grouped") === "1") {
     const grouped = ctx.store.listGrouped();
-    const issueGroups = ctx.issueStore.listActive().map((issue) => {
+    const toGroup = (issue: {
+      id: string;
+      title: string;
+      priority: string;
+      status: string;
+      items: unknown;
+      planningSessionId?: string;
+      executionSessionId?: string;
+    }) => {
       const sessions = [];
       if (issue.planningSessionId) {
         const planning = ctx.store.get(issue.planningSessionId);
@@ -41,15 +49,20 @@ sessionsRoutes.get("/sessions", (c) => {
         items: issue.items,
         sessions,
       };
-    });
+    };
+    const issueGroups = ctx.issueStore.listActive().map(toGroup);
+    const closedIssueGroups = ctx.issueStore.listClosed().map(toGroup);
     const issueSessionIds = new Set(
-      issueGroups.flatMap((g) => g.sessions.map((s) => s.id)),
+      [...issueGroups, ...closedIssueGroups].flatMap((g) =>
+        g.sessions.map((s) => s.id),
+      ),
     );
     return c.json({
       ...grouped,
       pinned: grouped.pinned.filter((s) => !issueSessionIds.has(s.id)),
       recent: grouped.recent.filter((s) => !issueSessionIds.has(s.id)),
       issueGroups,
+      closedIssueGroups,
     });
   }
   return c.json({

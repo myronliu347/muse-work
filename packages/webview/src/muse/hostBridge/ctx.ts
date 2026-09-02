@@ -93,6 +93,14 @@ export interface BridgeCtx {
     items: NonNullable<MuseSessionsGrouped["issueGroups"]>[number]["items"];
     sessions: TreeSession[];
   }>;
+  closedIssueGroups: Array<{
+    issueId: string;
+    title: string;
+    priority: string;
+    status: string;
+    items: NonNullable<MuseSessionsGrouped["closedIssueGroups"]>[number]["items"];
+    sessions: TreeSession[];
+  }>;
   titledSessions: Set<string>;
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   pendingPermissions: Map<string, PendingPermission>;
@@ -180,6 +188,7 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
     pinned: [],
     recent: [],
     issueGroups: [],
+    closedIssueGroups: [],
     titledSessions: new Set<string>(),
     pendingPermissions: new Map<string, PendingPermission>(),
     compactingSessions: new Set<string>(),
@@ -191,6 +200,7 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
       for (const s of ctx.pinned) map.set(s.id, s);
       for (const s of ctx.recent) map.set(s.id, s);
       for (const g of ctx.issueGroups) for (const s of g.sessions) map.set(s.id, s);
+      for (const g of ctx.closedIssueGroups) for (const s of g.sessions) map.set(s.id, s);
       return map;
     },
 

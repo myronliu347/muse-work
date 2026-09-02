@@ -162,6 +162,8 @@ export interface MuseSessionsGrouped {
   activeSessionId?: string;
   /** Issue 分组：规划会话 + 执行会话（侧栏按 Issue 折叠展示）。 */
   issueGroups?: MuseIssueGroup[];
+  /** 已完成 / 已取消，不与进行中 Issue 混在 issueGroups。 */
+  closedIssueGroups?: MuseIssueGroup[];
 }
 
 export interface PopoConfigInfo {

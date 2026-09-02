@@ -50,6 +50,7 @@ export interface IssueStore {
   }): Issue;
   get(id: string): Issue | undefined;
   listActive(): Issue[];
+  listClosed(): Issue[];
   listAll(): Issue[];
   update(
     id: string,
@@ -116,6 +117,10 @@ function getIssuesIndexPath(home: string): string {
   return path.join(getMuseHomeDir(home), "db", "issues.json");
 }
 
+function getClosedIssuesIndexPath(home: string): string {
+  return path.join(getMuseHomeDir(home), "db", "issues-closed.json");
+}
+
 function getIssueDetailPath(home: string, id: string): string {
   return path.join(getMuseHomeDir(home), "db", "issues", id, "issue.json");
 }
@@ -124,12 +129,11 @@ function defaultIssuesFile(): IssuesFile {
   return { version: 1, issues: [] };
 }
 
-function loadIssuesFile(home: string): IssuesFile {
-  const configPath = getIssuesIndexPath(home);
-  if (!fs.existsSync(configPath)) {
+function loadIssuesFile(filePath: string): IssuesFile {
+  if (!fs.existsSync(filePath)) {
     return defaultIssuesFile();
   }
-  const raw = fs.readFileSync(configPath, "utf-8");
+  const raw = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(raw) as IssuesFile;
 }
 
@@ -147,11 +151,8 @@ function saveIssueDetail(issue: Issue, home: string): void {
   );
 }
 
-function saveIssuesFile(file: IssuesFile, home: string): void {
-  writeAtomically(
-    getIssuesIndexPath(home),
-    JSON.stringify(file, null, 2) + "\n",
-  );
+function saveIssuesFile(file: IssuesFile, filePath: string, home: string): void {
+  writeAtomically(filePath, JSON.stringify(file, null, 2) + "\n");
   for (const issue of file.issues) {
     saveIssueDetail(issue, home);
   }
@@ -189,33 +190,61 @@ export function allItemsDone(items: ChecklistItem[]): boolean {
   return items.length > 0 && items.every((item) => item.status === "done");
 }
 
+function hydrateIssue(record: Issue): Issue {
+  return {
+    ...record,
+    title: record.title,
+    description: record.description ?? "",
+    priority: normalizePriority(record.priority),
+    tags: normalizeTags(record.tags),
+    items: record.items ?? [],
+  };
+}
+
 export function createIssueStore(
   options: CreateIssueStoreOptions = {},
 ): IssueStore {
   const home = options.home ?? process.env.MUSE_HOME ?? os.homedir();
-  const file = loadIssuesFile(home);
+  const activeFile = loadIssuesFile(getIssuesIndexPath(home));
+  const closedFile = loadIssuesFile(getClosedIssuesIndexPath(home));
   const issues = new Map<string, Issue>();
+  const closed = new Map<string, Issue>();
 
-  for (const record of file.issues) {
+  for (const record of [...closedFile.issues, ...activeFile.issues]) {
     if (!record?.id || !record.title) continue;
-    issues.set(record.id, {
-      ...record,
-      title: record.title,
-      description: record.description ?? "",
-      priority: normalizePriority(record.priority),
-      tags: normalizeTags(record.tags),
-      items: record.items ?? [],
-    });
+    const issue = hydrateIssue(record);
+    if (isTerminal(issue.status)) {
+      closed.set(issue.id, issue);
+    } else {
+      issues.set(issue.id, issue);
+    }
   }
 
   function persist(): void {
     saveIssuesFile(
-      {
-        version: 1,
-        issues: [...issues.values()],
-      },
+      { version: 1, issues: [...issues.values()] },
+      getIssuesIndexPath(home),
       home,
     );
+    saveIssuesFile(
+      { version: 1, issues: [...closed.values()] },
+      getClosedIssuesIndexPath(home),
+      home,
+    );
+  }
+
+  if (activeFile.issues.some((record) => isTerminal(record.status))) {
+    persist();
+  }
+
+  function getMutable(id: string): Issue | undefined {
+    return issues.get(id) ?? closed.get(id);
+  }
+
+  function archive(issue: Issue): void {
+    issues.delete(issue.id);
+    closed.set(issue.id, issue);
+    persist();
   }
 
   return {
@@ -242,7 +271,7 @@ export function createIssueStore(
     },
 
     get(id: string): Issue | undefined {
-      const issue = issues.get(id);
+      const issue = getMutable(id);
       return issue ? cloneIssue(issue) : undefined;
     },
 
@@ -262,8 +291,14 @@ export function createIssueStore(
         .map(cloneIssue);
     },
 
+    listClosed(): Issue[] {
+      return [...closed.values()]
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map(cloneIssue);
+    },
+
     listAll(): Issue[] {
-      return [...issues.values()].map(cloneIssue);
+      return [...issues.values(), ...closed.values()].map(cloneIssue);
     },
 
     update(id, patch): Issue | undefined {
@@ -393,7 +428,7 @@ export function createIssueStore(
     },
 
     patchItem(id, itemId, patch): Issue | undefined {
-      const issue = issues.get(id);
+      const issue = getMutable(id);
       if (!issue) {
         return undefined;
       }
@@ -419,7 +454,7 @@ export function createIssueStore(
       }
       issue.status = "completed";
       issue.updatedAt = Date.now();
-      persist();
+      archive(issue);
       return cloneIssue(issue);
     },
 
@@ -430,12 +465,12 @@ export function createIssueStore(
       }
       issue.status = "cancelled";
       issue.updatedAt = Date.now();
-      persist();
+      archive(issue);
       return cloneIssue(issue);
     },
 
     maybeEnterReview(id): Issue | undefined {
-      const issue = issues.get(id);
+      const issue = getMutable(id);
       if (!issue) {
         return undefined;
       }
@@ -476,7 +511,7 @@ export function createIssueStore(
     },
 
     getByPlanningSession(sessionId): Issue | undefined {
-      for (const issue of issues.values()) {
+      for (const issue of [...issues.values(), ...closed.values()]) {
         if (issue.planningSessionId === sessionId) return cloneIssue(issue);
       }
       return undefined;

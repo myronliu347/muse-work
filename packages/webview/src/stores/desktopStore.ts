@@ -11,12 +11,14 @@ interface DesktopStore {
   workdirState: DesktopWorkdirState | null;
   sessionTree: DesktopSessionGroup[];
   issueGroups: DesktopIssueGroup[];
+  closedIssueGroups: DesktopIssueGroup[];
   panes: DesktopPane[];
   rowHeights: number[] | undefined;
   focusedPaneId: string | null;
   setWorkdirState: (state: DesktopWorkdirState) => void;
   setSessionTree: (groups: DesktopSessionGroup[]) => void;
   setIssueGroups: (groups: DesktopIssueGroup[]) => void;
+  setClosedIssueGroups: (groups: DesktopIssueGroup[]) => void;
   setPanes: (
     panes: DesktopPane[],
     rowHeights: number[] | undefined,
@@ -29,6 +31,7 @@ export const useDesktopStore = create<DesktopStore>((set) => ({
   workdirState: null,
   sessionTree: [],
   issueGroups: [],
+  closedIssueGroups: [],
   panes: [],
   rowHeights: undefined,
   focusedPaneId: null,
@@ -36,6 +39,7 @@ export const useDesktopStore = create<DesktopStore>((set) => ({
   setWorkdirState: (workdirState) => set({ workdirState }),
   setSessionTree: (sessionTree) => set({ sessionTree }),
   setIssueGroups: (issueGroups) => set({ issueGroups }),
+  setClosedIssueGroups: (closedIssueGroups) => set({ closedIssueGroups }),
   setPanes: (panes, rowHeights, focusedPaneId) =>
     set({ panes, rowHeights, focusedPaneId }),
 
@@ -44,6 +48,7 @@ export const useDesktopStore = create<DesktopStore>((set) => ({
       workdirState: null,
       sessionTree: [],
       issueGroups: [],
+      closedIssueGroups: [],
       panes: [],
       rowHeights: undefined,
       focusedPaneId: null,
@@ -57,12 +62,14 @@ export function useDesktopShell() {
       workdirState: s.workdirState,
       sessionTree: s.sessionTree,
       issueGroups: s.issueGroups,
+      closedIssueGroups: s.closedIssueGroups,
       panes: s.panes,
       rowHeights: s.rowHeights,
       focusedPaneId: s.focusedPaneId,
       setWorkdirState: s.setWorkdirState,
       setSessionTree: s.setSessionTree,
       setIssueGroups: s.setIssueGroups,
+      setClosedIssueGroups: s.setClosedIssueGroups,
       setPanes: s.setPanes,
     })),
   );

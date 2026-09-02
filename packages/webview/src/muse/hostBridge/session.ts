@@ -59,6 +59,14 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         items: g.items,
         sessions: (g.sessions ?? []).map(toEntry),
       })),
+      closedIssueGroups: ctx.closedIssueGroups.map((g) => ({
+        issueId: g.issueId,
+        title: g.title,
+        priority: g.priority,
+        status: g.status,
+        items: g.items,
+        sessions: (g.sessions ?? []).map(toEntry),
+      })),
     });
     ctx.publishAgentBusy();
   };
@@ -68,6 +76,10 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.pinned = mergeRuntimeFields(grouped.pinned, prev);
     ctx.recent = mergeRuntimeFields(grouped.recent, prev);
     ctx.issueGroups = (grouped.issueGroups ?? []).map((g) => ({
+      ...g,
+      sessions: mergeRuntimeFields(g.sessions ?? [], prev),
+    }));
+    ctx.closedIssueGroups = (grouped.closedIssueGroups ?? []).map((g) => ({
       ...g,
       sessions: mergeRuntimeFields(g.sessions ?? [], prev),
     }));
@@ -83,6 +95,10 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.pinned = apply(ctx.pinned);
     ctx.recent = apply(ctx.recent);
     ctx.issueGroups = ctx.issueGroups.map((g) => ({
+      ...g,
+      sessions: apply(g.sessions),
+    }));
+    ctx.closedIssueGroups = ctx.closedIssueGroups.map((g) => ({
       ...g,
       sessions: apply(g.sessions),
     }));
@@ -296,9 +312,10 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.emitWorkdirState();
     try {
       const grouped = await refreshTree();
-      const issueSessions = (grouped.issueGroups ?? []).flatMap(
-        (g) => g.sessions,
-      );
+      const issueSessions = [
+        ...(grouped.issueGroups ?? []).flatMap((g) => g.sessions),
+        ...(grouped.closedIssueGroups ?? []).flatMap((g) => g.sessions),
+      ];
       if (
         !ctx.toastedInterrupted &&
         [...grouped.pinned, ...grouped.recent, ...issueSessions].some(
