@@ -1,0 +1,139 @@
+packages/server/tests/issuePlanning.test.ts
+  442440ce7046c502 81,83-84
+packages/server/src/services/issueStore.ts
+  442440ce7046c502 490-492,513-514
+packages/webview/src/components/session/SessionTree.tsx
+  442440ce7046c502 146,676
+packages/webview/src/components/issue/NewIssueDialog.tsx
+  442440ce7046c502 80
+packages/server/src/popo/popoAgent.ts
+  442440ce7046c502 17,126-127
+packages/server/src/services/issuePlanning.ts
+  442440ce7046c502 120-121
+CONTEXT.md
+  442440ce7046c502 3,8,11-14,16-21,24-25,27-29,32,36,40-41,45-47,49
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  442440ce7046c502 83
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  442440ce7046c502 182-184,331,335,343
+packages/server/tests/popoAgent.test.ts
+  442440ce7046c502 231-245,342-343
+packages/server/tests/issues.routes.test.ts
+  442440ce7046c502 115-116
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  442440ce7046c502 50-52
+docs/superpowers/specs/2026-09-01-issue-design.md
+  442440ce7046c502 4,9,13,15-18,25-26,52-54,63,68-70,72,87,100,107-108,111,153
+packages/server/tests/issueStore.test.ts
+  442440ce7046c502 96-113
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 3,10,12,18-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b276b534cccf3d99a9eeb5e28f753056a2f2117f",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 227,
+      "total_deletions": 74,
+      "accepted_lines": 122,
+      "overriden_lines": 5,
+      "per_file_stats": {
+        "CONTEXT.md": {
+          "additions": 32,
+          "deletions": 16,
+          "accepted_lines": 27
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 2
+        },
+        "packages/webview/src/components/issue/NewIssueDialog.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 6,
+          "deletions": 5,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 68
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 2
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 12,
+          "deletions": 12,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 11,
+          "deletions": 5,
+          "overriden_lines": 5
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 6,
+          "deletions": 2
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "docs/superpowers/specs/2026-09-01-issue-design.md": {
+          "additions": 28,
+          "deletions": 22,
+          "accepted_lines": 23
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
