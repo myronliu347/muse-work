@@ -95,6 +95,50 @@ describe("popoAgent", () => {
     expect(disposeCalls).toBe(0); // 不销毁
   });
 
+  it("recreates p2p agent when credential fingerprint changes (token renew)", async () => {
+    let fingerprint = "cred-v1";
+    const restoreIds: Array<string | undefined> = [];
+    let createCalls = 0;
+    let disposeCalls = 0;
+    const registry = {
+      get: () => ({
+        id: "codemaker",
+        listModels: async () => [{ id: "m1", label: "M1" }],
+        resolveGateway: async (model: string) => ({
+          baseURL: "http://gw",
+          model,
+          credentialFingerprint: fingerprint,
+        }),
+      }),
+      getActive: () => ({ providerId: "codemaker", modelId: undefined }),
+    } as never;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry,
+      createAgent: async (opts) => {
+        createCalls += 1;
+        restoreIds.push(opts.restoreSessionId);
+        return {
+          ...stubAgent("最终回复"),
+          sessionId: "wave-1",
+          dispose: () => {
+            disposeCalls += 1;
+          },
+        };
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    expect(createCalls).toBe(1);
+    expect(disposeCalls).toBe(0);
+
+    fingerprint = "cred-v2";
+    await runner.run("again");
+    expect(createCalls).toBe(2);
+    expect(disposeCalls).toBe(1);
+    expect(restoreIds[1]).toBe("wave-1");
+  });
+
   it("does not schedule background-task disposal for resident p2p agents", async () => {
     vi.useFakeTimers();
     let disposeCalls = 0;

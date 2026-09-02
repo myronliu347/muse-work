@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ProviderRegistry } from "@muse-work/provider";
+import type { GatewayResolution, ProviderRegistry } from "@muse-work/provider";
 import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner/index.js";
 import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
@@ -105,22 +105,34 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
 
   /** p2p 私聊常驻 agent：跨消息复用、不销毁、不轮询后台任务（用户指定）。 */
   const residentAgents = new Map<string, SessionAgent>();
+  /** 与 sessionRunner.ensureAgent 相同：gateway 指纹变了（token renew）就重建。 */
+  const residentIdentities = new Map<string, string>();
   const residentRunners = new Map<string, PopoAgentRunner>();
   /** 同一 chat 的消息串行执行（常驻 agent / 共享 session 都要求按序）。 */
   const serialChains = new Map<string, Promise<unknown>>();
   /** chatKey → 当前正在处理消息的 agent（team 每消息新建，run 期间登记，供 /btw 实时询问）。 */
   const activeAgents = new Map<string, SessionAgent>();
 
-  async function createSdkAgent(
-    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
-  ): Promise<SessionAgent> {
-    fs.mkdirSync(workdir, { recursive: true });
+  function gatewayIdentity(gateway: GatewayResolution): string {
+    const credential = gateway.credentialFingerprint ?? gateway.apiKey ?? "";
+    return [gateway.baseURL, gateway.model, credential, gateway.fastModel ?? ""].join("\0");
+  }
+
+  async function resolvePopoGateway(): Promise<GatewayResolution> {
     const active = options.registry.getActive();
     const provider = options.registry.get(active.providerId);
     if (!provider) throw new Error(`active provider not found: ${active.providerId}`);
     const model = active.modelId ?? (await provider.listModels())[0]?.id;
     if (!model) throw new Error("no active model");
-    const gateway = await provider.resolveGateway(model);
+    return provider.resolveGateway(model);
+  }
+
+  async function createSdkAgent(
+    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    gateway?: GatewayResolution,
+  ): Promise<{ agent: SessionAgent; identity: string }> {
+    fs.mkdirSync(workdir, { recursive: true });
+    const resolved = gateway ?? (await resolvePopoGateway());
 
     const plugins: Array<{ type: "local"; path: string }> = [];
     const issueDir = pluginDirIfPresent("issue");
@@ -130,15 +142,15 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
     const permission = resolvePermission(agent.permission);
     // agent 显式给 fastModel 才覆盖；不给保持 gateway.fastModel ?? gateway.model（与现状一致）
-    const fastModel = agent.fastModel ?? gateway.fastModel ?? gateway.model;
+    const fastModel = agent.fastModel ?? resolved.fastModel ?? resolved.model;
     const popoDisallowed = [...POPO_DISALLOWED_TOOLS, ...permission.disallowedTools];
 
-    return (createAgent as CreateAgent)({
-      apiKey: gateway.apiKey,
-      baseURL: gateway.baseURL,
-      defaultHeaders: gateway.defaultHeaders,
-      fetch: gateway.fetch,
-      model: gateway.model,
+    const sdkAgent = await (createAgent as CreateAgent)({
+      apiKey: resolved.apiKey,
+      baseURL: resolved.baseURL,
+      defaultHeaders: resolved.defaultHeaders,
+      fetch: resolved.fetch,
+      model: resolved.model,
       fastModel,
       workdir,
       stream: true,
@@ -160,6 +172,30 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         },
       },
     });
+    return { agent: sdkAgent, identity: gatewayIdentity(resolved) };
+  }
+
+  async function refreshResidentAgent(
+    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    agentBox: { current: SessionAgent },
+  ): Promise<void> {
+    const gateway = await resolvePopoGateway();
+    const identity = gatewayIdentity(gateway);
+    if (identity === residentIdentities.get(chat.chatKey)) return;
+    const prev = agentBox.current;
+    const restoreId = prev.sessionId ?? chat.waveSessionId;
+    const created = await createSdkAgent(
+      { ...chat, waveSessionId: restoreId },
+      gateway,
+    );
+    agentBox.current = created.agent;
+    residentAgents.set(chat.chatKey, created.agent);
+    residentIdentities.set(chat.chatKey, created.identity);
+    try {
+      await prev.dispose();
+    } catch {
+      // 旧 agent 释放失败不能挡住带着新 token 的新 agent。
+    }
   }
 
   /** 单轮：sendMessage + 取最后文本。不负责 agent 生命周期（由调用方决定）。 */
@@ -209,19 +245,26 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (chat.type === "p2p") {
       const existing = residentRunners.get(chat.chatKey);
       if (existing) return existing;
-      const agent = await createSdkAgent(chat);
-      residentAgents.set(chat.chatKey, agent);
+      const created = await createSdkAgent(chat);
+      const agentBox = { current: created.agent };
+      residentAgents.set(chat.chatKey, created.agent);
+      residentIdentities.set(chat.chatKey, created.identity);
       const runner: PopoAgentRunner = {
-        run: (content) => serialized(chat.chatKey, () => runTurn(agent, chat, content)),
+        run: (content) =>
+          serialized(chat.chatKey, async () => {
+            await refreshResidentAgent(chat, agentBox);
+            return runTurn(agentBox.current, chat, content);
+          }),
         // 与 run 同链串行：等正在跑的消息结束后再清，避免上下文交错。
         clear: () =>
           serialized(chat.chatKey, async () => {
-            await agent.clearMessages?.();
+            await agentBox.current.clearMessages?.();
             return "";
           }).then(() => undefined),
         // 不走 serialized 串行链：SDK askBtw 是旁路 fork，不打断主 turn，
         // 基于当前上下文实时回答（无工具、不写消息、不落盘）。
-        askBtw: (question) => agent.askBtw?.(question) ?? Promise.resolve(TEAM_BTW_IDLE),
+        askBtw: (question) =>
+          agentBox.current.askBtw?.(question) ?? Promise.resolve(TEAM_BTW_IDLE),
       };
       residentRunners.set(chat.chatKey, runner);
       return runner;
@@ -239,7 +282,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       },
       run: (content) =>
         serialized(chat.chatKey, async () => {
-          const agent = await createSdkAgent(chat);
+          const { agent } = await createSdkAgent(chat);
           activeAgents.set(chat.chatKey, agent);
           const loggerKey = `popo-${sanitizeSessionId(chat.chatKey)}`;
           try {
