@@ -1,0 +1,43 @@
+packages/server/tests/issuePluginScript.test.ts
+  442440ce7046c502 4,50-76
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 39
+packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs
+  442440ce7046c502 4-5,13-17,20,22-23,25,29-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1fc19d84f0c9c382e0c90aab388cd4977931159f",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 16,
+      "accepted_lines": 45,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/issuePluginScript.test.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs": {
+          "additions": 16,
+          "deletions": 15,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
