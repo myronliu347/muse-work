@@ -1290,6 +1290,7 @@ body.is-panel-resizing * {
   min-width: 520px;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 /* Dock fullscreen covers the conversation column and the session sidebar. */
