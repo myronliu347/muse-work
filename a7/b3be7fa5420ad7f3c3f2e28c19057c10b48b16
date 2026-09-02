@@ -1,0 +1,134 @@
+packages/webview/src/components/popo/PopoChatDetail.tsx
+  b269e5c36bd23fae 2,14,23-27,30,32,34-35,38,41,44-45,50,52,55,63-68,74-82,84-91,93-95
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  b269e5c36bd23fae 37-40,82-83
+packages/webview/tests/components/popo/PopoChatDetail.test.tsx
+  b269e5c36bd23fae 3,66-71,76-79,83-84,97-103,109,111,127-133,135,141,144,148
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  b269e5c36bd23fae 19,90,92-94,96,128-130,180-183
+packages/webview/tests/components/settings/PopoSettings.test.tsx
+  b269e5c36bd23fae 1-36
+packages/webview/src/components/settings/PopoSettings.tsx
+  b269e5c36bd23fae 1-107
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  b269e5c36bd23fae 16,46,249-274,310-316
+packages/webview/src/components/popo/popoUi.tsx
+  b269e5c36bd23fae 1-84
+packages/webview/src/styles/PopoRobotView.css
+  b269e5c36bd23fae 1,50-51,54-55,58,61,64
+packages/webview/src/components/chat/ChatContainer.tsx
+  b269e5c36bd23fae 2,21-22,43,56,82-83,105-109
+packages/webview/src/components/session/SessionTree.tsx
+  b269e5c36bd23fae 11,125,153-157,178,201-204,714-775,910
+packages/webview/src/components/desktop/DesktopShell.tsx
+  b269e5c36bd23fae 11,71,622-625,641-643,645-648,662-665
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 635-640
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  b269e5c36bd23fae 783-813,815,817-818,821-823,826-833,836-844
+packages/webview/tests/webview/configDialog.test.tsx
+  b269e5c36bd23fae 8-10
+packages/webview/src/components/ChatApp.tsx
+  b269e5c36bd23fae 19,52,54-74,158,701,848-851,862-864,866,883-889,891
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a7b3be7fa5420ad7f3c3f2e28c19057c10b48b16",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 760,
+      "total_deletions": 671,
+      "accepted_lines": 750,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/settings/PopoSettings.test.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/popo/PopoRobotView.tsx": {
+          "deletions": 241
+        },
+        "packages/webview/src/components/settings/PopoSettings.tsx": {
+          "additions": 107,
+          "accepted_lines": 107
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/popo/PopoChatDetail.test.tsx": {
+          "additions": 151,
+          "accepted_lines": 151
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 17,
+          "deletions": 20,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/popo/popoUi.tsx": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 35,
+          "deletions": 1,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 17,
+          "deletions": 6,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 78,
+          "deletions": 5,
+          "accepted_lines": 75
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "additions": 12,
+          "deletions": 7,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/popo/PopoChatDetail.tsx": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/popo/PopoRobotView.test.tsx": {
+          "deletions": 234
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 57,
+          "deletions": 35,
+          "accepted_lines": 54
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "additions": 8,
+          "deletions": 93,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 44,
+          "deletions": 28,
+          "accepted_lines": 41
+        }
+      }
+    }
+  }
+}
