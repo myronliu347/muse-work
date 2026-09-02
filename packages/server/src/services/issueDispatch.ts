@@ -147,7 +147,7 @@ export function formatExecTurnReport(input: {
   const interrupted = isInterruptedExecResult(input);
   let line: string;
   if (input.ok) {
-    line = `清单项「${input.itemContent}」${idPart}已完成。`;
+    line = `清单项「${input.itemContent}」${idPart}本回合结束。系统未将该项标为 done，不能把回合结束当成达标。`;
   } else if (interrupted) {
     line = `清单项「${input.itemContent}」${idPart}已中断，该项仍为 pending。`;
   } else {
@@ -182,10 +182,30 @@ export function formatExecTurnReport(input: {
     );
   } else {
     parts.push(
-      "根据执行过程判断下一步：达标后 dispatch 下一个 pending 项；未达标或只做了一半则对同一 itemId 再 dispatch。不要只看「已完成」四个字，也不要在清单未完成时停下来等用户。",
+      "先对照「执行过程」复核（工具、改动文件、产出是否覆盖清单原文）。达标：先 `items --done` 该项，再 dispatch 下一个 pending。未达标或过程对不上：对同一 itemId 再 dispatch，禁止派下一项。禁止未复核、未 --done 就派下一项。",
     );
   }
   return parts.join("\n");
+}
+
+export const DUTY_NUDGE_MAX = 3;
+
+export const INTERRUPT_CONTINUE_PROMPT =
+  "上次该清单项中断或失败，请从已有进度继续，不要改做其他清单项。";
+
+export function formatDutyNudge(input: {
+  remaining: Array<{ id: string; content: string; status: string }>;
+  lastItemId?: string;
+  lastOk?: boolean;
+}): string {
+  const remaining = input.remaining
+    .map((item) => `- ${item.id} 「${item.content}」(${item.status})`)
+    .join("\n");
+  const last =
+    input.lastItemId && input.lastOk === false
+      ? `上一回合中断或失败，必须对同一 itemId 再 dispatch：${input.lastItemId}。禁止派下一项，禁止问用户是否继续。`
+      : `上一回合已结束，先复核执行过程。达标：items --done ${input.lastItemId ?? "该项"} 再 dispatch 下一项。未达标：对同一 itemId 再 dispatch。禁止未 --done 就派下一项，禁止问用户是否继续。`;
+  return `来源：系统\nIssue 仍在执行中，清单未完成。不要把控制权交还用户。\n${last}\n\n未完成清单：\n${remaining || "（无）"}`;
 }
 
 export function isInterruptedExecResult(result: {
@@ -201,7 +221,7 @@ export function isInterruptedExecResult(result: {
 function formatExecPrompt(content: string, prompt?: string): string {
   const extra = prompt?.trim();
   const close =
-    "若上次该清单项被中断，请从已有进度继续，不要改做其他清单项。完成后请在最终回复中写出可独立阅读的结论（规划会话只会收到这段文字，不要只说「已完成」）。";
+    "若上次该清单项被中断，请从已有进度继续，不要改做其他清单项。最终回复写清做了什么、做到哪；规划会话会收到本回合执行过程（工具、改动文件）和这段结论。";
   if (extra) {
     return `请执行清单项「${content}」。\n${extra}\n${close}`;
   }
@@ -228,6 +248,8 @@ export function createIssueDispatcher(opts: {
   const { issues, sessions, runner, hub } = opts;
   const home = resolveHome(opts.home);
   const inflight = new Map<string, { issueId: string; itemId: string }>();
+  const lastOutcome = new Map<string, { itemId: string; ok: boolean }>();
+  const dutyNudges = new Map<string, number>();
 
   function ensureExecutionSession(issueId: string): string {
     const issue = issues.get(issueId);
@@ -297,6 +319,18 @@ export function createIssueDispatcher(opts: {
     if (!item) {
       throw httpError(404, "not found");
     }
+    const last = lastOutcome.get(issueId);
+    if (last && last.itemId !== itemId) {
+      const prev = issue.items.find((entry) => entry.id === last.itemId);
+      if (prev && prev.status !== "done") {
+        throw httpError(
+          409,
+          last.ok
+            ? "上一清单项尚未复核（items --done），不能派下一项"
+            : "上一清单项中断或失败，不能派下一项",
+        );
+      }
+    }
     const executionSessionId = ensureExecutionSession(issueId);
     if (inflight.has(executionSessionId)) {
       throw httpError(409, "dispatch already in flight");
@@ -305,6 +339,7 @@ export function createIssueDispatcher(opts: {
       issues.markExecuting(issueId);
     }
     issues.patchItem(issueId, itemId, { status: "running" });
+    dutyNudges.delete(issueId);
     inflight.set(executionSessionId, { issueId, itemId });
     try {
       await runner.sendMessage(
@@ -322,18 +357,79 @@ export function createIssueDispatcher(opts: {
     return { executionSessionId };
   }
 
+  function resumePlanningDuty(sessionId: string): void {
+    const issue = issues.getByPlanningSession(sessionId);
+    if (!issue || issue.status !== "executing") {
+      return;
+    }
+    if (issue.executionSessionId && inflight.has(issue.executionSessionId)) {
+      return;
+    }
+    const remaining = issue.items
+      .filter((entry) => entry.status !== "done")
+      .map((entry) => ({
+        id: entry.id,
+        content: entry.content,
+        status: entry.status,
+      }));
+    if (remaining.length === 0) {
+      return;
+    }
+    const last = lastOutcome.get(issue.id);
+    if (last && last.ok === false) {
+      const same = issue.items.find(
+        (entry) => entry.id === last.itemId && entry.status === "pending",
+      );
+      if (same) {
+        void dispatch(issue.id, last.itemId, INTERRUPT_CONTINUE_PROMPT).catch(
+          (err: unknown) => {
+            getLogger().error("interrupt auto-dispatch failed", {
+              issueId: issue.id,
+              itemId: last.itemId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          },
+        );
+      }
+      return;
+    }
+    const n = dutyNudges.get(issue.id) ?? 0;
+    if (n >= DUTY_NUDGE_MAX) {
+      return;
+    }
+    dutyNudges.set(issue.id, n + 1);
+    void runner
+      .sendMessage(
+        sessionId,
+        formatDutyNudge({
+          remaining,
+          lastItemId: last?.itemId,
+          lastOk: last?.ok,
+        }),
+        undefined,
+        "system-inject",
+      )
+      .catch((err: unknown) => {
+        getLogger().error("planning duty nudge failed", {
+          sessionId,
+          issueId: issue.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+  }
+
   function handleTurnSettled(
     sessionId: string,
     result: { ok: boolean; error?: string },
   ): void {
     const mapped = inflight.get(sessionId);
     if (!mapped) {
+      resumePlanningDuty(sessionId);
       return;
     }
     inflight.delete(sessionId);
-    issues.patchItem(mapped.issueId, mapped.itemId, {
-      status: result.ok ? "done" : "pending",
-    });
+    lastOutcome.set(mapped.issueId, { itemId: mapped.itemId, ok: result.ok });
+    issues.patchItem(mapped.issueId, mapped.itemId, { status: "pending" });
     const issue = issues.get(mapped.issueId);
     const item = issue?.items.find((entry) => entry.id === mapped.itemId);
     issues.maybeEnterReview(mapped.issueId);

@@ -56,7 +56,7 @@ Issue 字段：
 
 存储：`~/.muse-work/db/issues.json` 索引 + `~/.muse-work/db/issues/<id>/issue.json` 明细（含清单）。内存 Map + JSON 原子写，对齐 sessionStore。不用 SQLite。
 
-对话创建的 Issue：`status=pending`，**不**沿用当前会话 workdir；打开规划时再选目录。
+对话创建的 Issue：`status=pending`，**不**沿用当前会话 workdir；打开规划时再选目录。`POST /issues` 可同时带 `items` 落下清单，不必先开规划会话。规划会话里禁止再 `create`，只往当前 Issue 追加清单。
 
 ### 状态机
 
@@ -81,17 +81,17 @@ review    --完成-->                                completed
 - REST：`/issues` CRUD、`PATCH` 元数据、`POST /issues/:id/cancel`、`POST /issues/:id/complete`、`POST /issues/:id/planning-session`、`POST /issues/:id/dispatch`、清单增删改。
 - `POST planning-session`：body 含 `workdir`、`worktreeEnabled`、可选 `baseBranch`。创建规划会话（agent 场景 `issue-plan`，默认内置 `plan`），git+worktree 时按现有 desktop/session worktree 字段写入。成功后 `status=planning`。systemPrompt 注入 Issue ID 与职责：可读代码分析、可写文档；**禁止 Edit/Write 改源码**（`.md`/`.txt` 等文档除外）。`canUseTool` 对规划会话硬拒绝源码写入，即使 `bypassPermissions`。改代码必须 `dispatch`。
 - 执行会话：agent 场景 `issue-exec`，默认内置 `execute`；`permissionMode: bypassPermissions`；workdir/worktree 字段从 Issue（即规划会话）拷贝。
-- `dispatch`：校验 Issue 未终态；确保执行会话存在；把 `itemId` 标 `running`；向执行会话 `sendMessage`（`source: "system-inject"`，带清单项与指令）。执行 `onTurnSettled`：该项 `done` 或保持 `pending`（失败）；向规划会话注入进度（不打断：排队到当前回合结束）。注入必须让规划模型一眼认出是执行回报，不是用户消息：`source: "system-inject"`，正文固定以 `来源：执行会话` 开头，例如：
+- `dispatch`：校验 Issue 未终态；确保执行会话存在；把 `itemId` 标 `running`；向执行会话 `sendMessage`（`source: "system-inject"`，带清单项与指令）。执行 `onTurnSettled`：该项回到 `pending`（无论成败），**不**自动 `done`；向规划会话注入进度。规划复核达标后 `POST /issues/:id/items/:itemId/accept` 才标 `done`。未 accept 时 `dispatch` 其他 itemId 返回 409。注入必须让规划模型一眼认出是执行回报，不是用户消息：`source: "system-inject"`，正文固定以 `来源：执行会话` 开头，例如：
 
 ```
 来源：执行会话
-清单项「改登录校验」已完成。
+清单项「改登录校验」本回合结束。系统未将该项标为 done。
 
-执行结论：
-<执行会话最后一条助手回复的正文>
+执行过程：
+…
 ```
 
-失败时第二行为 `清单项「…」失败：<error>` 或 `已中断`（用户中止/abort），若有部分文字结论同样附在后面。注入须带 `itemId`、未完成清单、本回合**执行过程**（工具名、compactParams、成败、改动文件、子代理文字），规划侧据此判断下一发，不要只看「已完成」。执行中值守，流程为 dispatch → 执行 → 回报过程 → 复核 → 再 dispatch；中断/失败禁止跳到下一项，只能对同一 itemId 继续。规划 skill 写明同上。`executing` 且全部 `done` → `review`。已是 `review` 则保持 `review`。
+失败时第二行为 `清单项「…」失败：<error>` 或 `已中断`。注入须带 `itemId`、未完成清单、本回合**执行过程**。规划复核达标后 `items --done` 再派下一项；未 --done 系统拒绝派其他项。执行中值守：dispatch → 执行 → 回报过程 → 复核 → --done 或再派同一项。规划回合结束后若仍为 executing 且清单未完、执行不在跑：中断/失败且该项仍 pending → 系统对同一 itemId 再 dispatch；成功则催规划复核（最多 3 次），**不**自动派下一项。`executing` 且全部 `done` → `review`。已是 `review` 则保持 `review`。
 - 规划会话挂内置 plugin `issue`（始终开启，与 settings 开关无关）：脚本调上述 HTTP。
 - Agent 场景扩展为 `session | popo | issue-plan | issue-exec`。设置页增加两行映射。内置 `plan`/`execute` 已存在，无需新 agent 定义。
 - WS：`issue:changed` 广播刷新侧栏分组（所有 pane）。不单独做「待审核 toast」本期（人本来就在规划会话里聊）；YAGNI。
@@ -102,7 +102,7 @@ review    --完成-->                                completed
 - 新建：待办事项 section 头部「+」或菜单「新建 Issue」→ 对话框（标题/描述/优先级/标签）→ 创建后仍为待规划，点该组或「打开规划」再选 workdir + worktree 开关。
 - 打开规划：目录选择器（复用 `desktopPickDirectory`）+ 「worktree 模式」开关（非 git 目录时开关无效并提示将直接在该目录执行）。
 - Issue 行操作：完成、取消（确认）。点会话进入对应聊天。
-- 不恢复旧 Todo 看板主视图。Issue 分组展开时只读展示清单勾选；改清单只走规划 AI 工具。
+- 不恢复旧 Todo 看板主视图。Issue 分组展开只显示规划/执行会话；清单只走规划 AI 工具，不在侧栏展开正文。
 - 对话创建：普通会话也能挂 `issue` 插件，以便「建个 issue」。
 
 ### 规划 AI 工具（plugin 脚本）

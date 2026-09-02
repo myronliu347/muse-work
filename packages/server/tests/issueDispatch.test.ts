@@ -6,25 +6,28 @@ import { createIssueStore } from "../src/services/issueStore.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
 import {
   createIssueDispatcher,
+  formatDutyNudge,
   formatExecTurnProcess,
   formatExecTurnReport,
 } from "../src/services/issueDispatch.js";
 
 describe("formatExecTurnReport", () => {
-  it("tells planning to review then dispatch the next pending item when done", () => {
+  it("tells planning to review then accept before dispatching the next item", () => {
     const report = formatExecTurnReport({
       itemId: "i1",
       itemContent: "改登录",
       ok: true,
-      remaining: [{ id: "i2", content: "补测试", status: "pending" }],
+      remaining: [
+        { id: "i1", content: "改登录", status: "pending" },
+        { id: "i2", content: "补测试", status: "pending" },
+      ],
       issueStatus: "executing",
     });
     expect(report).toContain("来源：执行会话");
-    expect(report).toContain("已完成");
+    expect(report).toContain("未将该项标为 done");
     expect(report).toContain("itemId：i1");
-    expect(report).toContain("根据执行过程");
-    expect(report).toContain("dispatch");
-    expect(report).toContain("i2");
+    expect(report).toContain("items --done");
+    expect(report).toContain("禁止派下一项");
   });
 
   it("forbids skipping to the next item when the turn was interrupted", () => {
@@ -56,7 +59,24 @@ describe("formatExecTurnReport", () => {
     });
     expect(report).toContain("执行过程");
     expect(report).toContain("Edit src/login.ts");
-    expect(report).toContain("根据执行过程");
+    expect(report).toContain("复核");
+  });
+});
+
+describe("formatDutyNudge", () => {
+  it("tells planning to dispatch the same item after interrupt, not the next one", () => {
+    const text = formatDutyNudge({
+      remaining: [
+        { id: "i1", content: "调研", status: "pending" },
+        { id: "i2", content: "改代码", status: "pending" },
+      ],
+      lastItemId: "i1",
+      lastOk: false,
+    });
+    expect(text).toContain("来源：系统");
+    expect(text).toContain("i1");
+    expect(text).toContain("禁止派下一项");
+    expect(text).not.toContain("dispatch 下一个 pending");
   });
 });
 
@@ -148,15 +168,23 @@ describe("issueDispatch", () => {
     expect(sends[0]?.id).toBe(first.executionSessionId);
     expect(sends[0]?.source).toBe("system-inject");
     expect(sends[0]?.content).toContain("改登录");
+    expect(sends[0]?.content).not.toContain("只会收到这段文字");
+    expect(sends[0]?.content).toContain("执行过程");
 
     dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
-    expect(issues.get(issue.id)?.status).toBe("review");
+    expect(issues.get(issue.id)?.status).toBe("executing");
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "pending",
+    );
     await vi.waitFor(() => {
       const report = sends.find((s) => s.id === planning.id);
       expect(report?.source).toBe("system-inject");
       expect(report?.content).toContain("来源：执行会话");
       expect(report?.content).toContain("改登录");
+      expect(report?.content).toContain("未将该项标为 done");
     });
+    issues.acceptItem(issue.id, "i1");
+    expect(issues.get(issue.id)?.status).toBe("review");
 
     issues.patchItem(issue.id, "i1", { status: "pending" });
     await dispatcher.dispatch(issue.id, "i1", "再改一下");
@@ -303,7 +331,7 @@ describe("issueDispatch", () => {
 
     dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
     expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
-      "done",
+      "pending",
     );
     expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
       "pending",
@@ -412,6 +440,180 @@ describe("issueDispatch", () => {
       expect(report?.content).toContain("itemId：i1");
       expect(report?.content).toContain("不要 dispatch 下一项");
     });
+    dispatcher.handleTurnSettled(planning.id, { ok: true });
+    await vi.waitFor(() => {
+      const execSends = sends.filter((s) => s.id === first.executionSessionId);
+      expect(execSends.length).toBeGreaterThanOrEqual(2);
+      expect(execSends[1]?.content).toContain("调研");
+      expect(execSends[1]?.content).toContain("继续");
+      expect(execSends[1]?.content).not.toContain("改代码");
+    });
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "running",
+    );
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("nudges planning to dispatch after a successful item, and does not auto-pick the next item", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-nudge-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const sends: Array<{ id: string; content: string }> = [];
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: {
+        sendMessage: async (id: string, content: string) => {
+          sends.push({ id, content });
+          return { accepted: true as const };
+        },
+        getMessages: async () => [],
+      } as never,
+      hub: { broadcastAll: () => {} } as never,
+    });
+    const issue = issues.create({ title: "双项" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "双项",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "调研", status: "pending" },
+      { id: "i2", content: "改代码", status: "pending" },
+    ]);
+    const first = await dispatcher.dispatch(issue.id, "i1");
+    dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
+    await vi.waitFor(() => {
+      expect(sends.some((s) => s.id === planning.id)).toBe(true);
+    });
+    const execCountAfterReport = sends.filter(
+      (s) => s.id === first.executionSessionId,
+    ).length;
+    dispatcher.handleTurnSettled(planning.id, { ok: true });
+    await vi.waitFor(() => {
+      const nudge = sends.find(
+        (s) => s.id === planning.id && s.content.includes("来源：系统"),
+      );
+      expect(nudge?.content).toContain("不要把控制权交还用户");
+      expect(nudge?.content).toContain("items --done");
+      expect(nudge?.content).toContain("禁止未 --done 就派下一项");
+    });
+    expect(
+      sends.filter((s) => s.id === first.executionSessionId).length,
+    ).toBe(execCountAfterReport);
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("does not auto-dispatch the interrupted item if planning already dispatched it", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-skip-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const sends: Array<{ id: string; content: string }> = [];
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: {
+        sendMessage: async (id: string, content: string) => {
+          sends.push({ id, content });
+          return { accepted: true as const };
+        },
+        getMessages: async () => [],
+      } as never,
+      hub: { broadcastAll: () => {} } as never,
+    });
+    const issue = issues.create({ title: "双项" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "双项",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "调研", status: "pending" },
+      { id: "i2", content: "改代码", status: "pending" },
+    ]);
+    const first = await dispatcher.dispatch(issue.id, "i1");
+    dispatcher.handleTurnSettled(first.executionSessionId, {
+      ok: false,
+      error: "interrupted",
+    });
+    await vi.waitFor(() => {
+      expect(sends.some((s) => s.id === planning.id)).toBe(true);
+    });
+    await dispatcher.dispatch(issue.id, "i1");
+    const execCount = sends.filter((s) => s.id === first.executionSessionId)
+      .length;
+    dispatcher.handleTurnSettled(planning.id, { ok: true });
+    await Promise.resolve();
+    expect(
+      sends.filter((s) => s.id === first.executionSessionId).length,
+    ).toBe(execCount);
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("rejects dispatching the next item until planning accepts the last turn", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-accept-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: {
+        sendMessage: async () => ({ accepted: true as const }),
+        getMessages: async () => [],
+      } as never,
+      hub: { broadcastAll: () => {} } as never,
+    });
+    const issue = issues.create({ title: "双项" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "双项",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "调研", status: "pending" },
+      { id: "i2", content: "改代码", status: "pending" },
+    ]);
+    const first = await dispatcher.dispatch(issue.id, "i1");
+    dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
+    await expect(dispatcher.dispatch(issue.id, "i2")).rejects.toThrow(
+      /尚未复核/,
+    );
+    issues.acceptItem(issue.id, "i1");
+    const second = await dispatcher.dispatch(issue.id, "i2");
+    expect(second.executionSessionId).toBe(first.executionSessionId);
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "done",
+    );
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "running",
+    );
     fs.rmSync(home, { recursive: true, force: true });
   });
 });

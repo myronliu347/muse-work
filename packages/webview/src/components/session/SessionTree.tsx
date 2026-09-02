@@ -596,7 +596,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               {groups.map((group) => {
                 const collapsed = collapsedIssues.has(group.issueId);
                 const priority = group.priority || "p1";
-                const items = group.items ?? [];
                 const sessions = group.sessions ?? [];
                 const statusLabel =
                   ISSUE_STATUS_LABEL[group.status] ?? group.status;
@@ -661,31 +660,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       ) : null}
                     </div>
                     <CollapsibleBody open={!collapsed}>
-                      {items.length > 0 ? (
-                        <ul
-                          className="issue-sidebar-checklist"
-                          data-testid={`desktop-session-issue-checklist-${group.issueId}`}
-                        >
-                          {items.map((item) => (
-                            <li
-                              key={item.id}
-                              className={`issue-sidebar-checklist-item issue-sidebar-checklist-item--${item.status}`}
-                            >
-                              <span
-                                className={`issue-sidebar-check issue-sidebar-check--${item.status === "done" ? "done" : item.status === "running" ? "running" : "pending"}`}
-                                aria-hidden="true"
-                              >
-                                {item.status === "done" ? (
-                                  <span className="codicon codicon-check" />
-                                ) : null}
-                              </span>
-                              <span className="issue-sidebar-checklist-text">
-                                {item.content}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
                       {sessions.length === 0 ? (
                         <div className="desktop-session-empty issue-sidebar-empty">
                           {onOpenPlanning ? (

@@ -3,6 +3,7 @@ import {
   PLANNING_CODE_WRITE_DENIED,
   buildIssuePlanningExtra,
   isPlanningDocPath,
+  looksLikeSourceMutation,
   planningCodeWriteDecision,
 } from "../src/services/issuePlanning.js";
 
@@ -30,6 +31,22 @@ describe("issuePlanning", () => {
       behavior: "deny",
       message: PLANNING_CODE_WRITE_DENIED,
     });
+    expect(
+      planningCodeWriteDecision("Bash", {
+        command: "sed -i 's/a/b/' src/main.ts",
+      }),
+    ).toEqual({
+      behavior: "deny",
+      message: PLANNING_CODE_WRITE_DENIED,
+    });
+    expect(
+      planningCodeWriteDecision("Bash", { command: "git log -1 --oneline" }),
+    ).toBeNull();
+  });
+
+  it("looksLikeSourceMutation catches redirects to implementation files", () => {
+    expect(looksLikeSourceMutation("echo x > src/a.ts")).toBe(true);
+    expect(looksLikeSourceMutation("ls src")).toBe(false);
   });
 
   it("buildIssuePlanningExtra names the issue and forbids source edits", () => {
@@ -40,11 +57,12 @@ describe("issuePlanning", () => {
     });
     expect(extra).toContain("Issue ID：issue-1");
     expect(extra).toContain("标题：测试");
-    expect(extra).toContain("禁止 Edit/Write 修改源码");
+    expect(extra).toContain("不要修改产品实现");
     expect(extra).toContain("dispatch");
-    expect(extra).toContain("写文档");
+    expect(extra).toContain("计划");
     expect(extra).toContain("值守");
     expect(extra).toContain("复核");
+    expect(extra).toContain("items --done");
     expect(extra).toContain("同一");
     expect(extra).toContain("执行过程");
   });

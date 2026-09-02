@@ -66,6 +66,12 @@ export interface IssueStore {
   ): Issue | undefined;
   setExecutionSessionId(id: string, executionSessionId: string): Issue | undefined;
   setItems(id: string, items: ChecklistItem[]): Issue | undefined;
+  appendItems(
+    id: string,
+    items: Array<{ content: string }>,
+  ): Issue | undefined;
+  removePendingItem(id: string, itemId: string): Issue | undefined;
+  acceptItem(id: string, itemId: string): Issue | undefined;
   patchItem(
     id: string,
     itemId: string,
@@ -77,6 +83,7 @@ export interface IssueStore {
   markExecuting(id: string): Issue | undefined;
   /** True when this session id is some Issue's planning session. */
   hasPlanningSession(sessionId: string): boolean;
+  getByPlanningSession(sessionId: string): Issue | undefined;
 }
 
 export interface CreateIssueStoreOptions {
@@ -324,6 +331,67 @@ export function createIssueStore(
       return this.maybeEnterReview(id);
     },
 
+    appendItems(id, items): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) {
+        return undefined;
+      }
+      for (const raw of items) {
+        const content = raw.content.trim();
+        if (!content) continue;
+        issue.items.push({
+          id: crypto.randomUUID(),
+          content,
+          status: "pending",
+        });
+      }
+      issue.updatedAt = Date.now();
+      persist();
+      return this.maybeEnterReview(id);
+    },
+
+    removePendingItem(id, itemId): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) {
+        return undefined;
+      }
+      const item = issue.items.find((entry) => entry.id === itemId);
+      if (!item) {
+        return undefined;
+      }
+      if (item.status !== "pending") {
+        throw Object.assign(new Error("can only remove pending items"), {
+          statusCode: 409,
+        });
+      }
+      issue.items = issue.items.filter((entry) => entry.id !== itemId);
+      issue.updatedAt = Date.now();
+      persist();
+      return this.maybeEnterReview(id);
+    },
+
+    acceptItem(id, itemId): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) {
+        return undefined;
+      }
+      const item = issue.items.find((entry) => entry.id === itemId);
+      if (!item) {
+        return undefined;
+      }
+      if (item.status === "running") {
+        throw Object.assign(new Error("cannot accept running item"), {
+          statusCode: 409,
+        });
+      }
+      if (item.status !== "done") {
+        item.status = "done";
+        issue.updatedAt = Date.now();
+        persist();
+      }
+      return this.maybeEnterReview(id);
+    },
+
     patchItem(id, itemId, patch): Issue | undefined {
       const issue = issues.get(id);
       if (!issue) {
@@ -404,10 +472,14 @@ export function createIssueStore(
     },
 
     hasPlanningSession(sessionId): boolean {
+      return this.getByPlanningSession(sessionId) !== undefined;
+    },
+
+    getByPlanningSession(sessionId): Issue | undefined {
       for (const issue of issues.values()) {
-        if (issue.planningSessionId === sessionId) return true;
+        if (issue.planningSessionId === sessionId) return cloneIssue(issue);
       }
-      return false;
+      return undefined;
     },
   };
 }

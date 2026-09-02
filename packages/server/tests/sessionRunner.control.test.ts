@@ -665,6 +665,15 @@ describe("sessionRunner control plane", () => {
       toolName: "Read",
       toolInput: { path: "src/App.vue" },
     });
-    expect(read.behavior).toBe("allow");
+    const bashDenied = await canUseTool!({
+      toolName: "Bash",
+      toolInput: { command: "cat > src/App.vue" },
+    });
+    expect(bashDenied.behavior).toBe("deny");
+    const bashOk = await canUseTool!({
+      toolName: "Bash",
+      toolInput: { command: "ls src" },
+    });
+    expect(bashOk.behavior).toBe("allow");
   });
 });

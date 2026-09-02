@@ -8,7 +8,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 
 function getMuseHomeDir(
   home = os.homedir(),
@@ -36,9 +35,12 @@ function usage() {
   console.log(`issue.mjs — Issue 管理 CLI（${BASE}）
 
 用法：
-  node issue.mjs create --title <标题> [--description D] [--priority p0|p1|p2] [--tags a,b]
+  node issue.mjs create --title <标题> [--description D] [--priority p0|p1|p2] [--tags a,b] [--add-json '[{ "content": "..." }]']
   node issue.mjs update --id <ID> [--title T] [--description D] [--priority p0|p1|p2] [--tags a,b]
-  node issue.mjs items --id <ID> --set-json '[{ "content": "..." }]'
+  node issue.mjs get --id <ID>
+  node issue.mjs items --id <ID> --add-json '[{ "content": "..." }]'
+  node issue.mjs items --id <ID> --done <ITEM_ID>
+  node issue.mjs items --id <ID> --remove <ITEM_ID>
   node issue.mjs dispatch --id <ID> --item <ITEM_ID> [--prompt P]
   node issue.mjs complete --id <ID>
   node issue.mjs cancel --id <ID>
@@ -100,6 +102,24 @@ async function main() {
       if (priority != null) body.priority = priority;
       const tags = parseTags(arg(argv, "--tags"));
       if (tags) body.tags = tags;
+      const addJson = arg(argv, "--add-json");
+      if (addJson != null) {
+        let rawItems;
+        try {
+          rawItems = JSON.parse(addJson);
+        } catch {
+          throw new Error("--add-json 不是合法 JSON");
+        }
+        if (!Array.isArray(rawItems)) {
+          throw new Error("--add-json 必须是数组");
+        }
+        body.items = rawItems.map((item) => {
+          const row = item && typeof item === "object" ? item : {};
+          return {
+            content: typeof row.content === "string" ? row.content : "",
+          };
+        });
+      }
       const { issue } = await request("POST", "/issues", body);
       printJson(issue);
       return;
@@ -120,34 +140,54 @@ async function main() {
       printJson(issue);
       return;
     }
+    case "get": {
+      const id = arg(argv, "--id");
+      if (!id) throw new Error("get 需要 --id");
+      const { issue } = await request("GET", `/issues/${id}`);
+      printJson(issue);
+      return;
+    }
     case "items": {
       const id = arg(argv, "--id");
-      const setJson = arg(argv, "--set-json");
-      if (!id || setJson == null) {
-        throw new Error("items 需要 --id 与 --set-json");
+      if (!id) throw new Error("items 需要 --id");
+      const removeId = arg(argv, "--remove");
+      if (removeId) {
+        const { issue } = await request(
+          "DELETE",
+          `/issues/${id}/items/${encodeURIComponent(removeId)}`,
+        );
+        printJson(issue);
+        return;
+      }
+      const doneId = arg(argv, "--done");
+      if (doneId) {
+        const { issue } = await request(
+          "POST",
+          `/issues/${id}/items/${encodeURIComponent(doneId)}/accept`,
+        );
+        printJson(issue);
+        return;
+      }
+      const addJson = arg(argv, "--add-json") ?? arg(argv, "--set-json");
+      if (addJson == null) {
+        throw new Error("items 需要 --add-json、--remove 或 --done");
       }
       let rawItems;
       try {
-        rawItems = JSON.parse(setJson);
+        rawItems = JSON.parse(addJson);
       } catch {
-        throw new Error("--set-json 不是合法 JSON");
+        throw new Error("--add-json 不是合法 JSON");
       }
       if (!Array.isArray(rawItems)) {
-        throw new Error("--set-json 必须是数组");
+        throw new Error("--add-json 必须是数组");
       }
       const items = rawItems.map((item) => {
         const row = item && typeof item === "object" ? item : {};
         return {
-          ...row,
-          id:
-            typeof row.id === "string" && row.id
-              ? row.id
-              : randomUUID(),
           content: typeof row.content === "string" ? row.content : "",
-          ...(row.status != null ? { status: row.status } : {}),
         };
       });
-      const { issue } = await request("PUT", `/issues/${id}/items`, { items });
+      const { issue } = await request("POST", `/issues/${id}/items`, { items });
       printJson(issue);
       return;
     }

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { HonoEnv } from "../honoEnv.js";
-import type { Issue, IssuePriority, ChecklistItemStatus } from "../services/issueStore.js";
+import type { Issue, IssuePriority } from "../services/issueStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
@@ -49,19 +49,33 @@ issuesRoutes.post("/issues", async (c) => {
     description?: string;
     priority?: IssuePriority;
     tags?: string[];
+    items?: Array<{ content?: string }>;
   };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: "invalid json" }, 400);
   }
+  const toAdd: Array<{ content: string }> = [];
+  if (Array.isArray(body.items) && body.items.length > 0) {
+    for (const raw of body.items) {
+      const content = typeof raw?.content === "string" ? raw.content.trim() : "";
+      if (!content) {
+        return c.json({ error: "item content required" }, 400);
+      }
+      toAdd.push({ content });
+    }
+  }
   try {
-    const issue = ctx.issueStore.create({
+    let issue = ctx.issueStore.create({
       title: body.title ?? "",
       description: body.description,
       priority: body.priority,
       tags: body.tags,
     });
+    if (toAdd.length > 0) {
+      issue = ctx.issueStore.appendItems(issue.id, toAdd) ?? issue;
+    }
     broadcastIssueChanged(ctx);
     return c.json({ issue }, 201);
   } catch (err) {
@@ -224,11 +238,43 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
   return c.json({ sessionId: session.id, workdir });
 });
 
-function parseChecklistStatus(value: unknown): ChecklistItemStatus {
-  return value === "running" || value === "done" ? value : "pending";
-}
+/** POST /issues/:id/items — append pending items; never replaces executed ones */
+issuesRoutes.post("/issues/:id/items", async (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const existing = ctx.issueStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (isTerminal(existing.status)) {
+    return c.json({ error: "issue is terminal" }, 409);
+  }
+  let body: { items?: Array<{ content?: string }> };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    return c.json({ error: "items required" }, 400);
+  }
+  const toAdd = [];
+  for (const raw of body.items) {
+    const content = typeof raw?.content === "string" ? raw.content.trim() : "";
+    if (!content) {
+      return c.json({ error: "item content required" }, 400);
+    }
+    toAdd.push({ content });
+  }
+  const issue = ctx.issueStore.appendItems(id, toAdd);
+  if (!issue) {
+    return c.json({ error: "not found" }, 404);
+  }
+  broadcastIssueChanged(ctx);
+  return c.json({ issue });
+});
 
-/** PUT /issues/:id/items — replace checklist; missing id → UUID, missing status → pending */
+/** PUT /issues/:id/items — same as POST append (no full replace) */
 issuesRoutes.put("/issues/:id/items", async (c) => {
   const ctx = c.get("ctx");
   const id = c.req.param("id");
@@ -239,35 +285,91 @@ issuesRoutes.put("/issues/:id/items", async (c) => {
   if (isTerminal(existing.status)) {
     return c.json({ error: "issue is terminal" }, 409);
   }
-  let body: {
-    items?: Array<{ id?: string; content?: string; status?: ChecklistItemStatus }>;
-  };
+  let body: { items?: Array<{ content?: string }> };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: "invalid json" }, 400);
   }
-  if (!Array.isArray(body.items)) {
+  if (!Array.isArray(body.items) || body.items.length === 0) {
     return c.json({ error: "items required" }, 400);
   }
-  const items = [];
+  const toAdd = [];
   for (const raw of body.items) {
-    const content = typeof raw?.content === "string" ? raw.content : "";
+    const content = typeof raw?.content === "string" ? raw.content.trim() : "";
     if (!content) {
       return c.json({ error: "item content required" }, 400);
     }
-    items.push({
-      id: typeof raw.id === "string" && raw.id ? raw.id : crypto.randomUUID(),
-      content,
-      status: parseChecklistStatus(raw.status),
-    });
+    toAdd.push({ content });
   }
-  const issue = ctx.issueStore.setItems(id, items);
+  const issue = ctx.issueStore.appendItems(id, toAdd);
   if (!issue) {
     return c.json({ error: "not found" }, 404);
   }
   broadcastIssueChanged(ctx);
   return c.json({ issue });
+});
+
+/** DELETE /issues/:id/items/:itemId — pending only */
+issuesRoutes.delete("/issues/:id/items/:itemId", (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const itemId = c.req.param("itemId");
+  const existing = ctx.issueStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (isTerminal(existing.status)) {
+    return c.json({ error: "issue is terminal" }, 409);
+  }
+  try {
+    const issue = ctx.issueStore.removePendingItem(id, itemId);
+    if (!issue) {
+      return c.json({ error: "not found" }, 404);
+    }
+    broadcastIssueChanged(ctx);
+    return c.json({ issue });
+  } catch (err) {
+    const status =
+      err && typeof err === "object" && "statusCode" in err
+        ? Number((err as { statusCode: number }).statusCode)
+        : 400;
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      (status === 409 ? 409 : 400) as 409,
+    );
+  }
+});
+
+/** POST /issues/:id/items/:itemId/accept — planning marks item done after review */
+issuesRoutes.post("/issues/:id/items/:itemId/accept", (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const itemId = c.req.param("itemId");
+  const existing = ctx.issueStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (isTerminal(existing.status)) {
+    return c.json({ error: "issue is terminal" }, 409);
+  }
+  try {
+    const issue = ctx.issueStore.acceptItem(id, itemId);
+    if (!issue) {
+      return c.json({ error: "not found" }, 404);
+    }
+    broadcastIssueChanged(ctx);
+    return c.json({ issue });
+  } catch (err) {
+    const status =
+      err && typeof err === "object" && "statusCode" in err
+        ? Number((err as { statusCode: number }).statusCode)
+        : 400;
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      (status === 409 ? 409 : 400) as 409,
+    );
+  }
 });
 
 /** POST /issues/:id/dispatch — run one checklist item on the execution session */

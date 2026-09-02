@@ -34,6 +34,8 @@ describe("issueStore", () => {
     });
     expect(store.hasPlanningSession("sess-plan")).toBe(true);
     expect(store.hasPlanningSession("other")).toBe(false);
+    expect(store.getByPlanningSession("sess-plan")?.id).toBe(issue.id);
+    expect(store.getByPlanningSession("other")).toBeUndefined();
     fs.rmSync(home, { recursive: true, force: true });
   });
 
@@ -88,6 +90,58 @@ describe("issueStore", () => {
     expect(store.maybeEnterReview(issue.id)?.status).toBe("review");
     store.patchItem(issue.id, "i1", { status: "running" });
     expect(store.maybeEnterReview(issue.id)?.status).toBe("review");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("appendItems keeps done items; removePendingItem cannot drop executed", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "t" });
+    store.setItems(issue.id, [
+      { id: "i1", content: "已完成", status: "done" },
+      { id: "i2", content: "未执行", status: "pending" },
+    ]);
+    store.appendItems(issue.id, [{ content: "新增" }]);
+    const afterAdd = store.get(issue.id);
+    expect(afterAdd?.items.map((i) => i.content)).toEqual([
+      "已完成",
+      "未执行",
+      "新增",
+    ]);
+    expect(afterAdd?.items.find((i) => i.id === "i1")?.status).toBe("done");
+    store.removePendingItem(issue.id, "i2");
+    expect(store.get(issue.id)?.items.map((i) => i.content)).toEqual([
+      "已完成",
+      "新增",
+    ]);
+    expect(() => store.removePendingItem(issue.id, "i1")).toThrow(
+      /pending/,
+    );
+    expect(store.get(issue.id)?.items.find((i) => i.id === "i1")).toBeTruthy();
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("acceptItem marks pending done and cannot accept running", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "t" });
+    store.setPlanning(issue.id, {
+      planningSessionId: "p",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+    });
+    store.markExecuting(issue.id);
+    store.setItems(issue.id, [
+      { id: "i1", content: "调研", status: "pending" },
+      { id: "i2", content: "改代码", status: "pending" },
+    ]);
+    store.acceptItem(issue.id, "i1");
+    expect(store.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "done",
+    );
+    expect(store.get(issue.id)?.status).toBe("executing");
+    store.patchItem(issue.id, "i2", { status: "running" });
+    expect(() => store.acceptItem(issue.id, "i2")).toThrow(/running/);
     fs.rmSync(home, { recursive: true, force: true });
   });
 

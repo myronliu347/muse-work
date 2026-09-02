@@ -37,6 +37,27 @@ describe("issues HTTP", () => {
     expect(list2.issues.map((i: { id: string }) => i.id)).not.toContain(issue.id);
   });
 
+  it("POST /issues can create with checklist items", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const created = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "工具对比",
+        items: [{ content: "对比 Codex" }, { content: "对比 Cursor" }],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const { issue } = await created.json();
+    expect(issue.status).toBe("pending");
+    expect(issue.items.map((i: { content: string }) => i.content)).toEqual([
+      "对比 Codex",
+      "对比 Cursor",
+    ]);
+  });
+
   it("POST planning-session creates one planning session and is idempotent", async () => {
     const app = await listenTestApp();
     server = app.server;
@@ -56,7 +77,7 @@ describe("issues HTTP", () => {
     const session = app.ctx.store.get(first.sessionId);
     expect(session?.agentName).toBe("plan");
     expect(session?.systemPrompt).toContain(`Issue ID：${issue.id}`);
-    expect(session?.systemPrompt).toContain("禁止 Edit/Write 修改源码");
+    expect(session?.systemPrompt).toContain("不要修改产品实现");
     expect(app.ctx.issueStore.get(issue.id)?.status).toBe("planning");
     const second = await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
       method: "POST",
@@ -95,7 +116,18 @@ describe("issues HTTP", () => {
     });
     expect(put.status).toBe(200);
     const { issue: withItems } = await put.json();
-    const itemId = withItems.items[0].id as string;
+    const put2 = await fetch(`${app.baseUrl}/issues/${issue.id}/items`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ content: "补测试" }] }),
+    });
+    expect(put2.status).toBe(200);
+    const { issue: twoItems } = await put2.json();
+    expect(twoItems.items.map((i: { content: string }) => i.content)).toEqual([
+      "改登录",
+      "补测试",
+    ]);
+    const itemId = twoItems.items[0].id as string;
     const dispatch = await fetch(`${app.baseUrl}/issues/${issue.id}/dispatch`, {
       method: "POST",
       headers: { "content-type": "application/json" },
