@@ -1,0 +1,130 @@
+packages/webview/src/stores/desktopStore.ts
+  442440ce7046c502 14,21,34,42,51,65,72
+packages/server/tests/sessions.routes.test.ts
+  442440ce7046c502 95-114
+packages/webview/src/muse/hostBridge/session.ts
+  442440ce7046c502 62-69,82-85,101-104,315-318
+packages/webview/src/components/DesktopApp.tsx
+  442440ce7046c502 22,29,37-38,57-61,82,93,186
+packages/webview/src/types/index.ts
+  442440ce7046c502 225-226
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  442440ce7046c502 649-654,716-733
+packages/webview/src/muse/apiClient.ts
+  442440ce7046c502 165-166
+packages/server/src/services/issueStore.ts
+  442440ce7046c502 53,120-123,132-133,136,154-155,193-203,208-209,211,213,215-220,225-228,230-231,236-247,274,294-299,301,431,457,468,473,514
+packages/webview/src/muse/hostBridge/utils.ts
+  442440ce7046c502 21,27
+packages/webview/src/muse/hostBridge/ctx.ts
+  442440ce7046c502 96-103,191,203
+CONTEXT.md
+  442440ce7046c502 35
+packages/server/src/routes/sessions.ts
+  442440ce7046c502 26-34,52-54,56-58,65
+packages/server/tests/issueStore.test.ts
+  442440ce7046c502 160-243
+packages/webview/src/components/session/SessionTree.tsx
+  442440ce7046c502 554
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0c71178516bd029b7b34b0b3c2f45bad4680ccd8",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 505,
+      "total_deletions": 211,
+      "accepted_lines": 268,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 65,
+          "deletions": 30,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 125,
+          "deletions": 125,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "CONTEXT.md": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 4,
+          "deletions": 3
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 3,
+          "deletions": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 17,
+          "deletions": 4,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 77,
+          "deletions": 13
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 20,
+          "deletions": 3,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 51,
+          "deletions": 27,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/stores/desktopStore.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
