@@ -114,8 +114,8 @@ describe("MuseApiClient", () => {
   });
 });
 
-describe("MuseApiClient todo/task", () => {
-  it("listTodos GETs /todos", async () => {
+describe("MuseApiClient issues", () => {
+  it("listIssues GETs /issues", async () => {
     const fetches: string[] = [];
     const client = new MuseApiClient({
       baseUrl: "http://127.0.0.1:9",
@@ -123,170 +123,51 @@ describe("MuseApiClient todo/task", () => {
         fetches.push(`${init?.method ?? "GET"} ${url}`);
         return new Response(
           JSON.stringify({
-            todos: [
-              { id: "t1", title: "a", priority: "p1", source: "session", status: "pending" },
+            issues: [
+              {
+                id: "i1",
+                title: "修登录",
+                description: "",
+                priority: "p1",
+                tags: ["auth"],
+                status: "pending",
+                items: [],
+                createdAt: 1,
+                updatedAt: 1,
+              },
             ],
           }),
           { status: 200 },
         );
       },
     });
-    const body = await client.listTodos();
-    expect(fetches[0]).toBe("GET http://127.0.0.1:9/todos");
-    expect(body.todos[0].priority).toBe("p1");
+    const body = await client.listIssues();
+    expect(fetches[0]).toBe("GET http://127.0.0.1:9/issues");
+    expect(body.issues[0]?.priority).toBe("p1");
   });
 
-  it("createTodo POSTs /todos with body", async () => {
+  it("createIssue POSTs /issues with body", async () => {
     const fetches: Array<{ method?: string; url: string; body?: string }> = [];
     const client = new MuseApiClient({
       baseUrl: "http://127.0.0.1:9",
       fetch: async (url, init) => {
         fetches.push({ method: init?.method, url, body: init?.body as string });
-        return new Response(JSON.stringify({ todo: { id: "t9" } }), { status: 201 });
-      },
-    });
-    await client.createTodo({
-      title: "x",
-      source: "session",
-      priority: "p0",
-      tags: ["urgent", "前端"],
-    });
-    expect(fetches[0].method).toBe("POST");
-    expect(fetches[0].url).toBe("http://127.0.0.1:9/todos");
-    expect(JSON.parse(fetches[0].body ?? "{}")).toEqual({
-      title: "x",
-      source: "session",
-      priority: "p0",
-      tags: ["urgent", "前端"],
-    });
-  });
-
-  it("updateTodo PATCHes /todos/:id with tags", async () => {
-    const fetches: Array<{ method?: string; url: string; body?: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url, body: init?.body as string });
-        return new Response(JSON.stringify({ todo: { id: "t1" } }), { status: 200 });
-      },
-    });
-    await client.updateTodo("t1", { title: "y", tags: ["后端"] });
-    expect(fetches[0].method).toBe("PATCH");
-    expect(fetches[0].url).toBe("http://127.0.0.1:9/todos/t1");
-    expect(JSON.parse(fetches[0].body ?? "{}")).toEqual({
-      title: "y",
-      tags: ["后端"],
-    });
-  });
-
-  it("listTasks GETs /todos/:id/tasks", async () => {
-    const fetches: string[] = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push(`${init?.method ?? "GET"} ${url}`);
-        return new Response(JSON.stringify({ tasks: [] }), { status: 200 });
-      },
-    });
-    await client.listTasks("t1");
-    expect(fetches[0]).toBe("GET http://127.0.0.1:9/todos/t1/tasks");
-  });
-
-  it("addComment POSTs /tasks/:id/comments", async () => {
-    const fetches: Array<{ method?: string; url: string; body?: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url, body: init?.body as string });
-        return new Response(JSON.stringify({ comment: { id: "c1" } }), { status: 201 });
-      },
-    });
-    await client.addComment("task1", {
-      author: "user",
-      kind: "note",
-      content: "再审一次",
-    });
-    expect(fetches[0].method).toBe("POST");
-    expect(fetches[0].url).toBe("http://127.0.0.1:9/tasks/task1/comments");
-    expect(JSON.parse(fetches[0].body ?? "{}")).toEqual({
-      author: "user",
-      kind: "note",
-      content: "再审一次",
-    });
-  });
-
-  it("listRuns GETs /tasks/:id/runs", async () => {
-    const fetches: string[] = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push(`${init?.method ?? "GET"} ${url}`);
-        return new Response(JSON.stringify({ runs: [] }), { status: 200 });
-      },
-    });
-    await client.listRuns("task1");
-    expect(fetches[0]).toBe("GET http://127.0.0.1:9/tasks/task1/runs");
-  });
-
-  it("updateRunStatus PATCHes /runs/:id", async () => {
-    const fetches: Array<{ method?: string; url: string; body?: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url, body: init?.body as string });
-        return new Response(JSON.stringify({ run: { id: "r1", status: "running" } }), {
-          status: 200,
+        return new Response(JSON.stringify({ issue: { id: "i9" } }), {
+          status: 201,
         });
       },
     });
-    await client.updateRunStatus("r1", "running");
-    expect(fetches[0].method).toBe("PATCH");
-    expect(fetches[0].url).toBe("http://127.0.0.1:9/runs/r1");
-    expect(JSON.parse(fetches[0].body ?? "{}")).toEqual({ status: "running" });
-  });
-
-  it("enqueueTask POSTs /tasks/:id/enqueue", async () => {
-    const fetches: Array<{ method?: string; url: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url });
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
-      },
+    await client.createIssue({
+      title: "x",
+      priority: "p0",
+      tags: ["urgent"],
     });
-    await client.enqueueTask("task1");
-    expect(fetches[0]).toEqual({ method: "POST", url: "http://127.0.0.1:9/tasks/task1/enqueue" });
-  });
-
-  it("cancelTask POSTs /tasks/:id/cancel", async () => {
-    const fetches: Array<{ method?: string; url: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url });
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
-      },
+    expect(fetches[0]?.method).toBe("POST");
+    expect(fetches[0]?.url).toBe("http://127.0.0.1:9/issues");
+    expect(JSON.parse(fetches[0]?.body ?? "{}")).toEqual({
+      title: "x",
+      priority: "p0",
+      tags: ["urgent"],
     });
-    await client.cancelTask("task1");
-    expect(fetches[0]).toEqual({ method: "POST", url: "http://127.0.0.1:9/tasks/task1/cancel" });
-  });
-
-  it("openPlanningSession POSTs /todos/:id/planning-session", async () => {
-    const fetches: Array<{ method?: string; url: string }> = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push({ method: init?.method, url });
-        return new Response(JSON.stringify({ sessionId: "s1", workdir: "/p" }), {
-          status: 200,
-        });
-      },
-    });
-    const res = await client.openPlanningSession("t1");
-    expect(fetches[0]).toEqual({
-      method: "POST",
-      url: "http://127.0.0.1:9/todos/t1/planning-session",
-    });
-    expect(res.sessionId).toBe("s1");
   });
 });

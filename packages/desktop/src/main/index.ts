@@ -52,7 +52,7 @@ if (!app.isPackaged) {
     "userData",
     path.join(app.getPath("appData"), "muse-work-desktop-dev"),
   );
-  // Dev: point the whole state dir (server db/sessions/auth/todo + logs, and
+  // Dev: point the whole state dir (server db/sessions/auth + logs, and
   // desktop ui.json) at ~/.dev-muse-work so dev never touches production's
   // ~/.muse-work. The server child inherits this env (serverProcess merges
   // process.env); getMuseHomeDir reads it in every package.
@@ -235,7 +235,7 @@ if (!gotLock) {
         entry: paths.serverEntry,
         // MUSE_HOME_DIR was set in the dev block above (and inherited here via
         // process.env merge), so the server keeps ALL state (db/settings/
-        // providers/sessions/auth/todo + logs) under ~/.dev-muse-work instead
+        // providers/sessions/auth + logs) under ~/.dev-muse-work instead
         // of the packaged app's ~/.muse-work.
         onLifecycle: (event) => {
           mainWindow?.webContents.send(TO_WEBVIEW, {

@@ -13,10 +13,10 @@ import {
   type SessionRunner,
 } from "./sessionRunner/index.js";
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
-import { createTodoStore, type TodoStore } from "./todoStore.js";
-import { createTodoScheduler, type TodoScheduler } from "./todoScheduler.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
 import { ensureDefaultConfigs } from "./agentConfig.js";
+import { createIssueDispatcher } from "./issueDispatch.js";
+import { createIssueStore, type IssueStore } from "./issueStore.js";
 
 export { resolveHome };
 
@@ -28,10 +28,8 @@ export interface AppContext {
   store: SessionStore;
   hub: WsHub;
   runner: SessionRunner;
-  /** Todo/Task 任务管理存储（spec 2026-08-21）。 */
-  todoStore: TodoStore;
-  /** Todo/Task 常驻执行调度器（server 启动后 start()）。 */
-  todoScheduler: TodoScheduler;
+  issueStore: IssueStore;
+  issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
@@ -56,6 +54,7 @@ export interface CreateSessionServicesOptions {
   createAgent?: CreateAgent;
   idleTtlMs?: number;
   loadSubagentMessages?: CreateAppContextOptions["loadSubagentMessages"];
+  isIssuePlanningSession?: (sessionId: string) => boolean;
 }
 
 export function createSessionServices(
@@ -71,6 +70,7 @@ export function createSessionServices(
     createAgent: options.createAgent,
     idleTtlMs: options.idleTtlMs,
     loadSubagentMessages: options.loadSubagentMessages,
+    isIssuePlanningSession: options.isIssuePlanningSession,
   });
   hub.setSnapshotProvider(() => runner.snapshotEvents());
   return { store, hub, runner };
@@ -103,25 +103,33 @@ export function createAppContext(
   });
 
   const registry = createProviderRegistry([codemaker, openai], home);
+  const issues = createIssueStore({ home });
   const sessions = createSessionServices({
     home,
     registry,
     createAgent: options?.createAgent,
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
+    isIssuePlanningSession: (sessionId) => {
+      const issue = issues.getByPlanningSession(sessionId);
+      return Boolean(issue && issue.agentMode !== "single");
+    },
   });
-  const todoStore = createTodoStore({ home });
-
-  const todoScheduler = createTodoScheduler({
-    store: todoStore,
+  const dispatcher = createIssueDispatcher({
+    issues,
+    sessions: sessions.store,
     runner: sessions.runner,
-    sessionStore: sessions.store,
-    registry,
     hub: sessions.hub,
     home,
   });
-  // runner ↔ scheduler 循环引用：runner 先建，turn 结束回调后绑定。
-  sessions.runner.setOnTurnSettled?.(todoScheduler.handleTurnSettled);
-
-  return { home, registry, ...sessions, todoStore, todoScheduler };
+  sessions.runner.setOnTurnSettled((sessionId, result) => {
+    dispatcher.handleTurnSettled(sessionId, result);
+  });
+  return {
+    ...sessions,
+    home,
+    registry,
+    issueStore: issues,
+    issueDispatcher: dispatcher,
+  };
 }

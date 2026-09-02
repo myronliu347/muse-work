@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ProviderRegistry } from "@muse-work/provider";
 import { defaultCreateAgent, type CreateAgent, type SessionAgent } from "../services/sessionRunner/index.js";
-import { pluginDirIfPresent } from "../services/museSettings.js";
 import { closeAgentLogger, createAgentLogger } from "../utils/logger.js";
 import type { PopoChatType } from "./chatStore.js";
 import {
@@ -15,6 +14,7 @@ import {
   resolvePermission,
   resolveScenarioAgent,
 } from "../services/agentConfig.js";
+import { pluginDirIfPresent } from "../services/museSettings.js";
 
 export { POPO_SYSTEM_PROMPT, POPO_DISALLOWED_TOOLS };
 
@@ -122,11 +122,9 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (!model) throw new Error("no active model");
     const gateway = await provider.resolveGateway(model);
 
-    // 内置 todo 插件（普通会话也挂载；POPO 会话里说「记个 todo」也能创建）
-    const todoDir = pluginDirIfPresent("todo");
-    const plugins = todoDir
-      ? [{ type: "local" as const, path: todoDir }]
-      : [];
+    const plugins: Array<{ type: "local"; path: string }> = [];
+    const issueDir = pluginDirIfPresent("issue");
+    if (issueDir) plugins.push({ type: "local", path: issueDir });
 
     // popo 场景 agent：默认 popo 内置（systemPrompt 即 POPO 指令）；工具/权限规则生效
     const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);

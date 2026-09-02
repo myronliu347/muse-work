@@ -29,6 +29,12 @@ interface DesktopShellProps {
   host: DesktopHostProps;
   /** Sidebar settings — owned by the delegating ChatApp instance. */
   onOpenSettings: () => void;
+  /** Issue 侧栏分组（与 host.issueGroups 同源，可由父组件显式传入）。 */
+  issueGroups?: DesktopHostProps["issueGroups"];
+  onNewIssue?: () => void;
+  onOpenPlanning?: (issueId: string) => void;
+  onCompleteIssue?: (issueId: string) => void;
+  onCancelIssue?: (issueId: string) => void;
 }
 
 /**
@@ -54,6 +60,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   vscode,
   host,
   onOpenSettings,
+  issueGroups,
+  onNewIssue,
+  onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
@@ -617,6 +628,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         disabled={false}
         onOpenSettings={onOpenSettings}
         {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
+        issueGroups={issueGroups ?? host.issueGroups}
+        onNewIssue={onNewIssue}
+        onOpenPlanning={onOpenPlanning}
+        onCompleteIssue={onCompleteIssue}
+        onCancelIssue={onCancelIssue}
         currentSessionId={focusedSessionId}
         visibleSessionIds={visibleSessionIds}
         onSelectSession={host.onSelectSession}

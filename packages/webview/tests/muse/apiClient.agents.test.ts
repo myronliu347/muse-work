@@ -38,7 +38,12 @@ describe("MuseApiClient agent APIs", () => {
         fetches.push(`${init?.method ?? "GET"} ${url}`);
         return new Response(
           JSON.stringify({
-            scenarios: { session: "default", todo: "plan", task: "execute", popo: "popo" },
+            scenarios: {
+              session: "default",
+              popo: "popo",
+              "issue-plan": "plan",
+              "issue-exec": "execute",
+            },
           }),
           { status: 200 },
         );
@@ -46,7 +51,7 @@ describe("MuseApiClient agent APIs", () => {
     });
     const body = await client.getAgentScenarios();
     expect(fetches[0]).toBe("GET http://127.0.0.1:9/agents/scenarios");
-    expect(body.scenarios.todo).toBe("plan");
+    expect(body.scenarios.popo).toBe("popo");
   });
 
   it("putAgents PUTs /agents with payload", async () => {
@@ -78,7 +83,12 @@ describe("MuseApiClient agent APIs", () => {
         fetches.push(`${init?.method ?? "GET"} ${url}`);
         return new Response(
           JSON.stringify({
-            scenarios: { session: "default", todo: "plan", task: "execute", popo: "popo" },
+            scenarios: {
+              session: "default",
+              popo: "popo",
+              "issue-plan": "plan",
+              "issue-exec": "execute",
+            },
           }),
           { status: 200 },
         );

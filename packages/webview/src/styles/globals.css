@@ -1,8 +1,6 @@
 /* Muse webview global styles */
 
-/* 全局统一 border-box：Radix 只在 .rt-reset 元素上设置，自定义组件（如 todo
-   看板行）依赖 width:100% + padding 布局时，content-box 会把 padding 加在
-   宽度之外导致溢出横向滚动条。 */
+/* 全局统一 border-box：Radix 只在 .rt-reset 元素上设置。 */
 *,
 *::before,
 *::after {

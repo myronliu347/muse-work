@@ -1,6 +1,6 @@
 .user-message-nav {
   position: absolute;
-  right: var(--space-2);
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   z-index: 15;
@@ -8,7 +8,9 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-  padding: var(--space-2);
+  width: 28px;
+  box-sizing: border-box;
+  padding: var(--space-2) 6px;
   border-radius: var(--radius-3);
   max-height: min(70%, calc(100% - var(--space-4)));
   overflow-y: auto;
@@ -16,6 +18,9 @@
 }
 
 .user-message-nav:hover {
+  width: auto;
+  max-width: calc(100% - var(--space-4));
+  overflow-x: visible;
   background: color-mix(in srgb, var(--gray-2) 88%, transparent);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--gray-1) 45%, transparent);
 }

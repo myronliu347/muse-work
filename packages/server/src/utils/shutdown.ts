@@ -11,7 +11,7 @@ export type GracefulShutdownOpts = {
   server: Pick<HttpServer, "close">;
   log?: ShutdownLogger;
   exit?: (code: number) => void;
-  /** 关闭前同步钩子（如停止 todo 调度器）。 */
+  /** 关闭前同步钩子。 */
   onShutdown?: () => void;
 };
 

@@ -107,16 +107,7 @@ export type WsEvent =
       mode: "acceptEdits" | "bypassPermissions";
     }
   | { type: "tokens:update"; latestTotalTokens: number }
-  | {
-      type: "todo:notify";
-      todoId: string;
-      taskId: string;
-      todoTitle: string;
-      taskTitle: string;
-      priority: string;
-    }
-  /** todo/task 任何变更（REST 直改 store，含对话内 AI 跑 todo.mjs）→ webview 联动刷新看板/侧栏。 */
-  | { type: "todo:changed" };
+  | { type: "issue:changed" };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };
 

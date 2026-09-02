@@ -14,7 +14,7 @@ import {
 import type {
   DesktopSessionGroup,
   DesktopSessionEntry,
-  DesktopTodoGroup,
+  DesktopIssueGroup,
 } from "../../types";
 import "../../styles/DesktopApp.css";
 
@@ -57,8 +57,8 @@ export interface DesktopSidebarProps {
   pinnedSessions?: DesktopSessionEntry[];
   /** Sessions in the 工作空间 / 任务 sections (split by workdir kind). */
   recentSessions?: DesktopSessionEntry[];
-  /** Todo 分组：每个 todo 的规划会话 + 执行会话（任务 section 内折叠展示）。 */
-  todoGroups?: DesktopTodoGroup[];
+  /** Issue 分组（侧栏「待办事项」）。 */
+  issueGroups?: DesktopIssueGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
@@ -78,16 +78,20 @@ export interface DesktopSidebarProps {
   onOpenInTerminal?: (workdir: string) => void;
   /** Reveal the workdir in the system file manager. */
   onRevealInFinder?: (workdir: string) => void;
+  /** 待办事项 section「+」→ 新建 Issue。 */
+  onNewIssue?: () => void;
+  /** 无会话 Issue 空态 → 打开会话。 */
+  onOpenPlanning?: (issueId: string) => void;
+  /** 分组行更多菜单 → 完成 Issue。 */
+  onCompleteIssue?: (issueId: string) => void;
+  /** 分组行更多菜单 → 取消 Issue。 */
+  onCancelIssue?: (issueId: string) => void;
   /** Toggle the POPO robot view (rendered in place of the chat body). */
   onTogglePopoRobot: () => void;
-  /** Toggle the Todo/Task 任务看板 view. */
-  onToggleTodoBoard?: () => void;
-  /** 待审核 task 计数（看板入口 badge；0 不显示）。 */
-  todoReviewCount?: number;
   /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示机器人入口 */
   popoEnabled?: boolean;
   /** 当前高亮的菜单项（选中态） */
-  activeMenu?: "newChat" | "popo-robot" | "todo-board";
+  activeMenu?: "newChat" | "popo-robot";
 }
 
 /**
@@ -103,7 +107,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   sessionTree,
   pinnedSessions,
   recentSessions,
-  todoGroups,
+  issueGroups,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
@@ -114,9 +118,11 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  onNewIssue,
+  onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
   onTogglePopoRobot,
-  onToggleTodoBoard,
-  todoReviewCount = 0,
   popoEnabled,
   activeMenu,
 }) => {
@@ -155,27 +161,13 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             <span>POPO 机器人</span>
           </button>
         )}
-        <button
-          type="button"
-          className={`app-menu${activeMenu === "todo-board" ? " active" : ""}`}
-          onClick={onToggleTodoBoard}
-          data-testid="desktop-todo-board"
-        >
-          <i className="codicon codicon-tasklist app-menu-icon" />
-          <span>任务看板</span>
-          {todoReviewCount > 0 && (
-            <span className="todo-review-badge" data-testid="todo-review-badge">
-              {todoReviewCount}
-            </span>
-          )}
-        </button>
       </div>
       <div className="divider" />
       <SessionTree
         sessionTree={sessionTree}
         pinnedSessions={pinnedSessions}
         recentSessions={recentSessions}
-        todoGroups={todoGroups}
+        issueGroups={issueGroups}
         currentSessionId={currentSessionId}
         visibleSessionIds={visibleSessionIds}
         isStreaming={isStreaming}
@@ -188,6 +180,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onOpenInEditor={onOpenInEditor}
         onOpenInTerminal={onOpenInTerminal}
         onRevealInFinder={onRevealInFinder}
+        onNewIssue={onNewIssue}
+        onOpenPlanning={onOpenPlanning}
+        onCompleteIssue={onCompleteIssue}
+        onCancelIssue={onCancelIssue}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

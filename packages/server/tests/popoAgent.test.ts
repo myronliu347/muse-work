@@ -228,6 +228,21 @@ describe("popoAgent", () => {
     expect(captured?.fastModel).toBe("m1");
   });
 
+  it("mounts the issue plugin so POPO can create and close issues", async () => {
+    let captured: { plugins?: Array<{ type: string; path: string }> } | undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (options) => {
+        captured = options as { plugins?: Array<{ type: string; path: string }> };
+        return stubAgent("ok");
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    expect(JSON.stringify(captured?.plugins ?? [])).toContain("plugins/issue");
+  });
+
   it("keeps the agent alive while a background task runs, disposing after it settles", async () => {
     vi.useFakeTimers();
     let running = true;
@@ -312,7 +327,7 @@ describe("popoAgent", () => {
     expect(await runner.run("hello")).toBe("最终回复");
   });
 
-  it("passes the always-on todo plugin into the SDK agent", async () => {
+  it("does not attach a todo plugin to the SDK agent", async () => {
     let seenPlugins: unknown;
     const factory = createPopoAgentFactory({
       home: "/tmp",
@@ -322,11 +337,10 @@ describe("popoAgent", () => {
         return stubAgent("ok");
       },
     });
-    const runner = await factory({ chatKey: "team:todo", type: "team" });
-    await runner.run("记个 todo：xxx");
-    expect(seenPlugins).toEqual([
-      { type: "local", path: expect.stringMatching(/plugins[\\/]todo$/) },
-    ]);
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    await runner.run("hello");
+    expect(JSON.stringify(seenPlugins ?? [])).not.toContain("plugins/todo");
+    expect(JSON.stringify(seenPlugins ?? [])).toContain("plugins/issue");
   });
 
   it("p2p clear calls agent.clearMessages", async () => {

@@ -134,24 +134,6 @@
   cursor: not-allowed;
 }
 
-/* 任务看板入口 badge：待审核 task 计数（右缘对齐） */
-.todo-review-badge {
-  flex-shrink: 0;
-  margin-left: auto;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  background: var(--red-4);
-  color: var(--red-11);
-  font-size: 10px;
-  font-weight: 700;
-  box-sizing: border-box;
-}
-
 /* ---- Sidebar session list (pin / 最近) ---- */
 
 .desktop-session-tree {
@@ -170,6 +152,49 @@
   font-weight: 600;
   color: var(--gray-11);
   user-select: none;
+}
+
+.desktop-session-section-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.desktop-session-section-header-row .desktop-session-section-header--toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-session-section-add {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: var(--space-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.desktop-session-section-header-row:hover .desktop-session-section-add,
+.desktop-session-section-add:focus-visible {
+  opacity: 1;
+}
+
+.desktop-session-section-add:hover {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.desktop-session-section-add .codicon {
+  font-size: var(--font-size-1);
 }
 
 .desktop-session-section-header--toggle {
@@ -342,7 +367,9 @@
   justify-content: center;
 }
 
-.desktop-session-workdir-row:hover .desktop-session-workdir-add {
+.desktop-session-workdir-row:hover .desktop-session-workdir-add,
+.desktop-session-workdir-row:hover .issue-sidebar-more,
+.issue-sidebar-row:hover .issue-sidebar-more {
   visibility: visible;
   opacity: 0.75;
 }
@@ -356,34 +383,135 @@
   font-size: var(--font-size-1);
 }
 
-/* Todo 分组行：优先级徽标 + 会话计数（任务 section 内按 todo 折叠展示）。 */
-.todo-sidebar-priority {
-  flex-shrink: 0;
-  margin-left: var(--space-2);
-  padding: 0 4px;
-  border-radius: var(--radius-1);
-  background: var(--gray-4);
-  color: var(--gray-11);
-  font-size: var(--font-size-00);
-  font-weight: 600;
-  line-height: 16px;
-}
-
-.todo-sidebar-priority-p0 {
-  background: var(--red-4);
-  color: var(--red-11);
-}
-
-.todo-sidebar-priority-p1 {
-  background: var(--orange-4);
-  color: var(--orange-11);
-}
-
 .desktop-session-count {
   flex-shrink: 0;
   margin-left: var(--space-1);
   color: var(--gray-10);
   font-size: var(--font-size-00);
+}
+
+/* Issue 分组：侧栏「待办事项」 */
+.issue-sidebar-group {
+  margin: 0 0 2px;
+  border-radius: var(--radius-2);
+}
+
+.issue-sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  font-size: var(--font-size-1);
+  color: var(--gray-12);
+  user-select: none;
+}
+
+.issue-sidebar-row:hover {
+  background: var(--gray-4);
+}
+
+.issue-sidebar-row:hover .desktop-session-workdir-folder {
+  opacity: 0;
+}
+
+.issue-sidebar-row:hover .desktop-session-workdir-chevron {
+  opacity: 0.85;
+}
+
+.issue-sidebar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.issue-sidebar-status {
+  flex-shrink: 0;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gray-10);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.issue-sidebar-status-executing {
+  color: var(--accent-11);
+}
+
+.issue-sidebar-status-review {
+  color: var(--green-11);
+}
+
+.issue-sidebar-priority {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--gray-4);
+  color: var(--gray-11);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 16px;
+}
+
+.issue-sidebar-priority-p0 {
+  background: var(--red-4);
+  color: var(--red-11);
+}
+
+.issue-sidebar-priority-p1 {
+  background: var(--orange-4);
+  color: var(--orange-11);
+}
+
+.issue-sidebar-priority-p2 {
+  background: var(--gray-5);
+  color: var(--gray-11);
+}
+
+.issue-sidebar-section-empty {
+  color: var(--gray-9);
+}
+
+.issue-sidebar-empty {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px var(--space-2) var(--space-2) calc(var(--space-3) + 16px);
+}
+
+.issue-sidebar-open-planning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--gray-3);
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-00);
+  font-weight: 500;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.issue-sidebar-open-planning .codicon {
+  font-size: 11px;
+  color: var(--accent-11);
+}
+
+.issue-sidebar-open-planning:hover {
+  background: var(--gray-4);
+  border-color: var(--gray-7);
+  text-decoration: none;
 }
 
 .desktop-context-menu {
@@ -1162,6 +1290,7 @@ body.is-panel-resizing * {
   min-width: 520px;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 /* Dock fullscreen covers the conversation column and the session sidebar. */

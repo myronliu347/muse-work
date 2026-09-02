@@ -1,0 +1,8 @@
+{
+  "name": "issue",
+  "description": "Issue 工作流：对话创建 Issue、维护清单并调度执行会话",
+  "version": "1.0.0",
+  "author": {
+    "name": "muse-work"
+  }
+}

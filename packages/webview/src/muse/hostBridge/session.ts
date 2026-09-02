@@ -51,11 +51,21 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     postToWebview({
       command: "desktopSessionTree",
       groups: buildSidebarModel({ pinned: ctx.pinned, recent: ctx.recent }),
-      todoGroups: ctx.todoGroups.map((g) => ({
-        todoId: g.todoId,
-        todoTitle: g.todoTitle,
+      issueGroups: ctx.issueGroups.map((g) => ({
+        issueId: g.issueId,
+        title: g.title,
         priority: g.priority,
-        sessions: g.sessions.map(toEntry),
+        status: g.status,
+        items: g.items,
+        sessions: (g.sessions ?? []).map(toEntry),
+      })),
+      closedIssueGroups: ctx.closedIssueGroups.map((g) => ({
+        issueId: g.issueId,
+        title: g.title,
+        priority: g.priority,
+        status: g.status,
+        items: g.items,
+        sessions: (g.sessions ?? []).map(toEntry),
       })),
     });
     ctx.publishAgentBusy();
@@ -65,9 +75,13 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     const prev = ctx.treeById();
     ctx.pinned = mergeRuntimeFields(grouped.pinned, prev);
     ctx.recent = mergeRuntimeFields(grouped.recent, prev);
-    ctx.todoGroups = (grouped.todoGroups ?? []).map((g) => ({
+    ctx.issueGroups = (grouped.issueGroups ?? []).map((g) => ({
       ...g,
-      sessions: mergeRuntimeFields(g.sessions, prev),
+      sessions: mergeRuntimeFields(g.sessions ?? [], prev),
+    }));
+    ctx.closedIssueGroups = (grouped.closedIssueGroups ?? []).map((g) => ({
+      ...g,
+      sessions: mergeRuntimeFields(g.sessions ?? [], prev),
     }));
     emitSessionTree();
   };
@@ -80,7 +94,11 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
       list.map((s) => (s.id === id ? { ...s, ...patch } : s));
     ctx.pinned = apply(ctx.pinned);
     ctx.recent = apply(ctx.recent);
-    ctx.todoGroups = ctx.todoGroups.map((g) => ({
+    ctx.issueGroups = ctx.issueGroups.map((g) => ({
+      ...g,
+      sessions: apply(g.sessions),
+    }));
+    ctx.closedIssueGroups = ctx.closedIssueGroups.map((g) => ({
       ...g,
       sessions: apply(g.sessions),
     }));
@@ -213,8 +231,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
   const handleDeleteSession = async (id: string): Promise<void> => {
     const wasActive = ctx.sessionId === id;
     ctx.clearPendingPermission(id);
-    const existing =
-      ctx.pinned.find((s) => s.id === id) ?? ctx.recent.find((s) => s.id === id);
+    const existing = ctx.treeById().get(id);
     // Terminal PTY is workdir-scoped — deleting a chat must not kill the shell.
     if (
       existing?.worktreeName &&
@@ -295,16 +312,24 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.emitWorkdirState();
     try {
       const grouped = await refreshTree();
+      const issueSessions = [
+        ...(grouped.issueGroups ?? []).flatMap((g) => g.sessions),
+        ...(grouped.closedIssueGroups ?? []).flatMap((g) => g.sessions),
+      ];
       if (
         !ctx.toastedInterrupted &&
-        [...grouped.pinned, ...grouped.recent].some((s) => s.interrupted)
+        [...grouped.pinned, ...grouped.recent, ...issueSessions].some(
+          (s) => s.interrupted,
+        )
       ) {
         ctx.toastedInterrupted = true;
         showServerToast("上次对话被中断");
       }
       const activeId = grouped.activeSessionId;
       const listed = activeId
-        ? [...grouped.pinned, ...grouped.recent].some((s) => s.id === activeId)
+        ? [...grouped.pinned, ...grouped.recent, ...issueSessions].some(
+            (s) => s.id === activeId,
+          )
         : false;
       if (activeId && listed) {
         await activateSession(activeId);

@@ -19,6 +19,8 @@ import {
   type CreateAgent,
   type SessionAgent,
 } from "../src/services/appContext.js";
+import { createIssueStore } from "../src/services/issueStore.js";
+import { createIssueDispatcher } from "../src/services/issueDispatch.js";
 
 function stubAgent(overrides: Partial<SessionAgent> = {}): SessionAgent {
   return {
@@ -81,7 +83,24 @@ describe("session control routes", () => {
     };
     const registry = createProviderRegistry([provider], home);
     const sessions = createSessionServices({ home, registry, createAgent });
-    const ctx: AppContext = { home, registry, ...sessions };
+    const issues = createIssueStore({ home });
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions: sessions.store,
+      runner: sessions.runner,
+      hub: sessions.hub,
+      home,
+    });
+    sessions.runner.setOnTurnSettled((sessionId, result) => {
+      dispatcher.handleTurnSettled(sessionId, result);
+    });
+    const ctx: AppContext = {
+      home,
+      registry,
+      ...sessions,
+      issueStore: issues,
+      issueDispatcher: dispatcher,
+    };
     const httpServer = createApp(ctx);
     await new Promise<void>((resolve, reject) => {
       httpServer.listen(0, "127.0.0.1", () => resolve());

@@ -161,7 +161,7 @@ const isRewindTargetMessage = (message: MessageType): boolean =>
   !message.blocks.some((b) => b.type === "task_notification") &&
   !message.blocks.some((b) => b.type === "text" && b.source === "hook");
 
-// 系统注入消息（todo 进度/AI 复核等，server 以 <system-inject> 标记包裹）。
+// 系统注入消息（server 以 <system-inject> 标记包裹）。
 // 命中时返回标记内内容（去标记），否则 null。
 function getSystemInjectContent(message: MessageType): string | null {
   for (const block of message.blocks ?? []) {

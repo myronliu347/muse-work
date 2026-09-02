@@ -1,7 +1,7 @@
 import type { VsCodeApi } from "../../types";
 import type { MuseApiClient, MuseSession, MuseSessionsGrouped } from "../apiClient.js";
 import type { MuseWsClient, MuseWsEvent } from "../wsClient.js";
-import { postToWebview } from "./utils.js";
+import { allTreeSessions, postToWebview } from "./utils.js";
 import type { PendingPermission, TreeSession } from "./utils.js";
 
 export interface HostBridgeOptions {
@@ -84,8 +84,23 @@ export interface BridgeCtx {
   activeProviderId: string | undefined;
   pinned: TreeSession[];
   recent: TreeSession[];
-  /** Todo 分组（规划会话 + 执行会话），来自 grouped 响应的 todoGroups。 */
-  todoGroups: NonNullable<MuseSessionsGrouped["todoGroups"]>;
+  /** Issue 分组（规划会话 + 执行会话），来自 grouped 响应的 issueGroups。 */
+  issueGroups: Array<{
+    issueId: string;
+    title: string;
+    priority: string;
+    status: string;
+    items: NonNullable<MuseSessionsGrouped["issueGroups"]>[number]["items"];
+    sessions: TreeSession[];
+  }>;
+  closedIssueGroups: Array<{
+    issueId: string;
+    title: string;
+    priority: string;
+    status: string;
+    items: NonNullable<MuseSessionsGrouped["closedIssueGroups"]>[number]["items"];
+    sessions: TreeSession[];
+  }>;
   titledSessions: Set<string>;
   /** Cached permission:request for non-focus (and active) sessions until responded/disposed. */
   pendingPermissions: Map<string, PendingPermission>;
@@ -172,7 +187,8 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
     activeProviderId: undefined,
     pinned: [],
     recent: [],
-    todoGroups: [],
+    issueGroups: [],
+    closedIssueGroups: [],
     titledSessions: new Set<string>(),
     pendingPermissions: new Map<string, PendingPermission>(),
     compactingSessions: new Set<string>(),
@@ -183,15 +199,15 @@ export function createBridgeCtx(opts: HostBridgeOptions): BridgeCtx {
       const map = new Map<string, TreeSession>();
       for (const s of ctx.pinned) map.set(s.id, s);
       for (const s of ctx.recent) map.set(s.id, s);
-      for (const g of ctx.todoGroups) for (const s of g.sessions) map.set(s.id, s);
+      for (const g of ctx.issueGroups) for (const s of g.sessions) map.set(s.id, s);
+      for (const g of ctx.closedIssueGroups) for (const s of g.sessions) map.set(s.id, s);
       return map;
     },
 
     publishAgentBusy(): void {
       const anyRunning =
         ctx.loading ||
-        ctx.pinned.some((s) => s.running) ||
-        ctx.recent.some((s) => s.running) ||
+        allTreeSessions(ctx).some((s) => s.running) ||
         [...ctx.runningWorkBySession.values()].some(
           (flags) => flags.tasks || flags.workflows,
         );

@@ -38,18 +38,18 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
       .mockResolvedValue({
         scenarios: {
           session: "default",
-          todo: "plan",
-          task: "execute",
           popo: "popo",
+          "issue-plan": "plan",
+          "issue-exec": "execute",
         },
       }),
     putAgents: vi.fn().mockResolvedValue({ version: 1, agents: [] }),
     putAgentScenarios: vi.fn().mockResolvedValue({
       scenarios: {
         session: "default",
-        todo: "plan",
-        task: "execute",
         popo: "popo",
+        "issue-plan": "plan",
+        "issue-exec": "execute",
       },
     }),
     // MuseModelSelect 挂载时拉取 providers

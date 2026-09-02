@@ -6,7 +6,7 @@ import { formatRelativeActiveAt } from "../../utils/time";
 import type {
   DesktopSessionGroup,
   DesktopSessionEntry,
-  DesktopTodoGroup,
+  DesktopIssueGroup,
 } from "../../types";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
@@ -14,6 +14,13 @@ export const SESSION_DRAG_MIME = "application/x-wave-session";
 
 const dirName = (workdir: string): string =>
   workdir.split(/[\\/]/).filter(Boolean).pop() ?? workdir;
+
+const ISSUE_STATUS_LABEL: Record<string, string> = {
+  pending: "待规划",
+  planning: "规划中",
+  executing: "执行中",
+  review: "待审核",
+};
 
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
@@ -114,14 +121,14 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "todos" | "tasks" | "workspace";
+type SectionId = "pin" | "issues" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
   pinnedSessions?: DesktopSessionEntry[];
   recentSessions?: DesktopSessionEntry[];
-  /** Todo 分组：每个 todo 的规划会话 + 执行会话（任务 section 内折叠展示）。 */
-  todoGroups?: DesktopTodoGroup[];
+  /** Issue 分组：规划会话 + 执行会话（侧栏「待办事项」折叠展示）。 */
+  issueGroups?: DesktopIssueGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -134,6 +141,14 @@ export interface SessionTreeProps {
   onOpenInEditor?: (workdir: string) => void;
   onOpenInTerminal?: (workdir: string) => void;
   onRevealInFinder?: (workdir: string) => void;
+  /** 待办事项 section 头「+」：打开新建 Issue 对话框。 */
+  onNewIssue?: () => void;
+  /** 无会话的 Issue 空态：「打开会话」。 */
+  onOpenPlanning?: (issueId: string) => void;
+  /** 分组行更多菜单「完成」。 */
+  onCompleteIssue?: (issueId: string) => void;
+  /** 分组行更多菜单「取消」。 */
+  onCancelIssue?: (issueId: string) => void;
 }
 
 function CollapsibleBody({
@@ -160,7 +175,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   sessionTree,
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
-  todoGroups,
+  issueGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -173,16 +188,25 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  onNewIssue,
+  onOpenPlanning,
+  onCompleteIssue,
+  onCancelIssue,
 }) => {
   const [pendingDelete, setPendingDelete] = useState<{
     sessionId: string;
     title: string;
     description?: string;
   } | null>(null);
+  const [pendingIssueAction, setPendingIssueAction] = useState<{
+    issueId: string;
+    title: string;
+    kind: "complete" | "cancel";
+  } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
     () => new Set(),
   );
-  const [collapsedTodos, setCollapsedTodos] = useState<Set<string>>(
+  const [collapsedIssues, setCollapsedIssues] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
@@ -195,10 +219,18 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     y: number;
     workdir: string;
   } | null>(null);
+  const [issueMenu, setIssueMenu] = useState<{
+    x: number;
+    y: number;
+    issueId: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (!workdirMenu) return;
-    const close = () => setWorkdirMenu(null);
+    if (!workdirMenu && !issueMenu) return;
+    const close = () => {
+      setWorkdirMenu(null);
+      setIssueMenu(null);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -208,7 +240,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", onKey);
     };
-  }, [workdirMenu]);
+  }, [workdirMenu, issueMenu]);
 
   const { pinnedSessions, recentSessions } = resolveSidebarSessions({
     sessionTree,
@@ -247,20 +279,20 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     });
   };
 
-  const toggleTodoCollapsed = (todoId: string) => {
-    setCollapsedTodos((prev) => {
-      const next = new Set(prev);
-      if (next.has(todoId)) next.delete(todoId);
-      else next.add(todoId);
-      return next;
-    });
-  };
-
   const toggleSectionCollapsed = (sectionId: SectionId) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) next.delete(sectionId);
       else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const toggleIssueCollapsed = (issueId: string) => {
+    setCollapsedIssues((prev) => {
+      const next = new Set(prev);
+      if (next.has(issueId)) next.delete(issueId);
+      else next.add(issueId);
       return next;
     });
   };
@@ -463,25 +495,30 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     testId: string;
     /** 会话数量，跟随标题展示（如「置顶（2）」）。 */
     count?: number;
+    /** 标题行右侧额外操作（如「+」新建）。 */
+    trailing?: React.ReactNode;
   }) => {
     const collapsed = collapsedSections.has(opts.sectionId);
     return (
-      <button
-        type="button"
-        className="desktop-session-section-header desktop-session-section-header--toggle"
-        onClick={() => toggleSectionCollapsed(opts.sectionId)}
-        data-testid={`${opts.testId}-toggle`}
-        aria-expanded={!collapsed}
-      >
-        <span className="desktop-session-section-title">{opts.title}</span>
-        {opts.count !== undefined ? (
-          <span className="desktop-session-count">（{opts.count}）</span>
-        ) : null}
-        <span
-          className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
-          aria-hidden="true"
-        />
-      </button>
+      <div className="desktop-session-section-header-row">
+        <button
+          type="button"
+          className="desktop-session-section-header desktop-session-section-header--toggle"
+          onClick={() => toggleSectionCollapsed(opts.sectionId)}
+          data-testid={`${opts.testId}-toggle`}
+          aria-expanded={!collapsed}
+        >
+          <span className="desktop-session-section-title">{opts.title}</span>
+          {opts.count !== undefined ? (
+            <span className="desktop-session-count">（{opts.count}）</span>
+          ) : null}
+          <span
+            className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
+            aria-hidden="true"
+          />
+        </button>
+        {opts.trailing}
+      </div>
     );
   };
 
@@ -514,73 +551,145 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  /** 待办事项 section：todo 分组（规划会话 + 执行会话按 todo 折叠展示）。 */
-  const renderTodosSection = () => {
-    const open = !collapsedSections.has("todos");
-    const groups = todoGroups ?? [];
-    const count = groups.reduce((sum, g) => sum + g.sessions.length, 0);
+  /** 待办事项 section：Issue 分组（规划/执行会话）。 */
+  const renderIssuesSection = () => {
+    const open = !collapsedSections.has("issues");
+    const groups = issueGroups ?? [];
+    const count = groups.reduce(
+      (sum, g) => sum + (g.sessions?.length ?? 0),
+      0,
+    );
     return (
-      <div className="desktop-session-section" data-testid="desktop-session-section-todos">
+      <div
+        className="desktop-session-section"
+        data-testid="desktop-session-section-issues"
+      >
         {renderSectionHeader({
-          sectionId: "todos",
+          sectionId: "issues",
           title: "待办事项",
-          testId: "desktop-session-section-todos",
+          testId: "desktop-session-section-issues",
           count,
+          trailing: onNewIssue ? (
+            <Tooltip text="新建 Issue" position="top">
+              <button
+                type="button"
+                className="desktop-session-section-add"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNewIssue();
+                }}
+                data-testid="desktop-session-section-issues-add"
+                aria-label="新建 Issue"
+              >
+                <span className="codicon codicon-add" aria-hidden="true" />
+              </button>
+            </Tooltip>
+          ) : null,
         })}
         <CollapsibleBody open={open}>
           {groups.length === 0 ? (
-            <div className="desktop-session-empty">无会话</div>
+            <div className="desktop-session-empty issue-sidebar-section-empty">
+              暂无 Issue
+            </div>
           ) : (
             <>
               {groups.map((group) => {
-                const collapsed = collapsedTodos.has(group.todoId);
+                const collapsed = collapsedIssues.has(group.issueId);
+                const priority = group.priority || "p1";
+                const sessions = group.sessions ?? [];
+                const statusLabel =
+                  ISSUE_STATUS_LABEL[group.status] ?? group.status;
                 return (
                   <div
-                    key={group.todoId}
-                    className="desktop-session-workdir-group"
-                    data-testid={`desktop-session-todo-group-${group.todoId}`}
+                    key={group.issueId}
+                    className="issue-sidebar-group"
+                    data-testid={`desktop-session-issue-group-${group.issueId}`}
                   >
                     <div
-                      className="desktop-session-workdir-row"
-                      onClick={() => toggleTodoCollapsed(group.todoId)}
-                      data-testid={`desktop-session-todo-row-${group.todoId}`}
+                      className="issue-sidebar-row"
+                      onClick={() => toggleIssueCollapsed(group.issueId)}
+                      data-testid={`desktop-session-issue-row-${group.issueId}`}
                     >
                       <span
                         className="desktop-session-workdir-icon-slot"
                         aria-hidden="true"
                       >
-                        <span
-                          className="codicon codicon-tasklist desktop-session-workdir-folder"
-                        />
+                        <span className="codicon codicon-tasklist desktop-session-workdir-folder" />
                         <span
                           className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
                         />
                       </span>
                       <span
-                        className="desktop-session-workdir-label"
-                        title={group.todoTitle}
+                        className="issue-sidebar-title"
+                        title={group.title}
                       >
-                        {group.todoTitle}
+                        {group.title}
                       </span>
+                      {statusLabel ? (
+                        <span
+                          className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
+                        >
+                          {statusLabel}
+                        </span>
+                      ) : null}
                       <span
-                        className={`todo-sidebar-priority todo-sidebar-priority-${group.priority}`}
+                        className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
                       >
-                        {group.priority.toUpperCase()}
+                        {priority.toUpperCase()}
                       </span>
-                      <span className="desktop-session-count">
-                        {group.sessions.length}
-                      </span>
+                      {onCompleteIssue || onCancelIssue ? (
+                        <button
+                          type="button"
+                          className="desktop-session-workdir-add issue-sidebar-more"
+                          data-testid={`desktop-session-issue-more-${group.issueId}`}
+                          aria-label="更多"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIssueMenu({
+                              x: e.clientX,
+                              y: e.clientY,
+                              issueId: group.issueId,
+                            });
+                          }}
+                        >
+                          <span
+                            className="codicon codicon-ellipsis"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ) : null}
                     </div>
                     <CollapsibleBody open={!collapsed}>
-                      <ul className="desktop-session-items desktop-session-items--nested">
-                        {group.sessions.map((session) =>
-                          renderSession(session, {
-                            hideWorkdir: true,
-                            // 待办事项（todo 规划/执行）会话不允许置顶/删除
-                            hideActions: true,
-                          }),
-                        )}
-                      </ul>
+                      {sessions.length === 0 ? (
+                        <div className="desktop-session-empty issue-sidebar-empty">
+                          {onOpenPlanning ? (
+                            <button
+                              type="button"
+                              className="issue-sidebar-open-planning"
+                              data-testid={`desktop-session-issue-open-planning-${group.issueId}`}
+                              onClick={() => onOpenPlanning(group.issueId)}
+                            >
+                              <span
+                                className="codicon codicon-play"
+                                aria-hidden="true"
+                              />
+                              打开会话
+                            </button>
+                          ) : (
+                            "无会话"
+                          )}
+                        </div>
+                      ) : (
+                        <ul className="desktop-session-items desktop-session-items--nested">
+                          {sessions.map((session) =>
+                            renderSession(session, {
+                              hideWorkdir: true,
+                              // 待办事项（Issue 规划/执行）会话不允许置顶/删除
+                              hideActions: true,
+                            }),
+                          )}
+                        </ul>
+                      )}
                     </CollapsibleBody>
                   </div>
                 );
@@ -592,7 +701,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  /** 任务 section：遗留自动任务会话（不在任何 todo 分组下的 task project 会话）。 */
+  /** 任务 section：自动任务项目会话。 */
   const renderTasksSection = () => {
     const open = !collapsedSections.has("tasks");
     return (
@@ -723,7 +832,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         testId: "desktop-session-section-pin",
         sessions: pinnedSessions,
       })}
-      {renderTodosSection()}
+      {renderIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 
@@ -737,6 +846,77 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           }}
           onCancel={() => setPendingDelete(null)}
         />
+      )}
+      {pendingIssueAction && (
+        <ConfirmDialog
+          title={
+            pendingIssueAction.kind === "complete"
+              ? `完成「${pendingIssueAction.title}」？`
+              : `取消「${pendingIssueAction.title}」？`
+          }
+          description="关闭后不会删除会话，仅从待办事项中消失。"
+          confirmText={
+            pendingIssueAction.kind === "complete" ? "完成" : "取消 Issue"
+          }
+          onConfirm={() => {
+            if (pendingIssueAction.kind === "complete") {
+              onCompleteIssue?.(pendingIssueAction.issueId);
+            } else {
+              onCancelIssue?.(pendingIssueAction.issueId);
+            }
+            setPendingIssueAction(null);
+          }}
+          onCancel={() => setPendingIssueAction(null)}
+        />
+      )}
+      {issueMenu && (
+        <div
+          className="desktop-context-menu"
+          style={{ left: issueMenu.x, top: issueMenu.y }}
+          data-testid={`desktop-session-issue-menu-${issueMenu.issueId}`}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {onCompleteIssue ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid={`desktop-session-issue-complete-${issueMenu.issueId}`}
+              onClick={() => {
+                const group = (issueGroups ?? []).find(
+                  (g) => g.issueId === issueMenu.issueId,
+                );
+                setIssueMenu(null);
+                setPendingIssueAction({
+                  issueId: issueMenu.issueId,
+                  title: group?.title ?? issueMenu.issueId,
+                  kind: "complete",
+                });
+              }}
+            >
+              完成
+            </button>
+          ) : null}
+          {onCancelIssue ? (
+            <button
+              type="button"
+              className="desktop-context-menu-item"
+              data-testid={`desktop-session-issue-cancel-${issueMenu.issueId}`}
+              onClick={() => {
+                const group = (issueGroups ?? []).find(
+                  (g) => g.issueId === issueMenu.issueId,
+                );
+                setIssueMenu(null);
+                setPendingIssueAction({
+                  issueId: issueMenu.issueId,
+                  title: group?.title ?? issueMenu.issueId,
+                  kind: "cancel",
+                });
+              }}
+            >
+              取消
+            </button>
+          ) : null}
+        </div>
       )}
       {workdirMenu && (
         <div

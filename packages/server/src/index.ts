@@ -77,7 +77,6 @@ installGracefulShutdown({
   hub: ctx.hub,
   server,
   log,
-  onShutdown: () => ctx.todoScheduler.stop(),
 });
 
 const srv = server.listen(port, HOST, () => {
@@ -86,12 +85,9 @@ const srv = server.listen(port, HOST, () => {
     log.error("failed to bind server");
     process.exit(1);
   }
-  // 子进程（todo.mjs 等插件脚本）从 env 读 baseURL：随机端口也要写回实际端口。
   process.env.MUSE_SERVER_URL = `http://${HOST}:${addr.port}`;
   process.env.MUSE_SERVER_PORT = String(addr.port);
-  // 外部 shell（用户终端等）读不到进程内 env：把实际地址落盘到 MUSE_HOME 下固定
-  // 文件，todo.mjs 等脚本按 MUSE_SERVER_URL → 端口文件 → 默认 8787 解析。
-  // dev/生产随 MUSE_HOME_DIR 天然分文件；多实例同 home 时最后写赢、重启覆盖。
+  // 外部 shell 读不到进程内 env：把实际地址落盘到 MUSE_HOME 下固定文件。
   const serverUrlFile = path.join(getMuseHomeDir(ctx.home), "server-url");
   fs.writeFileSync(serverUrlFile, `http://${HOST}:${addr.port}`);
   // Desktop parses this single JSON line from stdout for the ready port.
@@ -103,7 +99,6 @@ const srv = server.listen(port, HOST, () => {
     port: addr.port,
     logDir: resolveLogDir(ctx.home),
   });
-  ctx.todoScheduler.start();
   // 周期性打内存/存活计数，崩溃前在 server.log 里留下增长曲线（V8 OOM 观测）。
   installRuntimeStats({
     store: ctx.store,

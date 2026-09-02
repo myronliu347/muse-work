@@ -2,10 +2,13 @@
 .messages-shell {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   position: relative;
   width: 100%;
   display: flex;
   flex-direction: column;
+  /* Clip the user-message-nav so ticks/labels cannot paint over the file dock. */
+  overflow: hidden;
 }
 
 .messages-container {
@@ -15,7 +18,8 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-4) var(--space-4) min(36vh, var(--space-9));
+  /* Right gutter keeps diffs/images off the user-message-nav ticks. */
+  padding: var(--space-4) 28px min(36vh, var(--space-9)) var(--space-4);
   background-color: var(--color-background);
   position: relative;
 }

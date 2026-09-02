@@ -218,10 +218,12 @@ export interface DesktopHostProps {
    */
   sessionTree: DesktopSessionGroup[];
   /**
-   * Todo 分组（Todo/Task 侧栏折叠）：每个 todo 的规划会话 + 执行会话归一组，
+   * Issue 分组（侧栏「待办事项」折叠）：每个 Issue 的规划会话 + 执行会话归一组，
    * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
    */
-  todoGroups?: DesktopTodoGroup[];
+  issueGroups?: DesktopIssueGroup[];
+  /** 已完成 / 已取消 Issue 的会话分组；侧栏暂不展示，仅避免混入工作空间。 */
+  closedIssueGroups?: DesktopIssueGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;
   /** Delete a session from the index; also removes worktree+branch if applicable. */
@@ -265,12 +267,14 @@ export interface DesktopSessionGroup {
   sessions: DesktopSessionEntry[];
 }
 
-/** Todo 分组：同一 todo 的规划会话 + 执行会话（侧栏按 todo 折叠展示）。 */
-export interface DesktopTodoGroup {
-  todoId: string;
-  todoTitle: string;
+/** Issue 分组：同一 Issue 的规划会话 + 执行会话（侧栏按 Issue 折叠展示）。 */
+export interface DesktopIssueGroup {
+  issueId: string;
+  title: string;
   /** p0 | p1 | p2 */
   priority: string;
+  status: string;
+  items: Array<{ id: string; content: string; status: string }>;
   sessions: DesktopSessionEntry[];
 }
 

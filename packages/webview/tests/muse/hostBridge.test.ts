@@ -230,20 +230,22 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
-  it("desktopReady carries todoGroups into the desktopSessionTree message", async () => {
+  it("desktopReady carries issueGroups into the desktopSessionTree message", async () => {
     const api = stubApi({
       listSessionsGrouped: vi.fn(async () => ({
         pinned: [],
         recent: [baseSession],
         activeSessionId: "sess-active",
-        todoGroups: [
+        issueGroups: [
           {
-            todoId: "todo-1",
-            todoTitle: "设计评审",
+            issueId: "issue-1",
+            title: "设计评审",
             priority: "p1",
+            status: "planning",
+            items: [{ id: "c1", content: "写方案", status: "pending" as const }],
             sessions: [
               { ...baseSession, id: "sess-plan", title: "设计评审" },
-              { ...baseSession, id: "sess-exec", title: "写评审文档" },
+              { ...baseSession, id: "sess-exec", title: "执行" },
             ],
           },
         ],
@@ -261,11 +263,13 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual(
       expect.objectContaining({
         command: "desktopSessionTree",
-        todoGroups: [
+        issueGroups: [
           {
-            todoId: "todo-1",
-            todoTitle: "设计评审",
+            issueId: "issue-1",
+            title: "设计评审",
             priority: "p1",
+            status: "planning",
+            items: [{ id: "c1", content: "写方案", status: "pending" }],
             sessions: [
               expect.objectContaining({ sessionId: "sess-plan" }),
               expect.objectContaining({ sessionId: "sess-exec" }),
@@ -276,7 +280,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
-  it("desktopRefreshSessionTree 重新拉 grouped 并广播新会话树（todo 完成/取消后刷新侧栏）", async () => {
+  it("desktopRefreshSessionTree 重新拉 grouped 并广播新会话树（issue 完成/取消后刷新侧栏）", async () => {
     let calls = 0;
     const api = stubApi({
       listSessionsGrouped: vi.fn(async () => {
@@ -285,14 +289,18 @@ describe("createHostBridge desktop workdir bootstrap", () => {
           pinned: [],
           recent: calls === 1 ? [baseSession] : [],
           activeSessionId: "sess-active",
-          todoGroups:
+          issueGroups:
             calls === 1
               ? [
                   {
-                    todoId: "todo-1",
-                    todoTitle: "设计评审",
+                    issueId: "issue-1",
+                    title: "设计评审",
                     priority: "p1",
-                    sessions: [{ ...baseSession, id: "sess-plan", title: "设计评审" }],
+                    status: "planning",
+                    items: [],
+                    sessions: [
+                      { ...baseSession, id: "sess-plan", title: "设计评审" },
+                    ],
                   },
                 ]
               : [],
@@ -310,24 +318,46 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual(
       expect.objectContaining({
         command: "desktopSessionTree",
-        todoGroups: [expect.objectContaining({ todoId: "todo-1" })],
+        issueGroups: [expect.objectContaining({ issueId: "issue-1" })],
       }),
     );
 
-    // todo 完成/取消后：命令触发重拉，todoGroups 与 recent 均更新
     bridge.postMessage({ command: "desktopRefreshSessionTree" });
     await flushUntil(() => calls >= 2);
     expect(calls).toBe(2);
     expect(messages).toContainEqual(
       expect.objectContaining({
         command: "desktopSessionTree",
-        todoGroups: [],
-        // recent 组会话清空（todo 完成剔除后不再回流）
+        issueGroups: [],
         groups: expect.arrayContaining([
           expect.objectContaining({ workdir: "recent", sessions: [] }),
         ]),
       }),
     );
+  });
+
+  it("issue:changed WS posts issue:changed to webview (all panes)", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({ type: "issue:changed", sessionId: "*" });
+    await flush();
+
+    expect(messages).toContainEqual({ command: "issue:changed" });
   });
 
   it("desktopReady loads the session tree even when WS connect fails", async () => {
@@ -1497,39 +1527,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(current).toBeUndefined();
   });
 
-  it("todo:changed broadcast (sessionId=*) posts to webview regardless of active session", async () => {
-    let handler: ((e: unknown) => void) | undefined;
-    const ws = {
-      onEvent: vi.fn((h: (e: unknown) => void) => {
-        handler = h;
-        return () => {};
-      }),
-      connect: vi.fn(async () => {}),
-    } as unknown as MuseWsClient;
-    const bridge = createHostBridge({
-      api: stubApi(),
-      ws,
-      workdir: "/tmp",
-    });
-
-    bridge.postMessage({ command: "desktopReady" });
-    await flush();
-    bridge.postMessage({
-      command: "desktopSelectSession",
-      sessionId: "sess-active",
-      workdir: "/tmp",
-    });
-    await flush();
-    messages.length = 0;
-
-    // 服务端变更路由广播 todo:changed（broadcastAll → sessionId 恒为 "*"），
-    // 不得被下方活跃会话过滤丢弃——否则 AI 跑 todo.mjs 等非看板来源的变更永远刷不动看板。
-    handler!({ type: "todo:changed", sessionId: "*" });
-    await flush();
-
-    expect(messages).toContainEqual({ command: "todo:changed" });
-  });
-
   it("non-focus loading keeps sidebar running without startStreaming", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {
@@ -2408,6 +2405,48 @@ describe("createHostBridge reconnect", () => {
 
     expect(messages).not.toContainEqual({ command: "endStreaming" });
     expect(api.getMessages).toHaveBeenCalledWith("sess-active");
+  });
+
+  it("keeps streaming when reconnected issue planning session is still running", async () => {
+    const planningSession = {
+      ...baseSession,
+      id: "sess-plan",
+      title: "修登录 · 规划",
+      status: "running" as const,
+    };
+    const { ws, emitStatus } = stubWsStatus();
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: "sess-plan",
+        issueGroups: [
+          {
+            issueId: "issue-1",
+            title: "修登录",
+            priority: "p1",
+            status: "planning",
+            items: [],
+            sessions: [planningSession],
+          },
+        ],
+      })),
+      selectSession: vi.fn(async (id: string) => ({
+        session: { ...planningSession, id },
+      })),
+    });
+    const bridge = createHostBridge({ api, ws, workdir: "/tmp" });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+
+    emitStatus("open");
+    messages.length = 0;
+    emitStatus("closed");
+    emitStatus("open");
+    await flush();
+
+    expect(messages).not.toContainEqual({ command: "endStreaming" });
+    expect(api.getMessages).toHaveBeenCalledWith("sess-plan");
   });
 
   it("shows a persistent toast and stops streaming when the local server is dead", async () => {

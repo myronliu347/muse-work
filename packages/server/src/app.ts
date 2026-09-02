@@ -13,7 +13,7 @@ import { healthRoutes } from "./routes/health.js";
 import { providersRoutes } from "./routes/providers.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { settingsRoutes } from "./routes/settings.js";
-import { createTodoRoutes } from "./routes/todos.js";
+import { issuesRoutes } from "./routes/issues.js";
 import { createPopoRoutes } from "./popo/routes.js";
 
 export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
@@ -29,7 +29,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", authRoutes);
   app.route("/", agentsRoutes);
   app.route("/", sessionsRoutes);
-  app.route("/", createTodoRoutes(ctx.todoStore, ctx.todoScheduler, ctx.hub));
+  app.route("/", issuesRoutes);
 
   if (ctx.popo) {
     app.route("/", createPopoRoutes(ctx.popo));

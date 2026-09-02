@@ -31,7 +31,7 @@ export interface Session {
   status: SessionStatus;
   /** Runtime-only: last process died mid-turn. Not written to disk. */
   interrupted?: boolean;
-  /** 自定义 system prompt（规划会话等注入 todo 上下文；缺省用默认 Muse prompt）。 */
+  /** 自定义 system prompt（缺省用默认 Muse prompt）。 */
   systemPrompt?: string;
   /** 会话选用的数字人 agent key（缺省由 session 场景映射解析；显式传/改后持久化）。 */
   agentName?: string;

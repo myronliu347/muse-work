@@ -280,10 +280,12 @@ export interface CreateSessionRunnerOptions {
   ) => Promise<{ messages: unknown[] } | null>;
   /**
    * Called when a turn settles for sessions whose status was running. Lets
-   * external schedulers (todo 执行调度) react to turn completion without
+   * external schedulers react to turn completion without
    * reaching into runner internals. ok=false when the turn aborted or errored.
    */
   onTurnSettled?: (sessionId: string, result: { ok: boolean; error?: string }) => void;
+  /** True when this session is an Issue planning session (deny source-code writes). */
+  isIssuePlanningSession?: (sessionId: string) => boolean;
 }
 
 /**

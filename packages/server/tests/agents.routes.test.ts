@@ -40,7 +40,7 @@ describe("agents HTTP routes", () => {
     expect(popo.systemPrompt).toContain("你是 Muse 机器人");
   });
 
-  it("GET /agents/scenarios 返回 4 场景实际 key", async () => {
+  it("GET /agents/scenarios 返回场景实际 key", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -50,9 +50,9 @@ describe("agents HTTP routes", () => {
     const body = await res.json();
     expect(body.scenarios).toEqual({
       session: "default",
-      todo: "plan",
-      task: "execute",
       popo: "popo",
+      "issue-plan": "plan",
+      "issue-exec": "execute",
     });
   });
 
@@ -109,15 +109,13 @@ describe("agents HTTP routes", () => {
         version: 1,
         scenarios: {
           session: "default",
-          todo: "default",
-          task: "default",
           popo: "default",
         },
       }),
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.scenarios.todo).toBe("default");
+    expect(body.scenarios.popo).toBe("default");
 
     // 引用不存在的 agent → 400
     const bad = await fetch(`${app.baseUrl}/agents/scenarios`, {

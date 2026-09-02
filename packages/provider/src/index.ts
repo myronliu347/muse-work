@@ -20,7 +20,6 @@ export {
 export {
   createDefaultProjectWorkdir,
   getProjectsDir,
-  getTodoWorkdir,
 } from "./defaultProject.js";
 
 export {

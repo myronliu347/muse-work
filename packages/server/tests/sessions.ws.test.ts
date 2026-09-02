@@ -21,6 +21,8 @@ import {
   type CreateAgent,
   type SessionAgent,
 } from "../src/services/appContext.js";
+import { createIssueStore } from "../src/services/issueStore.js";
+import { createIssueDispatcher } from "../src/services/issueDispatch.js";
 
 type WsEvent = Record<string, unknown> & { type: string };
 
@@ -1618,7 +1620,24 @@ async function listenSessionsApp(options: {
     createAgent: options.createAgent,
     loadSubagentMessages: options.loadSubagentMessages,
   });
-  const ctx: AppContext = { home, registry, ...sessions };
+  const issues = createIssueStore({ home });
+  const dispatcher = createIssueDispatcher({
+    issues,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    hub: sessions.hub,
+    home,
+  });
+  sessions.runner.setOnTurnSettled((sessionId, result) => {
+    dispatcher.handleTurnSettled(sessionId, result);
+  });
+  const ctx: AppContext = {
+    home,
+    registry,
+    ...sessions,
+    issueStore: issues,
+    issueDispatcher: dispatcher,
+  };
   const server = createApp(ctx);
 
   await new Promise<void>((resolve, reject) => {

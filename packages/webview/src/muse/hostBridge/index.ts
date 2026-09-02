@@ -7,7 +7,7 @@ import { createBridgeCtx, type HostBridgeOptions } from "./ctx.js";
 import { createDesktopModule, type DesktopCreateWorktreeMsg } from "./desktop.js";
 import { createSessionModule } from "./session.js";
 import { createTasksModule } from "./tasks.js";
-import { postToWebview, showServerToast } from "./utils.js";
+import { allTreeSessions, postToWebview, showServerToast } from "./utils.js";
 import type { PendingPermission } from "./utils.js";
 
 export { buildSidebarModel, isAuthError } from "./utils.js";
@@ -73,15 +73,14 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
   const resyncAfterReconnect = async (): Promise<void> => {
     try {
       const grouped = await ctx.refreshTree();
+      const sessions = allTreeSessions(grouped);
       const runningIds = new Set(
-        [...grouped.pinned, ...grouped.recent]
-          .filter((s) => s.status === "running")
-          .map((s) => s.id),
+        sessions.filter((s) => s.status === "running").map((s) => s.id),
       );
       for (const id of [...ctx.pendingPermissions.keys()]) {
         if (!runningIds.has(id)) ctx.pendingPermissions.delete(id);
       }
-      for (const s of [...grouped.pinned, ...grouped.recent]) {
+      for (const s of sessions) {
         if (!runningIds.has(s.id)) {
           ctx.patchTreeSession(s.id, { waitingConfirmation: false });
         }
@@ -123,6 +122,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         const cur = ctx.treeById().get(event.sessionId);
         if (cur) ctx.emitCurrentSession(cur);
       }
+      return;
+    }
+
+    // Issue 任何变更（REST / 插件脚本）：broadcastAll 的 sessionId 恒为 "*"，
+    // 不能走下方活跃会话过滤。所有 pane 都收，由 messageRouter 触发树刷新。
+    if (event.type === "issue:changed") {
+      postToWebview({ command: "issue:changed" });
       return;
     }
 
@@ -199,27 +205,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
     if (event.type === "workflow-runs:update") {
       ctx.setRunningWork(event.sessionId, "workflows", event.runs);
-    }
-
-    // 全局通知（task 进待审核）：不依赖当前会话，所有 pane 都收。
-    if (event.type === "todo:notify") {
-      postToWebview({
-        command: "todo:notify",
-        todoId: event.todoId,
-        taskId: event.taskId,
-        todoTitle: event.todoTitle,
-        taskTitle: event.taskTitle,
-        priority: event.priority,
-      });
-      return;
-    }
-
-    // todo/task 任何变更（REST 直改 store，如对话内 AI 跑 todo.mjs approve/requeue/complete）：
-    // broadcastAll 事件 sessionId 恒为 "*"，不能走下方活跃会话过滤（否则永远被丢弃，
-    // 看板停留在旧状态——文件已 completed、面板仍显示 review）。所有 pane 都收。
-    if (event.type === "todo:changed") {
-      postToWebview({ command: "todo:changed" });
-      return;
     }
 
     // Chat / streaming events only drive ChatApp for the active session.
@@ -316,7 +301,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     setPermissionMode: (msg) =>
       void chat.handleSetPermissionMode(msg as { mode?: string }),
     desktopRefreshSessionTree: () =>
-      // todo 完成/取消后侧栏任务分组需要重拉（server recent 剔除已变化）
       void ctx.refreshTree().catch(() => {
         // 侧栏保持旧数据，下次任意刷新兜底
       }),
@@ -332,10 +316,17 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     getWorkflowRuns: () => void tasks.handleGetWorkflowRuns(),
     stopWorkflowRun: (msg) =>
       void tasks.handleStopWorkflowRun(msg as { runId?: string }),
-    desktopCreateWorktree: (msg) =>
+    desktopCreateWorktree: (msg) => {
+      // Open-planning (and any create-only caller) tags requestId and waits
+      // for desktopWorktreeCreated. Forward to Electron; do not mint a session.
+      if (typeof msg.requestId === "string" && msg.requestId) {
+        opts.outer?.postMessage(msg);
+        return;
+      }
       void ctx.handleDesktopCreateWorktree(
         msg as DesktopCreateWorktreeMsg,
-      ),
+      );
+    },
     confirmationResponse: (msg) =>
       void confirm.handleConfirmationResponse(msg as ConfirmationResponseMsg),
     webviewReady: () => void ctx.refreshAuth(),

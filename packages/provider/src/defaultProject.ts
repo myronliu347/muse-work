@@ -8,11 +8,6 @@ export function getProjectsDir(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), "projects");
 }
 
-/** `~/.muse-work/personal` — todo 规划会话统一工作目录（固定，不随机）。 */
-export function getTodoWorkdir(home = os.homedir()): string {
-  return path.join(getMuseHomeDir(home), "personal");
-}
-
 /** `~/.muse-work/projects/YYYYMMDD-<uid8>` — created on disk. */
 export function createDefaultProjectWorkdir(home = os.homedir()): string {
   const now = new Date();
