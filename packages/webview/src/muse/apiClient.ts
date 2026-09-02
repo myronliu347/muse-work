@@ -136,6 +136,7 @@ export interface MuseIssue {
   priority: MuseIssuePriority;
   tags: string[];
   status: MuseIssueStatus;
+  agentMode?: "single" | "split";
   workdir?: string;
   worktreeEnabled?: boolean;
   baseBranch?: string;
@@ -764,6 +765,7 @@ export class MuseApiClient {
       worktreeName?: string;
       worktreeBranch?: string;
       worktreeRepoRoot?: string;
+      agentMode?: "single" | "split";
     },
   ): Promise<{ sessionId: string; workdir: string }> {
     const res = await this.request(

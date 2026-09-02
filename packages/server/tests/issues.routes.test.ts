@@ -87,6 +87,40 @@ describe("issues HTTP", () => {
     expect(second.sessionId).toBe(first.sessionId);
   });
 
+  it("POST planning-session agentMode=single uses session agent and single-agent prompt", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "单会话" }),
+    }).then((r) => r.json());
+    const res = await fetch(`${app.baseUrl}/issues/${issue.id}/planning-session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workdir: "/tmp/proj",
+        worktreeEnabled: false,
+        agentMode: "single",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const first = await res.json();
+    const session = app.ctx.store.get(first.sessionId);
+    expect(session?.agentName).toBe("default");
+    expect(session?.systemPrompt).toContain("单 agent");
+    expect(session?.systemPrompt).toContain("不要 dispatch");
+    expect(session?.systemPrompt).not.toContain("不要修改产品实现");
+    expect(app.ctx.issueStore.get(issue.id)?.agentMode).toBe("single");
+    const dispatch = await fetch(`${app.baseUrl}/issues/${issue.id}/dispatch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ itemId: "nope" }),
+    });
+    expect(dispatch.status).toBe(409);
+  });
+
   it("PUT items then POST dispatch returns executionSessionId", async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
     const ctx = createAppContext({

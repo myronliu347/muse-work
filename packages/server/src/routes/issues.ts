@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { HonoEnv } from "../honoEnv.js";
-import type { Issue, IssuePriority } from "../services/issueStore.js";
+import { buildIssuePlanningExtra, buildIssueSingleAgentExtra } from "../services/issuePlanning.js";
+import type { Issue, IssueAgentMode, IssuePriority } from "../services/issueStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
@@ -13,7 +14,6 @@ import {
   resolveScenarioAgent,
 } from "../services/agentConfig.js";
 import { getLogger } from "../utils/logger.js";
-import { buildIssuePlanningExtra } from "../services/issuePlanning.js";
 
 export const issuesRoutes = new Hono<HonoEnv>();
 
@@ -179,6 +179,7 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
     worktreeName?: string;
     worktreeBranch?: string;
     worktreeRepoRoot?: string;
+    agentMode?: IssueAgentMode;
   };
   try {
     body = await c.req.json();
@@ -192,18 +193,22 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
     return c.json({ error: "workdir required" }, 400);
   }
   const worktreeEnabled = Boolean(body.worktreeEnabled);
+  const agentMode: IssueAgentMode =
+    body.agentMode === "single" ? "single" : "split";
 
-  const agentKey = resolveScenarioAgent("issue-plan", ctx.home);
+  const scenario = agentMode === "single" ? "session" : "issue-plan";
+  const agentKey = resolveScenarioAgent(scenario, ctx.home);
   const agent = resolveAgent(agentKey, ctx.home);
   const permission = resolvePermission(agent.permission);
   const model = agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
   if (!model) {
     return c.json({ error: "no active model selected" }, 400);
   }
-  const systemPrompt = buildSystemPrompt(
-    agent,
-    buildIssuePlanningExtra(existing),
-  );
+  const extra =
+    agentMode === "single"
+      ? buildIssueSingleAgentExtra(existing)
+      : buildIssuePlanningExtra(existing);
+  const systemPrompt = buildSystemPrompt(agent, extra);
   const session = ctx.store.create({
     workdir,
     model,
@@ -242,6 +247,7 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
     worktreeEnabled,
     baseBranch:
       typeof body.baseBranch === "string" ? body.baseBranch : undefined,
+    agentMode,
   });
   if (!updated) {
     return c.json({ error: "conflict" }, 409);

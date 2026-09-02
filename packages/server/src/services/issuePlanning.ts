@@ -102,3 +102,23 @@ export function buildIssuePlanningExtra(issue: {
     "7. 未 --done 时系统会拒绝派下一项。不要把回报里的「本回合结束」或执行结论当成达标。全部完成后进入待审核，停止自动 dispatch，向用户汇报。",
   ].join("\n");
 }
+
+export function buildIssueSingleAgentExtra(issue: {
+  id: string;
+  title: string;
+  description: string;
+}): string {
+  const description = issue.description.trim() || "（无）";
+  return [
+    "当前会话是 Issue 的工作会话（单 agent：规划与实现都在本会话完成）。",
+    `Issue ID：${issue.id}`,
+    `标题：${issue.title}`,
+    `描述：${description}`,
+    "",
+    "你的职责：",
+    "1. 与用户确认需求后，直接在本会话里改代码实现，不要另开执行会话。",
+    "2. 清单走 issue-management skill（issue.mjs）：get / items --add-json / --done。做完一项就 --done。",
+    "3. 不要 dispatch。单 agent 模式下系统会拒绝派发。",
+    "4. 用户明确说关掉 / 完成 / 取消时才 complete 或 cancel；不要替用户关单。",
+  ].join("\n");
+}

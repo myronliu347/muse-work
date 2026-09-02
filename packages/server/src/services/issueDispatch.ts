@@ -354,6 +354,9 @@ export function createIssueDispatcher(opts: {
     if (!issue.planningSessionId) {
       throw httpError(409, "planning session required");
     }
+    if (issue.agentMode === "single") {
+      throw httpError(409, "单 agent 模式请在本会话实现，不能 dispatch");
+    }
     const item = issue.items.find((entry) => entry.id === itemId);
     if (!item) {
       throw httpError(404, "not found");

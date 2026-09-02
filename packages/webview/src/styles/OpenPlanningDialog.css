@@ -2,6 +2,44 @@
   width: 420px;
 }
 
+.open-planning-mode {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.open-planning-mode legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.open-planning-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--gray-2);
+  cursor: pointer;
+}
+
+.open-planning-mode-option:has(input:checked) {
+  border-color: var(--accent-8);
+  background: var(--accent-a2, var(--gray-3));
+}
+
+.open-planning-mode-option input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.open-planning-mode-option .open-planning-switch-title,
+.open-planning-mode-option .open-planning-hint {
+  display: block;
+}
+
 .open-planning-pick {
   display: flex;
   align-items: center;

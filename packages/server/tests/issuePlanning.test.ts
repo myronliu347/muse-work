@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PLANNING_CODE_WRITE_DENIED,
   buildIssuePlanningExtra,
+  buildIssueSingleAgentExtra,
   isPlanningDocPath,
   looksLikeSourceMutation,
   planningCodeWriteDecision,
@@ -64,5 +65,19 @@ describe("issuePlanning", () => {
     expect(extra).toContain("items --done");
     expect(extra).toContain("同一");
     expect(extra).toContain("产物");
+  });
+
+  it("buildIssueSingleAgentExtra allows implementing in this session", () => {
+    const extra = buildIssueSingleAgentExtra({
+      id: "issue-1",
+      title: "测试",
+      description: "修登录",
+    });
+    expect(extra).toContain("Issue ID：issue-1");
+    expect(extra).toContain("单 agent");
+    expect(extra).toContain("修登录");
+    expect(extra).not.toContain("不要修改产品实现");
+    expect(extra).toContain("不要 dispatch");
+    expect(extra).toContain("本会话");
   });
 });

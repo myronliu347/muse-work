@@ -36,6 +36,8 @@ export interface OpenPlanningDialogProps {
 const NOT_GIT_HINT = "非 git 目录，开关无效，将直接在该目录执行";
 const WORKTREE_TIMEOUT_ERROR = "创建 worktree 超时";
 
+type AgentMode = "single" | "split";
+
 function isNotGitError(error: string): boolean {
   return /not a git repository|not a git repo|不是 git|非 git/i.test(error);
 }
@@ -190,6 +192,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
   listBranches,
 }) => {
   const [workdir, setWorkdir] = useState("");
+  const [agentMode, setAgentMode] = useState<AgentMode>("single");
   const [worktreeEnabled, setWorktreeEnabled] = useState(false);
   const [baseBranch, setBaseBranch] = useState("");
   const [gitBranches, setGitBranches] = useState<string[]>([]);
@@ -300,6 +303,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
       const result = await api.openPlanningSession(issueId, {
         workdir: sessionWorkdir,
         worktreeEnabled: enabled,
+        agentMode,
         ...(resolvedBase ? { baseBranch: resolvedBase } : {}),
         ...(worktreeName ? { worktreeName } : {}),
         ...(worktreeBranch ? { worktreeBranch } : {}),
@@ -328,8 +332,49 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
       >
         <div className="new-issue-dialog-head">
           <div className="confirm-dialog-title">打开规划会话</div>
-          <p className="new-issue-dialog-lead">选定工作目录后再开始规划；改代码会派发到执行会话</p>
+          <p className="new-issue-dialog-lead">
+            {agentMode === "single"
+              ? "选定工作目录后在本会话规划并改代码"
+              : "选定工作目录后再开始规划；改代码会派发到执行会话"}
+          </p>
         </div>
+        <fieldset className="open-planning-mode" data-testid="open-planning-mode">
+          <legend className="new-issue-label">工作模式</legend>
+          <label className="open-planning-mode-option">
+            <input
+              type="radio"
+              name="open-planning-agent-mode"
+              value="single"
+              checked={agentMode === "single"}
+              onChange={() => setAgentMode("single")}
+              data-testid="open-planning-mode-single"
+              disabled={submitting}
+            />
+            <span>
+              <span className="open-planning-switch-title">单 agent</span>
+              <span className="open-planning-hint">
+                用默认会话 agent，规划与改代码都在本会话
+              </span>
+            </span>
+          </label>
+          <label className="open-planning-mode-option">
+            <input
+              type="radio"
+              name="open-planning-agent-mode"
+              value="split"
+              checked={agentMode === "split"}
+              onChange={() => setAgentMode("split")}
+              data-testid="open-planning-mode-split"
+              disabled={submitting}
+            />
+            <span>
+              <span className="open-planning-switch-title">规划 + 执行</span>
+              <span className="open-planning-hint">
+                规划会话只出方案，改代码派到执行会话
+              </span>
+            </span>
+          </label>
+        </fieldset>
         <div className="new-issue-field">
           <span className="new-issue-label">工作目录</span>
           <button

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 
-export type IssuePriority = "p0" | "p1" | "p2";
+export type IssueAgentMode = "single" | "split";
 export type IssueStatus =
   | "pending"
   | "planning"
@@ -26,6 +26,8 @@ export interface Issue {
   priority: IssuePriority;
   tags: string[];
   status: IssueStatus;
+  /** single = 本会话规划并实现；split = 规划会话 + 执行会话。缺省按 split。 */
+  agentMode: IssueAgentMode;
   workdir?: string;
   worktreeEnabled?: boolean;
   baseBranch?: string;
@@ -63,6 +65,7 @@ export interface IssueStore {
       workdir: string;
       worktreeEnabled: boolean;
       baseBranch?: string;
+      agentMode?: IssueAgentMode;
     },
   ): Issue | undefined;
   setExecutionSessionId(id: string, executionSessionId: string): Issue | undefined;
@@ -190,6 +193,10 @@ export function allItemsDone(items: ChecklistItem[]): boolean {
   return items.length > 0 && items.every((item) => item.status === "done");
 }
 
+function normalizeAgentMode(value: unknown): IssueAgentMode {
+  return value === "single" ? "single" : "split";
+}
+
 function hydrateIssue(record: Issue): Issue {
   return {
     ...record,
@@ -198,6 +205,7 @@ function hydrateIssue(record: Issue): Issue {
     priority: normalizePriority(record.priority),
     tags: normalizeTags(record.tags),
     items: record.items ?? [],
+    agentMode: normalizeAgentMode(record.agentMode),
   };
 }
 
@@ -261,6 +269,7 @@ export function createIssueStore(
         priority: input.priority ?? "p1",
         tags: normalizeTags(input.tags),
         status: "pending",
+        agentMode: "split",
         items: [],
         createdAt: now,
         updatedAt: now,
@@ -337,6 +346,9 @@ export function createIssueStore(
       issue.worktreeEnabled = fields.worktreeEnabled;
       if (fields.baseBranch !== undefined) {
         issue.baseBranch = fields.baseBranch;
+      }
+      if (fields.agentMode !== undefined) {
+        issue.agentMode = fields.agentMode;
       }
       issue.status = "planning";
       issue.updatedAt = Date.now();

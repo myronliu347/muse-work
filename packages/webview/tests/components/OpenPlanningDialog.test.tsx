@@ -61,6 +61,7 @@ describe("OpenPlanningDialog", () => {
       expect(api.openPlanningSession).toHaveBeenCalledWith("issue-1", {
         workdir: "/repo/demo",
         worktreeEnabled: false,
+        agentMode: "single",
       });
     });
     expect(postToHost).not.toHaveBeenCalledWith(
@@ -69,6 +70,40 @@ describe("OpenPlanningDialog", () => {
     expect(onOpened).toHaveBeenCalledWith({
       sessionId: "sess-plan",
       workdir: "/repo/demo",
+    });
+  });
+
+  it("can open in 规划+执行 mode", async () => {
+    const api = mockApi();
+    const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
+
+    render(
+      <OpenPlanningDialog
+        issueId="issue-1"
+        api={api}
+        postToHost={vi.fn()}
+        pickDirectory={pickDirectory}
+        onOpened={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("open-planning-pick-directory"));
+    await waitFor(() => {
+      expect(screen.getByTestId("open-planning-workdir")).toHaveTextContent(
+        "/repo/demo",
+      );
+    });
+
+    fireEvent.click(screen.getByTestId("open-planning-mode-split"));
+    fireEvent.click(screen.getByTestId("open-planning-submit"));
+
+    await waitFor(() => {
+      expect(api.openPlanningSession).toHaveBeenCalledWith("issue-1", {
+        workdir: "/repo/demo",
+        worktreeEnabled: false,
+        agentMode: "split",
+      });
     });
   });
 

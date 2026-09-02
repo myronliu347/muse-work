@@ -110,7 +110,10 @@ export function createAppContext(
     createAgent: options?.createAgent,
     idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
-    isIssuePlanningSession: (sessionId) => issues.hasPlanningSession(sessionId),
+    isIssuePlanningSession: (sessionId) => {
+      const issue = issues.getByPlanningSession(sessionId);
+      return Boolean(issue && issue.agentMode !== "single");
+    },
   });
   const dispatcher = createIssueDispatcher({
     issues,
