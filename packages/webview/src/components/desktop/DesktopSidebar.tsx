@@ -80,7 +80,7 @@ export interface DesktopSidebarProps {
   onRevealInFinder?: (workdir: string) => void;
   /** 待办事项 section「+」→ 新建 Issue。 */
   onNewIssue?: () => void;
-  /** 无会话 Issue 空态 → 打开规划。 */
+  /** 无会话 Issue 空态 → 打开会话。 */
   onOpenPlanning?: (issueId: string) => void;
   /** 分组行更多菜单 → 完成 Issue。 */
   onCompleteIssue?: (issueId: string) => void;

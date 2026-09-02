@@ -78,6 +78,9 @@ describe("issuePlanning", () => {
     expect(extra).toContain("修登录");
     expect(extra).not.toContain("不要修改产品实现");
     expect(extra).toContain("不要 dispatch");
+    expect(extra).toContain("不要建清单");
     expect(extra).toContain("本会话");
+    expect(extra).toContain("issue.mjs");
+    expect(extra).toContain("complete");
   });
 });

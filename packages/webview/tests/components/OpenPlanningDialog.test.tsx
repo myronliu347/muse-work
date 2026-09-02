@@ -47,6 +47,9 @@ describe("OpenPlanningDialog", () => {
       />,
     );
 
+    expect(screen.getByRole("dialog", { name: "打开会话" })).toBeTruthy();
+    expect(screen.getByText("工作模式（打开后不可更改）")).toBeTruthy();
+
     fireEvent.click(screen.getByTestId("open-planning-pick-directory"));
     await waitFor(() => {
       expect(screen.getByTestId("open-planning-workdir")).toHaveTextContent(

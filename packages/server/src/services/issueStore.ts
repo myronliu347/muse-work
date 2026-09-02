@@ -487,6 +487,9 @@ export function createIssueStore(
       if (!issue) {
         return undefined;
       }
+      if (issue.agentMode === "single") {
+        return cloneIssue(issue);
+      }
       if (isTerminal(issue.status) || issue.status === "review") {
         return cloneIssue(issue);
       }
@@ -506,6 +509,9 @@ export function createIssueStore(
       const issue = issues.get(id);
       if (!issue) {
         return undefined;
+      }
+      if (issue.agentMode === "single") {
+        return cloneIssue(issue);
       }
       if (issue.status === "review" || issue.status === "executing") {
         return cloneIssue(issue);

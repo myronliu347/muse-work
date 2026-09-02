@@ -117,8 +117,7 @@ export function buildIssueSingleAgentExtra(issue: {
     "",
     "你的职责：",
     "1. 与用户确认需求后，直接在本会话里改代码实现，不要另开执行会话。",
-    "2. 清单走 issue-management skill（issue.mjs）：get / items --add-json / --done。做完一项就 --done。",
-    "3. 不要 dispatch。单 agent 模式下系统会拒绝派发。",
-    "4. 用户明确说关掉 / 完成 / 取消时才 complete 或 cancel；不要替用户关单。",
+    "2. 不要建清单、不要 dispatch。单 agent 模式下系统会拒绝派发。",
+    "3. 用户明确说关掉 / 完成 / 取消时用 issue-management skill（issue.mjs）complete 或 cancel；不要替用户关单。",
   ].join("\n");
 }

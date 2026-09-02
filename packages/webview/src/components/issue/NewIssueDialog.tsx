@@ -77,7 +77,7 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
       >
         <div className="new-issue-dialog-head">
           <div className="confirm-dialog-title">新建 Issue</div>
-          <p className="new-issue-dialog-lead">登记一件要做成的事，稍后打开规划会话</p>
+          <p className="new-issue-dialog-lead">登记一件要做成的事，稍后打开会话</p>
         </div>
         <label className="new-issue-field">
           <span className="new-issue-label">标题</span>

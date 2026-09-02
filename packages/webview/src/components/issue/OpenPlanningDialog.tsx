@@ -179,8 +179,9 @@ function createWorktreeViaHost(
 }
 
 /**
- * Modal to bind an Issue's planning session: pick workdir, optional worktree.
- * Git worktree is created by the desktop host, never by the server.
+ * Modal to bind an Issue session: pick workdir, work mode, optional worktree.
+ * Mode is written once and cannot be changed later. Git worktree is created
+ * by the desktop host, never by the server.
  */
 export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
   issueId,
@@ -327,11 +328,11 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
         className="confirm-dialog new-issue-dialog open-planning-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="打开规划会话"
+        aria-label="打开会话"
         onSubmit={handleSubmit}
       >
         <div className="new-issue-dialog-head">
-          <div className="confirm-dialog-title">打开规划会话</div>
+          <div className="confirm-dialog-title">打开会话</div>
           <p className="new-issue-dialog-lead">
             {agentMode === "single"
               ? "选定工作目录后在本会话规划并改代码"
@@ -339,7 +340,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
           </p>
         </div>
         <fieldset className="open-planning-mode" data-testid="open-planning-mode">
-          <legend className="new-issue-label">工作模式</legend>
+          <legend className="new-issue-label">工作模式（打开后不可更改）</legend>
           <label className="open-planning-mode-option">
             <input
               type="radio"

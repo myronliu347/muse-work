@@ -1,26 +1,29 @@
 # Issue 工作流 Spec
 
 日期：2026-09-01
-状态：待实现
+状态：实现中
 词汇：见根目录 `CONTEXT.md`
 
 ## Problem Statement
 
-用户要把「一件事」从想法推进到可验收的代码变更：需要先规划、再执行、再跟人一起收口。刚移除的 Todo/Task 把每条 task 做成独立会话和调度单元，过重且与「人跟规划 AI 聊到关单」不合。现在需要更轻的一级实体：Issue 上挂结构化清单，固定一对规划/执行会话。
+用户要把「一件事」从想法推进到可验收的代码变更。刚移除的 Todo/Task 把每条 task 做成独立会话和调度单元，过重。现在需要更轻的一级实体：Issue 上挂结构化清单；打开会话时选定工作模式，之后不可改。
 
 ## Solution
 
-新增 Issue：UI 或对话创建；打开规划时选择 workdir 与是否 worktree；规划会话里确认方案并维护清单；规划 AI 用 `dispatch` 把工作送进**同一个**执行会话（配置继承规划会话）。清单全部完成后进入**待审核**，此后状态不再因「还要改」而打回；人继续跟规划 AI 对话（可选 E2E / code review 子代理，仍可 dispatch），直到 UI 或对话把 Issue **完成**或**取消**。
+新增 Issue：UI 或对话创建；打开会话时选择 workdir、是否 worktree、以及工作模式（`single` | `split`，打开后不可改）。
 
-核心价值：**一件事一条线**（1 规划 + 1 执行 + 一份清单），收口只发生在人与规划 AI 的对话或 UI 关闭，没有「审核不通过」状态。
+- **单 agent（默认）**：一条会话场景 agent 会话，规划与改代码都在本会话。挂 issue 插件只为 complete/cancel，不建清单、不 dispatch；不进入执行中/待审核。
+- **规划 + 执行**：规划会话里确认方案并维护清单；规划 AI 用 `dispatch` 把工作送进**同一个**执行会话。清单全部完成后进入**待审核**；人继续跟规划 AI 对话直到 UI 或对话把 Issue **完成**或**取消**。
+
+核心价值：**一件事一条线**。拆分模式才是 1 规划 + 1 执行 + 一份清单；默认不必拆成两条会话。侧栏暂不展示清单。收口没有「审核不通过」状态。
 
 ## User Stories
 
 1. 作为用户，我想在侧栏或简单表单里新建 Issue（标题必填，描述/优先级/标签可选），以便不经过对话也能登记
 2. 作为用户，我想在普通会话里说「建个 issue：xxx」就创建 Issue，以便顺手记下
 3. 作为用户，我想给 Issue 设优先级 p0/p1/p2（默认 p1）和若干标签，以便侧栏排序和筛选观感
-4. 作为用户，我想打开规划会话时选择 workdir，以及是否启用 worktree，以便执行环境在动手前就定死
-5. 作为用户，我想每个 Issue 只有一个规划会话，首次打开才创建，以便历史不散
+4. 作为用户，我想打开会话时选择 workdir、是否 worktree、以及单 agent / 规划+执行，以便动手前定死环境和模式
+5. 作为用户，我想每个 Issue 只有一个工作/规划会话，首次打开才创建，模式打开后不可改，以便历史不散
 6. 作为用户，我想在规划会话里和 AI 多轮确认需求与技术方案，并用工具维护任务清单，以便方案可执行
 7. 作为用户，我想确认清单后创建执行会话（workdir/worktree 继承规划会话），以便开始干活
 8. 作为用户，我想让规划 AI 不断 `dispatch` 到同一个执行会话直到清单做完，以便上下文连续
@@ -46,8 +49,9 @@ Issue 字段：
 | `priority` | `p0` \| `p1` \| `p2`，默认 `p1` |
 | `tags` | `string[]`，trim、去空、去重、小写 |
 | `status` | `pending` \| `planning` \| `executing` \| `review` \| `completed` \| `cancelled` |
-| `workdir` | 打开规划时写入；未开规划可空 |
-| `worktreeEnabled` | 打开规划时写入；git 仓库且为 true 时规划/执行会话走 worktree |
+| `agentMode` | `single` \| `split`；打开会话时写入，之后不可改；缺省 hydrate 为 `split` |
+| `workdir` | 打开会话时写入；未开可空 |
+| `worktreeEnabled` | 打开会话时写入；git 仓库且为 true 时会话走 worktree |
 | `baseBranch` | 可选，worktree 的 base |
 | `planningSessionId` | 懒创建后固定 |
 | `executionSessionId` | 首次 dispatch 或「开始执行」时创建，之后固定 |
@@ -56,15 +60,16 @@ Issue 字段：
 
 存储：`~/.muse-work/db/issues.json` 索引 + `~/.muse-work/db/issues/<id>/issue.json` 明细（含清单）。内存 Map + JSON 原子写，对齐 sessionStore。不用 SQLite。
 
-对话创建的 Issue：`status=pending`，**不**沿用当前会话 workdir；打开规划时再选目录。`POST /issues` 可同时带 `items` 落下清单，不必先开规划会话。规划会话里禁止再 `create`，只往当前 Issue 追加清单。
+对话创建的 Issue：`status=pending`，**不**沿用当前会话 workdir；打开会话时再选目录。`POST /issues` 可同时带 `items` 落下清单，不必先开会话。规划会话（split）里禁止再 `create`，只往当前 Issue 追加清单。
 
 ### 状态机
 
 ```
-pending  --打开规划会话(选 workdir + worktree)-->  planning
-planning --首次创建执行会话并 dispatch-->          executing
-executing --items 全部 done-->                     review
+pending  --打开会话(选 workdir + worktree + agentMode)-->  planning
+split: planning --首次创建执行会话并 dispatch-->          executing
+split: executing --items 全部 done-->                     review
 review    --完成-->                                completed
+single: planning --完成-->                         completed
 任意未完成 --取消-->                               cancelled
 ```
 
@@ -79,7 +84,7 @@ review    --完成-->                                completed
 ### Server
 
 - REST：`/issues` CRUD、`PATCH` 元数据、`POST /issues/:id/cancel`、`POST /issues/:id/complete`、`POST /issues/:id/planning-session`、`POST /issues/:id/dispatch`、清单增删改。
-- `POST planning-session`：body 含 `workdir`、`worktreeEnabled`、可选 `baseBranch`。创建规划会话（agent 场景 `issue-plan`，默认内置 `plan`），git+worktree 时按现有 desktop/session worktree 字段写入。成功后 `status=planning`。systemPrompt 注入 Issue ID 与职责：可读代码分析、可写文档；**禁止 Edit/Write 改源码**（`.md`/`.txt` 等文档除外）。`canUseTool` 对规划会话硬拒绝源码写入，即使 `bypassPermissions`。改代码必须 `dispatch`。
+- `POST planning-session`：body 含 `workdir`、`worktreeEnabled`、`agentMode`、可选 `baseBranch`。创建会话后 `status=planning`，`agentMode` 只在首次写入。`single`：会话场景 agent，可改源码，挂 issue 插件（complete/cancel），dispatch 409。`split`：agent 场景 `issue-plan`（默认内置 `plan`）；systemPrompt 禁止改源码；`canUseTool` 硬拒绝源码写入。改代码必须 `dispatch`。
 - 执行会话：agent 场景 `issue-exec`，默认内置 `execute`；`permissionMode: bypassPermissions`；workdir/worktree 字段从 Issue（即规划会话）拷贝。
 - `dispatch`：校验 Issue 未终态；确保执行会话存在；把 `itemId` 标 `running`；向执行会话 `sendMessage`（`source: "system-inject"`，带清单项与指令）。执行 `onTurnSettled`：该项回到 `pending`（无论成败），**不**自动 `done`；向规划会话注入进度。规划复核达标后 `POST /issues/:id/items/:itemId/accept` 才标 `done`。未 accept 时 `dispatch` 其他 itemId 返回 409。注入必须让规划模型一眼认出是执行回报，不是用户消息：`source: "system-inject"`，正文固定以 `来源：执行会话` 开头，例如：
 
@@ -92,18 +97,18 @@ review    --完成-->                                completed
 ```
 
 失败时第二行为 `清单项「…」失败：<error>` 或 `已中断`。注入须带 `itemId`、未完成清单、本回合**执行过程**。规划复核达标后 `items --done` 再派下一项；未 --done 系统拒绝派其他项。执行中值守：dispatch → 执行 → 回报过程 → 复核 → --done 或再派同一项。规划回合结束后若仍为 executing 且清单未完、执行不在跑：中断/失败且该项仍 pending → 系统对同一 itemId 再 dispatch；成功则催规划复核（最多 3 次），**不**自动派下一项。`executing` 且全部 `done` → `review`。已是 `review` 则保持 `review`。
-- 规划会话挂内置 plugin `issue`（始终开启，与 settings 开关无关）：脚本调上述 HTTP。
+- 普通会话、POPO、单 agent 工作会话与 `split` 规划会话挂内置 plugin `issue`（始终开启，与 settings 开关无关）。`issue-exec` 不挂。
 - Agent 场景扩展为 `session | popo | issue-plan | issue-exec`。设置页增加两行映射。内置 `plan`/`execute` 已存在，无需新 agent 定义。
 - WS：`issue:changed` 广播刷新侧栏分组（所有 pane）。不单独做「待审核 toast」本期（人本来就在规划会话里聊）；YAGNI。
 
 ### Webview
 
 - 侧栏「待办事项」section：按 Issue 分组（标题 + 优先级徽标 + 会话数）。组内：规划会话、执行会话（有则显示）。已完成/已取消不进分组。Issue 会话从「工作空间/任务」recent 剔除，避免重复。
-- 新建：待办事项 section 头部「+」或菜单「新建 Issue」→ 对话框（标题/描述/优先级/标签）→ 创建后仍为待规划，点该组或「打开规划」再选 workdir + worktree 开关。
-- 打开规划：目录选择器（复用 `desktopPickDirectory`）+ 「worktree 模式」开关（非 git 目录时开关无效并提示将直接在该目录执行）。
+- 新建：待办事项 section 头部「+」或菜单「新建 Issue」→ 对话框（标题/描述/优先级/标签）→ 创建后仍为待规划，点该组或「打开会话」再选 workdir、worktree、工作模式。
+- 打开会话：目录选择器（复用 `desktopPickDirectory`）+ 工作模式（默认单 agent，打开后不可改）+ 「worktree 模式」开关（非 git 目录时开关无效并提示将直接在该目录执行）。
 - Issue 行操作：完成、取消（确认）。点会话进入对应聊天。
 - 不恢复旧 Todo 看板主视图。Issue 分组展开只显示规划/执行会话；清单只走规划 AI 工具，不在侧栏展开正文。
-- 对话创建：普通会话也能挂 `issue` 插件，以便「建个 issue」。
+- 对话创建：普通会话和 POPO 也挂 `issue` 插件，以便「建个 issue」。
 
 ### 规划 AI 工具（plugin 脚本）
 
@@ -145,6 +150,7 @@ review    --完成-->                                completed
 - POPO / 内部平台同步创建 Issue
 - 审核不通过状态、强制 E2E/code review 才能完成
 - 已完成归档页、看板拖拽
+- 侧栏展示清单、单 agent 走执行中/待审核状态机、打开后改工作模式
 - 执行成功后自动删 worktree/执行会话（聊天要留着直到用户关 Issue 或手动删会话；关 Issue 本期也不删会话）
 
 ## Further Notes

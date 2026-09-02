@@ -143,7 +143,7 @@ export interface SessionTreeProps {
   onRevealInFinder?: (workdir: string) => void;
   /** 待办事项 section 头「+」：打开新建 Issue 对话框。 */
   onNewIssue?: () => void;
-  /** 无会话的 Issue 空态：「打开规划会话」。 */
+  /** 无会话的 Issue 空态：「打开会话」。 */
   onOpenPlanning?: (issueId: string) => void;
   /** 分组行更多菜单「完成」。 */
   onCompleteIssue?: (issueId: string) => void;
@@ -673,7 +673,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                                 className="codicon codicon-play"
                                 aria-hidden="true"
                               />
-                              打开规划会话
+                              打开会话
                             </button>
                           ) : (
                             "无会话"

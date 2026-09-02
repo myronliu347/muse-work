@@ -14,6 +14,7 @@ import {
   resolvePermission,
   resolveScenarioAgent,
 } from "../services/agentConfig.js";
+import { pluginDirIfPresent } from "../services/museSettings.js";
 
 export { POPO_SYSTEM_PROMPT, POPO_DISALLOWED_TOOLS };
 
@@ -122,6 +123,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const gateway = await provider.resolveGateway(model);
 
     const plugins: Array<{ type: "local"; path: string }> = [];
+    const issueDir = pluginDirIfPresent("issue");
+    if (issueDir) plugins.push({ type: "local", path: issueDir });
 
     // popo 场景 agent：默认 popo 内置（systemPrompt 即 POPO 指令）；工具/权限规则生效
     const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);

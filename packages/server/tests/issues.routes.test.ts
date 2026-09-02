@@ -112,6 +112,8 @@ describe("issues HTTP", () => {
     expect(session?.systemPrompt).toContain("单 agent");
     expect(session?.systemPrompt).toContain("不要 dispatch");
     expect(session?.systemPrompt).not.toContain("不要修改产品实现");
+    expect(session?.systemPrompt).toContain("issue.mjs");
+    expect(session?.systemPrompt).toContain("complete");
     expect(app.ctx.issueStore.get(issue.id)?.agentMode).toBe("single");
     const dispatch = await fetch(`${app.baseUrl}/issues/${issue.id}/dispatch`, {
       method: "POST",

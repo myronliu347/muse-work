@@ -93,6 +93,24 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("single agent does not enter executing or review", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "t" });
+    store.setPlanning(issue.id, {
+      planningSessionId: "p",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    expect(store.markExecuting(issue.id)?.status).toBe("planning");
+    store.setItems(issue.id, [
+      { id: "i1", content: "a", status: "done" },
+    ]);
+    expect(store.maybeEnterReview(issue.id)?.status).toBe("planning");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("appendItems keeps done items; removePendingItem cannot drop executed", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });

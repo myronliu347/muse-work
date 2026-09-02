@@ -1,24 +1,24 @@
 ---
 name: issue-management
-description: "管理本机 Issue：用户明确要求创建 issue/待办/清单时创建，并可在 create 时带上清单项；规划会话里维护清单并 dispatch；待审核可选子代理做 E2E/code review；用户要求完成或取消时关单。"
+description: "管理本机 Issue：用户明确要求创建 issue/待办/清单时创建，并可在 create 时带上清单项；规划+执行模式下在规划会话里维护清单并 dispatch；单 agent 工作会话可 complete/cancel 关单，不要清单和 dispatch；待审核可选子代理做 E2E/code review；用户要求完成或取消时关单。"
 ---
 
 # Issue 管理
 
 你负责在本机创建与调度 Issue（规划侧）。操作通过同目录下的 `scripts/issue.mjs` 调用本地 REST API。
 
-**执行会话不会挂载本插件**，因此执行 AI 看不到这些命令；关单与调度只应在规划/普通/单 agent 会话完成。
+**执行会话不会挂载本插件**，因此执行 AI 看不到这些命令。关单与调度只应在规划/普通/单 agent/POPO 会话完成。
 
-系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**，**禁止 dispatch**；用 `items --done` 勾清单。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
+系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。用户明确说关掉 / 完成 / 取消时才 `complete` 或 `cancel`。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
 
 ## 何时创建
 
 - **只有用户明确说要创建 issue / 待办 / 记一个任务 / 用这个建 / 建清单** 时才 `create`。
 - 不要根据闲聊或猜测擅自建 Issue。
-- **当前会话已经是某个 Issue 的规划会话**（system prompt 里有 Issue ID）：**禁止再 `create`**，只对那个 ID `items --add-json`。
-- **从普通对话创建**：`create` 只填 title / description / priority / tags，**不要**附带当前会话 workdir。workdir 仍等用户点「打开规划会话」再选。
-- **清单不要等规划会话。** pending Issue 就能加条目。用户说「用这个建 / 建清单」时，**同一轮**就必须把清单写进去：`create --add-json '[...]'`（或 create 之后立刻 `items --add-json`）。不要只建一个空 Issue，也不要问「要不要现在补清单」、不要说「打开规划后再填」。
-- `dispatch` 才需要已打开的规划会话；没开规划就不要 dispatch，但清单必须已经在 Issue 上。
+- **当前会话已经是某个 Issue 的会话**（system prompt 里有 Issue ID）：**禁止再 `create`**。规划+执行才对那个 ID `items --add-json`；单 agent 不要维护清单。
+- **从普通对话或 POPO 创建**：`create` 只填 title / description / priority / tags，**不要**附带当前会话 workdir。workdir 仍等用户点「打开会话」再选。
+- **清单不要等打开会话。** pending Issue 就能加条目。用户说「用这个建 / 建清单」时，**同一轮**就必须把清单写进去：`create --add-json '[...]'`（或 create 之后立刻 `items --add-json`）。不要只建一个空 Issue，也不要问「要不要现在补清单」、不要说「打开会话后再填」。
+- `dispatch` 才需要已打开的**规划+执行**会话；没开规划就不要 dispatch，但清单必须已经在 Issue 上。
 
 ## 规划与调度
 

@@ -228,6 +228,21 @@ describe("popoAgent", () => {
     expect(captured?.fastModel).toBe("m1");
   });
 
+  it("mounts the issue plugin so POPO can create and close issues", async () => {
+    let captured: { plugins?: Array<{ type: string; path: string }> } | undefined;
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (options) => {
+        captured = options as { plugins?: Array<{ type: string; path: string }> };
+        return stubAgent("ok");
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
+    await runner.run("hello");
+    expect(JSON.stringify(captured?.plugins ?? [])).toContain("plugins/issue");
+  });
+
   it("keeps the agent alive while a background task runs, disposing after it settles", async () => {
     vi.useFakeTimers();
     let running = true;
@@ -324,7 +339,8 @@ describe("popoAgent", () => {
     });
     const runner = await factory({ chatKey: "team:1", type: "team" });
     await runner.run("hello");
-    expect(seenPlugins).toBeUndefined();
+    expect(JSON.stringify(seenPlugins ?? [])).not.toContain("plugins/todo");
+    expect(JSON.stringify(seenPlugins ?? [])).toContain("plugins/issue");
   });
 
   it("p2p clear calls agent.clearMessages", async () => {
