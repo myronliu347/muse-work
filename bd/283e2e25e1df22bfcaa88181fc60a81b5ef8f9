@@ -1,0 +1,78 @@
+packages/server/src/services/issueDispatch.ts
+  442440ce7046c502 26,33-42,127-148,166,168,193,196-205,210,214,218,240,257,280-285,479,482-483,501,506,527-547,550
+packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs
+  442440ce7046c502 44,195-201
+CONTEXT.md
+  442440ce7046c502 24
+packages/server/tests/issueDispatch.test.ts
+  442440ce7046c502 30,51,54,57-58,62-68,201,246-249,285-291,295-299,525
+packages/server/src/routes/issues.ts
+  442440ce7046c502 34-45
+packages/server/src/services/issuePlanning.ts
+  442440ce7046c502 100-102
+packages/server/tests/issuePlanning.test.ts
+  442440ce7046c502 66
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  442440ce7046c502 27-29,33,48,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bd283e2e25e1df22bfcaa88181fc60a81b5ef8f9",
+  "prompts": {
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 251,
+      "total_deletions": 148,
+      "accepted_lines": 199,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CONTEXT.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 13,
+          "deletions": 11,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 39,
+          "deletions": 20,
+          "accepted_lines": 30
+        },
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 158,
+          "deletions": 95,
+          "accepted_lines": 128
+        },
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 22,
+          "deletions": 10,
+          "accepted_lines": 22
+        }
+      }
+    }
+  }
+}
