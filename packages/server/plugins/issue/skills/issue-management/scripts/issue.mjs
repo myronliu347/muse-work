@@ -41,6 +41,7 @@ function usage() {
   node issue.mjs items --id <ID> --add-json '[{ "content": "..." }]'
   node issue.mjs items --id <ID> --done <ITEM_ID>
   node issue.mjs items --id <ID> --remove <ITEM_ID>
+  node issue.mjs exec-turn --id <ID>
   node issue.mjs dispatch --id <ID> --item <ITEM_ID> [--prompt P]
   node issue.mjs complete --id <ID>
   node issue.mjs cancel --id <ID>
@@ -189,6 +190,13 @@ async function main() {
       });
       const { issue } = await request("POST", `/issues/${id}/items`, { items });
       printJson(issue);
+      return;
+    }
+    case "exec-turn": {
+      const id = arg(argv, "--id");
+      if (!id) throw new Error("exec-turn 需要 --id");
+      const turn = await request("GET", `/issues/${id}/exec-turn`);
+      printJson(turn);
       return;
     }
     case "dispatch": {

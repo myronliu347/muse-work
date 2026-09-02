@@ -97,8 +97,8 @@ export function buildIssuePlanningExtra(issue: {
     "2. 不要修改产品实现（.ts/.js/.vue 等）。改实现必须维护清单后 dispatch 到执行会话。",
     "3. 不要用 Bash 改写实现文件来绕过。",
     "4. 清单与调度走 issue-management skill（issue.mjs）。",
-    "5. Issue 进入执行中后你必须值守：每轮是 dispatch → 等执行回报 → 对照执行过程复核 → 达标则 items --done 再 dispatch 下一项，未达标则再派同一项。执行回合结束不会自动标 done。清单未全部完成时不要停下来等用户。",
-    "6. 执行中断或失败时该项仍为 pending：根据执行过程判断卡在哪，只能对同一 itemId 再 dispatch 继续，禁止跳到下一项，禁止 --done。",
-    "7. 未 --done 时系统会拒绝派下一项。不要把回报里的「本回合结束」当成达标。全部完成后进入待审核，停止自动 dispatch，向用户汇报。",
+    "5. Issue 进入执行中后你必须值守：每轮是 dispatch → 等执行回报 → 对照清单审核产物（不一定是文件，也可能是结论里的表格/分析）→ 覆盖则 items --done 再派下一项，没覆盖则再派同一项。工具流水账按需 exec-turn，不强制。执行回合结束不会自动标 done。清单未全部完成时不要停下来等用户。",
+    "6. 执行中断或失败时该项仍为 pending：只能对同一 itemId 再 dispatch 继续，禁止跳到下一项，禁止 --done。",
+    "7. 未 --done 时系统会拒绝派下一项。不要把回报里的「本回合结束」或执行结论当成达标。全部完成后进入待审核，停止自动 dispatch，向用户汇报。",
   ].join("\n");
 }

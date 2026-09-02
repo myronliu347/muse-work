@@ -23,20 +23,23 @@ function httpError(statusCode: number, message: string): Error {
 export function lastAssistantText(
   messages: unknown[],
   maxChars = EXEC_REPORT_SUMMARY_MAX,
+  includeNested = true,
 ): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
     if (!message || typeof message !== "object") continue;
     if ((message as { role?: string }).role !== "assistant") continue;
     const nestedParts: string[] = [];
-    const blocks = (message as { blocks?: unknown[] }).blocks;
-    if (Array.isArray(blocks)) {
-      for (const block of blocks) {
-        if (!block || typeof block !== "object") continue;
-        const nested = (block as { nestedMessages?: unknown[] }).nestedMessages;
-        if (!Array.isArray(nested) || nested.length === 0) continue;
-        const inner = lastAssistantText(nested, maxChars);
-        if (inner) nestedParts.push(inner);
+    if (includeNested) {
+      const blocks = (message as { blocks?: unknown[] }).blocks;
+      if (Array.isArray(blocks)) {
+        for (const block of blocks) {
+          if (!block || typeof block !== "object") continue;
+          const nested = (block as { nestedMessages?: unknown[] }).nestedMessages;
+          if (!Array.isArray(nested) || nested.length === 0) continue;
+          const inner = lastAssistantText(nested, maxChars, includeNested);
+          if (inner) nestedParts.push(inner);
+        }
       }
     }
     const own = userMessageText(message);
@@ -121,6 +124,28 @@ function walkTurnProcess(
   }
 }
 
+export function lastTurnChangedFiles(messages: unknown[]): string[] {
+  const files = new Set<string>();
+  function walk(msgs: unknown[]): void {
+    for (const message of msgs) {
+      if (!message || typeof message !== "object") continue;
+      const blocks = (message as { blocks?: unknown[] }).blocks;
+      if (!Array.isArray(blocks)) continue;
+      for (const block of blocks) {
+        if (!block || typeof block !== "object") continue;
+        const row = block as Record<string, unknown>;
+        if (row.type === "file_history") {
+          for (const filePath of snapshotPaths(row)) files.add(filePath);
+        }
+        const nested = row.nestedMessages;
+        if (Array.isArray(nested) && nested.length > 0) walk(nested);
+      }
+    }
+  }
+  walk(lastTurnMessages(messages));
+  return [...files];
+}
+
 export function formatExecTurnProcess(
   messages: unknown[],
   maxChars = EXEC_REPORT_PROCESS_MAX,
@@ -138,8 +163,9 @@ export function formatExecTurnReport(input: {
   ok: boolean;
   error?: string;
   summary?: string;
-  process?: string;
+  files?: string[];
   itemId?: string;
+  issueId?: string;
   remaining?: Array<{ id: string; content: string; status: string }>;
   issueStatus?: string;
 }): string {
@@ -163,26 +189,33 @@ export function formatExecTurnReport(input: {
         .join("\n")}`,
     );
   }
-  const process = input.process?.trim();
-  if (process) {
-    parts.push("", "执行过程：", process);
-  }
   const summary = input.summary?.trim();
-  if (summary && summary !== process) {
+  if (summary) {
     parts.push("", "执行结论：", summary);
+  }
+  const files = (input.files ?? []).map((filePath) => filePath.trim()).filter(Boolean);
+  if (files.length > 0) {
+    parts.push("", `本回合改动的文件（若有，供核对，不等于产物只有这些）：\n${files.map((filePath) => `- ${filePath}`).join("\n")}`);
+  }
+  const issueId = input.issueId?.trim();
+  if (issueId) {
+    parts.push("");
+    parts.push(
+      `需要看本回合执行过程时再取（不强制）：node issue.mjs exec-turn --id ${issueId}`,
+    );
   }
   parts.push("");
   if (input.issueStatus === "review") {
     parts.push(
-      "根据执行过程复核。清单已全部完成，Issue 进入待审核。停止自动 dispatch，向用户汇报。",
+      "清单已全部完成，Issue 进入待审核。停止自动 dispatch，向用户汇报。",
     );
   } else if (!input.ok) {
     parts.push(
-      "根据执行过程判断进度。不要 dispatch 下一项。对同一 itemId 再次 dispatch，并在 --prompt 中说明从中断/失败处继续。Issue 仍为执行中，你必须值守直到清单全部完成。",
+      "不要只看「本回合结束」。不要 dispatch 下一项。对照清单看产物做到哪（文件或结论均可），对同一 itemId 再 dispatch，--prompt 写明从该处继续。",
     );
   } else {
     parts.push(
-      "先对照「执行过程」复核（工具、改动文件、产出是否覆盖清单原文）。达标：先 `items --done` 该项，再 dispatch 下一个 pending。未达标或过程对不上：对同一 itemId 再 dispatch，禁止派下一项。禁止未复核、未 --done 就派下一项。",
+      "不要只看「本回合结束」。对照清单原文审核产物：产物不一定是文件，也可能是表格、分析或这段执行结论。有改动文件就去读；没有文件就审结论是否覆盖该项。覆盖才 `items --done` 再 dispatch 下一项；没覆盖或只做了一半：对同一 itemId 再 dispatch。禁止未 --done 就派下一项。工具流水账不强制，拿不准再 exec-turn。",
     );
   }
   return parts.join("\n");
@@ -204,7 +237,7 @@ export function formatDutyNudge(input: {
   const last =
     input.lastItemId && input.lastOk === false
       ? `上一回合中断或失败，必须对同一 itemId 再 dispatch：${input.lastItemId}。禁止派下一项，禁止问用户是否继续。`
-      : `上一回合已结束，先复核执行过程。达标：items --done ${input.lastItemId ?? "该项"} 再 dispatch 下一项。未达标：对同一 itemId 再 dispatch。禁止未 --done 就派下一项，禁止问用户是否继续。`;
+      : `上一回合已结束。对照清单审核产物（文件、表格、分析或执行结论均可）后再决定：覆盖则 items --done ${input.lastItemId ?? "该项"} 再派下一项；没覆盖则对同一 itemId 再 dispatch。禁止未 --done 就派下一项，禁止问用户是否继续。`;
   return `来源：系统\nIssue 仍在执行中，清单未完成。不要把控制权交还用户。\n${last}\n\n未完成清单：\n${remaining || "（无）"}`;
 }
 
@@ -221,7 +254,7 @@ export function isInterruptedExecResult(result: {
 function formatExecPrompt(content: string, prompt?: string): string {
   const extra = prompt?.trim();
   const close =
-    "若上次该清单项被中断，请从已有进度继续，不要改做其他清单项。最终回复写清做了什么、做到哪；规划会话会收到本回合执行过程（工具、改动文件）和这段结论。";
+    "若上次该清单项被中断，请从已有进度继续，不要改做其他清单项。最终回复写清做了什么、做到哪。";
   if (extra) {
     return `请执行清单项「${content}」。\n${extra}\n${close}`;
   }
@@ -244,6 +277,12 @@ export function createIssueDispatcher(opts: {
     sessionId: string,
     result: { ok: boolean; error?: string },
   ): void;
+  getExecTurn(issueId: string): Promise<{
+    executionSessionId: string;
+    itemId?: string;
+    process: string;
+    summary: string;
+  }>;
 } {
   const { issues, sessions, runner, hub } = opts;
   const home = resolveHome(opts.home);
@@ -437,11 +476,11 @@ export function createIssueDispatcher(opts: {
       const planningSessionId = issue.planningSessionId;
       void (async () => {
         let summary = "";
-        let process = "";
+        let files: string[] = [];
         try {
           const messages = await runner.getMessages(sessionId);
-          process = formatExecTurnProcess(messages);
-          summary = lastAssistantText(messages);
+          summary = lastAssistantText(messages, EXEC_REPORT_SUMMARY_MAX, false);
+          files = lastTurnChangedFiles(messages);
         } catch (err: unknown) {
           getLogger().error("execution session messages for report failed", {
             sessionId,
@@ -459,11 +498,12 @@ export function createIssueDispatcher(opts: {
           }));
         const report = formatExecTurnReport({
           itemId: mapped.itemId,
+          issueId: mapped.issueId,
           itemContent: item?.content ?? "",
           ok: result.ok,
           error: result.error,
           summary,
-          process,
+          files,
           remaining,
           issueStatus: latest?.status,
         });
@@ -484,5 +524,28 @@ export function createIssueDispatcher(opts: {
     hub.broadcastAll({ type: "issue:changed" });
   }
 
-  return { dispatch, handleTurnSettled };
+  async function getExecTurn(issueId: string): Promise<{
+    executionSessionId: string;
+    itemId?: string;
+    process: string;
+    summary: string;
+  }> {
+    const issue = issues.get(issueId);
+    if (!issue) {
+      throw httpError(404, "not found");
+    }
+    const executionSessionId = issue.executionSessionId;
+    if (!executionSessionId) {
+      throw httpError(409, "execution session required");
+    }
+    const messages = await runner.getMessages(executionSessionId);
+    return {
+      executionSessionId,
+      itemId: lastOutcome.get(issueId)?.itemId,
+      process: formatExecTurnProcess(messages),
+      summary: lastAssistantText(messages),
+    };
+  }
+
+  return { dispatch, handleTurnSettled, getExecTurn };
 }

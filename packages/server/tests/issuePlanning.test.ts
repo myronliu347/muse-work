@@ -61,9 +61,8 @@ describe("issuePlanning", () => {
     expect(extra).toContain("dispatch");
     expect(extra).toContain("计划");
     expect(extra).toContain("值守");
-    expect(extra).toContain("复核");
     expect(extra).toContain("items --done");
     expect(extra).toContain("同一");
-    expect(extra).toContain("执行过程");
+    expect(extra).toContain("产物");
   });
 });

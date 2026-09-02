@@ -27,7 +27,7 @@ describe("formatExecTurnReport", () => {
     expect(report).toContain("未将该项标为 done");
     expect(report).toContain("itemId：i1");
     expect(report).toContain("items --done");
-    expect(report).toContain("禁止派下一项");
+    expect(report).toContain("禁止未 --done");
   });
 
   it("forbids skipping to the next item when the turn was interrupted", () => {
@@ -48,18 +48,24 @@ describe("formatExecTurnReport", () => {
     expect(report).toContain("同一");
   });
 
-  it("tells planning to judge the next dispatch from the execution process", () => {
+  it("embeds the execution conclusion but not the process", () => {
     const report = formatExecTurnReport({
       itemId: "i1",
+      issueId: "iss-1",
       itemContent: "改登录",
       ok: true,
-      process: "- Edit src/login.ts（完成）\n校验已加上。",
+      summary: "校验已加上。",
+      files: ["docs/compare.md"],
       remaining: [{ id: "i2", content: "补测试", status: "pending" }],
       issueStatus: "executing",
     });
-    expect(report).toContain("执行过程");
-    expect(report).toContain("Edit src/login.ts");
-    expect(report).toContain("复核");
+    expect(report).toContain("执行结论：");
+    expect(report).toContain("校验已加上。");
+    expect(report).toContain("docs/compare.md");
+    expect(report).toContain("审核产物");
+    expect(report).toContain("不一定");
+    expect(report).toContain("exec-turn --id iss-1");
+    expect(report).not.toContain("Edit src/login.ts");
   });
 });
 
@@ -169,7 +175,6 @@ describe("issueDispatch", () => {
     expect(sends[0]?.source).toBe("system-inject");
     expect(sends[0]?.content).toContain("改登录");
     expect(sends[0]?.content).not.toContain("只会收到这段文字");
-    expect(sends[0]?.content).toContain("执行过程");
 
     dispatcher.handleTurnSettled(first.executionSessionId, { ok: true });
     expect(issues.get(issue.id)?.status).toBe("executing");
@@ -193,7 +198,7 @@ describe("issueDispatch", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("injects last assistant text from the execution session into the planning report", async () => {
+  it("injects a short envelope; process is available via getExecTurn", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-summary-"));
     const issues = createIssueStore({ home });
     const sessions = createSessionStore({ home });
@@ -238,6 +243,10 @@ describe("issueDispatch", () => {
                 type: "text",
                 content: "调研已完成。",
               },
+              {
+                type: "file_history",
+                snapshots: [{ path: "docs/compare.md" }],
+              },
             ],
           },
         ];
@@ -273,12 +282,21 @@ describe("issueDispatch", () => {
       const report = sends.find((s) => s.id === planning.id);
       expect(report?.content).toContain("来源：执行会话");
       expect(report?.content).toContain("调研架构");
-      expect(report?.content).toContain(
+      expect(report?.content).toContain(`exec-turn --id ${issue.id}`);
+      expect(report?.content).toContain("执行结论：");
+      expect(report?.content).toContain("调研已完成。");
+      expect(report?.content).toContain("产物不一定是文件");
+      expect(report?.content).toContain("docs/compare.md");
+      expect(report?.content).toContain("不要只看「本回合结束」");
+      expect(report?.content).not.toContain(
         "核心是 Express 路由 + sessionRunner 串行回合。",
       );
-      expect(report?.content).toContain("执行过程");
-      expect(report?.content).toContain("Agent");
     });
+    const turn = await dispatcher.getExecTurn(issue.id);
+    expect(turn.executionSessionId).toBe(execId);
+    expect(turn.itemId).toBe("i1");
+    expect(turn.process).toContain("核心是 Express 路由 + sessionRunner 串行回合。");
+    expect(turn.summary).toContain("调研已完成。");
     fs.rmSync(home, { recursive: true, force: true });
   });
 
@@ -504,6 +522,7 @@ describe("issueDispatch", () => {
         (s) => s.id === planning.id && s.content.includes("来源：系统"),
       );
       expect(nudge?.content).toContain("不要把控制权交还用户");
+      expect(nudge?.content).toContain("审核产物");
       expect(nudge?.content).toContain("items --done");
       expect(nudge?.content).toContain("禁止未 --done 就派下一项");
     });

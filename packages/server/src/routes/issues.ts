@@ -31,6 +31,18 @@ issuesRoutes.get("/issues", (c) => {
   return c.json({ issues: ctx.issueStore.listActive() });
 });
 
+/** GET /issues/:id/exec-turn — last execution turn process, on demand */
+issuesRoutes.get("/issues/:id/exec-turn", async (c) => {
+  const ctx = c.get("ctx");
+  try {
+    const turn = await ctx.issueDispatcher.getExecTurn(c.req.param("id"));
+    return c.json(turn);
+  } catch (err) {
+    const status = runnerErrorStatus(err);
+    return c.json({ error: runnerErrorMessage(err) }, status as 400);
+  }
+});
+
 /** GET /issues/:id */
 issuesRoutes.get("/issues/:id", (c) => {
   const ctx = c.get("ctx");
