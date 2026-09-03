@@ -283,39 +283,41 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
             onStateChange({ ...state, query: e.target.value })
           }
         />
-        <div className="file-content-search-toggles">
-          <button
-            type="button"
-            className="file-content-search-toggle"
-            data-testid="content-search-case"
-            aria-pressed={state.caseSensitive}
-            title="区分大小写"
-            onClick={() => toggleFlag("caseSensitive")}
-          >
-            Aa
-          </button>
-          <button
-            type="button"
-            className="file-content-search-toggle"
-            data-testid="content-search-word"
-            aria-pressed={state.wholeWord}
-            title="全词匹配"
-            onClick={() => toggleFlag("wholeWord")}
-          >
-            W
-          </button>
-          <button
-            type="button"
-            className="file-content-search-toggle"
-            data-testid="content-search-regex"
-            aria-pressed={state.regex}
-            title="正则表达式"
-            onClick={() => toggleFlag("regex")}
-          >
-            .*
-          </button>
+        <div className="file-content-search-options">
+          <div className="file-content-search-toggles">
+            <button
+              type="button"
+              className="file-content-search-toggle"
+              data-testid="content-search-case"
+              aria-pressed={state.caseSensitive}
+              title="区分大小写"
+              onClick={() => toggleFlag("caseSensitive")}
+            >
+              Aa
+            </button>
+            <button
+              type="button"
+              className="file-content-search-toggle"
+              data-testid="content-search-word"
+              aria-pressed={state.wholeWord}
+              title="全词匹配"
+              onClick={() => toggleFlag("wholeWord")}
+            >
+              W
+            </button>
+            <button
+              type="button"
+              className="file-content-search-toggle"
+              data-testid="content-search-regex"
+              aria-pressed={state.regex}
+              title="正则表达式"
+              onClick={() => toggleFlag("regex")}
+            >
+              .*
+            </button>
+          </div>
+          {viewToggles}
         </div>
-        {viewToggles}
       </div>
       <div className="file-content-search-status">
         {state.loading

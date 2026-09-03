@@ -332,6 +332,59 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("openFile decodes percent-encoded CJK paths", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-cjk-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cjk-open-"));
+    const name = "认证指引.md";
+    fs.writeFileSync(path.join(dir, name), "# 认证\n", "utf8");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: encodeURIComponent(name), workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: path.join(dir, name),
+          content: expect.stringContaining("# 认证"),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("openFile embeds workdir-relative markdown images", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-file-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sample-"));
@@ -441,10 +494,9 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("openFile falls back to a workdir-wide basename search when direct path misses", async () => {
+  it("openFile does not open a same-name file elsewhere when the relative path misses", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-fb-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-fb-open-"));
-    // Link points at docs/hello.ts but the file actually lives in src/hello.ts.
     fs.mkdirSync(path.join(dir, "src"));
     fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export const a = 1\n");
 
@@ -480,14 +532,141 @@ describe("installWorkdirHost", () => {
       { sender: {} },
       { command: "openFile", path: "docs/hello.ts", workdir: dir },
     );
+    const missing = path.join(dir, "docs", "hello.ts");
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "showToast",
+        toast: { id: "muse-server", message: "文件不存在：" + missing },
+      }),
+    );
     expect(sent).toContainEqual(
       expect.objectContaining({
         command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: "docs/hello.ts",
+          error: "文件不存在：" + missing,
+        }),
+      }),
+    );
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({
+        fileView: expect.objectContaining({
+          path: path.join(dir, "src", "hello.ts"),
+        }),
+      }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile opens the unique path-search hit when the direct path misses", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-one-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-one-open-"));
+    fs.mkdirSync(path.join(dir, "src"));
+    fs.writeFileSync(path.join(dir, "src", "hello.ts"), "export const a = 1\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "hello.ts", workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        requestedPath: "hello.ts",
         fileView: expect.objectContaining({
           path: path.join(dir, "src", "hello.ts"),
           content: expect.stringContaining("export const a = 1"),
         }),
       }),
+    );
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({ command: "openQuickOpen" }),
+    );
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("openFile opens Cmd+P when path-search finds multiple files", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-many-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-many-open-"));
+    fs.mkdirSync(path.join(dir, "a"));
+    fs.mkdirSync(path.join(dir, "b"));
+    fs.writeFileSync(path.join(dir, "a", "hello.ts"), "export const a = 1\n");
+    fs.writeFileSync(path.join(dir, "b", "hello.ts"), "export const b = 1\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: "hello.ts", workdir: dir },
+    );
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "openQuickOpen",
+        query: "hello.ts",
+        path: "hello.ts",
+      }),
+    );
+    expect(sent).not.toContainEqual(
+      expect.objectContaining({ command: "desktopFileContent" }),
     );
 
     host.dispose();
@@ -538,8 +717,14 @@ describe("installWorkdirHost", () => {
         toast: { id: "muse-server", message: "文件不存在：" + path.join(dir, "missing.ts") },
       }),
     );
-    expect(sent).not.toContainEqual(
-      expect.objectContaining({ command: "desktopFileContent" }),
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: "missing.ts",
+          error: "文件不存在：" + path.join(dir, "missing.ts"),
+        }),
+      }),
     );
 
     host.dispose();
@@ -643,8 +828,14 @@ describe("installWorkdirHost", () => {
         toast: { id: "muse-server", message: "文件不存在：" + path.join(home, "nope.txt") },
       }),
     );
-    expect(sent).not.toContainEqual(
-      expect.objectContaining({ command: "desktopFileContent" }),
+    expect(sent).toContainEqual(
+      expect.objectContaining({
+        command: "desktopFileContent",
+        fileView: expect.objectContaining({
+          path: "~/nope.txt",
+          error: "文件不存在：" + path.join(home, "nope.txt"),
+        }),
+      }),
     );
 
     host.dispose();

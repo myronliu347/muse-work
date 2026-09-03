@@ -152,6 +152,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
   );
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+  const [quickOpenQuery, setQuickOpenQuery] = useState("");
   // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / POPO 机器人页。
   // 独立于 host 推送的会话状态，任何导航入口显式切换。
   const [view, setView] = useState<MainView>("chat");
@@ -172,6 +173,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   // (filled by usePanels) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
   const toggleFullscreenRef = useRef<() => void>(() => {});
+  const openQuickOpenRef = useRef<(query: string) => void>(() => {});
   const messageInputRef = useRef<MessageInputHandle>(null);
   const messageListRef = useRef<{
     scrollToBottom: (behavior?: ScrollBehavior) => void;
@@ -180,6 +182,11 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   // The pane this instance renders; undefined = single view (desktop
   // single-pane layout). Ref mirror for use inside stable callbacks.
   const paneIdRef = useRef<string | undefined>(paneId);
+
+  openQuickOpenRef.current = (query: string) => {
+    setQuickOpenQuery(query);
+    setQuickOpenOpen(true);
+  };
 
   // Keep stateRef in sync with state
   useEffect(() => {
@@ -230,6 +237,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
           togglePanelRef,
           previewUrlRef,
           groupKeyRef,
+          openQuickOpenRef,
         },
       }),
     [dispatch, vscode],
@@ -306,7 +314,13 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     host,
     paneId,
     setView,
-    setQuickOpenOpen,
+    setQuickOpenOpen: (value) => {
+      const next =
+        typeof value === "function" ? value(quickOpenOpen) : value;
+      if (next) setQuickOpenQuery("");
+      else setQuickOpenQuery("");
+      setQuickOpenOpen(next);
+    },
     checkedPanels,
     mountedPanels,
     activePanel,
@@ -638,7 +652,11 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     onToastDismiss: handleToastDismiss,
     onToastAction: handleToastAction,
     quickOpenOpen,
-    onQuickOpenClose: () => setQuickOpenOpen(false),
+    quickOpenQuery,
+    onQuickOpenClose: () => {
+      setQuickOpenOpen(false);
+      setQuickOpenQuery("");
+    },
     effectiveWorkdir,
   };
 

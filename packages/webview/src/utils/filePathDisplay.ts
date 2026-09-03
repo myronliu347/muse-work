@@ -23,6 +23,20 @@ export function displayFilePath(absPath: string, workdir?: string): string {
   return absPath;
 }
 
+/**
+ * Markdown/HTML hrefs percent-encode non-ASCII names (`认证指引.md` →
+ * `%E8%AE%A4…md`). Decode so openFile hits the real path. Leaves the string
+ * unchanged when it is not encoded or is malformed.
+ */
+export function decodeFileHref(href: string): string {
+  if (!href || !/%[0-9A-Fa-f]{2}/.test(href)) return href;
+  try {
+    return decodeURIComponent(href);
+  } catch {
+    return href;
+  }
+}
+
 /** Join a git-relative path with workdir for host openFile (needs absolute). */
 export function resolveWorkspaceFilePath(
   filePath: string,

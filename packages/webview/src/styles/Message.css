@@ -362,24 +362,22 @@
   font-size: var(--font-size-1);
 }
 
-.tool-error {
-  color: var(--gray-11);
-  font-style: italic;
-  margin-top: var(--space-1);
-  max-height: 200px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+.tool-error.tooltip-container {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
 }
 
-.tool-error pre {
-  margin: 0;
-  font-family: inherit;
-  font-style: inherit;
-  background: none;
-  border: none;
-  color: inherit;
+.tool-error .tooltip-box {
   white-space: pre-wrap;
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: 240px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.tool-error-tooltip-text {
+  display: block;
   word-break: break-word;
 }
 
@@ -931,16 +929,21 @@
   list-style-type: square;
 }
 
-/* Markdown Links */
+/* Markdown links: keep original color; underline only on hover. */
 .markdown-content a {
-  color: var(--gray-12);
+  color: inherit;
   text-decoration: none;
-  border-bottom: 1px solid var(--gray-8);
+  border-bottom: none;
 }
 
 .markdown-content a:hover {
-  color: var(--gray-12);
-  border-bottom-color: var(--gray-12);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-content a code {
+  cursor: pointer;
 }
 
 /* Markdown Blockquotes */

@@ -3,7 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { FileViewState } from "../../types";
 import { useMuseTheme } from "../../ui/theme";
-import { displayFilePath } from "../../utils/filePathDisplay";
+import { displayFilePath, decodeFileHref } from "../../utils/filePathDisplay";
 import { highlightCode } from "../../utils/shikiHighlighter";
 import {
   findMatches,
@@ -344,7 +344,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     );
   }
 
-  if (!fileView.content) {
+  if (fileView.content === undefined) {
     return (
       <div className="desktop-panel-placeholder">
         <i className="codicon codicon-loading codicon-modifier-spin" />
@@ -365,7 +365,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
       onOpenExternal?.(href);
       return;
     }
-    const raw = href.split("#")[0];
+    const raw = decodeFileHref(href.split("#")[0]);
     if (raw && workdir) onOpenFile?.(resolveWorkdirHref(workdir, raw));
   };
 

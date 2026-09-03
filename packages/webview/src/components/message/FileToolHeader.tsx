@@ -1,5 +1,6 @@
 import React from "react";
 import type { ToolBlock } from "../../types";
+import { ToolError } from "./ToolError";
 
 interface FileToolHeaderProps {
   toolBlock: ToolBlock;
@@ -21,7 +22,7 @@ export const FileToolHeader: React.FC<FileToolHeaderProps> = ({
           ? "var(--red-11)"
           : "var(--gray-11)";
 
-  return (
+  const header = (
     <div className="write-tool-header">
       <span className="tool-status-dot" style={{ color: toolStatusColor }}>
         ●
@@ -43,4 +44,7 @@ export const FileToolHeader: React.FC<FileToolHeaderProps> = ({
       )}
     </div>
   );
+
+  const errorText = toolBlock.error ? String(toolBlock.error) : "";
+  return errorText ? <ToolError message={errorText}>{header}</ToolError> : header;
 };

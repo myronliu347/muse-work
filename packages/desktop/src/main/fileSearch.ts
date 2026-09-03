@@ -350,25 +350,48 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const normalizePathQuery = (query: string): string =>
+  query.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "").trim();
+
+/** True when `relativePath` is a path-shaped match for the open-file query. */
+export function matchesPathQuery(relativePath: string, query: string): boolean {
+  const p = relativePath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  const q = normalizePathQuery(query).toLowerCase();
+  if (!p || !q) return false;
+  if (p === q || p.endsWith(`/${q}`)) return true;
+  if (q.includes("/")) return p.includes(q);
+  return path.basename(p).toLowerCase() === q;
+}
+
 /**
- * Search the whole workdir for a file whose basename exactly matches the given
- * relative path's basename (the path prefix may be stale). Used as a fallback
- * when resolving a markdown link against the workdir misses. Returns the first
- * (best-scored) exact-name file hit, or undefined when none exists.
+ * Search workdir files by path (exact / suffix / path substring, or basename
+ * when the query has no slash). Used when a markdown link's resolved path
+ * misses.
  */
-export function findFileByBasename(
+export function findFilesByPathQuery(
   workdir: string,
-  relativePath: string,
-): string | undefined {
-  const base = path.basename(relativePath);
-  if (!base) return undefined;
+  query: string,
+): WorkspaceFileSuggestion[] {
+  const q = normalizePathQuery(query);
+  if (!q) return [];
   const hits = searchWorkspaceFiles(workdir, {
-    query: base,
+    query: q,
     filesOnly: true,
-    maxResults: 20,
+    respectGitignore: true,
+    maxResults: 50,
   });
-  const exact = hits.find((h) => !h.isDirectory && h.name === base);
-  return exact?.path;
+  const matched = hits.filter((h) => matchesPathQuery(h.relativePath, q));
+  matched.sort((a, b) => {
+    const rank = (rel: string) => {
+      const p = rel.replace(/\\/g, "/").toLowerCase();
+      const qq = q.toLowerCase();
+      if (p === qq) return 3;
+      if (p.endsWith(`/${qq}`)) return 2;
+      return 1;
+    };
+    return rank(b.relativePath) - rank(a.relativePath);
+  });
+  return matched;
 }
 
 function buildContentMatcher(

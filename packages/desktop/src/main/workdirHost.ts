@@ -9,7 +9,7 @@ import * as os from "os";
 import * as path from "path";
 import { readLocalFileForPanel } from "./filePanel.js";
 import {
-  findFileByBasename,
+  findFilesByPathQuery,
   listWorkspaceDir,
   searchContentInWorkspace,
   searchWorkspaceFiles,
@@ -141,6 +141,34 @@ function defaultOpenInTerminal(workdir: string): void {
 
 function persistPath(userDataPath: string): string {
   return path.join(userDataPath, "workdir-state.json");
+}
+
+/** Markdown hrefs percent-encode CJK names; restore the on-disk path. */
+function decodeUriPath(filePath: string): string {
+  if (!/%[0-9A-Fa-f]{2}/.test(filePath)) return filePath;
+  try {
+    return decodeURIComponent(filePath);
+  } catch {
+    return filePath;
+  }
+}
+
+/** Query used to search the workdir when a clicked path is not on disk. */
+function pathQueryForMissingOpen(
+  workdir: string | undefined,
+  requested: string,
+  absPath: string,
+): string {
+  const trimmed = requested.replace(/\\/g, "/").replace(/^\.\//, "").trim();
+  if (trimmed.startsWith("~/")) return path.basename(trimmed);
+  if (!path.isAbsolute(requested)) return trimmed;
+  if (workdir) {
+    const rel = path.relative(workdir, absPath);
+    if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+      return rel.replace(/\\/g, "/");
+    }
+  }
+  return path.basename(absPath);
 }
 
 export function loadPersistedWorkdirState(
@@ -478,7 +506,9 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     }
 
     if (command === "openFile" || command === "previewImage") {
-      const filePath = typeof msg.path === "string" ? msg.path : "";
+      const filePath = decodeUriPath(
+        typeof msg.path === "string" ? msg.path : "",
+      );
       if (!filePath) return;
       const workdir =
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
@@ -491,35 +521,54 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       // Message markdown linkify emits relative paths (e.g. src/foo.ts); resolve
       // them against the workdir. Absolute paths pass through path.resolve
       // unchanged.
-      let absPath =
+      const absPath =
         workdir && !path.isAbsolute(expanded)
           ? path.resolve(workdir, expanded)
           : expanded;
-      // Relative links may point at files that live elsewhere in the workdir:
-      // when the direct resolution misses, search the whole workdir for the same
-      // basename and open the hit; if none exists, the read reports "not found".
-      if (workdir && !path.isAbsolute(expanded) && !fs.existsSync(absPath)) {
-        const hit = findFileByBasename(workdir, expanded);
-        if (hit) absPath = hit;
-      }
-      // The final path does not exist anywhere: toast instead of silently
-      // opening a "not found" panel, and don't push desktopFileContent.
-      if (!fs.existsSync(absPath)) {
+      const replyContent = async (resolvedAbs: string) => {
+        const fileView = await readLocalFileForPanel(resolvedAbs, {
+          startLine: msg.startLine,
+          endLine: msg.endLine,
+          workdir,
+        });
         pushToWebview(win, {
-          command: "showToast",
-          toast: { id: "muse-server", message: `文件不存在：${absPath}` },
+          command: "desktopFileContent",
+          paneId: msg.paneId,
+          requestedPath: filePath,
+          fileView,
+        });
+      };
+      if (fs.existsSync(absPath)) {
+        await replyContent(absPath);
+        return;
+      }
+      // Direct path missed: search by the requested path. One hit opens it;
+      // several hits open Cmd+P with that query; none reports not found.
+      const searchQuery = pathQueryForMissingOpen(workdir, filePath, absPath);
+      const hits = workdir ? findFilesByPathQuery(workdir, searchQuery) : [];
+      if (hits.length === 1) {
+        await replyContent(hits[0].path);
+        return;
+      }
+      if (hits.length > 1) {
+        pushToWebview(win, {
+          command: "openQuickOpen",
+          paneId: msg.paneId,
+          query: searchQuery,
+          path: filePath,
         });
         return;
       }
-      const fileView = await readLocalFileForPanel(absPath, {
-        startLine: msg.startLine,
-        endLine: msg.endLine,
-        workdir,
+      const error = `文件不存在：${absPath}`;
+      pushToWebview(win, {
+        command: "showToast",
+        toast: { id: "muse-server", message: error },
       });
       pushToWebview(win, {
         command: "desktopFileContent",
         paneId: msg.paneId,
-        fileView,
+        requestedPath: filePath,
+        fileView: { path: filePath, host: "local", error },
       });
       return;
     }

@@ -14,6 +14,8 @@ export type QuickOpenPaletteProps = {
   vscode: { postMessage: (msg: unknown) => void };
   onClose: () => void;
   onOpenFile: (absPath: string) => void;
+  /** Prefill when opened from a multi-hit markdown link. */
+  initialQuery?: string;
 };
 
 let quickOpenSeq = 0;
@@ -24,6 +26,7 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   vscode,
   onClose,
   onOpenFile,
+  initialQuery = "",
 }) => {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<QuickOpenHit[]>([]);
@@ -39,9 +42,10 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
       setSelectedIndex(0);
       return;
     }
+    setQuery(initialQuery);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
-  }, [open]);
+  }, [open, initialQuery]);
 
   useEffect(() => {
     if (!open) return;

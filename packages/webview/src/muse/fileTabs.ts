@@ -114,18 +114,28 @@ export function pinFileTab(
  * Host `desktopFileContent` reply: fill the tab for `incoming.path`, keeping
  * its position and pin state; build one and activate it when no tab exists
  * (e.g. a write-tool preview opened without going through handleOpenFile).
+ * `requestedPath` is the path the webview used for the loading stub (often a
+ * relative link); when it differs from `incoming.path`, that stub is replaced.
  */
 export function upsertFileContentTab(
   state: FileTabsState,
   incoming: FileViewState,
+  requestedPath?: string,
 ): FileTabsState {
-  const idx = state.fileTabs.findIndex((t) => t.path === incoming.path);
+  const matchPath =
+    requestedPath && state.fileTabs.some((t) => t.path === requestedPath)
+      ? requestedPath
+      : incoming.path;
+  const idx = state.fileTabs.findIndex((t) => t.path === matchPath);
   if (idx >= 0) {
     return {
       fileTabs: state.fileTabs.map((t, i) =>
         i === idx ? { ...incoming, pinned: t.pinned } : t,
       ),
-      activeFilePath: state.activeFilePath,
+      activeFilePath:
+        state.activeFilePath === matchPath
+          ? incoming.path
+          : state.activeFilePath,
     };
   }
   return {

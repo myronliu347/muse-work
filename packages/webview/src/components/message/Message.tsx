@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { ContextTag } from "../shared/ContextTag";
 import { parseMentions, toRelativePath, linkifyFilePaths } from "../../utils/messageUtils";
+import { decodeFileHref } from "../../utils/filePathDisplay";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
 import { marked } from "marked";
 import { BangBlock } from "./BangBlock";
@@ -32,6 +33,7 @@ import { ReasoningBlockView } from "./ReasoningBlockView";
 import { CompactBlockView } from "./CompactBlockView";
 import { WriteToolPreview } from "./WriteToolPreview";
 import { FileToolHeader } from "./FileToolHeader";
+import { ToolError } from "./ToolError";
 import "../../styles/Message.css";
 
 // Configure marked for VS Code webview context
@@ -300,7 +302,8 @@ export const Message: React.FC<MessageProps> = React.memo(
       if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) || href.startsWith("#")) {
         return null;
       }
-      const m = href.match(/^(.+?):(\d+)(?::(\d+))?$/);
+      const decoded = decodeFileHref(href);
+      const m = decoded.match(/^(.+?):(\d+)(?::(\d+))?$/);
       if (m) {
         return {
           path: m[1],
@@ -308,7 +311,7 @@ export const Message: React.FC<MessageProps> = React.memo(
           endLine: m[3] ? Number(m[3]) : undefined,
         };
       }
-      return { path: href };
+      return { path: decoded };
     };
 
     const handleContentClick = (e: React.MouseEvent) => {
@@ -441,7 +444,9 @@ export const Message: React.FC<MessageProps> = React.memo(
           {toolBlock.name || "Tool"}
         </span>
       );
-      const toolHeader = (
+      const errorText = toolBlock.error ? String(toolBlock.error) : "";
+      const hasError = Boolean(errorText);
+      const headerInner = (
         <div key={index} className="tool-block">
           <span className="tool-status-dot" style={{ color: toolStatusColor }}>
             ●
@@ -454,16 +459,11 @@ export const Message: React.FC<MessageProps> = React.memo(
           )}
         </div>
       );
-
-      // Render tool error if it exists (with same style as error blocks)
-      const errorContent = (toolBlock as unknown as Record<string, unknown>)
-        .error ? (
-        <div className="tool-error">
-          <pre>
-            {String((toolBlock as unknown as Record<string, unknown>).error)}
-          </pre>
-        </div>
-      ) : null;
+      const toolHeader = errorText ? (
+        <ToolError message={errorText}>{headerInner}</ToolError>
+      ) : (
+        headerInner
+      );
 
       if (toolBlock.name === AGENT_TOOL_NAME) {
         const resultText = (
@@ -473,21 +473,36 @@ export const Message: React.FC<MessageProps> = React.memo(
         ).trim();
         return (
           <div key={index} className="tool-container">
-            <button
-              type="button"
-              className="agent-tool-row"
-              data-testid="agent-tool-row"
-              onClick={() => onOpenAgentTranscript?.(toolBlock)}
-            >
-              {toolName}
-              {compactInfo ? (
-                <span className="compact-params"> {compactInfo}</span>
-              ) : null}
-            </button>
+            {errorText ? (
+              <ToolError message={errorText}>
+                <button
+                  type="button"
+                  className="agent-tool-row"
+                  data-testid="agent-tool-row"
+                  onClick={() => onOpenAgentTranscript?.(toolBlock)}
+                >
+                  {toolName}
+                  {compactInfo ? (
+                    <span className="compact-params"> {compactInfo}</span>
+                  ) : null}
+                </button>
+              </ToolError>
+            ) : (
+              <button
+                type="button"
+                className="agent-tool-row"
+                data-testid="agent-tool-row"
+                onClick={() => onOpenAgentTranscript?.(toolBlock)}
+              >
+                {toolName}
+                {compactInfo ? (
+                  <span className="compact-params"> {compactInfo}</span>
+                ) : null}
+              </button>
+            )}
             {resultText ? (
               <div className="write-tool-stats">{resultText}</div>
             ) : null}
-            {errorContent}
           </div>
         );
       }
@@ -495,12 +510,11 @@ export const Message: React.FC<MessageProps> = React.memo(
       // For Bash tools, add the bash-specific content below the header
       if (toolBlock.name === BASH_TOOL_NAME) {
         const bashContent = renderBashIO(toolBlock);
-        if (bashContent || errorContent) {
+        if (bashContent || hasError) {
           return (
             <div key={index} className="tool-container">
               {toolHeader}
               {bashContent}
-              {errorContent}
             </div>
           );
         }
@@ -511,12 +525,11 @@ export const Message: React.FC<MessageProps> = React.memo(
         return (
           <div key={index} className="tool-container">
             {toolHeader}
-            {!errorContent && (
+            {!hasError && (
               <div className="lsp-output">
                 {(toolBlock.shortResult || toolBlock.result || "").trim()}
               </div>
             )}
-            {errorContent}
           </div>
         );
       }
@@ -530,15 +543,14 @@ export const Message: React.FC<MessageProps> = React.memo(
         }
         return (
           <div key={index} className="tool-container">
-            {!errorContent && (
+            {!hasError && (
               <WriteToolPreview
                 toolBlock={toolBlock}
                 vscode={props.vscode}
                 workdir={workdir}
               />
             )}
-            {errorContent && toolHeader}
-            {errorContent}
+            {hasError && toolHeader}
           </div>
         );
       }
@@ -566,8 +578,7 @@ export const Message: React.FC<MessageProps> = React.memo(
               filePath={toRelativePath(editFilePath, workdir)}
               onOpenFile={openEditFile}
             />
-            {!errorContent && <DiffViewer toolBlock={toolBlock} />}
-            {errorContent}
+            {!hasError && <DiffViewer toolBlock={toolBlock} />}
           </div>
         );
       }
@@ -615,10 +626,9 @@ export const Message: React.FC<MessageProps> = React.memo(
               filePath={displayPath}
               onOpenFile={openReadFile}
             />
-            {!errorContent && toolBlock.shortResult && (
+            {!hasError && toolBlock.shortResult && (
               <div className="write-tool-stats">{toolBlock.shortResult}</div>
             )}
-            {errorContent}
           </div>
         );
       }
@@ -689,7 +699,7 @@ export const Message: React.FC<MessageProps> = React.memo(
         return (
           <div key={index} className="tool-container">
             {toolHeader}
-            {!errorContent && result && (
+            {!hasError && result && (
               <div className="tool-result-block">
                 {isParsed ? (
                   Object.entries(answers).map(([question, answer], aIndex) => (
@@ -717,7 +727,6 @@ export const Message: React.FC<MessageProps> = React.memo(
                 )}
               </div>
             )}
-            {errorContent}
           </div>
         );
       }
@@ -735,20 +744,19 @@ export const Message: React.FC<MessageProps> = React.memo(
         return (
           <div key={index} className="tool-container">
             {toolHeader}
-            {!errorContent && resultText && (
+            {!hasError && resultText && (
               <div className="tool-result-block">
                 <div className="result-item">
                   <div className="result-answer">{resultText}</div>
                 </div>
               </div>
             )}
-            {errorContent}
           </div>
         );
       }
 
       // For other tools, show result or shortResult if present
-      if ((toolBlock.result || toolBlock.shortResult) && !errorContent) {
+      if ((toolBlock.result || toolBlock.shortResult) && !hasError) {
         const rawText = (
           toolBlock.shortResult ||
           toolBlock.result ||
@@ -772,13 +780,8 @@ export const Message: React.FC<MessageProps> = React.memo(
       }
 
       // For other tools, show error if present
-      if (errorContent) {
-        return (
-          <div key={index} className="tool-container">
-            {toolHeader}
-            {errorContent}
-          </div>
-        );
+      if (hasError) {
+        return toolHeader;
       }
 
       // For other tools without special content, just return the header

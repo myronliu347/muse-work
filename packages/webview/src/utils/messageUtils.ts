@@ -199,14 +199,20 @@ export const toRelativePath = (filePath: string, workdir?: string): string => {
 const COMMAND_VERBS =
   "run|build|edit|cat|open|cd|ls|rm|mv|cp|touch|mkdir|grep|read|write|create|delete|view|show|type|exec|start|stop|add|remove|install|test";
 
+// One directory segment (may contain extra dots, e.g. jquery-3.6).
+const DIR_SEG = "[\\p{L}\\p{N}_-]+(?:\\.[\\p{L}\\p{N}_-]+)*";
+const FILE_EXT = "\\.[A-Za-z0-9_-]{2,}";
+// Final file name without consuming the extension (so `.txt` stays required).
+const FILE_STEM = "[\\p{L}\\p{N}_-]+";
+
 // Matches a bare file path (relative with a slash, absolute, or ./ ../ ~/
 // prefixed), optionally with a :line or :line:col suffix; plus a bare file
 // name with an extension (e.g. version.ts) unless it directly follows a
 // command verb. The final path segment must carry a file extension so
 // extensionless paths (usually directories like /path/to/exams) are not
-// linked. Constrained to ASCII path characters, never preceded by `](`
-// (an existing markdown link target) or a URL scheme, and followed by
-// whitespace/punctuation/EOL.
+// linked. Constrained to path characters (Unicode letters/digits), never
+// preceded by `](` (an existing markdown link target) or a URL scheme, and
+// followed by whitespace/punctuation/EOL (including an em dash list separator).
 const FILE_PATH_SOURCE = [
   "(?<!\\]\\()",
   "(?:^|(?<=[\\s(（]))",
@@ -215,26 +221,26 @@ const FILE_PATH_SOURCE = [
   // Absolute or ./ ../ ~/ prefixed path. Leading/middle segments may lack an
   // extension (e.g. /Users/liuyuyang/projects), the final segment must have one.
   "(?:(?:\\.{1,2}|~)/|/)",
-  "(?:[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*/)*",
-  "[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{2,}",
+  `(?:${DIR_SEG}/)*`,
+  `${FILE_STEM}(?:${FILE_EXT})+`,
   "(?::\\d+(?::\\d+)?)?",
   "|",
   // Relative path without a leading ./ or / (e.g. src/foo.ts): at least one
   // slash, final segment must have an extension.
-  "(?:[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*/)+",
-  "[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{2,}",
+  `(?:${DIR_SEG}/)+`,
+  `${FILE_STEM}(?:${FILE_EXT})+`,
   "(?::\\d+(?::\\d+)?)?",
   "|",
   // Bare file name with an extension (e.g. version.ts) unless it directly
   // follows a command verb.
   `(?<!\\b(?:${COMMAND_VERBS})\\s)`,
-  "[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z0-9_-]{2,})+",
+  `[\\p{L}][\\p{L}\\p{N}_-]*(?:${FILE_EXT})+`,
   "(?::\\d+(?::\\d+)?)?",
   ")",
-  "(?=[\\s,;.)\\]}）。，、；：！？!?…]|$)",
+  "(?=[\\s,;.)\\]}）。，、；：！？!?…—–]|$)",
 ].join("");
 
-const FILE_PATH_RE = new RegExp(FILE_PATH_SOURCE, "g");
+const FILE_PATH_RE = new RegExp(FILE_PATH_SOURCE, "gu");
 
 /** Wrap bare file paths in `[path](path)` markdown links. */
 const linkifySegment = (text: string): string =>
@@ -245,8 +251,8 @@ const CODE_SPAN_UNSAFE = /[[\]()<>\\]/;
 
 /**
  * Linkify bare file paths in assistant markdown text so they open the file
- * panel when clicked (matching mainstream AI apps). Fenced code blocks are
- * left untouched; inline code spans whose content is a path become links.
+ * panel when clicked. Fenced code blocks are left untouched; inline code
+ * spans whose content is a path stay code-styled and are wrapped in a link.
  */
 export const linkifyFilePaths = (markdown: string): string => {
   if (!markdown) return markdown;
@@ -265,6 +271,10 @@ export const linkifyFilePaths = (markdown: string): string => {
       const linked = CODE_SPAN_UNSAFE.test(content)
         ? content
         : linkifySegment(content);
+      if (linked === `[${content}](${content})`) {
+        // Keep the original code-span UI; wrap it in a link so it is clickable.
+        return `[\`${content}\`](${content})`;
+      }
       if (linked !== content) {
         return linked;
       }

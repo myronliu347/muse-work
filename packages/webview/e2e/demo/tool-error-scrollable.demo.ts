@@ -71,9 +71,10 @@ test.describe("Tool Error Scrollable Demo", () => {
       messageWithLongError as unknown as Message,
     ]);
     await webviewPage.waitForSelector(".tool-error");
+    await webviewPage.hover(".tool-error");
+    await webviewPage.waitForSelector(".tool-error .tooltip-box.visible");
 
-    // Check if the error is displayed and has max-height
-    const errorLocator = webviewPage.locator(".tool-error");
+    const errorLocator = webviewPage.locator(".tool-error .tooltip-box.visible");
     const maxHeight = await errorLocator.evaluate(
       (el) => window.getComputedStyle(el).maxHeight,
     );
@@ -81,7 +82,7 @@ test.describe("Tool Error Scrollable Demo", () => {
       (el) => window.getComputedStyle(el).overflowY,
     );
 
-    expect(maxHeight).toBe("200px");
+    expect(maxHeight).toBe("240px");
     expect(overflowY).toBe("auto");
 
     // Take a screenshot of the long error with scrollbar

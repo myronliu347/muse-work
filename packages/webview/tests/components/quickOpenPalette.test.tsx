@@ -77,4 +77,29 @@ describe("QuickOpenPalette", () => {
     expect(onOpenFile).toHaveBeenCalledWith("/w/a.ts");
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("prefills the query when opened with initialQuery", () => {
+    const postMessage = vi.fn();
+    render(
+      <QuickOpenPalette
+        open
+        initialQuery="hello.ts"
+        workdir="/w"
+        vscode={{ postMessage }}
+        onClose={vi.fn()}
+        onOpenFile={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("quick-open-input")).toHaveValue("hello.ts");
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "requestFileSuggestions",
+        filterText: "hello.ts",
+        source: "quickOpen",
+      }),
+    );
+  });
 });

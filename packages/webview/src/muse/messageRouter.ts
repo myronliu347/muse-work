@@ -11,7 +11,7 @@ import type {
   Message,
 } from "../types";
 import { patchPaneUi, usePanelGroupStore } from "../stores";
-import { upsertFileContentTab } from "./fileTabs";
+import { upsertFileContentTab, closeFileTab } from "./fileTabs";
 import { stripImageSourceMarkers } from "../utils/messageUtils";
 
 /**
@@ -31,6 +31,7 @@ export interface MessageRouterRefs {
   togglePanelRef: React.MutableRefObject<(kind: DesktopPanelKind) => void>;
   previewUrlRef: React.MutableRefObject<string | null>;
   groupKeyRef: React.MutableRefObject<string | undefined>;
+  openQuickOpenRef: React.MutableRefObject<(query: string) => void>;
 }
 
 export interface MessageHandlerDeps {
@@ -61,6 +62,7 @@ export function createMessageHandler({
     togglePanelRef,
     previewUrlRef,
     groupKeyRef,
+    openQuickOpenRef,
   } = refs;
 
   // Session-scoped host pushes are pane-tagged on desktop (FR-032). This pane
@@ -158,6 +160,10 @@ export function createMessageHandler({
           const key = groupKeyRef.current;
           if (key) {
             const incoming = message.fileView as FileViewState;
+            const requestedPath =
+              typeof message.requestedPath === "string"
+                ? message.requestedPath
+                : undefined;
             usePanelGroupStore.getState().patchGroup(key, (group) =>
               upsertFileContentTab(
                 {
@@ -165,9 +171,30 @@ export function createMessageHandler({
                   activeFilePath: group.activeFilePath ?? null,
                 },
                 incoming,
+                requestedPath,
               ),
             );
           }
+        }
+        break;
+      case "openQuickOpen":
+        if (!forThisPane(message)) break;
+        {
+          const key = groupKeyRef.current;
+          const closePath = typeof message.path === "string" ? message.path : "";
+          if (key && closePath) {
+            usePanelGroupStore.getState().patchGroup(key, (group) =>
+              closeFileTab(
+                {
+                  fileTabs: group.fileTabs ?? [],
+                  activeFilePath: group.activeFilePath ?? null,
+                },
+                closePath,
+              ),
+            );
+          }
+          const query = typeof message.query === "string" ? message.query : "";
+          openQuickOpenRef.current(query);
         }
         break;
       case "desktopListDirResult": {

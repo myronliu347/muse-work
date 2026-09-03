@@ -229,4 +229,29 @@ describe("upsertFileContentTab", () => {
     expect(next.activeFilePath).toBe("/w/c.ts");
     expect(next.fileTabs[0].pinned).toBe(false);
   });
+
+  it("replaces a loading stub with a not-found error on the same path", () => {
+    const state = openFileTab(emptyFileTabsState(), "missing.ts", "local");
+    const next = upsertFileContentTab(state, {
+      path: "missing.ts",
+      host: "local",
+      error: "文件不存在：/w/missing.ts",
+    });
+    expect(next.fileTabs).toHaveLength(1);
+    expect(next.fileTabs[0].loading).toBeUndefined();
+    expect(next.fileTabs[0].error).toBe("文件不存在：/w/missing.ts");
+    expect(next.activeFilePath).toBe("missing.ts");
+  });
+
+  it("replaces a requested-path stub with the resolved file path", () => {
+    const state = openFileTab(emptyFileTabsState(), "hello.ts", "local");
+    const next = upsertFileContentTab(
+      state,
+      tab("/w/src/hello.ts", { content: "export {}\n" }),
+      "hello.ts",
+    );
+    expect(next.fileTabs.map((t) => t.path)).toEqual(["/w/src/hello.ts"]);
+    expect(next.activeFilePath).toBe("/w/src/hello.ts");
+    expect(next.fileTabs[0].content).toBe("export {}\n");
+  });
 });

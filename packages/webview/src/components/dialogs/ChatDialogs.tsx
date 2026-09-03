@@ -47,6 +47,7 @@ export interface ChatDialogsProps {
   onToastDismiss: (id: string) => void;
   onToastAction: (toast: UpdateToast) => void;
   quickOpenOpen: boolean;
+  quickOpenQuery?: string;
   onQuickOpenClose: () => void;
   effectiveWorkdir?: string;
 }
@@ -84,6 +85,7 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   onToastDismiss,
   onToastAction,
   quickOpenOpen,
+  quickOpenQuery,
   onQuickOpenClose,
   effectiveWorkdir,
 }) => {
@@ -168,6 +170,7 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
       />
       <QuickOpenPalette
         open={quickOpenOpen}
+        initialQuery={quickOpenQuery}
         workdir={effectiveWorkdir}
         vscode={vscode}
         onClose={onQuickOpenClose}

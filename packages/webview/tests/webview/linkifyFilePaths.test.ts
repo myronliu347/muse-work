@@ -44,10 +44,10 @@ describe("linkifyFilePaths", () => {
 
   it("links a bare file name with extension in an inline code span", () => {
     expect(linkifyFilePaths("open `version.ts` now")).toBe(
-      "open [version.ts](version.ts) now",
+      "open [`version.ts`](version.ts) now",
     );
     expect(linkifyFilePaths("see `package.json` here")).toBe(
-      "see [package.json](package.json) here",
+      "see [`package.json`](package.json) here",
     );
   });
 
@@ -103,9 +103,9 @@ describe("linkifyFilePaths", () => {
     expect(linkifyFilePaths(md)).toBe(md);
   });
 
-  it("turns an inline code span path into a link", () => {
+  it("turns an inline code span path into a link without dropping the code span", () => {
     expect(linkifyFilePaths("open `src/foo.ts` now")).toBe(
-      "open [src/foo.ts](src/foo.ts) now",
+      "open [`src/foo.ts`](src/foo.ts) now",
     );
   });
 
@@ -125,6 +125,23 @@ describe("linkifyFilePaths", () => {
   it("links a path inside parentheses", () => {
     expect(linkifyFilePaths("(see src/foo.ts)")).toBe(
       "(see [src/foo.ts](src/foo.ts))",
+    );
+  });
+
+  it("links CJK file names (including digits like 二) and em-dash lists", () => {
+    expect(linkifyFilePaths("见 任务二执行结果.txt 说明")).toBe(
+      "见 [任务二执行结果.txt](任务二执行结果.txt) 说明",
+    );
+    expect(linkifyFilePaths("open `任务二执行结果.txt` now")).toBe(
+      "open [`任务二执行结果.txt`](任务二执行结果.txt) now",
+    );
+    expect(
+      linkifyFilePaths("- 任务二执行结果.txt — 之前测试任务二创建的产出文件"),
+    ).toBe(
+      "- [任务二执行结果.txt](任务二执行结果.txt) — 之前测试任务二创建的产出文件",
+    );
+    expect(linkifyFilePaths("see docs/任务二执行结果.txt now")).toBe(
+      "see [docs/任务二执行结果.txt](docs/任务二执行结果.txt) now",
     );
   });
 

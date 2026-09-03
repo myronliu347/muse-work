@@ -118,6 +118,36 @@ describe("Message link routing", () => {
     expect(onOpenFile).toHaveBeenCalledWith("src/foo.ts", 12, 34);
   });
 
+  it("keeps inline-code styling when a code-span path is clickable", () => {
+    const onOpenFile = vi.fn();
+    const { container } = renderMessage({
+      content: "open `src/foo.ts` now",
+      onOpenFile,
+    });
+    const link = container.querySelector(
+      '.message-content-container a[href="src/foo.ts"]',
+    )!;
+    expect(link.querySelector("code")?.textContent).toBe("src/foo.ts");
+
+    fireEvent.click(link);
+
+    expect(onOpenFile).toHaveBeenCalledWith("src/foo.ts", undefined, undefined);
+  });
+
+  it("decodes percent-encoded CJK file hrefs before opening", () => {
+    const onOpenFile = vi.fn();
+    const { container } = renderMessage({
+      content: "see 认证指引.md now",
+      onOpenFile,
+    });
+    const link = container.querySelector(".message-content-container a")!;
+    expect(link.getAttribute("href")).toBe(encodeURIComponent("认证指引.md"));
+
+    fireEvent.click(link);
+
+    expect(onOpenFile).toHaveBeenCalledWith("认证指引.md", undefined, undefined);
+  });
+
   it("keeps http links on the openExternal path", () => {
     const onOpenFile = vi.fn();
     const { vscode, externalLink } = renderMessage({ onOpenFile });

@@ -274,6 +274,19 @@ describe("FilePane", () => {
       },
     });
     expect(screen.getByText("文件不存在：/work/a/nope.ts")).toBeInTheDocument();
+    expect(screen.queryByText("正在读取文件…")).toBeNull();
+  });
+
+  it("renders empty files instead of staying on the loading stub", () => {
+    renderPane({
+      fileView: {
+        path: "/work/a/empty.ts",
+        host: "local",
+        content: "",
+      },
+    });
+    expect(screen.queryByText("正在读取文件…")).toBeNull();
+    expect(screen.getByTestId("file-path-bar")).toBeInTheDocument();
   });
 
   it("shows unsupported with Finder button", () => {
@@ -352,6 +365,19 @@ describe("FilePane", () => {
     expect(onOpenFile).toHaveBeenCalledWith("/work/docs/x.md");
     fireEvent.click(screen.getByText("plan"));
     expect(onOpenFile).toHaveBeenCalledWith("/work/a/plans/plan.md");
+  });
+
+  it("decodes percent-encoded CJK markdown hrefs", () => {
+    const { onOpenFile } = renderPane({
+      workdir: "/work/a",
+      fileView: {
+        path: "/work/a/README.md",
+        host: "local",
+        content: "[指引](认证指引.md)",
+      },
+    });
+    fireEvent.click(screen.getByText("指引"));
+    expect(onOpenFile).toHaveBeenCalledWith("/work/a/认证指引.md");
   });
 
   it("routes external markdown links to the system browser", () => {

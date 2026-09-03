@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import {
   renderChatApp,
   sendExtensionMessage,
@@ -96,5 +96,52 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(groupState().fileTabs[0].content).toBe("refreshed");
     expect(groupState().fileTabs[0].pinned).toBe(true);
     expect(groupState().fileTabs).toHaveLength(1);
+  });
+
+  it("replaces a requested-path loading stub with the resolved file", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      fileTabs: [
+        { path: "hello.ts", host: "local", loading: true },
+      ],
+      activeFilePath: "hello.ts",
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "desktopFileContent",
+        requestedPath: "hello.ts",
+        fileView: {
+          path: "/mock/workdir/src/hello.ts",
+          host: "local",
+          content: "export {}\n",
+        },
+      });
+    });
+
+    expect(groupState().fileTabs.map((t) => t.path)).toEqual([
+      "/mock/workdir/src/hello.ts",
+    ]);
+    expect(groupState().activeFilePath).toBe("/mock/workdir/src/hello.ts");
+  });
+
+  it("openQuickOpen closes the loading stub and shows the palette", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      fileTabs: [{ path: "hello.ts", host: "local", loading: true }],
+      activeFilePath: "hello.ts",
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "openQuickOpen",
+        query: "hello.ts",
+        path: "hello.ts",
+      });
+    });
+
+    expect(groupState().fileTabs).toEqual([]);
+    expect(screen.getByTestId("quick-open")).toBeInTheDocument();
+    expect(screen.getByTestId("quick-open-input")).toHaveValue("hello.ts");
   });
 });

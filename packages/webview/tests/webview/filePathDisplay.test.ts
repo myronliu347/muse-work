@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   displayFileName,
   displayFilePath,
+  decodeFileHref,
 } from "../../src/utils/filePathDisplay";
 import { dedupeSnapshotsByFile } from "../../src/utils/fileHistorySnapshots";
 
@@ -54,6 +55,20 @@ describe("displayFilePath", () => {
 
   it("handles missing workdir", () => {
     expect(displayFilePath("/work/app.ts", undefined)).toBe("/work/app.ts");
+  });
+});
+
+describe("decodeFileHref", () => {
+  it("decodes percent-encoded CJK file names", () => {
+    expect(decodeFileHref(encodeURIComponent("认证指引.md"))).toBe("认证指引.md");
+    expect(
+      decodeFileHref(`/Users/me/exams/${encodeURIComponent("认证指引.md")}`),
+    ).toBe("/Users/me/exams/认证指引.md");
+  });
+
+  it("leaves unencoded and malformed hrefs unchanged", () => {
+    expect(decodeFileHref("src/foo.ts")).toBe("src/foo.ts");
+    expect(decodeFileHref("%E8%AE")).toBe("%E8%AE");
   });
 });
 

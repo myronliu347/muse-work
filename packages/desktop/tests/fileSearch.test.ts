@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+  findFilesByPathQuery,
   listWorkspaceDir,
   searchContentInWorkspace,
   searchWorkspaceFiles,
@@ -338,6 +339,42 @@ describe("searchWorkspaceFiles gitignore + filesOnly", () => {
       respectGitignore: true,
     });
     expect(hits.map((h) => h.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("findFilesByPathQuery", () => {
+  it("matches a unique basename and a path substring", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-pq-"));
+    fs.mkdirSync(path.join(root, "src"));
+    fs.mkdirSync(path.join(root, "docs"));
+    fs.writeFileSync(path.join(root, "src", "hello.ts"), "");
+    fs.writeFileSync(path.join(root, "docs", "guide.md"), "");
+
+    expect(
+      findFilesByPathQuery(root, "hello.ts").map((h) => h.relativePath),
+    ).toEqual(["src/hello.ts"]);
+    expect(
+      findFilesByPathQuery(root, "src/hello.ts").map((h) => h.relativePath),
+    ).toEqual(["src/hello.ts"]);
+    expect(findFilesByPathQuery(root, "docs/hello.ts")).toEqual([]);
+
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("returns every basename hit when several files share a name", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-pq-m-"));
+    fs.mkdirSync(path.join(root, "a"));
+    fs.mkdirSync(path.join(root, "b"));
+    fs.writeFileSync(path.join(root, "a", "hello.ts"), "");
+    fs.writeFileSync(path.join(root, "b", "hello.ts"), "");
+
+    expect(
+      findFilesByPathQuery(root, "hello.ts")
+        .map((h) => h.relativePath)
+        .sort(),
+    ).toEqual(["a/hello.ts", "b/hello.ts"]);
+
     fs.rmSync(root, { recursive: true, force: true });
   });
 });
