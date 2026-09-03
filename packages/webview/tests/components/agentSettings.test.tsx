@@ -490,13 +490,13 @@ describe("AgentSettings", () => {
         expect(screen.getByTestId("agent-edit-xiaomei")).toBeInTheDocument();
       });
 
-      // 打开编辑 Dialog
+      // 打开编辑表单
       fireEvent.click(screen.getByTestId("agent-edit-xiaomei"));
       await waitFor(() => {
         expect(screen.getByTestId("agent-form")).toBeInTheDocument();
       });
 
-      // Dialog 内容（portal 到 .configuration-dialog 内）上的 mousedown 不应触发关闭
+      // 表单内联在设置弹窗里，mousedown 不应触发关闭
       fireEvent.mouseDown(screen.getByTestId("agent-form-name"));
       expect(onCancel).not.toHaveBeenCalled();
 

@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import {
   Button,
-  Dialog,
   Select,
   Text,
   TextArea,
@@ -121,20 +120,7 @@ export const AgentManager = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // 编辑 Dialog 的 portal 容器。挂载在设置弹窗（.configuration-dialog）内时，
-  // 指向该弹窗 DOM，避免 ConfigDialog 的 document mousedown 把弹窗外的点击
-  // 误判为「点设置弹窗外」而关闭整个设置弹窗；找不到（测试环境）回落 body。
   const rootRef = useRef<HTMLDivElement>(null);
-  const [dialogContainer, setDialogContainer] = useState<HTMLElement | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    setDialogContainer(
-      rootRef.current?.closest<HTMLElement>(".configuration-dialog") ?? null,
-    );
-  }, []);
 
   const reload = useCallback(async () => {
     try {
@@ -287,6 +273,7 @@ export const AgentManager = forwardRef<
       data-testid="agent-manager"
       ref={rootRef}
     >
+      <div className="agent-manager-workspace">
       {/* 数字人 agent 管理 */}
       <div className="agent-manager-section">
         <div className="agent-manager-header">
@@ -307,7 +294,24 @@ export const AgentManager = forwardRef<
         ) : (
           <ul className="agent-manager-list" data-testid="agent-manager-list">
             {agents.map((a) => (
-              <li key={a.key} className="agent-manager-row">
+              <li
+                key={a.key}
+                className={`agent-manager-row${
+                  draft && !isNew && draft.key === a.key
+                    ? " agent-manager-row--active"
+                    : ""
+                }`}
+                data-testid={`agent-edit-${a.key}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => startEdit(a)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startEdit(a);
+                  }
+                }}
+              >
                 <div className="agent-manager-row-main">
                   <span className="agent-manager-row-name">{a.name}</span>
                   <span className="agent-manager-row-key">{a.key}</span>
@@ -315,62 +319,36 @@ export const AgentManager = forwardRef<
                     {a.personalityLabel ?? PERSONALITIES.find((p) => p.key === a.personality)?.label ?? a.personality}
                   </span>
                 </div>
-                <div className="agent-manager-row-actions">
-                  <Button
-                    type="button"
-                    size="1"
-                    variant="soft"
-                    color="gray"
-                    data-testid={`agent-edit-${a.key}`}
-                    onClick={() => startEdit(a)}
-                    disabled={saving}
-                  >
-                    编辑
-                  </Button>
-                  {!BUILTIN_AGENT_KEYS.has(a.key) && (
+                {!BUILTIN_AGENT_KEYS.has(a.key) ? (
+                  <div className="agent-manager-row-actions">
                     <Button
                       type="button"
                       size="1"
                       variant="soft"
                       color="gray"
                       data-testid={`agent-delete-${a.key}`}
-                      onClick={() => void remove(a.key)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void remove(a.key);
+                      }}
                       disabled={saving}
                     >
                       删除
                     </Button>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      {/* 编辑/新增表单：独立加宽 Dialog，字段分组成段 */}
-      <Dialog.Root
-        open={!!draft}
-        onOpenChange={(open) => {
-          // Esc / 遮罩点击 → 关闭（Radix Dialog 内建 dismissable）
-          if (!open) {
-            setDraft(null);
-            setIsNew(false);
-            setError(null);
-          }
-        }}
-      >
-        <Dialog.Content
-          className="agent-manager-dialog"
-          data-testid="agent-form"
-          aria-describedby={undefined}
-          container={dialogContainer ?? undefined}
-        >
-          <Dialog.Title className="agent-manager-dialog-title">
-            {isNew ? "新增 Agent" : `编辑 Agent：${draft?.name ?? ""}`}
-          </Dialog.Title>
-
-          {draft && (
-            <div className="agent-manager-form">
+      {draft ? (
+        <div className="agent-manager-editor" data-testid="agent-form">
+          <h4 className="agent-manager-editor-title">
+            {isNew ? "新增 Agent" : `编辑 Agent：${draft.name || draft.key}`}
+          </h4>
+          <div className="agent-manager-form">
               {/* 基础信息 */}
               <div className="agent-manager-form-group">
                 <Text size="2" weight="medium" color="gray">
@@ -402,9 +380,14 @@ export const AgentManager = forwardRef<
                       placeholder="如：开发者助手 / 客服小美"
                     />
                   </Field>
+                  <div className="agent-manager-form-span">
                   <Field
                     label="personality"
                     htmlFor="agent-form-personality"
+                    hint={
+                      PERSONALITIES.find((p) => p.key === draft.personality)
+                        ?.description
+                    }
                   >
                     <Select.Root
                       value={draft.personality}
@@ -421,12 +404,13 @@ export const AgentManager = forwardRef<
                       <Select.Content>
                         {PERSONALITIES.map((p) => (
                           <Select.Item key={p.key} value={p.key}>
-                            {p.label}（{p.description}）
+                            {p.label}
                           </Select.Item>
                         ))}
                       </Select.Content>
                     </Select.Root>
                   </Field>
+                  </div>
                 </div>
               </div>
 
@@ -559,9 +543,13 @@ Edit(**/.env)   ← 拒绝
                 </Button>
               </div>
             </div>
-          )}
-        </Dialog.Content>
-      </Dialog.Root>
+        </div>
+      ) : (
+        <div className="agent-manager-editor agent-manager-editor--empty">
+          选择左侧 Agent 进行编辑，或点击「新增 Agent」
+        </div>
+      )}
+      </div>
 
       {/* 场景映射 */}
       <div className="agent-manager-section">

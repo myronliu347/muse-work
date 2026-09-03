@@ -53,6 +53,14 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 380, damping: 28 };
   const tabUnderlineTransition = reduceMotion ? { duration: 0 } : undefined;
+  const tabRailStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 6,
+    bottom: 6,
+    left: 0,
+    width: 2,
+    backgroundColor: "var(--accent-9)",
+  };
   savingRef.current = saving;
 
   const requestClose = useCallback(() => {
@@ -120,7 +128,9 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
     >
       <motion.div
         ref={dialogRef}
-        className="configuration-dialog config-dialog"
+        className={`configuration-dialog config-dialog${
+          activeTab === "agent" ? " config-dialog--wide" : ""
+        }`}
         data-testid="config-dialog"
         initial={
           reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }
@@ -141,6 +151,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
           </button>
         </div>
 
+        <div className="config-dialog-body">
         <div className="config-tabs" role="tablist" aria-label="设置">
           <button
             type="button"
@@ -149,7 +160,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-appearance-panel"
             className={`config-tab${activeTab === "appearance" ? " active" : ""}`}
             onClick={() => setActiveTab("appearance")}
-            style={{ position: "relative", borderBottomColor: "transparent" }}
+            style={{ position: "relative" }}
           >
             外观
             {activeTab === "appearance" && (
@@ -157,14 +168,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
                 transition={tabUnderlineTransition}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  bottom: -1,
-                  left: 0,
-                  height: 2,
-                  backgroundColor: "var(--accent-9)",
-                }}
+                style={tabRailStyle}
               />
             )}
           </button>
@@ -175,7 +179,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-plugins-panel"
             className={`config-tab${activeTab === "plugins" ? " active" : ""}`}
             onClick={() => setActiveTab("plugins")}
-            style={{ position: "relative", borderBottomColor: "transparent" }}
+            style={{ position: "relative" }}
           >
             插件
             {activeTab === "plugins" && (
@@ -183,14 +187,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
                 transition={tabUnderlineTransition}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  bottom: -1,
-                  left: 0,
-                  height: 2,
-                  backgroundColor: "var(--accent-9)",
-                }}
+                style={tabRailStyle}
               />
             )}
           </button>
@@ -201,7 +198,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-agent-panel"
             className={`config-tab${activeTab === "agent" ? " active" : ""}`}
             onClick={() => setActiveTab("agent")}
-            style={{ position: "relative", borderBottomColor: "transparent" }}
+            style={{ position: "relative" }}
           >
             Agent
             {activeTab === "agent" && (
@@ -209,14 +206,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
                 transition={tabUnderlineTransition}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  bottom: -1,
-                  left: 0,
-                  height: 2,
-                  backgroundColor: "var(--accent-9)",
-                }}
+                style={tabRailStyle}
               />
             )}
           </button>
@@ -227,7 +217,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-provider-panel"
             className={`config-tab${activeTab === "provider" ? " active" : ""}`}
             onClick={() => setActiveTab("provider")}
-            style={{ position: "relative", borderBottomColor: "transparent" }}
+            style={{ position: "relative" }}
           >
             供应商
             {activeTab === "provider" && (
@@ -235,14 +225,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
                 transition={tabUnderlineTransition}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  bottom: -1,
-                  left: 0,
-                  height: 2,
-                  backgroundColor: "var(--accent-9)",
-                }}
+                style={tabRailStyle}
               />
             )}
           </button>
@@ -253,7 +236,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             aria-controls="config-popo-panel"
             className={`config-tab${activeTab === "popo" ? " active" : ""}`}
             onClick={() => setActiveTab("popo")}
-            style={{ position: "relative", borderBottomColor: "transparent" }}
+            style={{ position: "relative" }}
           >
             POPO
             {activeTab === "popo" && (
@@ -261,14 +244,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
                 className="settings-tab-underline"
                 layoutId="settings-tab-underline"
                 transition={tabUnderlineTransition}
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  bottom: -1,
-                  left: 0,
-                  height: 2,
-                  backgroundColor: "var(--accent-9)",
-                }}
+                style={tabRailStyle}
               />
             )}
           </button>
@@ -315,6 +291,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               <PopoSettings />
             </div>
           </div>
+        </div>
+        </div>
 
           <div className="configuration-actions">
             <Button
@@ -333,7 +311,6 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               {saving ? "保存中..." : "保存"}
             </Button>
           </div>
-        </div>
       </motion.div>
     </motion.div>
   );

@@ -38,6 +38,27 @@ vi.mock("../../src/components/settings/PopoSettings", () => ({
   PopoSettings: () => <div data-testid="popo-settings">popo settings</div>,
 }));
 
+vi.mock("../../src/components/settings/AgentSettings", () => {
+  const React = require("react") as typeof import("react");
+  return {
+    AgentSettings: React.forwardRef(
+      (
+        _props: unknown,
+        ref: React.ForwardedRef<{
+          save: () => Promise<boolean>;
+          isDirty: () => boolean;
+        }>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({
+          save: async () => true,
+          isDirty: () => false,
+        }));
+        return <div data-testid="agent-settings">agent settings</div>;
+      },
+    ),
+  };
+});
+
 const vscode = {
   postMessage: vi.fn(),
   getState: vi.fn(),
@@ -81,6 +102,15 @@ describe("ConfigDialog appearance tab", () => {
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
     expect(screen.getByTestId("popo-settings")).toBeTruthy();
+  });
+
+  it("places tabs in a side column and widens the dialog on Agent", () => {
+    renderDialog();
+    const dialog = screen.getByTestId("config-dialog");
+    expect(dialog).not.toHaveClass("config-dialog--wide");
+    fireEvent.click(screen.getByRole("tab", { name: "Agent" }));
+    expect(dialog).toHaveClass("config-dialog--wide");
+    expect(screen.getByTestId("agent-settings")).toBeTruthy();
   });
 
   it("renders tab underlines when prefers-reduced-motion is enabled", () => {

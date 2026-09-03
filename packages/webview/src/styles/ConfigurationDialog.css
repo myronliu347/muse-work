@@ -69,10 +69,21 @@
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   padding: 0;
-  width: min(92vw, 560px);
-  max-width: 560px;
+  width: min(92vw, 680px);
+  max-width: 680px;
   height: min(90vh, 560px);
   max-height: 90%;
+}
+
+.config-dialog--wide {
+  width: min(92vw, 920px);
+  max-width: 920px;
+}
+
+.config-dialog-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .config-dialog-header {
@@ -108,29 +119,32 @@
   display: block;
 }
 
-/* Tab row */
+/* Tab column */
 .config-tabs {
   display: flex;
-  padding: 0 var(--space-4);
-  border-bottom: 1px solid var(--gray-6);
+  flex-direction: column;
+  width: 132px;
   flex-shrink: 0;
+  padding: var(--space-2) 0;
+  border-right: 1px solid var(--gray-6);
+  overflow-y: auto;
 }
 
 .config-tab {
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
   color: var(--gray-11);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   font-size: var(--font-size-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  margin-bottom: -var(--space-1);
+  text-align: left;
+  width: 100%;
 }
 
 .config-tab.active {
   color: var(--gray-12);
-  border-bottom-color: var(--accent-9);
+  background: var(--gray-3);
 }
 
 /* Model tab hint row */
@@ -153,6 +167,7 @@
 /* Scoped form layout for ConfigDialog fields */
 .config-dialog .configuration-form {
   gap: 0;
+  min-width: 0;
 }
 
 .config-dialog .configuration-fields-scroll-area {
