@@ -1,0 +1,113 @@
+packages/server/src/routes/sessions.ts
+  b269e5c36bd23fae 29,48
+packages/webview/src/muse/hostBridge/session.ts
+  b269e5c36bd23fae 57,66
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  b269e5c36bd23fae 30-31,194,230-236,242,403-438
+packages/webview/src/components/ChatApp.tsx
+  b269e5c36bd23fae 821,825
+packages/webview/src/styles/OpenPlanningDialog.css
+  b269e5c36bd23fae 98-176
+packages/webview/src/muse/apiClient.ts
+  b269e5c36bd23fae 154
+packages/webview/src/muse/hostBridge/ctx.ts
+  b269e5c36bd23fae 91,100
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  b269e5c36bd23fae 316-348
+packages/webview/src/components/issue/IssueChecklistCard.tsx
+  b269e5c36bd23fae 1-91
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 436-437,874-980
+packages/webview/src/types/index.ts
+  b269e5c36bd23fae 274
+packages/server/tests/sessions.routes.test.ts
+  b269e5c36bd23fae 88
+packages/webview/src/components/session/SessionTree.tsx
+  b269e5c36bd23fae 5,625-637,639-642,645-648,650-652,654-655,657,659-660,662-695
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  b269e5c36bd23fae 41,665,667-670,686,692-697,708-724
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "58bc5ac789e575640f2104c364e55c96ca52ff7c",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 471,
+      "total_deletions": 68,
+      "accepted_lines": 467,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 47,
+          "deletions": 5,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 33,
+          "deletions": 5,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 64,
+          "deletions": 48,
+          "accepted_lines": 64
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 111,
+          "deletions": 7,
+          "accepted_lines": 109
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/issue/IssueChecklistCard.tsx": {
+          "additions": 93,
+          "deletions": 2,
+          "accepted_lines": 91
+        }
+      }
+    }
+  }
+}
