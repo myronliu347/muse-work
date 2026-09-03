@@ -1,0 +1,158 @@
+packages/webview/src/components/ChatApp.tsx
+  b269e5c36bd23fae 155,176,186-190,240,317-323,655-659
+packages/webview/src/components/message/Message.tsx
+  b269e5c36bd23fae 4,36,305-306,314,447-449,462-466,476-502,513,528,546,553,581,629,702,747,759,783-784
+packages/desktop/tests/fileSearch.test.ts
+  b269e5c36bd23fae 6,345-380
+packages/webview/tests/webview/messageLinkRouting.test.tsx
+  b269e5c36bd23fae 121-150
+packages/webview/tests/muse/fileTabs.test.ts
+  b269e5c36bd23fae 232-256
+packages/webview/src/styles/Message.css
+  b269e5c36bd23fae 365-368,371,373-380,932,934,936,940-946
+packages/webview/src/components/message/ToolError.tsx
+  b269e5c36bd23fae 1-20
+packages/webview/src/utils/messageUtils.ts
+  b269e5c36bd23fae 202-207,213-215,224-225,230-231,237,240,243,254-255,274-277
+packages/webview/e2e/demo/tool-error-scrollable.demo.ts
+  b269e5c36bd23fae 74-75,77,85
+packages/webview/tests/components/quickOpenPalette.test.tsx
+  b269e5c36bd23fae 80-104
+packages/webview/src/components/panels/FilePreview.tsx
+  b269e5c36bd23fae 6,347,368
+packages/desktop/src/main/workdirHost.ts
+  b269e5c36bd23fae 12,146-173,509-511,524,528-551,553,555-558,562-565,570-571
+packages/webview/tests/components/filePane.test.tsx
+  b269e5c36bd23fae 277-289,370-382
+packages/webview/src/styles/FilePane.css
+  b269e5c36bd23fae 469-472,478,480,483,489-493,498,503-505,510,521,607-608,612-616
+packages/webview/src/components/panels/QuickOpenPalette.tsx
+  b269e5c36bd23fae 17-18,29,45,48
+packages/webview/src/muse/messageRouter.ts
+  b269e5c36bd23fae 14,34,65,163-166,174,180-197
+packages/webview/tests/webview/tool-error-rendering.test.tsx
+  b269e5c36bd23fae 2,11-13,20,36-39,41-43,45-47,64-66,68-72,90-94
+packages/webview/src/components/message/FileToolHeader.tsx
+  b269e5c36bd23fae 3,25,47-49
+packages/desktop/tests/workdirHost.test.ts
+  b269e5c36bd23fae 335-387,497,535,538-541,545-552,564-605,612-670,720-727,831-838
+packages/webview/src/components/dialogs/ChatDialogs.tsx
+  b269e5c36bd23fae 50,88,173
+packages/webview/tests/webview/linkifyFilePaths.test.ts
+  b269e5c36bd23fae 47,50,106,108,131-147
+packages/webview/src/muse/fileTabs.ts
+  b269e5c36bd23fae 117-118,123,125-129,135-138
+packages/webview/tests/webview/filePanelTabs.test.tsx
+  b269e5c36bd23fae 2,100-146
+packages/webview/src/components/panels/FileContentSearch.tsx
+  b269e5c36bd23fae 286-319
+packages/webview/src/utils/filePathDisplay.ts
+  b269e5c36bd23fae 26-39
+packages/webview/tests/webview/filePathDisplay.test.ts
+  b269e5c36bd23fae 5,61-74
+packages/desktop/src/main/fileSearch.ts
+  b269e5c36bd23fae 353-365,367-369,371,373-376,378,380-392,394
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2721f123a9e396f9d94383adfa7c18a86e4aaf98",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 869,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/FileContentSearch.tsx": {
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/message/ToolError.tsx": {
+          "accepted_lines": 20
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "accepted_lines": 25
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "accepted_lines": 27
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "accepted_lines": 199
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "accepted_lines": 44
+        },
+        "packages/webview/tests/webview/filePathDisplay.test.ts": {
+          "accepted_lines": 15
+        },
+        "packages/webview/e2e/demo/tool-error-scrollable.demo.ts": {
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/quickOpenPalette.test.tsx": {
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/messageLinkRouting.test.tsx": {
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/message/FileToolHeader.tsx": {
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/tool-error-rendering.test.tsx": {
+          "accepted_lines": 31
+        },
+        "packages/webview/src/utils/messageUtils.ts": {
+          "accepted_lines": 48
+        },
+        "packages/desktop/tests/fileSearch.test.ts": {
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/webview/filePanelTabs.test.tsx": {
+          "accepted_lines": 48
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "accepted_lines": 70
+        },
+        "packages/webview/src/muse/fileTabs.ts": {
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "accepted_lines": 51
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/panels/QuickOpenPalette.tsx": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "accepted_lines": 14
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/linkifyFilePaths.test.ts": {
+          "accepted_lines": 21
+        }
+      }
+    }
+  }
+}
