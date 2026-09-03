@@ -77,6 +77,25 @@ describe("user:message dedupe with [Image source: ...] markers", () => {
     });
   });
 
+  it("does not duplicate when user:message lands before the optimistic bubble", async () => {
+    renderChatApp();
+
+    sendCommand("user:message", { id: "msg-real-uuid", content: "了解 nasl" });
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_opt_late",
+        role: "user",
+        timestamp: new Date().toISOString(),
+        blocks: [{ type: "text", content: "了解 nasl" }],
+      },
+    });
+
+    await waitFor(() => {
+      expect(getMessages()).toHaveLength(1);
+    });
+    expect(getMessageIds()).toEqual(["msg-real-uuid"]);
+  });
+
   it("dedupes against the optimistic bubble even when an error block lands between", async () => {
     renderChatApp();
 

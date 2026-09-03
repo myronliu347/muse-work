@@ -84,6 +84,63 @@ describe("chatReducer", () => {
       expect(newState.messages[0].blocks).toHaveLength(1);
     });
 
+    it("drops the optimistic user bubble when the SDK echo already landed", () => {
+      // Fast turns: user:message is applied before the host's appendMessage.
+      // A second bubble with a client id must not appear under 思考中...
+      const echoed: Message = {
+        id: "msg-real-uuid",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "了解 nasl" }],
+      };
+      const state = { ...initialState, messages: [echoed] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "user_opt1",
+          role: "user",
+          timestamp: "1",
+          blocks: [{ type: "text", content: "了解 nasl" }],
+        },
+      });
+      expect(newState.messages).toHaveLength(1);
+      expect(newState.messages[0].id).toBe("msg-real-uuid");
+    });
+
+    it("still appends a second send of the same text after the first echo", () => {
+      const first: Message = {
+        id: "msg-real-1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "hi" }],
+      };
+      const state = { ...initialState, messages: [first] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "user_opt2",
+          role: "user",
+          timestamp: "1",
+          blocks: [{ type: "text", content: "hi" }],
+        },
+      });
+      expect(newState.messages).toHaveLength(1);
+
+      const secondEcho = chatReducer(newState, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-2",
+          role: "user",
+          timestamp: "2",
+          blocks: [{ type: "text", content: "hi" }],
+        },
+      });
+      expect(secondEcho.messages.map((m) => m.id)).toEqual([
+        "msg-real-1",
+        "msg-real-2",
+      ]);
+    });
+
     it("should pin currentSession.firstMessage when the first user message arrives incrementally", () => {
       const currentSession: SessionMetadata = {
         id: "s1",
