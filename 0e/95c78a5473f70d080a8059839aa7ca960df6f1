@@ -1,0 +1,61 @@
+packages/server/src/services/sessionRunner/agent.ts
+  b269e5c36bd23fae 52-53,337,344-356,390-393,891-894
+packages/server/src/services/sessionRunner/ctx.ts
+  b269e5c36bd23fae 369-379,429-430
+packages/webview/src/components/message/Message.tsx
+  b269e5c36bd23fae 1037-1042
+packages/webview/tests/reducers/chatReducer.test.ts
+  b269e5c36bd23fae 825-849
+packages/webview/src/reducers/chatReducer.ts
+  b269e5c36bd23fae 748-757
+packages/server/tests/sessions.ws.test.ts
+  b269e5c36bd23fae 1339-1402
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0e95c78a5473f70d080a8059839aa7ca960df6f1",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 142,
+      "total_deletions": 6,
+      "accepted_lines": 142,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 24,
+          "deletions": 5,
+          "accepted_lines": 24
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
