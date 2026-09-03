@@ -1,0 +1,36 @@
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  b269e5c36bd23fae 3-4,297-315
+packages/webview/src/styles/OpenPlanningDialog.css
+  b269e5c36bd23fae 3-4,7-16,27,33-35,37,48,60,62-63,65,67,71,94,104,111,113,115,128,143-145,158-159,170-171,183,198-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b02da23ff0d4c79f4162198f6f90825e5f963b4a",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 63,
+      "total_deletions": 26,
+      "accepted_lines": 63,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 42,
+          "deletions": 26,
+          "accepted_lines": 42
+        }
+      }
+    }
+  }
+}
