@@ -443,6 +443,68 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
   });
 
+  it("does not settle the turn when loading flickers while sendMessage is still in flight", async () => {
+    // SDK drops loading between a tool and the next model round even though
+    // sendMessage has not returned. Issue planning would otherwise get
+    // "本回合结束" while the exec session is still on that checklist item.
+    const { store, hub, registry, home } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    store.select(session.id);
+
+    type Callbacks = {
+      onLoadingChange?: (loading: boolean) => void;
+      onToolBlockUpdated?: (p: Record<string, unknown>) => void;
+    };
+    let cbs: Callbacks | undefined;
+    let releaseSend: (() => void) | undefined;
+    const sendHeld = new Promise<void>((resolve) => {
+      releaseSend = resolve;
+    });
+    const settled: Array<{ ok: boolean; error?: string }> = [];
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      onTurnSettled: (_id, result) => {
+        settled.push(result);
+      },
+      createAgent: async (opts) => {
+        cbs = opts.callbacks as Callbacks;
+        return {
+          sendMessage: async () => {
+            cbs?.onLoadingChange?.(true);
+            cbs?.onToolBlockUpdated?.({
+              id: "tool-1",
+              name: "Agent",
+              status: "running",
+            });
+            await sendHeld;
+          },
+          dispose: async () => {},
+          getMessages: () => [],
+        };
+      },
+    });
+
+    void runner.sendMessage(session.id, "exec item 3");
+    await expect.poll(() => cbs).toBeTruthy();
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+
+    cbs!.onLoadingChange?.(false);
+    cbs!.onLoadingChange?.(true);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(store.get(session.id)?.status).toBe("running");
+    expect(settled).toEqual([]);
+
+    releaseSend?.();
+    cbs!.onLoadingChange?.(false);
+    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
+    expect(settled).toEqual([{ ok: true }]);
+  });
+
   it("broadcasts only file_history blocks (not the full transcript) when a turn ends", async () => {
     const { store, hub, registry, home } = setup();
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "fh-broadcast-"));

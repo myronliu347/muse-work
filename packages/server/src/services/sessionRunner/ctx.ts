@@ -366,6 +366,8 @@ export interface RunnerContext {
   turnEnded: Map<string, boolean>;
   /** True once this turn emitted assistant / tool / reasoning / error output. */
   turnHadOutput: Map<string, boolean>;
+  /** Nested runTurn `sendMessage` awaits; loading=false must not idle while > 0. */
+  turnSendDepth: Map<string, number>;
   /**
    * Session sent a message while the SDK was still loading (queued). The next
    * onUserMessageAdded is that queued turn actually dispatching.
@@ -426,6 +428,7 @@ export function createRunnerContext(
     disposed: new Set<string>(),
     turnEnded: new Map<string, boolean>(),
     turnHadOutput: new Map<string, boolean>(),
+    turnSendDepth: new Map<string, number>(),
     queuedDispatch: new Set<string>(),
     pendingTurnOutputReset: new Set<string>(),
     aborting: new Set<string>(),

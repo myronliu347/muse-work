@@ -49,6 +49,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     loadingSeen,
     turnEnded,
     turnHadOutput,
+    turnSendDepth,
     queuedDispatch,
     pendingTurnOutputReset,
     pending,
@@ -368,7 +369,12 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             // chunks but never the file_history block, and re-sending the whole
             // transcript over the socket is wasteful for large sessions.
             core.broadcastFileHistory(sessionId);
-            core.markIdle(sessionId);
+            // SDK may drop loading between tools and the next model round
+            // while sendMessage is still in flight. Idling here fires
+            // onTurnSettled and tells Issue planning the exec turn finished.
+            if ((turnSendDepth.get(sessionId) ?? 0) === 0) {
+              core.markIdle(sessionId);
+            }
           }
         },
         onAssistantMessageAdded: (messageId) => {
@@ -921,7 +927,28 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       // 系统注入消息包上标记：落盘 + 广播自然携带，webview 据此以独立样式渲染
       const finalContent =
         source === "system-inject" ? wrapSystemInject(contentWithSources) : contentWithSources;
-      await agent.sendMessage(finalContent, images);
+      turnSendDepth.set(sessionId, (turnSendDepth.get(sessionId) ?? 0) + 1);
+      try {
+        await agent.sendMessage(finalContent, images);
+      } finally {
+        const remaining = (turnSendDepth.get(sessionId) ?? 1) - 1;
+        if (remaining <= 0) turnSendDepth.delete(sessionId);
+        else turnSendDepth.set(sessionId, remaining);
+      }
+      // loading=false during sendMessage was skipped (still in flight). If the
+      // SDK already dropped loading for good, settle now that sendMessage returned.
+      if (
+        !disposed.has(sessionId) &&
+        store.get(sessionId)?.status === "running" &&
+        agentLoading.get(sessionId) !== true &&
+        loadingSeen.get(sessionId)
+      ) {
+        if (!turnEnded.get(sessionId)) {
+          hub.broadcast(sessionId, { type: "message:completed" });
+        }
+        getLogger().info("turn completed", { sessionId });
+        core.markIdle(sessionId);
+      }
       // Fallback when SDK never toggles onLoadingChange (tests / swallowed turns).
       // Defer the check to the next macrotask: the SDK's async callbacks
       // (onLoadingChange(true), assistant content) fire after sendMessage
