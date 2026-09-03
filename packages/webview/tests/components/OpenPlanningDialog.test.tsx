@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/react";
 import {
@@ -291,5 +293,24 @@ describe("OpenPlanningDialog", () => {
         }),
       );
     });
+  });
+
+  it("uses compact dialog type size matching confirm/settings", () => {
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/OpenPlanningDialog.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.open-planning-dialog\s*\{[^}]*font-size:\s*var\(--font-size-1\)/s,
+    );
+    expect(css).toMatch(
+      /\.open-planning-workdir\s*\{[^}]*font-size:\s*var\(--font-size-1\)/s,
+    );
+    expect(css).toMatch(
+      /\.open-planning-switch-title\s*\{[^}]*font-size:\s*var\(--font-size-1\)/s,
+    );
+    expect(css).toMatch(
+      /\.open-planning-pick\s*\{[^}]*height:\s*28px/s,
+    );
   });
 });
