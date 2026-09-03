@@ -822,6 +822,31 @@ describe("chatReducer", () => {
       expect(state.messages[0].blocks).toHaveLength(0);
       expect(newState.messages[0].blocks).toHaveLength(1);
     });
+
+    it("drops empty-turn errors when the assistant already has tools or text", () => {
+      const toolBlock: ToolBlock = {
+        type: "tool",
+        name: "Agent",
+        parameters: "{}",
+        compactParams: "Agent",
+        stage: "start",
+        id: "tool-1",
+      };
+      const assistantMessage: Message = {
+        id: "msg-1",
+        role: "assistant",
+        timestamp: "0",
+        blocks: [toolBlock],
+      };
+      const state = { ...initialState, messages: [assistantMessage] };
+
+      const newState = chatReducer(state, {
+        type: "APPEND_ERROR_BLOCK",
+        payload: { error: "模型没有产生输出" },
+      });
+
+      expect(newState.messages[0].blocks).toEqual([toolBlock]);
+    });
   });
 
   describe("Bang message flow", () => {

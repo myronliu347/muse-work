@@ -1336,6 +1336,70 @@ describe("sessions + websocket streaming", () => {
     expect(errorEvents).toEqual([]);
   });
 
+  it("does not report empty turn when loading flickers after a tool already ran", async () => {
+    // SDK often drops loading between an Agent/tool block and the next model
+    // round, then raises it again. The second loading(true) must not wipe
+    // turnHadOutput, or the brief loading=false broadcasts "模型没有产生输出"
+    // under the tool while the UI is still showing 思考中...
+    let cbs: {
+      onLoadingChange?: (loading: boolean) => void;
+      onToolBlockUpdated?: (p: Record<string, unknown>) => void;
+    } = {};
+    const createAgent: CreateAgent = async (opts) => {
+      cbs = opts.callbacks as typeof cbs;
+      return {
+        sendMessage: async () => {
+          cbs.onLoadingChange?.(true);
+          cbs.onToolBlockUpdated?.({
+            id: "tool-1",
+            name: "Agent",
+            status: "running",
+          });
+        },
+        dispose: async () => {},
+      };
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const errorEvents: Array<{ type?: string; error?: string }> = [];
+    const origBroadcast = app.ctx.hub.broadcast.bind(app.ctx.hub);
+    app.ctx.hub.broadcast = (sessionId, event) => {
+      if (
+        (event as { type?: string }).type === "error:block" &&
+        (event as { error?: string }).error?.includes("没有产生输出")
+      ) {
+        errorEvents.push(event as { type?: string; error?: string });
+      }
+      return origBroadcast(sessionId, event);
+    };
+
+    const msgRes = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "run agent" }),
+      },
+    );
+    expect(msgRes.status).toBe(200);
+
+    cbs.onLoadingChange?.(false);
+    expect(errorEvents).toEqual([]);
+    cbs.onLoadingChange?.(true);
+    cbs.onLoadingChange?.(false);
+    expect(errorEvents).toEqual([]);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},

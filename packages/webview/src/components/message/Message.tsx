@@ -1034,6 +1034,12 @@ export const Message: React.FC<MessageProps> = React.memo(
           break;
         }
         case "error":
+          if (
+            block.content === "模型没有产生输出" &&
+            message.blocks.some((b) => b.type !== "error")
+          ) {
+            return null;
+          }
           return (
             <div key={index} className="message-content error">
               <pre>{block.content || ""}</pre>

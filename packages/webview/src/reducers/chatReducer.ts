@@ -744,8 +744,17 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
     case "APPEND_ERROR_BLOCK": {
       const { error } = action.payload;
-      const newErrorBlock: ErrorBlock = { type: "error", content: error };
       const last = state.messages[state.messages.length - 1];
+      // Empty-turn is a server bookkeeping miss when the SDK flickers loading
+      // around Agent/tools. Don't pin "模型没有产生输出" under a live tool row.
+      if (
+        error === "模型没有产生输出" &&
+        last?.role === "assistant" &&
+        last.blocks.some((b) => b.type !== "error")
+      ) {
+        return state;
+      }
+      const newErrorBlock: ErrorBlock = { type: "error", content: error };
 
       // Compact / LLM errors must appear after the latest user send. Attaching
       // them to an older assistant bubble hides the failure above the follow-up.

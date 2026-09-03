@@ -49,6 +49,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     loadingSeen,
     turnEnded,
     turnHadOutput,
+    queuedDispatch,
+    pendingTurnOutputReset,
     pending,
     agentToolBinds,
     pendingAgentToolIds,
@@ -332,17 +334,26 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
           core.bumpActivity(sessionId);
+          const wasLoading = agentLoading.get(sessionId) === true;
           agentLoading.set(sessionId, loading);
           loadingSeen.set(sessionId, true);
           hub.broadcast(sessionId, { type: "loading", loading });
           // Sidebar / status must track the full agent turn (including tools),
           // not the first assistant content stage "end".
           if (loading) {
-            // 新一轮（loading 首次拉起）真正开始：turnHadOutput 归零。入队场景
-            // 下 onUserMessageAdded 不重置 turnHadOutput（上一轮残留的收尾 drop
-            // 可能晚到），必须等这轮 loading(true) 才清零，轮次归属才正确——
-            // 否则队列中真空 turn 因沿用上一轮 true 而漏报空 turn。
-            turnHadOutput.set(sessionId, false);
+            // Only the loading rise that starts a queued turn may clear
+            // turnHadOutput. A mid-turn flicker (tools → next model round)
+            // must keep it, or loading=false broadcasts a bogus empty turn
+            // under the Agent row while 思考中... is still showing.
+            // Queued turns cannot reset on onUserMessageAdded: the previous
+            // turn's trailing loading=false may land after that dispatch.
+            if (
+              !wasLoading &&
+              pendingTurnOutputReset.has(sessionId)
+            ) {
+              turnHadOutput.set(sessionId, false);
+              pendingTurnOutputReset.delete(sessionId);
+            }
             if (store.get(sessionId)?.status !== "running") {
               store.updateStatus(sessionId, "running");
               hub.broadcast(sessionId, {
@@ -376,6 +387,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           // 遗留的 turn 状态，保证本轮真空 turn 仍能被 reportEmptyTurnIfNeeded
           // 捕获（入队场景下 runTurn 保留了上一轮状态，故在此复位）。
           turnEnded.set(sessionId, false);
+          if (queuedDispatch.has(sessionId)) {
+            pendingTurnOutputReset.add(sessionId);
+            queuedDispatch.delete(sessionId);
+          }
           // 注意：turnHadOutput 不在派发时重置。上一轮若有真实输出，其残留的
           // onLoadingChange(false) 收尾可能晚于本条派发到达（同毫秒竞态，实测
           // 08:24:11.742 派发 / .743 误报）；若在此清掉 turnHadOutput，那次
@@ -873,6 +888,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       turnHadOutput.set(sessionId, false);
       agentLoading.set(sessionId, false);
       loadingSeen.set(sessionId, false);
+      queuedDispatch.delete(sessionId);
+      pendingTurnOutputReset.delete(sessionId);
+    } else {
+      queuedDispatch.add(sessionId);
     }
     core.bumpActivity(sessionId);
     getLogger().info("turn started", {

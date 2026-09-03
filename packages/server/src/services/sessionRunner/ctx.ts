@@ -366,6 +366,17 @@ export interface RunnerContext {
   turnEnded: Map<string, boolean>;
   /** True once this turn emitted assistant / tool / reasoning / error output. */
   turnHadOutput: Map<string, boolean>;
+  /**
+   * Session sent a message while the SDK was still loading (queued). The next
+   * onUserMessageAdded is that queued turn actually dispatching.
+   */
+  queuedDispatch: Set<string>;
+  /**
+   * After a queued dispatch, the next loading(false)→(true) edge starts the new
+   * turn's output tracking. Mid-turn loading flicker must not clear
+   * turnHadOutput (that broadcasts a bogus empty-turn error under live tools).
+   */
+  pendingTurnOutputReset: Set<string>;
   /** True while interruptTurn is aborting the SDK (skip empty-turn errors). */
   aborting: Set<string>;
   /** Latest SDK onLoadingChange; used so we don't mark idle while tools still run. */
@@ -415,6 +426,8 @@ export function createRunnerContext(
     disposed: new Set<string>(),
     turnEnded: new Map<string, boolean>(),
     turnHadOutput: new Map<string, boolean>(),
+    queuedDispatch: new Set<string>(),
+    pendingTurnOutputReset: new Set<string>(),
     aborting: new Set<string>(),
     agentLoading: new Map<string, boolean>(),
     loadingSeen: new Map<string, boolean>(),
