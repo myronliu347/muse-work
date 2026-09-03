@@ -1,37 +1,1296 @@
-packages/server/src/routes/sessions.ts
-  b269e5c36bd23fae 29,48
-packages/webview/src/muse/hostBridge/session.ts
-  b269e5c36bd23fae 57,66
-packages/webview/src/components/issue/OpenPlanningDialog.tsx
-  b269e5c36bd23fae 30-31,194,230-236,242,403-438
-packages/webview/src/components/ChatApp.tsx
-  b269e5c36bd23fae 821,825
-packages/webview/src/styles/OpenPlanningDialog.css
-  b269e5c36bd23fae 98-176
 packages/webview/src/muse/apiClient.ts
   b269e5c36bd23fae 154
-packages/webview/src/muse/hostBridge/ctx.ts
-  b269e5c36bd23fae 91,100
-packages/webview/tests/components/OpenPlanningDialog.test.tsx
-  b269e5c36bd23fae 316-348
-packages/webview/src/components/issue/IssueChecklistCard.tsx
-  b269e5c36bd23fae 1-91
-packages/webview/src/styles/DesktopApp.css
-  b269e5c36bd23fae 436-437,874-980
-packages/webview/src/types/index.ts
-  b269e5c36bd23fae 274
-packages/server/tests/sessions.routes.test.ts
-  b269e5c36bd23fae 88
 packages/webview/src/components/session/SessionTree.tsx
   b269e5c36bd23fae 5,625-637,639-642,645-648,650-652,654-655,657,659-660,662-695
+packages/webview/src/components/ChatApp.tsx
+  b269e5c36bd23fae 825
+packages/webview/src/types/index.ts
+  b269e5c36bd23fae 274
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 436-437,874-980
+packages/webview/src/styles/OpenPlanningDialog.css
+  b269e5c36bd23fae 98-176
 packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
   b269e5c36bd23fae 41,665,667-670,686,692-697,708-724
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  b269e5c36bd23fae 30-31,194,230-236,242,403-438
+packages/webview/src/muse/hostBridge/session.ts
+  b269e5c36bd23fae 57,66
+packages/server/src/routes/sessions.ts
+  b269e5c36bd23fae 29,48
+packages/webview/src/components/issue/IssueChecklistCard.tsx
+  b269e5c36bd23fae 1-91
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  b269e5c36bd23fae 316-348
+packages/webview/src/muse/hostBridge/ctx.ts
+  b269e5c36bd23fae 91,100
+packages/server/tests/sessions.routes.test.ts
+  b269e5c36bd23fae 88
 ---
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.2.8-ntes.7",
-  "base_commit_sha": "58bc5ac789e575640f2104c364e55c96ca52ff7c",
+  "base_commit_sha": "9ba4175bc7b965cb617e91c11497e0d85c014cae",
   "prompts": {
+    "010193b1c681c6dc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b3b8100c-0399-49bd-93c4-66757bcb2025",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 429,
+      "total_deletions": 6,
+      "accepted_lines": 202,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 26,
+          "deletions": 4,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 130,
+          "accepted_lines": 130
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 154,
+          "accepted_lines": 154
+        },
+        "packages/webview/src/stores/desktopStore.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        }
+      }
+    },
+    "034726f7911b0ff3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e96583e-2b44-4f6b-a048-4fcfe6dd985a",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 291,
+      "total_deletions": 430,
+      "accepted_lines": 29,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 291,
+          "deletions": 430,
+          "accepted_lines": 279
+        }
+      }
+    },
+    "1c65e982ada3920c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "927a7ed6-bc97-4201-8e42-a80dd962d4ed",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 647,
+      "total_deletions": 47,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/settings/AgentSettings.tsx": {
+          "additions": 161,
+          "deletions": 25,
+          "accepted_lines": 136
+        },
+        "packages/webview/src/styles/AgentSettings.css": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 78,
+          "accepted_lines": 78
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 62,
+          "deletions": 16,
+          "accepted_lines": 47
+        },
+        "packages/server/tests/settings.routes.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/server/src/services/sessionRunner.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "additions": 74
+        },
+        "packages/server/src/services/waveAgentSettings.ts": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 50,
+          "deletions": 2,
+          "accepted_lines": 50
+        },
+        "packages/server/tests/waveAgentSettings.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 20,
+          "deletions": 4,
+          "accepted_lines": 16
+        }
+      }
+    },
+    "248cd23fb57102ac": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2030df1d-24e2-4743-a028-818989d079c2",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 179,
+      "total_deletions": 7,
+      "accepted_lines": 86,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "packages/server/src/app.ts": {
+          "additions": 24,
+          "deletions": 4,
+          "accepted_lines": 24
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 99,
+          "deletions": 3,
+          "accepted_lines": 99
+        }
+      }
+    },
+    "2818741b5c65b9e0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "fa9af91f-fd6e-4fa4-891a-c27f6564a106",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 433,
+      "total_deletions": 212,
+      "accepted_lines": 218,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/setup.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 210,
+          "deletions": 20,
+          "accepted_lines": 190
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 46,
+          "deletions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 32,
+          "deletions": 28,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 120,
+          "deletions": 113,
+          "accepted_lines": 118
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "2c9be225501a72c4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cccf89bc-072e-4f7e-9ebe-22322c488e58",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 27,
+      "total_deletions": 27,
+      "accepted_lines": 157,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/LoadingLogo.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/museSystemPrompt.test.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/webview/package.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/brandDevElectron.mjs": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "README.md": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/museSystemPrompt.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/desktop/package.json": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/syncWebview.mjs": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        }
+      }
+    },
+    "380f3371c4740115": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "70327423-ac50-4bcc-b5b3-cd5ecffeb65d",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 736,
+      "total_deletions": 228,
+      "accepted_lines": 1,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/newSessionPage.desktop.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/welcomeView.test.tsx": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/components/chat/welcomeWallpapers.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/components/chat/welcomePrompts.ts": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 271,
+          "deletions": 32,
+          "accepted_lines": 239
+        },
+        "packages/webview/tests/webview/clearChat.test.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/e2e/demo/product-spec-ui-basic.demo.ts": {
+          "additions": 10,
+          "deletions": 14,
+          "accepted_lines": 10
+        },
+        "docs/superpowers/specs/2026-09-01-welcome-view-design.md": {
+          "additions": 76,
+          "accepted_lines": 76
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 31,
+          "deletions": 18,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/png.d.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 40,
+          "deletions": 130,
+          "accepted_lines": 31
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/useWelcomeWallpaper.ts": {
+          "additions": 50,
+          "deletions": 20,
+          "accepted_lines": 30
+        },
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/welcomeWallpaper.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/basicMessageFlow.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/e2e/demo/desktop-sender-cat.demo.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 43,
+          "deletions": 6,
+          "accepted_lines": 40
+        }
+      }
+    },
+    "442440ce7046c502": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a28b352b-4e24-43cd-b344-45db0e87ff16",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 21,
+      "total_deletions": 9,
+      "accepted_lines": 581,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DiffViewer.css": {
+          "additions": 3,
+          "deletions": 2,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/UserMessageNav.css": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        }
+      }
+    },
+    "45e5fa4bf78099d3": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bf54800a-4d7a-41b9-8213-559009f777ad",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 253,
+      "total_deletions": 68,
+      "accepted_lines": 60,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/SessionTree.tsx": {
+          "additions": 33,
+          "deletions": 12,
+          "accepted_lines": 33
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 64,
+          "deletions": 9,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/components/DesktopWorkdirSelector.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 13,
+          "deletions": 14,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/components/DesktopWorktreeControls.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 9,
+          "deletions": 19,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/MessageList.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 9,
+          "deletions": 8,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    },
+    "4ca056b3b481a28a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "18c29bc0-0fe6-4d5a-8c7d-aa7557372b92",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 135,
+      "total_deletions": 47,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/localFileMention.ts": {
+          "additions": 30,
+          "deletions": 4,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/muse/localFileMention.test.ts": {
+          "additions": 24,
+          "deletions": 3,
+          "accepted_lines": 21
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 43,
+          "deletions": 38,
+          "accepted_lines": 43
+        },
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        }
+      }
+    },
+    "4f59b11387b272ed": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "31079581-963c-486c-b728-05da99c94376",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 90,
+      "accepted_lines": 12,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 22,
+          "deletions": 3,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 2,
+          "deletions": 18,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 6,
+          "deletions": 25,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 4,
+          "deletions": 26,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 39,
+          "deletions": 17,
+          "accepted_lines": 39
+        }
+      }
+    },
+    "521b2692a64fa310": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "99bbf081-8908-4ccd-9698-3659f3766198",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 762,
+      "total_deletions": 184,
+      "accepted_lines": 153,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/MoreMenu.tsx": {
+          "deletions": 17
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 288,
+          "accepted_lines": 288
+        },
+        "packages/webview/src/components/DesktopShell.tsx": {
+          "deletions": 3
+        },
+        "packages/webview/package.json": {
+          "additions": 9,
+          "deletions": 12,
+          "accepted_lines": 9
+        },
+        "packages/webview/vitest.config.ts": {
+          "additions": 6,
+          "deletions": 9,
+          "accepted_lines": 6
+        },
+        "packages/webview/scripts/syncTargets.mjs": {
+          "additions": 5,
+          "deletions": 48,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatHeader.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 158,
+          "accepted_lines": 158
+        },
+        "packages/webview/tests/setup.ts": {
+          "deletions": 68
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 10
+        },
+        "packages/webview/src/components/WelcomeView.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 96,
+          "deletions": 6,
+          "accepted_lines": 90
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "additions": 82,
+          "accepted_lines": 82
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 30,
+          "deletions": 3,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 1
+        }
+      }
+    },
+    "55d1a0f89a854e75": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f0a8885f-9367-49dc-ba42-7cd7e1450b59",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 61,
+      "accepted_lines": 15,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 19,
+          "deletions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 20,
+          "deletions": 19,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 6,
+          "deletions": 16,
+          "accepted_lines": 6
+        }
+      }
+    },
+    "5a70089eb4c41c3e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "09366152-44e1-46d6-800d-2091b6ec92e8",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 700,
+      "total_deletions": 20,
+      "accepted_lines": 298,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 83,
+          "deletions": 1,
+          "accepted_lines": 83
+        },
+        "packages/webview/src/components/issue/NewIssueDialog.tsx": {
+          "additions": 154,
+          "accepted_lines": 154
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 184,
+          "deletions": 19,
+          "accepted_lines": 183
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 135,
+          "accepted_lines": 135
+        },
+        "packages/webview/src/styles/NewIssueDialog.css": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 33,
+          "accepted_lines": 33
+        }
+      }
+    },
+    "638f44398af06345": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2d5a9eda-05cc-48f6-869a-3dde5917b3e7",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 233,
+      "total_deletions": 17,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "additions": 39,
+          "accepted_lines": 39
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/provider/src/paths.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/provider/src/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/sessionStore.ts": {
+          "additions": 175,
+          "deletions": 9,
+          "accepted_lines": 175
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        }
+      }
+    },
+    "6509ebc88c805931": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5298c527-2e17-4145-bc02-b22791dff419",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 231,
+      "total_deletions": 50,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/FileSuggestionDropdown.tsx": {
+          "additions": 58,
+          "deletions": 50,
+          "accepted_lines": 58
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/components/fileSuggestionDropdown.test.tsx": {
+          "additions": 100,
+          "accepted_lines": 100
+        }
+      }
+    },
+    "6ea3fadf6c48c73a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7729602-3b29-46d2-b8bf-b181d39dc1ca",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 403,
+      "total_deletions": 9,
+      "accepted_lines": 41,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatHeader.tsx": {
+          "deletions": 2
+        },
+        "packages/webview/src/components/MessageInput.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/museModelSelect.session.test.tsx": {
+          "additions": 122,
+          "accepted_lines": 122
+        },
+        "packages/webview/tests/webview/museModelSelect.session.test.tsx": {
+          "additions": 119
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/webview/tests/muse/apiClient.sessions.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 33,
+          "deletions": 1,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/components/MuseModelSelect.tsx": {
+          "additions": 22,
+          "deletions": 6,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        }
+      }
+    },
+    "6f22d3f34d880326": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9e9ceeff-fad9-461a-9d4c-12676b7db5e8",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 248,
+      "total_deletions": 4,
+      "accepted_lines": 19,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ConfigDialog.tsx": {
+          "additions": 38,
+          "deletions": 4,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/components/pluginSettings.test.tsx": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/PluginSettings.tsx": {
+          "additions": 83,
+          "accepted_lines": 83
+        }
+      }
+    },
+    "7309f11e88da7c9c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "62f35b5b-0b9d-4e3a-822d-9d6d98afb23d",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 128,
+      "total_deletions": 20,
+      "accepted_lines": 51,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/vitest.config.ts": {
+          "additions": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 35,
+          "deletions": 14,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "accepted_lines": 15
+        },
+        "packages/webview/src/muse/panelFit.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/webview/chatAppPanels.test.tsx": {
+          "additions": 64,
+          "deletions": 5,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 9
+        }
+      }
+    },
+    "88a56fc4f56a7376": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b4b7dbd-4f29-40a9-b587-9ffc092549c5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 32,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelFit.ts": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 59
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 11
+        }
+      }
+    },
+    "88b2909908d5ac36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c9abb29-87c7-4691-aa7a-1a73e8e1df1e",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 228,
+      "total_deletions": 0,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/scripts/reorganize-components.mjs": {
+          "additions": 228
+        }
+      }
+    },
+    "90fff2c6fb410c2b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a5e8d8d-aec8-408a-8ebb-bae797f5fc55",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 102,
+      "total_deletions": 1,
+      "accepted_lines": 99,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 73,
+          "accepted_lines": 73
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 29,
+          "deletions": 1,
+          "accepted_lines": 29
+        }
+      }
+    },
+    "9136e637ff5cbc66": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e642b1bc-7c2d-4b88-8fe4-146b90e14ac2",
+        "model": "gpt-5.6-terra-medium"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 67,
+      "total_deletions": 29,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/appearanceSettings.test.tsx": {
+          "additions": 20,
+          "deletions": 4,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/index.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 11,
+          "deletions": 14,
+          "accepted_lines": 11
+        },
+        "packages/desktop/src/main/window.ts": {
+          "deletions": 3
+        },
+        "packages/webview/src/components/AppearanceSettings.tsx": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/utils/theme.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/muse/themePreference.test.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/ConfigDialog.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "9189a3b1614d1eca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0edf2072-c6d5-442f-ac82-b7f613234d9e",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 0,
+      "accepted_lines": 215,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/package.json": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/desktop/tests/packaging.test.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        }
+      }
+    },
+    "9b08060a306bdaeb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "69e2ec89-f529-48a6-958c-ae80f360c5f2",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 3,
+      "accepted_lines": 48,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "9b4a73ec6d8222b9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2e25434e-6d29-4dfc-8129-5dfaa4fc747a",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 129,
+      "total_deletions": 39,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/vitest.config.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 26,
+          "deletions": 30,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 102,
+          "deletions": 9,
+          "accepted_lines": 93
+        }
+      }
+    },
     "b269e5c36bd23fae": {
       "agent_id": {
         "tool": "cursor",
@@ -40,72 +1299,503 @@ packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
       },
       "human_author": "刘宇阳",
       "messages": [],
-      "total_additions": 471,
-      "total_deletions": 68,
-      "accepted_lines": 467,
+      "total_additions": 472,
+      "total_deletions": 69,
+      "accepted_lines": 868,
       "overriden_lines": 0,
       "per_file_stats": {
-        "packages/webview/src/muse/hostBridge/session.ts": {
-          "additions": 2,
-          "accepted_lines": 2
-        },
-        "packages/server/src/routes/sessions.ts": {
-          "additions": 2,
-          "accepted_lines": 2
-        },
-        "packages/server/tests/sessions.routes.test.ts": {
-          "additions": 1,
-          "accepted_lines": 1
-        },
-        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
-          "additions": 47,
-          "deletions": 5,
-          "accepted_lines": 47
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
         },
         "packages/webview/src/muse/hostBridge/ctx.ts": {
           "additions": 2,
           "accepted_lines": 2
-        },
-        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
-          "additions": 33,
-          "deletions": 5,
-          "accepted_lines": 33
-        },
-        "packages/webview/src/components/ChatApp.tsx": {
-          "additions": 2,
-          "deletions": 1,
-          "accepted_lines": 2
-        },
-        "packages/webview/src/styles/OpenPlanningDialog.css": {
-          "additions": 79,
-          "accepted_lines": 79
         },
         "packages/webview/src/components/session/SessionTree.tsx": {
           "additions": 64,
           "deletions": 48,
           "accepted_lines": 64
         },
-        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
-          "additions": 33,
-          "accepted_lines": 33
-        },
-        "packages/webview/src/types/index.ts": {
-          "additions": 1,
-          "accepted_lines": 1
-        },
         "packages/webview/src/styles/DesktopApp.css": {
           "additions": 111,
           "deletions": 7,
           "accepted_lines": 109
         },
-        "packages/webview/src/muse/apiClient.ts": {
-          "additions": 1,
-          "accepted_lines": 1
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 79,
+          "accepted_lines": 79
         },
         "packages/webview/src/components/issue/IssueChecklistCard.tsx": {
           "additions": 93,
           "deletions": 2,
           "accepted_lines": 91
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 47,
+          "deletions": 5,
+          "accepted_lines": 47
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 33,
+          "deletions": 5,
+          "accepted_lines": 33
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "b6463d3ed5f2e935": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "eb777c39-6eb8-49b2-a3e4-83d20e5c1d07",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1042,
+      "total_deletions": 80,
+      "accepted_lines": 12,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 109,
+          "accepted_lines": 109
+        },
+        "packages/server/src/app.ts": {
+          "additions": 59,
+          "deletions": 1,
+          "accepted_lines": 59
+        },
+        "packages/server/src/createAppContext.ts": {
+          "additions": 39,
+          "deletions": 1,
+          "accepted_lines": 39
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 263,
+          "deletions": 22,
+          "accepted_lines": 241
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 402,
+          "deletions": 54,
+          "accepted_lines": 348
+        },
+        "packages/server/src/sessionStore.ts": {
+          "additions": 60,
+          "accepted_lines": 60
+        },
+        "packages/server/src/wsHub.ts": {
+          "additions": 104,
+          "accepted_lines": 104
+        },
+        "packages/server/tests/providers.routes.test.ts": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        }
+      }
+    },
+    "c4bebde8d75da52f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "25569d39-fd89-4757-b14b-e0b00b53375e",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 326,
+      "total_deletions": 114,
+      "accepted_lines": 1,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/compactionHint.test.tsx": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 59,
+          "accepted_lines": 59
+        },
+        "packages/server/src/sessionRunner.ts": {
+          "additions": 13,
+          "deletions": 2,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 34,
+          "deletions": 8,
+          "accepted_lines": 34
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 190,
+          "deletions": 104,
+          "accepted_lines": 190
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "d7c2ca3fea897e81": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "757d87bd-2053-4d08-816f-35ef9f43b725",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 262,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/wsHub.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "accepted_lines": 12
+        }
+      }
+    },
+    "d7d6cce062073fd7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "96b5cb27-a53f-4529-9164-a2426ef88b26",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 50,
+      "total_deletions": 9,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 15,
+          "deletions": 3,
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 35,
+          "deletions": 6,
+          "accepted_lines": 29
+        }
+      }
+    },
+    "da6c8508b7b36329": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "fc0cee68-5783-46c1-8e4f-42fd49bbe0d3",
+        "model": "cursor-grok-4.6-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 586,
+      "total_deletions": 12,
+      "accepted_lines": 470,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 292,
+          "accepted_lines": 292
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 116,
+          "deletions": 5,
+          "accepted_lines": 115
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 66,
+          "accepted_lines": 66
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "db26196a999da47a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd883e26-4fd3-4807-ac3f-000ec9d48ea7",
+        "model": "grok-4.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 315,
+      "total_deletions": 70,
+      "accepted_lines": 695,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/desktop/tests/quitGate.test.ts": {
+          "additions": 82,
+          "deletions": 1,
+          "accepted_lines": 82
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 58,
+          "deletions": 15,
+          "accepted_lines": 54
+        },
+        "packages/desktop/src/main/quitGate.ts": {
+          "additions": 77,
+          "deletions": 11,
+          "accepted_lines": 77
+        },
+        "packages/desktop/src/main/index.ts": {
+          "additions": 90,
+          "deletions": 43,
+          "accepted_lines": 71
+        }
+      }
+    },
+    "e0ddf8eef7033308": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3e8d117e-d3a9-478a-ac61-b172ac362f08",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 174,
+      "total_deletions": 8,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/apiClient.agents.test.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/agentSelector.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/issues.ts": {
+          "additions": 102,
+          "deletions": 1,
+          "accepted_lines": 101
+        },
+        "packages/server/src/services/agentConfig.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/agentConfig.test.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/server/tests/issues.routes.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/agents.routes.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e2bc06d133f005d0": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7b5e1772-51f7-423c-aaa7-6af4553f8c51",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 108,
+      "total_deletions": 6,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/ui/themeStorage.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/themeStorage.test.ts": {
+          "additions": 72,
+          "accepted_lines": 72
+        }
+      }
+    },
+    "fe6ca29c2149abcf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "958b79b3-c99a-45ee-8fc8-dd6cadaed225",
+        "model": "cursor-grok-4.5-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 752,
+      "total_deletions": 46,
+      "accepted_lines": 57,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 222,
+          "deletions": 15,
+          "accepted_lines": 222
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 60,
+          "deletions": 2,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/muse/hostBridge.ts": {
+          "additions": 331,
+          "deletions": 29,
+          "accepted_lines": 331
+        },
+        "packages/webview/tests/muse/apiClient.sessions.test.ts": {
+          "additions": 133,
+          "accepted_lines": 133
+        }
+      }
+    },
+    "fea6bea41442f9f2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7503fb65-4391-4483-8993-8b0d453617f0",
+        "model": "cursor-grok-4.6-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 162,
+      "total_deletions": 18,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/issueDispatch.ts": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/issueDispatch.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
         }
       }
     }
