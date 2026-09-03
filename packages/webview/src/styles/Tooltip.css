@@ -35,6 +35,14 @@
   padding: var(--space-2) var(--space-3);
 }
 
+.tooltip-box--interactive {
+  pointer-events: auto;
+}
+
+.tooltip-box--card.tooltip-box--interactive {
+  overflow: hidden;
+}
+
 .tooltip-box.visible {
   opacity: 1;
   visibility: visible;

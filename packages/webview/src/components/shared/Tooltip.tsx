@@ -5,8 +5,11 @@ import React, {
   ReactNode,
   useRef,
   useCallback,
+  useEffect,
 } from "react";
 import "../../styles/Tooltip.css";
+
+const INTERACTIVE_HIDE_MS = 160;
 
 interface TooltipProps {
   text: string;
@@ -49,6 +52,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const id = useId();
   const containerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Card tooltips are hoverable (scroll/select). Plain text tips stay
+  // pointer-events: none and hide immediately on leave.
+  const interactive = Boolean(content);
 
   const calculatePosition = useCallback(() => {
     if (!containerRef.current || !tooltipRef.current) return;
@@ -115,25 +122,47 @@ export const Tooltip: React.FC<TooltipProps> = ({
     setTooltipStyle({ left, top });
   }, [position, offset]);
 
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const handleShow = useCallback(() => {
+    clearHideTimer();
+    setIsVisible(true);
+    requestAnimationFrame(calculatePosition);
+  }, [calculatePosition, clearHideTimer]);
+
+  const handleHide = useCallback(() => {
+    if (!interactive) {
+      setIsVisible(false);
+      return;
+    }
+    clearHideTimer();
+    hideTimerRef.current = setTimeout(() => {
+      hideTimerRef.current = null;
+      setIsVisible(false);
+    }, INTERACTIVE_HIDE_MS);
+  }, [clearHideTimer, interactive]);
+
+  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+
   // When disabled, render children without tooltip wrapper
   if (disabled) {
     return children;
   }
-
-  const handleShow = () => {
-    setIsVisible(true);
-    // Calculate position after tooltip is rendered
-    requestAnimationFrame(calculatePosition);
-  };
-  const handleHide = () => setIsVisible(false);
 
   const box = (
     <div
       id={id}
       role="tooltip"
       ref={tooltipRef}
-      className={`tooltip-box tooltip-${position} ${content ? "tooltip-box--card" : ""} ${isVisible ? "visible" : ""}`}
+      className={`tooltip-box tooltip-${position}${content ? " tooltip-box--card" : ""}${interactive ? " tooltip-box--interactive" : ""}${isVisible ? " visible" : ""}`}
       style={tooltipStyle}
+      onMouseEnter={interactive ? handleShow : undefined}
+      onMouseLeave={interactive ? handleHide : undefined}
     >
       {content ?? text}
     </div>

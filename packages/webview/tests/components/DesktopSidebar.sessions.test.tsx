@@ -715,6 +715,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
 
     fireEvent.mouseEnter(row);
     expect(checklist.closest(".tooltip-box")).toHaveClass("visible");
+    fireEvent.mouseLeave(row);
+    fireEvent.mouseEnter(checklist.closest(".tooltip-box")!);
+    expect(checklist.closest(".tooltip-box")).toHaveClass("visible");
     expect(checklist).toHaveTextContent("设计评审");
     expect(checklist).toHaveTextContent("评审登录方案");
     expect(checklist).toHaveTextContent("待规划");
@@ -722,6 +725,13 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(checklist).toHaveTextContent("改登录");
     expect(checklist.querySelector(".issue-checklist-card-item-done")).toHaveTextContent(
       "写方案",
+    );
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/DesktopApp.css"),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /\.issue-checklist-card\s*\{[^}]*max-height:\s*min\(52vh,\s*360px\)/s,
     );
   });
 

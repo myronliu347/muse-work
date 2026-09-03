@@ -260,4 +260,20 @@ describe("Tooltip Component", () => {
       expect(tooltip.style.top).toBe("48px");
     });
   });
+
+  it("keeps a card tooltip open when the pointer moves onto the box", async () => {
+    render(
+      <Tooltip text="" content={<span>清单</span>} position="right" wrap={false}>
+        <button type="button">issue</button>
+      </Tooltip>,
+    );
+    const trigger = screen.getByRole("button", { name: "issue" });
+    fireEvent.mouseEnter(trigger);
+    const box = document.querySelector(".tooltip-box") as HTMLElement;
+    expect(box).toHaveClass("visible");
+    expect(box).toHaveClass("tooltip-box--interactive");
+    fireEvent.mouseLeave(trigger);
+    fireEvent.mouseEnter(box);
+    expect(box).toHaveClass("visible");
+  });
 });
