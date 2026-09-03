@@ -116,7 +116,6 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
   onOpenMatch,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [selectedPath, setSelectedPath] = useState<string | undefined>();
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
 
   const matchCount = state.results.reduce((n, f) => n + f.matches.length, 0);
@@ -124,9 +123,6 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
   const expanded = new Set(state.expandedFiles);
 
   const tree = useMemo(() => buildSearchTree(state.results), [state.results]);
-
-  const selectedFile =
-    state.results.find((f) => f.path === selectedPath) ?? state.results[0];
 
   const toggleExpanded = (rel: string) => {
     const next = new Set(state.expandedFiles);
@@ -188,25 +184,37 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
     depth: number,
   ): React.ReactNode => {
     const name = file.relativePath.split("/").pop() || file.relativePath;
-    const selected = selectedFile?.path === file.path;
+    const open = expanded.has(file.relativePath);
     return (
-      <button
-        key={file.path}
-        type="button"
-        className={`file-content-search-tree-row${
-          selected ? " file-content-search-tree-row--selected" : ""
-        }`}
-        style={{ paddingLeft: 4 + depth * 12 }}
-        data-testid={`content-search-tree-file-${file.relativePath}`}
-        onClick={() => setSelectedPath(file.path)}
-      >
-        <span className="file-tree-chevron-slot" aria-hidden />
-        <FileIcon name={name} className="file-tree-icon" />
-        <span className="file-content-search-tree-name">{name}</span>
-        <span className="file-content-search-file-count">
-          ({file.matches.length})
-        </span>
-      </button>
+      <div key={file.path}>
+        <button
+          type="button"
+          className="file-content-search-tree-row"
+          style={{ paddingLeft: 4 + depth * 12 }}
+          data-testid={`content-search-tree-file-${file.relativePath}`}
+          onClick={() => toggleExpanded(file.relativePath)}
+        >
+          <i
+            className={`codicon ${
+              open ? "codicon-chevron-down" : "codicon-chevron-right"
+            } file-tree-chevron`}
+            aria-hidden
+          />
+          <FileIcon name={name} className="file-tree-icon" />
+          <span className="file-content-search-tree-name">{name}</span>
+          <span className="file-content-search-file-count">
+            ({file.matches.length})
+          </span>
+        </button>
+        {open && (
+          <div
+            className="file-content-search-tree-matches"
+            style={{ paddingLeft: 4 + (depth + 1) * 12 }}
+          >
+            {renderMatches(file)}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -357,37 +365,15 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
           })}
         </div>
       ) : (
-        <div className="file-content-search-split" data-testid="content-search-tree-panel">
-          <div className="file-content-search-detail">
-            {selectedFile ? (
-              <>
-                <div className="file-content-search-detail-header">
-                  <FileIcon
-                    name={selectedFile.relativePath.split("/").pop() || selectedFile.relativePath}
-                    className="file-tree-icon"
-                  />
-                  <span className="file-content-search-file-path">
-                    {selectedFile.relativePath}
-                  </span>
-                  <span className="file-content-search-file-count">
-                    ({selectedFile.matches.length})
-                  </span>
-                </div>
-                <div className="file-content-search-results">
-                  {renderMatches(selectedFile)}
-                </div>
-              </>
-            ) : (
-              <div className="file-tree-empty">无匹配</div>
-            )}
-          </div>
-          <div className="file-content-search-tree">
-            {tree.map((node) =>
-              node.kind === "dir"
-                ? renderTreeDir(node, 0)
-                : renderTreeFile(node.file, 0),
-            )}
-          </div>
+        <div
+          className="file-content-search-tree"
+          data-testid="content-search-tree-panel"
+        >
+          {tree.map((node) =>
+            node.kind === "dir"
+              ? renderTreeDir(node, 0)
+              : renderTreeFile(node.file, 0),
+          )}
         </div>
       )}
     </div>

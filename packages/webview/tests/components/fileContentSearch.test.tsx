@@ -93,7 +93,7 @@ describe("FileContentSearch", () => {
     expect(screen.queryByTestId("content-search-tree-panel")).not.toBeInTheDocument();
   });
 
-  it("switches to tree view: right tree + left matches of first file", () => {
+  it("switches to tree view: folders then files in one list", () => {
     render(
       <FileContentSearch
         workdir="/w"
@@ -112,11 +112,9 @@ describe("FileContentSearch", () => {
       "aria-pressed",
       "true",
     );
-    // Right tree: dir node + file nodes.
     expect(screen.getByTestId("content-search-tree-dir-src")).toBeInTheDocument();
     expect(screen.getByTestId("content-search-tree-file-src/a.ts")).toBeInTheDocument();
-    // Left: first file's matches by default.
-    expect(screen.getByTestId("content-search-match-src/a.ts-3")).toBeInTheDocument();
+    expect(screen.queryByTestId("content-search-match-src/a.ts-3")).not.toBeInTheDocument();
   });
 
   it("collapses and expands directory nodes in tree view", () => {
@@ -137,28 +135,29 @@ describe("FileContentSearch", () => {
     expect(screen.getByTestId("content-search-tree-file-src/a.ts")).toBeInTheDocument();
   });
 
-  it("switches the left detail when clicking a tree file node", () => {
+  it("expands a tree file in place to show matches", () => {
+    const onStateChange = vi.fn();
     render(
       <FileContentSearch
         workdir="/w"
         state={treeState()}
-        onStateChange={vi.fn()}
+        onStateChange={onStateChange}
         onOpenMatch={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByTestId("content-search-view-tree"));
-    expect(screen.getByTestId("content-search-match-src/a.ts-3")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("content-search-tree-file-README.md"));
-    expect(screen.getByTestId("content-search-match-README.md-1")).toBeInTheDocument();
-    expect(screen.queryByTestId("content-search-match-src/a.ts-3")).not.toBeInTheDocument();
+    expect(onStateChange).toHaveBeenCalledWith(
+      expect.objectContaining({ expandedFiles: ["README.md"] }),
+    );
   });
 
-  it("still opens matches from the left detail in tree view", () => {
+  it("opens a match line from an expanded tree file", () => {
     const onOpenMatch = vi.fn();
     render(
       <FileContentSearch
         workdir="/w"
-        state={treeState()}
+        state={{ ...treeState(), expandedFiles: ["src/a.ts"] }}
         onStateChange={vi.fn()}
         onOpenMatch={onOpenMatch}
       />,
