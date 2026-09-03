@@ -1,0 +1,66 @@
+packages/webview/src/reducers/chatReducer.ts
+  b269e5c36bd23fae 30-40,556-574
+packages/webview/tests/webview/userMessageDedupe.test.tsx
+  b269e5c36bd23fae 80-98
+packages/webview/tests/reducers/chatReducer.test.ts
+  b269e5c36bd23fae 87-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d4901014dcb65b54a6ea3eb6aee0bc61d9a2036c",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 207,
+      "total_deletions": 35,
+      "accepted_lines": 182,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/styles/Tooltip.css": {
+          "additions": 12,
+          "deletions": 4,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/userMessageDedupe.test.tsx": {
+          "additions": 38,
+          "deletions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 31
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "additions": 37,
+          "deletions": 8,
+          "accepted_lines": 37
+        }
+      }
+    }
+  }
+}
