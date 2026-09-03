@@ -1,0 +1,48 @@
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 880-882
+packages/webview/src/components/shared/Tooltip.tsx
+  b269e5c36bd23fae 8,12-13,55-58,125-136,138-151,162,164-165
+packages/webview/tests/webview/tooltip.test.tsx
+  b269e5c36bd23fae 263-278
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  b269e5c36bd23fae 718-720,729-735
+packages/webview/src/styles/Tooltip.css
+  b269e5c36bd23fae 38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7b2f1c8743e8a8905fbadba64f107a4e03c8f43b",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 75,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/Tooltip.css": {
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "accepted_lines": 37
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
