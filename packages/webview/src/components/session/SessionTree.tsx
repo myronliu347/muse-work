@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
+import { IssueChecklistCard } from "../issue/IssueChecklistCard";
 import { formatRelativeActiveAt } from "../../utils/time";
 import type {
   DesktopSessionGroup,
@@ -621,62 +622,77 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                     className="issue-sidebar-group"
                     data-testid={`desktop-session-issue-group-${group.issueId}`}
                   >
-                    <div
-                      className="issue-sidebar-row"
-                      onClick={() => toggleIssueCollapsed(group.issueId)}
-                      data-testid={`desktop-session-issue-row-${group.issueId}`}
-                    >
-                      <span
-                        className="desktop-session-workdir-icon-slot"
-                        aria-hidden="true"
-                      >
-                        <span className="codicon codicon-tasklist desktop-session-workdir-folder" />
-                        <span
-                          className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                    <Tooltip
+                      text=""
+                      content={
+                        <IssueChecklistCard
+                          issueId={group.issueId}
+                          title={group.title}
+                          description={group.description}
+                          status={group.status}
+                          items={group.items ?? []}
                         />
-                      </span>
-                      <span
-                        className="issue-sidebar-title"
-                        title={group.title}
+                      }
+                      position="right"
+                      wrap={false}
+                    >
+                      <div
+                        className="issue-sidebar-row"
+                        onClick={() => toggleIssueCollapsed(group.issueId)}
+                        data-testid={`desktop-session-issue-row-${group.issueId}`}
                       >
-                        {group.title}
-                      </span>
-                      <span className="issue-sidebar-meta">
-                        {statusLabel ? (
-                          <span
-                            className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
-                          >
-                            {statusLabel}
-                          </span>
-                        ) : null}
                         <span
-                          className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
+                          className="desktop-session-workdir-icon-slot"
+                          aria-hidden="true"
                         >
-                          {priority.toUpperCase()}
+                          <span className="codicon codicon-tasklist desktop-session-workdir-folder" />
+                          <span
+                            className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                          />
                         </span>
-                        {onCompleteIssue || onCancelIssue ? (
-                          <button
-                            type="button"
-                            className="desktop-session-workdir-add issue-sidebar-more"
-                            data-testid={`desktop-session-issue-more-${group.issueId}`}
-                            aria-label="更多"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIssueMenu({
-                                x: e.clientX,
-                                y: e.clientY,
-                                issueId: group.issueId,
-                              });
-                            }}
-                          >
+                        <span
+                          className="issue-sidebar-title"
+                          title={group.title}
+                        >
+                          {group.title}
+                        </span>
+                        <span className="issue-sidebar-meta">
+                          {statusLabel ? (
                             <span
-                              className="codicon codicon-ellipsis"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        ) : null}
-                      </span>
-                    </div>
+                              className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
+                            >
+                              {statusLabel}
+                            </span>
+                          ) : null}
+                          <span
+                            className={`issue-sidebar-priority issue-sidebar-priority-${priority}`}
+                          >
+                            {priority.toUpperCase()}
+                          </span>
+                          {onCompleteIssue || onCancelIssue ? (
+                            <button
+                              type="button"
+                              className="desktop-session-workdir-add issue-sidebar-more"
+                              data-testid={`desktop-session-issue-more-${group.issueId}`}
+                              aria-label="更多"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIssueMenu({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  issueId: group.issueId,
+                                });
+                              }}
+                            >
+                              <span
+                                className="codicon codicon-ellipsis"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          ) : null}
+                        </span>
+                      </div>
+                    </Tooltip>
                     <CollapsibleBody open={open && !collapsed}>
                       {sessions.length === 0 ? (
                         <div className="desktop-session-empty issue-sidebar-empty">

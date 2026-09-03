@@ -38,6 +38,7 @@ function issueGroup(
   return {
     issueId: "issue-1",
     title: "设计评审",
+    description: "评审登录方案",
     priority: "p1",
     status: "pending",
     items: [
@@ -661,11 +662,12 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
     expect(
-      screen.queryByTestId("desktop-session-issue-checklist-issue-1"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("desktop-session-issue-group-issue-1"),
+      screen.getByTestId("desktop-session-issue-row-issue-1"),
     ).not.toHaveTextContent("写方案");
+    const checklist = screen.getByTestId(
+      "desktop-session-issue-checklist-issue-1",
+    );
+    expect(checklist.closest(".tooltip-box")).not.toHaveClass("visible");
 
     const tree = screen.getByTestId("desktop-session-tree");
     const pinIdx = tree.innerHTML.indexOf(
@@ -681,12 +683,18 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(issuesIdx).toBeLessThan(tasksIdx);
   });
 
-  it("overlays issue status/more on hover so the title does not reflow", () => {
+  it("keeps the issue title on one line and overlays status/more on hover", () => {
     const css = fs.readFileSync(
       path.join(__dirname, "../../src/styles/DesktopApp.css"),
       "utf8",
     );
     expect(css).toMatch(
+      /\.issue-sidebar-title\s*\{[^}]*white-space:\s*nowrap/s,
+    );
+    expect(css).toMatch(
+      /\.issue-sidebar-title\s*\{[^}]*text-overflow:\s*ellipsis/s,
+    );
+    expect(css).not.toMatch(
       /\.issue-sidebar-title\s*\{[^}]*-webkit-line-clamp:\s*2/s,
     );
     expect(css).toMatch(
@@ -694,6 +702,26 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
     expect(css).toMatch(
       /\.issue-sidebar-status\s*\{[^}]*display:\s*none/s,
+    );
+  });
+
+  it("shows the checklist in a right-side popover on issue row hover", () => {
+    renderSidebar({ issueGroups: [issueGroup()] });
+    const row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    const checklist = screen.getByTestId(
+      "desktop-session-issue-checklist-issue-1",
+    );
+    expect(checklist.closest(".tooltip-box")).not.toHaveClass("visible");
+
+    fireEvent.mouseEnter(row);
+    expect(checklist.closest(".tooltip-box")).toHaveClass("visible");
+    expect(checklist).toHaveTextContent("设计评审");
+    expect(checklist).toHaveTextContent("评审登录方案");
+    expect(checklist).toHaveTextContent("待规划");
+    expect(checklist).toHaveTextContent("写方案");
+    expect(checklist).toHaveTextContent("改登录");
+    expect(checklist.querySelector(".issue-checklist-card-item-done")).toHaveTextContent(
+      "写方案",
     );
   });
 

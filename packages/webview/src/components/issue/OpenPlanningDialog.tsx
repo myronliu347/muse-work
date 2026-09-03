@@ -27,6 +27,8 @@ export interface OpenPlanningDialogProps {
   postToHost: PostToHost;
   onOpened: (result: { sessionId: string; workdir: string }) => void;
   onCancel: () => void;
+  /** Recent project directories from the desktop host; click to fill workdir. */
+  recentWorkdirs?: string[];
   /** Injectable for tests; default uses `desktopPickDirectory` (15s timeout). */
   pickDirectory?: () => Promise<string | null>;
   /** Injectable for tests; default uses `desktopListGitBranches`. */
@@ -189,6 +191,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
   postToHost,
   onOpened,
   onCancel,
+  recentWorkdirs = [],
   pickDirectory,
   listBranches,
 }) => {
@@ -224,16 +227,19 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onCancel, submitting]);
 
+  const applyWorkdir = (path: string) => {
+    setWorkdir(path);
+    setBaseBranch("");
+    setGitBranches([]);
+    setError(null);
+  };
+
   const handlePick = async () => {
     setError(null);
     const pick = pickDirectory ?? (() => pickDirectoryViaHost(postToHost));
     const path = await pick();
     if (cancelledRef.current) return;
-    if (path) {
-      setWorkdir(path);
-      setBaseBranch("");
-      setGitBranches([]);
-    }
+    if (path) applyWorkdir(path);
   };
 
   useEffect(() => {
@@ -394,6 +400,42 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
               {workdir || "选择项目目录…"}
             </span>
           </button>
+          {recentWorkdirs.length > 0 ? (
+            <div
+              className="open-planning-recents"
+              data-testid="open-planning-recents"
+            >
+              <div className="open-planning-recents-label">最近打开</div>
+              <ul className="open-planning-recents-list">
+                {recentWorkdirs.map((dir) => {
+                  const segments = dir.split(/[\\/]/).filter(Boolean);
+                  const base = segments.pop() || dir;
+                  const selected = workdir === dir;
+                  return (
+                    <li key={dir}>
+                      <button
+                        type="button"
+                        className={`open-planning-recent-item${selected ? " is-selected" : ""}`}
+                        data-testid={`open-planning-recent-${dir}`}
+                        title={dir}
+                        disabled={submitting}
+                        onClick={() => applyWorkdir(dir)}
+                      >
+                        <span
+                          className="codicon codicon-folder"
+                          aria-hidden="true"
+                        />
+                        <span className="open-planning-recent-copy">
+                          <span className="open-planning-recent-name">{base}</span>
+                          <span className="open-planning-recent-path">{dir}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
         </div>
         <label className="open-planning-switch-row">
           <span className="open-planning-switch-copy">

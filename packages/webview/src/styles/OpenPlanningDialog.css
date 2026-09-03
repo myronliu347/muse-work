@@ -95,6 +95,85 @@
   color: var(--gray-10);
 }
 
+.open-planning-recents {
+  margin-top: var(--space-2);
+}
+
+.open-planning-recents-label {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-00);
+  font-weight: 500;
+  color: var(--gray-10);
+}
+
+.open-planning-recents-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.open-planning-recent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 4px var(--space-2);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-12);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.open-planning-recent-item:hover:not(:disabled) {
+  background: var(--gray-4);
+}
+
+.open-planning-recent-item.is-selected {
+  background: var(--accent-a2, var(--gray-4));
+}
+
+.open-planning-recent-item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.open-planning-recent-item .codicon {
+  flex-shrink: 0;
+  font-size: var(--font-size-1);
+  color: var(--gray-10);
+}
+
+.open-planning-recent-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.open-planning-recent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-1);
+}
+
+.open-planning-recent-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-00);
+  color: var(--gray-10);
+}
+
 .open-planning-workdir {
   flex: 1;
   min-width: 0;

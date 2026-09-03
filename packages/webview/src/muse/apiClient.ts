@@ -151,6 +151,7 @@ export interface MuseIssue {
 export interface MuseIssueGroup {
   issueId: string;
   title: string;
+  description?: string;
   priority: string;
   status: string;
   items: MuseChecklistItem[];

@@ -271,6 +271,7 @@ export interface DesktopSessionGroup {
 export interface DesktopIssueGroup {
   issueId: string;
   title: string;
+  description?: string;
   /** p0 | p1 | p2 */
   priority: string;
   status: string;

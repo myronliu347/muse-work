@@ -85,6 +85,7 @@ describe("sessions HTTP routes", () => {
       issueId: issue.id,
       title: "修登录",
       status: "planning",
+      description: "",
     });
     expect(grouped.issueGroups[0].sessions).toHaveLength(1);
     expect(grouped.issueGroups[0].sessions[0].id).toBe(sessionId);

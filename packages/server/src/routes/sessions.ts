@@ -26,6 +26,7 @@ sessionsRoutes.get("/sessions", (c) => {
     const toGroup = (issue: {
       id: string;
       title: string;
+      description?: string;
       priority: string;
       status: string;
       items: unknown;
@@ -44,6 +45,7 @@ sessionsRoutes.get("/sessions", (c) => {
       return {
         issueId: issue.id,
         title: issue.title,
+        description: issue.description ?? "",
         priority: issue.priority,
         status: issue.status,
         items: issue.items,

@@ -313,4 +313,37 @@ describe("OpenPlanningDialog", () => {
       /\.open-planning-pick\s*\{[^}]*height:\s*28px/s,
     );
   });
+
+  it("lets the user pick a recent workdir without browsing", async () => {
+    const api = mockApi();
+    const pickDirectory = vi.fn();
+
+    render(
+      <OpenPlanningDialog
+        issueId="issue-1"
+        api={api}
+        postToHost={vi.fn()}
+        recentWorkdirs={["/Users/me/proj-a", "/Users/me/proj-b"]}
+        pickDirectory={pickDirectory}
+        onOpened={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("open-planning-recents")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("open-planning-recent-/Users/me/proj-b"));
+    expect(pickDirectory).not.toHaveBeenCalled();
+    expect(screen.getByTestId("open-planning-workdir")).toHaveTextContent(
+      "/Users/me/proj-b",
+    );
+
+    fireEvent.click(screen.getByTestId("open-planning-submit"));
+    await waitFor(() => {
+      expect(api.openPlanningSession).toHaveBeenCalledWith("issue-1", {
+        workdir: "/Users/me/proj-b",
+        worktreeEnabled: false,
+        agentMode: "single",
+      });
+    });
+  });
 });

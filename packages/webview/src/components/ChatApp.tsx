@@ -822,6 +822,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
         issueId={planningIssueId}
         api={popoApi}
         postToHost={postToHost}
+        recentWorkdirs={host.recentWorkdirs}
         onCancel={() => setPlanningIssueId(null)}
         onOpened={({ sessionId, workdir }) => {
           setPlanningIssueId(null);
