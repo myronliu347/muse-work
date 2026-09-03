@@ -1,0 +1,191 @@
+packages/webview/src/components/settings/AgentManager.tsx
+  b269e5c36bd23fae 276,297-314,322-323,330-333,338-339,346-351,383,387-390,407,413,546-552
+packages/webview/src/styles/ConfigurationDialog.css
+  b269e5c36bd23fae 72-73,78-86,122,125-126,128-130,141-142,147,170
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  b269e5c36bd23fae 56-63,131-133,154,163,171,182,190,201,209,220,228,239,247,294-295
+packages/webview/tests/components/agentSettings.test.tsx
+  b269e5c36bd23fae 493,499
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  b269e5c36bd23fae 41-61,107-115
+packages/webview/src/styles/AgentManager.css
+  b269e5c36bd23fae 7-13,18,47-48,52-56,59-65,70-72,95,108-112,116-123,126,128-130,138-139,160-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1de6c3e9c73c5899947059fa331911a8e82ebf73",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1185,
+      "total_deletions": 537,
+      "accepted_lines": 1046,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/messageUtils.ts": {
+          "additions": 59,
+          "deletions": 49,
+          "accepted_lines": 48
+        },
+        "packages/webview/tests/webview/messageLinkRouting.test.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/panels/FileContentSearch.tsx": {
+          "additions": 34,
+          "deletions": 32,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 27,
+          "deletions": 16,
+          "accepted_lines": 27
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/quickOpenPalette.test.tsx": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/message/ToolError.tsx": {
+          "additions": 47,
+          "deletions": 27,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 51,
+          "deletions": 48,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "additions": 67,
+          "deletions": 42,
+          "accepted_lines": 51
+        },
+        "packages/desktop/tests/fileSearch.test.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "additions": 44,
+          "deletions": 21,
+          "accepted_lines": 44
+        },
+        "packages/webview/tests/muse/fileTabs.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/linkifyFilePaths.test.ts": {
+          "additions": 22,
+          "deletions": 5,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 24,
+          "deletions": 47,
+          "accepted_lines": 24
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 199,
+          "deletions": 8,
+          "accepted_lines": 199
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 62,
+          "deletions": 59,
+          "accepted_lines": 51
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 47,
+          "deletions": 59,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/components/message/FileToolHeader.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/e2e/demo/tool-error-scrollable.demo.ts": {
+          "additions": 9,
+          "deletions": 8,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/panels/QuickOpenPalette.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 28,
+          "deletions": 1,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 20,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 76,
+          "deletions": 27,
+          "accepted_lines": 70
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 23,
+          "deletions": 8,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/webview/tool-error-rendering.test.tsx": {
+          "additions": 66,
+          "deletions": 68,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/filePanelTabs.test.tsx": {
+          "additions": 48,
+          "deletions": 1,
+          "accepted_lines": 48
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/muse/fileTabs.ts": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/webview/filePathDisplay.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
