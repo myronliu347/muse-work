@@ -894,7 +894,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     // turnHadOutput/loadingSeen 等——否则上一轮收尾时的 onLoadingChange(false)
     // 或本 runTurn 的 setImmediate 回退会把这轮"入队中"的消息误判成空 turn，
     // 广播假的"模型没有产生输出"，进而导致 webview 重复渲染用户气泡。
-    if (agentLoading.get(sessionId) !== true) {
+    const queued = agentLoading.get(sessionId) === true;
+    if (!queued) {
       turnEnded.set(sessionId, false);
       turnHadOutput.set(sessionId, false);
       agentLoading.set(sessionId, false);
@@ -912,6 +913,25 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       images: images?.length ?? 0,
       source: source ?? "user",
     });
+
+    // turnSendDepth 挡住 onLoadingChange(false)→markIdle→onTurnSettled。
+    // 非排队回合必须在 ensureAgent 之前 +1：status 已是 running，上一轮残留的
+    // loading=false 会把 Issue 新 dispatch 的 inflight 误结掉，规划会话收到
+    // 重复的「来源：执行会话」。排队回合不能提前 +1，否则上一轮无法 settle。
+    let holdingSendDepth = false;
+    const holdSendDepth = () => {
+      if (holdingSendDepth) return;
+      turnSendDepth.set(sessionId, (turnSendDepth.get(sessionId) ?? 0) + 1);
+      holdingSendDepth = true;
+    };
+    const releaseSendDepth = () => {
+      if (!holdingSendDepth) return;
+      const remaining = (turnSendDepth.get(sessionId) ?? 1) - 1;
+      if (remaining <= 0) turnSendDepth.delete(sessionId);
+      else turnSendDepth.set(sessionId, remaining);
+      holdingSendDepth = false;
+    };
+    if (!queued) holdSendDepth();
 
     try {
       const agent = await ensureAgent(sessionId);
@@ -932,13 +952,11 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       // 系统注入消息包上标记：落盘 + 广播自然携带，webview 据此以独立样式渲染
       const finalContent =
         source === "system-inject" ? wrapSystemInject(contentWithSources) : contentWithSources;
-      turnSendDepth.set(sessionId, (turnSendDepth.get(sessionId) ?? 0) + 1);
+      if (queued) holdSendDepth();
       try {
         await agent.sendMessage(finalContent, images);
       } finally {
-        const remaining = (turnSendDepth.get(sessionId) ?? 1) - 1;
-        if (remaining <= 0) turnSendDepth.delete(sessionId);
-        else turnSendDepth.set(sessionId, remaining);
+        releaseSendDepth();
       }
       // loading=false during sendMessage was skipped (still in flight). If the
       // SDK already dropped loading for good, settle now that sendMessage returned.
@@ -995,7 +1013,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       }
       core.finishTurnError(sessionId, err);
     } finally {
-      // No server-side drain: the SDK serializes queued sends via its own queue.
+      releaseSendDepth();
     }
   }
 

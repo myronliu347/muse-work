@@ -505,6 +505,70 @@ describe("sessionRunner lifecycle", () => {
     expect(settled).toEqual([{ ok: true }]);
   });
 
+  it("does not settle a new turn on leftover loading=false during ensureAgent", async () => {
+    // After turn 1 idles, Issue planning may dispatch the same item again.
+    // runTurn sets status=running then awaits ensureAgent; a late loading=false
+    // from turn 1 must not onTurnSettled (that would re-inject the old exec report).
+    const { store, hub, registry, home } = setup();
+    const session = store.create({ workdir: "/tmp", model: "m1" });
+    store.select(session.id);
+
+    type Callbacks = { onLoadingChange?: (loading: boolean) => void };
+    let cbs: Callbacks | undefined;
+    let createCount = 0;
+    let disposeCount = 0;
+    let releaseEnsure: (() => void) | undefined;
+    const settled: Array<{ ok: boolean; error?: string }> = [];
+
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 40,
+      onTurnSettled: (_id, result) => {
+        settled.push(result);
+      },
+      createAgent: async (opts) => {
+        createCount += 1;
+        cbs = opts.callbacks as Callbacks;
+        if (createCount > 1) {
+          await new Promise<void>((resolve) => {
+            releaseEnsure = resolve;
+          });
+        }
+        return {
+          sendMessage: async () => {
+            cbs?.onLoadingChange?.(true);
+            cbs?.onLoadingChange?.(false);
+          },
+          dispose: async () => {
+            disposeCount += 1;
+          },
+          getMessages: () => [],
+        };
+      },
+    });
+
+    await runner.sendMessage(session.id, "first");
+    await expect.poll(() => settled.length).toBe(1);
+    await expect.poll(() => disposeCount).toBe(1);
+
+    const second = runner.sendMessage(session.id, "second");
+    await expect.poll(() => releaseEnsure).toBeTruthy();
+    await expect.poll(() => store.get(session.id)?.status).toBe("running");
+
+    cbs!.onLoadingChange?.(false);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(settled).toEqual([{ ok: true }]);
+    expect(store.get(session.id)?.status).toBe("running");
+
+    releaseEnsure?.();
+    await second;
+    await expect.poll(() => settled.length).toBe(2);
+    expect(settled).toEqual([{ ok: true }, { ok: true }]);
+  });
+
   it("broadcasts only file_history blocks (not the full transcript) when a turn ends", async () => {
     const { store, hub, registry, home } = setup();
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "fh-broadcast-"));
