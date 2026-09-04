@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+  DEFAULT_WAVE_USER_SETTINGS,
+  ensureDefaultWaveUserSettings,
   getWaveUserSettingsPath,
   readWaveUserSettingsText,
   WaveSettingsJsonError,
@@ -24,6 +26,20 @@ describe("waveAgentSettings", () => {
     const result = readWaveUserSettingsText(home);
     expect(result.path).toBe(getWaveUserSettingsPath(home));
     expect(JSON.parse(result.content)).toEqual({});
+  });
+
+  it("ensureDefaultWaveUserSettings writes defaults only when missing", () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "wave-settings-"));
+    ensureDefaultWaveUserSettings(home);
+    const file = getWaveUserSettingsPath(home);
+    expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual(
+      DEFAULT_WAVE_USER_SETTINGS,
+    );
+    fs.writeFileSync(file, '{"env":{"CUSTOM":"1"}}\n');
+    ensureDefaultWaveUserSettings(home);
+    expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual({
+      env: { CUSTOM: "1" },
+    });
   });
 
   it("writes valid JSON and re-reads it", () => {

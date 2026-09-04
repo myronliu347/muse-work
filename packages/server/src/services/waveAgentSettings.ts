@@ -1,13 +1,71 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getLogger } from "../utils/logger.js";
 
 /** User-scope Wave agent settings: `~/.wave/settings.json`. */
 export function getWaveUserSettingsPath(home = os.homedir()): string {
   return path.join(home, ".wave", "settings.json");
 }
 
+/** First-launch defaults when `~/.wave/settings.json` does not exist. */
+export const DEFAULT_WAVE_USER_SETTINGS = {
+  marketplaces: {
+    "wave-plugins-official": {
+      source: {
+        source: "github",
+        repo: "netease-lcap/wave-plugins-official",
+      },
+      autoUpdate: true,
+    },
+  },
+  env: {
+    WAVE_MAX_INPUT_TOKENS: "800000",
+    WAVE_VISION_MODEL: "kimi-k3",
+  },
+  models: {
+    "glm-5.2": {
+      capabilities: {
+        vision: false,
+      },
+    },
+    "kimi-k3": {},
+    "qwen3.8-max": {
+      capabilities: {
+        promptCaching: true,
+      },
+    },
+    "deepseek-v4-flash": {
+      capabilities: {
+        vision: false,
+      },
+      disableThinkingOptions: {
+        thinking: {
+          type: "disabled",
+        },
+      },
+    },
+  },
+} as const;
+
 const EMPTY_SETTINGS = "{}\n";
+
+/** 启动时若无 `~/.wave/settings.json` 则写入内置默认，已有文件不覆盖。 */
+export function ensureDefaultWaveUserSettings(home = os.homedir()): void {
+  const file = getWaveUserSettingsPath(home);
+  if (fs.existsSync(file)) return;
+  try {
+    writeWaveUserSettingsText(
+      JSON.stringify(DEFAULT_WAVE_USER_SETTINGS),
+      home,
+    );
+  } catch (err) {
+    getLogger().warn("failed to write default wave settings", {
+      file,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
 
 export class WaveSettingsJsonError extends Error {
   constructor(message: string) {

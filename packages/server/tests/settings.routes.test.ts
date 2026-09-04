@@ -5,7 +5,10 @@ import path from "node:path";
 import { createApp } from "../src/app.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
 import { getSettingsPath } from "../src/services/museSettings.js";
-import { getWaveUserSettingsPath } from "../src/services/waveAgentSettings.js";
+import {
+  DEFAULT_WAVE_USER_SETTINGS,
+  getWaveUserSettingsPath,
+} from "../src/services/waveAgentSettings.js";
 
 describe("settings routes", () => {
   let server: Server | undefined;
@@ -49,7 +52,7 @@ describe("settings routes", () => {
     expect(empty.status).toBe(200);
     const emptyBody = (await empty.json()) as { path: string; content: string };
     expect(emptyBody.path).toBe(getWaveUserSettingsPath(app.home));
-    expect(JSON.parse(emptyBody.content)).toEqual({});
+    expect(JSON.parse(emptyBody.content)).toEqual(DEFAULT_WAVE_USER_SETTINGS);
 
     const put = await fetch(`${app.baseUrl}/settings/raw`, {
       method: "PUT",
