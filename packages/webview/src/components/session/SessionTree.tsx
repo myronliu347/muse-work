@@ -572,10 +572,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   const renderIssuesSection = () => {
     const open = !collapsedSections.has("issues");
     const groups = issueGroups ?? [];
-    const count = groups.reduce(
-      (sum, g) => sum + (g.sessions?.length ?? 0),
-      0,
-    );
+    const count = groups.length;
     return (
       <div
         className="desktop-session-section"

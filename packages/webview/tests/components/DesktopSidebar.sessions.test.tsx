@@ -683,6 +683,25 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(issuesIdx).toBeLessThan(tasksIdx);
   });
 
+  it("counts 待办事项 by Issue group, not nested sessions", () => {
+    renderSidebar({
+      issueGroups: [
+        issueGroup({ issueId: "a", title: "Issue A" }),
+        issueGroup({
+          issueId: "b",
+          title: "Issue B",
+          sessions: [
+            entry({ sessionId: "p2", title: "B 规划" }),
+            entry({ sessionId: "e2", title: "B 执行" }),
+          ],
+        }),
+      ],
+    });
+    const section = screen.getByTestId("desktop-session-section-issues");
+    const count = section.querySelector(".desktop-session-count");
+    expect(count).toHaveTextContent("（2）");
+  });
+
   it("keeps the issue title on one line and overlays status/more on hover", () => {
     const css = fs.readFileSync(
       path.join(__dirname, "../../src/styles/DesktopApp.css"),
