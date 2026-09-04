@@ -1,0 +1,48 @@
+packages/server/src/services/waveAgentSettings.ts
+  b269e5c36bd23fae 4,11-50,53-68
+packages/server/src/services/appContext.ts
+  b269e5c36bd23fae 18,86
+packages/server/tests/settings.routes.test.ts
+  b269e5c36bd23fae 8-11,55
+packages/server/tests/waveAgentSettings.test.ts
+  b269e5c36bd23fae 6-7,31-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1d5c052642f48c40adf4e8f1c85024b6d9231728",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 2,
+      "accepted_lines": 81,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/waveAgentSettings.test.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/server/tests/settings.routes.test.ts": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/waveAgentSettings.ts": {
+          "additions": 58,
+          "accepted_lines": 58
+        }
+      }
+    }
+  }
+}
