@@ -1,0 +1,37 @@
+packages/server/src/services/sessionRunner/agent.ts
+  b269e5c36bd23fae 897-898,917-935,955,959,1016
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  b269e5c36bd23fae 508-571
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4ca19f0cbac9a5ed8938ebf25803664ff1c79b2d",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 103,
+      "total_deletions": 21,
+      "accepted_lines": 88,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 24,
+          "deletions": 6,
+          "accepted_lines": 24
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 79,
+          "deletions": 15,
+          "accepted_lines": 64
+        }
+      }
+    }
+  }
+}
