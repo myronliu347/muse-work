@@ -258,6 +258,60 @@ describe("popoAgent", () => {
     expect(waveSessionIds).toEqual([{ chatKey: "p2p:x", sessionId: "wave-1" }]);
   });
 
+  it("falls back to a new agent when restoreSessionId is missing on disk", async () => {
+    const restoreIds: Array<string | undefined> = [];
+    const waveSessionIds: string[] = [];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (opts) => {
+        restoreIds.push(opts.restoreSessionId);
+        if (opts.restoreSessionId === "2ad60df9-4710-4cf8-8d27-9a3e4829ed71") {
+          throw new Error(
+            "Session 2ad60df9-4710-4cf8-8d27-9a3e4829ed71 not found on disk",
+          );
+        }
+        return { ...stubAgent("新会话回复"), sessionId: "wave-fresh" };
+      },
+      onWaveSessionId: (_chatKey, sessionId) => {
+        waveSessionIds.push(sessionId);
+      },
+    });
+    const runner = await factory({
+      chatKey: "p2p:x",
+      type: "p2p",
+      waveSessionId: "2ad60df9-4710-4cf8-8d27-9a3e4829ed71",
+    });
+    expect(await runner.run("hello")).toBe("新会话回复");
+    expect(restoreIds).toEqual([
+      "2ad60df9-4710-4cf8-8d27-9a3e4829ed71",
+      undefined,
+    ]);
+    expect(waveSessionIds).toContain("wave-fresh");
+  });
+
+  it("team run also falls back when the persisted session jsonl is gone", async () => {
+    const restoreIds: Array<string | undefined> = [];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async (opts) => {
+        restoreIds.push(opts.restoreSessionId);
+        if (opts.restoreSessionId) {
+          throw new Error(`Session ${opts.restoreSessionId} not found on disk`);
+        }
+        return stubAgent("群聊回复");
+      },
+    });
+    const runner = await factory({
+      chatKey: "team:1",
+      type: "team",
+      waveSessionId: "missing-on-disk",
+    });
+    expect(await runner.run("hello")).toBe("群聊回复");
+    expect(restoreIds).toEqual(["missing-on-disk", undefined]);
+  });
+
   it("disallows the Workflow tool and forbids background tasks in the system prompt", async () => {
     let captured: Record<string, unknown> | undefined;
     const factory = createPopoAgentFactory({

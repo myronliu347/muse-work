@@ -146,7 +146,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const fastModel = agent.fastModel ?? resolved.fastModel ?? resolved.model;
     const popoDisallowed = [...POPO_DISALLOWED_TOOLS, ...permission.disallowedTools];
 
-    const sdkAgent = await (createAgent as CreateAgent)({
+    const agentOptions = {
       apiKey: resolved.apiKey,
       baseURL: resolved.baseURL,
       defaultHeaders: resolved.defaultHeaders,
@@ -154,8 +154,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       model: resolved.model,
       fastModel,
       workdir,
-      stream: true,
-      permissionMode: "bypassPermissions",
+      stream: true as const,
+      permissionMode: "bypassPermissions" as const,
       systemPrompt: buildSystemPrompt(agent),
       // Workflow 后台运行且结果通知本场景收不到，硬禁用；agent 的拒绝规则追加进去
       disallowedTools: popoDisallowed,
@@ -166,13 +166,25 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         home: options.home,
         sessionId: `popo-${sanitizeSessionId(chat.chatKey)}`,
       }),
-      ...(chat.waveSessionId ? { restoreSessionId: chat.waveSessionId } : {}),
       callbacks: {
         onSessionIdChange: (id: string) => {
           options.onWaveSessionId?.(chat.chatKey, id);
         },
       },
-    });
+    };
+    const restoreId = chat.waveSessionId;
+    let sdkAgent: SessionAgent;
+    try {
+      sdkAgent = await (createAgent as CreateAgent)({
+        ...agentOptions,
+        ...(restoreId ? { restoreSessionId: restoreId } : {}),
+      });
+    } catch (error) {
+      // Same as sessionRunner: stale waveSessionId / missing jsonl must not
+      // pin the chat forever. Drop restore and open a fresh SDK session.
+      if (!restoreId) throw error;
+      sdkAgent = await (createAgent as CreateAgent)(agentOptions);
+    }
     return { agent: sdkAgent, identity: gatewayIdentity(resolved) };
   }
 
