@@ -49,6 +49,16 @@ export function PopoUiProvider({
     void refreshChats().catch(() => undefined);
   }, [enabled, refreshChats]);
 
+  useEffect(() => {
+    if (!enabled) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.command !== "popo:changed") return;
+      void refreshChats().catch(() => undefined);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [enabled, refreshChats]);
+
   const anyProcessing = chats.some((c) => c.processing);
   useEffect(() => {
     if (!enabled || !anyProcessing) return;

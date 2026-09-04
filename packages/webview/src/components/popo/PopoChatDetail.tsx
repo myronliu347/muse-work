@@ -44,6 +44,15 @@ export const PopoChatDetail: React.FC<{
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.command !== "popo:changed") return;
+      void load();
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [load]);
+
   const processing = detail?.chat.processing ?? false;
 
   useEffect(() => {

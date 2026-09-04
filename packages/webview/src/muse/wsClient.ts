@@ -84,7 +84,8 @@ export type MuseWsEventPayload =
       mode: "acceptEdits" | "bypassPermissions";
     }
   | { type: "tokens:update"; latestTotalTokens: number }
-  | { type: "issue:changed" };
+  | { type: "issue:changed" }
+  | { type: "popo:changed" };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

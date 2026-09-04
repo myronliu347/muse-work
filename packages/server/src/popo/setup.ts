@@ -26,6 +26,8 @@ export type PopoRuntime = {
   configured: boolean;
   /** 删除侧栏会话时释放常驻 agent。 */
   disposeChat?: (chatKey: string) => Promise<void>;
+  /** 正在处理时读 agent 内存消息，供详情页展示思考/工具进度。 */
+  getLiveMessages?: (chatKey: string) => unknown[];
 };
 
 export function getLanIPv4(): string | undefined {
@@ -70,7 +72,12 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     };
   }
 
-  const chatStore = createChatStore({ home: ctx.home });
+  const chatStore = createChatStore({
+    home: ctx.home,
+    onChange: () => {
+      ctx.hub.broadcastAll({ type: "popo:changed" });
+    },
+  });
   const runtime: PopoRuntime = { config, chatStore, callbackPort, ready: false, url, workdir: popoWorkdir, configured: true };
 
   const tokenStore = createTokenStore({
@@ -89,6 +96,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     },
   });
   runtime.disposeChat = (chatKey) => agentFactory.disposeChat?.(chatKey) ?? Promise.resolve();
+  runtime.getLiveMessages = (chatKey) => agentFactory.getLiveMessages?.(chatKey) ?? [];
   const handler = createPopoHandler({ config, chatStore, sender, agentFactory, logger });
   const app = createCallbackApp({
     config,

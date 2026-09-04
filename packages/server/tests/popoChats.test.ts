@@ -33,6 +33,19 @@ describe("popo chatStore", () => {
     expect(chats.map((c) => c.chatKey)).toEqual(["p2p:b@corp.netease.com", "team:1"]);
   });
 
+  it("notifies onChange when a new chat is created, not when it already exists", () => {
+    const home = tempHome();
+    const changes: string[] = [];
+    const store = createChatStore({
+      home,
+      onChange: () => changes.push("change"),
+    });
+    store.getOrCreateChat("team:new", "team", "群 new");
+    expect(changes).toHaveLength(1);
+    store.getOrCreateChat("team:new", "team", "群 new");
+    expect(changes).toHaveLength(1);
+  });
+
   it("setProcessing persists across reload", () => {
     const home = tempHome();
     const store = createChatStore({ home });

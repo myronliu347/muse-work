@@ -41,6 +41,8 @@ export interface ChatStore {
 export type ChatStoreOptions = {
   home: string;
   maxMessages?: number;
+  /** Fired after a mutation is persisted (new chat, message, delete, …). */
+  onChange?: () => void;
 };
 
 const DEFAULT_MAX_MESSAGES = 200;
@@ -73,6 +75,7 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
       "utf8",
     );
     fs.renameSync(tmp, file);
+    options.onChange?.();
   }
 
   load();
