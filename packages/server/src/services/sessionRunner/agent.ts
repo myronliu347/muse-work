@@ -363,7 +363,12 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
               });
             }
           } else {
-            core.reportEmptyTurnIfNeeded(sessionId);
+            // sendMessage still in flight: SDK often drops loading before the
+            // first reasoning token. Reporting empty here pins a false
+            // "模型没有产生输出" above 思考中...
+            if ((turnSendDepth.get(sessionId) ?? 0) === 0) {
+              core.reportEmptyTurnIfNeeded(sessionId);
+            }
             // Push only the turn's file_history blocks so the webview's card
             // renders right after the turn — delta events carry text/tool
             // chunks but never the file_history block, and re-sending the whole
@@ -943,6 +948,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         agentLoading.get(sessionId) !== true &&
         loadingSeen.get(sessionId)
       ) {
+        core.reportEmptyTurnIfNeeded(sessionId);
         if (!turnEnded.get(sessionId)) {
           hub.broadcast(sessionId, { type: "message:completed" });
         }

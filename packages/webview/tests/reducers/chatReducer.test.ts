@@ -904,6 +904,33 @@ describe("chatReducer", () => {
 
       expect(newState.messages[0].blocks).toEqual([toolBlock]);
     });
+
+    it("drops a standalone empty-turn bubble when a real assistant message arrives", () => {
+      const user: Message = {
+        id: "u1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "hi", stage: "end" }],
+      };
+      const emptyTurn: Message = {
+        id: "err-1",
+        role: "assistant",
+        timestamp: "1",
+        blocks: [{ type: "error", content: "模型没有产生输出" }],
+      };
+      const state = { ...initialState, messages: [user, emptyTurn] };
+      const thinking: Message = {
+        id: "asst-1",
+        role: "assistant",
+        timestamp: "2",
+        blocks: [],
+      };
+      const next = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: thinking,
+      });
+      expect(next.messages.map((m) => m.id)).toEqual(["u1", "asst-1"]);
+    });
   });
 
   describe("Bang message flow", () => {

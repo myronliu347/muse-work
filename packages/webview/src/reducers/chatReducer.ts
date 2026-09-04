@@ -38,6 +38,16 @@ function userTextContent(message: Message): string | undefined {
   return text || undefined;
 }
 
+function isEmptyTurnErrorMessage(message: Message): boolean {
+  return (
+    message.role === "assistant" &&
+    message.blocks.length > 0 &&
+    message.blocks.every(
+      (b) => b.type === "error" && b.content === "模型没有产生输出",
+    )
+  );
+}
+
 function emptyAssistant(messageId: string): Message {
   return {
     id: messageId,
@@ -572,7 +582,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           }
         }
       }
-      const messages = [...state.messages, action.payload];
+      let messages = state.messages;
+      if (action.payload.role === "assistant") {
+        messages = messages.filter((m) => !isEmptyTurnErrorMessage(m));
+      }
+      messages = [...messages, action.payload];
       return {
         ...state,
         messages,

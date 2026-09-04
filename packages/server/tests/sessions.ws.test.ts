@@ -1400,6 +1400,79 @@ describe("sessions + websocket streaming", () => {
     expect(errorEvents).toEqual([]);
   });
 
+  it("does not report empty turn when loading flickers before first reasoning", async () => {
+    // First-token race: SDK drops loading after the user bubble, before any
+    // reasoning/text, while sendMessage is still in flight. That must not pin
+    // "模型没有产生输出" above 思考中...
+    let enteredSend!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enteredSend = resolve;
+    });
+    let cbs: {
+      onLoadingChange?: (loading: boolean) => void;
+      onAssistantReasoningUpdated?: (p: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => void;
+    } = {};
+    const createAgent: CreateAgent = async (opts) => {
+      cbs = opts.callbacks as typeof cbs;
+      return {
+        sendMessage: async () => {
+          cbs.onLoadingChange?.(true);
+          enteredSend();
+          await new Promise(() => undefined);
+        },
+        dispose: async () => {},
+      };
+    };
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const errorEvents: Array<{ type?: string; error?: string }> = [];
+    const origBroadcast = app.ctx.hub.broadcast.bind(app.ctx.hub);
+    app.ctx.hub.broadcast = (sessionId, event) => {
+      if (
+        (event as { type?: string }).type === "error:block" &&
+        (event as { error?: string }).error?.includes("没有产生输出")
+      ) {
+        errorEvents.push(event as { type?: string; error?: string });
+      }
+      return origBroadcast(sessionId, event);
+    };
+
+    const msgRes = await fetch(
+      `${app.baseUrl}/sessions/${session.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "移除内容校验" }),
+      },
+    );
+    expect(msgRes.status).toBe(200);
+    await entered;
+
+    cbs.onLoadingChange?.(false);
+    expect(errorEvents).toEqual([]);
+    cbs.onAssistantReasoningUpdated?.({
+      messageId: "m-think",
+      chunk: "parse the request",
+      stage: "streaming",
+    });
+    cbs.onLoadingChange?.(true);
+    expect(errorEvents).toEqual([]);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},
