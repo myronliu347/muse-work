@@ -107,6 +107,32 @@ describe("chatReducer", () => {
       expect(newState.messages[0].id).toBe("msg-real-uuid");
     });
 
+    it("aligns the optimistic bubble when the SDK echo is appended after it", () => {
+      // Host appendMessage already committed; user:message then APPEND_MESSAGE
+      // with a real id (router missed the bubble because stateRef lagged).
+      const optimistic: Message = {
+        id: "user_opt1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "/pm-api https://example.com 修一下" }],
+      };
+      const state = { ...initialState, messages: [optimistic] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-uuid",
+          role: "user",
+          timestamp: "1",
+          blocks: [{ type: "text", content: "/pm-api https://example.com 修一下" }],
+        },
+      });
+      expect(newState.messages).toHaveLength(1);
+      expect(newState.messages[0].id).toBe("msg-real-uuid");
+      expect(newState.messages[0].blocks).toEqual([
+        { type: "text", content: "/pm-api https://example.com 修一下" },
+      ]);
+    });
+
     it("still appends a second send of the same text after the first echo", () => {
       const first: Message = {
         id: "msg-real-1",

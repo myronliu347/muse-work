@@ -48,6 +48,13 @@ function isEmptyTurnErrorMessage(message: Message): boolean {
   );
 }
 
+function nearestUserIndex(messages: Message[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return i;
+  }
+  return -1;
+}
+
 function emptyAssistant(messageId: string): Message {
   return {
     id: messageId,
@@ -563,22 +570,35 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // / error / session switch, so a straggler delta for a message already in
       // the list would otherwise be re-appended (duplicate React key warning).
       if (state.messages.some((m) => m.id === action.payload.id)) return state;
-      // Fast-turn race: the SDK user:message echo can land before the host's
-      // optimistic appendMessage. Drop the late client bubble when the nearest
-      // user row already has the same text under a real SDK id.
-      if (
-        action.payload.role === "user" &&
-        isOptimisticUserId(action.payload.id)
-      ) {
+      // Fast-turn race: SDK echo and host optimistic bubble can land in either
+      // order (and the router may miss the bubble when stateRef lags). Same
+      // text + one optimistic id + one real id → keep a single row.
+      if (action.payload.role === "user") {
         const incoming = userTextContent(action.payload);
         if (incoming) {
-          for (let i = state.messages.length - 1; i >= 0; i--) {
-            const m = state.messages[i];
-            if (m.role !== "user") continue;
-            if (!isOptimisticUserId(m.id) && userTextContent(m) === incoming) {
-              return state;
+          const idx = nearestUserIndex(state.messages);
+          if (idx !== -1) {
+            const nearest = state.messages[idx];
+            if (userTextContent(nearest) === incoming) {
+              const incomingOpt = isOptimisticUserId(action.payload.id);
+              const nearestOpt = isOptimisticUserId(nearest.id);
+              if (incomingOpt && !nearestOpt) {
+                return state;
+              }
+              if (!incomingOpt && nearestOpt) {
+                const messages = state.messages.map((m, i) =>
+                  i === idx ? { ...m, id: action.payload.id } : m,
+                );
+                return {
+                  ...state,
+                  messages,
+                  currentSession: pinSessionTitle(
+                    state.currentSession,
+                    messages,
+                  ),
+                };
+              }
             }
-            break;
           }
         }
       }
