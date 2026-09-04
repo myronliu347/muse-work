@@ -1,0 +1,85 @@
+packages/webview/tests/components/popo/popoUi.test.tsx
+  b269e5c36bd23fae 1-68
+packages/webview/src/components/popo/PopoChatDetail.tsx
+  b269e5c36bd23fae 47-55
+packages/server/src/services/wsEvents.ts
+  b269e5c36bd23fae 110-111
+packages/server/tests/popoChats.test.ts
+  b269e5c36bd23fae 36-48
+packages/webview/tests/muse/hostBridge.test.ts
+  b269e5c36bd23fae 363-386
+packages/server/src/popo/chatStore.ts
+  b269e5c36bd23fae 44-45,78
+packages/webview/src/muse/hostBridge/index.ts
+  b269e5c36bd23fae 135-137
+packages/server/src/popo/setup.ts
+  b269e5c36bd23fae 29-30,75-80,99
+packages/webview/src/muse/wsClient.ts
+  b269e5c36bd23fae 87-88
+packages/webview/src/components/popo/popoUi.tsx
+  b269e5c36bd23fae 52-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e7e5bf584947845c1f21e97da489ae1441d1493e",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 231,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/popo/routes.ts": {
+          "accepted_lines": 14
+        },
+        "packages/server/tests/popoRoutes.test.ts": {
+          "accepted_lines": 30
+        },
+        "packages/server/src/popo/chatStore.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/popo/PopoChatDetail.tsx": {
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/popo/popoUi.tsx": {
+          "accepted_lines": 10
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/popo/popoUi.test.tsx": {
+          "accepted_lines": 68
+        },
+        "packages/server/src/popo/setup.ts": {
+          "accepted_lines": 9
+        },
+        "packages/server/tests/popoChats.test.ts": {
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "accepted_lines": 35
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "accepted_lines": 24
+        }
+      }
+    }
+  }
+}
