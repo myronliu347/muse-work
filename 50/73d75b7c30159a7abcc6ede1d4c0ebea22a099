@@ -1,0 +1,55 @@
+packages/server/src/popo/popoAgent.ts
+  b269e5c36bd23fae 149,157-158,174-187
+packages/server/tests/popoAgent.test.ts
+  b269e5c36bd23fae 261-314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5073d75b7c30159a7abcc6ede1d4c0ebea22a099",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 194,
+      "total_deletions": 8,
+      "accepted_lines": 193,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 17,
+          "deletions": 5,
+          "accepted_lines": 17
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 74,
+          "deletions": 1,
+          "accepted_lines": 73
+        }
+      }
+    }
+  }
+}
