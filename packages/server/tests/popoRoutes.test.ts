@@ -105,6 +105,36 @@ describe("popo routes", () => {
     ]);
   });
 
+  it("GET /popo/chats/:chatKey prefers in-flight agent messages over disk", async () => {
+    const rt = runtime();
+    rt.chatStore.setProcessing("p2p:master@corp.netease.com", true);
+    rt.getLiveMessages = () => [
+      {
+        id: "live-user",
+        role: "user",
+        blocks: [{ type: "text", content: "@锦鲤2号 分析日志" }],
+      },
+      {
+        id: "live-asst",
+        role: "assistant",
+        blocks: [
+          { type: "reasoning", content: "先下载沙箱日志" },
+          { type: "tool", name: "Bash", stage: "start" },
+        ],
+      },
+    ];
+    const app = createPopoRoutes(rt, {
+      loadSession: async () => ({
+        messages: [{ id: "stale", role: "user", blocks: [{ type: "text", content: "旧的" }] }],
+      }),
+    });
+    rt.chatStore.setWaveSessionId("p2p:master@corp.netease.com", "wave-stale");
+    const res = await app.fetch(new Request("http://x/popo/chats/p2p%3Amaster%40corp.netease.com"));
+    const body = (await res.json()) as { messages: Array<{ id: string; blocks: Array<{ type: string }> }> };
+    expect(body.messages.map((m) => m.id)).toEqual(["live-user", "live-asst"]);
+    expect(body.messages[1].blocks.map((b) => b.type)).toEqual(["reasoning", "tool"]);
+  });
+
   it("GET /popo/chats/:chatKey falls back to stored text messages without a session", async () => {
     const app = createPopoRoutes(runtime());
     const res = await app.fetch(new Request("http://x/popo/chats/p2p%3Amaster%40corp.netease.com"));

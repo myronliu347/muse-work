@@ -40,6 +40,8 @@ export interface PopoAgentRunner {
 export interface PopoAgentFactory {
   (chat: { chatKey: string; type: PopoChatType; waveSessionId?: string }): Promise<PopoAgentRunner>;
   disposeChat?(chatKey: string): Promise<void>;
+  /** 正在跑的 agent 内存消息（详情页展示思考/工具进度；jsonl 要等回合结束才落盘）。 */
+  getLiveMessages?(chatKey: string): unknown[];
 }
 
 export type PopoAgentFactoryOptions = {
@@ -334,6 +336,11 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         } finally {
           closeAgentLogger(`popo-${sanitizeSessionId(chatKey)}`);
         }
+      },
+      getLiveMessages: (chatKey: string) => {
+        const agent =
+          residentAgents.get(chatKey) ?? activeAgents.get(chatKey);
+        return (agent?.getMessages?.() ?? []) as unknown[];
       },
     },
   );

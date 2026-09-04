@@ -45,7 +45,20 @@ export function createPopoRoutes(runtime: PopoRuntime, options?: PopoRoutesOptio
     if (!chat) return c.json({ error: "chat not found" }, 404);
 
     let messages: Array<{ id: string; role: string; blocks: unknown[]; isMeta?: boolean }> = [];
-    if (chat.waveSessionId && runtime.workdir) {
+    const live = (runtime.getLiveMessages?.(chat.chatKey) ?? []) as Array<{
+      id?: string;
+      role: string;
+      blocks: unknown[];
+      isMeta?: boolean;
+    }>;
+    const liveMessages = live.filter((m) => !m.isMeta);
+    if (liveMessages.length > 0) {
+      messages = liveMessages.map((m, i) => ({
+        id: typeof m.id === "string" && m.id ? m.id : `${chat.chatKey}:live:${i}`,
+        role: m.role,
+        blocks: m.blocks ?? [],
+      }));
+    } else if (chat.waveSessionId && runtime.workdir) {
       try {
         const loaded = await loadSession(chat.waveSessionId, runtime.workdir);
         const loadedMessages = loaded?.messages ?? [];

@@ -654,4 +654,39 @@ describe("popoAgent", () => {
     releaseSend();
     await runPromise;
   });
+
+  it("exposes in-flight team messages so the detail route can show progress", async () => {
+    let releaseSend: () => void = () => undefined;
+    const live = [
+      { role: "user", blocks: [{ type: "text", content: "分析日志" }] },
+      {
+        role: "assistant",
+        blocks: [
+          { type: "reasoning", content: "先下载沙箱日志" },
+          { type: "text", content: "ok" },
+        ],
+      },
+    ];
+    const factory = createPopoAgentFactory({
+      home: "/tmp",
+      registry: registryStub,
+      createAgent: async () => ({
+        ...stubAgent("ok"),
+        getMessages: () => live,
+        sendMessage: async () => {
+          await new Promise<void>((resolve) => {
+            releaseSend = resolve;
+          });
+        },
+      }),
+    });
+    const runner = await factory({ chatKey: "team:1", type: "team" });
+    const runPromise = runner.run("hello");
+    await vi.waitFor(() => {
+      expect(factory.getLiveMessages?.("team:1")).toEqual(live);
+    });
+    releaseSend();
+    await runPromise;
+    expect(factory.getLiveMessages?.("team:1") ?? []).toEqual([]);
+  });
 });
