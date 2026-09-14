@@ -17,6 +17,11 @@ import type {
   DesktopIssueGroup,
 } from "../../types";
 import type { PopoChatSummary } from "../../muse/apiClient";
+import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
+import {
+  DESKTOP_SIDEBAR_MAX_WIDTH,
+  DESKTOP_SIDEBAR_MIN_WIDTH,
+} from "../../muse/layout";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -132,8 +137,45 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onDeletePopoChat,
   activeMenu,
 }) => {
+  const { width, setWidth } = useDesktopSidebarWidth();
+  const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+  const onResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const handle = e.currentTarget as HTMLElement;
+    handle.classList.add("desktop-sidebar-resize--active");
+    document.body.classList.add("is-panel-resizing");
+    const left = sidebarRef.current?.getBoundingClientRect().left ?? 0;
+    const onMove = (ev: MouseEvent) => {
+      setWidth(ev.clientX - left);
+    };
+    const onUp = () => {
+      handle.classList.remove("desktop-sidebar-resize--active");
+      document.body.classList.remove("is-panel-resizing");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   return (
-    <div className="desktop-sidebar" data-testid="desktop-sidebar">
+    <div
+      className="desktop-sidebar"
+      data-testid="desktop-sidebar"
+      ref={sidebarRef}
+    >
+      <div
+        className="desktop-sidebar-resize"
+        onMouseDown={onResizeStart}
+        data-testid="desktop-sidebar-resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="调整侧栏宽度"
+        aria-valuemin={DESKTOP_SIDEBAR_MIN_WIDTH}
+        aria-valuemax={DESKTOP_SIDEBAR_MAX_WIDTH}
+        aria-valuenow={width}
+      />
       <div className="app-menus">
         <button
           className={`app-menu${activeMenu === "newChat" ? " active" : ""}`}

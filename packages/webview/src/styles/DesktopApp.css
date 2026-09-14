@@ -32,6 +32,7 @@
   justify-self: start;
   width: var(--desktop-sidebar-width);
   min-width: var(--desktop-sidebar-width);
+  max-width: var(--desktop-sidebar-width);
   height: 100%;
   max-height: 100%;
   display: flex;
@@ -78,6 +79,21 @@
   .desktop-sidebar::before {
     background: var(--gray-2);
   }
+}
+
+.desktop-sidebar-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 8;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.desktop-sidebar-resize:hover,
+.desktop-sidebar-resize--active {
+  background: var(--accent-9);
 }
 
 .desktop-sidebar-footer {
@@ -1560,7 +1576,8 @@ body.is-panel-resizing * {
 }
 
 .desktop-layout:has(.desktop-panel-dock--fullscreen) {
-  --desktop-sidebar-width: 0px;
+  /* Inline --desktop-sidebar-width from the drag store must yield here. */
+  --desktop-sidebar-width: 0px !important;
 }
 
 .desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-sidebar {

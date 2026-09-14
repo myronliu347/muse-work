@@ -1,5 +1,11 @@
-/** Overlay sidebar width. Chat content is padded by this on the leftmost pane. */
+/** Overlay sidebar default width. Chat content is padded by this on the leftmost pane. */
 export const DESKTOP_SIDEBAR_WIDTH = 240;
+
+/** Narrowest the overlay sidebar can be dragged. */
+export const DESKTOP_SIDEBAR_MIN_WIDTH = 180;
+
+/** Widest the overlay sidebar can be dragged. */
+export const DESKTOP_SIDEBAR_MAX_WIDTH = 400;
 
 /** Usable conversation column, excluding overlay-sidebar padding. */
 export const CHAT_CONTENT_MIN_WIDTH = 520;
@@ -10,14 +16,30 @@ export const MIN_PANE_WIDTH = 360;
 /** Preferred minimum dock width when the window has room. */
 export const PANEL_MIN_WIDTH = 320;
 
-export function chatMainMinWidth(sidebarInset: boolean): number {
-  return (
-    CHAT_CONTENT_MIN_WIDTH + (sidebarInset ? DESKTOP_SIDEBAR_WIDTH : 0)
+export function clampSidebarWidth(width: number): number {
+  return Math.min(
+    DESKTOP_SIDEBAR_MAX_WIDTH,
+    Math.max(DESKTOP_SIDEBAR_MIN_WIDTH, width),
   );
 }
 
-export function minPaneWidth(firstInRow: boolean): number {
-  return MIN_PANE_WIDTH + (firstInRow ? DESKTOP_SIDEBAR_WIDTH : 0);
+export function chatMainMinWidth(
+  sidebarInset: boolean,
+  sidebarWidth: number = DESKTOP_SIDEBAR_WIDTH,
+): number {
+  return (
+    CHAT_CONTENT_MIN_WIDTH +
+    (sidebarInset ? clampSidebarWidth(sidebarWidth) : 0)
+  );
+}
+
+export function minPaneWidth(
+  firstInRow: boolean,
+  sidebarWidth: number = DESKTOP_SIDEBAR_WIDTH,
+): number {
+  return (
+    MIN_PANE_WIDTH + (firstInRow ? clampSidebarWidth(sidebarWidth) : 0)
+  );
 }
 
 /**

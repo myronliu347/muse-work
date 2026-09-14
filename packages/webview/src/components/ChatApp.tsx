@@ -28,6 +28,7 @@ import {
   chatMainMinWidth,
   paneHasSidebarInset,
 } from "../muse/layout";
+import { useDesktopSidebarWidth } from "../hooks/useDesktopSidebarWidth";
 import type {
   ChatAppProps,
   DesktopPanelKind,
@@ -302,9 +303,10 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     handleAddComment,
   } = send;
 
+  const { width: sidebarWidth } = useDesktopSidebarWidth();
   const sidebarInset =
     !dockFullscreen && paneHasSidebarInset(host?.panes, paneId);
-  const chatMinWidth = chatMainMinWidth(sidebarInset);
+  const chatMinWidth = chatMainMinWidth(sidebarInset, sidebarWidth);
   const dockMaxWidth = chatColumnWidth - chatMinWidth;
   const panels = usePanels({
     postToHost,
@@ -867,7 +869,14 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       );
     }
     return (
-      <div className="desktop-layout">
+      <div
+        className="desktop-layout"
+        style={
+          {
+            "--desktop-sidebar-width": `${sidebarWidth}px`,
+          } as React.CSSProperties
+        }
+      >
         <DesktopSidebar
           onNewSession={() => {
             popoUi.selectChat(null);

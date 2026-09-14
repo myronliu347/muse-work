@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   CHAT_CONTENT_MIN_WIDTH,
+  DESKTOP_SIDEBAR_MAX_WIDTH,
+  DESKTOP_SIDEBAR_MIN_WIDTH,
   DESKTOP_SIDEBAR_WIDTH,
   MIN_PANE_WIDTH,
   PANEL_MIN_WIDTH,
   chatMainMinWidth,
   clampDockWidth,
+  clampSidebarWidth,
   minPaneWidth,
   paneHasSidebarInset,
 } from "../../src/muse/layout";
+
+describe("clampSidebarWidth", () => {
+  it("clamps into the sidebar min/max", () => {
+    expect(clampSidebarWidth(240)).toBe(DESKTOP_SIDEBAR_WIDTH);
+    expect(clampSidebarWidth(100)).toBe(DESKTOP_SIDEBAR_MIN_WIDTH);
+    expect(clampSidebarWidth(800)).toBe(DESKTOP_SIDEBAR_MAX_WIDTH);
+  });
+});
 
 describe("chatMainMinWidth", () => {
   it("adds overlay sidebar padding on the inset pane", () => {
@@ -16,6 +27,7 @@ describe("chatMainMinWidth", () => {
       CHAT_CONTENT_MIN_WIDTH + DESKTOP_SIDEBAR_WIDTH,
     );
     expect(chatMainMinWidth(false)).toBe(CHAT_CONTENT_MIN_WIDTH);
+    expect(chatMainMinWidth(true, 320)).toBe(CHAT_CONTENT_MIN_WIDTH + 320);
   });
 });
 
@@ -23,6 +35,7 @@ describe("minPaneWidth", () => {
   it("reserves sidebar width on the first pane in a row", () => {
     expect(minPaneWidth(true)).toBe(MIN_PANE_WIDTH + DESKTOP_SIDEBAR_WIDTH);
     expect(minPaneWidth(false)).toBe(MIN_PANE_WIDTH);
+    expect(minPaneWidth(true, 320)).toBe(MIN_PANE_WIDTH + 320);
   });
 });
 

@@ -17,10 +17,10 @@ import type {
 } from "../../types";
 import "../../styles/DesktopApp.css";
 import {
-  DESKTOP_SIDEBAR_WIDTH,
   MIN_PANE_WIDTH,
   minPaneWidth,
 } from "../../muse/layout";
+import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
 
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
     the row separator clamps to it (the desktop host enforces the same limit). */
@@ -72,6 +72,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   onCancelIssue,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
+  const { width: sidebarWidth } = useDesktopSidebarWidth();
   const popoUi = usePopoUi();
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
@@ -134,10 +135,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         window.innerWidth;
       return (
         rowWidth >=
-        DESKTOP_SIDEBAR_WIDTH + MIN_PANE_WIDTH * (rowCount + 1)
+        sidebarWidth + MIN_PANE_WIDTH * (rowCount + 1)
       );
     },
-    [panes],
+    [panes, sidebarWidth],
   );
 
   const canSplitRows = useCallback((): boolean => {
@@ -531,7 +532,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       const onMouseMove = (ev: MouseEvent) => {
         // Both panes of the pair keep at least the minimum width; a pair that
         // can't satisfy that is frozen in place.
-        const minLeft = minPaneWidth(separatorIndex === 0);
+        const minLeft = minPaneWidth(separatorIndex === 0, sidebarWidth);
         const minRight = MIN_PANE_WIDTH;
         if (pairTotal < minLeft + minRight) return;
         const clamped = Math.max(
@@ -566,7 +567,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [panes, vscode],
+    [panes, vscode, sidebarWidth],
   );
 
   // Drag the horizontal separator between the two rows: live pixel preview,
@@ -626,7 +627,15 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   };
 
   return (
-    <div className="desktop-layout" data-testid="desktop-shell">
+    <div
+      className="desktop-layout"
+      data-testid="desktop-shell"
+      style={
+        {
+          "--desktop-sidebar-width": `${sidebarWidth}px`,
+        } as React.CSSProperties
+      }
+    >
       <DesktopSidebar
         onNewSession={() => {
           popoUi.selectChat(null);
@@ -707,7 +716,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             >
               {rowPanes.map((pane, index) => {
                 const paneStyle: React.CSSProperties = {
-                  minWidth: minPaneWidth(index === 0),
+                  minWidth: minPaneWidth(index === 0, sidebarWidth),
                 };
                 if (
                   resizePreview &&
