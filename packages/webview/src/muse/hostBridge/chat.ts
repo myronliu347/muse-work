@@ -186,14 +186,16 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
     }
 
     if (event.type === "session:status" && event.status === "error") {
+      const error = event.error?.trim() || "Session error";
       postToWebview({
         command: "updateErrorBlock",
-        error: event.error?.trim() || "Session error",
+        error,
       });
       postToWebview({ command: "endStreaming" });
       ctx.streamingMessageId = null;
       ctx.knownAssistantIds.clear();
       ctx.setLoading(false);
+      ctx.maybePromptAuthDialog(error);
       return;
     }
 

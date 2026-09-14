@@ -2675,4 +2675,83 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
       expect.objectContaining({ command: "showAuthDialog" }),
     );
   });
+
+  it("opens the re-login dialog when a mid-turn token expiry arrives on WS", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+      onStatus: vi.fn(() => () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "session:status",
+      sessionId: "sess-active",
+      status: "error",
+      error: "Unauthorized",
+    });
+    handler!({
+      type: "auth:changed",
+      sessionId: "sess-active",
+      status: { state: "unauthenticated", providerId: "codemaker" },
+    });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "updateErrorBlock",
+        error: "Unauthorized",
+      }),
+    );
+    expect(messages).toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
+    );
+  });
+
+  it("does not open the re-login dialog on auth:changed for API-key providers", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+      onStatus: vi.fn(() => () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi({
+        getAuthStatus: vi.fn(async () => ({
+          state: "authenticated",
+          providerId: "openai-compatible",
+        })),
+      }),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "auth:changed",
+      sessionId: "sess-active",
+      status: { state: "unauthenticated", providerId: "openai-compatible" },
+    });
+    await flush();
+
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
+    );
+  });
 });

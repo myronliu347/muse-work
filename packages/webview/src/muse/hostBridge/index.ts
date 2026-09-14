@@ -108,6 +108,15 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         command: "authStatusResponse",
         isAuthenticated: status?.state === "authenticated",
       });
+      // Mid-turn token expiry is WS `auth:changed`, not an HTTP send failure.
+      // Welcome login CTA is gone once the conversation has messages, so the
+      // re-login dialog has to open from this event.
+      if (
+        status?.state === "unauthenticated" ||
+        status?.state === "expired"
+      ) {
+        auth.promptCodeMakerReauth();
+      }
       return;
     }
 

@@ -5,6 +5,7 @@ export interface AuthModule {
   refreshAuth: () => Promise<void>;
   handleLogin: () => Promise<void>;
   handleLogout: () => Promise<void>;
+  promptCodeMakerReauth: () => void;
   maybePromptAuthDialog: (error: string) => void;
   maybePatchTitle: (sid: string, text: string) => void;
   normalizeOutboundImages: (raw: unknown) => Array<{ data: string; mediaType: string }>;
@@ -49,9 +50,14 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
   }
 
   /** Prompt the CodeMaker re-login dialog when a turn fails on auth grounds. */
-  function maybePromptAuthDialog(error: string): void {
-    if (!isAuthError(error) || ctx.activeProviderId !== "codemaker") return;
+  function promptCodeMakerReauth(): void {
+    if (ctx.activeProviderId && ctx.activeProviderId !== "codemaker") return;
     postToWebview({ command: "showAuthDialog" });
+  }
+
+  function maybePromptAuthDialog(error: string): void {
+    if (!isAuthError(error)) return;
+    promptCodeMakerReauth();
   }
 
   async function handleLogin(): Promise<void> {
@@ -108,6 +114,7 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
     refreshAuth,
     handleLogin,
     handleLogout,
+    promptCodeMakerReauth,
     maybePromptAuthDialog,
     maybePatchTitle,
     normalizeOutboundImages,
