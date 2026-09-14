@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 
 function overlayHost(): HTMLElement | null {
   if (typeof document === "undefined") return null;
+  // Never portal into `.radix-themes` itself — React owns that node's children
+  // and Radix popper would treat the whole app as a clipping boundary.
   return (
     (document.getElementById("muse-overlay-root") as HTMLElement | null) ??
-    (document.querySelector(".radix-themes") as HTMLElement | null) ??
     document.body
   );
 }

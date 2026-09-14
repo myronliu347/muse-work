@@ -28,11 +28,15 @@ body {
   height: 100%;
 }
 
-/* Theme-scoped overlay host: above sidebar/chat clip, still inherits Radix tokens. */
+/* Theme-scoped overlay host: above sidebar/chat clip, still inherits Radix tokens.
+   Full-viewport, `overflow: visible`, no transform/filter — portaled
+   `position: fixed` nodes must keep the viewport as containing block.
+   A 0×0 positioned host shrinks tooltips into the title bar / session rows. */
 .muse-overlay-root {
   position: fixed;
   inset: 0;
   z-index: 100000;
+  overflow: visible;
   pointer-events: none;
 }
 

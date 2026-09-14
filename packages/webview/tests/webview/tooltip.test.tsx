@@ -222,16 +222,16 @@ describe("Tooltip Component", () => {
       expect(tooltip.style.left).toBe("4px");
     });
 
-    it("should shift down inward when overflowing the top edge", async () => {
+    it("should flip below the trigger when overflowing the top edge", async () => {
       setViewport(1024, 768);
-      // position 'top': top = 10 - 20 - 8 = -18 → clamped to margin 4
+      // position 'top': top = 10 - 20 - 8 = -18 → flip to bottom + offset = 38
       mockRects(
         { left: 100, top: 10, right: 120, bottom: 30, width: 20, height: 20 },
         { width: 60, height: 20 },
       );
 
       const tooltip = await showTooltip("top");
-      expect(tooltip.style.top).toBe("4px");
+      expect(tooltip.style.top).toBe("38px");
     });
 
     it("should shift up inward when overflowing the bottom edge", async () => {

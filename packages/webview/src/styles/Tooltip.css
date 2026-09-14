@@ -6,6 +6,7 @@
 
 .tooltip-box {
   position: fixed;
+  width: max-content;
   background-color: var(--gray-3);
   color: var(--gray-12);
   padding: var(--space-1) var(--space-2);
@@ -41,6 +42,7 @@
 
 .tooltip-box--card.tooltip-box--interactive {
   overflow: hidden;
+  max-height: min(calc(100vh - 8px), 400px);
 }
 
 .tooltip-box.visible {

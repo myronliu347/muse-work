@@ -110,9 +110,17 @@ export const Tooltip: React.FC<TooltipProps> = ({
         break;
     }
 
-    // Keep the tooltip inside the viewport (webview bounds); if it would
-    // overflow an edge, shift it inward so it never gets clipped.
+    // Prefer flipping top placements below the trigger (title bar / traffic
+    // lights) instead of clamping them to y=4, which sits in the window chrome.
     const margin = 4;
+    if (
+      (position === "top" ||
+        position === "top-left" ||
+        position === "top-right") &&
+      top < margin
+    ) {
+      top = containerRect.bottom + offset;
+    }
     const maxLeft = Math.max(
       window.innerWidth - tooltipRect.width - margin,
       margin,
@@ -124,7 +132,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
     left = Math.min(Math.max(left, margin), maxLeft);
     top = Math.min(Math.max(top, margin), maxTop);
 
-    setTooltipStyle({ left, top });
+    setTooltipStyle((prev) =>
+      prev.left === left && prev.top === top ? prev : { left, top },
+    );
   }, [position, offset]);
 
   const clearHideTimer = useCallback(() => {
@@ -146,7 +156,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     calculatePosition();
     const frame = requestAnimationFrame(calculatePosition);
     return () => cancelAnimationFrame(frame);
-  }, [isVisible, calculatePosition, content]);
+  }, [isVisible, calculatePosition]);
 
   const handleHide = useCallback(() => {
     if (!interactive) {
