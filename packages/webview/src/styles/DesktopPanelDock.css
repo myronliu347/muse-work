@@ -9,11 +9,15 @@
   flex-direction: column;
   box-sizing: border-box;
   /* Prefer the JS width, but shrink before overflowing past the chat column.
-     520px matches CHAT_MAIN_MIN_WIDTH reserved for .desktop-chat-main. */
+     min-width never exceeds leftover space, so a tight window compresses
+     the dock instead of clipping it. */
   flex: 0 1 auto;
   width: var(--dock-width, 420px);
-  min-width: 320px;
-  max-width: calc(100% - 520px);
+  min-width: min(
+    var(--panel-dock-min-width, 320px),
+    calc(100% - min(100%, var(--chat-main-min-width, 520px)))
+  );
+  max-width: calc(100% - min(100%, var(--chat-main-min-width, 520px)));
   height: 100%;
   border-left: 1px solid var(--gray-6);
   background: var(--color-background);

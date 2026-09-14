@@ -16,8 +16,12 @@ import type {
   VsCodeApi,
 } from "../../types";
 import "../../styles/DesktopApp.css";
+import {
+  DESKTOP_SIDEBAR_WIDTH,
+  MIN_PANE_WIDTH,
+  minPaneWidth,
+} from "../../muse/layout";
 
-const MIN_PANE_WIDTH = 360;
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
     the row separator clamps to it (the desktop host enforces the same limit). */
 const MIN_ROW_HEIGHT = 280;
@@ -128,7 +132,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       const rowWidth =
         rowRefs.current[row]?.getBoundingClientRect().width ??
         window.innerWidth;
-      return rowWidth / (rowCount + 1) >= MIN_PANE_WIDTH;
+      return (
+        rowWidth >=
+        DESKTOP_SIDEBAR_WIDTH + MIN_PANE_WIDTH * (rowCount + 1)
+      );
     },
     [panes],
   );
@@ -524,11 +531,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       const onMouseMove = (ev: MouseEvent) => {
         // Both panes of the pair keep at least the minimum width; a pair that
         // can't satisfy that is frozen in place.
-        if (pairTotal < MIN_PANE_WIDTH * 2) return;
+        const minLeft = minPaneWidth(separatorIndex === 0);
+        const minRight = MIN_PANE_WIDTH;
+        if (pairTotal < minLeft + minRight) return;
         const clamped = Math.max(
-          MIN_PANE_WIDTH,
+          minLeft,
           Math.min(
-            pairTotal - MIN_PANE_WIDTH,
+            pairTotal - minRight,
             widths[separatorIndex] + ev.clientX - startX,
           ),
         );
@@ -698,7 +707,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             >
               {rowPanes.map((pane, index) => {
                 const paneStyle: React.CSSProperties = {
-                  minWidth: MIN_PANE_WIDTH,
+                  minWidth: minPaneWidth(index === 0),
                 };
                 if (
                   resizePreview &&

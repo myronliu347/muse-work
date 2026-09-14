@@ -8,6 +8,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { AgentsDialogProps, SubagentConfiguration } from "../../types";
+import { ConfigurationDialogClose } from "./ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import "../../styles/ConfigurationDialog.css";
 
 const SCOPE_ORDER = ["builtin", "user", "project", "plugin"] as const;
@@ -29,6 +31,7 @@ const AgentsDialog: React.FC<
   const [loading, setLoading] = useState(true);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef);
 
   // Fetch agent definitions on mount
   useEffect(() => {
@@ -96,11 +99,15 @@ const AgentsDialog: React.FC<
       <div
         ref={dialogRef}
         className="configuration-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agents-dialog-title"
         data-testid="agents-dialog"
         style={{ maxWidth: "760px" }}
       >
         <div className="configuration-dialog-header">
-          <h3>Agents</h3>
+          <h3 id="agents-dialog-title">Agents</h3>
+          <ConfigurationDialogClose onClick={onClose} />
         </div>
 
         <div className="mcp-container">

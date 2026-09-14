@@ -7,6 +7,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { McpDialogProps, McpServerStatus } from "../../types";
+import { ConfigurationDialogClose } from "./ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import "../../styles/ConfigurationDialog.css";
 
 const McpDialog: React.FC<
@@ -51,6 +53,7 @@ const McpDialog: React.FC<
   };
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef);
 
   // Handle clicking outside to close dialog
   useEffect(() => {
@@ -85,9 +88,16 @@ const McpDialog: React.FC<
 
   return (
     <div className="configuration-dialog-overlay">
-      <div ref={dialogRef} className="configuration-dialog">
+      <div
+        ref={dialogRef}
+        className="configuration-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mcp-dialog-title"
+      >
         <div className="configuration-dialog-header">
-          <h3>MCP 服务器</h3>
+          <h3 id="mcp-dialog-title">MCP 服务器</h3>
+          <ConfigurationDialogClose onClick={onClose} />
         </div>
 
         <div className="mcp-container">

@@ -6,12 +6,9 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  PluginDialogProps,
-  PluginInfo,
-  MarketplaceInfo,
-  PluginScope,
-} from "../../types";
+import { PluginDialogProps, PluginInfo, MarketplaceInfo, PluginScope } from "../../types";
+import { ConfigurationDialogClose } from "./ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import "../../styles/ConfigurationDialog.css";
 
 const PluginDialog: React.FC<
@@ -96,6 +93,7 @@ const PluginDialog: React.FC<
   });
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef);
 
   // Handle clicking outside to close dialog
   useEffect(() => {
@@ -130,9 +128,16 @@ const PluginDialog: React.FC<
 
   return (
     <div className="configuration-dialog-overlay">
-      <div ref={dialogRef} className="configuration-dialog">
+      <div
+        ref={dialogRef}
+        className="configuration-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="plugin-dialog-title"
+      >
         <div className="configuration-dialog-header">
-          <h3>插件管理</h3>
+          <h3 id="plugin-dialog-title">插件管理</h3>
+          <ConfigurationDialogClose onClick={onClose} />
         </div>
 
         <div className="plugins-container">

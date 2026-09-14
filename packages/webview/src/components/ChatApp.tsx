@@ -24,6 +24,10 @@ import { resolveDraftModel } from "../muse/defaultModel";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type { WorkspaceDiffFile } from "./panels/DiffPane";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
+import {
+  chatMainMinWidth,
+  paneHasSidebarInset,
+} from "../muse/layout";
 import type {
   ChatAppProps,
   DesktopPanelKind,
@@ -44,9 +48,6 @@ import "../styles/ChatApp.css";
 
 
 export { prunePanelGroupCache } from "../stores";
-
-/** The conversation (message) area never shrinks below this when opening/dragging panels. */
-const CHAT_MAIN_MIN_WIDTH = 520;
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
 export type MainView = "newChat" | "chat" | "popo-chat";
@@ -301,7 +302,10 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     handleAddComment,
   } = send;
 
-  const dockMaxWidth = chatColumnWidth - CHAT_MAIN_MIN_WIDTH;
+  const sidebarInset =
+    !dockFullscreen && paneHasSidebarInset(host?.panes, paneId);
+  const chatMinWidth = chatMainMinWidth(sidebarInset);
+  const dockMaxWidth = chatColumnWidth - chatMinWidth;
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
@@ -326,6 +330,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     activePanel,
     panelWidths,
     dockMaxWidth,
+    chatMinWidth,
   });
   const {
     tryOpenPanel,

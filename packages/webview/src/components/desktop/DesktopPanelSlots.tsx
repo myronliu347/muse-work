@@ -7,6 +7,7 @@ import {
 import { FilePane } from "../panels/FilePane";
 import { TerminalPane } from "../panels/TerminalPane";
 import { PANEL_TAB_ORDER } from "../../muse/panelTabs";
+import { clampDockWidth } from "../../muse/layout";
 import type {
   ContentSearchState,
   DesktopPanelKind,
@@ -20,9 +21,6 @@ import type { RemoteForwardRef } from "../../stores";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
-const PANEL_MIN_WIDTH = 320;
-/** The conversation (message) area never shrinks below this when opening/dragging panels. */
-const CHAT_MAIN_MIN_WIDTH = 520;
 
 export interface DesktopPanelSlotsProps {
   checked: DesktopPanelKind[];
@@ -214,12 +212,12 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       }}
       fullscreen={fullscreen}
       onToggleFullscreen={onToggleFullscreen}
-      width={Math.min(
+      width={clampDockWidth(
         widths[active ?? "preview"] ?? 0,
-        Math.max(PANEL_MIN_WIDTH, dockMaxWidth),
+        Math.max(0, dockMaxWidth),
       )}
       onWidthChange={onWidthChange}
-      maxWidth={Math.max(PANEL_MIN_WIDTH, dockMaxWidth)}
+      maxWidth={Math.max(0, dockMaxWidth)}
       fileTabs={fileTabs}
       activeFilePath={activeFilePath}
       onSelectFileTab={onSelectFileTab}

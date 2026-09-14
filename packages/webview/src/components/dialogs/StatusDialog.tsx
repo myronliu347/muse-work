@@ -7,6 +7,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { StatusDialogProps } from "../../types";
+import { ConfigurationDialogClose } from "./ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import "../../styles/ConfigurationDialog.css";
 
 const StatusDialog: React.FC<
@@ -19,6 +21,7 @@ const StatusDialog: React.FC<
   const [workdir, setWorkdir] = useState("");
   const [latestTotalTokens, setLatestTotalTokens] = useState<number | "">("");
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef);
 
   useEffect(() => {
     vscode?.postMessage({ command: "getStatus" });
@@ -93,11 +96,15 @@ const StatusDialog: React.FC<
       <div
         ref={dialogRef}
         className="configuration-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="status-dialog-title"
         data-testid="status-dialog"
         style={{ height: "auto", maxHeight: "500px" }}
       >
         <div className="configuration-dialog-header">
-          <h3>状态信息</h3>
+          <h3 id="status-dialog-title">状态信息</h3>
+          <ConfigurationDialogClose onClick={onClose} />
         </div>
 
         <div className="configuration-form">

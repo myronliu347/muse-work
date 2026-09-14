@@ -2,6 +2,13 @@
 
 .desktop-layout {
   --desktop-sidebar-width: 240px;
+  --chat-content-min-width: 520px;
+  /* Leftmost pane/chat column includes overlay-sidebar padding. */
+  --chat-main-min-width: calc(
+    var(--chat-content-min-width) + var(--desktop-sidebar-width)
+  );
+  --panel-dock-min-width: 320px;
+  --min-pane-width: 360px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -1427,10 +1434,18 @@ body.is-panel-resizing * {
 .desktop-pane {
   position: relative;
   flex: 1 1 0;
-  min-width: 0;
+  min-width: var(--min-pane-width);
+  --chat-main-min-width: var(--chat-content-min-width);
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--gray-6);
+}
+
+.desktop-pane-row > .desktop-pane:first-child {
+  min-width: calc(var(--min-pane-width) + var(--desktop-sidebar-width));
+  --chat-main-min-width: calc(
+    var(--chat-content-min-width) + var(--desktop-sidebar-width)
+  );
 }
 
 .desktop-pane:last-child {
@@ -1512,9 +1527,9 @@ body.is-panel-resizing * {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
-  /* Keep the conversation usable when the dock is open; matches
-     CHAT_MAIN_MIN_WIDTH in ChatApp.tsx. */
-  min-width: 520px;
+  /* Keep the conversation usable when the dock is open. On the leftmost
+     pane this includes overlay-sidebar padding via --chat-main-min-width. */
+  min-width: min(100%, var(--chat-main-min-width));
   min-height: 0;
   height: 100%;
   /* visible so composer dropdowns can paint over the message list */

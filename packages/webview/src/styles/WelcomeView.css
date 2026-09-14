@@ -239,7 +239,8 @@
   }
 }
 
-@container (max-width: 640px) {
+/* 720px: overlay sidebar already ate ~240px, so 4 columns crush before 640. */
+@container (max-width: 720px) {
   .welcome-headline {
     font-size: 22px;
   }

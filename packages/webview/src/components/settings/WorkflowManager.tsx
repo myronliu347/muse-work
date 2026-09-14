@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { WorkflowManagerProps, SerializableWorkflowRun } from "../../types";
+import { ConfigurationDialogClose } from "../dialogs/ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import "../../styles/ConfigurationDialog.css";
 
 const formatDuration = (ms: number): string => {
@@ -45,6 +47,7 @@ const WorkflowManager: React.FC<
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef);
 
   const runningRuns = runs.filter((run) => run.status === "running");
   const selectedRun =
@@ -344,11 +347,15 @@ const WorkflowManager: React.FC<
       <div
         ref={dialogRef}
         className="configuration-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="workflow-manager-title"
         data-testid="workflow-manager"
         style={{ maxWidth: "760px" }}
       >
         <div className="configuration-dialog-header">
-          <h3>工作流</h3>
+          <h3 id="workflow-manager-title">工作流</h3>
+          <ConfigurationDialogClose onClick={onCancel} />
         </div>
 
         <div className="mcp-container">

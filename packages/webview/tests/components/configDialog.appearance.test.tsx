@@ -157,6 +157,19 @@ describe("ConfigDialog appearance tab", () => {
     expect(underline).toHaveStyle({ backgroundColor: "var(--accent-9)" });
   });
 
+  it("hides save on instant-apply tabs and shows it for provider", () => {
+    renderDialog();
+    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "插件" }));
+    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
+    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
+    expect(screen.getByTestId("config-dialog-save")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Agent" }));
+    expect(screen.getByTestId("config-dialog-save")).toBeTruthy();
+  });
+
   it("does not treat a theme change as provider settings dirtiness", () => {
     const { onCancel } = renderDialog();
 

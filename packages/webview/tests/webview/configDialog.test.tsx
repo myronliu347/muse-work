@@ -97,8 +97,10 @@ describe("ConfigDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("renders a save button and closes after successful save", async () => {
+  it("hides save on appearance and closes after save on the provider tab", async () => {
     const { onCancel } = renderDialog();
+    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
     expect(screen.getByTestId("config-dialog-save")).toBeTruthy();
     fireEvent.click(screen.getByTestId("config-dialog-save"));
     await vi.waitFor(() => {

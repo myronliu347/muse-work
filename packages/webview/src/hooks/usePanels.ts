@@ -16,6 +16,7 @@ import {
   matchDockFullscreenShortcut,
 } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
+import { PANEL_MIN_WIDTH, clampDockWidth } from "../muse/layout";
 import { PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
 import {
@@ -29,9 +30,6 @@ import type { ChatAppCore } from "./useChatAppCore";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
-const PANEL_MIN_WIDTH = 320;
-/** The conversation (message) area never shrinks below this when opening/dragging panels. */
-const CHAT_MAIN_MIN_WIDTH = 520;
 
 export interface PanelHandlers {
   tryOpenPanel: (kind: DesktopPanelKind) => boolean;
@@ -64,6 +62,8 @@ interface UsePanelsParams {
   activePanel: DesktopPanelKind | null;
   panelWidths: Record<DesktopPanelKind, number>;
   dockMaxWidth: number;
+  /** Conversation min width for this pane (includes overlay-sidebar padding when inset). */
+  chatMinWidth: number;
 }
 
 export function usePanels({
@@ -84,6 +84,7 @@ export function usePanels({
   activePanel,
   panelWidths,
   dockMaxWidth,
+  chatMinWidth,
 }: UsePanelsParams): PanelHandlers {
   // Mirrors so the stable message listener / shortcut handler can reach the
   // panel toggle logic without re-subscribing.
@@ -171,7 +172,10 @@ export function usePanels({
           // First open of this session's dock: ~50% of the chat column (not
           // the full window — sidebar already ate space). Later reopen after
           // close keeps the last dragged width.
-          const desired = defaultDockWidth(containerW, PANEL_MIN_WIDTH);
+          const leftover = containerW - chatMinWidth;
+          const panelMin =
+            leftover > 0 ? Math.min(PANEL_MIN_WIDTH, leftover) : PANEL_MIN_WIDTH;
+          const desired = defaultDockWidth(containerW, panelMin);
           const baseWidths =
             mountedPanelsRef.current.length === 0
               ? {
@@ -186,7 +190,7 @@ export function usePanels({
             [],
             baseWidths,
             kind,
-            { panelMin: PANEL_MIN_WIDTH, chatMin: CHAT_MAIN_MIN_WIDTH },
+            { panelMin, chatMin: chatMinWidth },
           );
           if (!planned.ok) {
             showPanelHint("空间不足，无法开启面板");
@@ -212,7 +216,7 @@ export function usePanels({
       }));
       return true;
     },
-    [showPanelHint, updatePanelGroup],
+    [showPanelHint, updatePanelGroup, chatMinWidth],
   );
 
   const handleTogglePanel = useCallback(
@@ -364,12 +368,14 @@ export function usePanels({
   // Authoritative clamp at drag time: keep the panel within [320, container -
   // other checked panels - conversation minimum].
   const handleDockWidthChange = useCallback((width: number) => {
-    let clamped = Math.max(width, PANEL_MIN_WIDTH);
+    let clamped = width;
     const containerW =
       chatContainerRef.current?.clientWidth ||
       chatContainerRef.current?.getBoundingClientRect().width;
     if (containerW) {
-      clamped = Math.min(clamped, containerW - CHAT_MAIN_MIN_WIDTH);
+      clamped = clampDockWidth(width, containerW - chatMinWidth);
+    } else {
+      clamped = clampDockWidth(width, dockMaxWidth);
     }
     const next = {
       preview: clamped,
@@ -379,7 +385,7 @@ export function usePanels({
     };
     panelWidthsRef.current = next;
     updatePanelGroup({ widths: next });
-  }, [updatePanelGroup]);
+  }, [updatePanelGroup, chatMinWidth, dockMaxWidth]);
 
   // No workdir: all panels disabled. With a workdir (incl. draft + host
   // folder): all panel kinds available; state is shared per workdir.
@@ -405,7 +411,7 @@ export function usePanels({
     if (!(dockMaxWidth > 0)) return;
     const current = panelWidthsRef.current[activePanel ?? "preview"];
     if (!(current > dockMaxWidth)) return;
-    const clamped = Math.max(PANEL_MIN_WIDTH, dockMaxWidth);
+    const clamped = clampDockWidth(current, dockMaxWidth);
     const next = {
       preview: clamped,
       diff: clamped,

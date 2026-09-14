@@ -6,7 +6,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@radix-ui/themes";
 import { ConfigDialogProps, VsCodeApi } from "../../types";
-import { CloseIcon } from "../shared/HeaderIcons";
+import { ConfigurationDialogClose } from "./ConfigurationDialogClose";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import {
   MuseProviderSettings,
   type MuseProviderSettingsHandle,
@@ -62,6 +63,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
     backgroundColor: "var(--accent-9)",
   };
   savingRef.current = saving;
+  const persistTab = activeTab === "agent" || activeTab === "provider";
+  useDialogFocusTrap(dialogRef);
 
   const requestClose = useCallback(() => {
     if (savingRef.current) return;
@@ -105,6 +108,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   }, [requestClose]);
 
   const handleSave = async () => {
+    if (!persistTab) return;
     if (activeTab === "agent") {
       setSaving(true);
       try {
@@ -131,6 +135,9 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
         className={`configuration-dialog config-dialog${
           activeTab === "agent" ? " config-dialog--wide" : ""
         }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="config-dialog-title"
         data-testid="config-dialog"
         initial={
           reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }
@@ -139,16 +146,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
         transition={panelTransition}
       >
         <div className="configuration-dialog-header config-dialog-header">
-          <h3>设置</h3>
-          <button
-            type="button"
-            className="configuration-close-btn"
-            aria-label="关闭"
-            onClick={requestClose}
-            disabled={saving}
-          >
-            <CloseIcon className="configuration-close-icon" />
-          </button>
+          <h3 id="config-dialog-title">设置</h3>
+          <ConfigurationDialogClose onClick={requestClose} disabled={saving} />
         </div>
 
         <div className="config-dialog-body">
@@ -303,13 +302,15 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
             >
               关闭
             </Button>
-            <Button
-              onClick={() => void handleSave()}
-              disabled={saving}
-              data-testid="config-dialog-save"
-            >
-              {saving ? "保存中..." : "保存"}
-            </Button>
+            {persistTab && (
+              <Button
+                onClick={() => void handleSave()}
+                disabled={saving}
+                data-testid="config-dialog-save"
+              >
+                {saving ? "保存中..." : "保存"}
+              </Button>
+            )}
           </div>
       </motion.div>
     </motion.div>

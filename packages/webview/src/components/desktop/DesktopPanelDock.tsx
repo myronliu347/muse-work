@@ -12,6 +12,7 @@ import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { FileIcon } from "../panels/FileIcon";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
+import { clampDockWidth } from "../../muse/layout";
 
 /** Bring the active file tab into view whenever it changes (opening a tab,
  * clicking one, or activating the left/right neighbor after a close). The
@@ -103,7 +104,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
     const rect = dockRef.current?.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {
       const next = (rect?.right ?? 0) - ev.clientX;
-      onWidthChange(Math.min(Math.max(next, 320), maxWidth));
+      onWidthChange(clampDockWidth(next, maxWidth));
     };
     const onUp = () => {
       handle.style.background = "";
@@ -127,9 +128,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   );
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
-  const clampedWidth = Math.max(
-    320,
-    Math.min(width, Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : width),
+  const clampedWidth = clampDockWidth(
+    width,
+    Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : width,
   );
 
   const addButton = (
