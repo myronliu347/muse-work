@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MuseApiClient } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { useAgentsStore } from "../../stores/agentsStore";
+import { AgentIcon } from "../shared/HeaderIcons";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/AgentSelector.css";
 
@@ -98,7 +99,7 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
           disabled={disabled}
           onClick={() => setOpen((o) => !o)}
         >
-          <i className="codicon codicon-person" />
+          <AgentIcon className="agent-selector-icon" />
           <span className="agent-selector-label">{displayName}</span>
           <i className="codicon codicon-chevron-down agent-selector-caret" />
         </button>

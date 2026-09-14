@@ -153,7 +153,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           }
           data-testid="desktop-new-session"
         >
-          <NewSessionIcon className="app-menu-icon" />
+          <NewSessionIcon className="app-menu-icon app-menu-icon--16" />
           <span>新对话</span>
         </button>
       </div>

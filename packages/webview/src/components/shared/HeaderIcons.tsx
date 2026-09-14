@@ -4,6 +4,30 @@ interface IconProps {
   className?: string;
 }
 
+/** Agent 选择器：实心头像，避免 stick-person / 星芒。 */
+export const AgentIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={14}
+    height={14}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <path
+      d="M8 8.25a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z"
+      fill="currentColor"
+    />
+    <path
+      d="M1.75 13.15c0-2.42 2.72-3.9 6.25-3.9s6.25 1.48 6.25 3.9v.6H1.75v-.6Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+/** 新对话：纸飞机朝右上，画在 viewBox 视觉中心，避免旋转裁切导致偏上。 */
 export const NewSessionIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (
@@ -13,14 +37,14 @@ export const NewSessionIcon: React.FC<IconProps> = ({
     viewBox="0 0 16 16"
     fill="none"
     className={className}
+    aria-hidden="true"
   >
     <path
-      d="M8.51037 1.62988C11.5734 1.78706 14.0767 4.13051 14.4586 7.13184H13.4488C13.0737 4.66903 10.9944 2.75901 8.45568 2.62988L8.45178 2.62891L8.18615 2.62207H8.18225C4.19074 2.62267 1.66373 6.8512 3.44983 10.3086L3.63635 10.6406L3.71154 10.7871C3.85972 11.1269 3.84771 11.5196 3.67053 11.8516L2.97326 13.1572L2.8551 13.3779H7.30334V14.3779H2.02111C1.86809 14.3775 1.72352 14.307 1.62951 14.1885L1.5924 14.1348C1.50265 13.9845 1.4983 13.7973 1.58068 13.6426L2.78772 11.3799L2.80822 11.3271C2.81269 11.3087 2.81456 11.2891 2.81408 11.2695L2.81311 11.25L2.80822 11.2305L2.79748 11.1943L2.79162 11.1758L2.78186 11.1592L2.66662 10.9619C0.334554 6.80657 3.36799 1.62478 8.17932 1.62207L8.51037 1.62988Z"
-      fill="currentColor"
-    />
-    <path
-      d="M11.9518 10.8213H14.4781V11.8203H11.9518V14.3779H10.9518V11.8203H8.59826V10.8213H10.9518V8.35938H11.9518V10.8213Z"
-      fill="currentColor"
+      d="M12.08 3.92 9.22 12.93 7.63 8.37 3.07 6.78Z"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinejoin="round"
+      strokeLinecap="round"
     />
   </svg>
 );
@@ -128,7 +152,7 @@ export const QueueEditIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-// Queue item action: send now (up arrow) — Figma 10.7071 x 12 glyph centered in a 16x16 box.
+// Queue item / composer send: Figma 上箭头（与侧栏纸飞机 send 不是同一个图标）。
 export const QueueSendIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (

@@ -30,10 +30,11 @@
   color: var(--gray-12);
 }
 
-.agent-selector-trigger .codicon-person {
-  font-size: var(--font-size-1);
-  opacity: 0.72;
+.agent-selector-icon {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  opacity: 0.82;
 }
 
 .agent-selector-label {

@@ -286,6 +286,8 @@
   flex-direction: column;
   /* Override standalone pane shrink so the guest fills the dock body. */
   flex-shrink: 1;
+  /* Dock already has the 1px splitter; inner pane border would double it. */
+  border-left: none;
 }
 
 .desktop-panel-dock-body .preview-pane-drag-handle {
