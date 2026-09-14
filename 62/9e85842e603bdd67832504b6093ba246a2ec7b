@@ -1,0 +1,171 @@
+packages/webview/src/components/desktop/DesktopShell.tsx
+  4fa43b8460cb66b8 19-23,135-138,534-536,538,540,710
+packages/webview/src/styles/ConfigurationDialog.css
+  4fa43b8460cb66b8 22-25,32-35,208
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  4fa43b8460cb66b8 15,107,131-133
+packages/webview/src/muse/layout.ts
+  4fa43b8460cb66b8 1-45
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 5-11,1437-1438,1444-1448,1530-1532
+packages/webview/tests/muse/layout.test.ts
+  4fa43b8460cb66b8 1-62
+packages/webview/src/hooks/usePanels.ts
+  4fa43b8460cb66b8 19,65-66,87,175-178,193,219,371,376-378,388,414
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  4fa43b8460cb66b8 10,215,217,220
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  4fa43b8460cb66b8 160-172
+packages/webview/src/components/settings/WorkflowManager.tsx
+  4fa43b8460cb66b8 3-4,50,350-352,357-358
+packages/webview/src/components/dialogs/AgentsDialog.tsx
+  4fa43b8460cb66b8 11-12,34,102-104,109-110
+packages/webview/src/components/dialogs/ConfigurationDialogClose.tsx
+  4fa43b8460cb66b8 1-17
+packages/webview/src/styles/DesktopPanelDock.css
+  4fa43b8460cb66b8 12-13,16-20
+packages/webview/src/styles/WelcomeView.css
+  4fa43b8460cb66b8 242-243
+packages/webview/src/components/dialogs/PluginDialog.tsx
+  4fa43b8460cb66b8 9-11,96,131-137,139-140
+packages/webview/src/components/dialogs/StatusDialog.tsx
+  4fa43b8460cb66b8 10-11,24,99-101,106-107
+packages/webview/tests/webview/configDialog.test.tsx
+  4fa43b8460cb66b8 100,102-103
+packages/webview/src/hooks/useDialogFocusTrap.ts
+  4fa43b8460cb66b8 1-53
+packages/webview/src/components/ChatApp.tsx
+  4fa43b8460cb66b8 27-30,305-308,333
+packages/webview/src/styles/globals.css
+  4fa43b8460cb66b8 31-39
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  4fa43b8460cb66b8 9-10,66-67,111,138-140,149-150,305-313
+packages/webview/src/components/dialogs/McpDialog.tsx
+  4fa43b8460cb66b8 10-11,56,91-97,99-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "629e85842e603bdd67832504b6093ba246a2ec7b",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 358,
+      "total_deletions": 75,
+      "accepted_lines": 357,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/dialogs/ConfigurationDialogClose.tsx": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/dialogs/McpDialog.tsx": {
+          "additions": 12,
+          "deletions": 2,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/hooks/useDialogFocusTrap.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 19,
+          "deletions": 18,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/dialogs/AgentsDialog.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/muse/layout.test.ts": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "packages/webview/src/components/dialogs/StatusDialog.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "additions": 9,
+          "deletions": 3,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/layout.ts": {
+          "additions": 45,
+          "accepted_lines": 45
+        },
+        "packages/webview/src/components/settings/WorkflowManager.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 16,
+          "deletions": 10,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 4,
+          "deletions": 6,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/dialogs/PluginDialog.tsx": {
+          "additions": 13,
+          "deletions": 8,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 10,
+          "deletions": 5,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 19,
+          "deletions": 4,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/webview/configDialog.test.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 16,
+          "deletions": 7,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
