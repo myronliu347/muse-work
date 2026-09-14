@@ -1,0 +1,89 @@
+packages/webview/tests/muse/sidebarWidth.test.ts
+  4fa43b8460cb66b8 1-46
+packages/webview/src/muse/sidebarWidth.ts
+  4fa43b8460cb66b8 1-65
+packages/webview/src/muse/layout.ts
+  4fa43b8460cb66b8 1,4-8,19-29,31-32,36-42
+packages/webview/tests/muse/layout.test.ts
+  4fa43b8460cb66b8 4-5,11,16-23,30,38
+packages/webview/tests/components/desktopSidebar.resize.test.tsx
+  4fa43b8460cb66b8 1-64
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 35,84-98,1579-1580
+packages/webview/src/components/desktop/DesktopShell.tsx
+  4fa43b8460cb66b8 23,75,138,141,535,570,630-638,719
+packages/webview/src/hooks/useDesktopSidebarWidth.ts
+  4fa43b8460cb66b8 1-18
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  4fa43b8460cb66b8 20-24,140-161,163-178
+packages/webview/src/components/ChatApp.tsx
+  4fa43b8460cb66b8 31,306,309,872-879
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0c47f71149ed3dec3d280ba7592af15cdd7fb99f",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 322,
+      "total_deletions": 17,
+      "accepted_lines": 321,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/desktopSidebar.resize.test.tsx": {
+          "additions": 65,
+          "deletions": 1,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 43,
+          "deletions": 1,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/hooks/useDesktopSidebarWidth.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/muse/sidebarWidth.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/tests/muse/layout.test.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 16,
+          "deletions": 7,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/muse/sidebarWidth.ts": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/muse/layout.ts": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        }
+      }
+    }
+  }
+}
