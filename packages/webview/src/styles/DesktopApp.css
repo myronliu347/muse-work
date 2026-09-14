@@ -1175,9 +1175,16 @@
   position: relative;
   flex-shrink: 0;
   border-left: 1px solid var(--gray-6);
-  background: var(--gray-2);
+  background: var(--color-background);
   overflow: hidden;
   min-width: 0;
+}
+
+.desktop-panel-dock .preview-pane {
+  flex: 1;
+  min-height: 0;
+  width: auto;
+  border-left: none;
 }
 
 .preview-pane-drag-handle {
@@ -1310,7 +1317,7 @@ body.is-panel-resizing * {
   position: absolute;
   inset: 0;
   flex: unset;
-  background: var(--gray-1);
+  background: var(--color-background);
 }
 
 .preview-pane-error {
@@ -1324,8 +1331,7 @@ body.is-panel-resizing * {
   padding: var(--space-4);
   text-align: center;
   font-size: var(--font-size-1);
-  background: var(--gray-1);
-  color: var(--gray-12);
+  background: var(--color-background);
 }
 
 .preview-pane-error .preview-pane-button {
@@ -1524,6 +1530,7 @@ body.is-panel-resizing * {
 }
 
 .desktop-chat-main {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
@@ -1534,6 +1541,17 @@ body.is-panel-resizing * {
   height: 100%;
   /* visible so composer dropdowns can paint over the message list */
   overflow: visible;
+}
+
+/* Draft start page must cover the whole chat column. Flex `height: 100%`
+   was collapsing to the welcome+composer cluster, so wallpaper/cat clipped
+   and the stack sat on the window bottom. */
+.desktop-chat-main > .new-session-page {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  height: auto;
+  width: auto;
 }
 
 /* Dock fullscreen covers the conversation column and the session sidebar. */

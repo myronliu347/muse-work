@@ -16,14 +16,14 @@
    partial-row remainder below the canvas would show as a black bar. Keep it
    opaque (scrollbar rendering) but matched to the terminal theme background. */
 .terminal-pane-body .xterm .xterm-viewport {
-  background-color: var(--gray-2);
+  background-color: var(--color-background);
 }
 
 /* Loading / exited overlays sit above the (possibly dead) xterm element. */
 .terminal-pane-body > .desktop-panel-placeholder {
   position: absolute;
   inset: 0;
-  background: var(--gray-2);
+  background: var(--color-background);
   z-index: 1;
 }
 

@@ -63,7 +63,10 @@ const readTerminalTheme = (el?: Element | null) => {
   const styles = getComputedStyle(sample);
   const pick = (name: string, fallback: string) =>
     styles.getPropertyValue(name).trim() || fallback;
-  const background = pick("--gray-2", "") || pick("--gray-1", "#1e1e1e");
+  const background =
+    pick("--color-background", "") ||
+    pick("--gray-2", "") ||
+    pick("--gray-1", "#1e1e1e");
   const foreground = pick("--gray-12", "#cccccc");
   const accent = pick("--accent-9", "#c1292e");
   return {

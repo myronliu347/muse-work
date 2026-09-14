@@ -118,6 +118,7 @@ const readPalette = (el?: Element | null): Record<string, string> => {
     accentForeground: "#ffffff",
     foreground: pick("--gray-12", "#cccccc"),
     background:
+      pick("--color-background", "") ||
       pick("--gray-2", "") ||
       pick("--gray-1", "#1e1e1e"),
     border: pick("--gray-6", "rgba(128, 128, 128, 0.35)"),

@@ -3,13 +3,16 @@
 .new-session-page {
   position: relative;
   isolation: isolate;
-  flex: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1 1 0;
+  align-self: stretch;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: auto;
   padding: var(--space-5) var(--space-4);
 }
@@ -17,13 +20,14 @@
 .new-session-page-column {
   position: relative;
   z-index: 1;
-  width: 100%;
+  box-sizing: border-box;
+  width: min(760px, 100%);
   max-width: 760px;
+  margin-block: auto;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  /* Room for the cat (~65px above the bar) without pushing the page to scroll. */
-  gap: 72px;
+  gap: var(--space-5);
 }
 
 .new-session-page .input-content {
@@ -35,7 +39,10 @@
 }
 
 .new-session-page .input-content:focus-within {
-  border-color: color-mix(in srgb, var(--accent-9) 55%, rgb(255 255 255 / 0.2));
+  border-color: color-mix(in srgb, var(--accent-9) 32%, var(--gray-6));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
+    0 12px 40px rgb(0 0 0 / 0.28);
 }
 
 :root[data-theme="light"] .new-session-page .input-content {
@@ -45,7 +52,10 @@
 }
 
 :root[data-theme="light"] .new-session-page .input-content:focus-within {
-  border-color: color-mix(in srgb, var(--accent-9) 70%, white);
+  border-color: color-mix(in srgb, var(--accent-9) 45%, white);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 28%, transparent),
+    0 12px 32px rgb(0 0 0 / 0.08);
 }
 
 .chat-container:has(.new-session-page) {
@@ -62,10 +72,22 @@
   justify-content: center;
 }
 
+.new-session-page .input-wrapper {
+  max-width: 100%;
+  margin: 0;
+}
+
+.new-session-page .input-toolbar-left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .new-session-page-composer {
   position: relative;
   z-index: 2;
   width: 100%;
+  /* Keep the perched cat inside the page box so overflow:auto cannot clip it. */
+  padding-top: 64px;
 }
 
 /* Decorative cat perched on the sender top-right; never captures clicks.
@@ -73,7 +95,7 @@
 .new-session-sender-cat {
   position: absolute;
   right: -2px;
-  bottom: calc(100% - 45px);
+  top: 0;
   z-index: 1;
   width: 170px;
   height: 110px;
@@ -93,7 +115,11 @@
 
 @media (max-height: 700px) {
   .new-session-page-column {
-    gap: 40px;
+    gap: var(--space-4);
+  }
+
+  .new-session-page-composer {
+    padding-top: 48px;
   }
 
   .new-session-sender-cat {

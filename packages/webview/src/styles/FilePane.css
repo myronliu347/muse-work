@@ -31,7 +31,7 @@
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
   border-bottom: 1px solid var(--gray-6);
-  background: var(--gray-2);
+  background: var(--color-background);
 }
 
 .file-pane-search-input {
@@ -162,7 +162,7 @@
   padding: 0 var(--space-2) 0 var(--space-2);
   text-align: right;
   color: var(--gray-9);
-  background: var(--gray-2);
+  background: var(--color-background);
   user-select: none;
 }
 
@@ -271,7 +271,7 @@
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--gray-6);
-  background: var(--gray-2);
+  background: var(--color-background);
   min-height: 0;
 }
 
@@ -668,7 +668,7 @@
   max-height: min(420px, 70vh);
   display: flex;
   flex-direction: column;
-  background: var(--gray-2);
+  background: var(--color-background);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-2);
   /* Soft lift — avoid heavy blur halo */

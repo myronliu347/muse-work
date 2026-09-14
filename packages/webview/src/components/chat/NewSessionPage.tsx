@@ -20,7 +20,7 @@ export const NewSessionPage: React.FC<NewSessionPageProps> = ({
       <div className="new-session-page-backdrop" aria-hidden="true">
         <div
           className="new-session-page-wallpaper"
-          style={{ backgroundImage: `url(${wallpaper})` }}
+          style={{ backgroundImage: `url("${wallpaper}")` }}
           data-testid="new-session-wallpaper"
         />
         <div className="new-session-page-scrim" />

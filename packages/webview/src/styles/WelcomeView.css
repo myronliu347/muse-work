@@ -36,7 +36,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: blur(1.5px) saturate(0.98) brightness(0.88);
+  filter: blur(1.5px) saturate(1.04) brightness(0.78);
 }
 
 :root[data-theme="light"] .welcome-view-wallpaper,
@@ -49,15 +49,15 @@
   z-index: 0;
   background:
     radial-gradient(
-      ellipse 70% 55% at 50% 38%,
-      rgb(0 0 0 / 0.18) 0%,
-      rgb(0 0 0 / 0.55) 100%
+      ellipse 80% 60% at 50% 38%,
+      rgb(0 0 0 / 0.1) 0%,
+      rgb(0 0 0 / 0.32) 100%
     ),
     linear-gradient(
       180deg,
-      rgb(0 0 0 / 0.42) 0%,
-      rgb(0 0 0 / 0.28) 42%,
-      rgb(0 0 0 / 0.58) 100%
+      rgb(0 0 0 / 0.22) 0%,
+      rgb(0 0 0 / 0.16) 42%,
+      rgb(0 0 0 / 0.34) 100%
     );
 }
 

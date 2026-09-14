@@ -363,11 +363,13 @@ describe("TerminalPane", () => {
   });
 
   it("samples xterm theme from the pane, not :root light tokens", async () => {
+    document.documentElement.style.setProperty("--color-background", "#f9f9f9");
     document.documentElement.style.setProperty("--gray-2", "#f9f9f9");
     document.documentElement.style.setProperty("--gray-12", "#202020");
     renderPane();
     await act(async () => {});
     const body = screen.getByTestId("terminal-body");
+    body.style.setProperty("--color-background", "#191919");
     body.style.setProperty("--gray-2", "#191919");
     body.style.setProperty("--gray-12", "#eeeeee");
     body.style.setProperty("--accent-9", "#e5484d");
@@ -378,6 +380,7 @@ describe("TerminalPane", () => {
     };
     expect(after.background).toBe("#191919");
     expect(after.foreground).toBe("#eeeeee");
+    document.documentElement.style.removeProperty("--color-background");
     document.documentElement.style.removeProperty("--gray-2");
     document.documentElement.style.removeProperty("--gray-12");
   });
