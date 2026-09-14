@@ -1,0 +1,77 @@
+packages/server/src/routes/sessions.ts
+  b269e5c36bd23fae 52-53
+packages/server/tests/sessions.routes.test.ts
+  b269e5c36bd23fae 92
+packages/webview/src/muse/hostBridge/session.ts
+  b269e5c36bd23fae 61-62,72-73
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  b269e5c36bd23fae 52-53,688-700
+packages/webview/src/muse/apiClient.ts
+  b269e5c36bd23fae 158-159
+packages/webview/src/muse/hostBridge/ctx.ts
+  b269e5c36bd23fae 95-96,106-107
+packages/webview/src/types/index.ts
+  b269e5c36bd23fae 279-280
+packages/webview/src/components/session/SessionTree.tsx
+  b269e5c36bd23fae 31-56,345-349,365,369,451,746-751,755-762
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "46da2077c5c6c3ecd3705b8db44f7e99959d21d7",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 162,
+      "total_deletions": 37,
+      "accepted_lines": 151,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 51,
+          "deletions": 10,
+          "accepted_lines": 51
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 81,
+          "deletions": 27,
+          "accepted_lines": 70
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
