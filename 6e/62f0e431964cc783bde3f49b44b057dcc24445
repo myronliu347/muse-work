@@ -1,0 +1,46 @@
+packages/webview/src/components/session/SessionTree.tsx
+  4fa43b8460cb66b8 95-126,766-768
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 404-438
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6e62f0e431964cc783bde3f49b44b057dcc24445",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 96,
+      "total_deletions": 27,
+      "accepted_lines": 75,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 37,
+          "deletions": 2,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 59,
+          "deletions": 25,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
