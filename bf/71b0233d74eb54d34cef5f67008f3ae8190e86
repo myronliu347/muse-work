@@ -1,0 +1,61 @@
+packages/webview/src/muse/hostBridge/index.ts
+  4fa43b8460cb66b8 111-119
+packages/webview/src/muse/hostBridge/chat.ts
+  4fa43b8460cb66b8 189,192,198
+packages/webview/tests/muse/hostBridge.test.ts
+  4fa43b8460cb66b8 2678-2756
+packages/webview/src/muse/hostBridge/auth.ts
+  4fa43b8460cb66b8 8,53-54,58-60,117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bf71b0233d74eb54d34cef5f67008f3ae8190e86",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 100,
+      "total_deletions": 3,
+      "accepted_lines": 133,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/hostBridge/auth.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/shared/MoreMenu.tsx": {
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
