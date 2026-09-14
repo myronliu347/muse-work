@@ -1,0 +1,73 @@
+packages/webview/src/styles/globals.css
+  4fa43b8460cb66b8 31-34,39
+packages/webview/src/components/shared/Tooltip.tsx
+  4fa43b8460cb66b8 113-114,116-123,135-137,159
+packages/webview/tests/webview/tooltip.test.tsx
+  4fa43b8460cb66b8 225,227,234
+packages/webview/src/utils/bodyPortal.ts
+  4fa43b8460cb66b8 6-7
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 997,1051-1054
+packages/webview/src/styles/Tooltip.css
+  4fa43b8460cb66b8 9,45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "29fd762be844f264f791f812a169bc9543a29116",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 25,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/utils/bodyPortal.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/Tooltip.css": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 19,
+          "deletions": 15,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "additions": 14,
+          "deletions": 4,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
