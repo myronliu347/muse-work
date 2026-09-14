@@ -155,6 +155,8 @@ export interface MuseIssueGroup {
   priority: string;
   status: string;
   items: MuseChecklistItem[];
+  planningSessionId?: string;
+  executionSessionId?: string;
   sessions: MuseSession[];
 }
 

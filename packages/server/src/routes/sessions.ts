@@ -49,6 +49,8 @@ sessionsRoutes.get("/sessions", (c) => {
         priority: issue.priority,
         status: issue.status,
         items: issue.items,
+        planningSessionId: issue.planningSessionId,
+        executionSessionId: issue.executionSessionId,
         sessions,
       };
     };

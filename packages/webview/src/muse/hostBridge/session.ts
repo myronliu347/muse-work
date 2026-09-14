@@ -58,6 +58,8 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         priority: g.priority,
         status: g.status,
         items: g.items,
+        planningSessionId: g.planningSessionId,
+        executionSessionId: g.executionSessionId,
         sessions: (g.sessions ?? []).map(toEntry),
       })),
       closedIssueGroups: ctx.closedIssueGroups.map((g) => ({
@@ -67,6 +69,8 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         priority: g.priority,
         status: g.status,
         items: g.items,
+        planningSessionId: g.planningSessionId,
+        executionSessionId: g.executionSessionId,
         sessions: (g.sessions ?? []).map(toEntry),
       })),
     });

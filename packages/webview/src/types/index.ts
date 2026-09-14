@@ -276,6 +276,8 @@ export interface DesktopIssueGroup {
   priority: string;
   status: string;
   items: Array<{ id: string; content: string; status: string }>;
+  planningSessionId?: string;
+  executionSessionId?: string;
   sessions: DesktopSessionEntry[];
 }
 

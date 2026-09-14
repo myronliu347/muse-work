@@ -89,6 +89,7 @@ describe("sessions HTTP routes", () => {
     });
     expect(grouped.issueGroups[0].sessions).toHaveLength(1);
     expect(grouped.issueGroups[0].sessions[0].id).toBe(sessionId);
+    expect(grouped.issueGroups[0].planningSessionId).toBe(sessionId);
     expect(grouped.recent.map((s: { id: string }) => s.id)).not.toContain(
       grouped.issueGroups[0].sessions[0].id,
     );

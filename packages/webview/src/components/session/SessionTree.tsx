@@ -28,6 +28,32 @@ const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().startsWith("MAC");
 
+/** 去掉会话标题末尾的「· 规划/执行」，避免和侧栏前缀叠两层。 */
+export function stripIssueSessionRoleSuffix(title: string): string {
+  return title.replace(/\s*·\s*(规划|执行)\s*$/u, "").trim() || title;
+}
+
+export function issueSessionRole(
+  sessionId: string,
+  group: Pick<DesktopIssueGroup, "planningSessionId" | "executionSessionId">,
+): "planning" | "execution" | undefined {
+  if (group.planningSessionId && sessionId === group.planningSessionId) {
+    return "planning";
+  }
+  if (group.executionSessionId && sessionId === group.executionSessionId) {
+    return "execution";
+  }
+  return undefined;
+}
+
+export function formatIssueSessionTitle(
+  title: string,
+  role: "planning" | "execution",
+): string {
+  const raw = stripIssueSessionRoleSuffix(title);
+  return role === "planning" ? `【规划】${raw}` : `【执行】${raw}`;
+}
+
 /**
  * Auto-minted task projects live under `~/.muse-work/projects/<id>` (or
  * `~/.dev-muse-work/…` on MUSE_HOME_DIR dev instances)
@@ -316,7 +342,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
 
   const renderSession = (
     session: DesktopSessionEntry,
-    opts?: { hideWorkdir?: boolean; hideActions?: boolean },
+    opts?: {
+      hideWorkdir?: boolean;
+      hideActions?: boolean;
+      displayTitle?: string;
+    },
   ) => {
     const running =
       session.running ||
@@ -332,10 +362,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
 
     // Worktree sessions get a branch icon next to the relative time, and a
     // hover card on the right showing branch / worktree name / workdir.
+    const listTitle = opts?.displayTitle || session.title || "新对话";
     const worktreeInfo =
       session.hasWorktree && (session.worktreeName || session.worktreeBranch)
         ? {
-            title: session.title || "新对话",
+            title: listTitle,
             branch: session.worktreeBranch,
             worktreeName: session.worktreeName,
             workdir: session.workdir,
@@ -417,7 +448,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 setEditingTitle(session.title || "新对话");
               }}
             >
-              {session.title || "新对话"}
+              {listTitle}
             </span>
           )}
           {!opts?.hideWorkdir && shortName ? (
@@ -712,13 +743,23 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </div>
                       ) : (
                         <ul className="desktop-session-items desktop-session-items--nested">
-                          {sessions.map((session) =>
-                            renderSession(session, {
+                          {sessions.map((session) => {
+                            const role = issueSessionRole(
+                              session.sessionId,
+                              group,
+                            );
+                            return renderSession(session, {
                               hideWorkdir: true,
                               // 待办事项（Issue 规划/执行）会话不允许置顶/删除
                               hideActions: true,
-                            }),
-                          )}
+                              displayTitle: role
+                                ? formatIssueSessionTitle(
+                                    session.title || "新对话",
+                                    role,
+                                  )
+                                : undefined,
+                            });
+                          })}
                         </ul>
                       )}
                     </CollapsibleBody>
