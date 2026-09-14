@@ -92,6 +92,38 @@ function SessionStatusGlyph({
   );
 }
 
+const ISSUE_PRIORITY_LABEL: Record<string, string> = {
+  p0: "紧急",
+  p1: "普通",
+  p2: "较低",
+};
+
+function IssuePriorityFlag({ priority }: { priority: string }) {
+  const key = priority === "p0" || priority === "p2" ? priority : "p1";
+  const label = ISSUE_PRIORITY_LABEL[key] ?? "普通";
+  return (
+    <svg
+      className={`desktop-session-issue-icon desktop-session-issue-icon--${key}`}
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      data-testid="desktop-session-issue-icon"
+      data-priority={key}
+      aria-hidden="true"
+    >
+      <title>{`待办 · ${key.toUpperCase()} ${label}`}</title>
+      <path
+        className="desktop-session-issue-icon-pole"
+        d="M4.2 2.35 v11.3"
+      />
+      <path
+        className="desktop-session-issue-icon-cloth"
+        d="M4.2 3.15 C7.45 2.1 9.15 4.45 12.55 3.2 V8.15 C9.15 9.4 7.45 7.05 4.2 8.1 Z"
+      />
+    </svg>
+  );
+}
+
 /** 去掉会话标题末尾的「· 规划/执行」，避免和侧栏前缀叠两层。 */
 export function stripIssueSessionRoleSuffix(title: string): string {
   return title.replace(/\s*·\s*(规划|执行)\s*$/u, "").trim() || title;
@@ -731,7 +763,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           className="desktop-session-workdir-icon-slot"
                           aria-hidden="true"
                         >
-                          <span className="codicon codicon-tasklist desktop-session-workdir-folder" />
+                          <span className="desktop-session-workdir-folder">
+                            <IssuePriorityFlag priority={priority} />
+                          </span>
                           <span
                             className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
                           />
