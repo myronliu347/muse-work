@@ -1,11 +1,14 @@
 /* Desktop host layout: sidebar + chat, workdir selector inside the input */
 
 .desktop-layout {
-  display: flex;
-  flex-direction: row;
+  --desktop-sidebar-width: 240px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   flex: 1;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
 .desktop-loading {
@@ -16,15 +19,37 @@
 /* ---- Sidebar ---- */
 
 .desktop-sidebar {
-  width: 240px;
-  min-width: 240px;
+  grid-area: 1 / 1;
+  z-index: 6;
+  justify-self: start;
+  width: var(--desktop-sidebar-width);
+  min-width: var(--desktop-sidebar-width);
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--gray-6);
-  background: var(--gray-2);
-  overflow: hidden;
-  /* Anchor the more menu (absolute, top/right matches the chat header values). */
+  border-right: 1px solid color-mix(in srgb, var(--gray-6) 55%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 38%, transparent);
+  backdrop-filter: blur(32px) saturate(1.45);
+  -webkit-backdrop-filter: blur(32px) saturate(1.45);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--gray-1) 28%, transparent);
+  /* overflow:hidden 会让 backdrop-filter 只糊自身，透不出后面的聊天 */
+  overflow: visible;
   position: relative;
+}
+
+:root[data-theme="light"] .desktop-sidebar {
+  background: color-mix(in srgb, var(--gray-1) 48%, transparent);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--gray-1) 40%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .desktop-sidebar {
+    background: var(--gray-2);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
 }
 
 .desktop-sidebar-footer {
@@ -32,7 +57,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--gray-6);
+  border-top: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 35%, transparent);
   position: relative;
   flex-shrink: 0;
 }
@@ -138,6 +164,8 @@
 
 .desktop-session-tree {
   flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   /* Top pad = section gap + header padding, so 置顶↔分割线 equals 置顶↔下一组标题 */
   padding: calc(var(--space-1) + var(--space-2)) var(--space-2) var(--space-2);
@@ -620,18 +648,18 @@
 }
 
 .desktop-session-item:hover {
-  background: var(--gray-4);
+  background: color-mix(in srgb, var(--gray-4) 78%, transparent);
 }
 
 .desktop-session-item--current {
-  background: var(--gray-4);
+  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
   color: inherit;
   font-weight: 500;
 }
 
 /* Weak counterpart of --current: the session is shown in a non-focused pane. */
 .desktop-session-item--visible {
-  background: var(--gray-4);
+  background: color-mix(in srgb, var(--gray-4) 70%, transparent);
 }
 
 .desktop-session-status-slot {
@@ -1280,13 +1308,20 @@ body.is-panel-resizing * {
 
 /* Vertical stack of pane rows (at most two); fills the chat area next to the
    sidebar and anchors the drop-zone overlay. */
-.desktop-pane-rows {
+.desktop-pane-rows,
+.desktop-layout > .chat-container {
+  grid-area: 1 / 1;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  z-index: 0;
   min-width: 0;
   min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.desktop-pane-rows {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -1459,8 +1494,27 @@ body.is-panel-resizing * {
   display: none;
 }
 
+.desktop-layout:has(.desktop-panel-dock--fullscreen) {
+  --desktop-sidebar-width: 0px;
+}
+
 .desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-sidebar {
   display: none;
+}
+
+/* 标题栏铺满全宽（含侧栏底下），文字从侧栏右缘开始。只推最左一列，避免并排 pane 右侧被多余缩进。 */
+.desktop-layout > .chat-container .chat-header,
+.desktop-pane-row > .desktop-pane:first-child .chat-header {
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+}
+
+.desktop-layout > .chat-container .input-wrapper,
+.desktop-pane-row > .desktop-pane:first-child .input-wrapper {
+  margin-left: max(
+    var(--desktop-sidebar-width),
+    calc((100% - 800px) / 2)
+  );
+  margin-right: auto;
 }
 
 /* Wrapper that keeps an unchecked panel mounted (display:none) so its content
