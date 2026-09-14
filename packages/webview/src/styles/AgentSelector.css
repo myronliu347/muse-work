@@ -8,7 +8,7 @@
 .agent-selector-trigger {
   position: relative;
   box-sizing: border-box;
-  height: 26px;
+  height: 28px;
   max-width: 160px;
   padding: 0 6px 0 var(--space-2);
   border: 1px solid transparent;
@@ -16,7 +16,7 @@
   background: transparent;
   color: var(--gray-12);
   font-size: var(--font-size-1);
-  line-height: 24px;
+  line-height: 26px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);

@@ -541,7 +541,7 @@ input:checked + .slider:before {
 
 .muse-quota-user {
   font-size: var(--font-size-1);
-  color: var(--gray-11));
+  color: var(--gray-11);
 }
 
 .muse-quota-grid {
@@ -559,7 +559,7 @@ input:checked + .slider:before {
 }
 
 .muse-quota-label {
-  color: var(--gray-11));
+  color: var(--gray-11);
 }
 
 .muse-quota-progress {
@@ -578,7 +578,7 @@ input:checked + .slider:before {
 .muse-quota-progress-track {
   height: 6px;
   border-radius: var(--radius-6);
-  background: var(--gray-3));
+  background: var(--gray-3);
   overflow: hidden;
 }
 
