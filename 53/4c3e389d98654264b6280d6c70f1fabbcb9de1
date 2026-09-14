@@ -1,0 +1,64 @@
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 12,33,37,39-50,52,59-62,70-71,160,164-168,1210,1218,1532,1538-1554
+packages/webview/src/components/shared/HeaderIcons.tsx
+  b269e5c36bd23fae 7-8,12-13,17,20,24,30,40,42-48,155
+packages/webview/src/components/chat/AgentSelector.tsx
+  b269e5c36bd23fae 5,102
+packages/webview/src/styles/AgentSelector.css
+  b269e5c36bd23fae 33-35,37
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  b269e5c36bd23fae 156
+packages/webview/src/styles/DesktopPanelDock.css
+  b269e5c36bd23fae 289-290
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "534c3e389d98654264b6280d6c70f1fabbcb9de1",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 185,
+      "total_deletions": 120,
+      "accepted_lines": 148,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 77,
+          "deletions": 53,
+          "accepted_lines": 50
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/AgentSelector.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AgentSelector.css": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 99,
+          "deletions": 62,
+          "accepted_lines": 89
+        }
+      }
+    }
+  }
+}
