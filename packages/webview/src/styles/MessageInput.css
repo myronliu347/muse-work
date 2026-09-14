@@ -31,6 +31,8 @@
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   max-height: 176px;
+  container-type: inline-size;
+  container-name: composer;
 }
 
 /* Focus state: the whole box border turns brand red (设计稿 Focus state). */
@@ -272,6 +274,17 @@
 .input-model-select .muse-model-select:hover,
 .input-model-select .muse-model-select:focus-visible {
   background-color: var(--gray-3);
+}
+
+@container composer (max-width: 560px) {
+  .input-toolbar-left .desktop-workdir-trigger,
+  .input-model-select .muse-model-select {
+    max-width: 112px;
+  }
+
+  .agent-selector-trigger {
+    max-width: 108px;
+  }
 }
 
 .context-actions {

@@ -1517,7 +1517,8 @@ body.is-panel-resizing * {
   min-width: 520px;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  /* visible so composer dropdowns can paint over the message list */
+  overflow: visible;
 }
 
 /* Dock fullscreen covers the conversation column and the session sidebar. */
