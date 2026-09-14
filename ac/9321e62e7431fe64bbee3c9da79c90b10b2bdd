@@ -1,0 +1,79 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  28007b773a47b45d 59,91-94,99,107,110-111,117,141,178-181,186,194,198-199,205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ac9321e62e7431fe64bbee3c9da79c90b10b2bdd",
+  "prompts": {
+    "28007b773a47b45d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6807e888-f6ed-4195-9b66-1eb3cbf1a42b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 6,
+      "accepted_lines": 25,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 25,
+          "deletions": 6,
+          "accepted_lines": 25
+        }
+      }
+    },
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 37,
+      "total_deletions": 35,
+      "accepted_lines": 44,
+      "overriden_lines": 4,
+      "per_file_stats": {
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 23,
+          "deletions": 19,
+          "accepted_lines": 8,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 9,
+          "deletions": 11,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/shared/MoreMenu.tsx": {
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
