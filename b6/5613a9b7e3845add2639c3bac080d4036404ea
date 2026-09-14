@@ -1,0 +1,97 @@
+packages/webview/src/styles/DiffPane.css
+  4fa43b8460cb66b8 387
+packages/webview/src/styles/WelcomeView.css
+  4fa43b8460cb66b8 39,52-54,58-60
+packages/webview/src/components/chat/NewSessionPage.tsx
+  4fa43b8460cb66b8 23
+packages/webview/tests/webview/terminalPane.test.tsx
+  4fa43b8460cb66b8 366,372,383
+packages/webview/src/styles/NewSessionPage.css
+  4fa43b8460cb66b8 6,8,10-15,23-24,26,30,42-45,55-58,75-84,89-90,98,118-122
+packages/webview/src/components/panels/TerminalPane.tsx
+  4fa43b8460cb66b8 66-69
+packages/webview/tests/components/newSessionPage.test.tsx
+  4fa43b8460cb66b8 17
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 1178,1183-1187,1320,1334,1533,1546-1554
+packages/webview/src/styles/TerminalPane.css
+  4fa43b8460cb66b8 19,26
+packages/webview/src/components/panels/PreviewPane.tsx
+  4fa43b8460cb66b8 121
+packages/webview/src/styles/FilePane.css
+  4fa43b8460cb66b8 34,165,274,671
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b65613a9b7e3845add2639c3bac080d4036404ea",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 85,
+      "total_deletions": 33,
+      "accepted_lines": 85,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 38,
+          "deletions": 12,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 7,
+          "deletions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/TerminalPane.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/terminalPane.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 23,
+          "deletions": 5,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
