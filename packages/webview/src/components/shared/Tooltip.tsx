@@ -6,8 +6,10 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
 } from "react";
 import "../../styles/Tooltip.css";
+import { bodyPortal } from "../../utils/bodyPortal";
 
 const INTERACTIVE_HIDE_MS = 160;
 
@@ -48,7 +50,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
   wrap = true,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({
+    left: -9999,
+    top: 0,
+  });
   const id = useId();
   const containerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -132,8 +137,16 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const handleShow = useCallback(() => {
     clearHideTimer();
     setIsVisible(true);
-    requestAnimationFrame(calculatePosition);
-  }, [calculatePosition, clearHideTimer]);
+  }, [clearHideTimer]);
+
+  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+
+  useLayoutEffect(() => {
+    if (!isVisible) return;
+    calculatePosition();
+    const frame = requestAnimationFrame(calculatePosition);
+    return () => cancelAnimationFrame(frame);
+  }, [isVisible, calculatePosition, content]);
 
   const handleHide = useCallback(() => {
     if (!interactive) {
@@ -146,8 +159,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
       setIsVisible(false);
     }, INTERACTIVE_HIDE_MS);
   }, [clearHideTimer, interactive]);
-
-  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
   // When disabled, render children without tooltip wrapper
   if (disabled) {
@@ -170,9 +181,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
   if (!wrap) {
     // Bind hover handlers + ref directly onto the child so it stays a direct
-    // flex child of its parent (e.g. sidebar session rows). The box stays in
-    // place as a sibling — `position: fixed` keeps it out of the flex flow —
-    // so it keeps the theme CSS variables from the app root.
+    // flex child of its parent (e.g. sidebar session rows). The box is
+    // portaled onto `#muse-overlay-root` so overflow/backdrop-filter
+    // ancestors cannot clip it while theme tokens still apply.
     return (
       <>
         {React.cloneElement(children, {
@@ -183,7 +194,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
           ref: containerRef as React.Ref<HTMLElement>,
           "aria-describedby": id,
         })}
-        {box}
+        {bodyPortal(box)}
       </>
     );
   }
@@ -200,7 +211,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {React.cloneElement(children, {
         "aria-describedby": id,
       })}
-      {box}
+      {bodyPortal(box)}
     </span>
   );
 };

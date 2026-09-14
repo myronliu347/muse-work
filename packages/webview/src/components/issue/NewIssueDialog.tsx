@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { MuseApiClient, MuseIssuePriority } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
+import { bodyPortal } from "../../utils/bodyPortal";
 
 export interface NewIssueDialogProps {
   api: MuseApiClient;
@@ -63,7 +64,7 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
     }
   };
 
-  return (
+  return bodyPortal(
     <div
       className="confirm-dialog-overlay"
       data-testid="new-issue-dialog-overlay"
@@ -223,5 +224,3 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
     </div>
   );
 };
-
-export default NewIssueDialog;

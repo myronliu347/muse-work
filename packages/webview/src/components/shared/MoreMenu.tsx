@@ -1,5 +1,6 @@
 import React from "react";
 import { DropdownMenu } from "@radix-ui/themes";
+import { getOverlayHost } from "../../utils/bodyPortal";
 
 interface MoreMenuProps {
   /** Radix Trigger 包裹的按钮（更多）。 */
@@ -27,6 +28,7 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
       highContrast
       align="end"
       sideOffset={4}
+      container={getOverlayHost()}
       data-testid="more-menu"
     >
       <DropdownMenu.Item onSelect={onOpenSettings} data-testid="more-menu-settings">

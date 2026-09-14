@@ -639,7 +639,7 @@
 
 .desktop-context-menu {
   position: fixed;
-  z-index: 1000;
+  z-index: 10000;
   min-width: 160px;
   padding: var(--space-1);
   box-sizing: border-box;
@@ -731,12 +731,52 @@
 }
 
 .desktop-session-status-icon {
-  font-size: var(--font-size-1);
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: 14px;
+  height: 14px;
+  display: block;
   flex-shrink: 0;
+  overflow: visible;
+}
+
+.desktop-session-status-icon--running {
+  color: var(--accent-9);
+  fill: currentColor;
+}
+
+.desktop-session-status-icon--waiting {
+  color: var(--amber-9);
+  fill: currentColor;
+}
+
+.desktop-session-status-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: desktop-session-status-bar 0.7s ease-in-out infinite;
+}
+
+.desktop-session-status-bar--b {
+  animation-delay: 0.12s;
+}
+
+.desktop-session-status-bar--c {
+  animation-delay: 0.24s;
+}
+
+@keyframes desktop-session-status-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-session-status-bar {
+    animation: none;
+    transform: none;
+  }
 }
 
 .desktop-session-text {

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import "../../styles/ConfirmDialog.css";
+import { bodyPortal } from "../../utils/bodyPortal";
 
 export interface ConfirmDialogProps {
   title: string;
@@ -40,7 +41,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onConfirm, onCancel]);
 
-  return (
+  return bodyPortal(
     <div
       className="confirm-dialog-overlay"
       data-testid="confirm-dialog-overlay"

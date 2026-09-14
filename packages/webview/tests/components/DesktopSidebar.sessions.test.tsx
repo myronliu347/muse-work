@@ -89,7 +89,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen
         .getByTestId("desktop-session-item-a")
-        .querySelector(".codicon-loading"),
+        .querySelector("[data-testid='desktop-session-status-running']"),
     ).toBeTruthy();
     expect(
       screen
@@ -343,22 +343,26 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
 
     const pinBtn = screen.getByTestId("desktop-session-pin-p1");
-    fireEvent.mouseEnter(pinBtn.closest(".tooltip-container") as HTMLElement);
-    expect(
-      pinBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
-    ).toHaveTextContent("取消置顶");
+    const pinWrap = pinBtn.closest(".tooltip-container") as HTMLElement;
+    fireEvent.mouseEnter(pinWrap);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
+      "取消置顶",
+    );
+    fireEvent.mouseLeave(pinWrap);
 
     const deleteBtn = screen.getByTestId("desktop-session-delete-p1");
-    fireEvent.mouseEnter(deleteBtn.closest(".tooltip-container") as HTMLElement);
-    expect(
-      deleteBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
-    ).toHaveTextContent("删除会话");
+    const deleteWrap = deleteBtn.closest(".tooltip-container") as HTMLElement;
+    fireEvent.mouseEnter(deleteWrap);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
+      "删除会话",
+    );
+    fireEvent.mouseLeave(deleteWrap);
 
     const addBtn = screen.getByTestId("desktop-session-workdir-add-/repo/beta");
     fireEvent.mouseEnter(addBtn.closest(".tooltip-container") as HTMLElement);
-    expect(
-      addBtn.closest(".tooltip-container")?.querySelector(".tooltip-box"),
-    ).toHaveTextContent("在此目录新建对话");
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
+      "在此目录新建对话",
+    );
   });
 
   it("calls onNewSessionInWorkdir from workdir group + button", () => {
@@ -841,6 +845,8 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
 
     fireEvent.click(screen.getByTestId("desktop-session-issue-more-issue-1"));
+    const menu = screen.getByTestId("desktop-session-issue-menu-issue-1");
+    expect(menu.closest(".desktop-sidebar")).toBeNull();
     expect(
       screen.getByTestId("desktop-session-issue-complete-issue-1"),
     ).toHaveTextContent("完成");
@@ -934,7 +940,7 @@ describe("DesktopSidebar popo section", () => {
     });
     const row = screen.getByTestId("desktop-popo-item-team:1696900");
     expect(row.className).toContain("desktop-session-item--current");
-    expect(row.querySelector(".codicon-loading")).not.toBeNull();
+    expect(row.querySelector("[data-testid='desktop-session-status-running']")).not.toBeNull();
   });
 
   it("calls onSelectPopoChat on click and has no pin action", async () => {

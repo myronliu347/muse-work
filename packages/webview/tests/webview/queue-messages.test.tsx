@@ -6,7 +6,6 @@ import {
   sendCommand,
   fireInput,
   setInputText,
-  within,
 } from "./test-utils";
 
 /**
@@ -231,12 +230,9 @@ describe("Message Queuing", () => {
         .querySelector(".queued-message-list-header") as HTMLElement,
     );
 
-    // The Tooltip wrapper (.tooltip-container) contains the item and a
-    // role="tooltip" box carrying the full text.
     const item = screen.getByTestId("queued-item-q1");
-    const container = item.closest(".tooltip-container") as HTMLElement;
-    const tooltip = within(container).getByRole("tooltip");
-    expect(tooltip).toHaveTextContent(
+    fireEvent.mouseEnter(item.closest(".tooltip-container") as HTMLElement);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(
       "A very long queued message that needs a tooltip",
     );
   });

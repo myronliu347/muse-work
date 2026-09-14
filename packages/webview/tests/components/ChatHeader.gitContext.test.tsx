@@ -35,8 +35,9 @@ describe("ChatHeader gitContext", () => {
       />,
     );
     const title = screen.getByText("新对话", { selector: ".header-title" });
-    fireEvent.mouseEnter(title);
+    fireEvent.mouseEnter(title.closest(".tooltip-container") as HTMLElement);
     const card = screen.getByTestId("desktop-worktree-card");
+    expect(card.closest(".tooltip-box")).toHaveClass("visible");
     expect(card.textContent).toContain("worktree-a");
     expect(card.textContent).toContain("a");
     expect(card.textContent).toContain("/repo/.wave/worktrees/a");

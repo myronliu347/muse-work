@@ -72,9 +72,9 @@ test.describe("Tool Error Scrollable Demo", () => {
     ]);
     await webviewPage.waitForSelector(".tool-error");
     await webviewPage.hover(".tool-error");
-    await webviewPage.waitForSelector(".tool-error .tooltip-box.visible");
+    await webviewPage.waitForSelector(".tooltip-box.visible");
 
-    const errorLocator = webviewPage.locator(".tool-error .tooltip-box.visible");
+    const errorLocator = webviewPage.locator(".tooltip-box.visible");
     const maxHeight = await errorLocator.evaluate(
       (el) => window.getComputedStyle(el).maxHeight,
     );

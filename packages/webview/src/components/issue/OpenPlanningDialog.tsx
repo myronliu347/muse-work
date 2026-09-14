@@ -3,6 +3,7 @@ import type { MuseApiClient } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
 import "../../styles/OpenPlanningDialog.css";
+import { bodyPortal } from "../../utils/bodyPortal";
 
 export const PICK_DIRECTORY_TIMEOUT_MS = 15_000;
 
@@ -325,7 +326,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
     }
   };
 
-  return (
+  return bodyPortal(
     <div
       className="confirm-dialog-overlay"
       data-testid="open-planning-dialog-overlay"

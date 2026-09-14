@@ -50,6 +50,7 @@ export function MuseTheme({ children }: { children: React.ReactNode }) {
       appearance={effective}
     >
       {children}
+      <div id="muse-overlay-root" className="muse-overlay-root" />
     </Theme>
   );
 }

@@ -10,6 +10,7 @@ import type {
   DesktopIssueGroup,
 } from "../../types";
 import type { PopoChatSummary } from "../../muse/apiClient";
+import { bodyPortal } from "../../utils/bodyPortal";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
 export const SESSION_DRAG_MIME = "application/x-wave-session";
@@ -27,6 +28,69 @@ const ISSUE_STATUS_LABEL: Record<string, string> = {
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().startsWith("MAC");
+
+function SessionStatusGlyph({
+  kind,
+  label,
+}: {
+  kind: "running" | "waiting";
+  label?: string;
+}) {
+  const title =
+    label ?? (kind === "waiting" ? "等待确认" : "正在运行");
+  if (kind === "waiting") {
+    return (
+      <svg
+        className="desktop-session-status-icon desktop-session-status-icon--waiting"
+        viewBox="0 0 16 16"
+        width="14"
+        height="14"
+        data-testid="desktop-session-status-waiting"
+        aria-hidden="true"
+      >
+        <title>{title}</title>
+        <rect x="4.4" y="3" width="2.4" height="10" rx="0.9" />
+        <rect x="9.2" y="3" width="2.4" height="10" rx="0.9" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className="desktop-session-status-icon desktop-session-status-icon--running"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      data-testid="desktop-session-status-running"
+      aria-hidden="true"
+    >
+      <title>{title}</title>
+      <rect
+        className="desktop-session-status-bar desktop-session-status-bar--a"
+        x="3.2"
+        y="4"
+        width="2.2"
+        height="8"
+        rx="1"
+      />
+      <rect
+        className="desktop-session-status-bar desktop-session-status-bar--b"
+        x="6.9"
+        y="4"
+        width="2.2"
+        height="8"
+        rx="1"
+      />
+      <rect
+        className="desktop-session-status-bar desktop-session-status-bar--c"
+        x="10.6"
+        y="4"
+        width="2.2"
+        height="8"
+        rx="1"
+      />
+    </svg>
+  );
+}
 
 /** 去掉会话标题末尾的「· 规划/执行」，避免和侧栏前缀叠两层。 */
 export function stripIssueSessionRoleSuffix(title: string): string {
@@ -403,16 +467,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         data-testid={`desktop-session-item-${session.sessionId}`}
       >
         <span className="desktop-session-status-slot" aria-hidden="true">
-          {running || waiting ? (
-            <i
-              className={`codicon codicon-${waiting ? "bell" : "loading codicon-modifier-spin"} desktop-session-status-icon`}
-              style={{
-                color: waiting
-                  ? "var(--accent-11)"
-                  : "var(--accent-9)",
-              }}
-              title={waiting ? "等待确认" : "正在运行"}
-            />
+          {waiting ? (
+            <SessionStatusGlyph kind="waiting" />
+          ) : running ? (
+            <SessionStatusGlyph kind="running" />
           ) : showUnread ? (
             <span className="desktop-session-unread-dot" />
           ) : null}
@@ -812,7 +870,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                     >
                       <span className="desktop-session-status-slot" aria-hidden="true">
                         {chat.processing ? (
-                          <i className="codicon codicon-loading codicon-modifier-spin desktop-session-status-icon" />
+                          <SessionStatusGlyph kind="running" label="正在处理" />
                         ) : null}
                       </span>
                       <span className="desktop-session-title" title={chat.title}>
@@ -1034,7 +1092,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           onCancel={() => setPendingIssueAction(null)}
         />
       )}
-      {issueMenu && (
+      {issueMenu &&
+        bodyPortal(
         <div
           className="desktop-context-menu"
           style={{ left: issueMenu.x, top: issueMenu.y }}
@@ -1081,9 +1140,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               取消
             </button>
           ) : null}
-        </div>
-      )}
-      {workdirMenu && (
+        </div>,
+        )}
+      {workdirMenu &&
+        bodyPortal(
         <div
           className="desktop-context-menu"
           style={{ left: workdirMenu.x, top: workdirMenu.y }}
@@ -1129,8 +1189,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               在 Finder 中打开
             </button>
           ) : null}
-        </div>
-      )}
+        </div>,
+        )}
     </div>
   );
 };

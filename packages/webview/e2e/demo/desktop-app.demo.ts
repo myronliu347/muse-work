@@ -193,12 +193,12 @@ test.describe("Desktop App Screenshots", () => {
     await expect(
       webviewPage
         .getByTestId("desktop-session-item-sess-a1")
-        .locator(".codicon-loading"),
+        .locator("[data-testid='desktop-session-status-running']"),
     ).toBeVisible();
     await expect(
       webviewPage
         .getByTestId("desktop-session-item-sess-a2")
-        .locator(".codicon-bell"),
+        .locator("[data-testid='desktop-session-status-waiting']"),
     ).toBeVisible();
     // Other groups are expanded by default too
     await expect(

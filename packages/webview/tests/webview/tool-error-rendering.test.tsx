@@ -34,14 +34,10 @@ describe("Tool Block Error Rendering", () => {
     expect(toolHeader).toBeInTheDocument();
     expect(toolHeader).toHaveTextContent(READ_TOOL_NAME);
     expect(document.querySelector(".tool-error")).toBeInTheDocument();
-    expect(document.querySelector(".tool-error .tooltip-box")).not.toHaveClass(
-      "visible",
-    );
+    expect(document.querySelector(".tooltip-box.visible")).toBeNull();
 
     hoverToolError();
-    expect(document.querySelector(".tool-error .tooltip-box")).toHaveClass(
-      "visible",
-    );
+    expect(document.querySelector(".tooltip-box.visible")).toBeTruthy();
     expect(
       document.querySelector('[data-testid="tool-error-detail"]'),
     ).toHaveTextContent("File not found: /nonexistent/file.txt");
@@ -62,9 +58,7 @@ describe("Tool Block Error Rendering", () => {
     const toolBlock = document.querySelector(".tool-block");
     expect(toolBlock).toHaveTextContent(`● ${BASH_TOOL_NAME}`);
     expect(document.querySelector(".tool-error")).toBeInTheDocument();
-    expect(document.querySelector(".tool-error .tooltip-box")).not.toHaveClass(
-      "visible",
-    );
+    expect(document.querySelector(".tooltip-box.visible")).toBeNull();
 
     hoverToolError();
     expect(

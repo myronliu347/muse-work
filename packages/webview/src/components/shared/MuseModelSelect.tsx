@@ -8,6 +8,7 @@ import { DEFAULT_SESSION_MODEL_ID } from "../../muse/defaultModel";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { MUSE_PROVIDERS_CHANGED_EVENT } from "../../muse/providersEvents";
 import { Tooltip } from "./Tooltip";
+import { getOverlayHost } from "../../utils/bodyPortal";
 import "../../styles/MuseModelSelect.css";
 
 /** Radix Select items cannot use "" as a value; map the "留空" option through this sentinel. */
@@ -143,7 +144,11 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
           placeholder={loading ? (error ? "模型不可用" : "加载模型…") : undefined}
           className="muse-model-select"
         />
-        <Select.Content position="popper" className="muse-model-select-content">
+        <Select.Content
+          position="popper"
+          className="muse-model-select-content"
+          container={getOverlayHost()}
+        >
           {!loading && allowEmpty && (
             <Select.Item value={EMPTY_VALUE}>
               {emptyLabel || "（留空）"}

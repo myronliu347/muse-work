@@ -28,6 +28,23 @@ body {
   height: 100%;
 }
 
+/* Theme-scoped overlay host: above sidebar/chat clip, still inherits Radix tokens. */
+.muse-overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+}
+
+/* Children inherit `none` unless restored — dialogs/menus would not receive clicks. */
+.muse-overlay-root > * {
+  pointer-events: auto;
+}
+
+.muse-overlay-root > .tooltip-box:not(.tooltip-box--interactive) {
+  pointer-events: none;
+}
+
 button:focus-visible,
 [role="tab"]:focus-visible,
 [role="radio"]:focus-visible,

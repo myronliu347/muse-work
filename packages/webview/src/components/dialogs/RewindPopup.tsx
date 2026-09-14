@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Dialog, Button } from "@radix-ui/themes";
 import "../../styles/RewindPopup.css";
+import { getOverlayHost } from "../../utils/bodyPortal";
 
 export interface RewindCheckpoint {
   id: string;
@@ -79,6 +80,7 @@ export const RewindPopup: React.FC<RewindPopupProps> = ({
         onKeyDown={handleKeyDown}
         size="3"
         aria-describedby={undefined}
+        container={getOverlayHost()}
       >
         <Dialog.Title className="rewind-popup-title">
           选择要回滚到的消息

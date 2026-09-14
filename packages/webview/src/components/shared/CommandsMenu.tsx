@@ -1,5 +1,6 @@
 import React from "react";
 import { DropdownMenu } from "@radix-ui/themes";
+import { getOverlayHost } from "../../utils/bodyPortal";
 
 export interface CommandMenuItem {
   id: string;
@@ -32,6 +33,7 @@ export const CommandsMenu: React.FC<CommandsMenuProps> = ({
       highContrast
       align="start"
       sideOffset={4}
+      container={getOverlayHost()}
       data-testid="command-menu"
     >
       {items.map((item) => (

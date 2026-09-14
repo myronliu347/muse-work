@@ -9,6 +9,7 @@ import { AgentTranscriptPopup } from "./AgentTranscriptPopup";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastStack } from "../shared/ToastStack";
 import { QuickOpenPalette } from "../panels/QuickOpenPalette";
+import { bodyPortal } from "../../utils/bodyPortal";
 import { resolveSubagentMessages } from "../../utils/subagentTranscript";
 import type { AgentTranscriptState } from "../../stores";
 import type {
@@ -89,7 +90,7 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   onQuickOpenClose,
   effectiveWorkdir,
 }) => {
-  return (
+  return bodyPortal(
     <>
       {activeDialog === "config" && (
         <ConfigDialog
@@ -176,6 +177,6 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
         onClose={onQuickOpenClose}
         onOpenFile={(path) => onOpenFile(path)}
       />
-    </>
+    </>,
   );
 };
