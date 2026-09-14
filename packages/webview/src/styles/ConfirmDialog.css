@@ -35,7 +35,7 @@
 .confirm-dialog-icon {
   font-size: var(--font-size-3);
   line-height: var(--line-height-1);
-  color: #ffcc00;
+  color: var(--amber-9);
   flex-shrink: 0;
 }
 

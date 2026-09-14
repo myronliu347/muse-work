@@ -53,9 +53,10 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 2px;
   max-width: 100%;
   height: 24px;
-  padding: 0 var(--space-2);
+  padding: 0 2px 0 var(--space-2);
   border-radius: var(--radius-1);
   color: var(--gray-11);
   flex-shrink: 0;
@@ -87,16 +88,12 @@
 }
 
 .desktop-panel-tab-close {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   padding: 0;
   border: none;
-  background: var(--gray-4);
+  background: transparent;
   color: var(--gray-11);
   border-radius: var(--radius-1);
   cursor: pointer;
@@ -132,7 +129,7 @@
   max-width: 180px;
   min-width: 0;
   height: 24px;
-  padding: 0 var(--space-2);
+  padding: 0 2px 0 var(--space-2);
   border-radius: var(--radius-1);
   color: var(--gray-11);
   font-size: var(--font-size-1);
@@ -152,6 +149,7 @@
 }
 
 .file-tab-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -168,16 +166,12 @@
 }
 
 .file-tab-close {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   padding: 0;
   border: none;
-  background: var(--gray-4);
+  background: transparent;
   color: var(--gray-11);
   border-radius: var(--radius-1);
   cursor: pointer;

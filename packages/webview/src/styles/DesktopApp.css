@@ -1301,7 +1301,7 @@ body.is-panel-resizing * {
   width: 100%;
   height: 100%;
   border: none;
-  background: #ffffff;
+  background: var(--color-background, var(--gray-2));
 }
 
 /* Empty hint overlays the guest area; must not sit in normal flow or it

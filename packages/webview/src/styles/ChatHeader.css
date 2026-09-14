@@ -95,19 +95,20 @@
 
 .button-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -3px;
+  right: -3px;
   background-color: var(--gray-8);
   color: var(--gray-12);
-  font-size: var(--font-size-1);
-  min-width: 12px;
-  height: 12px;
+  font-size: 9px;
+  line-height: 1;
+  min-width: 14px;
+  height: 14px;
   border-radius: var(--radius-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--space-1);
-  font-weight: bold;
+  padding: 0 3px;
+  font-weight: 700;
 }
 
 .header-button:disabled {
