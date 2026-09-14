@@ -1,0 +1,173 @@
+packages/webview/src/components/session/SessionTree.tsx
+  4fa43b8460cb66b8 13,32-94,470-473,873,1095-1096,1143-1146,1192-1193
+packages/webview/src/components/dialogs/ChatDialogs.tsx
+  4fa43b8460cb66b8 12,93,180
+packages/webview/src/utils/bodyPortal.ts
+  4fa43b8460cb66b8 1-23
+packages/webview/src/components/dialogs/ConfirmDialog.tsx
+  4fa43b8460cb66b8 3,44
+packages/webview/src/components/shared/MuseModelSelect.tsx
+  4fa43b8460cb66b8 11,147-151
+packages/webview/e2e/demo/tool-error-scrollable.demo.ts
+  4fa43b8460cb66b8 75,77
+packages/webview/e2e/demo/desktop-app.demo.ts
+  4fa43b8460cb66b8 196,201
+packages/webview/src/components/shared/Tooltip.tsx
+  4fa43b8460cb66b8 9,12,53-56,140-149,184-186,197,214
+packages/webview/tests/webview/queue-messages.test.tsx
+  4fa43b8460cb66b8 234-235
+packages/webview/src/ui/theme.tsx
+  4fa43b8460cb66b8 53
+packages/webview/tests/components/ChatHeader.gitContext.test.tsx
+  4fa43b8460cb66b8 38,40
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  4fa43b8460cb66b8 92,346-351,354-359,363-365,848-849,943
+packages/webview/src/components/issue/NewIssueDialog.tsx
+  4fa43b8460cb66b8 5,67
+packages/webview/src/components/shared/MoreMenu.tsx
+  4fa43b8460cb66b8 3,31
+packages/webview/src/styles/globals.css
+  4fa43b8460cb66b8 31-47
+packages/webview/tests/webview/tool-error-rendering.test.tsx
+  4fa43b8460cb66b8 37,40,61
+packages/webview/src/components/panels/PanelAddMenu.tsx
+  4fa43b8460cb66b8 6,40
+packages/webview/src/components/dialogs/RewindPopup.tsx
+  4fa43b8460cb66b8 4,83
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  4fa43b8460cb66b8 6,329
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 642,734-736,738-779
+packages/webview/src/components/shared/CommandsMenu.tsx
+  4fa43b8460cb66b8 3,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8c1f4cc9ee3ceb1a9b1a73c203e76bb5f01f3e08",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 290,
+      "total_deletions": 126,
+      "accepted_lines": 281,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/ChatHeader.gitContext.test.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 79,
+          "deletions": 19,
+          "accepted_lines": 77
+        },
+        "packages/webview/e2e/demo/tool-error-scrollable.demo.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/shared/CommandsMenu.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/tool-error-rendering.test.tsx": {
+          "additions": 3,
+          "deletions": 9,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 20,
+          "deletions": 14,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/dialogs/RewindPopup.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/issue/NewIssueDialog.tsx": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/queue-messages.test.tsx": {
+          "additions": 2,
+          "deletions": 6,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/shared/MoreMenu.tsx": {
+          "additions": 2,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 46,
+          "deletions": 6,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "additions": 48,
+          "deletions": 37,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/components/shared/MuseModelSelect.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/dialogs/ConfirmDialog.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/utils/bodyPortal.ts": {
+          "additions": 45,
+          "deletions": 22,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/panels/PanelAddMenu.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/ui/theme.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
