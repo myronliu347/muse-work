@@ -1,0 +1,71 @@
+packages/webview/src/styles/DesktopApp.css
+  b269e5c36bd23fae 1520-1521
+packages/webview/src/styles/MessageInput.css
+  b269e5c36bd23fae 34-35,279-289
+packages/webview/src/styles/AgentSelector.css
+  b269e5c36bd23fae 34-35
+packages/webview/src/styles/DesktopPanelDock.css
+  b269e5c36bd23fae 163
+packages/webview/src/styles/NewSessionPage.css
+  b269e5c36bd23fae 13,30-31,93-111
+packages/webview/src/styles/WelcomeView.css
+  b269e5c36bd23fae 89,98,139,141,153,189,196,221,241-269
+packages/webview/src/components/shared/HeaderIcons.tsx
+  b269e5c36bd23fae 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "05103bc3a256641b650b9079d1377cd721486408",
+  "prompts": {
+    "b269e5c36bd23fae": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "afd3602d-3e5a-4f5f-bdf5-cff51a9eb67f",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 82,
+      "total_deletions": 19,
+      "accepted_lines": 79,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AgentSelector.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 22,
+          "deletions": 3,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 40,
+          "deletions": 10,
+          "accepted_lines": 37
+        }
+      }
+    }
+  }
+}
