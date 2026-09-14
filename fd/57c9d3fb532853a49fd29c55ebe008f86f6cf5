@@ -1,0 +1,51 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  4fa43b8460cb66b8 56,59,91,96,132,152,169,174
+packages/webview/src/styles/ChatHeader.css
+  4fa43b8460cb66b8 98-99,102-105,110-111
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 1304
+packages/webview/src/styles/ConfirmDialog.css
+  4fa43b8460cb66b8 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fd57c9d3fb532853a49fd29c55ebe008f86f6cf5",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 23,
+      "accepted_lines": 18,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ConfirmDialog.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 8,
+          "deletions": 7,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 8,
+          "deletions": 14,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
