@@ -1,0 +1,87 @@
+packages/webview/src/styles/WelcomeView.css
+  4fa43b8460cb66b8 209,211-218,222-234,238,244-257,298-303
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "77221b85566ec9d28ce249083a5e00b1b65b317a",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 187,
+      "total_deletions": 51,
+      "accepted_lines": 68,
+      "overriden_lines": 8,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/ChatChrome.tsx": {
+          "additions": 3
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 43,
+          "deletions": 9,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 6
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 10
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 5
+        },
+        "packages/webview/tests/components/welcomeView.test.tsx": {
+          "additions": 9
+        },
+        "packages/webview/src/components/chat/ChatHeader.tsx": {
+          "additions": 2
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 4
+        },
+        "packages/webview/src/muse/ssoLogin.ts": {
+          "additions": 15
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 1
+        },
+        "packages/webview/src/muse/hostBridge/auth.ts": {
+          "additions": 1
+        },
+        "packages/webview/src/components/shared/MoreMenu.tsx": {
+          "additions": 54,
+          "deletions": 37,
+          "accepted_lines": 25,
+          "overriden_lines": 3
+        },
+        "packages/webview/tests/muse/ssoLogin.test.ts": {
+          "additions": 15
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "overriden_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1
+        }
+      }
+    }
+  }
+}
