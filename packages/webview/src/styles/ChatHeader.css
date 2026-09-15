@@ -136,7 +136,7 @@
   opacity: 0.7;
 }
 
-/* 会话标题后的指令下拉按钮：紧贴标题，不占用 header-buttons 空间 */
+/* 会话指令：顶栏右侧 … */
 .header-command-menu-btn {
   flex-shrink: 0;
   width: 22px;

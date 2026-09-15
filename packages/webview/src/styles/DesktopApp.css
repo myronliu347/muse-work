@@ -2,6 +2,10 @@
 
 .desktop-layout {
   --desktop-sidebar-width: 240px;
+  /* macOS hiddenInset traffic lights sit in this strip; sidebar + chat header share it. */
+  --desktop-shell-titlebar-height: 38px;
+  /* Traffic lights at {14,12}: visual cluster ~66px, native hit slop + 12px gap. */
+  --desktop-shell-chrome-left: 92px;
   --chat-content-min-width: 520px;
   /* Leftmost pane/chat column includes overlay-sidebar padding. */
   --chat-main-min-width: calc(
@@ -44,6 +48,19 @@
   box-shadow: none;
   overflow: hidden;
   position: relative;
+  /* Traffic-light row: children start below; glass ::before still covers this inset. */
+  padding-top: var(--desktop-shell-titlebar-height);
+  -webkit-app-region: no-drag;
+}
+
+.desktop-sidebar-titlebar-drag {
+  position: absolute;
+  top: 0;
+  left: calc(var(--desktop-shell-chrome-left) + 28px);
+  right: 0;
+  height: var(--desktop-shell-titlebar-height);
+  z-index: 2;
+  -webkit-app-region: drag;
 }
 
 .desktop-sidebar::before {
@@ -55,9 +72,11 @@
   background: color-mix(in srgb, var(--gray-2) 38%, transparent);
 }
 
-.desktop-sidebar > * {
+.desktop-sidebar
+  > *:not(.desktop-sidebar-titlebar-drag):not(.desktop-sidebar-resize) {
   position: relative;
   z-index: 1;
+  -webkit-app-region: no-drag;
 }
 
 :root[data-theme="light"] .desktop-sidebar {
@@ -89,6 +108,9 @@
   width: 6px;
   height: 100%;
   cursor: col-resize;
+  /* Must stay out of flex flow; a 100% relative sibling hides the session tree. */
+  flex: none;
+  pointer-events: auto;
 }
 
 .desktop-sidebar-resize:hover,
@@ -144,12 +166,52 @@
   font-size: var(--font-size-3);
 }
 
+.desktop-shell-chrome {
+  position: absolute;
+  top: 0;
+  left: var(--desktop-shell-chrome-left);
+  z-index: 20;
+  width: 28px;
+  height: var(--desktop-shell-titlebar-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-sidebar-toggle:hover {
+  color: var(--gray-12);
+  background: var(--gray-4);
+}
+
+.desktop-sidebar-toggle .codicon {
+  font-size: 16px;
+}
+
 /* 侧栏顶部菜单区：统一定义 padding 与按钮间距（按钮自身不带 margin） */
 .app-menus {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: var(--space-1);
-  padding: var(--space-3) var(--space-2) var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2);
 }
 
 /* 菜单区与会话树之间的分隔线 */
@@ -1660,10 +1722,42 @@ body.is-panel-resizing * {
   display: none;
 }
 
+.desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-shell-chrome {
+  display: none;
+}
+
 /* 聊天铺满窗口供侧栏透出；标题/列表/输入只把内容让出侧栏宽度，不额外改居中公式。 */
+.desktop-layout > .chat-container .chat-header,
+.desktop-pane-row:first-child .chat-header {
+  height: var(--desktop-shell-titlebar-height);
+  /* Drag only on descendants. A full-bar drag region swallows the overlay
+     sidebar toggle (siblings cannot punch -webkit-app-region: no-drag). */
+  -webkit-app-region: no-drag;
+  border-bottom: none;
+}
+
+.desktop-layout .chat-header .header-title-group {
+  -webkit-app-region: drag;
+}
+
 .desktop-layout > .chat-container .chat-header,
 .desktop-pane-row > .desktop-pane:first-child .chat-header {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+}
+
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .chat-header,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .chat-header {
+  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
+}
+
+.desktop-layout .chat-header button,
+.desktop-layout .chat-header a,
+.desktop-layout .chat-header input,
+.desktop-layout .chat-header [role="button"] {
+  -webkit-app-region: no-drag;
 }
 
 .desktop-layout > .chat-container .messages-container,

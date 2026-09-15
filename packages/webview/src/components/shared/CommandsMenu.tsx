@@ -31,7 +31,7 @@ export const CommandsMenu: React.FC<CommandsMenuProps> = ({
       variant="soft"
       color="gray"
       highContrast
-      align="start"
+      align="end"
       sideOffset={4}
       container={getOverlayHost()}
       data-testid="command-menu"

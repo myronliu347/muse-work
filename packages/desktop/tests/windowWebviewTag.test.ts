@@ -44,4 +44,20 @@ describe("createMainWindow", () => {
     >;
     expect(prefs.webviewTag).toBe(true);
   });
+
+  it("uses a hiddenInset titlebar on macOS so traffic lights sit in the shell strip", () => {
+    ctorOpts.length = 0;
+    createMainWindow({
+      serverBaseUrl: "http://127.0.0.1:8787",
+      backgroundColor: "#000",
+      preloadPath: "/tmp/preload.cjs",
+      webviewHtmlPath: "/tmp/index.html",
+    });
+    if (process.platform === "darwin") {
+      expect(ctorOpts[0].titleBarStyle).toBe("hiddenInset");
+      expect(ctorOpts[0].trafficLightPosition).toEqual({ x: 14, y: 12 });
+    } else {
+      expect(ctorOpts[0].titleBarStyle).toBeUndefined();
+    }
+  });
 });

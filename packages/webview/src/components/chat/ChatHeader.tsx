@@ -54,6 +54,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         ) : (
           <div className="header-title">{title}</div>
         )}
+      </div>
+      <div className="header-buttons">
         {commandMenuItems && commandMenuItems.length > 0 && (
           <Tooltip text="会话指令" position="bottom">
             <CommandsMenu
@@ -64,14 +66,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   data-testid="header-command-menu-btn"
                   aria-label="会话指令"
                 >
-                  <i className="codicon codicon-kebab-vertical"></i>
+                  <i className="codicon codicon-ellipsis"></i>
                 </button>
               }
             />
           </Tooltip>
         )}
-      </div>
-      <div className="header-buttons">
         {!hideSessionButtons && (
           <>
             <Tooltip text="新建对话" position="bottom">

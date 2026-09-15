@@ -29,6 +29,8 @@ import {
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarWidth } from "../hooks/useDesktopSidebarWidth";
+import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
+import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
 import type {
   ChatAppProps,
   DesktopPanelKind,
@@ -304,9 +306,11 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   } = send;
 
   const { width: sidebarWidth } = useDesktopSidebarWidth();
+  const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
+  const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const sidebarInset =
-    !dockFullscreen && paneHasSidebarInset(host?.panes, paneId);
-  const chatMinWidth = chatMainMinWidth(sidebarInset, sidebarWidth);
+    !dockFullscreen && !sidebarCollapsed && paneHasSidebarInset(host?.panes, paneId);
+  const chatMinWidth = chatMainMinWidth(sidebarInset, layoutSidebarWidth);
   const dockMaxWidth = chatColumnWidth - chatMinWidth;
   const panels = usePanels({
     postToHost,
@@ -871,12 +875,15 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     return (
       <div
         className="desktop-layout"
+        data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
         style={
           {
-            "--desktop-sidebar-width": `${sidebarWidth}px`,
+            "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
           } as React.CSSProperties
         }
       >
+        <DesktopSidebarToggle />
+        {!sidebarCollapsed ? (
         <DesktopSidebar
           onNewSession={() => {
             popoUi.selectChat(null);
@@ -929,6 +936,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             view === "newChat" || showNewSessionPage ? "newChat" : undefined
           }
         />
+        ) : null}
         {chatContainer}
         {newIssueDialog}
         {openPlanningDialog}

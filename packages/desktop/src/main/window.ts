@@ -29,6 +29,12 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     title: opts.title ?? "Muse",
     backgroundColor: opts.backgroundColor,
     icon: icon.isEmpty() ? undefined : icon,
+    ...(process.platform === "darwin"
+      ? {
+          titleBarStyle: "hiddenInset" as const,
+          trafficLightPosition: { x: 14, y: 12 },
+        }
+      : {}),
     webPreferences: {
       preload: opts.preloadPath,
       contextIsolation: true,

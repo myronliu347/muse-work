@@ -165,6 +165,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       data-testid="desktop-sidebar"
       ref={sidebarRef}
     >
+      <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
       <div
         className="desktop-sidebar-resize"
         onMouseDown={onResizeStart}

@@ -33,23 +33,17 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof ChatHeader>>) 
 }
 
 describe("ChatHeader command menu", () => {
-  it("renders the action button right after the session title", () => {
+  it("renders the action button on the right of the header", () => {
     renderHeader({
       commandMenuItems: [
         { id: "compact", label: "压缩会话", icon: "codicon-fold", onClick: vi.fn() },
       ],
     });
-    const title = screen.getByText("新对话", { selector: ".header-title" });
+    const header = screen.getByTestId("chat-header");
     const btn = screen.getByTestId("header-command-menu-btn");
-    // 按钮与标题同在 header-title-group 内，且排在标题后面
-    const group = title.parentElement as HTMLElement;
-    expect(group).toHaveClass("header-title-group");
-    expect(group.firstElementChild).toBe(title);
-    expect(group.contains(btn)).toBe(true);
-    // 标题在按钮前面（DOCUMENT_POSITION_PRECEDING）
-    expect(btn.compareDocumentPosition(title)).toBe(
-      Node.DOCUMENT_POSITION_PRECEDING,
-    );
+    const buttons = header.querySelector(".header-buttons");
+    expect(buttons).toContainElement(btn);
+    expect(btn.querySelector(".codicon-ellipsis")).not.toBeNull();
   });
 
   it("does not render the button when no items are provided", () => {

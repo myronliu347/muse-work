@@ -21,6 +21,8 @@ import {
   minPaneWidth,
 } from "../../muse/layout";
 import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
+import { useDesktopSidebarCollapsed } from "../../hooks/useDesktopSidebarCollapsed";
+import { DesktopSidebarToggle } from "./DesktopSidebarToggle";
 
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
     the row separator clamps to it (the desktop host enforces the same limit). */
@@ -73,6 +75,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const { width: sidebarWidth } = useDesktopSidebarWidth();
+  const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
+  const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const popoUi = usePopoUi();
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
@@ -630,12 +634,15 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
     <div
       className="desktop-layout"
       data-testid="desktop-shell"
+      data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
       style={
         {
-          "--desktop-sidebar-width": `${sidebarWidth}px`,
+          "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
         } as React.CSSProperties
       }
     >
+      <DesktopSidebarToggle />
+      {!sidebarCollapsed ? (
       <DesktopSidebar
         onNewSession={() => {
           popoUi.selectChat(null);
@@ -687,6 +694,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           });
         }}
       />
+      ) : null}
       <div
         className="desktop-pane-rows"
         ref={rowsContainerRef}
@@ -716,7 +724,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             >
               {rowPanes.map((pane, index) => {
                 const paneStyle: React.CSSProperties = {
-                  minWidth: minPaneWidth(index === 0, sidebarWidth),
+                  minWidth: minPaneWidth(index === 0, layoutSidebarWidth),
                 };
                 if (
                   resizePreview &&
