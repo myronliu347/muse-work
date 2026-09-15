@@ -13,8 +13,10 @@ describe("PanelToggleControl", () => {
         <PanelToggleControl onToggleDock={onToggleDock} />
       </MuseTheme>,
     );
-    fireEvent.click(screen.getByTestId("panel-toggle-btn"));
+    const btn = screen.getByTestId("panel-toggle-btn");
+    fireEvent.click(btn);
     expect(onToggleDock).toHaveBeenCalledTimes(1);
+    expect(btn.getAttribute("aria-label")).toMatch(/^面板 (⌘J|Ctrl\+J)$/);
     expect(screen.queryByTestId("panel-toggle-menu")).toBeNull();
     expect(
       screen

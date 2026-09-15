@@ -186,6 +186,56 @@ describe("matchDockFullscreenShortcut", () => {
   });
 });
 
+describe("matchDockToggleShortcut", () => {
+  const platform = navigator.platform;
+
+  afterEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  it("matches Cmd+J on mac", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchDockToggleShortcut, dockToggleShortcutLabel } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchDockToggleShortcut(keyEvent({ key: "j", metaKey: true })),
+    ).toBe(true);
+    expect(
+      matchDockToggleShortcut(
+        keyEvent({ key: "j", metaKey: true, shiftKey: true }),
+      ),
+    ).toBe(false);
+    expect(dockToggleShortcutLabel()).toBe("⌘J");
+  });
+
+  it("matches Ctrl+J on Windows", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "Win32",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchDockToggleShortcut, dockToggleShortcutLabel } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchDockToggleShortcut(keyEvent({ key: "j", ctrlKey: true })),
+    ).toBe(true);
+    expect(
+      matchDockToggleShortcut(keyEvent({ key: "j", metaKey: true })),
+    ).toBe(false);
+    expect(dockToggleShortcutLabel()).toBe("Ctrl+J");
+  });
+});
+
 describe("matchQuickOpenShortcut", () => {
   const platform = navigator.platform;
 

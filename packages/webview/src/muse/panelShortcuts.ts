@@ -11,6 +11,7 @@ const isMac =
  * - Terminal: ⌃` / Ctrl+`
  * - File: ⇧⌘F / Ctrl+Shift+F
  * Dock fullscreen (separate): ⌃⌘F / F11
+ * Dock show/hide (header 面板 button): ⌘J / Ctrl+J
  */
 export function matchPanelShortcut(event: KeyboardEvent): DesktopPanelKind | null {
   if (event.altKey || event.isComposing) return null;
@@ -81,6 +82,19 @@ export function matchDockFullscreenShortcut(event: KeyboardEvent): boolean {
 
 export function dockFullscreenShortcutLabel(): string {
   return isMac ? "⌃⌘F" : "F11";
+}
+
+/** ⌘J / Ctrl+J — show or hide the right dock (same as the 面板 header button). */
+export function matchDockToggleShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey || event.shiftKey || event.isComposing) return false;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key !== "j") return false;
+  if (isMac) return event.metaKey && !event.ctrlKey;
+  return event.ctrlKey && !event.metaKey;
+}
+
+export function dockToggleShortcutLabel(): string {
+  return isMac ? "⌘J" : "Ctrl+J";
 }
 
 export function matchNewSessionShortcut(event: KeyboardEvent): boolean {

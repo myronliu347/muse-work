@@ -14,6 +14,7 @@ import {
   matchNewSessionShortcut,
   matchQuickOpenShortcut,
   matchDockFullscreenShortcut,
+  matchDockToggleShortcut,
 } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_MIN_WIDTH, clampDockWidth } from "../muse/layout";
@@ -278,6 +279,9 @@ export function usePanels({
     tryOpenPanel("diff");
   }, [groupKey, tryOpenPanel, updatePanelGroup]);
 
+  const toggleDockRef = useRef(handleToggleDock);
+  toggleDockRef.current = handleToggleDock;
+
   const handleAddPanel = useCallback(
     (kind: DesktopPanelKind) => {
       if (panelDisabledRef.current.includes(kind)) return;
@@ -339,6 +343,12 @@ export function usePanels({
         event.preventDefault();
         event.stopPropagation();
         setQuickOpenOpen(true);
+        return;
+      }
+      if (matchDockToggleShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleDockRef.current();
         return;
       }
       if (matchDockFullscreenShortcut(event)) {
