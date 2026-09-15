@@ -29,6 +29,8 @@ export interface MuseModelSelectProps {
   emptyLabel?: string;
   /** data-testid on the trigger. Defaults to "muse-model-select". */
   testId?: string;
+  /** Hover tip with provider · model. Off inside settings fields that already have labels. */
+  showTooltip?: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
   allowEmpty = false,
   emptyLabel = "",
   testId = "muse-model-select",
+  showTooltip = true,
 }) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,37 +134,43 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
     }
   };
 
+  const select = (
+    <Select.Root
+      value={value}
+      onValueChange={handleValueChange}
+      disabled={loading}
+    >
+      <Select.Trigger
+        data-testid={testId}
+        aria-label="Model"
+        placeholder={loading ? (error ? "模型不可用" : "加载模型…") : undefined}
+        className="muse-model-select"
+      />
+      <Select.Content
+        position="popper"
+        className="muse-model-select-content"
+        container={getOverlayHost()}
+      >
+        {!loading && allowEmpty && (
+          <Select.Item value={EMPTY_VALUE}>
+            {emptyLabel || "（留空）"}
+          </Select.Item>
+        )}
+        {!loading &&
+          models.map((m) => (
+            <Select.Item key={m.id} value={m.id}>
+              {m.label || m.id}
+            </Select.Item>
+          ))}
+      </Select.Content>
+    </Select.Root>
+  );
+
+  if (!showTooltip) return select;
+
   return (
     <Tooltip text={tooltipText} position="top" className="muse-model-select-tooltip">
-      <Select.Root
-        value={value}
-        onValueChange={handleValueChange}
-        disabled={loading}
-      >
-        <Select.Trigger
-          data-testid={testId}
-          aria-label="Model"
-          placeholder={loading ? (error ? "模型不可用" : "加载模型…") : undefined}
-          className="muse-model-select"
-        />
-        <Select.Content
-          position="popper"
-          className="muse-model-select-content"
-          container={getOverlayHost()}
-        >
-          {!loading && allowEmpty && (
-            <Select.Item value={EMPTY_VALUE}>
-              {emptyLabel || "（留空）"}
-            </Select.Item>
-          )}
-          {!loading &&
-            models.map((m) => (
-              <Select.Item key={m.id} value={m.id}>
-                {m.label || m.id}
-              </Select.Item>
-            ))}
-        </Select.Content>
-      </Select.Root>
+      {select}
     </Tooltip>
   );
 };

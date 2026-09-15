@@ -26,11 +26,12 @@
   flex-direction: column;
   gap: var(--space-1);
   box-sizing: border-box;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2);
   background-color: var(--color-background);
   border: 1px solid var(--gray-6);
-  border-radius: var(--radius-4);
+  border-radius: calc(var(--radius-4) + 2px);
   max-height: 176px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 42%, transparent);
   container-type: inline-size;
   container-name: composer;
 }
@@ -38,26 +39,27 @@
 /* Focus state: the whole box border turns brand red (设计稿 Focus state). */
 .input-content:focus-within {
   border-color: var(--accent-9);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
+    0 10px 32px color-mix(in srgb, var(--gray-1) 48%, transparent);
 }
 
-/* Desktop host: workdir / branch / worktree controls on the toolbar left,
-   same row as the model selector. Dropdowns expand upward from the bottom row. */
-.input-toolbar-left {
+/* Workdir / agent sit under the card (ghost chips), not inside the writing box. */
+.input-meta-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-width: 0;
-  flex: 0 1 auto;
+  padding: var(--space-2) 2px 0;
   overflow: visible;
 }
 
-.input-toolbar-left .desktop-workdir-container,
-.input-toolbar-left .desktop-worktree-controls {
+.input-meta-row .desktop-workdir-container,
+.input-meta-row .desktop-worktree-controls {
   min-width: 0;
 }
 
-/* Match MuseModelSelect: transparent pill, gray capsule on hover. */
-.input-toolbar-left .desktop-workdir-trigger {
+.input-meta-row .desktop-workdir-trigger {
   position: relative;
   box-sizing: border-box;
   height: 28px;
@@ -66,28 +68,28 @@
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  color: var(--gray-12);
+  color: var(--gray-11);
   font-size: var(--font-size-1);
   line-height: 26px;
 }
 
-.input-toolbar-left .desktop-workdir-trigger:hover {
+.input-meta-row .desktop-workdir-trigger:hover {
   background-color: var(--gray-3);
   color: var(--gray-12);
 }
 
-.input-toolbar-left .desktop-workdir-trigger .codicon-folder-opened,
-.input-toolbar-left .desktop-workdir-trigger .codicon-git-branch {
+.input-meta-row .desktop-workdir-trigger .codicon-folder-opened,
+.input-meta-row .desktop-workdir-trigger .codicon-git-branch {
   font-size: var(--font-size-1);
   opacity: 0.72;
   flex-shrink: 0;
 }
 
-.input-toolbar-left .desktop-workdir-name {
+.input-meta-row .desktop-workdir-name {
   max-width: 120px;
 }
 
-.input-toolbar-left .desktop-workdir-caret {
+.input-meta-row .desktop-workdir-caret {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -95,8 +97,12 @@
   opacity: 0.72;
 }
 
-.input-toolbar-left .desktop-worktree-checkbox {
+.input-meta-row .desktop-worktree-checkbox {
   font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.input-buttons-row .agent-selector-trigger {
   color: var(--gray-11);
 }
 
@@ -111,7 +117,7 @@
   font-family: inherit;
   font-size: var(--font-size-1);
   line-height: 20px;
-  min-height: 20px;
+  min-height: 32px;
   max-height: 112px;
   overflow-y: auto;
   word-break: break-word;
@@ -205,12 +211,14 @@
 }
 
 .ai-send-btn:disabled {
-  opacity: 0.4;
+  background: var(--gray-6);
+  color: var(--gray-11);
+  opacity: 1;
   cursor: default;
 }
 
 .ai-send-btn:disabled:hover {
-  background-color: var(--accent-9);
+  background-color: var(--gray-6);
   filter: none;
 }
 
@@ -234,7 +242,7 @@
   align-items: center;
   gap: var(--space-2);
   height: 28px;
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
   padding: 0;
   min-width: 0;
   overflow: visible;
@@ -277,7 +285,7 @@
 }
 
 @container composer (max-width: 560px) {
-  .input-toolbar-left .desktop-workdir-trigger,
+  .input-meta-row .desktop-workdir-trigger,
   .input-model-select .muse-model-select {
     max-width: 112px;
   }
@@ -385,8 +393,8 @@
 
 /* Toolbar icon buttons ("+") — 22px square, 16px icon */
 .toolbar-icon-button {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -394,7 +402,7 @@
   background-color: transparent;
   color: var(--gray-11);
   border: none;
-  border-radius: var(--radius-1);
+  border-radius: 999px;
   cursor: pointer;
   flex-shrink: 0;
 }

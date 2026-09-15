@@ -1517,34 +1517,28 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               data-placeholder="@提及文件，粘贴图片，Enter发送..."
             />
 
-            {/* Toolbar row: workdir/git on the left, model select + send on the right */}
+            {/* Inner footer: attach + model + send. Workdir/agent sit under the card. */}
             <div className="input-buttons-row">
-              <div
-                className="input-toolbar-left"
-                data-testid="input-workdir-row"
-              >
-                {workdirSelector}
-                <AgentSelector
-                  agentName={agentName}
-                  defaultAgentName={defaultAgentName}
-                  onSelect={onAgentChange}
+              <Tooltip text="添加文件" position="top">
+                <button
+                  type="button"
+                  className="toolbar-icon-button"
+                  data-testid="add-local-file-btn"
+                  aria-label="添加文件"
                   disabled={disabled}
-                />
-                <Tooltip text="添加文件" position="top">
-                  <button
-                    type="button"
-                    className="toolbar-icon-button"
-                    data-testid="add-local-file-btn"
-                    aria-label="添加文件"
-                    disabled={disabled}
-                    onClick={() =>
-                      vscode.postMessage({ command: "desktopSelectFiles" })
-                    }
-                  >
-                    <i className="codicon codicon-new-file" />
-                  </button>
-                </Tooltip>
-              </div>
+                  onClick={() =>
+                    vscode.postMessage({ command: "desktopSelectFiles" })
+                  }
+                >
+                  <i className="codicon codicon-add" />
+                </button>
+              </Tooltip>
+              <AgentSelector
+                agentName={agentName}
+                defaultAgentName={defaultAgentName}
+                onSelect={onAgentChange}
+                disabled={disabled}
+              />
               <div className="button-spacer" />
               <div className="permission-mode-container" ref={permMenuRef}>
                 <button
@@ -1621,6 +1615,12 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               </Tooltip>
             </div>
           </div>
+
+          {workdirSelector ? (
+            <div className="input-meta-row" data-testid="input-workdir-row">
+              {workdirSelector}
+            </div>
+          ) : null}
 
           {/* File Suggestion Dropdown */}
           <FileSuggestionDropdown

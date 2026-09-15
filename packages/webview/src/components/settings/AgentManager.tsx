@@ -280,6 +280,7 @@ export const AgentManager = forwardRef<
           <h4>数字人 Agent</h4>
           <Button
             type="button"
+            size="1"
             variant="soft"
             color="gray"
             data-testid="agent-add-btn"
@@ -290,7 +291,9 @@ export const AgentManager = forwardRef<
           </Button>
         </div>
         {agents.length === 0 ? (
-          <div className="agent-manager-empty">加载中…</div>
+          <div className="agent-manager-list-pane">
+            <div className="agent-manager-empty">加载中…</div>
+          </div>
         ) : (
           <ul className="agent-manager-list" data-testid="agent-manager-list">
             {agents.map((a) => (
@@ -344,11 +347,14 @@ export const AgentManager = forwardRef<
       </div>
 
       {draft ? (
-        <div className="agent-manager-editor" data-testid="agent-form">
-          <h4 className="agent-manager-editor-title">
-            {isNew ? "新增 Agent" : `编辑 Agent：${draft.name || draft.key}`}
-          </h4>
-          <div className="agent-manager-form">
+        <div className="agent-manager-section">
+          <div className="agent-manager-header">
+            <h4>
+              {isNew ? "新增 Agent" : `编辑 Agent：${draft.name || draft.key}`}
+            </h4>
+          </div>
+          <div className="agent-manager-editor" data-testid="agent-form">
+            <div className="agent-manager-form">
               {/* 基础信息 */}
               <div className="agent-manager-form-group">
                 <Text size="2" weight="medium" color="gray">
@@ -426,6 +432,7 @@ export const AgentManager = forwardRef<
                       modelId={draft.model || undefined}
                       onModelChange={(m) => setDraft({ ...draft, model: m })}
                       testId="agent-form-model"
+                      showTooltip={false}
                     />
                   </Field>
                   <Field
@@ -442,6 +449,7 @@ export const AgentManager = forwardRef<
                       allowEmpty
                       emptyLabel="（留空）"
                       testId="agent-form-fastModel"
+                      showTooltip={false}
                     />
                   </Field>
                 </div>
@@ -543,10 +551,16 @@ Edit(**/.env)   ← 拒绝
                 </Button>
               </div>
             </div>
+          </div>
         </div>
       ) : (
-        <div className="agent-manager-editor agent-manager-editor--empty">
-          选择左侧 Agent 进行编辑，或点击「新增 Agent」
+        <div className="agent-manager-section">
+          <div className="agent-manager-header">
+            <h4>编辑 Agent</h4>
+          </div>
+          <div className="agent-manager-editor agent-manager-editor--empty">
+            选择左侧 Agent 进行编辑，或点击「新增 Agent」
+          </div>
         </div>
       )}
       </div>

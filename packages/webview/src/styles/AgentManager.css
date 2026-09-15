@@ -8,7 +8,11 @@
   display: grid;
   grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
   gap: var(--space-3);
-  align-items: start;
+  align-items: stretch;
+}
+
+.agent-manager-workspace > .agent-manager-section {
+  min-height: 0;
 }
 
 .agent-manager-section {
@@ -23,6 +27,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-height: 32px;
+  flex-shrink: 0;
 }
 
 .agent-manager-header h4 {
@@ -31,13 +37,21 @@
   color: var(--gray-12);
 }
 
-.agent-manager-list {
+.agent-manager-list,
+.agent-manager-list-pane {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--gray-2);
+  overflow: auto;
 }
 
 .agent-manager-row {
@@ -58,11 +72,16 @@
 
 .agent-manager-workspace .agent-manager-row {
   flex-wrap: wrap;
+  background: var(--gray-3);
+}
+
+.agent-manager-workspace .agent-manager-row:hover {
+  background: var(--gray-4);
 }
 
 .agent-manager-row--active {
   border-color: var(--accent-8);
-  background: var(--accent-a2, var(--gray-3));
+  background: var(--accent-a2, var(--gray-4));
 }
 
 .agent-manager-row-main {
@@ -107,10 +126,13 @@
 
 .agent-manager-editor {
   min-width: 0;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
   background: var(--gray-2);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .agent-manager-editor--empty {
@@ -121,15 +143,6 @@
   padding: var(--space-4);
   color: var(--gray-10);
   font-size: var(--font-size-1);
-}
-
-.agent-manager-editor-title {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--gray-5);
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  color: var(--gray-12);
 }
 
 .agent-manager-form {

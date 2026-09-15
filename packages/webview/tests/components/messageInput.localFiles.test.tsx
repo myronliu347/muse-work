@@ -75,6 +75,19 @@ describe("MessageInput local file pick", () => {
       />,
     );
     expect(screen.getByTestId("add-local-file-btn")).toBeTruthy();
+    const content = document.querySelector(".input-content");
+    const addBtn = screen.getByTestId("add-local-file-btn");
+    const agent = screen.getByTestId("agent-selector");
+    const send = screen.getByTestId("send-btn");
+    expect(content?.contains(addBtn)).toBe(true);
+    expect(content?.contains(agent)).toBe(true);
+    expect(addBtn.compareDocumentPosition(agent)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(agent.compareDocumentPosition(send)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.queryByTestId("input-workdir-row")).toBeNull();
   });
 
   it("click posts desktopSelectFiles; result inserts @file tags", async () => {

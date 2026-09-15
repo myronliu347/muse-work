@@ -3,8 +3,8 @@
 .desktop-layout {
   --desktop-sidebar-width: 240px;
   /* macOS hiddenInset traffic lights sit in this strip; sidebar + chat header share it. */
-  --desktop-shell-titlebar-height: 36px;
-  --desktop-shell-chrome-left: 72px;
+  --desktop-shell-titlebar-height: 38px;
+  --desktop-shell-chrome-left: 82px;
   --chat-content-min-width: 520px;
   /* Leftmost pane/chat column includes overlay-sidebar padding. */
   --chat-main-min-width: calc(

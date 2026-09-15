@@ -77,9 +77,10 @@
   margin: 0;
 }
 
-.new-session-page .input-toolbar-left {
+.new-session-page .input-meta-row {
   min-width: 0;
   flex: 1 1 auto;
+  padding-top: var(--space-2);
 }
 
 .new-session-page-composer {

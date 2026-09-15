@@ -2,7 +2,14 @@
  * position="popper" 用普通锚定弹层，不做 item-aligned 高度重算——
  * 否则滚动时每次重算 contentWrapper 高度对齐选中项到 trigger 中线，越滚越高。
  * 这里显式固定最大高度，避免被模型列表撑成满视口。
+ *
+ * 设置弹窗 z-index 是 2000；Radix popper 默认约 300，portal 到 body 时会
+ * 整层落到对话框后面，看起来像下拉打不开、点了没反应。
  */
 .muse-model-select-content.rt-SelectContent {
   max-height: 300px;
+}
+
+[data-radix-popper-content-wrapper]:has(.muse-model-select-content) {
+  z-index: 3100 !important;
 }
