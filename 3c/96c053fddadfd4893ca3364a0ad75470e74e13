@@ -1,0 +1,139 @@
+packages/webview/tests/components/desktopSidebar.toggle.test.tsx
+  4fa43b8460cb66b8 1-26
+packages/webview/src/components/shared/CommandsMenu.tsx
+  4fa43b8460cb66b8 34
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 5-8,51-63,75-76,79,111-113,169-207,212,214,1725-1728,1731-1742,1748-1760
+packages/webview/src/hooks/useDesktopSidebarCollapsed.ts
+  4fa43b8460cb66b8 1-24
+packages/webview/tests/components/ChatHeader.commandMenu.test.tsx
+  4fa43b8460cb66b8 36,42,44-46
+packages/webview/tests/muse/sidebarCollapsed.test.ts
+  4fa43b8460cb66b8 1-36
+packages/webview/src/styles/ChatHeader.css
+  4fa43b8460cb66b8 139
+packages/desktop/src/main/window.ts
+  4fa43b8460cb66b8 32-37
+packages/webview/src/styles/DesktopPanelDock.css
+  4fa43b8460cb66b8 28
+packages/webview/src/muse/sidebarCollapsed.ts
+  4fa43b8460cb66b8 1-64
+packages/webview/src/components/desktop/DesktopShell.tsx
+  4fa43b8460cb66b8 24-25,78-79,637,640,644-645,697,727
+packages/webview/src/components/desktop/DesktopSidebarToggle.tsx
+  4fa43b8460cb66b8 1-61
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  4fa43b8460cb66b8 168
+packages/webview/src/components/ChatApp.tsx
+  4fa43b8460cb66b8 32-33,309-310,312-313,878,881,885-886,939
+packages/webview/src/components/chat/ChatHeader.tsx
+  4fa43b8460cb66b8 57-58,69
+packages/desktop/tests/windowWebviewTag.test.ts
+  4fa43b8460cb66b8 47-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3c96c053fddadfd4893ca3364a0ad75470e74e13",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 408,
+      "total_deletions": 70,
+      "accepted_lines": 371,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/desktopSidebar.toggle.test.tsx": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/muse/sidebarCollapsed.ts": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/hooks/useDesktopSidebarCollapsed.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/ChatHeader.commandMenu.test.tsx": {
+          "additions": 5,
+          "deletions": 11,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/shared/CommandsMenu.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 122,
+          "deletions": 28,
+          "accepted_lines": 100
+        },
+        "packages/webview/tests/muse/sidebarCollapsed.test.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/desktop/DesktopSidebarToggle.tsx": {
+          "additions": 79,
+          "deletions": 18,
+          "accepted_lines": 61
+        },
+        "packages/webview/src/components/chat/ChatHeader.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
