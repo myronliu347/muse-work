@@ -1,0 +1,67 @@
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  4fa43b8460cb66b8 692,695,698,700-708
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 6-7
+packages/webview/src/styles/ChatApp.css
+  4fa43b8460cb66b8 24-26
+packages/webview/src/styles/DesktopPanelDock.css
+  4fa43b8460cb66b8 28
+packages/webview/src/components/session/SessionTree.tsx
+  4fa43b8460cb66b8 145,149,847
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0f2481a26a7fd64f01fb2af6124eefc25bd1b2a0",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 22,
+      "total_deletions": 19,
+      "accepted_lines": 26,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 4,
+          "deletions": 8,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
