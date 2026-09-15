@@ -570,7 +570,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
         ) : null}
         {!opts?.hideActions && (
           <span className="desktop-session-actions">
-            <Tooltip text={session.pinned ? "取消置顶" : "置顶"} position="top">
+            <Tooltip text={session.pinned ? "取消置顶" : "置顶"} position="bottom">
               <button
                 className={`desktop-session-pin${session.pinned ? " desktop-session-pin--active" : ""}`}
                 onClick={(e) => {
@@ -583,7 +583,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 <span className="codicon codicon-pinned"></span>
               </button>
             </Tooltip>
-            <Tooltip text="删除会话" position="top">
+            <Tooltip text="删除会话" position="bottom">
               <button
                 className="desktop-session-delete"
                 onClick={(e) => {
@@ -913,7 +913,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         {formatRelativeActiveAt(chat.updatedAt)}
                       </span>
                       <span className="desktop-session-actions">
-                          <Tooltip text="删除会话" position="top">
+                          <Tooltip text="删除会话" position="bottom">
                             <button
                               type="button"
                               className="desktop-session-delete"

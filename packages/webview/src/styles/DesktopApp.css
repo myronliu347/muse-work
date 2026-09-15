@@ -948,7 +948,11 @@
   top: 0;
   bottom: 0;
   /* Avoid `transform` here — it makes Tooltip's position:fixed bind to this box. */
-  display: none;
+  /* Keep the box laid out while hidden: `display:none` yields a 0×0 rect and
+     the delete/pin tooltip clamps to the traffic-light corner. */
+  display: inline-flex;
+  visibility: hidden;
+  pointer-events: none;
   align-items: center;
   gap: var(--space-1);
   padding-left: var(--space-2);
@@ -959,7 +963,8 @@
 
 .desktop-session-item:hover .desktop-session-actions,
 .desktop-session-item:focus-within .desktop-session-actions {
-  display: inline-flex;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .desktop-session-item:hover .desktop-session-active-at,

@@ -259,6 +259,18 @@ describe("Tooltip Component", () => {
       expect(tooltip.style.left).toBe("60px");
       expect(tooltip.style.top).toBe("48px");
     });
+
+    it("does not park a zero-size trigger on the traffic lights", async () => {
+      setViewport(1024, 768);
+      mockRects(
+        { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 },
+        { width: 80, height: 20 },
+      );
+
+      const tooltip = await showTooltip("top");
+      expect(tooltip.style.left).toBe("-9999px");
+      expect(tooltip.style.top).not.toBe("4px");
+    });
   });
 
   it("keeps a card tooltip open when the pointer moves onto the box", async () => {

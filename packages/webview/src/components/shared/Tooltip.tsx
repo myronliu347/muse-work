@@ -67,6 +67,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    // `display:none` (and some unmounted frames) report an all-zero rect.
+    // Clamping that to the 4px inset parks the tip on the traffic lights.
+    if (containerRect.width < 1 && containerRect.height < 1) return;
 
     let left = 0;
     let top = 0;
