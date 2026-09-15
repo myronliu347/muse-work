@@ -1,0 +1,65 @@
+packages/webview/src/hooks/usePanels.ts
+  4fa43b8460cb66b8 17,282-283,348-353
+packages/webview/src/muse/panelShortcuts.ts
+  4fa43b8460cb66b8 14,87-99
+packages/webview/tests/muse/panelShortcuts.test.ts
+  4fa43b8460cb66b8 189-238
+packages/webview/tests/components/panelToggleControl.test.tsx
+  4fa43b8460cb66b8 16-17,19
+packages/webview/src/components/panels/PanelToggleControl.tsx
+  4fa43b8460cb66b8 3,8-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "66eaa42bdf7b9eb92ac2e61cb7afc8b98882e267",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 102,
+      "total_deletions": 22,
+      "accepted_lines": 100,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/webview/tests/components/panelToggleControl.test.tsx": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/panels/PanelToggleControl.tsx": {
+          "additions": 18,
+          "deletions": 14,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
