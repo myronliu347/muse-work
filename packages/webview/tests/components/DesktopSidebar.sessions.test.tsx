@@ -689,17 +689,23 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(issuesIdx).toBeLessThan(tasksIdx);
   });
 
-  it("prefixes nested issue sessions with 【规划】 and 【执行】", () => {
+  it("labels nested issue sessions as 规划 / 执行 without repeating the issue title", () => {
     renderSidebar({ issueGroups: [issueGroup()] });
     expect(screen.getByTestId("desktop-session-item-plan-1")).toHaveTextContent(
-      "【规划】设计评审",
+      "规划",
     );
     expect(screen.getByTestId("desktop-session-item-exec-1")).toHaveTextContent(
-      "【执行】设计评审",
+      "执行",
     );
-    expect(screen.getByTestId("desktop-session-item-plan-1")).not.toHaveTextContent(
-      "· 规划",
-    );
+    expect(
+      screen.getByTestId("desktop-session-item-plan-1"),
+    ).not.toHaveTextContent("【规划】");
+    expect(
+      screen.getByTestId("desktop-session-item-plan-1"),
+    ).not.toHaveTextContent("设计评审");
+    expect(
+      screen.getByTestId("desktop-session-item-plan-1"),
+    ).not.toHaveTextContent("· 规划");
   });
 
   it("counts 待办事项 by Issue group, not nested sessions", () => {

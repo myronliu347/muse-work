@@ -21,7 +21,9 @@
   background-color: var(--color-background);
   display: flex;
   flex-direction: column;
-  padding: 0 var(--space-4) var(--space-3);
+  /* Match .messages-container gutters so the 800px sender lines up with
+     the message column (right 28px is the user-message-nav rail). */
+  padding: 0 28px var(--space-3) var(--space-4);
 }
 .queue-edit-warning-banner {
   display: flex;

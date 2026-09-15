@@ -142,12 +142,11 @@ export function issueSessionRole(
   return undefined;
 }
 
+/** 嵌套在 Issue 标题下，只标角色，不再重复父标题。 */
 export function formatIssueSessionTitle(
-  title: string,
   role: "planning" | "execution",
 ): string {
-  const raw = stripIssueSessionRoleSuffix(title);
-  return role === "planning" ? `【规划】${raw}` : `【执行】${raw}`;
+  return role === "planning" ? "规划" : "执行";
 }
 
 /**
@@ -845,10 +844,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                               // 待办事项（Issue 规划/执行）会话不允许置顶/删除
                               hideActions: true,
                               displayTitle: role
-                                ? formatIssueSessionTitle(
-                                    session.title || "新对话",
-                                    role,
-                                  )
+                                ? formatIssueSessionTitle(role)
                                 : undefined,
                             });
                           })}

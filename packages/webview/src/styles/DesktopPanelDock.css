@@ -25,7 +25,7 @@
 }
 
 .desktop-panel-dock-header {
-  height: var(--desktop-shell-titlebar-height, 38px);
+  height: var(--desktop-shell-titlebar-height, 36px);
   padding: 0 var(--space-3);
   border-bottom: 1px solid var(--gray-6);
   display: flex;
