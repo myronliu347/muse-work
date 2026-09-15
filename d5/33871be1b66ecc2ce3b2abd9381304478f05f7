@@ -1,0 +1,101 @@
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  4fa43b8460cb66b8 78-90
+packages/webview/src/styles/DesktopPanelDock.css
+  4fa43b8460cb66b8 28
+packages/webview/src/styles/MuseModelSelect.css
+  4fa43b8460cb66b8 5-7,12-14
+packages/webview/src/components/chat/MessageInput.tsx
+  4fa43b8460cb66b8 1520,1522-1527,1529-1541,1619-1623
+packages/webview/src/components/shared/MuseModelSelect.tsx
+  4fa43b8460cb66b8 32-33,51,137-152,154-162,164-173
+packages/webview/src/components/settings/AgentManager.tsx
+  4fa43b8460cb66b8 283,294-296,350-357,435,452,554,557-563
+packages/webview/src/styles/MessageInput.css
+  4fa43b8460cb66b8 29,32,34,42-44,47-48,51,53,57-58,62,71,76,81-82,88,92,100,105,120,214-216,221,245,288,396-397,405
+packages/webview/src/styles/NewSessionPage.css
+  4fa43b8460cb66b8 80,83
+packages/webview/src/styles/DesktopApp.css
+  4fa43b8460cb66b8 6-7
+packages/webview/src/styles/AgentManager.css
+  4fa43b8460cb66b8 11,14-15,30-31,40-41,44,48-54,75,78-79,84,129-131,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d533871be1b66ecc2ce3b2abd9381304478f05f7",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 197,
+      "total_deletions": 132,
+      "accepted_lines": 182,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 36,
+          "deletions": 36,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "additions": 27,
+          "deletions": 14,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 22,
+          "deletions": 8,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/MuseModelSelect.css": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/shared/MuseModelSelect.tsx": {
+          "additions": 38,
+          "deletions": 29,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 19,
+          "deletions": 6,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 43,
+          "deletions": 35,
+          "accepted_lines": 37
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
