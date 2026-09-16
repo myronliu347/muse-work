@@ -1,0 +1,61 @@
+packages/server/tests/automationRuntime.test.ts
+  266ca6b5202d4863 1,420,423-444
+packages/server/src/services/automationRuntime.ts
+  266ca6b5202d4863 130,204-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "53e9eb5930bae7eb66673b94b771a7fae1d5afa0",
+  "prompts": {
+    "266ca6b5202d4863": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b4f11537-1d3d-44e1-a042-37aaff43c208",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 30,
+      "total_deletions": 3,
+      "accepted_lines": 30,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/automationRuntime.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/automationRuntime.test.ts": {
+          "additions": 25,
+          "deletions": 2,
+          "accepted_lines": 25
+        }
+      }
+    },
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1260,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "accepted_lines": 250
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        }
+      }
+    }
+  }
+}
