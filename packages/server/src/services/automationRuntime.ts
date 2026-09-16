@@ -130,10 +130,15 @@ export function createAutomationRuntime(options: {
               .some(
                 (run) =>
                   run.trigger.type === "cron" &&
+                  run.trigger.expr === trigger.expr &&
                   formatTickMinute(new Date(run.trigger.firedAt)) === minute,
               );
             if (!alreadyFiredThisMinute) {
-              enqueue(automation.id, { type: "cron", firedAt: ts });
+              enqueue(automation.id, {
+                type: "cron",
+                firedAt: ts,
+                expr: trigger.expr,
+              });
             }
           }
           return trigger;

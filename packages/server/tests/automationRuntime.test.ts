@@ -208,7 +208,11 @@ describe("automationRuntime", () => {
       automationId: automation.id,
       status: "failed",
       error: "进程退出",
-      trigger: { type: "cron", firedAt: new Date(2026, 8, 16, 9, 0, 5).getTime() },
+      trigger: {
+        type: "cron",
+        expr: "0 9 * * *",
+        firedAt: new Date(2026, 8, 16, 9, 0, 5).getTime(),
+      },
       startedAt: new Date(2026, 8, 16, 9, 0, 5).getTime(),
       endedAt: current.getTime(),
     });
@@ -228,6 +232,78 @@ describe("automationRuntime", () => {
       .filter((run) => run.trigger.type === "cron");
     expect(cronRuns).toHaveLength(1);
     expect(cronRuns[0]?.id).toBe("prior");
+  });
+
+  it("tick enqueues each matching cron expr in the same minute and writes skipped if first is running", () => {
+    const now = () => new Date(2026, 8, 14, 9, 0, 0);
+    const { store, runtime } = setup(now);
+    const automation = store.create({
+      name: "巡检",
+      prompt: "x",
+      workdir: "/tmp/p",
+      enabled: true,
+      triggers: [
+        { type: "cron", expr: "0 9 * * *" },
+        { type: "cron", expr: "0 9 * * 1-5" },
+      ],
+    });
+    runtime.tick();
+    const runs = store.listRuns(automation.id);
+    expect(runs).toHaveLength(2);
+    const statuses = runs.map((run) => run.status).sort();
+    expect(statuses).toEqual(["running", "skipped"]);
+    const skipped = runs.find((run) => run.status === "skipped");
+    expect(skipped?.skipReason).toBe("rule_running");
+    expect(new Set(runs.map((run) => run.trigger.expr))).toEqual(
+      new Set(["0 9 * * *", "0 9 * * 1-5"]),
+    );
+  });
+
+  it("restart same minute does not re-fire the same expr but can fire a second unmatched expr", () => {
+    const current = new Date(2026, 8, 14, 9, 0, 30);
+    const { home, store } = setup(() => current);
+    const automation = store.create({
+      name: "巡检",
+      prompt: "x",
+      workdir: "/tmp/p",
+      enabled: true,
+      triggers: [
+        { type: "cron", expr: "0 9 * * *" },
+        { type: "cron", expr: "0 9 * * 1-5" },
+      ],
+    });
+    store.addRun({
+      id: "prior",
+      automationId: automation.id,
+      status: "failed",
+      error: "进程退出",
+      trigger: {
+        type: "cron",
+        expr: "0 9 * * *",
+        firedAt: new Date(2026, 8, 14, 9, 0, 5).getTime(),
+      },
+      startedAt: new Date(2026, 8, 14, 9, 0, 5).getTime(),
+      endedAt: current.getTime(),
+    });
+    const restarted = createAutomationRuntime({
+      store,
+      hub: createWsHub({ pingIntervalMs: 0 }),
+      sessions: createSessionStore({ home }),
+      runner: {} as SessionRunner,
+      home,
+      now: () => current,
+      startSession: async () => "sess-1",
+    });
+    runtimes.push(restarted);
+    restarted.tick();
+    const cronRuns = store
+      .listRuns(automation.id)
+      .filter((run) => run.trigger.type === "cron");
+    expect(cronRuns).toHaveLength(2);
+    const prior = cronRuns.find((run) => run.trigger.expr === "0 9 * * *");
+    const weekday = cronRuns.find((run) => run.trigger.expr === "0 9 * * 1-5");
+    expect(prior?.id).toBe("prior");
+    expect(weekday?.status).toBe("running");
   });
 
   it("create marks leftover running runs as failed 进程退出", () => {

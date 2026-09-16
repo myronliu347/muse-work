@@ -45,6 +45,7 @@ export interface AutomationRun {
   trigger: {
     type: "cron" | "once" | "issue" | "manual";
     firedAt: number;
+    expr?: string;
     issue?: {
       id: string;
       title: string;
