@@ -125,14 +125,23 @@ export function createAutomationRuntime(options: {
       const nextTriggers = automation.triggers.map((trigger) => {
         if (trigger.type === "cron") {
           if (cronMatchesLocal(trigger.expr, at)) {
-            enqueue(automation.id, { type: "cron", firedAt: ts });
+            const alreadyFiredThisMinute = store
+              .listRuns(automation.id)
+              .some(
+                (run) =>
+                  run.trigger.type === "cron" &&
+                  formatTickMinute(new Date(run.trigger.firedAt)) === minute,
+              );
+            if (!alreadyFiredThisMinute) {
+              enqueue(automation.id, { type: "cron", firedAt: ts });
+            }
           }
           return trigger;
         }
         if (
           trigger.type === "once" &&
-          trigger.at <= ts &&
-          trigger.firedAt === undefined
+          trigger.firedAt === undefined &&
+          formatTickMinute(new Date(trigger.at)) === minute
         ) {
           enqueue(automation.id, { type: "once", firedAt: ts });
           triggersChanged = true;
@@ -149,6 +158,7 @@ export function createAutomationRuntime(options: {
 
   function start(): void {
     if (timer) return;
+    tick();
     timer = setInterval(() => {
       tick();
     }, 15_000);
