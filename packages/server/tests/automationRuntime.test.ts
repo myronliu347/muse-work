@@ -717,4 +717,43 @@ describe("automationRuntime", () => {
     expect(stopped?.endedAt).toEqual(expect.any(Number));
     expect(aborted).toEqual(["sess-stop"]);
   });
+
+  it("stopRun aborts in-flight defaultStartSession sendMessage", async () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    const store = createAutomationStore({ home });
+    const hub = createWsHub({ pingIntervalMs: 0 });
+    const sessions = createSessionStore({ home });
+    const aborted: string[] = [];
+    const runtime = createAutomationRuntime({
+      store,
+      hub,
+      sessions,
+      runner: {
+        sendMessage: () => new Promise(() => {}),
+        abortMessage: async (sessionId: string) => {
+          aborted.push(sessionId);
+        },
+      } as SessionRunner,
+      home,
+      now,
+    });
+    runtimes.push(runtime);
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const automation = store.create({
+      name: "巡检",
+      prompt: "x",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = runtime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: now().getTime(),
+    });
+    const stopped = await runtime.stopRun(run!.id);
+    expect(stopped?.status).toBe("stopped");
+    expect(aborted).toHaveLength(1);
+  });
 });

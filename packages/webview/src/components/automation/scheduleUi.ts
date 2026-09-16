@@ -48,6 +48,24 @@ function formatTime(hour: number, minute: number): string {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+export function compileIssueTrigger(input: {
+  events: MuseIssueEvent[];
+  tags?: string[];
+  priority?: "p0" | "p1" | "p2";
+}): Extract<MuseAutomationTrigger, { type: "issue" }> {
+  const trigger: Extract<MuseAutomationTrigger, { type: "issue" }> = {
+    type: "issue",
+    events: [...input.events],
+  };
+  if (input.tags && input.tags.length > 0) {
+    trigger.tags = [...input.tags];
+  }
+  if (input.priority) {
+    trigger.priority = input.priority;
+  }
+  return trigger;
+}
+
 export function compileSchedule(ui: MuseScheduleUi): MuseAutomationTrigger {
   if (ui.mode === "once") {
     return { type: "once", at: ui.at };

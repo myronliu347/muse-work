@@ -108,8 +108,14 @@ export function createAutomationRuntime(options: {
     automation: Automation;
     run: AutomationRun;
   }): Promise<string | undefined> {
+    if (store.getRun(args.run.id)?.status !== "running") {
+      return undefined;
+    }
     const workdir = args.automation.workdir;
     if (!workdir || !fs.existsSync(workdir)) {
+      if (store.getRun(args.run.id)?.status !== "running") {
+        return undefined;
+      }
       store.patchRun(args.run.id, {
         status: "failed",
         error: "workdir",
@@ -129,6 +135,14 @@ export function createAutomationRuntime(options: {
     });
     store.patchRun(args.run.id, { sessionId: session.id });
     broadcast();
+    if (store.getRun(args.run.id)?.status !== "running") {
+      try {
+        await runner.abortMessage(session.id);
+      } catch {
+        /* already stopped */
+      }
+      return session.id;
+    }
     const issue =
       args.run.trigger.type === "issue" && args.run.trigger.issue
         ? options.issueStore?.get(args.run.trigger.issue.id)

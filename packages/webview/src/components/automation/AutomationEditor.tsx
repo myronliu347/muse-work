@@ -15,6 +15,7 @@ import {
   HOUR_INTERVALS,
   ISSUE_EVENTS,
   MINUTE_INTERVALS,
+  compileIssueTrigger,
   compileSchedule,
   decodeCron,
   toDatetimeLocal,
@@ -27,6 +28,8 @@ type EditorTrigger =
       localId: string;
       kind: "issue";
       events: MuseIssueEvent[];
+      tags?: string[];
+      priority?: "p0" | "p1" | "p2";
     }
   | {
       localId: string;
@@ -57,6 +60,8 @@ function fromServer(triggers: MuseAutomationTrigger[]): EditorTrigger[] {
         localId: `t${index}`,
         kind: "issue",
         events: trigger.events,
+        tags: trigger.tags,
+        priority: trigger.priority,
       };
     }
     if (trigger.type === "once") {
@@ -102,7 +107,13 @@ function compileEditorTriggers(triggers: EditorTrigger[]): MuseAutomationTrigger
   for (const trigger of triggers) {
     if (trigger.kind === "issue") {
       if (trigger.events.length === 0) continue;
-      out.push({ type: "issue", events: trigger.events });
+      out.push(
+        compileIssueTrigger({
+          events: trigger.events,
+          tags: trigger.tags,
+          priority: trigger.priority,
+        }),
+      );
       continue;
     }
     if (trigger.mode === "once") {
