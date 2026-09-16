@@ -1,0 +1,108 @@
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  dd48a4c787d30cf9 3,211
+packages/webview/src/components/shared/MuseModelSelect.tsx
+  dd48a4c787d30cf9 34-35,54,149-151
+packages/webview/src/components/automation/AutomationTranscript.tsx
+  dd48a4c787d30cf9 2-3,6-57,59-72,75-97,106,115-129,132,134,137-141,146,155,158,160,164-169,172-207
+packages/webview/src/components/automation/AutomationsPage.tsx
+  dd48a4c787d30cf9 17-20,57,65-70,81-107,112,127-140,142-163,166-167,170-171
+packages/webview/src/components/shared/HeaderIcons.tsx
+  dd48a4c787d30cf9 30-58
+packages/server/src/services/issueStore.ts
+  dd48a4c787d30cf9 529
+packages/webview/src/styles/DesktopApp.css
+  dd48a4c787d30cf9 1235-1245,1275-1279,1528-1529,1539-1553
+docs/superpowers/plans/2026-09-16-automation.md
+  dd48a4c787d30cf9 1-408
+packages/webview/tests/components/automationsPage.test.tsx
+  dd48a4c787d30cf9 170,197-209
+docs/superpowers/prototypes/2026-09-16-automation-prototype.html
+  dd48a4c787d30cf9 1-602
+packages/webview/src/components/automation/AutomationEditor.tsx
+  dd48a4c787d30cf9 1-10,20,22-23,163-178,203-314,341,345-346,352-365,376-395,397-400,403,405-409,411,414-427,429,436,447-462,464,470-471,474-476,478,487-488,490-569,571-598,600-603,606-610,613-616,619,621-645,648-651,654,656-689,691-712,715-726,728-760,763,794,807,814-824,827-831,842-848,874,893-901,903,907-910,913,915,918,921-929,937-1021
+packages/webview/src/styles/AutomationsPage.css
+  dd48a4c787d30cf9 11-107,115,118-119,122-125,130,132,179-193,201-208,214-218,226-227,254-260,324-325,329-330,341,344-345,354-359,364-365,367-401,408,412,421-424,437,440,454-455,465-467,507-509,511,518-519,522,526,533,537-539,542-550,555-578,581-584,591,595,598,603-615,625,632-637,639-643,646-648,651,655,661,664-666,670,676-681,684-686,688-693,695-728
+packages/webview/src/components/desktop/DesktopWorkdirSelector.tsx
+  dd48a4c787d30cf9 13-17,34-36,80,84,94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d124566b0109c2332cdd4c77f566459b9687a02f",
+  "prompts": {
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1675,
+      "total_deletions": 914,
+      "accepted_lines": 2386,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/automation/AutomationTranscript.tsx": {
+          "additions": 195,
+          "deletions": 89,
+          "accepted_lines": 164
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 31,
+          "deletions": 2,
+          "accepted_lines": 31
+        },
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "packages/webview/src/components/shared/MuseModelSelect.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 515,
+          "deletions": 269,
+          "accepted_lines": 382
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 52,
+          "deletions": 16,
+          "accepted_lines": 52
+        },
+        "packages/webview/src/components/desktop/DesktopWorkdirSelector.tsx": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 754,
+          "deletions": 457,
+          "accepted_lines": 632
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "additions": 94,
+          "deletions": 72,
+          "accepted_lines": 81
+        }
+      }
+    }
+  }
+}
