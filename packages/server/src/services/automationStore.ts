@@ -361,3 +361,5 @@ export function createAutomationStore(options?: { home?: string }) {
     },
   };
 }
+
+export type AutomationStore = ReturnType<typeof createAutomationStore>;

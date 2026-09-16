@@ -1,0 +1,128 @@
+import { describe, it, expect, afterEach } from "vitest";
+import type { Server } from "node:http";
+import { closeTestApp, listenTestApp } from "./helpers.js";
+
+describe("automations HTTP", () => {
+  let server: Server | undefined;
+  let home: string | undefined;
+  afterEach(async () => {
+    if (server) await closeTestApp(server, home);
+    server = undefined;
+    home = undefined;
+  });
+
+  it("create draft, reject enable until complete, disable is idempotent", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const created = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+    });
+    expect(created.status).toBe(201);
+    const { automation } = await created.json();
+    expect(automation.enabled).toBe(false);
+    const en = await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" });
+    expect(en.status).toBe(400);
+    await fetch(`${app.baseUrl}/automations/${automation.id}`, {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检", prompt: "x", workdir: app.home,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    });
+    expect((await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" })).status).toBe(200);
+    expect((await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" })).status).toBe(200);
+  });
+
+  it("enable returns incomplete until prompt, workdir, and triggers exist", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    }).then((r) => r.json());
+    const en = await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, {
+      method: "POST",
+    });
+    expect(en.status).toBe(400);
+    expect(await en.json()).toEqual({ error: "incomplete" });
+  });
+
+  it("disable is idempotent and returns the rule", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检",
+        prompt: "x",
+        workdir: app.home,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    }).then((r) => r.json());
+    await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" });
+    const first = await fetch(`${app.baseUrl}/automations/${automation.id}/disable`, {
+      method: "POST",
+    });
+    expect(first.status).toBe(200);
+    expect((await first.json()).automation.enabled).toBe(false);
+    const second = await fetch(`${app.baseUrl}/automations/${automation.id}/disable`, {
+      method: "POST",
+    });
+    expect(second.status).toBe(200);
+    expect((await second.json()).automation.enabled).toBe(false);
+  });
+
+  it("rejects illegal interval every: 7, unit: h on PATCH", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    }).then((r) => r.json());
+    const patch = await fetch(`${app.baseUrl}/automations/${automation.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        schedule: { mode: "interval", every: 7, unit: "h" },
+      }),
+    });
+    expect(patch.status).toBe(400);
+  });
+
+  it("GET lists drafts, GET one, DELETE removes, and writes broadcast automation:changed", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const events: unknown[] = [];
+    const original = app.ctx.hub.broadcastAll.bind(app.ctx.hub);
+    app.ctx.hub.broadcastAll = (event) => {
+      events.push(event);
+      original(event);
+    };
+    const created = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(created.status).toBe(201);
+    const { automation } = await created.json();
+    const list = await fetch(`${app.baseUrl}/automations`).then((r) => r.json());
+    expect(list.automations.map((a: { id: string }) => a.id)).toContain(automation.id);
+    const one = await fetch(`${app.baseUrl}/automations/${automation.id}`);
+    expect(one.status).toBe(200);
+    const deleted = await fetch(`${app.baseUrl}/automations/${automation.id}`, {
+      method: "DELETE",
+    });
+    expect(deleted.status).toBe(200);
+    const missing = await fetch(`${app.baseUrl}/automations/${automation.id}`);
+    expect(missing.status).toBe(404);
+    expect(events.filter((e) => (e as { type: string }).type === "automation:changed").length).toBeGreaterThanOrEqual(2);
+  });
+});
