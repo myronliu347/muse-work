@@ -185,7 +185,10 @@
 
 /* Markdown files reuse the message markdown look, padded for the panel. */
 .file-pane-markdown {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  max-width: 46rem;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .file-pane-markdown pre {
