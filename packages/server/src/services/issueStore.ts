@@ -86,6 +86,12 @@ export interface IssueStore {
   cancel(id: string): Issue | undefined;
   maybeEnterReview(id: string): Issue | undefined;
   markExecuting(id: string): Issue | undefined;
+  subscribe(
+    fn: (e: {
+      event: "created" | "review" | "completed" | "cancelled";
+      issue: Issue;
+    }) => void,
+  ): () => void;
   /** True when this session id is some Issue's planning session. */
   hasPlanningSession(sessionId: string): boolean;
   getByPlanningSession(sessionId: string): Issue | undefined;
@@ -218,6 +224,22 @@ export function createIssueStore(
   const closedFile = loadIssuesFile(getClosedIssuesIndexPath(home));
   const issues = new Map<string, Issue>();
   const closed = new Map<string, Issue>();
+  const listeners = new Set<
+    (e: {
+      event: "created" | "review" | "completed" | "cancelled";
+      issue: Issue;
+    }) => void
+  >();
+
+  function emit(
+    event: "created" | "review" | "completed" | "cancelled",
+    issue: Issue,
+  ): void {
+    const payload = { event, issue: cloneIssue(issue) };
+    for (const listener of listeners) {
+      listener(payload);
+    }
+  }
 
   for (const record of [...closedFile.issues, ...activeFile.issues]) {
     if (!record?.id || !record.title) continue;
@@ -277,6 +299,7 @@ export function createIssueStore(
       };
       issues.set(issue.id, issue);
       persist();
+      emit("created", issue);
       return cloneIssue(issue);
     },
 
@@ -468,6 +491,7 @@ export function createIssueStore(
       issue.status = "completed";
       issue.updatedAt = Date.now();
       archive(issue);
+      emit("completed", issue);
       return cloneIssue(issue);
     },
 
@@ -479,6 +503,7 @@ export function createIssueStore(
       issue.status = "cancelled";
       issue.updatedAt = Date.now();
       archive(issue);
+      emit("cancelled", issue);
       return cloneIssue(issue);
     },
 
@@ -498,11 +523,22 @@ export function createIssueStore(
         issue.items.length > 0 &&
         allItemsDone(issue.items)
       ) {
+        const previous = issue.status;
         issue.status = "review";
         issue.updatedAt = Date.now();
         persist();
+        if (previous !== "review" && issue.status === "review") {
+          emit("review", issue);
+        }
       }
       return cloneIssue(issue);
+    },
+
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => {
+        listeners.delete(fn);
+      };
     },
 
     markExecuting(id): Issue | undefined {

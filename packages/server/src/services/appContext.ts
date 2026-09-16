@@ -144,6 +144,7 @@ export function createAppContext(
     runner: sessions.runner,
     home,
     now: options?.now,
+    issueStore: issues,
   });
   automationRuntime.start();
   return {

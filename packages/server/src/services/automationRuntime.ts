@@ -5,7 +5,9 @@ import {
   type Automation,
   type AutomationRun,
   type AutomationStore,
+  type AutomationTrigger,
 } from "./automationStore.js";
+import type { Issue, IssueStore } from "./issueStore.js";
 import { cronMatchesLocal } from "./scheduleCompile.js";
 
 function pad2(n: number): string {
@@ -16,6 +18,26 @@ function formatTickMinute(at: Date): string {
   return `${at.getFullYear()}-${pad2(at.getMonth() + 1)}-${pad2(at.getDate())}T${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
 }
 
+function issueTriggerMatches(
+  trigger: AutomationTrigger,
+  event: "created" | "review" | "completed" | "cancelled",
+  issue: Issue,
+): boolean {
+  if (trigger.type !== "issue") return false;
+  if (!trigger.events.includes(event)) return false;
+  if (trigger.priority !== undefined && trigger.priority !== issue.priority) {
+    return false;
+  }
+  if (trigger.tags && trigger.tags.length > 0) {
+    const issueTags = new Set(issue.tags);
+    for (const tag of trigger.tags) {
+      const normalized = String(tag).trim().toLowerCase();
+      if (!normalized || !issueTags.has(normalized)) return false;
+    }
+  }
+  return true;
+}
+
 export function createAutomationRuntime(options: {
   store: AutomationStore;
   hub: WsHub;
@@ -23,6 +45,7 @@ export function createAutomationRuntime(options: {
   runner: SessionRunner;
   home: string;
   now?: () => Date;
+  issueStore?: IssueStore;
   startSession?: (args: {
     automation: Automation;
     run: AutomationRun;
@@ -46,6 +69,7 @@ export function createAutomationRuntime(options: {
 
   let lastTickMinute: string | undefined;
   let timer: ReturnType<typeof setInterval> | undefined;
+  let unsubscribeIssues: (() => void) | undefined;
 
   function broadcast(): void {
     hub.broadcastAll({ type: "automation:changed" });
@@ -109,6 +133,33 @@ export function createAutomationRuntime(options: {
     return run;
   }
 
+  function onIssueEvent(payload: {
+    event: "created" | "review" | "completed" | "cancelled";
+    issue: Issue;
+  }): void {
+    const firedAt = now().getTime();
+    for (const automation of store.list()) {
+      if (!automation.enabled) continue;
+      const matched = automation.triggers.some((trigger) =>
+        issueTriggerMatches(trigger, payload.event, payload.issue),
+      );
+      if (!matched) continue;
+      enqueue(automation.id, {
+        type: "issue",
+        firedAt,
+        issue: {
+          id: payload.issue.id,
+          title: payload.issue.title,
+          status: payload.issue.status,
+          priority: payload.issue.priority,
+          tags: [...payload.issue.tags],
+        },
+      });
+    }
+  }
+
+  unsubscribeIssues = options.issueStore?.subscribe(onIssueEvent);
+
   function tick(): void {
     const at = now();
     const minute = formatTickMinute(at);
@@ -171,6 +222,8 @@ export function createAutomationRuntime(options: {
   }
 
   function stop(): void {
+    unsubscribeIssues?.();
+    unsubscribeIssues = undefined;
     if (!timer) return;
     clearInterval(timer);
     timer = undefined;

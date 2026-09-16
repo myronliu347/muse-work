@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createAutomationStore } from "../src/services/automationStore.js";
 import { createAutomationRuntime } from "../src/services/automationRuntime.js";
+import { createIssueStore } from "../src/services/issueStore.js";
 import { createWsHub } from "../src/services/wsHub.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
 import type { SessionRunner } from "../src/services/sessionRunner/index.js";
@@ -25,6 +26,7 @@ describe("automationRuntime", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
     homes.push(home);
     const store = createAutomationStore({ home });
+    const issueStore = createIssueStore({ home });
     const hub = createWsHub({ pingIntervalMs: 0 });
     const sessions = createSessionStore({ home });
     const runtime = createAutomationRuntime({
@@ -34,10 +36,11 @@ describe("automationRuntime", () => {
       runner: {} as SessionRunner,
       home,
       now,
+      issueStore,
       startSession: async () => "sess-1",
     });
     runtimes.push(runtime);
-    return { home, store, runtime, hub };
+    return { home, store, runtime, hub, issueStore };
   }
 
   it("second enqueue of the same rule is skipped as rule_running", () => {
@@ -352,5 +355,37 @@ describe("automationRuntime", () => {
       runtime.enqueue(automation.id, { type: "manual", firedAt: 1 }),
     ).toBeUndefined();
     expect(store.listRuns(automation.id)).toHaveLength(0);
+  });
+
+  it("issue create enqueues when tags are a subset and skips otherwise", () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const { store, issueStore } = setup(now);
+    const automation = store.create({
+      name: "收口",
+      prompt: "x",
+      workdir: "/tmp/p",
+      enabled: true,
+      triggers: [
+        { type: "issue", events: ["created"], tags: ["auth"] },
+      ],
+    });
+    const hit = issueStore.create({
+      title: "修登录",
+      tags: ["auth", "backend"],
+    });
+    const runs = store.listRuns(automation.id);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]?.status).toBe("running");
+    expect(runs[0]?.trigger).toMatchObject({
+      type: "issue",
+      issue: {
+        id: hit.id,
+        title: "修登录",
+        status: "pending",
+        tags: ["auth", "backend"],
+      },
+    });
+    issueStore.create({ title: "无关", tags: ["backend"] });
+    expect(store.listRuns(automation.id)).toHaveLength(1);
   });
 });
