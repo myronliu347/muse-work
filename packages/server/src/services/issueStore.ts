@@ -523,13 +523,10 @@ export function createIssueStore(
         issue.items.length > 0 &&
         allItemsDone(issue.items)
       ) {
-        const previous = issue.status;
         issue.status = "review";
         issue.updatedAt = Date.now();
         persist();
-        if (previous !== "review" && issue.status === "review") {
-          emit("review", issue);
-        }
+        emit("review", issue);
       }
       return cloneIssue(issue);
     },

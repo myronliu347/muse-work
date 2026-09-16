@@ -10,6 +10,11 @@ export interface DesktopWorkdirSelectorProps {
   /** `host` scopes the recents lookup to a specific host (defaults to the current one). */
   onSelectRecentWorkdir: (path: string, host?: string) => void;
   onRemoveRecentWorkdir: (path: string, host?: string) => void;
+  /** Composer sits at the bottom so the menu opens up. Toolbar/editor rows open down. */
+  menuPlacement?: "up" | "down";
+  /** Ghost: text-like trigger for metadata rows (Cursor editor chrome). */
+  variant?: "default" | "ghost";
+  testId?: string;
 }
 
 /**
@@ -26,6 +31,9 @@ export const DesktopWorkdirSelector: React.FC<DesktopWorkdirSelectorProps> = ({
   onSelectWorkdir,
   onSelectRecentWorkdir,
   onRemoveRecentWorkdir,
+  menuPlacement = "up",
+  variant = "default",
+  testId = "desktop-workdir",
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -69,11 +77,11 @@ export const DesktopWorkdirSelector: React.FC<DesktopWorkdirSelectorProps> = ({
   return (
     <div className="desktop-workdir-container" ref={menuRef}>
       <div
-        className="desktop-workdir-trigger"
+        className={`desktop-workdir-trigger${variant === "ghost" ? " desktop-workdir-trigger--ghost" : ""}`}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={() => setMenuOpen((o) => !o)}
         title={workdir ?? "选择工作目录…"}
-        data-testid="desktop-workdir"
+        data-testid={testId}
         aria-expanded={menuOpen}
         role="button"
       >
@@ -83,7 +91,7 @@ export const DesktopWorkdirSelector: React.FC<DesktopWorkdirSelectorProps> = ({
       </div>
       {menuOpen && (
         <div
-          className="desktop-workdir-menu"
+          className={`desktop-workdir-menu${menuPlacement === "down" ? " desktop-workdir-menu--down" : ""}`}
           role="listbox"
           data-testid="desktop-workdir-menu"
         >

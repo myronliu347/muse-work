@@ -14,7 +14,10 @@ export interface AutomationsPageProps {
 }
 
 function lastMeta(automation: MuseAutomation): string {
-  return automation.enabled ? "尚未运行" : "已停用";
+  if (!automation.workdir) return "未选工作目录";
+  return (
+    automation.workdir.split(/[\\/]/).filter(Boolean).pop() || automation.workdir
+  );
 }
 
 export const AutomationsPage: React.FC<AutomationsPageProps> = ({
@@ -51,6 +54,7 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
   const toggle = async (automation: MuseAutomation, event: React.MouseEvent) => {
     event.stopPropagation();
     try {
+      setError(null);
       const res = automation.enabled
         ? await api.disableAutomation(automation.id)
         : await api.enableAutomation(automation.id);
@@ -58,7 +62,12 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
         prev.map((item) => (item.id === res.automation.id ? res.automation : item)),
       );
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "无法切换启用状态");
+      const raw = err instanceof Error ? err.message : "无法切换启用状态";
+      setError(
+        raw.includes("incomplete")
+          ? "启用前需要指令、工作目录和至少一个触发器。"
+          : raw.replace(/^Muse API \d+:\s*/, ""),
+      );
     }
   };
 
@@ -69,35 +78,38 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
   };
 
   return (
-    <div className="automations-page" data-testid="automations-page">
-      <div className="automations-page-scroll">
-        {selected ? (
-          <AutomationEditor
-            key={selected.id}
-            api={api}
-            automation={selected}
-            recentWorkdirs={recentWorkdirs}
-            postToHost={postToHost}
-            onBack={() => {
-              setSelectedId(null);
-              void load();
-            }}
-            onChanged={(next) => {
-              setAutomations((prev) =>
-                prev.map((item) => (item.id === next.id ? next : item)),
-              );
-            }}
-            onDeleted={() => {
-              setSelectedId(null);
-              void load();
-            }}
-          />
-        ) : (
+    <div
+      className={`automations-page${selected ? " automations-page--editor" : ""}`}
+      data-testid="automations-page"
+    >
+      {selected ? (
+        <AutomationEditor
+          key={selected.id}
+          api={api}
+          automation={selected}
+          recentWorkdirs={recentWorkdirs}
+          postToHost={postToHost}
+          onBack={() => {
+            setSelectedId(null);
+            void load();
+          }}
+          onChanged={(next) => {
+            setAutomations((prev) =>
+              prev.map((item) => (item.id === next.id ? next : item)),
+            );
+          }}
+          onDeleted={() => {
+            setSelectedId(null);
+            void load();
+          }}
+        />
+      ) : (
+        <div className="automations-page-scroll">
           <div className="automations-page-inner">
             <div className="automations-page-head">
               <div>
                 <h1>自动化</h1>
-                <p>按定时或本机 Issue 事件无人值守跑 Agent。运行记录不进日常会话。</p>
+                <p>创建规则，按时间或条件自动运行 Agent。</p>
               </div>
               <span className="automations-grow" />
               <button
@@ -112,41 +124,51 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
             {automations.length === 0 && !error ? (
               <div className="automations-empty">还没有自动化。点右上角新建。</div>
             ) : (
-              automations.map((automation) => (
-                <button
-                  key={automation.id}
-                  type="button"
-                  className={`automations-card${automation.enabled ? "" : " off"}`}
-                  onClick={() => setSelectedId(automation.id)}
-                >
-                  <span
-                    className={`automations-switch${automation.enabled ? " on" : ""}`}
-                    role="switch"
-                    aria-checked={automation.enabled}
-                    onClick={(event) => void toggle(automation, event)}
+              <div className="automations-list">
+                {automations.map((automation) => (
+                  <div
+                    key={automation.id}
+                    className={`automations-card${automation.enabled ? "" : " off"}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(automation.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedId(automation.id);
+                      }
+                    }}
                   >
-                    <i />
-                  </span>
-                  <div className="automations-card-body">
-                    <div className="automations-card-title">
-                      {automation.name.trim() || "未命名"}
-                    </div>
-                    <div className="automations-card-sub">
-                      <span className="automations-pill">
-                        {automation.triggers.length
-                          ? automation.triggers.map(summarizeTrigger).join(" · ")
-                          : "未设置触发器"}
-                      </span>
-                      <span>{automation.workdir || "未选目录"}</span>
+                    <button
+                      type="button"
+                      className={`automations-switch${automation.enabled ? " on" : ""}`}
+                      aria-label="启用"
+                      aria-checked={automation.enabled}
+                      role="switch"
+                      onClick={(event) => void toggle(automation, event)}
+                    >
+                      <i />
+                    </button>
+                    <div className="automations-card-body">
+                      <div className="automations-card-title">
+                        {automation.name.trim() || "未命名"}
+                      </div>
+                      <div className="automations-card-sub">
+                        <span>
+                          {automation.triggers.length
+                            ? automation.triggers.map(summarizeTrigger).join(" · ")
+                            : "未设置触发器"}
+                        </span>
+                        <span>{lastMeta(automation)}</span>
+                      </div>
                     </div>
                   </div>
-                  <span className="automations-pill">{lastMeta(automation)}</span>
-                </button>
-              ))
+                ))}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

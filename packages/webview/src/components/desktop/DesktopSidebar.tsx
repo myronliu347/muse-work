@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon } from "../shared/HeaderIcons";
+import { NewSessionIcon, AutomationsIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.svg";
 import {
   SessionTree,
@@ -208,7 +208,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           onClick={() => onOpenAutomations?.()}
           data-testid="desktop-automations-menu"
         >
-          <span className="codicon codicon-sync app-menu-icon" aria-hidden="true" />
+          <AutomationsIcon className="app-menu-icon app-menu-icon--16" />
           <span>自动化</span>
         </button>
       </div>

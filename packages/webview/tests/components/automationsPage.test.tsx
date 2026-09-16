@@ -167,6 +167,7 @@ describe("automations dedicated page", () => {
     await user.click(screen.getByTestId("desktop-automations-menu"));
     expect(await screen.findByTestId("automations-page")).toBeInTheDocument();
     expect(screen.queryByTestId("chat-container")).toBeNull();
+    expect(screen.getByTestId("automations-page").closest(".desktop-layout")).not.toBeNull();
     expect(await screen.findByText("工作日 changelog 巡检")).toBeInTheDocument();
     expect(screen.getByTestId("desktop-automations-menu").className).toContain(
       "active",
@@ -193,5 +194,18 @@ describe("automations dedicated page", () => {
     const cronInputs = screen.queryAllByDisplayValue(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/);
     expect(cronInputs).toHaveLength(0);
     expect(screen.getByTestId("automation-run-now")).toBeDisabled();
+    expect(screen.getByTestId("automation-run-now")).toHaveTextContent("测试");
+    expect(screen.getByTestId("automation-save")).toBeDisabled();
+    expect(screen.getByRole("navigation", { name: "面包屑" })).toHaveTextContent(
+      "自动化",
+    );
+    expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
+    expect(screen.getByTestId("automation-workdir")).toHaveTextContent("muse");
+    await user.click(screen.getByTestId("automation-workdir"));
+    expect(screen.getByTestId("desktop-workdir-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-workdir-browse")).toHaveTextContent("浏览…");
+    await user.click(screen.getByPlaceholderText(/输入指令/));
+    await user.keyboard("更新 changelog");
+    expect(screen.getByTestId("automation-save")).not.toBeDisabled();
   });
 });

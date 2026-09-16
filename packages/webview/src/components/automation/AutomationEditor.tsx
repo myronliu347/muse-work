@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FC,
+  type ReactElement,
+} from "react";
+import { Button, DropdownMenu, Select } from "@radix-ui/themes";
 import type {
   MuseApiClient,
   MuseAutomation,
@@ -8,7 +17,10 @@ import type {
   MuseScheduleUi,
 } from "../../muse/apiClient";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
+import { MoreIcon } from "../shared/HeaderIcons";
 import { pickDirectoryViaHost } from "../issue/OpenPlanningDialog";
+import { DesktopWorkdirSelector } from "../desktop/DesktopWorkdirSelector";
+import { getOverlayHost } from "../../utils/bodyPortal";
 import { AutomationTranscript } from "./AutomationTranscript";
 import {
   CYCLE_OPTIONS,
@@ -148,6 +160,22 @@ function compileEditorTriggers(triggers: EditorTrigger[]): MuseAutomationTrigger
   return out;
 }
 
+function draftKey(input: {
+  name: string;
+  prompt: string;
+  workdir: string;
+  model: string;
+  triggers: EditorTrigger[];
+}): string {
+  return JSON.stringify({
+    name: input.name,
+    prompt: input.prompt,
+    workdir: input.workdir,
+    model: input.model,
+    triggers: compileEditorTriggers(input.triggers),
+  });
+}
+
 function statusLabel(status: MuseAutomationRun["status"]): string {
   return (
     {
@@ -172,7 +200,118 @@ function newId(): string {
   return `t${Date.now()}${Math.random().toString(16).slice(2)}`;
 }
 
-export const AutomationEditor: React.FC<{
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+const CLOCK_HOURS = Array.from({ length: 24 }, (_, i) => ({
+  value: pad2(i),
+  label: pad2(i),
+}));
+const CLOCK_MINUTES = Array.from({ length: 60 }, (_, i) => ({
+  value: pad2(i),
+  label: pad2(i),
+}));
+const CLOCK_MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: pad2(i + 1),
+  label: `${i + 1}月`,
+}));
+const INTERVAL_ITEMS = [
+  ...HOUR_INTERVALS.map((n) => ({
+    value: `h:${n}`,
+    label: `每 ${n} 小时`,
+  })),
+  ...MINUTE_INTERVALS.map((n) => ({
+    value: `m:${n}`,
+    label: `每 ${n} 分钟`,
+  })),
+];
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+function splitTime(time: string): { hour: string; minute: string } {
+  const match = /^(\d{2}):(\d{2})/.exec(time);
+  return { hour: match?.[1] ?? "09", minute: match?.[2] ?? "00" };
+}
+
+function splitDatetimeLocal(value: string): {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+  minute: string;
+} {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!match) {
+    const next = new Date();
+    next.setDate(next.getDate() + 1);
+    next.setHours(9, 0, 0, 0);
+    return {
+      year: String(next.getFullYear()),
+      month: pad2(next.getMonth() + 1),
+      day: pad2(next.getDate()),
+      hour: "09",
+      minute: "00",
+    };
+  }
+  return {
+    year: match[1],
+    month: match[2],
+    day: match[3],
+    hour: match[4],
+    minute: match[5],
+  };
+}
+
+function joinDatetimeLocal(parts: {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+  minute: string;
+}): string {
+  const year = Number(parts.year);
+  const month = Number(parts.month);
+  const maxDay = daysInMonth(year, month);
+  const day = Math.min(Number(parts.day) || 1, maxDay);
+  return `${parts.year}-${parts.month}-${pad2(day)}T${parts.hour}:${parts.minute}`;
+}
+
+function formatRunAt(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}/${d.getDate()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function defaultOnceAt(): string {
+  const next = new Date();
+  next.setDate(next.getDate() + 1);
+  next.setHours(9, 0, 0, 0);
+  return toDatetimeLocal(next.getTime());
+}
+
+function yearItems(current: string): Array<{ value: string; label: string }> {
+  const start = new Date().getFullYear();
+  const years = new Set([current, String(start), String(start + 1), String(start + 2)]);
+  return [...years]
+    .filter((year) => /^\d{4}$/.test(year))
+    .sort()
+    .map((year) => ({ value: year, label: `${year}年` }));
+}
+
+function explainAutomationError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (raw.includes("incomplete")) {
+    return "启用前需要指令、工作目录和至少一个触发器。";
+  }
+  if (raw.includes("disabled")) {
+    return "停用时不能测试，请先启用。";
+  }
+  return raw.replace(/^Muse API \d+:\s*/, "") || "操作失败";
+}
+
+export const AutomationEditor: FC<{
   api: MuseApiClient;
   automation: MuseAutomation;
   recentWorkdirs: string[];
@@ -199,16 +338,31 @@ export const AutomationEditor: React.FC<{
   );
   const [tab, setTab] = useState<"settings" | "history">("settings");
   const [trigMenu, setTrigMenu] = useState(false);
+  const trigMenuRef = useRef<HTMLDivElement>(null);
   const [runs, setRuns] = useState<MuseAutomationRun[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [openRun, setOpenRun] = useState<MuseAutomationRun | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [dirs, setDirs] = useState<string[]>(() => {
     const set = new Set(recentWorkdirs.filter(Boolean));
     if (automation.workdir) set.add(automation.workdir);
     return [...set];
   });
-  const skipFirstSave = useRef(true);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const baseline = useRef(
+    draftKey({
+      name: automation.name,
+      prompt: automation.prompt,
+      workdir: automation.workdir,
+      model: automation.model ?? "",
+      triggers: fromServer(automation.triggers),
+    }),
+  );
+
+  const dirty = useMemo(
+    () => draftKey({ name, prompt, workdir, model, triggers }) !== baseline.current,
+    [name, prompt, workdir, model, triggers],
+  );
 
   const loadRuns = useCallback(async () => {
     const res = await api.listAutomationRuns(automation.id);
@@ -219,52 +373,67 @@ export const AutomationEditor: React.FC<{
     void loadRuns().catch(() => undefined);
   }, [loadRuns]);
 
-  const persist = useCallback(
-    async (next: {
-      name: string;
-      prompt: string;
-      workdir: string;
-      model: string;
-      triggers: EditorTrigger[];
-    }) => {
-      const compiled = compileEditorTriggers(next.triggers);
+  useEffect(() => {
+    if (!trigMenu) return;
+    const onDown = (event: MouseEvent) => {
+      if (
+        trigMenuRef.current &&
+        event.target instanceof Node &&
+        !trigMenuRef.current.contains(event.target)
+      ) {
+        setTrigMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [trigMenu]);
+
+  const persist = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const compiled = compileEditorTriggers(triggers);
       const { automation: saved } = await api.patchAutomation(automation.id, {
-        name: next.name,
-        prompt: next.prompt,
-        workdir: next.workdir,
-        model: next.model || undefined,
+        name,
+        prompt,
+        workdir,
+        model: model || undefined,
         triggers: compiled,
       });
+      baseline.current = draftKey({ name, prompt, workdir, model, triggers });
       onChanged(saved);
-    },
-    [api, automation.id, onChanged],
-  );
-
-  useEffect(() => {
-    if (skipFirstSave.current) {
-      skipFirstSave.current = false;
-      return;
+    } catch (err) {
+      setError(explainAutomationError(err));
+      throw err;
+    } finally {
+      setSaving(false);
     }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void persist({ name, prompt, workdir, model, triggers }).catch(() =>
-        undefined,
-      );
-    }, 400);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [name, prompt, workdir, model, triggers, persist]);
+  }, [api, automation.id, model, name, onChanged, prompt, triggers, workdir]);
 
   const toggleEnabled = async () => {
+    if (!enabled) {
+      const compiled = compileEditorTriggers(triggers);
+      if (!prompt.trim() || !workdir.trim() || compiled.length === 0) {
+        setError("启用前需要指令、工作目录和至少一个触发器。");
+        return;
+      }
+      if (dirty) {
+        try {
+          await persist();
+        } catch {
+          return;
+        }
+      }
+    }
     try {
+      setError(null);
       const res = enabled
         ? await api.disableAutomation(automation.id)
         : await api.enableAutomation(automation.id);
       setEnabled(res.automation.enabled);
       onChanged(res.automation);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "无法切换启用状态");
+      setError(explainAutomationError(err));
     }
   };
 
@@ -275,22 +444,38 @@ export const AutomationEditor: React.FC<{
     setWorkdir(path);
   };
 
-  const onDirChange = (value: string) => {
-    if (value === "__pick__") {
-      void pickDir();
-      return;
+  const save = async () => {
+    if (!dirty || saving) return;
+    try {
+      await persist();
+    } catch {
+      /* banner already set */
     }
-    setWorkdir(value);
+  };
+
+  const goBack = async () => {
+    if (dirty) {
+      try {
+        await persist();
+      } catch {
+        return;
+      }
+    }
+    onBack();
   };
 
   const runNow = async () => {
     if (!enabled) return;
     try {
+      setError(null);
+      if (dirty) await persist();
       await api.runAutomation(automation.id);
       setTab("history");
-      await loadRuns();
+      const res = await api.listAutomationRuns(automation.id);
+      setRuns(res.runs);
+      if (res.runs[0]) setOpenRun(res.runs[0]);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "运行失败");
+      setError(explainAutomationError(err));
     }
   };
 
@@ -299,226 +484,283 @@ export const AutomationEditor: React.FC<{
     onDeleted();
   };
 
+  const title = name.trim() || "未命名";
+
   return (
-    <div className="automations-page-inner" data-testid="automation-editor">
-      <button type="button" className="automations-back" onClick={onBack}>
-        ← 全部自动化
-      </button>
-      <div
-        className="automations-ed-title"
-        contentEditable
-        suppressContentEditableWarning
-        spellCheck={false}
-        data-testid="automation-title"
-        ref={(el) => {
-          if (el && el.dataset.ready !== "1") {
-            el.dataset.ready = "1";
-            el.textContent = automation.name;
-          }
-        }}
-        onInput={(e) => setName(e.currentTarget.textContent?.trim() ?? "")}
-      />
-      <div className="automations-ed-meta">
-        <button
-          type="button"
-          className={`automations-switch${enabled ? " on" : ""}`}
-          aria-label="启用"
-          onClick={() => void toggleEnabled()}
-        >
-          <i />
-        </button>
-        <span>{enabled ? "已启用" : "已停用"}</span>
-        <span className="div" />
-        <select
-          value={workdir}
-          onChange={(e) => onDirChange(e.target.value)}
-          data-testid="automation-workdir"
-        >
-          <option value="">选择工作目录</option>
-          {dirs.map((dir) => (
-            <option key={dir} value={dir}>
-              {dir}
-            </option>
-          ))}
-          <option value="__pick__">选择目录…</option>
-        </select>
-        <span className="div" />
-        <span>权限 · 工作区</span>
-        <span className="automations-grow" />
-        <button
-          type="button"
-          className="automations-btn"
-          data-testid="automation-run-now"
-          disabled={!enabled}
-          onClick={() => void runNow()}
-        >
-          立即运行
-        </button>
-        <button
-          type="button"
-          className="automations-btn automations-btn-danger"
-          onClick={() => setConfirmDelete(true)}
-        >
-          删除
-        </button>
-      </div>
-      <div className="automations-tabs">
-        <button
-          type="button"
-          className={`automations-tab${tab === "settings" ? " on" : ""}`}
-          onClick={() => setTab("settings")}
-        >
-          设置
-        </button>
-        <button
-          type="button"
-          className={`automations-tab${tab === "history" ? " on" : ""}`}
-          onClick={() => {
-            setTab("history");
-            void loadRuns();
-          }}
-        >
-          运行记录
-        </button>
-      </div>
-      {tab === "settings" ? (
-        <div>
-          <div className="automations-sec-label">触发器</div>
-          {triggers.map((trigger) => (
-            <TriggerCard
-              key={trigger.localId}
-              trigger={trigger}
-              onChange={(next) =>
-                setTriggers((prev) =>
-                  prev.map((item) =>
-                    item.localId === trigger.localId ? next : item,
-                  ),
-                )
+    <div className="automations-editor" data-testid="automation-editor">
+      <header className="automations-ed-chrome">
+        <nav className="automations-crumb" aria-label="面包屑">
+          <button type="button" onClick={() => void goBack()}>
+            自动化
+          </button>
+          <span className="automations-crumb-sep" aria-hidden="true">
+            ›
+          </span>
+          <span className="automations-crumb-current" title={title}>
+            {title}
+          </span>
+        </nav>
+        <div className="automations-ed-actions">
+          <Button
+            size="1"
+            variant="soft"
+            color="gray"
+            highContrast
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+            data-testid="automation-save"
+          >
+            保存
+          </Button>
+          <Button
+            size="1"
+            variant="soft"
+            color="gray"
+            highContrast
+            disabled={!enabled}
+            onClick={() => void runNow()}
+            data-testid="automation-run-now"
+          >
+            <span className="codicon codicon-play" aria-hidden="true" />
+            测试
+          </Button>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <button
+                type="button"
+                className="automations-more"
+                aria-label="更多"
+                data-testid="automation-more"
+              >
+                <MoreIcon className="header-icon" />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content
+              size="1"
+              variant="soft"
+              color="gray"
+              highContrast
+              align="end"
+              sideOffset={4}
+              container={getOverlayHost()}
+            >
+              <DropdownMenu.Item
+                color="red"
+                onSelect={() => setConfirmDelete(true)}
+              >
+                删除
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
+      </header>
+      <div className="automations-page-scroll">
+        <div className="automations-page-inner automations-page-inner--editor">
+          {error ? <div className="automations-banner">{error}</div> : null}
+          <div
+            className="automations-ed-title"
+            contentEditable
+            suppressContentEditableWarning
+            spellCheck={false}
+            data-testid="automation-title"
+            ref={(el) => {
+              if (el && el.dataset.ready !== "1") {
+                el.dataset.ready = "1";
+                el.textContent = automation.name;
               }
-              onRemove={() =>
-                setTriggers((prev) =>
-                  prev.filter((item) => item.localId !== trigger.localId),
-                )
-              }
-            />
-          ))}
-          <div className="automations-menu">
+            }}
+            onInput={(e) => setName(e.currentTarget.textContent?.trim() ?? "")}
+          />
+          <div className="automations-ed-meta">
             <button
               type="button"
-              className="automations-add-trig"
-              onClick={(e) => {
-                e.stopPropagation();
-                setTrigMenu((open) => !open);
+              className={`automations-switch${enabled ? " on" : ""}`}
+              aria-label="启用"
+              onClick={() => void toggleEnabled()}
+            >
+              <i />
+            </button>
+            <span>{enabled ? "已启用" : "已停用"}</span>
+            <span className="div" />
+            <DesktopWorkdirSelector
+              workdir={workdir || undefined}
+              recentWorkdirs={dirs}
+              menuPlacement="down"
+              variant="ghost"
+              testId="automation-workdir"
+              onSelectWorkdir={() => void pickDir()}
+              onSelectRecentWorkdir={(path) => {
+                setDirs((prev) => (prev.includes(path) ? prev : [path, ...prev]));
+                setWorkdir(path);
+              }}
+              onRemoveRecentWorkdir={(path) => {
+                setDirs((prev) => prev.filter((dir) => dir !== path));
+              }}
+            />
+            <span className="div" />
+            <span>工作区</span>
+          </div>
+          <div className="automations-tabs">
+            <button
+              type="button"
+              className={`automations-tab${tab === "settings" ? " on" : ""}`}
+              onClick={() => setTab("settings")}
+            >
+              设置
+            </button>
+            <button
+              type="button"
+              className={`automations-tab${tab === "history" ? " on" : ""}`}
+              onClick={() => {
+                setTab("history");
+                void loadRuns();
               }}
             >
-              + 添加触发器
+              运行记录
             </button>
-            {trigMenu ? (
-              <div className="automations-menu-pop">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTriggers((prev) => [
-                      ...prev,
-                      {
-                        localId: newId(),
-                        kind: "schedule",
-                        mode: "cycle",
-                        cycle: "daily",
-                        time: "09:00",
-                      },
-                    ]);
-                    setTrigMenu(false);
-                  }}
-                >
-                  定时调度
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTriggers((prev) => [
-                      ...prev,
-                      { localId: newId(), kind: "issue", events: [] },
-                    ]);
-                    setTrigMenu(false);
-                  }}
-                >
-                  Issue 生命周期
-                </button>
-              </div>
-            ) : null}
           </div>
-          <div className="automations-sec-label" style={{ marginTop: 28 }}>
-            Agent 指令
-          </div>
-          <div className="automations-instr">
-            <textarea
-              value={prompt}
-              placeholder="输入指令。可用 @ 提及文件，/ 调用命令…"
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <div className="automations-instr-model">
-              <MuseModelSelect
-                api={api}
-                modelId={model}
-                onModelChange={setModel}
-                allowEmpty
-                emptyLabel="默认模型"
-                showTooltip={false}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div>
-          {runs.length === 0 ? (
-            <div className="automations-empty">还没有运行</div>
-          ) : (
-            runs.map((run) => (
-              <button
-                key={run.id}
-                type="button"
-                className="automations-run"
-                onClick={() => setOpenRun(run)}
-              >
-                <span
-                  className={`automations-dot ${
-                    run.status === "running"
-                      ? "run"
-                      : run.status === "succeeded"
-                        ? "ok"
-                        : run.status === "skipped"
-                          ? "skip"
-                          : "fail"
-                  }`}
+          {tab === "settings" ? (
+            <div className="automations-settings">
+              <div className="automations-block">
+                <div className="automations-sec-label">触发器</div>
+                <div className="automations-trig-stack">
+              {triggers.map((trigger) => (
+                <TriggerCard
+                  key={trigger.localId}
+                  trigger={trigger}
+                  onChange={(next) =>
+                    setTriggers((prev) =>
+                      prev.map((item) =>
+                        item.localId === trigger.localId ? next : item,
+                      ),
+                    )
+                  }
+                  onRemove={() =>
+                    setTriggers((prev) =>
+                      prev.filter((item) => item.localId !== trigger.localId),
+                    )
+                  }
                 />
-                <span>
-                  <div>
-                    {statusLabel(run.status)} · {runKind(run)}
+              ))}
+              <div className="automations-menu" ref={trigMenuRef}>
+                <button
+                  type="button"
+                  className="automations-add-trig"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTrigMenu((open) => !open);
+                  }}
+                >
+                  + 添加触发器
+                </button>
+                {trigMenu ? (
+                  <div className="automations-menu-pop">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTriggers((prev) => [
+                          ...prev,
+                          {
+                            localId: newId(),
+                            kind: "schedule",
+                            mode: "cycle",
+                            cycle: "daily",
+                            time: "09:00",
+                          },
+                        ]);
+                        setTrigMenu(false);
+                      }}
+                    >
+                      定时调度
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTriggers((prev) => [
+                          ...prev,
+                          { localId: newId(), kind: "issue", events: [] },
+                        ]);
+                        setTrigMenu(false);
+                      }}
+                    >
+                      Issue 生命周期
+                    </button>
                   </div>
-                  <div className="automations-mono">
-                    {new Date(run.startedAt).toLocaleString()}
-                    {run.error ? ` · ${run.error}` : ""}
+                ) : null}
+              </div>
+                </div>
+              </div>
+              <div className="automations-block">
+                <div className="automations-sec-label">Agent 指令</div>
+                <div className="automations-instr">
+                  <textarea
+                    value={prompt}
+                    placeholder="输入指令。可用 @ 提及文件，/ 调用命令…"
+                    onChange={(e) => setPrompt(e.target.value)}
+                  />
+                  <div className="automations-instr-model">
+                    <MuseModelSelect
+                      api={api}
+                      modelId={model}
+                      onModelChange={setModel}
+                      allowEmpty
+                      emptyLabel="默认模型"
+                      showTooltip={false}
+                      triggerVariant="ghost"
+                    />
                   </div>
-                </span>
-              </button>
-            ))
+                </div>
+              </div>
+            </div>
+          ) : openRun ? (
+            <AutomationTranscript
+              api={api}
+              run={openRun}
+              onClose={() => setOpenRun(null)}
+              onStop={() => {
+                void api.stopAutomationRun(openRun.id).then(() => {
+                  setOpenRun({ ...openRun, status: "stopped" });
+                  void loadRuns();
+                });
+              }}
+            />
+          ) : (
+            <div className="automations-run-list">
+              {runs.length === 0 ? (
+                <div className="automations-empty">还没有运行</div>
+              ) : (
+                runs.map((run) => (
+                  <button
+                    key={run.id}
+                    type="button"
+                    className="automations-run"
+                    onClick={() => setOpenRun(run)}
+                  >
+                    <span
+                      className={`automations-dot ${
+                        run.status === "running"
+                          ? "run"
+                          : run.status === "succeeded"
+                            ? "ok"
+                            : run.status === "skipped"
+                              ? "skip"
+                              : "fail"
+                      }`}
+                    />
+                    <span className="automations-run-body">
+                      {statusLabel(run.status)} · {runKind(run)}
+                    </span>
+                    <span className="automations-run-time">
+                      {formatRunAt(run.startedAt)}
+                      {run.error ? ` · ${run.error}` : ""}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           )}
         </div>
-      )}
-      {openRun ? (
-        <AutomationTranscript
-          api={api}
-          run={openRun}
-          onClose={() => setOpenRun(null)}
-          onStop={() => {
-            void api.stopAutomationRun(openRun.id).then(() => {
-              setOpenRun({ ...openRun, status: "stopped" });
-              void loadRuns();
-            });
-          }}
-        />
-      ) : null}
+      </div>
       {confirmDelete ? (
         <div className="confirm-dialog-overlay">
           <div className="confirm-dialog">
@@ -549,7 +791,7 @@ export const AutomationEditor: React.FC<{
   );
 };
 
-const TriggerCard: React.FC<{
+const TriggerCard: FC<{
   trigger: EditorTrigger;
   onChange: (next: EditorTrigger) => void;
   onRemove: () => void;
@@ -562,28 +804,31 @@ const TriggerCard: React.FC<{
           <span className="automations-grow" />
           <button
             type="button"
-            className="automations-btn automations-btn-ghost"
+            className="automations-link-btn"
             onClick={onRemove}
           >
             移除
           </button>
         </div>
         <div className="automations-checks">
-          {ISSUE_EVENTS.map((event) => (
-            <label key={event.value}>
-              <input
-                type="checkbox"
-                checked={trigger.events.includes(event.value)}
-                onChange={(e) => {
-                  const events = e.target.checked
-                    ? [...trigger.events, event.value]
-                    : trigger.events.filter((item) => item !== event.value);
+          {ISSUE_EVENTS.map((event) => {
+            const on = trigger.events.includes(event.value);
+            return (
+              <button
+                key={event.value}
+                type="button"
+                className={`automations-check${on ? " on" : ""}`}
+                onClick={() => {
+                  const events = on
+                    ? trigger.events.filter((item) => item !== event.value)
+                    : [...trigger.events, event.value];
                   onChange({ ...trigger, events });
                 }}
-              />{" "}
-              {event.label}
-            </label>
-          ))}
+              >
+                {event.label}
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -594,22 +839,18 @@ const TriggerCard: React.FC<{
       <div className="automations-trig-top">
         <strong>定时调度</strong>
         <span className="automations-grow" />
-        <button
-          type="button"
-          className="automations-btn automations-btn-ghost"
-          onClick={onRemove}
-        >
-          移除
-        </button>
+          <button
+            type="button"
+            className="automations-link-btn"
+            onClick={onRemove}
+          >
+            移除
+          </button>
       </div>
       {trigger.mode === "cycle" && trigger.rawCron ? (
         <div className="automations-pill">{trigger.rawCron}</div>
       ) : (
         <>
-          <div className="automations-sec-label">
-            执行频率{" "}
-            <span className="automations-hint">高峰期可能排队，非高峰更稳定</span>
-          </div>
           <div className="automations-seg">
             {(["cycle", "interval", "once"] as const).map((mode) => (
               <button
@@ -630,7 +871,7 @@ const TriggerCard: React.FC<{
                       localId: trigger.localId,
                       kind: "schedule",
                       mode: "once",
-                      at: "",
+                      at: defaultOnceAt(),
                     });
                   } else {
                     onChange({
@@ -649,72 +890,43 @@ const TriggerCard: React.FC<{
           </div>
           {trigger.mode === "interval" ? (
             <div className="automations-freq-row">
-              <span>每</span>
-              <select
-                value={trigger.every}
-                onChange={(e) =>
-                  onChange({ ...trigger, every: Number(e.target.value) })
-                }
-              >
-                {(trigger.unit === "h" ? HOUR_INTERVALS : MINUTE_INTERVALS).map(
-                  (n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ),
-                )}
-              </select>
-              <select
-                value={trigger.unit}
-                onChange={(e) => {
-                  const unit = e.target.value as "h" | "m";
-                  const allowed: readonly number[] =
-                    unit === "h" ? HOUR_INTERVALS : MINUTE_INTERVALS;
-                  const every = allowed.includes(trigger.every)
-                    ? trigger.every
-                    : allowed[0];
-                  onChange({ ...trigger, unit, every });
-                }}
-              >
-                <option value="h">小时</option>
-                <option value="m">分钟</option>
-              </select>
-            </div>
-          ) : trigger.mode === "once" ? (
-            <div className="automations-freq-row">
-              <input
-                type="datetime-local"
-                value={trigger.at}
-                onChange={(e) => onChange({ ...trigger, at: e.target.value })}
-              />
-            </div>
-          ) : (
-            <div className="automations-freq-row">
-              <select
-                value={trigger.cycle}
-                onChange={(e) =>
+              <SoftSelect
+                value={`${trigger.unit}:${trigger.every}`}
+                onValueChange={(value) => {
+                  const [unit, every] = value.split(":");
                   onChange({
                     ...trigger,
-                    cycle: e.target.value as typeof trigger.cycle,
+                    unit: unit as "h" | "m",
+                    every: Number(every),
+                  });
+                }}
+                items={INTERVAL_ITEMS}
+              />
+            </div>
+          ) : trigger.mode === "once" ? (
+            <OnceFields
+              value={trigger.at}
+              onChange={(at) => onChange({ ...trigger, at })}
+            />
+          ) : (
+            <div className="automations-freq-row">
+              <SoftSelect
+                value={trigger.cycle}
+                onValueChange={(cycle) =>
+                  onChange({
+                    ...trigger,
+                    cycle: cycle as typeof trigger.cycle,
                   })
                 }
-              >
-                {CYCLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <span className="automations-chip">
-                <input
-                  type="time"
-                  value={trigger.time}
-                  onChange={(e) =>
-                    onChange({ ...trigger, time: e.target.value })
-                  }
-                  style={{ border: "none", background: "transparent", padding: 0 }}
-                />
-              </span>
+                items={CYCLE_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: opt.label,
+                }))}
+              />
+              <ClockFields
+                time={trigger.time}
+                onChange={(time) => onChange({ ...trigger, time })}
+              />
             </div>
           )}
         </>
@@ -722,3 +934,88 @@ const TriggerCard: React.FC<{
     </div>
   );
 };
+
+function ClockFields(props: {
+  time: string;
+  onChange: (time: string) => void;
+}): ReactElement {
+  const { hour, minute } = splitTime(props.time);
+  return (
+    <div className="automations-clock">
+      <SoftSelect
+        value={hour}
+        onValueChange={(next) => props.onChange(`${next}:${minute}`)}
+        items={CLOCK_HOURS}
+      />
+      <span className="automations-clock-sep">:</span>
+      <SoftSelect
+        value={minute}
+        onValueChange={(next) => props.onChange(`${hour}:${next}`)}
+        items={CLOCK_MINUTES}
+      />
+    </div>
+  );
+}
+
+function OnceFields(props: {
+  value: string;
+  onChange: (value: string) => void;
+}): ReactElement {
+  const parts = splitDatetimeLocal(props.value);
+  const patch = (next: Partial<typeof parts>) =>
+    props.onChange(joinDatetimeLocal({ ...parts, ...next }));
+  const maxDay = daysInMonth(Number(parts.year), Number(parts.month));
+  const dayItems = Array.from({ length: maxDay }, (_, i) => ({
+    value: pad2(i + 1),
+    label: `${i + 1}日`,
+  }));
+  return (
+    <div className="automations-freq-row">
+      <SoftSelect
+        value={parts.year}
+        onValueChange={(year) => patch({ year })}
+        items={yearItems(parts.year)}
+      />
+      <SoftSelect
+        value={parts.month}
+        onValueChange={(month) => patch({ month })}
+        items={CLOCK_MONTHS}
+      />
+      <SoftSelect
+        value={pad2(Math.min(Number(parts.day) || 1, maxDay))}
+        onValueChange={(day) => patch({ day })}
+        items={dayItems}
+      />
+      <ClockFields
+        time={`${parts.hour}:${parts.minute}`}
+        onChange={(time) => {
+          const { hour, minute } = splitTime(time);
+          patch({ hour, minute });
+        }}
+      />
+    </div>
+  );
+}
+
+function SoftSelect(props: {
+  value: string;
+  onValueChange: (value: string) => void;
+  items: Array<{ value: string; label: string }>;
+}): ReactElement {
+  return (
+    <Select.Root value={props.value} onValueChange={props.onValueChange}>
+      <Select.Trigger variant="soft" size="1" color="gray" />
+      <Select.Content
+        position="popper"
+        color="gray"
+        container={getOverlayHost()}
+      >
+        {props.items.map((item) => (
+          <Select.Item key={item.value} value={item.value}>
+            {item.label}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select.Root>
+  );
+}
