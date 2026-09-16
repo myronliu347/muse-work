@@ -278,6 +278,14 @@
   border-left: none;
 }
 
+/* Sidebar + shell chrome are hidden in dock fullscreen, so tabs would sit
+   under the hiddenInset traffic lights without this inset. */
+.desktop-panel-dock--fullscreen .desktop-panel-dock-header {
+  padding-left: calc(
+    var(--desktop-shell-chrome-left, 82px) + var(--space-3)
+  );
+}
+
 .desktop-panel-dock--fullscreen .preview-pane-drag-handle {
   display: none;
 }
