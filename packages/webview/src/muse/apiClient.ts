@@ -170,6 +170,85 @@ export interface MuseSessionsGrouped {
   closedIssueGroups?: MuseIssueGroup[];
 }
 
+export type MuseAutomationPermission = "workspace";
+export type MuseAutomationRunStatus =
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "stopped"
+  | "skipped";
+export type MuseIssueEvent = "created" | "review" | "completed" | "cancelled";
+
+export type MuseAutomationTrigger =
+  | { type: "cron"; expr: string }
+  | { type: "once"; at: number; firedAt?: number }
+  | {
+      type: "issue";
+      events: MuseIssueEvent[];
+      tags?: string[];
+      priority?: "p0" | "p1" | "p2";
+    };
+
+export interface MuseAutomation {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  prompt: string;
+  workdir: string;
+  agentName?: string;
+  model?: string;
+  permission: MuseAutomationPermission;
+  triggers: MuseAutomationTrigger[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MuseAutomationRun {
+  id: string;
+  automationId: string;
+  sessionId?: string;
+  status: MuseAutomationRunStatus;
+  trigger: {
+    type: "cron" | "once" | "issue" | "manual";
+    firedAt: number;
+    expr?: string;
+    issue?: {
+      id: string;
+      title: string;
+      status: string;
+      priority: string;
+      tags: string[];
+    };
+  };
+  skipReason?: "rule_running" | "global_concurrency";
+  error?: string;
+  startedAt: number;
+  endedAt?: number;
+}
+
+export type MuseScheduleUi =
+  | {
+      mode: "cycle";
+      cycle: "daily" | "weekday" | "0" | "1" | "2" | "3" | "4" | "5" | "6";
+      time: string;
+    }
+  | { mode: "interval"; every: number; unit: "h" | "m" }
+  | { mode: "once"; at: number };
+
+export type MuseAutomationPatch = {
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+  prompt?: string;
+  workdir?: string;
+  agentName?: string;
+  model?: string;
+  permission?: MuseAutomationPermission;
+  triggers?: MuseAutomationTrigger[];
+  schedule?: MuseScheduleUi;
+};
+
 export interface PopoConfigInfo {
   url: string;
   token: string;
@@ -756,6 +835,94 @@ export class MuseApiClient {
       `/issues/${encodeURIComponent(id)}/cancel`,
       { method: "POST" },
     );
+    return parseJson(res);
+  }
+
+  async listAutomations(): Promise<{ automations: MuseAutomation[] }> {
+    const res = await this.request("/automations");
+    return parseJson(res);
+  }
+
+  async getAutomation(id: string): Promise<{ automation: MuseAutomation }> {
+    const res = await this.request(`/automations/${encodeURIComponent(id)}`);
+    return parseJson(res);
+  }
+
+  async createAutomation(
+    body: MuseAutomationPatch = {},
+  ): Promise<{ automation: MuseAutomation }> {
+    const res = await this.request("/automations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return parseJson(res);
+  }
+
+  async patchAutomation(
+    id: string,
+    patch: MuseAutomationPatch,
+  ): Promise<{ automation: MuseAutomation }> {
+    const res = await this.request(`/automations/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return parseJson(res);
+  }
+
+  async enableAutomation(id: string): Promise<{ automation: MuseAutomation }> {
+    const res = await this.request(
+      `/automations/${encodeURIComponent(id)}/enable`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async disableAutomation(id: string): Promise<{ automation: MuseAutomation }> {
+    const res = await this.request(
+      `/automations/${encodeURIComponent(id)}/disable`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async deleteAutomation(id: string): Promise<{ ok: true }> {
+    const res = await this.request(`/automations/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return parseJson(res);
+  }
+
+  async runAutomation(id: string): Promise<{ run: MuseAutomationRun }> {
+    const res = await this.request(
+      `/automations/${encodeURIComponent(id)}/run`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async listAutomationRuns(
+    id: string,
+  ): Promise<{ runs: MuseAutomationRun[] }> {
+    const res = await this.request(
+      `/automations/${encodeURIComponent(id)}/runs`,
+    );
+    return parseJson(res);
+  }
+
+  async stopAutomationRun(
+    runId: string,
+  ): Promise<{ ok: true } | { run: MuseAutomationRun }> {
+    const res = await this.request(
+      `/automations/runs/${encodeURIComponent(runId)}/stop`,
+      { method: "POST" },
+    );
+    return parseJson(res);
+  }
+
+  async getSession(id: string): Promise<MuseSession> {
+    const res = await this.request(`/sessions/${encodeURIComponent(id)}`);
     return parseJson(res);
   }
 
