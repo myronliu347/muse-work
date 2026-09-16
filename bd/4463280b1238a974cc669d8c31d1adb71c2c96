@@ -1,0 +1,102 @@
+packages/server/src/app.ts
+  214d95f184daa2ee 17,34
+packages/server/src/services/appContext.ts
+  214d95f184daa2ee 21-24,37,114,141
+packages/server/tests/sessions.control.routes.test.ts
+  214d95f184daa2ee 24,88,104
+packages/server/tests/automations.routes.test.ts
+  214d95f184daa2ee 1-128
+packages/server/src/services/automationStore.ts
+  214d95f184daa2ee 364-365
+packages/server/src/services/wsEvents.ts
+  214d95f184daa2ee 111
+packages/server/src/routes/automations.ts
+  214d95f184daa2ee 1-261
+packages/server/tests/sessions.ws.test.ts
+  214d95f184daa2ee 26,1762,1778
+packages/server/tests/providers.routes.test.ts
+  214d95f184daa2ee 20,471,487
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bd4463280b1238a974cc669d8c31d1adb71c2c96",
+  "prompts": {
+    "214d95f184daa2ee": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9ad4f495-3d0f-4304-a42a-44a2942cc62b",
+        "model": "cursor-grok-4.6-medium-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 422,
+      "total_deletions": 12,
+      "accepted_lines": 410,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/automations.routes.test.ts": {
+          "additions": 128,
+          "accepted_lines": 128
+        },
+        "packages/server/src/routes/automations.ts": {
+          "additions": 273,
+          "deletions": 12,
+          "accepted_lines": 261
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/app.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/automationStore.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/providers.routes.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/sessions.control.routes.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    },
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1260,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "accepted_lines": 250
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        }
+      }
+    }
+  }
+}
