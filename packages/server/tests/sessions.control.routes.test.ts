@@ -22,6 +22,7 @@ import {
 import { createIssueStore } from "../src/services/issueStore.js";
 import { createIssueDispatcher } from "../src/services/issueDispatch.js";
 import { createAutomationStore } from "../src/services/automationStore.js";
+import { createAutomationRuntime } from "../src/services/automationRuntime.js";
 
 function stubAgent(overrides: Partial<SessionAgent> = {}): SessionAgent {
   return {
@@ -86,6 +87,13 @@ describe("session control routes", () => {
     const sessions = createSessionServices({ home, registry, createAgent });
     const issues = createIssueStore({ home });
     const automations = createAutomationStore({ home });
+    const automationRuntime = createAutomationRuntime({
+      store: automations,
+      hub: sessions.hub,
+      sessions: sessions.store,
+      runner: sessions.runner,
+      home,
+    });
     const dispatcher = createIssueDispatcher({
       issues,
       sessions: sessions.store,
@@ -102,6 +110,7 @@ describe("session control routes", () => {
       ...sessions,
       issueStore: issues,
       automationStore: automations,
+      automationRuntime,
       issueDispatcher: dispatcher,
     };
     const httpServer = createApp(ctx);

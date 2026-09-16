@@ -22,6 +22,7 @@ import {
   createAutomationStore,
   type AutomationStore,
 } from "./automationStore.js";
+import { createAutomationRuntime } from "./automationRuntime.js";
 
 export { resolveHome };
 
@@ -35,6 +36,7 @@ export interface AppContext {
   runner: SessionRunner;
   issueStore: IssueStore;
   automationStore: AutomationStore;
+  automationRuntime: ReturnType<typeof createAutomationRuntime>;
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
@@ -52,6 +54,8 @@ export interface CreateAppContextOptions {
     subagentId: string,
     workdir: string,
   ) => Promise<unknown[] | null>;
+  /** Injectable clock for automation tick tests. */
+  now?: () => Date;
 }
 
 export interface CreateSessionServicesOptions {
@@ -133,12 +137,22 @@ export function createAppContext(
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);
   });
+  const automationRuntime = createAutomationRuntime({
+    store: automations,
+    hub: sessions.hub,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    home,
+    now: options?.now,
+  });
+  automationRuntime.start();
   return {
     ...sessions,
     home,
     registry,
     issueStore: issues,
     automationStore: automations,
+    automationRuntime,
     issueDispatcher: dispatcher,
   };
 }

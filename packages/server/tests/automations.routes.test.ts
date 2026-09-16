@@ -198,4 +198,53 @@ describe("automations HTTP", () => {
     expect(missing.status).toBe(404);
     expect(events.filter((e) => (e as { type: string }).type === "automation:changed").length).toBeGreaterThanOrEqual(2);
   });
+
+  it("POST /automations/:id/run is 403 when disabled", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检",
+        prompt: "x",
+        workdir: app.home,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    }).then((r) => r.json());
+    const res = await fetch(`${app.baseUrl}/automations/${automation.id}/run`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "disabled" });
+  });
+
+  it("POST /automations/:id/run enqueues a manual run when enabled", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检",
+        prompt: "x",
+        workdir: app.home,
+        enabled: true,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    }).then((r) => r.json());
+    const res = await fetch(`${app.baseUrl}/automations/${automation.id}/run`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.run.status).toBe("running");
+    expect(body.run.trigger.type).toBe("manual");
+    const runs = await fetch(
+      `${app.baseUrl}/automations/${automation.id}/runs`,
+    ).then((r) => r.json());
+    expect(runs.runs).toHaveLength(1);
+  });
 });

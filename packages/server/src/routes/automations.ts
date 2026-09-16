@@ -270,6 +270,29 @@ automationsRoutes.post("/automations/:id/disable", (c) => {
   return c.json({ automation });
 });
 
+automationsRoutes.post("/automations/:id/run", (c) => {
+  const ctx = c.get("ctx");
+  const id = c.req.param("id");
+  const existing = ctx.automationStore.get(id);
+  if (!existing) {
+    return c.json({ error: "not found" }, 404);
+  }
+  if (!existing.enabled) {
+    return c.json({ error: "disabled" }, 403);
+  }
+  if (isIncomplete(existing)) {
+    return c.json({ error: "incomplete" }, 400);
+  }
+  const run = ctx.automationRuntime.enqueue(id, {
+    type: "manual",
+    firedAt: Date.now(),
+  });
+  if (!run) {
+    return c.json({ error: "disabled" }, 403);
+  }
+  return c.json({ run });
+});
+
 automationsRoutes.delete("/automations/:id", (c) => {
   const ctx = c.get("ctx");
   const id = c.req.param("id");
