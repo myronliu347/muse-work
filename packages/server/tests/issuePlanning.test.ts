@@ -65,6 +65,9 @@ describe("issuePlanning", () => {
     expect(extra).toContain("items --done");
     expect(extra).toContain("同一");
     expect(extra).toContain("产物");
+    expect(extra).toContain("用户确认条目后再 items --add-json");
+    expect(extra).toContain("开始执行/派发后再首次 dispatch");
+    expect(extra).toContain("不要擅自写清单或开工");
   });
 
   it("buildIssueSingleAgentExtra allows implementing in this session", () => {
