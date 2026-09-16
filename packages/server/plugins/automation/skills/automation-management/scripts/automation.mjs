@@ -36,10 +36,10 @@ function usage() {
   console.log(`automation.mjs — 自动化管理 CLI（${BASE}）
 
 用法：
-  node automation.mjs create --name <名称> --prompt <指令> --workdir <路径> [--cron EXPR]* [--issue-events created,review] [--description D] [--model M] [--agent A]
+  node automation.mjs create --name <名称> --prompt <指令> --workdir <路径> [--cron EXPR]* [--issue-events created,review] [--tags a,b] [--priority p0|p1|p2] [--description D] [--model M] [--agent A]
   node automation.mjs list
   node automation.mjs get --id <ID>
-  node automation.mjs update --id <ID> [--name N] [--prompt P] [--workdir W] [--description D] [--model M] [--agent A] [--cron EXPR]* [--issue-events E]
+  node automation.mjs update --id <ID> [--name N] [--prompt P] [--workdir W] [--description D] [--model M] [--agent A] [--cron EXPR]* [--issue-events E] [--tags a,b] [--priority p0|p1|p2]
   node automation.mjs enable --id <ID>
   node automation.mjs disable --id <ID>
   node automation.mjs run --id <ID>
@@ -73,17 +73,36 @@ function parseIssueEvents(raw) {
   return events.length ? events : undefined;
 }
 
+function parseTags(raw) {
+  if (raw == null || raw === "") return undefined;
+  const tags = raw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return tags.length ? tags : undefined;
+}
+
 function parseTriggers(argv) {
   const crons = argsAll(argv, "--cron");
   const events = parseIssueEvents(arg(argv, "--issue-events"));
+  const tags = parseTags(arg(argv, "--tags"));
+  const priority = arg(argv, "--priority");
   const triggers = [];
   for (const expr of crons) {
     triggers.push({ type: "cron", expr });
   }
   if (events) {
-    triggers.push({ type: "issue", events });
+    const issueTrigger = { type: "issue", events };
+    if (tags) issueTrigger.tags = tags;
+    if (priority != null) issueTrigger.priority = priority;
+    triggers.push(issueTrigger);
   }
   return triggers;
+}
+
+function shouldReplaceTriggers(argv) {
+  if (argsAll(argv, "--cron").length > 0) return true;
+  return arg(argv, "--issue-events") != null;
 }
 
 function assignOptional(body, argv) {
@@ -175,8 +194,9 @@ async function main() {
       const id = requireId(argv, "update");
       const body = {};
       assignOptional(body, argv);
-      const triggers = parseTriggers(argv);
-      if (triggers.length > 0) body.triggers = triggers;
+      if (shouldReplaceTriggers(argv)) {
+        body.triggers = parseTriggers(argv);
+      }
       const { automation } = await request("PATCH", `/automations/${id}`, body);
       printJson(automation);
       return;

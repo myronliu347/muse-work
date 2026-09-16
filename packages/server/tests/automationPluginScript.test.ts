@@ -184,4 +184,46 @@ describe("automation plugin script (automation.mjs)", () => {
     ) as { runs?: Array<{ id: string }> };
     expect(runs.runs).toHaveLength(1);
   });
+
+  it("create --issue-events review --tags auth --priority p0 持久化 issue 过滤字段", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const env = { ...process.env, MUSE_SERVER_URL: app.baseUrl };
+
+    const { stdout } = await runScript(
+      [
+        "create",
+        "--name",
+        "审核 auth",
+        "--prompt",
+        "检查",
+        "--workdir",
+        app.home,
+        "--issue-events",
+        "review",
+        "--tags",
+        "auth",
+        "--priority",
+        "p0",
+      ],
+      env,
+    );
+    const parsed = JSON.parse(stdout) as {
+      triggers: Array<{
+        type: string;
+        events?: string[];
+        tags?: string[];
+        priority?: string;
+      }>;
+    };
+    expect(parsed.triggers).toEqual([
+      {
+        type: "issue",
+        events: ["review"],
+        tags: ["auth"],
+        priority: "p0",
+      },
+    ]);
+  });
 });
