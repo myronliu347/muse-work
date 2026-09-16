@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
 import type { SessionRunner } from "./sessionRunner/index.js";
 import type { SessionStore } from "./sessionStore.js";
 import type { WsHub } from "./wsHub.js";
@@ -8,6 +10,7 @@ import {
   type AutomationTrigger,
 } from "./automationStore.js";
 import type { Issue, IssueStore } from "./issueStore.js";
+import { isInterruptedExecResult } from "./issueDispatch.js";
 import { cronMatchesLocal } from "./scheduleCompile.js";
 
 function pad2(n: number): string {
@@ -16,6 +19,40 @@ function pad2(n: number): string {
 
 function formatTickMinute(at: Date): string {
   return `${at.getFullYear()}-${pad2(at.getMonth() + 1)}-${pad2(at.getDate())}T${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
+}
+
+const ISSUE_DESCRIPTION_MAX = 2000;
+
+function buildRunPrompt(
+  automation: Automation,
+  run: AutomationRun,
+  issue?: Issue,
+): string {
+  let prefix: string;
+  if (run.trigger.type === "issue") {
+    const info = run.trigger.issue;
+    const description = (issue?.description ?? "").slice(
+      0,
+      ISSUE_DESCRIPTION_MAX,
+    );
+    prefix = [
+      "触发：Issue",
+      `ID：${info?.id ?? ""}`,
+      `标题：${info?.title ?? ""}`,
+      `状态：${info?.status ?? ""}`,
+      `优先级：${info?.priority ?? ""}`,
+      `标签：${(info?.tags ?? []).join(",")}`,
+      "描述：",
+      description,
+    ].join("\n");
+  } else if (run.trigger.type === "cron") {
+    prefix = `触发：定时 ${new Date(run.trigger.firedAt).toISOString()}`;
+  } else if (run.trigger.type === "once") {
+    prefix = "触发：单次";
+  } else {
+    prefix = "触发：手动";
+  }
+  return `${prefix}\n\n---\n${automation.prompt}`;
 }
 
 function issueTriggerMatches(
@@ -49,21 +86,59 @@ export function createAutomationRuntime(options: {
   startSession?: (args: {
     automation: Automation;
     run: AutomationRun;
-  }) => Promise<string>;
+  }) => Promise<string | undefined>;
 }): {
   enqueue(
     automationId: string,
     trigger: AutomationRun["trigger"],
   ): AutomationRun | undefined;
+  handleTurnSettled(
+    sessionId: string,
+    result: { ok: boolean; error?: string },
+  ): void;
   tick(): void;
   start(): void;
   stop(): void;
 } {
-  const { store, hub } = options;
+  const { store, hub, sessions, runner } = options;
   const now = () => options.now?.() ?? new Date();
-  const startSession =
-    options.startSession ??
-    (async () => "sess-1");
+
+  async function defaultStartSession(args: {
+    automation: Automation;
+    run: AutomationRun;
+  }): Promise<string | undefined> {
+    const workdir = args.automation.workdir;
+    if (!workdir || !fs.existsSync(workdir)) {
+      store.patchRun(args.run.id, {
+        status: "failed",
+        error: "workdir",
+        endedAt: now().getTime(),
+      });
+      broadcast();
+      return undefined;
+    }
+    const session = sessions.create({
+      origin: "automation",
+      workdir,
+      permissionMode: "bypassPermissions",
+      title: `自动化 · ${args.automation.name}`,
+      disallowedTools: ["Workflow"],
+      agentName: args.automation.agentName,
+      model: args.automation.model ?? DEFAULT_ACTIVE_MODEL_ID,
+    });
+    store.patchRun(args.run.id, { sessionId: session.id });
+    const issue =
+      args.run.trigger.type === "issue" && args.run.trigger.issue
+        ? options.issueStore?.get(args.run.trigger.issue.id)
+        : undefined;
+    await runner.sendMessage(
+      session.id,
+      buildRunPrompt(args.automation, args.run, issue),
+    );
+    return session.id;
+  }
+
+  const startSession = options.startSession ?? defaultStartSession;
 
   store.failStaleRunning("进程退出");
 
@@ -125,12 +200,42 @@ export function createAutomationRuntime(options: {
     broadcast();
     void Promise.resolve(startSession({ automation, run }))
       .then((sessionId) => {
-        store.patchRun(run.id, { sessionId });
+        if (sessionId) store.patchRun(run.id, { sessionId });
       })
-      .catch(() => {
-        // Task 6 owns real session failures.
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        store.patchRun(run.id, {
+          status: "failed",
+          error: message,
+          endedAt: now().getTime(),
+        });
+        broadcast();
       });
     return run;
+  }
+
+  function handleTurnSettled(
+    sessionId: string,
+    result: { ok: boolean; error?: string },
+  ): void {
+    for (const automation of store.list()) {
+      const run = store
+        .listRuns(automation.id)
+        .find((entry) => entry.status === "running" && entry.sessionId === sessionId);
+      if (!run) continue;
+      const status = result.ok
+        ? "succeeded"
+        : isInterruptedExecResult(result)
+          ? "stopped"
+          : "failed";
+      store.patchRun(run.id, {
+        status,
+        ...(status === "failed" && result.error ? { error: result.error } : {}),
+        endedAt: now().getTime(),
+      });
+      broadcast();
+      return;
+    }
   }
 
   function onIssueEvent(payload: {
@@ -229,5 +334,5 @@ export function createAutomationRuntime(options: {
     timer = undefined;
   }
 
-  return { enqueue, tick, start, stop };
+  return { enqueue, handleTurnSettled, tick, start, stop };
 }

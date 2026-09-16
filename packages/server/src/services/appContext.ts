@@ -134,9 +134,6 @@ export function createAppContext(
     hub: sessions.hub,
     home,
   });
-  sessions.runner.setOnTurnSettled((sessionId, result) => {
-    dispatcher.handleTurnSettled(sessionId, result);
-  });
   const automationRuntime = createAutomationRuntime({
     store: automations,
     hub: sessions.hub,
@@ -145,6 +142,10 @@ export function createAppContext(
     home,
     now: options?.now,
     issueStore: issues,
+  });
+  sessions.runner.setOnTurnSettled((sessionId, result) => {
+    dispatcher.handleTurnSettled(sessionId, result);
+    automationRuntime.handleTurnSettled(sessionId, result);
   });
   automationRuntime.start();
   return {

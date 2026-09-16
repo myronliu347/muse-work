@@ -73,13 +73,20 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
    * Settings gate superpowers/mattpocock; issue mounts for all sessions
    * except the issue-exec agent (so execution turns cannot close issues).
    */
-  function enabledPluginDirs(session?: { agentName?: string }): string[] {
+  function enabledPluginDirs(session?: {
+    agentName?: string;
+    origin?: "user" | "automation";
+  }): string[] {
     const plugins = loadMuseSettings(home).plugins;
     const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
       const dir = pluginDirIfPresent(name);
       return dir ? [dir] : [];
     });
+    // Automation runs are unattended: skip issue (and later automation) plugins.
+    if (session?.origin === "automation") {
+      return dirs;
+    }
     if (session?.agentName !== resolveScenarioAgent("issue-exec", home)) {
       const issueDir = pluginDirIfPresent("issue");
       if (issueDir) dirs.push(issueDir);
@@ -87,7 +94,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     return dirs;
   }
 
-  function pluginsFlag(session?: { agentName?: string }): string {
+  function pluginsFlag(session?: {
+    agentName?: string;
+    origin?: "user" | "automation";
+  }): string {
     return enabledPluginDirs(session).join(",") || "none";
   }
 

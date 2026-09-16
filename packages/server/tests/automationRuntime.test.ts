@@ -2,11 +2,16 @@ import { describe, it, expect, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {
+  loadProvidersConfig,
+  saveProvidersConfig,
+} from "@muse-work/provider";
 import { createAutomationStore } from "../src/services/automationStore.js";
 import { createAutomationRuntime } from "../src/services/automationRuntime.js";
 import { createIssueStore } from "../src/services/issueStore.js";
 import { createWsHub } from "../src/services/wsHub.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
+import { createAppContext } from "../src/services/appContext.js";
 import type { SessionRunner } from "../src/services/sessionRunner/index.js";
 
 describe("automationRuntime", () => {
@@ -387,5 +392,266 @@ describe("automationRuntime", () => {
     });
     issueStore.create({ title: "无关", tags: ["backend"] });
     expect(store.listRuns(automation.id)).toHaveLength(1);
+  });
+
+  function setupRealStart(now: () => Date) {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    const store = createAutomationStore({ home });
+    const issueStore = createIssueStore({ home });
+    const hub = createWsHub({ pingIntervalMs: 0 });
+    const sessions = createSessionStore({ home });
+    const sent: Array<{ sessionId: string; text: string }> = [];
+    const runtime = createAutomationRuntime({
+      store,
+      hub,
+      sessions,
+      runner: {
+        sendMessage: async (sessionId, text) => {
+          sent.push({ sessionId, text });
+          return { accepted: true as const };
+        },
+      } as SessionRunner,
+      home,
+      now,
+      issueStore,
+    });
+    runtimes.push(runtime);
+    return { home, store, runtime, sessions, sent, issueStore };
+  }
+
+  it("fails the run without a session when workdir is missing", async () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const { store, runtime, sessions, sent } = setupRealStart(now);
+    const automation = store.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir: path.join(os.tmpdir(), "muse-missing-workdir-xyz"),
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = runtime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: now().getTime(),
+    });
+    await expect.poll(() => store.getRun(run!.id)?.status).toBe("failed");
+    expect(store.getRun(run!.id)?.error).toBe("workdir");
+    expect(store.getRun(run!.id)?.sessionId).toBeUndefined();
+    expect(sessions.list()).toHaveLength(0);
+    expect(sent).toEqual([]);
+  });
+
+  it("creates a hidden session and prefixes the prompt by trigger", async () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const { home, store, runtime, sessions, sent, issueStore } =
+      setupRealStart(now);
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const automation = store.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "issue", events: ["created"] }],
+    });
+    const manual = runtime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: now().getTime(),
+    });
+    await expect.poll(() => store.getRun(manual!.id)?.sessionId).toBeTruthy();
+    const session = sessions.get(store.getRun(manual!.id)!.sessionId!);
+    expect(session?.origin).toBe("automation");
+    expect(session?.permissionMode).toBe("bypassPermissions");
+    expect(session?.disallowedTools).toEqual(["Workflow"]);
+    expect(session?.title).toBe("自动化 · 巡检");
+    expect(sent[0]?.text).toContain("触发：手动");
+    expect(sent[0]?.text).toContain("查 changelog");
+
+    store.patchRun(manual!.id, {
+      status: "succeeded",
+      endedAt: now().getTime(),
+    });
+    const once = runtime.enqueue(automation.id, {
+      type: "once",
+      firedAt: now().getTime(),
+    });
+    await expect.poll(() => store.getRun(once!.id)?.sessionId).toBeTruthy();
+    expect(sent[1]?.text).toContain("触发：单次");
+    store.patchRun(once!.id, { status: "succeeded", endedAt: now().getTime() });
+
+    const cron = runtime.enqueue(automation.id, {
+      type: "cron",
+      firedAt: Date.UTC(2026, 8, 16, 1, 0, 0),
+    });
+    await expect.poll(() => store.getRun(cron!.id)?.sessionId).toBeTruthy();
+    expect(sent[2]?.text).toContain(
+      `触发：定时 ${new Date(Date.UTC(2026, 8, 16, 1, 0, 0)).toISOString()}`,
+    );
+    store.patchRun(cron!.id, { status: "succeeded", endedAt: now().getTime() });
+
+    const issue = issueStore.create({
+      title: "修登录",
+      description: "详细描述".repeat(600),
+      tags: ["auth"],
+    });
+    await expect
+      .poll(() => store.listRuns(automation.id).some((r) => r.trigger.type === "issue"))
+      .toBe(true);
+    const issueText = sent[3]?.text ?? "";
+    expect(issueText).toContain("触发：Issue");
+    expect(issueText).toContain(`ID：${issue.id}`);
+    expect(issueText).toContain("标题：修登录");
+    expect(issueText).toContain("标签：auth");
+    expect(issueText).toContain("查 changelog");
+    expect(issueText.length).toBeLessThan("详细描述".repeat(600).length);
+  });
+
+  it("createAppContext fake agent settles a run as succeeded", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+        providers: {
+          ...loadProvidersConfig(home).providers,
+          "openai-compatible": {
+            ...loadProvidersConfig(home).providers["openai-compatible"],
+            apiKey: "sk-test",
+          },
+        },
+      },
+      home,
+    );
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const pluginPaths: string[] = [];
+    const ctx = createAppContext({
+      home,
+      createAgent: async (opts) => {
+        for (const plugin of opts.plugins ?? []) {
+          if ("path" in plugin && typeof plugin.path === "string") {
+            pluginPaths.push(plugin.path);
+          }
+        }
+        return {
+          sendMessage: async () => {
+            opts.callbacks?.onLoadingChange?.(true);
+            opts.callbacks?.onAssistantContentUpdated?.({
+              messageId: "m1",
+              chunk: "ok",
+              stage: "end",
+            });
+            opts.callbacks?.onLoadingChange?.(false);
+          },
+          dispose: async () => {},
+          getMessages: () => [],
+          sessionId: "wave-auto",
+        };
+      },
+    });
+    runtimes.push(ctx.automationRuntime);
+    const automation = ctx.automationStore.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = ctx.automationRuntime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: Date.now(),
+    });
+    await expect
+      .poll(() => ctx.automationStore.getRun(run!.id)?.status)
+      .toBe("succeeded");
+    const sessionId = ctx.automationStore.getRun(run!.id)?.sessionId;
+    expect(ctx.store.get(sessionId!)?.origin).toBe("automation");
+    expect(pluginPaths.some((p) => p.includes(`${path.sep}issue`))).toBe(
+      false,
+    );
+  });
+
+  it("createAppContext marks leftover disk running runs as failed", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    const store = createAutomationStore({ home });
+    const automation = store.create({
+      name: "巡检",
+      prompt: "x",
+      workdir: "/tmp/p",
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    store.addRun({
+      id: "stale-disk",
+      automationId: automation.id,
+      status: "running",
+      trigger: { type: "cron", firedAt: 1 },
+      startedAt: 1,
+    });
+    const ctx = createAppContext({ home });
+    runtimes.push(ctx.automationRuntime);
+    const run = ctx.automationStore.getRun("stale-disk");
+    expect(run?.status).toBe("failed");
+    expect(run?.error).toBe("进程退出");
+  });
+
+  it("createAppContext marks an interrupted turn as stopped", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+        providers: {
+          ...loadProvidersConfig(home).providers,
+          "openai-compatible": {
+            ...loadProvidersConfig(home).providers["openai-compatible"],
+            apiKey: "sk-test",
+          },
+        },
+      },
+      home,
+    );
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    let settle: ((loading: boolean) => void) | undefined;
+    const ctx = createAppContext({
+      home,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {
+          opts.callbacks?.onLoadingChange?.(true);
+          settle = opts.callbacks?.onLoadingChange;
+          await new Promise(() => {});
+        },
+        abortMessage: () => {
+          settle?.(false);
+        },
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-stop",
+      }),
+    });
+    runtimes.push(ctx.automationRuntime);
+    const automation = ctx.automationStore.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = ctx.automationRuntime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: Date.now(),
+    });
+    await expect
+      .poll(() => ctx.automationStore.getRun(run!.id)?.sessionId)
+      .toBeTruthy();
+    await ctx.runner.abortMessage(
+      ctx.automationStore.getRun(run!.id)!.sessionId!,
+    );
+    await expect
+      .poll(() => ctx.automationStore.getRun(run!.id)?.status)
+      .toBe("stopped");
   });
 });
