@@ -1,0 +1,130 @@
+packages/webview/tests/components/automationsPage.test.tsx
+  8f7260be0af9f5fe 1-197
+packages/webview/src/components/automation/AutomationTranscript.tsx
+  8f7260be0af9f5fe 1-103
+packages/webview/src/components/desktop/DesktopShell.tsx
+  8f7260be0af9f5fe 12-13,47-48,79-80,87,656,680,699-702,708-710,712,715-721,838
+packages/webview/tests/muse/hostBridge.test.ts
+  8f7260be0af9f5fe 363-386
+packages/webview/src/muse/hostBridge/index.ts
+  8f7260be0af9f5fe 144-148
+packages/webview/src/components/automation/AutomationEditor.tsx
+  8f7260be0af9f5fe 1-713
+packages/webview/src/components/automation/AutomationsPage.tsx
+  8f7260be0af9f5fe 1-152
+packages/webview/src/styles/AutomationsPage.css
+  8f7260be0af9f5fe 1-483
+packages/webview/src/components/ChatApp.tsx
+  8f7260be0af9f5fe 15,57,858-859,893,939-942,944-948,952-960
+packages/webview/src/components/automation/scheduleUi.ts
+  8f7260be0af9f5fe 1-132
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  8f7260be0af9f5fe 102-104,141,205-213
+packages/webview/src/muse/apiClient.ts
+  8f7260be0af9f5fe 173-251,841-926
+packages/webview/src/muse/wsClient.ts
+  8f7260be0af9f5fe 88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1792e9f7b727b089a23f9629faf6e60aaeb3bd68",
+  "prompts": {
+    "8f7260be0af9f5fe": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "dff3e032-375d-42ad-8573-ec785e9d775d",
+        "model": "cursor-grok-4.6-medium-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2056,
+      "total_deletions": 22,
+      "accepted_lines": 2039,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "additions": 152,
+          "accepted_lines": 152
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 721,
+          "deletions": 8,
+          "accepted_lines": 713
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 483,
+          "accepted_lines": 483
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 167,
+          "accepted_lines": 167
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/automation/scheduleUi.ts": {
+          "additions": 132,
+          "accepted_lines": 132
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 23,
+          "deletions": 3,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 26,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/automation/AutomationTranscript.tsx": {
+          "additions": 103,
+          "accepted_lines": 103
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 206,
+          "deletions": 9,
+          "accepted_lines": 197
+        }
+      }
+    },
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1260,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        },
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "accepted_lines": 250
+        }
+      }
+    }
+  }
+}
