@@ -1,0 +1,37 @@
+packages/server/plugins/automation/.wave-plugin/plugin.json
+  dd48a4c787d30cf9 3
+packages/server/plugins/automation/skills/automation-management/SKILL.md
+  dd48a4c787d30cf9 3,10-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f97871304820c68ee01eeb927d502ab2454a0774",
+  "prompts": {
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 3,
+      "accepted_lines": 8,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/plugins/automation/.wave-plugin/plugin.json": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/plugins/automation/skills/automation-management/SKILL.md": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
