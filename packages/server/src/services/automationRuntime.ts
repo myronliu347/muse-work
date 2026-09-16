@@ -127,6 +127,7 @@ export function createAutomationRuntime(options: {
       model: args.automation.model ?? DEFAULT_ACTIVE_MODEL_ID,
     });
     store.patchRun(args.run.id, { sessionId: session.id });
+    broadcast();
     const issue =
       args.run.trigger.type === "issue" && args.run.trigger.issue
         ? options.issueStore?.get(args.run.trigger.issue.id)
@@ -200,7 +201,10 @@ export function createAutomationRuntime(options: {
     broadcast();
     void Promise.resolve(startSession({ automation, run }))
       .then((sessionId) => {
-        if (sessionId) store.patchRun(run.id, { sessionId });
+        if (sessionId) {
+          store.patchRun(run.id, { sessionId });
+          broadcast();
+        }
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);

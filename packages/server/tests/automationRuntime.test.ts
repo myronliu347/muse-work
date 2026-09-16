@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -417,8 +417,31 @@ describe("automationRuntime", () => {
       issueStore,
     });
     runtimes.push(runtime);
-    return { home, store, runtime, sessions, sent, issueStore };
+    return { home, store, runtime, sessions, sent, issueStore, hub };
   }
+
+  it("broadcasts automation:changed when sessionId is patched", async () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const { home, store, runtime, hub } = setupRealStart(now);
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const broadcastAll = vi.spyOn(hub, "broadcastAll");
+    const automation = store.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = runtime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: now().getTime(),
+    });
+    await expect.poll(() => store.getRun(run!.id)?.sessionId).toBeTruthy();
+    const changed = broadcastAll.mock.calls.filter(
+      (call) => call[0]?.type === "automation:changed",
+    );
+    expect(changed.length).toBeGreaterThanOrEqual(2);
+  });
 
   it("fails the run without a session when workdir is missing", async () => {
     const now = () => new Date(2026, 8, 16, 9, 0, 0);
