@@ -247,4 +247,48 @@ describe("automations HTTP", () => {
     ).then((r) => r.json());
     expect(runs.runs).toHaveLength(1);
   });
+
+  it("POST /automations/runs/:runId/stop aborts a running run", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检",
+        prompt: "x",
+        workdir: app.home,
+        enabled: true,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    }).then((r) => r.json());
+    const seeded = app.ctx.automationStore.addRun({
+      id: crypto.randomUUID(),
+      automationId: automation.id,
+      status: "running",
+      trigger: { type: "manual", firedAt: Date.now() },
+      startedAt: Date.now(),
+    });
+    const res = await fetch(
+      `${app.baseUrl}/automations/runs/${seeded.id}/stop`,
+      { method: "POST" },
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.run.status).toBe("stopped");
+    expect(body.run.endedAt).toEqual(expect.any(Number));
+  });
+
+  it("POST /automations/runs/:runId/stop returns 404 for unknown run", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const res = await fetch(
+      `${app.baseUrl}/automations/runs/missing-run/stop`,
+      { method: "POST" },
+    );
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "not found" });
+  });
 });

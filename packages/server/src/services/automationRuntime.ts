@@ -92,6 +92,7 @@ export function createAutomationRuntime(options: {
     automationId: string,
     trigger: AutomationRun["trigger"],
   ): AutomationRun | undefined;
+  stopRun(runId: string): Promise<AutomationRun | undefined>;
   handleTurnSettled(
     sessionId: string,
     result: { ok: boolean; error?: string },
@@ -200,13 +201,26 @@ export function createAutomationRuntime(options: {
     });
     broadcast();
     void Promise.resolve(startSession({ automation, run }))
-      .then((sessionId) => {
+      .then(async (sessionId) => {
+        const current = store.getRun(run.id);
+        if (!current || current.status !== "running") {
+          if (sessionId) {
+            try {
+              await runner.abortMessage(sessionId);
+            } catch {
+              /* already stopped */
+            }
+          }
+          return;
+        }
         if (sessionId) {
           store.patchRun(run.id, { sessionId });
           broadcast();
         }
       })
       .catch((err: unknown) => {
+        const current = store.getRun(run.id);
+        if (!current || current.status !== "running") return;
         const message = err instanceof Error ? err.message : String(err);
         store.patchRun(run.id, {
           status: "failed",
@@ -216,6 +230,25 @@ export function createAutomationRuntime(options: {
         broadcast();
       });
     return run;
+  }
+
+  async function stopRun(runId: string): Promise<AutomationRun | undefined> {
+    const run = store.getRun(runId);
+    if (!run) return undefined;
+    if (run.status !== "running") return run;
+    if (run.sessionId) {
+      try {
+        await runner.abortMessage(run.sessionId);
+      } catch {
+        /* mark stopped even if abort already finished */
+      }
+    }
+    const patched = store.patchRun(runId, {
+      status: "stopped",
+      endedAt: now().getTime(),
+    });
+    broadcast();
+    return patched;
   }
 
   function handleTurnSettled(
@@ -338,5 +371,5 @@ export function createAutomationRuntime(options: {
     timer = undefined;
   }
 
-  return { enqueue, handleTurnSettled, tick, start, stop };
+  return { enqueue, stopRun, handleTurnSettled, tick, start, stop };
 }

@@ -293,9 +293,27 @@ automationsRoutes.post("/automations/:id/run", (c) => {
   return c.json({ run });
 });
 
-automationsRoutes.delete("/automations/:id", (c) => {
+automationsRoutes.post("/automations/runs/:runId/stop", async (c) => {
+  const ctx = c.get("ctx");
+  const run = await ctx.automationRuntime.stopRun(c.req.param("runId"));
+  if (!run) {
+    return c.json({ error: "not found" }, 404);
+  }
+  return c.json({ run });
+});
+
+automationsRoutes.delete("/automations/:id", async (c) => {
   const ctx = c.get("ctx");
   const id = c.req.param("id");
+  if (!ctx.automationStore.get(id)) {
+    return c.json({ error: "not found" }, 404);
+  }
+  const running = ctx.automationStore
+    .listRuns(id)
+    .filter((run) => run.status === "running");
+  for (const run of running) {
+    await ctx.automationRuntime.stopRun(run.id);
+  }
   if (!ctx.automationStore.remove(id)) {
     return c.json({ error: "not found" }, 404);
   }
