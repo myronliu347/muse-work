@@ -1,0 +1,72 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  b813730ec409c95d 281-288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a83944f760c0926b405307ecc34e1fc654730f65",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "b813730ec409c95d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a216758-9fdf-431e-8cdd-70134aa18c52",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 228,
+      "total_deletions": 47,
+      "accepted_lines": 213,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/e2e/demo/desktop-markdown-render.demo.ts": {
+          "additions": 134,
+          "deletions": 2,
+          "accepted_lines": 132
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 69,
+          "deletions": 41,
+          "accepted_lines": 69
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 13,
+          "deletions": 3
+        }
+      }
+    }
+  }
+}
