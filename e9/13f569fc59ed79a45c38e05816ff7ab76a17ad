@@ -1,0 +1,72 @@
+packages/webview/src/components/shared/Tooltip.tsx
+  4fa43b8460cb66b8 164-200
+packages/webview/tests/webview/tooltip.test.tsx
+  4fa43b8460cb66b8 291-307
+packages/webview/src/utils/editorReactRoots.ts
+  4fa43b8460cb66b8 1-42
+packages/webview/src/components/chat/MessageInput.tsx
+  4fa43b8460cb66b8 14-18,363,409,642-643,743-744,846-847,919,988,1488-1500
+packages/webview/tests/webview/editorReactRoots.test.tsx
+  4fa43b8460cb66b8 1-75
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  4fa43b8460cb66b8 125-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e913f569fc59ed79a45c38e05816ff7ab76a17ad",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 279,
+      "total_deletions": 44,
+      "accepted_lines": 251,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/editorReactRoots.test.tsx": {
+          "additions": 77,
+          "deletions": 2,
+          "accepted_lines": 75
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 36,
+          "deletions": 19,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/utils/editorReactRoots.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "additions": 53,
+          "deletions": 16,
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 43,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 28,
+          "deletions": 7,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
