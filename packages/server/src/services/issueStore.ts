@@ -407,8 +407,8 @@ export function createIssueStore(
       if (!item) {
         return undefined;
       }
-      if (item.status !== "pending") {
-        throw Object.assign(new Error("can only remove pending items"), {
+      if (item.status === "done") {
+        throw Object.assign(new Error("cannot remove done items"), {
           statusCode: 409,
         });
       }

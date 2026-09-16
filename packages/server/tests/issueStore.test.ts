@@ -111,7 +111,7 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("appendItems keeps done items; removePendingItem cannot drop executed", () => {
+  it("appendItems keeps done items; removePendingItem can drop running but not done", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });
     const issue = store.create({ title: "t" });
@@ -133,9 +133,13 @@ describe("issueStore", () => {
       "新增",
     ]);
     expect(() => store.removePendingItem(issue.id, "i1")).toThrow(
-      /pending/,
+      /done/,
     );
     expect(store.get(issue.id)?.items.find((i) => i.id === "i1")).toBeTruthy();
+    store.patchItem(issue.id, afterAdd!.items[2]!.id, { status: "running" });
+    const runningId = afterAdd!.items[2]!.id;
+    store.removePendingItem(issue.id, runningId);
+    expect(store.get(issue.id)?.items.map((i) => i.content)).toEqual(["已完成"]);
     fs.rmSync(home, { recursive: true, force: true });
   });
 

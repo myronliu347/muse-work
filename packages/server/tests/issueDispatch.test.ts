@@ -407,6 +407,64 @@ describe("issueDispatch", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("cancelItem drops a running checklist item and aborts exec without redispatched it", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-cancel-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const sends: Array<{ id: string; content: string }> = [];
+    const aborted: string[] = [];
+    const dispatcher = createIssueDispatcher({
+      issues,
+      sessions,
+      runner: {
+        sendMessage: async (id: string, content: string) => {
+          sends.push({ id, content });
+          return { accepted: true as const };
+        },
+        getMessages: async () => [],
+        abortMessage: async (id: string) => {
+          aborted.push(id);
+          dispatcher.handleTurnSettled(id, {
+            ok: false,
+            error: "interrupted",
+          });
+          return { ok: true as const };
+        },
+      } as never,
+      hub: { broadcastAll: () => {} } as never,
+    });
+    const issue = issues.create({ title: "双项" });
+    const planning = sessions.create({
+      workdir: "/tmp/proj",
+      model: "m",
+      title: "双项",
+      agentName: "plan",
+    });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/proj",
+      worktreeEnabled: false,
+    });
+    issues.setItems(issue.id, [
+      { id: "i1", content: "调研", status: "pending" },
+      { id: "i2", content: "改代码", status: "pending" },
+    ]);
+    const first = await dispatcher.dispatch(issue.id, "i1");
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")?.status).toBe(
+      "running",
+    );
+    const cancelled = await dispatcher.cancelItem(issue.id, "i1");
+    expect(cancelled.items.map((i) => i.id)).toEqual(["i2"]);
+    expect(aborted).toEqual([first.executionSessionId]);
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i1")).toBeUndefined();
+    expect(issues.get(issue.id)?.items.find((i) => i.id === "i2")?.status).toBe(
+      "pending",
+    );
+    const execSends = sends.filter((s) => s.id === first.executionSessionId);
+    expect(execSends).toHaveLength(1);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("interrupted exec turn rolls item pending and asks planning to continue the same item", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-dispatch-abort-"));
     const issues = createIssueStore({ home });

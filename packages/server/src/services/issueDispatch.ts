@@ -1,5 +1,5 @@
 import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
-import type { IssueStore } from "./issueStore.js";
+import type { Issue, IssueStore } from "./issueStore.js";
 import type { SessionStore } from "./sessionStore.js";
 import type { SessionRunner } from "./sessionRunner/index.js";
 import type { WsHub } from "./wsHub.js";
@@ -283,6 +283,7 @@ export function createIssueDispatcher(opts: {
     process: string;
     summary: string;
   }>;
+  cancelItem(issueId: string, itemId: string): Promise<Issue>;
 } {
   const { issues, sessions, runner, hub } = opts;
   const home = resolveHome(opts.home);
@@ -397,6 +398,54 @@ export function createIssueDispatcher(opts: {
     }
     hub.broadcastAll({ type: "issue:changed" });
     return { executionSessionId };
+  }
+
+  async function cancelItem(issueId: string, itemId: string): Promise<Issue> {
+    const issue = issues.get(issueId);
+    if (!issue) {
+      throw httpError(404, "not found");
+    }
+    if (issue.status === "completed" || issue.status === "cancelled") {
+      throw httpError(409, "issue is terminal");
+    }
+    const item = issue.items.find((entry) => entry.id === itemId);
+    if (!item) {
+      throw httpError(404, "not found");
+    }
+    if (item.status === "done") {
+      throw httpError(409, "cannot remove done items");
+    }
+    const execId = issue.executionSessionId;
+    const mapped = execId ? inflight.get(execId) : undefined;
+    const abortingThis =
+      Boolean(execId) &&
+      mapped?.issueId === issueId &&
+      mapped.itemId === itemId;
+    if (abortingThis && execId) {
+      inflight.delete(execId);
+    }
+    const last = lastOutcome.get(issueId);
+    if (last?.itemId === itemId) {
+      lastOutcome.delete(issueId);
+    }
+    const updated = issues.removePendingItem(issueId, itemId);
+    if (!updated) {
+      throw httpError(404, "not found");
+    }
+    if (abortingThis && execId) {
+      try {
+        await runner.abortMessage(execId);
+      } catch (err: unknown) {
+        getLogger().warn("cancel item abort failed", {
+          issueId,
+          itemId,
+          executionSessionId: execId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    hub.broadcastAll({ type: "issue:changed" });
+    return updated;
   }
 
   function resumePlanningDuty(sessionId: string): void {
@@ -550,5 +599,5 @@ export function createIssueDispatcher(opts: {
     };
   }
 
-  return { dispatch, handleTurnSettled, getExecTurn };
+  return { dispatch, cancelItem, handleTurnSettled, getExecTurn };
 }

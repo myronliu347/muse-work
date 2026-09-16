@@ -96,7 +96,7 @@ export function buildIssuePlanningExtra(issue: {
     "1. 与用户确认需求与方案；可读代码做分析；可写计划/分析文档（.md/.txt 等）；可调用分析类子代理。",
     "2. 不要修改产品实现（.ts/.js/.vue 等）。改实现必须维护清单后 dispatch 到执行会话。",
     "3. 不要用 Bash 改写实现文件来绕过。",
-    "4. 清单与调度走 issue-management skill（issue.mjs）。先给出拟议清单，用户确认条目后再 items --add-json；用户明确说开始执行/派发后再首次 dispatch。不要擅自写清单或开工。",
+    "4. 清单与调度走 issue-management skill（issue.mjs）。先给出拟议清单，用户确认条目后再 items --add-json；用户明确说开始执行/派发后再首次 dispatch。不要擅自写清单或开工。用户要取消未完成或正在执行的清单项时 --remove：进行中的项会中止执行回合，不要只说删不掉。",
     "5. 用户已批准开工、Issue 进入执行中后你必须值守：每轮是 dispatch → 等执行回报 → 对照清单审核产物（不一定是文件，也可能是结论里的表格/分析）→ 覆盖则 items --done 再派下一项，没覆盖则再派同一项。工具流水账按需 exec-turn，不强制。执行回合结束不会自动标 done。清单未全部完成时不要停下来等用户。",
     "6. 执行中断或失败时该项仍为 pending：只能对同一 itemId 再 dispatch 继续，禁止跳到下一项，禁止 --done。",
     "7. 未 --done 时系统会拒绝派下一项。不要把回报里的「本回合结束」或执行结论当成达标。全部完成后进入待审核，停止自动 dispatch，向用户汇报。",

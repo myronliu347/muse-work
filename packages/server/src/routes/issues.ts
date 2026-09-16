@@ -328,33 +328,20 @@ issuesRoutes.put("/issues/:id/items", async (c) => {
   return c.json({ issue });
 });
 
-/** DELETE /issues/:id/items/:itemId — pending only */
-issuesRoutes.delete("/issues/:id/items/:itemId", (c) => {
+/** DELETE /issues/:id/items/:itemId — pending or running (aborts inflight exec) */
+issuesRoutes.delete("/issues/:id/items/:itemId", async (c) => {
   const ctx = c.get("ctx");
-  const id = c.req.param("id");
-  const itemId = c.req.param("itemId");
-  const existing = ctx.issueStore.get(id);
-  if (!existing) {
-    return c.json({ error: "not found" }, 404);
-  }
-  if (isTerminal(existing.status)) {
-    return c.json({ error: "issue is terminal" }, 409);
-  }
   try {
-    const issue = ctx.issueStore.removePendingItem(id, itemId);
-    if (!issue) {
-      return c.json({ error: "not found" }, 404);
-    }
-    broadcastIssueChanged(ctx);
+    const issue = await ctx.issueDispatcher.cancelItem(
+      c.req.param("id"),
+      c.req.param("itemId"),
+    );
     return c.json({ issue });
   } catch (err) {
-    const status =
-      err && typeof err === "object" && "statusCode" in err
-        ? Number((err as { statusCode: number }).statusCode)
-        : 400;
+    const status = runnerErrorStatus(err);
     return c.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      (status === 409 ? 409 : 400) as 409,
+      { error: runnerErrorMessage(err) },
+      status as 400,
     );
   }
 });

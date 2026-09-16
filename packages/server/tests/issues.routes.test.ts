@@ -172,5 +172,14 @@ describe("issues HTTP", () => {
     expect(dispatch.status).toBe(200);
     const body = await dispatch.json();
     expect(body.executionSessionId).toBeTruthy();
+    const drop = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/items/${itemId}`,
+      { method: "DELETE" },
+    );
+    expect(drop.status).toBe(200);
+    const dropped = await drop.json();
+    expect(
+      dropped.issue.items.map((i: { content: string }) => i.content),
+    ).toEqual(["补测试"]);
   });
 });
