@@ -1,0 +1,67 @@
+packages/server/plugins/automation/skills/automation-management/SKILL.md
+  46996b49fde8dfff 16-17,23-26,29-31,35-37,44,47
+packages/server/tests/automationPluginScript.test.ts
+  46996b49fde8dfff 187-228
+packages/server/plugins/automation/skills/automation-management/scripts/automation.mjs
+  46996b49fde8dfff 39,42,76-84,88-89,95-98,103-105,197-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "37b5fe1b2c9af61f16f2160349241d9433b751ae",
+  "prompts": {
+    "46996b49fde8dfff": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "752b8fb9-c74b-4dac-a02f-bb79ee1d8783",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 82,
+      "total_deletions": 10,
+      "accepted_lines": 82,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/plugins/automation/skills/automation-management/SKILL.md": {
+          "additions": 15,
+          "deletions": 5,
+          "accepted_lines": 15
+        },
+        "packages/server/tests/automationPluginScript.test.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "packages/server/plugins/automation/skills/automation-management/scripts/automation.mjs": {
+          "additions": 25,
+          "deletions": 5,
+          "accepted_lines": 25
+        }
+      }
+    },
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1260,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        },
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "accepted_lines": 250
+        }
+      }
+    }
+  }
+}
