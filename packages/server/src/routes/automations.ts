@@ -48,6 +48,26 @@ function validateTriggers(triggers: AutomationTrigger[]): void {
       if (!Array.isArray(trigger.events) || trigger.events.length === 0) {
         throw new Error("empty events");
       }
+      const events = new Set(["created", "review", "completed", "cancelled"]);
+      if (trigger.events.some((event) => !events.has(event))) {
+        throw new Error("invalid events");
+      }
+      if (
+        trigger.priority !== undefined &&
+        trigger.priority !== "p0" &&
+        trigger.priority !== "p1" &&
+        trigger.priority !== "p2"
+      ) {
+        throw new Error("invalid priority");
+      }
+      if (trigger.tags !== undefined) {
+        if (
+          !Array.isArray(trigger.tags) ||
+          trigger.tags.some((tag) => typeof tag !== "string")
+        ) {
+          throw new Error("invalid tags");
+        }
+      }
     } else {
       throw new Error("invalid trigger");
     }
@@ -195,17 +215,17 @@ automationsRoutes.patch("/automations/:id", async (c) => {
     if (permission !== undefined) patch.permission = permission;
     if (triggers !== undefined) patch.triggers = triggers;
     if (body.enabled === true) {
-      const next: Automation = {
-        ...existing,
-        ...patch,
-        triggers: patch.triggers ?? existing.triggers,
-      };
-      if (isIncomplete(next)) {
-        return c.json({ error: "incomplete" }, 400);
-      }
       patch.enabled = true;
     } else if (body.enabled === false) {
       patch.enabled = false;
+    }
+    const next: Automation = {
+      ...existing,
+      ...patch,
+      triggers: patch.triggers ?? existing.triggers,
+    };
+    if (next.enabled && isIncomplete(next)) {
+      return c.json({ error: "incomplete" }, 400);
     }
     const automation = ctx.automationStore.update(id, patch);
     if (!automation) {

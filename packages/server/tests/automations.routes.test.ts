@@ -77,6 +77,79 @@ describe("automations HTTP", () => {
     expect((await second.json()).automation.enabled).toBe(false);
   });
 
+  it("PATCH that would leave an enabled automation incomplete returns 400 incomplete", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const { automation } = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "巡检",
+        prompt: "x",
+        workdir: app.home,
+        schedule: { mode: "cycle", cycle: "daily", time: "09:00" },
+      }),
+    }).then((r) => r.json());
+    expect(
+      (await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" })).status,
+    ).toBe(200);
+    const patch = await fetch(`${app.baseUrl}/automations/${automation.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: "" }),
+    });
+    expect(patch.status).toBe(400);
+    expect(await patch.json()).toEqual({ error: "incomplete" });
+    const still = await fetch(`${app.baseUrl}/automations/${automation.id}`).then((r) => r.json());
+    expect(still.automation.prompt).toBe("x");
+    expect(still.automation.enabled).toBe(true);
+  });
+
+  it("rejects invalid issue trigger events, priority, and tags", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const created = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    }).then((r) => r.json());
+    const id = created.automation.id;
+    const badEvent = await fetch(`${app.baseUrl}/automations/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triggers: [{ type: "issue", events: ["opened"] }],
+      }),
+    });
+    expect(badEvent.status).toBe(400);
+    const badPriority = await fetch(`${app.baseUrl}/automations/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triggers: [{ type: "issue", events: ["created"], priority: "p9" }],
+      }),
+    });
+    expect(badPriority.status).toBe(400);
+    const badTags = await fetch(`${app.baseUrl}/automations/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triggers: [{ type: "issue", events: ["created"], tags: "auth" }],
+      }),
+    });
+    expect(badTags.status).toBe(400);
+    const ok = await fetch(`${app.baseUrl}/automations/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triggers: [{ type: "issue", events: ["created", "review"], priority: "p1", tags: ["auth"] }],
+      }),
+    });
+    expect(ok.status).toBe(200);
+  });
+
   it("rejects illegal interval every: 7, unit: h on PATCH", async () => {
     const app = await listenTestApp();
     server = app.server;
