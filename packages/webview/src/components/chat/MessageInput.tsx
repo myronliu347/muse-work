@@ -11,7 +11,11 @@ import React, {
 import { convertToMarkdown } from "../../utils/messageUtils";
 import { ContextTag } from "../shared/ContextTag";
 import { Tooltip } from "../shared/Tooltip";
-import ReactDOM from "react-dom/client";
+import {
+  renderInEditorHost,
+  unmountDisconnectedEditorHosts,
+  unmountEditorHostsIn,
+} from "../../utils/editorReactRoots";
 import type {
   MessageInputProps,
   FileItem,
@@ -356,6 +360,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         inputContentRef.current = next;
         setMessage(next);
         if (textareaRef.current) {
+          unmountEditorHostsIn(textareaRef.current);
           textareaRef.current.innerText = next;
           textareaRef.current.textContent = next;
         }
@@ -401,6 +406,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (!textareaRef.current) return;
 
         // Reset the editor content, then build chip + space + body.
+        unmountEditorHostsIn(textareaRef.current);
         textareaRef.current.innerHTML = "";
 
         const chip = document.createElement("span");
@@ -633,8 +639,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         tagSpan.setAttribute("data-is-selection", "true");
         tagSpan.innerText = `[Selection: ${selection.filePath}|${fileName}#${selection.startLine}-${selection.endLine}]`;
 
-        const root = ReactDOM.createRoot(tagSpan);
-        root.render(
+        renderInEditorHost(
+          tagSpan,
           <ContextTag
             name={displayName}
             path={selection.filePath}
@@ -734,8 +740,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         const isImage =
           !file.isDirectory &&
           /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(file.name);
-        const root = ReactDOM.createRoot(tagSpan);
-        root.render(
+        renderInEditorHost(
+          tagSpan,
           <ContextTag
             name={file.name}
             path={file.relativePath}
@@ -837,8 +843,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         const isImage =
           !file.isDirectory &&
           /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(file.name);
-        const root = ReactDOM.createRoot(tagSpan);
-        root.render(
+        renderInEditorHost(
+          tagSpan,
           <ContextTag
             name={file.name}
             path={file.relativePath}
@@ -910,6 +916,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           "model",
         ];
         if (localCommands.includes(command.name)) {
+          unmountEditorHostsIn(textareaRef.current);
           textareaRef.current.innerHTML = "";
           setMessage("");
           saveDraft(sessionId, "");
@@ -978,6 +985,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }
 
         // Clear contenteditable
+        unmountEditorHostsIn(textareaRef.current);
         textareaRef.current.innerHTML = "";
         setMessage("");
         saveDraft(sessionId, "");
@@ -1476,6 +1484,19 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         textarea.removeEventListener("paste", pasteHandler);
       };
     }, [handlePaste]);
+
+    useEffect(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const observer = new MutationObserver(() => {
+        unmountDisconnectedEditorHosts();
+      });
+      observer.observe(textarea, { childList: true, subtree: true });
+      return () => {
+        observer.disconnect();
+        unmountEditorHostsIn(textarea);
+      };
+    }, []);
 
     // Cleanup timers on unmount
     useEffect(() => {

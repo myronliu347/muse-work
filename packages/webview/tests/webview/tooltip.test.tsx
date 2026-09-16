@@ -288,4 +288,21 @@ describe("Tooltip Component", () => {
     fireEvent.mouseEnter(box);
     expect(box).toHaveClass("visible");
   });
+
+  it("hides a plain tooltip when its trigger is detached", async () => {
+    const { unmount } = render(
+      <Tooltip text="点击查看 prototype-status-for-frontend.md">
+        <span>chip</span>
+      </Tooltip>,
+    );
+    const container = document.querySelector(
+      ".tooltip-container",
+    ) as HTMLElement;
+    fireEvent.mouseEnter(container);
+    await waitFor(() => {
+      expect(document.querySelector(".tooltip-box.visible")).not.toBeNull();
+    });
+    unmount();
+    expect(document.querySelector(".tooltip-box.visible")).toBeNull();
+  });
 });

@@ -161,6 +161,43 @@ export const Tooltip: React.FC<TooltipProps> = ({
     return () => cancelAnimationFrame(frame);
   }, [isVisible, calculatePosition]);
 
+  useEffect(() => {
+    if (!isVisible) return;
+    const hideIfTriggerGone = () => {
+      if (!containerRef.current?.isConnected) {
+        setIsVisible(false);
+      }
+    };
+    const onScrollOrResize = () => {
+      const el = containerRef.current;
+      if (!el?.isConnected) {
+        setIsVisible(false);
+        return;
+      }
+      if (interactive) {
+        calculatePosition();
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const offScreen =
+        rect.bottom < 0 ||
+        rect.top > window.innerHeight ||
+        rect.right < 0 ||
+        rect.left > window.innerWidth;
+      if (offScreen) setIsVisible(false);
+    };
+    const observer = new MutationObserver(hideIfTriggerGone);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    hideIfTriggerGone();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [isVisible, interactive, calculatePosition]);
+
   const handleHide = useCallback(() => {
     if (!interactive) {
       setIsVisible(false);
