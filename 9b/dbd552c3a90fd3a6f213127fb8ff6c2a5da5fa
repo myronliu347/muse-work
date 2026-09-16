@@ -1,0 +1,68 @@
+packages/server/src/services/issuePlanning.ts
+  b813730ec409c95d 99-100
+packages/server/plugins/issue/skills/issue-management/SKILL.md
+  b813730ec409c95d 3,16,19-21,27-29,36,56
+packages/server/tests/issuePlanning.test.ts
+  b813730ec409c95d 68-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9bdbd552c3a90fd3a6f213127fb8ff6c2a5da5fa",
+  "prompts": {
+    "4fa43b8460cb66b8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ae058ec5-22b7-427a-8cbe-a03904f2f3ef",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "accepted_lines": 3
+        }
+      }
+    },
+    "b813730ec409c95d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a216758-9fdf-431e-8cdd-70134aa18c52",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 13,
+      "accepted_lines": 15,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        "packages/server/src/services/issuePlanning.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/plugins/issue/skills/issue-management/SKILL.md": {
+          "additions": 11,
+          "deletions": 11,
+          "accepted_lines": 10,
+          "overriden_lines": 1
+        },
+        "packages/server/tests/issuePlanning.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
