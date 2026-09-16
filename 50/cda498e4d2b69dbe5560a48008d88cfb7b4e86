@@ -1,0 +1,62 @@
+packages/webview/src/components/automation/scheduleUi.ts
+  dd48a4c787d30cf9 51-68
+packages/webview/src/components/automation/AutomationEditor.tsx
+  dd48a4c787d30cf9 18,31-32,63-64,110-116
+packages/server/src/services/automationRuntime.ts
+  dd48a4c787d30cf9 111-113,116-118,138-145
+packages/server/tests/automationRuntime.test.ts
+  dd48a4c787d30cf9 720-758
+packages/webview/tests/components/scheduleUi.test.ts
+  dd48a4c787d30cf9 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "50cda498e4d2b69dbe5560a48008d88cfb7b4e86",
+  "prompts": {
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 122,
+      "total_deletions": 21,
+      "accepted_lines": 1113,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/automationRuntime.test.ts": {
+          "additions": 47,
+          "deletions": 8,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/components/automation/scheduleUi.ts": {
+          "additions": 19,
+          "deletions": 1,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 23,
+          "deletions": 12,
+          "accepted_lines": 12
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        },
+        "packages/server/src/services/automationRuntime.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/scheduleUi.test.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        }
+      }
+    }
+  }
+}
