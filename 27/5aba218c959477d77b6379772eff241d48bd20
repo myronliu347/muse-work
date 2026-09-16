@@ -1,0 +1,60 @@
+docs/superpowers/specs/2026-09-16-automation-design.md
+  11e7b6ab4bf0aaa8 65-66
+  dd48a4c787d30cf9 1-64,67-252
+CONTEXT.md
+  11e7b6ab4bf0aaa8 52-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "275aba218c959477d77b6379772eff241d48bd20",
+  "prompts": {
+    "11e7b6ab4bf0aaa8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cde08d04-643a-47a6-ae90-e2fdae7c45ea",
+        "model": "cursor-grok-4.6-medium-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 0,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "CONTEXT.md": {
+          "additions": 22,
+          "accepted_lines": 22
+        }
+      }
+    },
+    "dd48a4c787d30cf9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3dd34a17-5b84-46fe-9541-6b903c80ce46",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1260,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-09-16-automation.md": {
+          "accepted_lines": 408
+        },
+        "docs/superpowers/prototypes/2026-09-16-automation-prototype.html": {
+          "accepted_lines": 602
+        },
+        "docs/superpowers/specs/2026-09-16-automation-design.md": {
+          "accepted_lines": 250
+        }
+      }
+    }
+  }
+}
