@@ -1,0 +1,82 @@
+packages/webview/src/components/chat/NewSessionPage.tsx
+  b813730ec409c95d 5,19
+packages/webview/src/components/automation/AutomationEditor.tsx
+  b813730ec409c95d 35,369-372,401,407-410,413,439-444,446-447,472-475,502-504,751
+packages/webview/src/components/automation/AutomationsPage.tsx
+  b813730ec409c95d 3,5,54-56,78-80,88-90,103-107,123-131,133,135-175
+packages/webview/e2e/demo/desktop-automations-empty.demo.ts
+  b813730ec409c95d 1-60
+packages/webview/src/styles/DesktopApp.css
+  b813730ec409c95d 1547-1559,1569-1576
+packages/webview/src/styles/AutomationsPage.css
+  b813730ec409c95d 7,12-13,114-115,124,128-129,150,215,218-220,638-644,647-649,651-693
+packages/webview/src/components/chat/WelcomeBackdrop.tsx
+  b813730ec409c95d 1-20
+packages/webview/tests/components/automationsPage.test.tsx
+  b813730ec409c95d 172,212-263
+packages/webview/src/components/automation/automationDraft.ts
+  b813730ec409c95d 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "347b72bc4a7ce0a7d9e3b4ed4f7ee6578bac6287",
+  "prompts": {
+    "b813730ec409c95d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a216758-9fdf-431e-8cdd-70134aa18c52",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 391,
+      "total_deletions": 82,
+      "accepted_lines": 345,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 2,
+          "deletions": 10,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/desktop-automations-empty.demo.ts": {
+          "additions": 60,
+          "accepted_lines": 60
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 107,
+          "deletions": 40,
+          "accepted_lines": 70
+        },
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "additions": 75,
+          "deletions": 25,
+          "accepted_lines": 67
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 54,
+          "deletions": 1,
+          "accepted_lines": 53
+        },
+        "packages/webview/src/components/automation/automationDraft.ts": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/components/chat/WelcomeBackdrop.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 27,
+          "deletions": 6,
+          "accepted_lines": 27
+        }
+      }
+    }
+  }
+}
