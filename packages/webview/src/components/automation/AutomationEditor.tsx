@@ -32,6 +32,7 @@ import {
   decodeCron,
   toDatetimeLocal,
 } from "./scheduleUi";
+import { isNewAutomation } from "./automationDraft";
 
 type PostToHost = (msg: Record<string, unknown>) => void;
 
@@ -365,6 +366,10 @@ export const AutomationEditor: FC<{
   );
 
   const loadRuns = useCallback(async () => {
+    if (isNewAutomation(automation.id)) {
+      setRuns([]);
+      return;
+    }
     const res = await api.listAutomationRuns(automation.id);
     setRuns(res.runs);
   }, [api, automation.id]);
@@ -393,15 +398,19 @@ export const AutomationEditor: FC<{
     setError(null);
     try {
       const compiled = compileEditorTriggers(triggers);
-      const { automation: saved } = await api.patchAutomation(automation.id, {
+      const patch = {
         name,
         prompt,
         workdir,
         model: model || undefined,
         triggers: compiled,
-      });
+      };
+      const { automation: saved } = isNewAutomation(automation.id)
+        ? await api.createAutomation(patch)
+        : await api.patchAutomation(automation.id, patch);
       baseline.current = draftKey({ name, prompt, workdir, model, triggers });
       onChanged(saved);
+      return saved;
     } catch (err) {
       setError(explainAutomationError(err));
       throw err;
@@ -427,9 +436,15 @@ export const AutomationEditor: FC<{
     }
     try {
       setError(null);
+      const savedId = isNewAutomation(automation.id)
+        ? undefined
+        : automation.id;
+      if (!savedId) {
+        return;
+      }
       const res = enabled
-        ? await api.disableAutomation(automation.id)
-        : await api.enableAutomation(automation.id);
+        ? await api.disableAutomation(savedId)
+        : await api.enableAutomation(savedId);
       setEnabled(res.automation.enabled);
       onChanged(res.automation);
     } catch (err) {
@@ -454,6 +469,10 @@ export const AutomationEditor: FC<{
   };
 
   const goBack = async () => {
+    if (isNewAutomation(automation.id)) {
+      onBack();
+      return;
+    }
     if (dirty) {
       try {
         await persist();
@@ -480,7 +499,9 @@ export const AutomationEditor: FC<{
   };
 
   const remove = async () => {
-    await api.deleteAutomation(automation.id);
+    if (!isNewAutomation(automation.id)) {
+      await api.deleteAutomation(automation.id);
+    }
     onDeleted();
   };
 
@@ -727,7 +748,7 @@ export const AutomationEditor: FC<{
           ) : (
             <div className="automations-run-list">
               {runs.length === 0 ? (
-                <div className="automations-empty">还没有运行</div>
+                <div className="automations-empty-inline">还没有运行</div>
               ) : (
                 runs.map((run) => (
                   <button

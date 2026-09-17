@@ -169,6 +169,7 @@ describe("automations dedicated page", () => {
     expect(screen.queryByTestId("chat-container")).toBeNull();
     expect(screen.getByTestId("automations-page").closest(".desktop-layout")).not.toBeNull();
     expect(await screen.findByText("工作日 changelog 巡检")).toBeInTheDocument();
+    expect(screen.getByTestId("automations-wallpaper")).toBeInTheDocument();
     expect(screen.getByTestId("desktop-automations-menu").className).toContain(
       "active",
     );
@@ -207,5 +208,57 @@ describe("automations dedicated page", () => {
     await user.click(screen.getByPlaceholderText(/输入指令/));
     await user.keyboard("更新 changelog");
     expect(screen.getByTestId("automation-save")).not.toBeDisabled();
+  });
+
+  it("empty list shows a centered create prompt", async () => {
+    render(
+      <MuseTheme>
+        <AutomationsPage
+          api={mockApi({
+            listAutomations: vi.fn().mockResolvedValue({ automations: [] }),
+          })}
+          postToHost={() => {}}
+          recentWorkdirs={["/work/muse"]}
+        />
+      </MuseTheme>,
+    );
+    const empty = await screen.findByTestId("automations-empty");
+    expect(empty).toHaveTextContent("还没有自动化");
+    expect(empty).toHaveTextContent("新建自动化");
+    expect(empty.querySelector(".automations-empty-preview")).not.toBeNull();
+    expect(screen.getByTestId("automations-wallpaper")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "新建自动化" }),
+    ).toHaveLength(1);
+  });
+
+  it("新建 opens an unsaved editor and does not POST until 保存", async () => {
+    const user = userEvent.setup();
+    const api = mockApi({
+      listAutomations: vi.fn().mockResolvedValue({ automations: [] }),
+    });
+    render(
+      <MuseTheme>
+        <AutomationsPage
+          api={api}
+          postToHost={() => {}}
+          recentWorkdirs={["/work/muse"]}
+        />
+      </MuseTheme>,
+    );
+    await user.click(await screen.findByRole("button", { name: "新建自动化" }));
+    expect(await screen.findByTestId("automation-editor")).toBeInTheDocument();
+    expect(api.createAutomation).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "自动化" }));
+    expect(await screen.findByTestId("automations-empty")).toBeInTheDocument();
+    expect(api.createAutomation).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "新建自动化" }));
+    await user.click(await screen.findByPlaceholderText(/输入指令/));
+    await user.keyboard("每天巡检");
+    await user.click(screen.getByTestId("automation-save"));
+    await waitFor(() => {
+      expect(api.createAutomation).toHaveBeenCalledTimes(1);
+    });
+    expect(api.patchAutomation).not.toHaveBeenCalled();
   });
 });

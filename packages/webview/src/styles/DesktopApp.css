@@ -1544,12 +1544,36 @@ body.is-panel-resizing * {
   padding-right: var(--space-4);
 }
 
+/* List/empty: wallpaper fills the column; inner scroll keeps the chrome inset. */
+.desktop-layout > .automations-page:not(.automations-page--editor) {
+  padding: 0;
+}
+
+.desktop-layout
+  > .automations-page:not(.automations-page--editor)
+  .automations-page-scroll {
+  padding-top: var(--desktop-shell-titlebar-height);
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+  padding-right: var(--space-4);
+}
+
 /* Editor chrome occupies the titlebar band so it sits flush with the window top. */
 .desktop-layout > .automations-page.automations-page--editor {
   padding-top: 0;
 }
 
 .desktop-layout[data-sidebar-collapsed="true"] > .automations-page {
+  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
+}
+
+.desktop-layout[data-sidebar-collapsed="true"]
+  > .automations-page:not(.automations-page--editor) {
+  padding-left: 0;
+}
+
+.desktop-layout[data-sidebar-collapsed="true"]
+  > .automations-page:not(.automations-page--editor)
+  .automations-page-scroll {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
 }
 

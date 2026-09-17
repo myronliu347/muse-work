@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MuseApiClient, MuseAutomation } from "../../muse/apiClient";
+import { WelcomeBackdrop } from "../chat/WelcomeBackdrop";
 import { AutomationEditor } from "./AutomationEditor";
+import { blankAutomation, isNewAutomation } from "./automationDraft";
 import { summarizeTrigger } from "./scheduleUi";
 import "../../styles/AutomationsPage.css";
 import "../../styles/ConfirmDialog.css";
@@ -49,7 +51,9 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
     return () => window.removeEventListener("message", onMessage);
   }, [load]);
 
-  const selected = automations.find((item) => item.id === selectedId) ?? null;
+  const selected = isNewAutomation(selectedId ?? "")
+    ? blankAutomation()
+    : (automations.find((item) => item.id === selectedId) ?? null);
 
   const toggle = async (automation: MuseAutomation, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -71,10 +75,9 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
     }
   };
 
-  const createDraft = async () => {
-    const { automation } = await api.createAutomation({});
-    setAutomations((prev) => [automation, ...prev]);
-    setSelectedId(automation.id);
+  const createDraft = () => {
+    setError(null);
+    setSelectedId(blankAutomation().id);
   };
 
   return (
@@ -82,6 +85,9 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
       className={`automations-page${selected ? " automations-page--editor" : ""}`}
       data-testid="automations-page"
     >
+      {!selected ? (
+        <WelcomeBackdrop testId="automations-wallpaper" />
+      ) : null}
       {selected ? (
         <AutomationEditor
           key={selected.id}
@@ -94,9 +100,11 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
             void load();
           }}
           onChanged={(next) => {
-            setAutomations((prev) =>
-              prev.map((item) => (item.id === next.id ? next : item)),
-            );
+            setSelectedId(next.id);
+            setAutomations((prev) => {
+              const rest = prev.filter((item) => item.id !== next.id);
+              return [next, ...rest];
+            });
           }}
           onDeleted={() => {
             setSelectedId(null);
@@ -112,17 +120,59 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
                 <p>创建规则，按时间或条件自动运行 Agent。</p>
               </div>
               <span className="automations-grow" />
-              <button
-                type="button"
-                className="automations-btn automations-btn-primary"
-                onClick={() => void createDraft()}
-              >
-                新建自动化
-              </button>
+              {automations.length > 0 ? (
+                <button
+                  type="button"
+                  className="automations-btn automations-btn-primary"
+                  onClick={() => createDraft()}
+                >
+                  新建自动化
+                </button>
+              ) : null}
             </div>
-            {error ? <div className="automations-empty">{error}</div> : null}
+            {error ? <div className="automations-error">{error}</div> : null}
             {automations.length === 0 && !error ? (
-              <div className="automations-empty">还没有自动化。点右上角新建。</div>
+              <div className="automations-empty" data-testid="automations-empty">
+                <div className="automations-empty-preview" aria-hidden="true">
+                  <div className="automations-list">
+                    <div className="automations-card">
+                      <span className="automations-switch">
+                        <i />
+                      </span>
+                      <div className="automations-card-body">
+                        <div className="automations-card-title">
+                          工作日早上同步 changelog
+                        </div>
+                        <div className="automations-card-sub">
+                          <span>工作日 09:00</span>
+                          <span>muse-work</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="automations-card">
+                      <span className="automations-switch">
+                        <i />
+                      </span>
+                      <div className="automations-card-body">
+                        <div className="automations-card-title">PR 合并后跑测试</div>
+                        <div className="automations-card-sub">
+                          <span>条件触发</span>
+                          <span>未选工作目录</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <h2>还没有自动化</h2>
+                <p>建一条规则，到点或满足条件时自动跑 Agent。</p>
+                <button
+                  type="button"
+                  className="automations-btn automations-btn-primary"
+                  onClick={() => createDraft()}
+                >
+                  新建自动化
+                </button>
+              </div>
             ) : (
               <div className="automations-list">
                 {automations.map((automation) => (
