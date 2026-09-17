@@ -12,6 +12,7 @@ import {
 } from "./desktop/DesktopSidebar";
 import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
+import { AutomationsPage } from "./automation/AutomationsPage";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
@@ -53,7 +54,7 @@ import "../styles/ChatApp.css";
 export { prunePanelGroupCache } from "../stores";
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-chat";
+export type MainView = "newChat" | "chat" | "popo-chat" | "automations";
 
 export const ChatApp: React.FC<ChatAppProps> = (props) => {
   const popoApi = useMemo(
@@ -854,6 +855,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             vscode={vscode}
             host={host}
             onOpenSettings={handleOpenSettings}
+            api={popoApi}
+            postToHost={postToHost}
             {...issueSidebarProps}
           />
           {newIssueDialog}
@@ -887,6 +890,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
         <DesktopSidebar
           onNewSession={() => {
             popoUi.selectChat(null);
+            setView("chat");
             handleDesktopNewSession();
           }}
           onNewSessionInPane={() => {
@@ -932,12 +936,28 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
               window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
             });
           }}
+          onOpenAutomations={() => {
+            popoUi.selectChat(null);
+            setView("automations");
+          }}
           activeMenu={
-            view === "newChat" || showNewSessionPage ? "newChat" : undefined
+            view === "automations"
+              ? "automations"
+              : view === "newChat" || showNewSessionPage
+                ? "newChat"
+                : undefined
           }
         />
         ) : null}
-        {chatContainer}
+        {view === "automations" ? (
+          <AutomationsPage
+            api={popoApi}
+            postToHost={postToHost}
+            recentWorkdirs={host.recentWorkdirs ?? []}
+          />
+        ) : (
+          chatContainer
+        )}
         {newIssueDialog}
         {openPlanningDialog}
         <ChatDialogs {...dialogProps} />

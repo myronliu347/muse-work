@@ -31,6 +31,8 @@ export interface MuseModelSelectProps {
   testId?: string;
   /** Hover tip with provider · model. Off inside settings fields that already have labels. */
   showTooltip?: boolean;
+  /** Radix trigger variant. Ghost for composer/editor toolbars. */
+  triggerVariant?: "surface" | "soft" | "ghost";
 }
 
 /**
@@ -49,6 +51,7 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
   emptyLabel = "",
   testId = "muse-model-select",
   showTooltip = true,
+  triggerVariant = "surface",
 }) => {
   const [data, setData] = useState<MuseProvidersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -143,6 +146,9 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
       <Select.Trigger
         data-testid={testId}
         aria-label="Model"
+        variant={triggerVariant}
+        size="1"
+        color="gray"
         placeholder={loading ? (error ? "模型不可用" : "加载模型…") : undefined}
         className="muse-model-select"
       />

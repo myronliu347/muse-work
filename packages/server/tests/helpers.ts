@@ -12,6 +12,11 @@ export async function listenTestApp(
     options?.home ?? fs.mkdtempSync(path.join(os.tmpdir(), "muse-server-"));
   const ctx = options?.ctx ?? createAppContext({ home });
   const server = createApp(ctx);
+  const close = server.close.bind(server);
+  server.close = ((cb?: (err?: Error) => void) => {
+    ctx.automationRuntime?.stop();
+    return close(cb);
+  }) as typeof server.close;
 
   await new Promise<void>((resolve, reject) => {
     server.listen(0, "127.0.0.1", () => resolve());

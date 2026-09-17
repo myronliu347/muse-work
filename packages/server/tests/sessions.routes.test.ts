@@ -45,6 +45,33 @@ describe("sessions HTTP routes", () => {
     expect(grouped.recent).toEqual([]);
   });
 
+  it("GET /sessions omits automation origin while GET by id returns it", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const hidden = app.ctx.store.create({
+      workdir: app.home,
+      model: "m1",
+      origin: "automation",
+      title: "自动化 · 巡检",
+    });
+    const user = app.ctx.store.create({
+      workdir: app.home,
+      model: "m1",
+      title: "日常",
+    });
+
+    const listed = await fetch(`${app.baseUrl}/sessions`).then((r) => r.json());
+    expect(listed.sessions.map((s: { id: string }) => s.id)).toEqual([user.id]);
+
+    const byId = await fetch(`${app.baseUrl}/sessions/${hidden.id}`).then((r) =>
+      r.json(),
+    );
+    expect(byId.id).toBe(hidden.id);
+    expect(byId.origin).toBe("automation");
+  });
+
   it("grouped exposes issueGroups and strips those sessions from recent", async () => {
     const app = await listenTestApp();
     server = app.server;

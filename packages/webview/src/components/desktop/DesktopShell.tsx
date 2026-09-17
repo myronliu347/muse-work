@@ -9,6 +9,8 @@ import React, {
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import { usePopoUi } from "../popo/popoUi";
+import { AutomationsPage } from "../automation/AutomationsPage";
+import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   DesktopHostProps,
   DesktopPane,
@@ -42,6 +44,8 @@ interface DesktopShellProps {
   onOpenPlanning?: (issueId: string) => void;
   onCompleteIssue?: (issueId: string) => void;
   onCancelIssue?: (issueId: string) => void;
+  api: MuseApiClient;
+  postToHost: (message: Record<string, unknown>) => void;
 }
 
 /**
@@ -72,12 +76,15 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   onOpenPlanning,
   onCompleteIssue,
   onCancelIssue,
+  api,
+  postToHost,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const { width: sidebarWidth } = useDesktopSidebarWidth();
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const popoUi = usePopoUi();
+  const [shellView, setShellView] = useState<"chat" | "automations">("chat");
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
   // non-empty and at most two rows exist.
@@ -646,6 +653,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       <DesktopSidebar
         onNewSession={() => {
           popoUi.selectChat(null);
+          setShellView("chat");
           vscode.postMessage({ command: "newSession" });
         }}
         onNewSessionInPane={() =>
@@ -669,6 +677,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         visibleSessionIds={visibleSessionIds}
         onSelectSession={(workdir, sessionId) => {
           popoUi.selectChat(null);
+          setShellView("chat");
           host.onSelectSession(workdir, sessionId);
         }}
         onOpenPane={handleOpenPane}
@@ -687,14 +696,29 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         popoEnabled={popoUi.enabled}
         popoChats={popoUi.chats}
         selectedPopoChatKey={popoUi.selectedChatKey}
-        onSelectPopoChat={popoUi.selectChat}
+        onSelectPopoChat={(chatKey) => {
+          setShellView("chat");
+          popoUi.selectChat(chatKey);
+        }}
         onDeletePopoChat={(chatKey) => {
           void popoUi.deleteChat(chatKey).catch((err) => {
             window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
           });
         }}
+        onOpenAutomations={() => {
+          popoUi.selectChat(null);
+          setShellView("automations");
+        }}
+        activeMenu={shellView === "automations" ? "automations" : undefined}
       />
       ) : null}
+      {shellView === "automations" ? (
+        <AutomationsPage
+          api={api}
+          postToHost={postToHost}
+          recentWorkdirs={host.recentWorkdirs ?? []}
+        />
+      ) : (
       <div
         className="desktop-pane-rows"
         ref={rowsContainerRef}
@@ -811,6 +835,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           />
         )}
       </div>
+      )}
     </div>
   );
 };

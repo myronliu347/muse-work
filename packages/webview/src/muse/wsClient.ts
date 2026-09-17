@@ -85,6 +85,7 @@ export type MuseWsEventPayload =
     }
   | { type: "tokens:update"; latestTotalTokens: number }
   | { type: "issue:changed" }
+  | { type: "automation:changed" }
   | { type: "popo:changed" };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };

@@ -27,6 +27,35 @@ export const AgentIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+/** 自动化：时钟，和「新对话」纸飞机同级的侧栏图标。 */
+export const AutomationsIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <circle
+      cx="8"
+      cy="8.25"
+      r="5.1"
+      stroke="currentColor"
+      strokeWidth="1.35"
+    />
+    <path
+      d="M8 5.6v3.05l2.15 1.25"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 /** 新对话：纸飞机朝右上，画在 viewBox 视觉中心，避免旋转裁切导致偏上。 */
 export const NewSessionIcon: React.FC<IconProps> = ({
   className = "header-icon",

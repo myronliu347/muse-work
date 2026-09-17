@@ -1,0 +1,729 @@
+.automations-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background, var(--gray-2));
+  color: var(--gray-12);
+}
+
+.automations-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.automations-ed-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  min-height: var(--desktop-shell-titlebar-height, 38px);
+  padding: 0;
+  border: none;
+  flex-shrink: 0;
+  background: var(--color-background, var(--gray-2));
+  -webkit-app-region: drag;
+}
+
+.automations-crumb,
+.automations-ed-actions {
+  -webkit-app-region: no-drag;
+}
+
+.automations-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.automations-crumb button {
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.automations-crumb button:hover {
+  color: var(--gray-12);
+}
+
+.automations-crumb-sep {
+  opacity: 0.45;
+}
+
+.automations-crumb-current {
+  color: var(--gray-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.automations-ed-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.automations-ed-actions .codicon-play {
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+.automations-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.automations-more:hover {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.automations-banner {
+  margin: 0 0 14px;
+  color: var(--gray-11);
+  font-size: 12px;
+}
+
+.automations-page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.automations-page-inner {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 18px 24px 32px;
+  box-sizing: border-box;
+}
+
+.automations-page-inner--editor {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
+
+.automations-page-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.automations-page-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.automations-page-head p {
+  margin: 6px 0 0;
+  color: var(--gray-11);
+}
+
+.automations-grow {
+  flex: 1;
+}
+
+.automations-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-6);
+  background: var(--gray-4);
+  color: var(--gray-12);
+  cursor: pointer;
+}
+
+.automations-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.automations-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.automations-btn-primary {
+  background: var(--accent-9);
+  border-color: var(--accent-9);
+  color: #fff;
+}
+
+.automations-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.automations-link-btn {
+  border: none;
+  background: transparent;
+  color: var(--gray-10);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.automations-link-btn:hover {
+  color: var(--gray-12);
+}
+
+.automations-btn-danger {
+  color: var(--red-9);
+  background: transparent;
+}
+
+.automations-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gray-6);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.automations-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 14px;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--gray-6);
+  border-radius: 0;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+
+.automations-card:last-child {
+  border-bottom: none;
+}
+
+.automations-card:hover {
+  background: var(--gray-3);
+}
+
+.automations-card.off {
+  opacity: 0.72;
+}
+
+.automations-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.automations-card-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.automations-card-sub {
+  margin-top: 4px;
+  color: var(--gray-11);
+  font-size: 12px;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.automations-card-sub > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.automations-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--gray-4);
+  color: var(--gray-11);
+  font-size: 11px;
+}
+
+.automations-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 99px;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  background: var(--gray-5);
+  flex-shrink: 0;
+}
+
+.automations-switch.on {
+  background: var(--accent-9);
+}
+
+.automations-switch i {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.automations-switch.on i {
+  transform: translateX(16px);
+}
+
+.automations-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gray-8);
+  display: inline-block;
+}
+
+.automations-dot.ok {
+  background: var(--green-9);
+}
+.automations-dot.run {
+  background: var(--accent-9);
+}
+.automations-dot.fail {
+  background: var(--red-9);
+}
+.automations-dot.skip {
+  background: var(--amber-9);
+}
+
+.automations-ed-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  outline: none;
+  min-height: 1.2em;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+
+.automations-ed-title:empty::before {
+  content: "未命名";
+  color: var(--gray-10);
+}
+
+.automations-ed-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--gray-11);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.automations-ed-meta .div {
+  width: 1px;
+  height: 14px;
+  background: var(--gray-6);
+}
+
+.automations-ed-meta .desktop-workdir-container {
+  max-width: 240px;
+}
+
+.automations-ed-meta .desktop-workdir-trigger {
+  padding: 0;
+}
+
+.automations-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 20px;
+}
+
+.automations-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.automations-block,
+.automations-trig-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.automations-instr {
+  position: relative;
+  border: 1px solid var(--gray-6);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.automations-instr textarea {
+  height: 180px;
+  min-height: 140px;
+  max-height: 360px;
+  border: none;
+  background: transparent;
+  resize: vertical;
+  padding: 12px 14px 44px;
+  color: var(--gray-12);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.automations-tab {
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.automations-tab.on {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.automations-sec-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-11);
+  margin: 0;
+}
+
+.automations-hint {
+  color: var(--gray-11);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.automations-add-trig,
+.automations-trig-card {
+  width: 100%;
+  border: 1px solid var(--gray-6);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--gray-11);
+  padding: 12px 14px;
+  text-align: left;
+  font: inherit;
+}
+
+.automations-add-trig {
+  cursor: pointer;
+}
+
+.automations-add-trig:hover {
+  background: var(--gray-3);
+  color: var(--gray-12);
+}
+
+.automations-trig-card .automations-sec-label {
+  margin: 0 0 8px;
+}
+
+.automations-trig-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.automations-trig-top strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.automations-menu {
+  position: relative;
+}
+
+.automations-menu-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  z-index: 5;
+  background: var(--color-background, var(--gray-2));
+  border: 1px solid var(--gray-6);
+  border-radius: 10px;
+  min-width: 200px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+}
+
+.automations-menu-pop button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--gray-12);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.automations-menu-pop button:hover {
+  background: var(--gray-4);
+}
+
+.automations-seg {
+  display: inline-flex;
+  background: var(--gray-3);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  margin: 0 0 8px;
+}
+
+.automations-seg button {
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.automations-seg button.on {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.automations-freq-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.automations-trig-card .rt-SelectTrigger {
+  height: 28px;
+  box-shadow: none;
+}
+
+.automations-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.automations-clock-sep {
+  color: var(--gray-10);
+  font-size: 12px;
+}
+
+.automations-instr-model {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+}
+
+.automations-instr-model .muse-model-select {
+  box-sizing: border-box;
+  max-width: 220px;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 26px;
+  color: var(--gray-11);
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.automations-instr-model .muse-model-select:hover,
+.automations-instr-model .muse-model-select:focus-visible {
+  background-color: var(--gray-3);
+  color: var(--gray-12);
+}
+
+.automations-run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.automations-run {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.automations-run:hover {
+  background: var(--gray-3);
+}
+
+.automations-run-body {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+}
+
+.automations-run-time {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.automations-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 11px;
+  color: var(--gray-11);
+}
+
+.automations-empty {
+  padding: 24px 0;
+  color: var(--gray-11);
+}
+
+.automations-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.automations-check {
+  border: none;
+  background: var(--gray-3);
+  color: var(--gray-11);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.automations-check.on {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.automations-transcript-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.automations-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.automations-note {
+  color: var(--gray-11);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.automations-msg--user {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--gray-3);
+}
+
+.automations-msg-body {
+  color: var(--gray-12);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.automations-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.automations-tool {
+  font-size: 12px;
+  color: var(--gray-11);
+  background: var(--gray-3);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.automations-md {
+  color: var(--gray-12);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.automations-md p {
+  margin: 0 0 8px;
+}
+
+.automations-md p:last-child {
+  margin-bottom: 0;
+}
+
+.automations-md ul,
+.automations-md ol {
+  margin: 0 0 8px;
+  padding-left: 1.3em;
+}
+
+.automations-md li {
+  margin: 2px 0;
+}
+
+.automations-md strong {
+  font-weight: 600;
+}
+
+.automations-md code {
+  font-size: 12px;
+}

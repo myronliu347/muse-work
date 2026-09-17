@@ -360,6 +360,30 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual({ command: "issue:changed" });
   });
 
+  it("automation:changed WS posts automation:changed to webview (all panes)", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({ type: "automation:changed", sessionId: "*" });
+    await flush();
+
+    expect(messages).toContainEqual({ command: "automation:changed" });
+  });
+
   it("popo:changed WS posts popo:changed to webview", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

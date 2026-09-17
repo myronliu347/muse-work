@@ -141,6 +141,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "automation:changed") {
+      postToWebview({ command: "automation:changed" });
+      return;
+    }
+
     if (event.type === "popo:changed") {
       postToWebview({ command: "popo:changed" });
       return;

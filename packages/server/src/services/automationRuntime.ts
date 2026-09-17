@@ -1,0 +1,389 @@
+import fs from "node:fs";
+import { DEFAULT_ACTIVE_MODEL_ID } from "@muse-work/provider";
+import type { SessionRunner } from "./sessionRunner/index.js";
+import type { SessionStore } from "./sessionStore.js";
+import type { WsHub } from "./wsHub.js";
+import {
+  type Automation,
+  type AutomationRun,
+  type AutomationStore,
+  type AutomationTrigger,
+} from "./automationStore.js";
+import type { Issue, IssueStore } from "./issueStore.js";
+import { isInterruptedExecResult } from "./issueDispatch.js";
+import { cronMatchesLocal } from "./scheduleCompile.js";
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function formatTickMinute(at: Date): string {
+  return `${at.getFullYear()}-${pad2(at.getMonth() + 1)}-${pad2(at.getDate())}T${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
+}
+
+const ISSUE_DESCRIPTION_MAX = 2000;
+
+function buildRunPrompt(
+  automation: Automation,
+  run: AutomationRun,
+  issue?: Issue,
+): string {
+  let prefix: string;
+  if (run.trigger.type === "issue") {
+    const info = run.trigger.issue;
+    const description = (issue?.description ?? "").slice(
+      0,
+      ISSUE_DESCRIPTION_MAX,
+    );
+    prefix = [
+      "触发：Issue",
+      `ID：${info?.id ?? ""}`,
+      `标题：${info?.title ?? ""}`,
+      `状态：${info?.status ?? ""}`,
+      `优先级：${info?.priority ?? ""}`,
+      `标签：${(info?.tags ?? []).join(",")}`,
+      "描述：",
+      description,
+    ].join("\n");
+  } else if (run.trigger.type === "cron") {
+    prefix = `触发：定时 ${new Date(run.trigger.firedAt).toISOString()}`;
+  } else if (run.trigger.type === "once") {
+    prefix = "触发：单次";
+  } else {
+    prefix = "触发：手动";
+  }
+  return `${prefix}\n\n---\n${automation.prompt}`;
+}
+
+function issueTriggerMatches(
+  trigger: AutomationTrigger,
+  event: "created" | "review" | "completed" | "cancelled",
+  issue: Issue,
+): boolean {
+  if (trigger.type !== "issue") return false;
+  if (!trigger.events.includes(event)) return false;
+  if (trigger.priority !== undefined && trigger.priority !== issue.priority) {
+    return false;
+  }
+  if (trigger.tags && trigger.tags.length > 0) {
+    const issueTags = new Set(issue.tags);
+    for (const tag of trigger.tags) {
+      const normalized = String(tag).trim().toLowerCase();
+      if (!normalized || !issueTags.has(normalized)) return false;
+    }
+  }
+  return true;
+}
+
+export function createAutomationRuntime(options: {
+  store: AutomationStore;
+  hub: WsHub;
+  sessions: SessionStore;
+  runner: SessionRunner;
+  home: string;
+  now?: () => Date;
+  issueStore?: IssueStore;
+  startSession?: (args: {
+    automation: Automation;
+    run: AutomationRun;
+  }) => Promise<string | undefined>;
+}): {
+  enqueue(
+    automationId: string,
+    trigger: AutomationRun["trigger"],
+  ): AutomationRun | undefined;
+  stopRun(runId: string): Promise<AutomationRun | undefined>;
+  handleTurnSettled(
+    sessionId: string,
+    result: { ok: boolean; error?: string },
+  ): void;
+  tick(): void;
+  start(): void;
+  stop(): void;
+} {
+  const { store, hub, sessions, runner } = options;
+  const now = () => options.now?.() ?? new Date();
+
+  async function defaultStartSession(args: {
+    automation: Automation;
+    run: AutomationRun;
+  }): Promise<string | undefined> {
+    if (store.getRun(args.run.id)?.status !== "running") {
+      return undefined;
+    }
+    const workdir = args.automation.workdir;
+    if (!workdir || !fs.existsSync(workdir)) {
+      if (store.getRun(args.run.id)?.status !== "running") {
+        return undefined;
+      }
+      store.patchRun(args.run.id, {
+        status: "failed",
+        error: "workdir",
+        endedAt: now().getTime(),
+      });
+      broadcast();
+      return undefined;
+    }
+    const session = sessions.create({
+      origin: "automation",
+      workdir,
+      permissionMode: "bypassPermissions",
+      title: `自动化 · ${args.automation.name}`,
+      disallowedTools: ["Workflow"],
+      agentName: args.automation.agentName,
+      model: args.automation.model ?? DEFAULT_ACTIVE_MODEL_ID,
+    });
+    store.patchRun(args.run.id, { sessionId: session.id });
+    broadcast();
+    if (store.getRun(args.run.id)?.status !== "running") {
+      try {
+        await runner.abortMessage(session.id);
+      } catch {
+        /* already stopped */
+      }
+      return session.id;
+    }
+    const issue =
+      args.run.trigger.type === "issue" && args.run.trigger.issue
+        ? options.issueStore?.get(args.run.trigger.issue.id)
+        : undefined;
+    await runner.sendMessage(
+      session.id,
+      buildRunPrompt(args.automation, args.run, issue),
+    );
+    return session.id;
+  }
+
+  const startSession = options.startSession ?? defaultStartSession;
+
+  store.failStaleRunning("进程退出");
+
+  let lastTickMinute: string | undefined;
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let unsubscribeIssues: (() => void) | undefined;
+
+  function broadcast(): void {
+    hub.broadcastAll({ type: "automation:changed" });
+  }
+
+  function enqueue(
+    automationId: string,
+    trigger: AutomationRun["trigger"],
+  ): AutomationRun | undefined {
+    const automation = store.get(automationId);
+    if (!automation || !automation.enabled) {
+      return undefined;
+    }
+
+    const startedAt = now().getTime();
+    const id = crypto.randomUUID();
+
+    if (store.hasRunning(automationId)) {
+      const run = store.addRun({
+        id,
+        automationId,
+        status: "skipped",
+        skipReason: "rule_running",
+        trigger: { ...trigger },
+        startedAt,
+        endedAt: startedAt,
+      });
+      broadcast();
+      return run;
+    }
+
+    if (store.countRunning() >= 2) {
+      const run = store.addRun({
+        id,
+        automationId,
+        status: "skipped",
+        skipReason: "global_concurrency",
+        trigger: { ...trigger },
+        startedAt,
+        endedAt: startedAt,
+      });
+      broadcast();
+      return run;
+    }
+
+    const run = store.addRun({
+      id,
+      automationId,
+      status: "running",
+      trigger: { ...trigger },
+      startedAt,
+    });
+    broadcast();
+    void Promise.resolve(startSession({ automation, run }))
+      .then(async (sessionId) => {
+        const current = store.getRun(run.id);
+        if (!current || current.status !== "running") {
+          if (sessionId) {
+            try {
+              await runner.abortMessage(sessionId);
+            } catch {
+              /* already stopped */
+            }
+          }
+          return;
+        }
+        if (sessionId) {
+          store.patchRun(run.id, { sessionId });
+          broadcast();
+        }
+      })
+      .catch((err: unknown) => {
+        const current = store.getRun(run.id);
+        if (!current || current.status !== "running") return;
+        const message = err instanceof Error ? err.message : String(err);
+        store.patchRun(run.id, {
+          status: "failed",
+          error: message,
+          endedAt: now().getTime(),
+        });
+        broadcast();
+      });
+    return run;
+  }
+
+  async function stopRun(runId: string): Promise<AutomationRun | undefined> {
+    const run = store.getRun(runId);
+    if (!run) return undefined;
+    if (run.status !== "running") return run;
+    if (run.sessionId) {
+      try {
+        await runner.abortMessage(run.sessionId);
+      } catch {
+        /* mark stopped even if abort already finished */
+      }
+    }
+    const patched = store.patchRun(runId, {
+      status: "stopped",
+      endedAt: now().getTime(),
+    });
+    broadcast();
+    return patched;
+  }
+
+  function handleTurnSettled(
+    sessionId: string,
+    result: { ok: boolean; error?: string },
+  ): void {
+    for (const automation of store.list()) {
+      const run = store
+        .listRuns(automation.id)
+        .find((entry) => entry.status === "running" && entry.sessionId === sessionId);
+      if (!run) continue;
+      const status = result.ok
+        ? "succeeded"
+        : isInterruptedExecResult(result)
+          ? "stopped"
+          : "failed";
+      store.patchRun(run.id, {
+        status,
+        ...(status === "failed" && result.error ? { error: result.error } : {}),
+        endedAt: now().getTime(),
+      });
+      broadcast();
+      return;
+    }
+  }
+
+  function onIssueEvent(payload: {
+    event: "created" | "review" | "completed" | "cancelled";
+    issue: Issue;
+  }): void {
+    const firedAt = now().getTime();
+    for (const automation of store.list()) {
+      if (!automation.enabled) continue;
+      const matched = automation.triggers.some((trigger) =>
+        issueTriggerMatches(trigger, payload.event, payload.issue),
+      );
+      if (!matched) continue;
+      enqueue(automation.id, {
+        type: "issue",
+        firedAt,
+        issue: {
+          id: payload.issue.id,
+          title: payload.issue.title,
+          status: payload.issue.status,
+          priority: payload.issue.priority,
+          tags: [...payload.issue.tags],
+        },
+      });
+    }
+  }
+
+  unsubscribeIssues = options.issueStore?.subscribe(onIssueEvent);
+
+  function tick(): void {
+    const at = now();
+    const minute = formatTickMinute(at);
+    if (lastTickMinute !== undefined && minute <= lastTickMinute) {
+      return;
+    }
+    lastTickMinute = minute;
+    const ts = at.getTime();
+
+    for (const automation of store.list()) {
+      if (!automation.enabled) continue;
+
+      let triggersChanged = false;
+      const nextTriggers = automation.triggers.map((trigger) => {
+        if (trigger.type === "cron") {
+          if (cronMatchesLocal(trigger.expr, at)) {
+            const alreadyFiredThisMinute = store
+              .listRuns(automation.id)
+              .some(
+                (run) =>
+                  run.trigger.type === "cron" &&
+                  run.trigger.expr === trigger.expr &&
+                  formatTickMinute(new Date(run.trigger.firedAt)) === minute,
+              );
+            if (!alreadyFiredThisMinute) {
+              enqueue(automation.id, {
+                type: "cron",
+                firedAt: ts,
+                expr: trigger.expr,
+              });
+            }
+          }
+          return trigger;
+        }
+        if (
+          trigger.type === "once" &&
+          trigger.firedAt === undefined &&
+          formatTickMinute(new Date(trigger.at)) === minute
+        ) {
+          enqueue(automation.id, { type: "once", firedAt: ts });
+          triggersChanged = true;
+          return { ...trigger, firedAt: ts };
+        }
+        return trigger;
+      });
+
+      if (triggersChanged) {
+        store.update(automation.id, { triggers: nextTriggers });
+      }
+    }
+  }
+
+  function start(): void {
+    if (timer) return;
+    tick();
+    timer = setInterval(() => {
+      tick();
+    }, 15_000);
+    timer.unref?.();
+  }
+
+  function stop(): void {
+    unsubscribeIssues?.();
+    unsubscribeIssues = undefined;
+    if (!timer) return;
+    clearInterval(timer);
+    timer = undefined;
+  }
+
+  return { enqueue, stopRun, handleTurnSettled, tick, start, stop };
+}

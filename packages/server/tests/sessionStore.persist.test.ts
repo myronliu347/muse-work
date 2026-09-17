@@ -84,4 +84,27 @@ describe("sessionStore persistence", () => {
     ) as { sessions: Array<{ status?: string }> };
     expect(reloaded.sessions[0]?.status).toBe("idle");
   });
+
+  it("listGrouped excludes automation origin sessions", () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sess-"));
+    const store = createSessionStore({ home });
+    const hidden = store.create({
+      workdir: "/tmp/proj",
+      model: "deepseek-v4-flash",
+      origin: "automation",
+      title: "自动化 · 巡检",
+    });
+    const user = store.create({
+      workdir: "/tmp/proj",
+      model: "deepseek-v4-flash",
+      title: "日常",
+    });
+    store.update(user.id, { lastActiveAt: user.createdAt + 1 });
+
+    expect(store.get(hidden.id)?.origin).toBe("automation");
+    expect(store.create({ workdir: "/tmp/proj", model: "m1" }).origin).toBe(
+      "user",
+    );
+    expect(store.listGrouped().recent.map((s) => s.id)).toEqual([user.id]);
+  });
 });

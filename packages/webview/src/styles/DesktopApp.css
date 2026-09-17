@@ -1232,6 +1232,17 @@
   color: var(--gray-12);
 }
 
+.desktop-workdir-trigger--ghost {
+  border-color: transparent;
+  background: transparent;
+  padding-left: 0;
+  padding-right: var(--space-1);
+}
+
+.desktop-workdir-trigger--ghost:hover {
+  background: transparent;
+}
+
 .desktop-workdir-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1259,6 +1270,13 @@
   box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
   z-index: 10000;
   font-size: var(--font-size-1);
+}
+
+.desktop-workdir-menu--down {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: var(--space-1);
 }
 
 .desktop-workdir-menu-label {
@@ -1507,7 +1525,8 @@ body.is-panel-resizing * {
 /* Vertical stack of pane rows (at most two); fills the chat area next to the
    sidebar and anchors the drop-zone overlay. */
 .desktop-pane-rows,
-.desktop-layout > .chat-container {
+.desktop-layout > .chat-container,
+.desktop-layout > .automations-page {
   grid-area: 1 / 1;
   position: relative;
   z-index: 0;
@@ -1515,6 +1534,23 @@ body.is-panel-resizing * {
   min-height: 0;
   width: 100%;
   height: 100%;
+}
+
+/* Overlay sidebar + traffic-light strip, same as the first chat pane. */
+.desktop-layout > .automations-page {
+  box-sizing: border-box;
+  padding-top: var(--desktop-shell-titlebar-height);
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+  padding-right: var(--space-4);
+}
+
+/* Editor chrome occupies the titlebar band so it sits flush with the window top. */
+.desktop-layout > .automations-page.automations-page--editor {
+  padding-top: 0;
+}
+
+.desktop-layout[data-sidebar-collapsed="true"] > .automations-page {
+  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
 }
 
 .desktop-pane-rows {

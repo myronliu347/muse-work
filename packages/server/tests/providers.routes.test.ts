@@ -17,6 +17,8 @@ import {
 } from "../src/services/appContext.js";
 import { createIssueStore } from "../src/services/issueStore.js";
 import { createIssueDispatcher } from "../src/services/issueDispatch.js";
+import { createAutomationStore } from "../src/services/automationStore.js";
+import { createAutomationRuntime } from "../src/services/automationRuntime.js";
 
 describe("providers + auth routes", () => {
   let server: Server | undefined;
@@ -467,6 +469,14 @@ async function listenWithStubs(providers: AiProvider[]) {
   const registry = createProviderRegistry(providers, home);
   const sessions = createSessionServices({ home, registry });
   const issues = createIssueStore({ home });
+  const automations = createAutomationStore({ home });
+  const automationRuntime = createAutomationRuntime({
+    store: automations,
+    hub: sessions.hub,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    home,
+  });
   const dispatcher = createIssueDispatcher({
     issues,
     sessions: sessions.store,
@@ -482,6 +492,8 @@ async function listenWithStubs(providers: AiProvider[]) {
     registry,
     ...sessions,
     issueStore: issues,
+    automationStore: automations,
+    automationRuntime,
     issueDispatcher: dispatcher,
   };
   const server = createApp(ctx);

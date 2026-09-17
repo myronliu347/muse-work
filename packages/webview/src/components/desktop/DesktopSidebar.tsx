@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon } from "../shared/HeaderIcons";
+import { NewSessionIcon, AutomationsIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.svg";
 import {
   SessionTree,
@@ -99,7 +99,9 @@ export interface DesktopSidebarProps {
   onSelectPopoChat?: (chatKey: string) => void;
   onDeletePopoChat?: (chatKey: string) => void;
   /** 当前高亮的菜单项（选中态） */
-  activeMenu?: "newChat";
+  activeMenu?: "newChat" | "automations";
+  /** 侧栏顶部「自动化」独立页 */
+  onOpenAutomations?: () => void;
 }
 
 /**
@@ -136,6 +138,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onSelectPopoChat,
   onDeletePopoChat,
   activeMenu,
+  onOpenAutomations,
 }) => {
   const { width, setWidth } = useDesktopSidebarWidth();
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -198,6 +201,15 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         >
           <NewSessionIcon className="app-menu-icon app-menu-icon--16" />
           <span>新对话</span>
+        </button>
+        <button
+          type="button"
+          className={`app-menu${activeMenu === "automations" ? " active" : ""}`}
+          onClick={() => onOpenAutomations?.()}
+          data-testid="desktop-automations-menu"
+        >
+          <AutomationsIcon className="app-menu-icon app-menu-icon--16" />
+          <span>自动化</span>
         </button>
       </div>
       <div className="divider" />
