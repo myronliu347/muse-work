@@ -309,11 +309,22 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // updateInputContent (desktop main process has no handler), so drafts are
     // kept here so switching away and back restores what the user was typing.
     const draftsRef = useRef<Record<string, string>>({});
+    const imageDraftsRef = useRef<Record<string, AttachedImage[]>>({});
+    const attachedImagesRef = useRef(attachedImages);
+    attachedImagesRef.current = attachedImages;
     const saveDraft = useCallback((session: string | undefined, text: string) => {
       if (!session) return;
       if (text) draftsRef.current[session] = text;
       else delete draftsRef.current[session];
     }, []);
+    const saveImageDraft = useCallback(
+      (session: string | undefined, images: AttachedImage[]) => {
+        if (!session) return;
+        if (images.length > 0) imageDraftsRef.current[session] = images;
+        else delete imageDraftsRef.current[session];
+      },
+      [],
+    );
     // Mirror the latest local message so the session-switch flush can read it
     // without depending on `message` in the effect deps: a message dep would
     // re-run this effect after every keystroke/appendText and wipe the input
@@ -337,6 +348,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // Save unconditionally: an emptied input must also clear the stale
         // draft, otherwise switching back would resurrect deleted text.
         saveDraft(prevSession, text);
+        saveImageDraft(prevSession, attachedImagesRef.current);
         if (text) {
           vscode.postMessage({
             command: "updateInputContent",
@@ -365,8 +377,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           textareaRef.current.textContent = next;
         }
         if (inputContent !== undefined) saveDraft(sessionId, inputContent);
+        if (sessionChanged) {
+          setAttachedImages(
+            sessionId ? (imageDraftsRef.current[sessionId] ?? []) : [],
+          );
+        }
       }
-    }, [inputContent, sessionId, vscode, saveDraft]);
+    }, [inputContent, sessionId, vscode, saveDraft, saveImageDraft]);
 
     // Initialize attached images from initialAttachedImages prop
     useEffect(() => {
@@ -560,6 +577,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       if (shouldClearInput) {
         setMessage("");
         saveDraft(sessionId, "");
+        saveImageDraft(sessionId, []);
         // Clear persisted input content
         vscode.postMessage({
           command: "updateInputContent",
@@ -571,7 +589,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         closeSlashCommandPopup();
         onInputCleared?.();
       }
-    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, closeSlashCommandPopup, sessionId, saveDraft]);
+    }, [shouldClearInput, onInputCleared, vscode, closeDropdown, closeSlashCommandPopup, sessionId, saveDraft, saveImageDraft]);
 
     const setBrowsePathBoth = useCallback((next: string) => {
       browsePathRef.current = next;
@@ -989,6 +1007,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         textareaRef.current.innerHTML = "";
         setMessage("");
         saveDraft(sessionId, "");
+        saveImageDraft(sessionId, []);
         // Clear persisted input content
         vscode.postMessage({
           command: "updateInputContent",
@@ -1007,6 +1026,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       editingQueuedId,
       onSubmitQueuedEdit,
       saveDraft,
+      saveImageDraft,
       sessionId,
     ]);
 

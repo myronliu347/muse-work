@@ -8,6 +8,7 @@ import {
   sendHostMessage,
   setInputText,
   fireInput,
+  waitFor,
 } from "./test-utils";
 import { fixtures } from "wave-webview-fixtures";
 import { MockDataGenerator } from "../fixtures/mockData";
@@ -290,5 +291,112 @@ describe("input drafts per session (desktop-app.md 会话管理 scenario 11/12)"
       );
     });
     expect(input.innerText).toBe("");
+  });
+});
+
+describe("pasted images per session", () => {
+  const TINY_PNG_BASE64 =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+  interface MockDataTransferItem {
+    type: string;
+    getAsFile: () => File;
+  }
+  class MockDataTransfer {
+    private _files: File[] = [];
+    private _items: MockDataTransferItem[] = [];
+    get files(): File[] {
+      return this._files;
+    }
+    get items(): MockDataTransferItem[] & {
+      add: (file: File) => void;
+      length: number;
+    } {
+      const arr = this._items as MockDataTransferItem[] & {
+        add: (file: File) => void;
+        length: number;
+      };
+      arr.add = (file: File) => {
+        this._files.push(file);
+        this._items.push({ type: file.type, getAsFile: () => file });
+      };
+      return arr;
+    }
+    get types(): string[] {
+      return [];
+    }
+    getData() {
+      return "";
+    }
+    setData() {}
+    clearData() {}
+  }
+
+  function createImagePasteEvent(filename: string): ClipboardEvent {
+    const bytes = Uint8Array.from(atob(TINY_PNG_BASE64), (c) =>
+      c.charCodeAt(0),
+    );
+    const file = new File([bytes], filename, { type: "image/png" });
+    const dataTransfer = new MockDataTransfer();
+    dataTransfer.items.add(file);
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: dataTransfer,
+      configurable: true,
+    });
+    return event as ClipboardEvent;
+  }
+
+  const sessionA = {
+    id: "session-A",
+    sessionType: "main" as const,
+    workdir: "/test/project",
+    firstMessage: "Session A",
+    createdAt: new Date("2023-12-01T10:00:00Z"),
+    lastActiveAt: new Date("2023-12-01T10:00:00Z"),
+    latestTotalTokens: 150,
+  };
+  const sessionB = {
+    id: "session-B",
+    sessionType: "main" as const,
+    workdir: "/test/project",
+    firstMessage: "Session B",
+    createdAt: new Date("2023-12-01T11:00:00Z"),
+    lastActiveAt: new Date("2023-12-01T11:00:00Z"),
+    latestTotalTokens: 250,
+  };
+
+  beforeEach(() => {
+    (globalThis as Record<string, unknown>).DataTransfer = MockDataTransfer;
+  });
+
+  it("switching sessions does not show the previous conversation's unsent images", async () => {
+    renderChatApp();
+    act(() => {
+      sendHostMessage(
+        fixtures.setInitialState({ session: sessionA, messages: [] }),
+      );
+    });
+    const input = screen.getByTestId("message-input");
+    await act(async () => {
+      input.dispatchEvent(createImagePasteEvent("shot.png"));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("attached-images")).toBeInTheDocument();
+    });
+
+    // Desktop session switch: updateCurrentSession + updateMessages, not
+    // setInitialState — attachedImages in ChatState is never rewritten.
+    act(() => {
+      sendCommand("updateCurrentSession", { session: sessionB });
+      sendCommand("updateMessages", { messages: [] });
+    });
+    expect(screen.queryByTestId("attached-images")).toBeNull();
+
+    act(() => {
+      sendCommand("updateCurrentSession", { session: sessionA });
+      sendCommand("updateMessages", { messages: [] });
+    });
+    expect(screen.getByTestId("attached-images")).toBeInTheDocument();
   });
 });
