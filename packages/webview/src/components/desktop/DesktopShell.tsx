@@ -709,7 +709,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           popoUi.selectChat(null);
           setShellView("automations");
         }}
-        activeMenu={shellView === "automations" ? "automations" : undefined}
+        activeMenu={
+          shellView === "automations"
+            ? "automations"
+            : focusedSessionId == null || focusedSessionId === "__draft__"
+              ? "newChat"
+              : undefined
+        }
       />
       ) : null}
       {shellView === "automations" ? (

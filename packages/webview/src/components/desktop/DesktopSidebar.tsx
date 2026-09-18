@@ -182,6 +182,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       />
       <div className="app-menus">
         <button
+          type="button"
           className={`app-menu${activeMenu === "newChat" ? " active" : ""}`}
           onClick={(e) => {
             if (isMacPlatform() ? e.metaKey : e.ctrlKey) {

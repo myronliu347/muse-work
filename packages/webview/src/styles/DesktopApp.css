@@ -238,6 +238,8 @@
   padding: var(--space-2) var(--space-2);
   border: none;
   border-radius: var(--radius-3);
+  appearance: none;
+  -webkit-appearance: none;
   background: transparent;
   color: var(--gray-11);
   cursor: pointer;
@@ -265,12 +267,24 @@
   line-height: 14px;
 }
 
-.app-menu:hover:not(:disabled) {
+.app-menu:hover:not(:disabled):not(.active) {
   background: var(--gray-4);
 }
 
+.app-menu:focus,
+.app-menu:focus-visible {
+  outline: none;
+}
+
+.app-menu:focus:not(.active),
+.app-menu:focus-visible:not(.active) {
+  background: transparent;
+}
+
 /* 菜单选中态（比 hover 略深，与会话树 current 高亮区分开） */
-.app-menu.active {
+.app-menu.active,
+.app-menu.active:focus,
+.app-menu.active:focus-visible {
   background: var(--gray-5);
   color: var(--gray-12);
 }

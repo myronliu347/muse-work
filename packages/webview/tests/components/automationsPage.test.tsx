@@ -173,6 +173,9 @@ describe("automations dedicated page", () => {
     expect(screen.getByTestId("desktop-automations-menu").className).toContain(
       "active",
     );
+    expect(screen.getByTestId("desktop-new-session").className).not.toContain(
+      "active",
+    );
   });
 
   it("editor has 添加触发器, no cron textbox, and run is disabled when off", async () => {
