@@ -68,7 +68,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: color-mix(in srgb, var(--gray-2) 72%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 52%, transparent);
 }
 
 .desktop-sidebar
@@ -83,18 +83,27 @@
 }
 
 :root[data-theme="light"] .desktop-sidebar::before {
-  background: color-mix(in srgb, var(--gray-1) 78%, transparent);
+  background: color-mix(in srgb, var(--gray-1) 55%, transparent);
+}
+
+:root[data-theme="light"] .desktop-sidebar-footer {
+  background: color-mix(in srgb, var(--gray-1) 50%, transparent);
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .desktop-sidebar {
-    background: var(--gray-2);
+    background: var(--gray-3);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     box-shadow: none;
   }
 
   .desktop-sidebar::before {
+    background: var(--gray-3);
+  }
+
+  :root[data-theme="light"] .desktop-sidebar,
+  :root[data-theme="light"] .desktop-sidebar::before {
     background: var(--gray-2);
   }
 }
@@ -123,7 +132,7 @@
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
   border-top: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
-  background: color-mix(in srgb, var(--gray-2) 70%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 48%, transparent);
   position: relative;
   flex-shrink: 0;
 }
@@ -230,7 +239,7 @@
   border: none;
   border-radius: var(--radius-3);
   background: transparent;
-  color: var(--gray-12);
+  color: var(--gray-11);
   cursor: pointer;
   font-size: var(--font-size-1);
   text-align: left;
@@ -289,7 +298,7 @@
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
   font-weight: 600;
-  color: var(--gray-11);
+  color: var(--gray-10);
   user-select: none;
 }
 
@@ -344,7 +353,7 @@
   margin: 0;
   border: none;
   background: transparent;
-  color: inherit;
+  color: var(--gray-10);
   font: inherit;
   font-size: var(--font-size-1);
   font-weight: 600;
@@ -355,7 +364,7 @@
 
 .desktop-session-section-header--toggle:hover {
   background: transparent;
-  color: var(--gray-12);
+  color: var(--gray-11);
 }
 
 .desktop-session-section-title {
@@ -417,7 +426,7 @@
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--gray-11);
   user-select: none;
 }
 
@@ -585,7 +594,7 @@
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--gray-11);
   user-select: none;
 }
 
@@ -696,7 +705,7 @@
 }
 
 .issue-sidebar-section-empty {
-  color: var(--gray-11);
+  color: var(--gray-10);
 }
 
 .issue-sidebar-empty {
@@ -790,7 +799,7 @@
   border-radius: var(--radius-2);
   cursor: pointer;
   font-size: var(--font-size-1);
-  color: var(--gray-12);
+  color: var(--gray-11);
 }
 
 .desktop-session-item:hover {
@@ -922,7 +931,7 @@
   flex-shrink: 0;
   margin-left: auto;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--gray-10);
   white-space: nowrap;
   user-select: none;
   text-align: right;
@@ -1008,7 +1017,7 @@
   /* Align roughly with session titles (status/icon column + gap). */
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  color: var(--gray-10);
 }
 
 /* ---- Worktree controls: branch selector + checkbox (FR-022/FR-023) ----
