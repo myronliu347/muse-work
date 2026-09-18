@@ -1,0 +1,30 @@
+packages/webview/src/styles/DesktopApp.css
+  180e6f1ff45934d9 71,86,89-90,95,102-106,135,242,301,356,367,429,597,708,802,934,1020
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4035e661210faea3badc0a875d2ddc839613a434",
+  "prompts": {
+    "180e6f1ff45934d9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "222e6633-6430-4b90-b567-042ac265f0f3",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 54,
+      "total_deletions": 45,
+      "accepted_lines": 34,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 54,
+          "deletions": 45,
+          "accepted_lines": 34
+        }
+      }
+    }
+  }
+}
