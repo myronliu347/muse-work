@@ -1,0 +1,36 @@
+packages/server/src/popo/popoAgent.ts
+  a586fd8d098b258a 143-144
+packages/server/tests/popoAgent.test.ts
+  a586fd8d098b258a 354,366-368,469
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "922f6b82f55435fcfee2c40d378552f0e547c97c",
+  "prompts": {
+    "a586fd8d098b258a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4142128a-5083-4d67-8701-10ba2f879acd",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 2,
+      "accepted_lines": 7,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
