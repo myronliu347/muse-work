@@ -1,14 +1,14 @@
 import type { EffectiveTheme } from "../../types";
-import darkLanterns from "../../assets/welcome-wallpapers/dark-lanterns.webp";
-import darkRain from "../../assets/welcome-wallpapers/dark-rain.webp";
+import darkMist from "../../assets/welcome-wallpapers/dark-mist.webp";
+import darkSea from "../../assets/welcome-wallpapers/dark-sea.webp";
 import darkMoon from "../../assets/welcome-wallpapers/dark-moon.webp";
-import lightMorning from "../../assets/welcome-wallpapers/light-morning.webp";
+import lightFog from "../../assets/welcome-wallpapers/light-fog.webp";
 import lightPaper from "../../assets/welcome-wallpapers/light-paper.webp";
 import lightGarden from "../../assets/welcome-wallpapers/light-garden.webp";
 
 export const WELCOME_WALLPAPERS: Record<EffectiveTheme, readonly string[]> = {
-  dark: [darkLanterns, darkRain, darkMoon],
-  light: [lightMorning, lightPaper, lightGarden],
+  dark: [darkMist, darkSea, darkMoon],
+  light: [lightFog, lightPaper, lightGarden],
 };
 
 const LAST_WALLPAPER_KEY = "muse-welcome-wallpaper";
