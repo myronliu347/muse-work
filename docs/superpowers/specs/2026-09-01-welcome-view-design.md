@@ -57,7 +57,7 @@
 | Theme | 文件（`packages/webview/src/assets/welcome-wallpapers/`） |
 |---|---|
 | dark | `dark-mist.webp`、`dark-sea.webp`、`dark-moon.webp` |
-| light | `light-fog.webp`、`light-paper.webp`、`light-garden.webp` |
+| light | `light-fog.webp`、`light-sky.webp`、`light-dune.webp` |
 
 - 进入欢迎页（组件 mount）时抽取；同一页停留不换。
 - 切 light / dark 时从新池再抽一张。

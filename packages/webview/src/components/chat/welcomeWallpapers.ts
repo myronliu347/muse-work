@@ -3,12 +3,12 @@ import darkMist from "../../assets/welcome-wallpapers/dark-mist.webp";
 import darkSea from "../../assets/welcome-wallpapers/dark-sea.webp";
 import darkMoon from "../../assets/welcome-wallpapers/dark-moon.webp";
 import lightFog from "../../assets/welcome-wallpapers/light-fog.webp";
-import lightPaper from "../../assets/welcome-wallpapers/light-paper.webp";
-import lightGarden from "../../assets/welcome-wallpapers/light-garden.webp";
+import lightSky from "../../assets/welcome-wallpapers/light-sky.webp";
+import lightDune from "../../assets/welcome-wallpapers/light-dune.webp";
 
 export const WELCOME_WALLPAPERS: Record<EffectiveTheme, readonly string[]> = {
   dark: [darkMist, darkSea, darkMoon],
-  light: [lightFog, lightPaper, lightGarden],
+  light: [lightFog, lightSky, lightDune],
 };
 
 const LAST_WALLPAPER_KEY = "muse-welcome-wallpaper";

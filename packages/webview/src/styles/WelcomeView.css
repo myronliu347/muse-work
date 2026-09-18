@@ -33,10 +33,13 @@
 .welcome-view-wallpaper,
 .new-session-page-wallpaper {
   z-index: 0;
+  /* Cover fills the pane; extra inset hides the blur halo. Keep the photo's
+     own horizon — pinning Y too high turned seascapes into a bottom stripe. */
+  inset: -12%;
   background-size: cover;
-  background-position: center;
+  background-position: center center;
   background-repeat: no-repeat;
-  filter: blur(6px) saturate(0.92) brightness(0.72);
+  filter: blur(4px) saturate(1) brightness(0.9);
 }
 
 :root[data-theme="light"] .welcome-view-wallpaper,
@@ -50,14 +53,14 @@
   background:
     radial-gradient(
       ellipse 80% 60% at 50% 38%,
-      rgb(0 0 0 / 0.22) 0%,
-      rgb(0 0 0 / 0.42) 100%
+      rgb(0 0 0 / 0.06) 0%,
+      rgb(0 0 0 / 0.22) 100%
     ),
     linear-gradient(
       180deg,
-      rgb(0 0 0 / 0.22) 0%,
-      rgb(0 0 0 / 0.16) 42%,
-      rgb(0 0 0 / 0.34) 100%
+      rgb(0 0 0 / 0.12) 0%,
+      rgb(0 0 0 / 0.08) 42%,
+      rgb(0 0 0 / 0.28) 100%
     );
 }
 

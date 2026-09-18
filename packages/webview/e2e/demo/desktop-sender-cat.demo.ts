@@ -10,7 +10,7 @@ test.describe("Desktop New Session Sender Cat", () => {
   test("capture sender cat on new-session page", async ({ webviewPage }) => {
     const injector = new MessageInjector(webviewPage);
 
-    await webviewPage.setViewportSize({ width: 960, height: 640 });
+    await webviewPage.setViewportSize({ width: 1280, height: 800 });
 
     await injector.simulateExtensionMessage("desktopWorkdirState", {
       recentWorkdirs: [],
@@ -42,7 +42,28 @@ test.describe("Desktop New Session Sender Cat", () => {
     ).toBeVisible();
     await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
 
-    // Match typical desktop dark chrome for the review screenshot.
+    const wallpaper = webviewPage.getByTestId("new-session-wallpaper");
+    await expect(wallpaper).toBeVisible();
+    const cover = await wallpaper.evaluate((el) => {
+      const style = getComputedStyle(el);
+      const parent = el.parentElement;
+      if (!parent) return null;
+      const box = el.getBoundingClientRect();
+      const frame = parent.getBoundingClientRect();
+      return {
+        backgroundSize: style.backgroundSize,
+        backgroundPosition: style.backgroundPosition,
+        parentOverflow: getComputedStyle(parent).overflow,
+        bleedsX: box.width > frame.width + 8,
+        bleedsY: box.height > frame.height + 8,
+      };
+    });
+    expect(cover?.backgroundSize).toBe("cover");
+    expect(cover?.backgroundPosition).toBe("50% 50%");
+    expect(cover?.parentOverflow).toBe("hidden");
+    expect(cover?.bleedsX).toBe(true);
+    expect(cover?.bleedsY).toBe(true);
+
     await webviewPage.evaluate(() => {
       document.documentElement.setAttribute("data-theme", "dark");
       document.body.classList.add("vscode-dark");
