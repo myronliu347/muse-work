@@ -140,6 +140,8 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const plugins: Array<{ type: "local"; path: string }> = [];
     const issueDir = pluginDirIfPresent("issue");
     if (issueDir) plugins.push({ type: "local", path: issueDir });
+    const automationDir = pluginDirIfPresent("automation");
+    if (automationDir) plugins.push({ type: "local", path: automationDir });
 
     // popo 场景 agent：默认 popo 内置（systemPrompt 即 POPO 指令）；工具/权限规则生效
     const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
