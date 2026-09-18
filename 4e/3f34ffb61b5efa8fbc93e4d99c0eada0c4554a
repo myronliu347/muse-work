@@ -1,0 +1,82 @@
+packages/server/src/popo/setup.ts
+  a586fd8d098b258a 13,27-28,91
+packages/server/plugins/popo-notify/.wave-plugin/plugin.json
+  a586fd8d098b258a 1-8
+packages/server/plugins/popo-notify/skills/popo-notify/scripts/popo-notify.mjs
+  a586fd8d098b258a 1-77
+packages/server/src/services/sessionRunner/agent.ts
+  a586fd8d098b258a 76,88-91,94,98-100,114
+packages/server/src/popo/routes.ts
+  a586fd8d098b258a 94-119
+packages/server/tests/popoNotifyPluginScript.test.ts
+  a586fd8d098b258a 1-106
+packages/server/tests/popoRoutes.test.ts
+  a586fd8d098b258a 193-270
+packages/server/tests/sessionRunner.test.ts
+  a586fd8d098b258a 595-602,684,690-696,1059,1069-1081
+packages/server/plugins/popo-notify/skills/popo-notify/SKILL.md
+  a586fd8d098b258a 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4e3f34ffb61b5efa8fbc93e4d99c0eada0c4554a",
+  "prompts": {
+    "a586fd8d098b258a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4142128a-5083-4d67-8701-10ba2f879acd",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 373,
+      "total_deletions": 10,
+      "accepted_lines": 370,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 31
+        },
+        "packages/server/plugins/popo-notify/skills/popo-notify/scripts/popo-notify.mjs": {
+          "additions": 77,
+          "accepted_lines": 77
+        },
+        "packages/server/tests/popoRoutes.test.ts": {
+          "additions": 78,
+          "accepted_lines": 78
+        },
+        "packages/server/tests/popoNotifyPluginScript.test.ts": {
+          "additions": 108,
+          "deletions": 2,
+          "accepted_lines": 106
+        },
+        "packages/server/src/popo/setup.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/plugins/popo-notify/skills/popo-notify/SKILL.md": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 30
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 10,
+          "deletions": 5,
+          "accepted_lines": 10
+        },
+        "packages/server/plugins/popo-notify/.wave-plugin/plugin.json": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/src/popo/routes.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        }
+      }
+    }
+  }
+}
