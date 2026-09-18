@@ -190,4 +190,82 @@ describe("popo routes", () => {
     const missing = await app.fetch(new Request(`http://x/popo/chats/${chatKey}`, { method: "DELETE" }));
     expect(missing.status).toBe(404);
   });
+
+  it("POST /popo/notify sends text to masterUid and ignores receiver", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const rt = runtime();
+    rt.sendText = async (receiver, content) => {
+      sent.push({ receiver, content });
+    };
+    const app = createPopoRoutes(rt);
+    const res = await app.fetch(
+      new Request("http://x/popo/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: "巡检完成",
+          receiver: "other@corp.netease.com",
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(sent).toEqual([
+      { receiver: "master@corp.netease.com", content: "巡检完成" },
+    ]);
+  });
+
+  it("POST /popo/notify rejects empty text with 400", async () => {
+    const rt = runtime();
+    rt.sendText = async () => {};
+    const app = createPopoRoutes(rt);
+    const res = await app.fetch(
+      new Request("http://x/popo/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: "  " }),
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /popo/notify returns 503 when POPO is not configured", async () => {
+    const degraded: PopoRuntime = {
+      config: null as unknown as PopoRuntime["config"],
+      chatStore: null as unknown as PopoRuntime["chatStore"],
+      callbackPort: 3100,
+      ready: false,
+      error: "popo disabled: config unavailable",
+      url: "http://127.0.0.1:3100/popo/callback",
+      workdir: "/tmp/popo-routes-workdir",
+      configured: false,
+    };
+    const app = createPopoRoutes(degraded);
+    const res = await app.fetch(
+      new Request("http://x/popo/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: "hi" }),
+      }),
+    );
+    expect(res.status).toBe(503);
+  });
+
+  it("POST /popo/notify returns 502 when send fails", async () => {
+    const rt = runtime();
+    rt.sendText = async () => {
+      throw new Error("POPO send-msg 失败: 1 boom");
+    };
+    const app = createPopoRoutes(rt);
+    const res = await app.fetch(
+      new Request("http://x/popo/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: "hi" }),
+      }),
+    );
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toMatch(/boom/);
+  });
 });

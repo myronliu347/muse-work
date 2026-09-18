@@ -73,6 +73,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
    * Settings gate superpowers/mattpocock; issue and automation mount for
    * all sessions except issue-exec and origin=automation (unattended runs
    * and execution turns cannot manage issues or nested automations).
+   * popo-notify mounts on user + automation sessions, not issue-exec.
    */
   function enabledPluginDirs(session?: {
     agentName?: string;
@@ -84,15 +85,19 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       const dir = pluginDirIfPresent(name);
       return dir ? [dir] : [];
     });
+    const push = (name: string) => {
+      const dir = pluginDirIfPresent(name);
+      if (dir) dirs.push(dir);
+    };
     // Automation origin already skips issue; also skip automation plugin.
     if (session?.origin === "automation") {
+      push("popo-notify");
       return dirs;
     }
     if (session?.agentName !== resolveScenarioAgent("issue-exec", home)) {
-      const issueDir = pluginDirIfPresent("issue");
-      if (issueDir) dirs.push(issueDir);
-      const automationDir = pluginDirIfPresent("automation");
-      if (automationDir) dirs.push(automationDir);
+      push("issue");
+      push("automation");
+      push("popo-notify");
     }
     return dirs;
   }
@@ -106,7 +111,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
   function gatewayIdentity(
     gateway: GatewayResolution,
-    session?: { agentName?: string },
+    session?: { agentName?: string; origin?: "user" | "automation" },
   ): string {
     const credential =
       gateway.credentialFingerprint ?? gateway.apiKey ?? "";

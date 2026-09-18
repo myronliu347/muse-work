@@ -10,7 +10,7 @@ import { createChatStore, type ChatStore } from "./chatStore.js";
 import { createPopoHandler } from "./handler.js";
 import { createPopoAgentFactory } from "./popoAgent.js";
 import { loadPopoConfig, type PopoConfig } from "./popoConfig.js";
-import { createSender } from "./sender.js";
+import { createSender, type Sender } from "./sender.js";
 import { createTokenStore } from "./tokenStore.js";
 
 export type PopoRuntime = {
@@ -24,6 +24,8 @@ export type PopoRuntime = {
   workdir: string;
   /** 本地是否存在 popo 配置（~/.popo-config.json）；缺失时前端不显示机器人入口 */
   configured: boolean;
+  /** 主动发文本（定时任务通知等）；未配置时缺省。 */
+  sendText?: Sender["sendText"];
   /** 删除侧栏会话时释放常驻 agent。 */
   disposeChat?: (chatKey: string) => Promise<void>;
   /** 正在处理时读 agent 内存消息，供详情页展示思考/工具进度。 */
@@ -86,6 +88,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     appSecret: config.appSecret,
   });
   const sender = createSender({ tokenStore });
+  runtime.sendText = (receiver, content) => sender.sendText(receiver, content);
   const agentFactory = createPopoAgentFactory({
     home: ctx.home,
     workdir: popoWorkdir,

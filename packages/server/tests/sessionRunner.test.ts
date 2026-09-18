@@ -592,6 +592,14 @@ describe("sessionRunner concurrency / dispose", () => {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]issue$/),
       },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]automation$/),
+      },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]popo-notify$/),
+      },
     ]);
   });
 
@@ -673,11 +681,19 @@ describe("sessionRunner concurrency / dispose", () => {
     runner.invalidateAgentIdentities();
     await runner.sendMessage(session.id, "again");
     await expect.poll(() => pluginSnapshots.length).toBe(2);
-    // settings 全关后仍挂内置 issue；身份变化 → agent 重建
+    // settings 全关后仍挂内置 issue / automation / popo-notify；身份变化 → agent 重建
     expect(pluginSnapshots[1]).toEqual([
       {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]issue$/),
+      },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]automation$/),
+      },
+      {
+        type: "local",
+        path: expect.stringMatching(/plugins[\\/]popo-notify$/),
       },
     ]);
     expect(disposeCount).toBe(1);
@@ -1040,6 +1056,7 @@ describe("sessionRunner concurrency / dispose", () => {
     await runner.sendMessage(normal.id, "hi");
     await expect.poll(() => seen.length).toBe(1);
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/issue");
+    expect(JSON.stringify(seen[0].plugins)).toContain("plugins/popo-notify");
 
     const exec = store.create({
       workdir: home,
@@ -1049,5 +1066,18 @@ describe("sessionRunner concurrency / dispose", () => {
     await runner.sendMessage(exec.id, "hi");
     await expect.poll(() => seen.length).toBe(2);
     expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/issue");
+    expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/popo-notify");
+
+    const automation = store.create({
+      workdir: home,
+      model: "gpt-4.1",
+      agentName: "default",
+      origin: "automation",
+    });
+    await runner.sendMessage(automation.id, "hi");
+    await expect.poll(() => seen.length).toBe(3);
+    expect(JSON.stringify(seen[2].plugins ?? [])).toContain("plugins/popo-notify");
+    expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/issue");
+    expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/automation");
   });
 });

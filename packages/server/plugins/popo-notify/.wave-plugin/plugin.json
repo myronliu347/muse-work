@@ -1,0 +1,8 @@
+{
+  "name": "popo-notify",
+  "description": "用本机 POPO 机器人给主人发一条文本通知",
+  "version": "1.0.0",
+  "author": {
+    "name": "muse-work"
+  }
+}

@@ -91,5 +91,31 @@ export function createPopoRoutes(runtime: PopoRuntime, options?: PopoRoutesOptio
     return c.json({ ok: true });
   });
 
+  app.post("/popo/notify", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    const raw =
+      body && typeof body === "object" && "text" in body
+        ? (body as { text: unknown }).text
+        : undefined;
+    const text = typeof raw === "string" ? raw.trim() : "";
+    if (!text) return c.json({ error: "text required" }, 400);
+    const masterUid = runtime.config?.masterUid?.trim();
+    if (!runtime.configured || !runtime.sendText || !masterUid) {
+      return c.json({ error: "popo notify unavailable" }, 503);
+    }
+    try {
+      await runtime.sendText(masterUid, text);
+      return c.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return c.json({ error: message }, 502);
+    }
+  });
+
   return app;
 }
