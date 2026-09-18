@@ -1,0 +1,94 @@
+packages/webview/src/styles/LoadingLogo.css
+  b813730ec409c95d 2
+packages/desktop/assets/icon.svg
+  b813730ec409c95d 1-2
+packages/webview/src/styles/DesktopApp.css
+  b813730ec409c95d 140-141
+  180e6f1ff45934d9 71,86,126,699,1011
+packages/webview/src/components/chat/LoadingLogo.tsx
+  b813730ec409c95d 2,8
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  b813730ec409c95d 4
+packages/webview/e2e/demo/desktop-app.demo.ts
+  b813730ec409c95d 4,167-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f2fc77379cf0cca44b0eb1029144f791ad1bef87",
+  "prompts": {
+    "180e6f1ff45934d9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "222e6633-6430-4b90-b567-042ac265f0f3",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 59,
+      "total_deletions": 44,
+      "accepted_lines": 22,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "README.md": {
+          "additions": 54,
+          "deletions": 39,
+          "accepted_lines": 17
+        }
+      }
+    },
+    "b813730ec409c95d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a216758-9fdf-431e-8cdd-70134aa18c52",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 14,
+      "total_deletions": 30,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/assets/icon.svg": {
+          "additions": 2,
+          "deletions": 11,
+          "accepted_lines": 2
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/LoadingLogo.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/assets/muse-m.svg": {
+          "deletions": 12
+        },
+        "packages/webview/src/components/chat/LoadingLogo.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
