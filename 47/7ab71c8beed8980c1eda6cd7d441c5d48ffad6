@@ -1,0 +1,28 @@
+README.md
+  180e6f1ff45934d9 5,11,13,17,45-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "477ab71c8beed8980c1eda6cd7d441c5d48ffad6",
+  "prompts": {
+    "180e6f1ff45934d9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "222e6633-6430-4b90-b567-042ac265f0f3",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 17,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "README.md": {
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
