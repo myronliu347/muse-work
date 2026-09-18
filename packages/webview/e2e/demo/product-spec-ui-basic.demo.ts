@@ -53,33 +53,33 @@ test.describe("Product Specification Screenshots - UI Basic", () => {
 
     await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
     await expect(webviewPage.getByTestId("welcome-cards")).toBeVisible();
+    await expect(webviewPage.getByTestId("welcome-login")).toBeVisible();
     const geometry = await webviewPage.evaluate(() => {
       const headline = document.querySelector(
         '[data-testid="welcome-headline"]',
       );
-      const btn = Array.from(document.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("登"),
-      );
-      const container = document.querySelector(
-        ".chat-container",
+      const login = document.querySelector(
+        '[data-testid="welcome-login"]',
       ) as HTMLElement | null;
-      if (!headline || !btn || !container) return null;
-      const bb = btn.getBoundingClientRect();
-      const cb = container.getBoundingClientRect();
+      const cards = document.querySelector(
+        '[data-testid="welcome-cards"]',
+      ) as HTMLElement | null;
+      if (!headline || !login || !cards) return null;
       return {
         hasHeadline: !!headline,
-        btnCenterDelta: Math.round(
-          (bb.left + bb.right) / 2 - (cb.left + cb.right) / 2,
+        widthDelta: Math.round(
+          login.getBoundingClientRect().width -
+            cards.getBoundingClientRect().width,
         ),
       };
     });
     expect(geometry).not.toBeNull();
     expect(geometry!.hasHeadline).toBe(true);
-    expect(Math.abs(geometry!.btnCenterDelta)).toBeLessThan(24);
+    expect(Math.abs(geometry!.widthDelta)).toBeLessThan(8);
 
     await screenshotWebp(
       webviewPage,
-      "../../docs/public/screenshots/spec-welcome-login.webp",
+      "../../docs/public/screenshots/spec-welcome-login-sidebar.webp",
     );
 
     // Restore logged-in state for subsequent steps

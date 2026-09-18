@@ -80,4 +80,41 @@ test.describe("Desktop New Session Sender Cat", () => {
       "../../docs/public/screenshots/desktop-new-session-cat-composer.webp",
     );
   });
+
+  test("capture unauthenticated login CTA on new-session page", async ({
+    webviewPage,
+  }) => {
+    const injector = new MessageInjector(webviewPage);
+    await webviewPage.setViewportSize({ width: 1280, height: 800 });
+    await injector.simulateExtensionMessage("desktopWorkdirState", {
+      recentWorkdirs: [],
+    });
+    await injector.waitForChatAppReady();
+    await injector.simulateExtensionMessage("setInitialState", {
+      messages: [],
+      isStreaming: false,
+      sessions: [],
+      isAuthenticated: false,
+      configurationData: {
+        baseURL: "https://api.anthropic.com/v1",
+        model: "claude-sonnet-4-20250514",
+        fastModel: "claude-haiku-4-20250514",
+      },
+      permissionMode: "default",
+      session: {
+        id: "__draft__",
+        sessionType: "main",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        latestTotalTokens: 0,
+      },
+    });
+
+    await expect(webviewPage.getByTestId("new-session-page")).toBeVisible();
+    await expect(webviewPage.getByText("登 录")).toBeVisible();
+    await screenshotWebp(
+      webviewPage,
+      "../../docs/public/screenshots/spec-welcome-login.webp",
+    );
+  });
 });

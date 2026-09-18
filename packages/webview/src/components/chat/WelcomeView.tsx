@@ -43,12 +43,12 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
         ))}
       </div>
       {showLogin && (
-        <>
+        <div className="welcome-login" data-testid="welcome-login">
           <div className="welcome-login-hint">登录后即可开始使用~</div>
           <button type="button" className="welcome-login-btn" onClick={onLogin}>
             登 录
           </button>
-        </>
+        </div>
       )}
     </div>
   );

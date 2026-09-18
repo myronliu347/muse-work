@@ -43,6 +43,7 @@ describe("WelcomeView", () => {
 
   it("shows the login CTA when unauthenticated without direct-connect", () => {
     renderWelcome({ isAuthenticated: false, embedded: true });
+    expect(screen.getByTestId("welcome-login")).toBeInTheDocument();
     expect(screen.getByText("登 录")).toBeInTheDocument();
     expect(screen.getByText("登录后即可开始使用~")).toBeInTheDocument();
   });

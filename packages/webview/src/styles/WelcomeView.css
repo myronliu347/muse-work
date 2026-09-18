@@ -207,53 +207,73 @@
   color: var(--gray-11);
 }
 
+.welcome-login {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 14px 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--gray-12) 12%, transparent);
+  border-radius: var(--radius-4);
+  background: color-mix(in srgb, var(--gray-2) 78%, transparent);
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.28);
+}
+
+.welcome-cards + .welcome-login {
+  margin-top: calc(var(--space-3) - var(--space-5));
+}
+
 .welcome-login-hint {
+  margin: 0;
+  min-width: 0;
   font-size: 13px;
+  line-height: 20px;
   color: color-mix(in srgb, var(--gray-12) 72%, transparent);
-  text-align: center;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.55);
+  text-align: left;
+}
+
+:root[data-theme="light"] .welcome-login {
+  border-color: rgb(0 0 0 / 0.08);
+  background: rgb(255 255 255 / 0.86);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
 }
 
 :root[data-theme="light"] .welcome-login-hint {
   color: var(--gray-11);
-  text-shadow:
-    0 1px 0 rgb(255 255 255 / 0.8),
-    0 8px 24px rgb(255 255 255 / 0.65);
 }
 
 .welcome-login-btn {
   appearance: none;
   box-sizing: border-box;
+  flex-shrink: 0;
   width: auto;
-  min-width: 128px;
-  height: 36px;
-  min-height: 36px;
-  padding: 0 20px;
-  border: 1px solid color-mix(in srgb, var(--accent-9) 70%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-9) 86%, transparent);
-  backdrop-filter: blur(22px) saturate(1.15);
-  -webkit-backdrop-filter: blur(22px) saturate(1.15);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 0.28);
+  min-width: 72px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-3);
+  background: var(--accent-9);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
-  line-height: 36px;
+  line-height: 32px;
   cursor: pointer;
 }
 
 .welcome-login-btn:hover {
   background: var(--accent-10);
-  border-color: var(--accent-10);
 }
 
 .welcome-login-btn:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--accent-9);
   outline-offset: 2px;
-}
-
-:root[data-theme="light"] .welcome-login-btn {
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
 }
 
 :root[data-theme="light"] .welcome-login-btn:focus-visible {
@@ -299,9 +319,13 @@
     background: var(--gray-2);
   }
 
-  .welcome-login-btn {
+  .welcome-login {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    background: var(--gray-2);
+  }
+
+  .welcome-login-btn {
     background: var(--accent-9);
   }
 }
