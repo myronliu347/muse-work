@@ -1,0 +1,51 @@
+packages/webview/src/components/chat/welcomeWallpapers.ts
+  b813730ec409c95d 6-7,11
+docs/superpowers/specs/2026-09-01-welcome-view-design.md
+  b813730ec409c95d 60
+packages/webview/e2e/demo/desktop-sender-cat.demo.ts
+  b813730ec409c95d 13,45-66
+packages/webview/src/styles/WelcomeView.css
+  b813730ec409c95d 36-38,40,42,56-57,61-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8cc46a9220ce60a252ee03fef42ae2d0b8b73d78",
+  "prompts": {
+    "b813730ec409c95d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6a216758-9fdf-431e-8cdd-70134aa18c52",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 126,
+      "total_deletions": 102,
+      "accepted_lines": 60,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/e2e/demo/desktop-sender-cat.demo.ts": {
+          "additions": 46,
+          "deletions": 25,
+          "accepted_lines": 26
+        },
+        "docs/superpowers/specs/2026-09-01-welcome-view-design.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/welcomeWallpapers.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 76,
+          "deletions": 73,
+          "accepted_lines": 30
+        }
+      }
+    }
+  }
+}
