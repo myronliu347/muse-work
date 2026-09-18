@@ -1,11 +1,11 @@
 /**
- * LoadingLogo - Muse M mark with a light-sweep animation shown while the
+ * LoadingLogo - Muse cat mark with a light-sweep animation shown while the
  * initial state (auth, sessions) is being loaded.
  */
 
 import React from "react";
 import "../../styles/LoadingLogo.css";
-import museM from "../../assets/muse-m.svg";
+import museM from "../../assets/muse-m.png";
 
 const MMark: React.FC<{ size: number }> = ({ size }) => (
   <img

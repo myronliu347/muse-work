@@ -68,7 +68,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: color-mix(in srgb, var(--gray-2) 38%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 72%, transparent);
 }
 
 .desktop-sidebar
@@ -83,7 +83,7 @@
 }
 
 :root[data-theme="light"] .desktop-sidebar::before {
-  background: color-mix(in srgb, var(--gray-1) 42%, transparent);
+  background: color-mix(in srgb, var(--gray-1) 78%, transparent);
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -123,7 +123,7 @@
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
   border-top: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
-  background: color-mix(in srgb, var(--gray-2) 35%, transparent);
+  background: color-mix(in srgb, var(--gray-2) 70%, transparent);
   position: relative;
   flex-shrink: 0;
 }
@@ -137,8 +137,8 @@
 }
 
 .desktop-sidebar-logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
@@ -696,7 +696,7 @@
 }
 
 .issue-sidebar-section-empty {
-  color: var(--gray-9);
+  color: var(--gray-11);
 }
 
 .issue-sidebar-empty {
@@ -1008,7 +1008,7 @@
   /* Align roughly with session titles (status/icon column + gap). */
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
   font-size: var(--font-size-1);
-  opacity: 0.6;
+  color: var(--gray-11);
 }
 
 /* ---- Worktree controls: branch selector + checkbox (FR-022/FR-023) ----

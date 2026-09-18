@@ -1,7 +1,7 @@
 import React from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { NewSessionIcon, AutomationsIcon } from "../shared/HeaderIcons";
-import museM from "../../assets/muse-m.svg";
+import museM from "../../assets/muse-m.png";
 import {
   SessionTree,
   SESSION_DRAG_MIME,

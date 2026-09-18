@@ -1,7 +1,7 @@
 import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
-import { screenshotWebp } from "../utils/screenshot.js";
+import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 import { mockMuseSettingsApis } from "../utils/museApiMock.js";
 
 const DIR_A = "/Users/dev/projects/wave-agent";
@@ -164,6 +164,11 @@ test.describe("Desktop App Screenshots", () => {
     // setInitialState was dispatched before ChatApp's listener attached.
     await expect(webviewPage.locator(".loading-logo")).toHaveCount(0);
     await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
+    await expect(webviewPage.getByTestId("desktop-brand")).toBeVisible();
+    await elementScreenshotWebp(
+      webviewPage.getByTestId("desktop-sidebar-footer"),
+      "../../docs/public/screenshots/desktop-sidebar-brand.webp",
+    );
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-first-launch.webp",
