@@ -12,6 +12,10 @@ import {
 } from "./utils.js";
 import type { TreeSession } from "./utils.js";
 import type { BridgeCtx } from "./ctx.js";
+import {
+  pendingIssueWorktreeRemovals,
+  worktreeRemovalForSession,
+} from "../worktreeCleanup.js";
 
 const DRAFT_SESSION_ID = "__draft__";
 
@@ -24,6 +28,7 @@ export interface SessionModule {
   handleSetSessionModel: (model: string) => Promise<void>;
   handleSetSessionAgent: (agent: string) => Promise<void>;
   handleDesktopReady: () => Promise<void>;
+  handleRefreshSessionTree: () => Promise<void>;
   refreshTree: () => Promise<MuseSessionsGrouped>;
   loadMessages: (id: string) => Promise<void>;
   applyGrouped: (grouped: MuseSessionsGrouped) => void;
@@ -139,6 +144,26 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     return grouped;
   };
 
+  const handleRefreshSessionTree = async (): Promise<void> => {
+    const pending = pendingIssueWorktreeRemovals(ctx.issueGroups);
+    await refreshTree();
+    if (pending.length === 0) return;
+    const closedIds = new Set(ctx.closedIssueGroups.map((g) => g.issueId));
+    const posted = new Set<string>();
+    for (const removal of pending) {
+      if (!closedIds.has(removal.issueId)) continue;
+      const key = `${removal.path}\0${removal.branch}\0${removal.repoRoot}`;
+      if (posted.has(key)) continue;
+      posted.add(key);
+      ctx.outer?.postMessage({
+        command: "desktopRemoveWorktree",
+        path: removal.path,
+        branch: removal.branch,
+        repoRoot: removal.repoRoot,
+      });
+    }
+  };
+
   const loadMessages = async (id: string): Promise<void> => {
     const { messages } = await ctx.api.getMessages(id);
     postToWebview({ command: "updateMessages", messages });
@@ -239,17 +264,11 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.clearPendingPermission(id);
     const existing = ctx.treeById().get(id);
     // Terminal PTY is workdir-scoped — deleting a chat must not kill the shell.
-    if (
-      existing?.worktreeName &&
-      existing.worktreeBranch &&
-      existing.worktreeRepoRoot &&
-      existing.workdir
-    ) {
+    const removal = existing ? worktreeRemovalForSession(existing) : null;
+    if (removal) {
       ctx.outer?.postMessage({
         command: "desktopRemoveWorktree",
-        path: existing.workdir,
-        branch: existing.worktreeBranch,
-        repoRoot: existing.worktreeRepoRoot,
+        ...removal,
       });
     }
     await ctx.api.deleteSession(id);
@@ -370,6 +389,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     handleSetSessionModel,
     handleSetSessionAgent,
     handleDesktopReady,
+    handleRefreshSessionTree,
     refreshTree,
     loadMessages,
     applyGrouped,

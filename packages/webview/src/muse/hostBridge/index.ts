@@ -320,7 +320,7 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     setPermissionMode: (msg) =>
       void chat.handleSetPermissionMode(msg as { mode?: string }),
     desktopRefreshSessionTree: () =>
-      void ctx.refreshTree().catch(() => {
+      void session.handleRefreshSessionTree().catch(() => {
         // 侧栏保持旧数据，下次任意刷新兜底
       }),
     getMcpServers: () => void chat.handleGetMcpServers(),

@@ -336,6 +336,67 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("desktopRefreshSessionTree removes the worktree when an issue moves to closed", async () => {
+    const wtSession: MuseSession = {
+      ...baseSession,
+      id: "sess-plan",
+      workdir: "/repo/.wave/worktrees/login-fix",
+      title: "登录",
+      worktreeName: "login-fix",
+      worktreeBranch: "worktree-login-fix",
+      worktreeRepoRoot: "/repo",
+    };
+    const group = {
+      issueId: "issue-wt",
+      title: "登录",
+      priority: "p1",
+      status: "planning",
+      items: [] as Array<{ id: string; content: string; status: "pending" }>,
+      sessions: [wtSession],
+    };
+    let calls = 0;
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => {
+        calls++;
+        if (calls === 1) {
+          return {
+            pinned: [],
+            recent: [],
+            issueGroups: [group],
+            closedIssueGroups: [],
+          };
+        }
+        return {
+          pinned: [],
+          recent: [],
+          issueGroups: [],
+          closedIssueGroups: [{ ...group, status: "completed" }],
+        };
+      }),
+    });
+    const outer = { postMessage: vi.fn(), getState: () => null, setState: () => {} };
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+      outer,
+    });
+
+    bridge.postMessage({ command: "desktopReady" });
+    await flushUntil(() => calls >= 1);
+    vi.mocked(outer.postMessage).mockClear();
+
+    bridge.postMessage({ command: "desktopRefreshSessionTree" });
+    await flushUntil(() => calls >= 2);
+
+    expect(outer.postMessage).toHaveBeenCalledWith({
+      command: "desktopRemoveWorktree",
+      path: "/repo/.wave/worktrees/login-fix",
+      branch: "worktree-login-fix",
+      repoRoot: "/repo",
+    });
+  });
+
   it("issue:changed WS posts issue:changed to webview (all panes)", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {
