@@ -263,12 +263,12 @@
   flex-shrink: 1;
 }
 
-.input-model-select .muse-model-select {
+.input-model-select .muse-model-select.rt-SelectTrigger {
   box-sizing: border-box;
-  max-width: 180px;
+  max-width: 220px;
   height: 28px;
   margin: 0;
-  padding: 0 var(--space-3);
+  padding: 0 6px 0 var(--space-2);
   gap: var(--space-1);
   font-size: var(--font-size-1);
   line-height: 26px;
@@ -278,18 +278,18 @@
   box-shadow: none;
   border-radius: 999px;
   cursor: pointer;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
-.input-model-select .muse-model-select:hover,
-.input-model-select .muse-model-select:focus-visible {
+.input-model-select .muse-model-select.rt-SelectTrigger:hover,
+.input-model-select .muse-model-select.rt-SelectTrigger:focus-visible {
   background-color: var(--gray-3);
 }
 
-@container composer (max-width: 560px) {
+@container composer (max-width: 420px) {
   .input-meta-row .desktop-workdir-trigger,
-  .input-model-select .muse-model-select {
-    max-width: 112px;
+  .input-model-select .muse-model-select.rt-SelectTrigger {
+    max-width: 160px;
   }
 
   .agent-selector-trigger {

@@ -1622,6 +1622,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                     api={modelSelectApi}
                     modelId={modelId}
                     onModelChange={onModelChange}
+                    triggerVariant="ghost"
                   />
                 </div>
               )}

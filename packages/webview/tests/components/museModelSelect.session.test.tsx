@@ -292,6 +292,7 @@ describe("MessageInput session model select", () => {
 
     const trigger = await screen.findByTestId("muse-model-select");
     expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
+    expect(trigger).toHaveClass("rt-variant-ghost");
     expect(trigger.closest(".input-model-select")).not.toBeNull();
   });
 });
