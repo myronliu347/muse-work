@@ -1,0 +1,38 @@
+packages/webview/src/components/chat/MessageInput.tsx
+  42dcd0f8927d8732 1629,1641-1656
+packages/webview/tests/webview/streamingButtonStates.test.tsx
+  42dcd0f8927d8732 17,29
+packages/webview/src/styles/MessageInput.css
+  42dcd0f8927d8732 237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2cd1a5958d069ee36ca658068c5641447771accf",
+  "prompts": {
+    "42dcd0f8927d8732": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d7e58de1-c1da-49d8-aa9f-5a871ee3483b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 20,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/streamingButtonStates.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
