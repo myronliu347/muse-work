@@ -271,10 +271,15 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     return () => clearTimeout(timer);
   }, [queueEditWarning, patchPane]);
 
-  // Desktop: reset worktree opt-in when the workdir changes. Do not depend on
-  // `gitBranches` — silent poll / visibility refresh rewrite paneGitBranches
-  // every ~3s and must not clear the user's checkbox or base-branch pick.
+  // Desktop: reset worktree opt-in only when the workdir path actually changes.
+  // Do not depend on `gitBranches` (poll rewrites it) or treat `patchPane`
+  // identity changes as a workdir switch — that wiped the pick and created
+  // from HEAD/current instead of the selected base branch.
+  const prevWorkdirRef = useRef(effectiveWorkdir);
   useEffect(() => {
+    const prev = prevWorkdirRef.current;
+    prevWorkdirRef.current = effectiveWorkdir;
+    if (prev === effectiveWorkdir) return;
     patchPane({
       worktreeBranch: "",
       worktreeChecked: false,

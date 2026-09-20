@@ -108,4 +108,61 @@ test.describe("Desktop git context and worktree create", () => {
     const createMsg = await injector.waitForMessage("desktopCreateWorktree");
     expect(createMsg).toBeTruthy();
   });
+
+  test("selecting a non-current branch then sending uses that baseBranch", async ({
+    webviewPage,
+  }) => {
+    const injector = new MessageInjector(webviewPage);
+    await webviewPage.setViewportSize({ width: 960, height: 640 });
+
+    await injector.simulateExtensionMessage("desktopWorkdirState", {
+      workdir: DIR_A,
+      recentWorkdirs: [DIR_A],
+    });
+    await injector.waitForChatAppReady();
+    await injector.simulateExtensionMessage("setInitialState", {
+      ...initialState,
+      workdir: DIR_A,
+      isAuthenticated: true,
+    });
+
+    await injector.waitForMessage("desktopListGitBranches");
+    await injector.simulateExtensionMessage("desktopGitBranches", {
+      result: {
+        branches: ["main", "develop"],
+        current: "main",
+      },
+    });
+
+    await expect(
+      webviewPage.getByTestId("desktop-worktree-controls"),
+    ).toBeVisible();
+
+    await webviewPage.getByTestId("desktop-branch-selector").click();
+    await expect(webviewPage.getByTestId("desktop-branch-menu")).toBeVisible();
+    await webviewPage
+      .getByTestId("desktop-branch-item")
+      .filter({ hasText: "develop" })
+      .click();
+    await expect(webviewPage.getByTestId("desktop-branch-selector")).toContainText(
+      "develop",
+    );
+
+    await webviewPage.getByTestId("desktop-worktree-checkbox").click();
+    await injector.clearMessageLog();
+
+    await webviewPage.focus('[data-testid="message-input"]');
+    await webviewPage.keyboard.type("从 develop 开 worktree");
+    await webviewPage.keyboard.press("Enter");
+
+    await injector.waitForMessage("desktopCreateWorktree");
+    const sent = await injector.getMessagesSentToExtension();
+    const create = sent.find((m) => m.command === "desktopCreateWorktree");
+    expect(create).toMatchObject({
+      command: "desktopCreateWorktree",
+      baseBranch: "develop",
+      workdir: DIR_A,
+    });
+    expect(create?.baseBranch).not.toBe("main");
+  });
 });

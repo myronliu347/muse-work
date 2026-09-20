@@ -9,6 +9,7 @@ import {
   sendHostMessage,
   renderDesktopApp,
   bootstrapDesktopAuth,
+  fireInput,
 } from "./test-utils";
 
 vi.mock("../../src/styles/DesktopApp.css", () => ({}));
@@ -114,6 +115,39 @@ describe("session header git branch", () => {
     ).toBeChecked();
     expect(screen.getByTestId("desktop-branch-selector")).toHaveTextContent(
       "dev",
+    );
+  });
+
+  it("creates a worktree from the selected base branch, not HEAD/current", async () => {
+    const { vscode } = renderDesktop("/work/a");
+    act(() => {
+      sendCommand("desktopGitBranches", {
+        workdir: "/work/a",
+        result: { branches: ["main", "dev"], current: "main" },
+      });
+    });
+
+    fireEvent.click(
+      screen.getByTestId("desktop-worktree-checkbox").querySelector("input")!,
+    );
+    fireEvent.click(screen.getByTestId("desktop-branch-selector"));
+    fireEvent.click(screen.getAllByTestId("desktop-branch-item")[1]!);
+    expect(screen.getByTestId("desktop-branch-selector")).toHaveTextContent(
+      "dev",
+    );
+
+    vscode.postMessage.mockClear();
+    const input = screen.getByTestId("message-input");
+    input.textContent = "在新 worktree 里改登录";
+    await fireInput(input, { inputType: "insertText" });
+    fireEvent.click(screen.getByTestId("send-btn"));
+
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "desktopCreateWorktree",
+        workdir: "/work/a",
+        baseBranch: "dev",
+      }),
     );
   });
 

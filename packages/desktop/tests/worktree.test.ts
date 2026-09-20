@@ -47,4 +47,52 @@ describe("createWorktree / removeWorktree", () => {
     await removeWorktree(session);
     expect(fs.existsSync(session.path)).toBe(false);
   });
+
+  it("starts the new worktree from the selected base branch, not HEAD", async () => {
+    const repo = initRepo();
+    repos.push(repo);
+    fs.writeFileSync(path.join(repo, "README.md"), "on-main\n");
+    execFileSync("git", ["add", "."], { cwd: repo });
+    execFileSync("git", ["commit", "-m", "main-tip"], { cwd: repo });
+    const mainSha = execFileSync("git", ["rev-parse", "main"], {
+      cwd: repo,
+      encoding: "utf8",
+    }).trim();
+
+    execFileSync("git", ["checkout", "-b", "test"], { cwd: repo });
+    fs.writeFileSync(path.join(repo, "README.md"), "on-test\n");
+    execFileSync("git", ["add", "."], { cwd: repo });
+    execFileSync("git", ["commit", "-m", "test-tip"], { cwd: repo });
+    const testSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repo,
+      encoding: "utf8",
+    }).trim();
+    expect(testSha).not.toBe(mainSha);
+
+    const session = await createWorktree("from-main", repo, {
+      baseBranch: "main",
+    });
+    expect(session.baseBranch).toBe("main");
+    const worktreeSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: session.path,
+      encoding: "utf8",
+    }).trim();
+    expect(worktreeSha).toBe(mainSha);
+    expect(fs.readFileSync(path.join(session.path, "README.md"), "utf8")).toBe(
+      "on-main\n",
+    );
+  });
+
+  it("does not silently start from HEAD when the selected base branch is missing", async () => {
+    const repo = initRepo();
+    repos.push(repo);
+    execFileSync("git", ["checkout", "-b", "test"], { cwd: repo });
+    fs.writeFileSync(path.join(repo, "README.md"), "on-test\n");
+    execFileSync("git", ["add", "."], { cwd: repo });
+    execFileSync("git", ["commit", "-m", "test-tip"], { cwd: repo });
+
+    await expect(
+      createWorktree("from-missing", repo, { baseBranch: "does-not-exist" }),
+    ).rejects.toThrow(/does-not-exist|not a valid object|unknown revision/i);
+  });
 });

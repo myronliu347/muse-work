@@ -125,8 +125,10 @@ export async function createWorktree(
         { cwd: repoRoot },
       );
     } else if (
-      stderr.includes("not a valid object name") ||
-      stderr.includes("unknown revision")
+      !options?.baseBranch &&
+      (stderr.includes("not a valid object name") ||
+        stderr.includes("unknown revision") ||
+        stderr.includes("invalid reference"))
     ) {
       await execFileAsync(
         "git",

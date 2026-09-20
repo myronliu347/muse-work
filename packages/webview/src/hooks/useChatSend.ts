@@ -67,12 +67,25 @@ export function useChatSend({
   gitBranches,
   effectiveWorkdir,
 }: UseChatSendParams): ChatSendHandlers {
-  // Live workdir read for the first-message worktree branch (handleSendMessage
-  // runs before the host pushes the post-create workdir back).
+  // Live reads for the first-message worktree create. handleSendMessage can
+  // close over an older checkbox/branch if the composer send callback lags
+  // one render behind a pick.
   const effectiveWorkdirRef = useRef(effectiveWorkdir);
+  const worktreeCheckedRef = useRef(worktreeChecked);
+  const worktreeBranchRef = useRef(worktreeBranch);
+  const gitBranchesRef = useRef(gitBranches);
   useEffect(() => {
     effectiveWorkdirRef.current = effectiveWorkdir;
   }, [effectiveWorkdir]);
+  useEffect(() => {
+    worktreeCheckedRef.current = worktreeChecked;
+  }, [worktreeChecked]);
+  useEffect(() => {
+    worktreeBranchRef.current = worktreeBranch;
+  }, [worktreeBranch]);
+  useEffect(() => {
+    gitBranchesRef.current = gitBranches;
+  }, [gitBranches]);
 
   const handleClearChat = useCallback(() => {
     // /clear 斜杠命令：三端统一为"原地清空当前会话"，streaming 期间忽略。
@@ -154,19 +167,22 @@ export function useChatSend({
       // Desktop worktree flow (FR-023): on the first message of a new session
       // with the worktree checkbox on, create the worktree first — the main
       // process switches into it and forwards this message.
+      const branches = gitBranchesRef.current;
+      const selectedBase =
+        worktreeBranchRef.current.trim() || branches?.current || "";
       if (
         host?.type === "desktop" &&
         !stateRef.current.messages.some(
           (m) => !(m.role === "user" && m.isMeta),
         ) &&
-        worktreeChecked &&
+        worktreeCheckedRef.current &&
         effectiveWorkdirRef.current &&
-        gitBranches
+        branches
       ) {
         postToHost({
           command: "desktopCreateWorktree",
           workdir: effectiveWorkdirRef.current,
-          baseBranch: worktreeBranch || gitBranches.current,
+          baseBranch: selectedBase || undefined,
           text: trimmedText,
           images: images,
         });
@@ -190,9 +206,6 @@ export function useChatSend({
     [
       handleClearChat,
       host,
-      worktreeChecked,
-      worktreeBranch,
-      gitBranches,
       postToHost,
       patchPane,
       vscode,

@@ -52,6 +52,8 @@
   min-width: 0;
   padding: var(--space-2) 2px 0;
   overflow: visible;
+  position: relative;
+  z-index: 3;
 }
 
 .input-meta-row .desktop-workdir-container,

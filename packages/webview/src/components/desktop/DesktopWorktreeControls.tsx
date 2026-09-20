@@ -15,7 +15,8 @@ export interface DesktopWorktreeControlsProps {
  * Branch selector + worktree checkbox shown next to the workdir selector on
  * the input toolbar row (FR-022/FR-023). Only rendered when the current workdir
  * is a git repo. Same dropdown pattern as DesktopWorkdirSelector: relative
- * container, menu expands upward, click-outside closes.
+ * container, menu expands downward (away from the contenteditable), click-outside
+ * closes.
  */
 export const DesktopWorktreeControls: React.FC<
   DesktopWorktreeControlsProps
@@ -69,7 +70,7 @@ export const DesktopWorktreeControls: React.FC<
         </div>
         {menuOpen && (
           <div
-            className="desktop-workdir-menu"
+            className="desktop-workdir-menu desktop-workdir-menu--down"
             role="listbox"
             data-testid="desktop-branch-menu"
           >
@@ -78,6 +79,13 @@ export const DesktopWorktreeControls: React.FC<
                 key={b}
                 className={`desktop-workdir-menu-item${b === branch ? " desktop-branch-active" : ""}`}
                 role="option"
+                onMouseDown={(e) => {
+                  // Prevent the composer contenteditable from stealing the
+                  // gesture (blur cancels click) so the pick actually sticks.
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectBranch(b);
+                }}
                 onClick={() => handleSelectBranch(b)}
                 title={b}
                 data-testid="desktop-branch-item"
