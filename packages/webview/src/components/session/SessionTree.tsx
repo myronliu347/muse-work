@@ -129,6 +129,17 @@ export function stripIssueSessionRoleSuffix(title: string): string {
   return title.replace(/\s*·\s*(规划|执行)\s*$/u, "").trim() || title;
 }
 
+export function isSingleAgentIssue(
+  group: Pick<
+    DesktopIssueGroup,
+    "agentMode" | "executionSessionId" | "sessions"
+  >,
+): boolean {
+  if (group.agentMode === "split") return false;
+  if (group.agentMode === "single") return true;
+  return !group.executionSessionId && (group.sessions?.length ?? 0) <= 1;
+}
+
 export function issueSessionRole(
   sessionId: string,
   group: Pick<DesktopIssueGroup, "planningSessionId" | "executionSessionId">,
@@ -441,6 +452,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       hideWorkdir?: boolean;
       hideActions?: boolean;
       displayTitle?: string;
+      allowRename?: boolean;
     },
   ) => {
     const running =
@@ -458,6 +470,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     // Worktree sessions get a branch icon next to the relative time, and a
     // hover card on the right showing branch / worktree name / workdir.
     const listTitle = opts?.displayTitle || session.title || "新对话";
+    const canRename =
+      Boolean(onRenameSession) && (opts?.allowRename ?? !opts?.hideActions);
     const worktreeInfo =
       session.hasWorktree && (session.worktreeName || session.worktreeBranch)
         ? {
@@ -529,9 +543,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           ) : (
             <span
               className="desktop-session-title"
-              title="双击修改标题"
+              title={canRename ? "双击修改标题" : undefined}
               onDoubleClick={(e) => {
-                if (!onRenameSession) return;
+                if (!canRename || !onRenameSession) return;
                 e.stopPropagation();
                 setEditingSessionId(session.sessionId);
                 setEditingTitle(session.title || "新对话");
@@ -733,6 +747,17 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 const sessions = group.sessions ?? [];
                 const statusLabel =
                   ISSUE_STATUS_LABEL[group.status] ?? group.status;
+                const boundSession = isSingleAgentIssue(group)
+                  ? sessions[0]
+                  : undefined;
+                const boundCurrent =
+                  Boolean(boundSession) &&
+                  boundSession!.sessionId === currentSessionId;
+                const boundVisible =
+                  Boolean(boundSession) &&
+                  !boundCurrent &&
+                  (visibleSessionIds?.includes(boundSession!.sessionId) ??
+                    false);
                 return (
                   <div
                     key={group.issueId}
@@ -754,8 +779,19 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       wrap={false}
                     >
                       <div
-                        className="issue-sidebar-row"
-                        onClick={() => toggleIssueCollapsed(group.issueId)}
+                        className={`issue-sidebar-row${boundCurrent ? " issue-sidebar-row--current" : ""}${boundVisible ? " issue-sidebar-row--visible" : ""}`}
+                        onClick={(e) => {
+                          if (boundSession) {
+                            const workdir = boundSession.workdir ?? "";
+                            if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
+                              onOpenPane(workdir, boundSession.sessionId);
+                            } else {
+                              onSelectSession(workdir, boundSession.sessionId);
+                            }
+                            return;
+                          }
+                          toggleIssueCollapsed(group.issueId);
+                        }}
                         data-testid={`desktop-session-issue-row-${group.issueId}`}
                       >
                         <span
@@ -765,9 +801,11 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           <span className="desktop-session-workdir-folder">
                             <IssuePriorityFlag priority={priority} />
                           </span>
-                          <span
-                            className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
-                          />
+                          {boundSession ? null : (
+                            <span
+                              className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                            />
+                          )}
                         </span>
                         <span
                           className="issue-sidebar-title"
@@ -781,6 +819,33 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                               className={`issue-sidebar-status issue-sidebar-status-${group.status}`}
                             >
                               {statusLabel}
+                            </span>
+                          ) : null}
+                          {boundSession?.hasWorktree ? (
+                            <span
+                              className="desktop-session-worktree-badge"
+                              data-testid={`desktop-session-worktree-badge-${boundSession.sessionId}`}
+                              title={
+                                boundSession.worktreeName
+                                  ? `worktree ${boundSession.worktreeName}`
+                                  : undefined
+                              }
+                            >
+                              <span
+                                className="codicon codicon-worktree"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          ) : null}
+                          {boundSession?.lastActiveAt ? (
+                            <span
+                              className="desktop-session-active-at"
+                              data-testid={`desktop-session-active-at-${boundSession.sessionId}`}
+                              title={new Date(
+                                boundSession.lastActiveAt,
+                              ).toLocaleString()}
+                            >
+                              {formatRelativeActiveAt(boundSession.lastActiveAt)}
                             </span>
                           ) : null}
                           <span
@@ -812,6 +877,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </span>
                       </div>
                     </Tooltip>
+                    {boundSession ? null : (
                     <CollapsibleBody open={open && !collapsed}>
                       {sessions.length === 0 ? (
                         <div className="desktop-session-empty issue-sidebar-empty">
@@ -851,6 +917,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </ul>
                       )}
                     </CollapsibleBody>
+                    )}
                   </div>
                 );
               })}

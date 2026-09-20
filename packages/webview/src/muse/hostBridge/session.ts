@@ -65,6 +65,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         items: g.items,
         planningSessionId: g.planningSessionId,
         executionSessionId: g.executionSessionId,
+        ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         sessions: (g.sessions ?? []).map(toEntry),
       })),
       closedIssueGroups: ctx.closedIssueGroups.map((g) => ({
@@ -76,6 +77,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         items: g.items,
         planningSessionId: g.planningSessionId,
         executionSessionId: g.executionSessionId,
+        ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         sessions: (g.sessions ?? []).map(toEntry),
       })),
     });

@@ -278,6 +278,8 @@ export interface DesktopIssueGroup {
   items: Array<{ id: string; content: string; status: string }>;
   planningSessionId?: string;
   executionSessionId?: string;
+  /** single = 本会话规划并改代码；split = 规划 + 执行。 */
+  agentMode?: "single" | "split";
   sessions: DesktopSessionEntry[];
 }
 

@@ -4,11 +4,22 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Theme } from "@radix-ui/themes";
 import {
   OpenPlanningDialog,
+  listBranchesViaHost,
   PICK_DIRECTORY_TIMEOUT_MS,
 } from "../../src/components/issue/OpenPlanningDialog";
 import type { MuseApiClient } from "../../src/muse/apiClient";
+
+function renderDialog(ui: React.ReactElement) {
+  return render(<Theme appearance="dark">{ui}</Theme>);
+}
+
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
 
 afterEach(() => {
   cleanup();
@@ -38,7 +49,7 @@ describe("OpenPlanningDialog", () => {
     const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
     const onOpened = vi.fn();
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -82,7 +93,7 @@ describe("OpenPlanningDialog", () => {
     const api = mockApi();
     const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -125,7 +136,7 @@ describe("OpenPlanningDialog", () => {
     const onCancel = vi.fn();
     const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -163,7 +174,7 @@ describe("OpenPlanningDialog", () => {
     const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
     const onOpened = vi.fn();
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -217,7 +228,7 @@ describe("OpenPlanningDialog", () => {
     const onOpened = vi.fn();
     const pickDirectory = vi.fn().mockResolvedValue("/repo/demo");
 
-    const { unmount } = render(
+    const { unmount } = renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -256,7 +267,7 @@ describe("OpenPlanningDialog", () => {
       current: "main",
     });
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}
@@ -279,9 +290,16 @@ describe("OpenPlanningDialog", () => {
     });
 
     fireEvent.click(screen.getByTestId("open-planning-worktree"));
-    const select = await screen.findByTestId("open-planning-base-branch");
-    expect(select).toHaveValue("main");
-    fireEvent.change(select, { target: { value: "dev" } });
+    const trigger = await screen.findByTestId("open-planning-base-branch");
+    expect(trigger).toHaveTextContent("main");
+    expect(
+      trigger.closest(".open-planning-branch-wrap")?.querySelector(
+        ".codicon-git-branch",
+      ),
+    ).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(trigger);
+    await user.click(await screen.findByRole("option", { name: "dev" }));
 
     fireEvent.click(screen.getByTestId("open-planning-submit"));
     await waitFor(() => {
@@ -292,6 +310,49 @@ describe("OpenPlanningDialog", () => {
           baseBranch: "dev",
         }),
       );
+    });
+  });
+
+  it("listBranchesViaHost ignores pane polls and mismatched workdir", async () => {
+    const postToHost = vi.fn();
+    const pending = listBranchesViaHost(postToHost, "/repo/a");
+    expect(postToHost).toHaveBeenCalledWith({
+      command: "desktopListGitBranches",
+      workdir: "/repo/a",
+    });
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          command: "desktopGitBranches",
+          paneId: "pane-1",
+          workdir: "/repo/a",
+          result: { branches: ["stolen"], current: "stolen" },
+        },
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          command: "desktopGitBranches",
+          workdir: "/repo/b",
+          result: { branches: ["nope"], current: "nope" },
+        },
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          command: "desktopGitBranches",
+          workdir: "/repo/a",
+          result: { branches: ["main", "dev"], current: "main" },
+        },
+      }),
+    );
+
+    await expect(pending).resolves.toEqual({
+      branches: ["main", "dev"],
+      current: "main",
     });
   });
 
@@ -312,13 +373,21 @@ describe("OpenPlanningDialog", () => {
     expect(css).toMatch(
       /\.open-planning-pick\s*\{[^}]*height:\s*28px/s,
     );
+    expect(css).toMatch(
+      /\.open-planning-branch-trigger\.rt-SelectTrigger\s*\{[^}]*height:\s*28px/s,
+    );
+    expect(css).not.toMatch(/::before/);
+    expect(css).not.toMatch(/display:\s*contents/);
+    expect(css).toMatch(
+      /\[data-radix-popper-content-wrapper\]:has\(\.open-planning-branch-content\)\s*\{[^}]*z-index:\s*3100/s,
+    );
   });
 
   it("lets the user pick a recent workdir without browsing", async () => {
     const api = mockApi();
     const pickDirectory = vi.fn();
 
-    render(
+    renderDialog(
       <OpenPlanningDialog
         issueId="issue-1"
         api={api}

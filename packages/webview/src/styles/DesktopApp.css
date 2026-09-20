@@ -616,6 +616,16 @@
   background: var(--gray-4);
 }
 
+.issue-sidebar-row--current,
+.issue-sidebar-row--visible {
+  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+}
+
+.issue-sidebar-row--current:hover,
+.issue-sidebar-row--visible:hover {
+  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+}
+
 .issue-sidebar-row:hover .desktop-session-workdir-folder {
   opacity: 0;
 }
@@ -652,6 +662,15 @@
 
 .issue-sidebar-row:hover .issue-sidebar-meta {
   background: var(--gray-4);
+}
+
+.issue-sidebar-row--current:hover .issue-sidebar-meta,
+.issue-sidebar-row--visible:hover .issue-sidebar-meta {
+  background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+}
+
+.issue-sidebar-row:has(.desktop-session-active-at) .issue-sidebar-title {
+  padding-right: 96px;
 }
 
 .issue-sidebar-status {

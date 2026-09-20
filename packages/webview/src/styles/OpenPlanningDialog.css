@@ -1,5 +1,6 @@
 .open-planning-dialog {
   width: 420px;
+  overflow: visible;
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
 }
@@ -270,11 +271,38 @@
   box-shadow: 0 0 0 3px var(--accent-a4, color-mix(in srgb, var(--accent-9) 18%, transparent));
 }
 
-.open-planning-branch-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'><path fill='%23888' d='M4 6l4 5 4-5z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  padding-right: 24px;
-  cursor: pointer;
+.open-planning-branch-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.open-planning-branch-wrap > .codicon-git-branch {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--gray-10);
+}
+
+.open-planning-branch-trigger.rt-SelectTrigger {
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding-left: 28px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+}
+
+.open-planning-branch-content.rt-SelectContent {
+  min-width: var(--radix-select-trigger-width);
+  max-height: 240px;
+}
+
+[data-radix-popper-content-wrapper]:has(.open-planning-branch-content) {
+  z-index: 3100 !important;
 }

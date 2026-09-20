@@ -94,6 +94,7 @@ export interface BridgeCtx {
     items: NonNullable<MuseSessionsGrouped["issueGroups"]>[number]["items"];
     planningSessionId?: string;
     executionSessionId?: string;
+    agentMode?: "single" | "split";
     sessions: TreeSession[];
   }>;
   closedIssueGroups: Array<{
@@ -105,6 +106,7 @@ export interface BridgeCtx {
     items: NonNullable<MuseSessionsGrouped["closedIssueGroups"]>[number]["items"];
     planningSessionId?: string;
     executionSessionId?: string;
+    agentMode?: "single" | "split";
     sessions: TreeSession[];
   }>;
   titledSessions: Set<string>;

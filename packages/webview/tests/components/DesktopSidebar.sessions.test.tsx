@@ -690,7 +690,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
   });
 
   it("labels nested issue sessions as 规划 / 执行 without repeating the issue title", () => {
-    renderSidebar({ issueGroups: [issueGroup()] });
+    renderSidebar({ issueGroups: [issueGroup({ agentMode: "split" })] });
     expect(screen.getByTestId("desktop-session-item-plan-1")).toHaveTextContent(
       "规划",
     );
@@ -706,6 +706,56 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       screen.getByTestId("desktop-session-item-plan-1"),
     ).not.toHaveTextContent("· 规划");
+  });
+
+  it("single-agent issue uses the issue row as the session, not a nested 规划 row", () => {
+    const onSelectSession = vi.fn();
+    renderSidebar({
+      onSelectSession,
+      currentSessionId: "plan-1",
+      onRenameSession: vi.fn(),
+      issueGroups: [
+        issueGroup({
+          agentMode: "single",
+          title: "高码 SDD",
+          executionSessionId: undefined,
+          sessions: [
+            entry({
+              sessionId: "plan-1",
+              title: "高码 SDD · 规划",
+              hasWorktree: true,
+              worktreeName: "wt-a",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    expect(
+      screen.queryByTestId("desktop-session-item-plan-1"),
+    ).not.toBeInTheDocument();
+    const row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(row).toHaveTextContent("高码 SDD");
+    expect(row.querySelector(".desktop-session-title")).toBeNull();
+    expect(row).toHaveClass("issue-sidebar-row--current");
+    expect(row.querySelector('[title="双击修改标题"]')).toBeNull();
+    expect(
+      screen.getByTestId("desktop-session-worktree-badge-plan-1"),
+    ).toBeTruthy();
+
+    fireEvent.click(row);
+    expect(onSelectSession).toHaveBeenCalledWith("/work/demo", "plan-1");
+  });
+
+  it("does not offer rename on nested issue role labels", () => {
+    renderSidebar({
+      issueGroups: [issueGroup({ agentMode: "split" })],
+      onRenameSession: vi.fn(),
+    });
+    const title = screen
+      .getByTestId("desktop-session-item-plan-1")
+      .querySelector(".desktop-session-title");
+    expect(title).not.toHaveAttribute("title", "双击修改标题");
   });
 
   it("counts 待办事项 by Issue group, not nested sessions", () => {

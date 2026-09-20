@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Select } from "@radix-ui/themes";
 import type { MuseApiClient } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
 import "../../styles/OpenPlanningDialog.css";
-import { bodyPortal } from "../../utils/bodyPortal";
+import { bodyPortal, getOverlayHost } from "../../utils/bodyPortal";
 
 export const PICK_DIRECTORY_TIMEOUT_MS = 15_000;
 
@@ -62,7 +63,9 @@ export function listBranchesViaHost(
         result?: GitBranchesResult | null;
       };
       if (msg?.command !== "desktopGitBranches") return;
-      if (msg.workdir && msg.workdir !== workdir) return;
+      // Composer panes poll with paneId; those replies must not resolve this dialog.
+      if (typeof msg.paneId === "string" && msg.paneId) return;
+      if (msg.workdir !== workdir) return;
       window.clearTimeout(timer);
       window.removeEventListener("message", onMessage);
       resolve(msg.result ?? null);
@@ -219,10 +222,9 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (!submitting) onCancel();
-      }
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      if (!submitting) onCancel();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -456,23 +458,44 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
             <span className="open-planning-switch-track" aria-hidden="true" />
           </span>
         </label>
-        {worktreeEnabled && gitBranches.length > 0 ? (
-          <label className="new-issue-field">
+        {worktreeEnabled ? (
+          <div className="new-issue-field">
             <span className="new-issue-label">基础分支</span>
-            <select
-              className="new-issue-input open-planning-branch-select"
-              value={baseBranch}
-              onChange={(e) => setBaseBranch(e.target.value)}
-              data-testid="open-planning-base-branch"
-              disabled={submitting}
-            >
-              {gitBranches.map((branch) => (
-                <option key={branch} value={branch}>
-                  {branch}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="open-planning-branch-wrap">
+              <span className="codicon codicon-git-branch" aria-hidden="true" />
+              <Select.Root
+                value={baseBranch || gitBranches[0] || ""}
+                onValueChange={setBaseBranch}
+                disabled={submitting || gitBranches.length === 0}
+              >
+                <Select.Trigger
+                  className="open-planning-branch-trigger"
+                  data-testid="open-planning-base-branch"
+                  aria-label="基础分支"
+                  variant="surface"
+                  color="gray"
+                  size="1"
+                  placeholder="读取分支…"
+                />
+                <Select.Content
+                  position="popper"
+                  size="1"
+                  className="open-planning-branch-content"
+                  container={getOverlayHost()}
+                >
+                {gitBranches.map((branch) => (
+                  <Select.Item
+                    key={branch}
+                    value={branch}
+                    data-testid={`open-planning-base-branch-${branch}`}
+                  >
+                    {branch}
+                  </Select.Item>
+                ))}
+                </Select.Content>
+              </Select.Root>
+            </div>
+          </div>
         ) : null}
         {error ? (
           <div className="new-issue-error" data-testid="open-planning-error">

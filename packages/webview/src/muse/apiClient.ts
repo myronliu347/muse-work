@@ -157,6 +157,7 @@ export interface MuseIssueGroup {
   items: MuseChecklistItem[];
   planningSessionId?: string;
   executionSessionId?: string;
+  agentMode?: "single" | "split";
   sessions: MuseSession[];
 }
 
