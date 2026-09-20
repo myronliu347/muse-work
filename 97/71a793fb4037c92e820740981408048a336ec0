@@ -1,0 +1,42 @@
+packages/webview/src/components/chat/MessageInput.tsx
+  42dcd0f8927d8732 1625
+packages/webview/src/styles/MessageInput.css
+  42dcd0f8927d8732 266,268,271,281,284-285,289,291-292
+packages/webview/tests/components/museModelSelect.session.test.tsx
+  42dcd0f8927d8732 295
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9771a793fb4037c92e820740981408048a336ec0",
+  "prompts": {
+    "42dcd0f8927d8732": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d7e58de1-c1da-49d8-aa9f-5a871ee3483b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 9,
+      "accepted_lines": 11,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 9,
+          "deletions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/museModelSelect.session.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
