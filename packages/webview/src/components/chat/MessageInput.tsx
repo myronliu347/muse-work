@@ -1626,7 +1626,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                 </div>
               )}
 
-              {isStreaming && (
+              {isStreaming ? (
                 <Tooltip text="停止" position="top">
                   <button
                     className="abort-button ai-abort-btn"
@@ -1638,22 +1638,23 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                     <span className="abort-glyph" />
                   </button>
                 </Tooltip>
+              ) : (
+                <Tooltip text="发送" position="top">
+                  <button
+                    id="sendButton"
+                    className="send-button ai-send-btn"
+                    onClick={handleSend}
+                    disabled={
+                      disabled ||
+                      (!(message ?? "").trim() && attachedImages.length === 0)
+                    }
+                    data-testid="send-btn"
+                    aria-label="发送"
+                  >
+                    <QueueSendIcon className="ai-send-icon" />
+                  </button>
+                </Tooltip>
               )}
-              <Tooltip text={isStreaming ? "发送（排队）" : "发送"} position="top">
-                <button
-                  id="sendButton"
-                  className="send-button ai-send-btn"
-                  onClick={handleSend}
-                  disabled={
-                    disabled ||
-                    (!(message ?? "").trim() && attachedImages.length === 0)
-                  }
-                  data-testid="send-btn"
-                  aria-label="发送"
-                >
-                  <QueueSendIcon className="ai-send-icon" />
-                </button>
-              </Tooltip>
             </div>
           </div>
 

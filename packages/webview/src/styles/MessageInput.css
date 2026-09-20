@@ -234,7 +234,7 @@
 .abort-glyph {
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-1);
+  border-radius: 2px;
   background: #fff;
 }
 

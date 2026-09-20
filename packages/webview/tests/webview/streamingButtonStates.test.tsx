@@ -14,7 +14,7 @@ describe("Streaming Button States", () => {
     vi.clearAllMocks();
   });
 
-  it("should keep send and abort buttons together during streaming while new session stays enabled", () => {
+  it("should swap send for abort during streaming while new session stays enabled", () => {
     renderChatApp();
 
     const newSessionBtn = screen.getByTestId("desktop-new-session");
@@ -26,8 +26,7 @@ describe("Streaming Button States", () => {
 
     expect(newSessionBtn).not.toBeDisabled();
     expect(screen.getByTestId("abort-btn")).toBeInTheDocument();
-    // Sending while streaming is allowed — the message is queued.
-    expect(screen.getByTestId("send-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("send-btn")).not.toBeInTheDocument();
 
     const input = screen.getByTestId("message-input");
     expect(input).not.toHaveAttribute("contenteditable", "false");
