@@ -1,0 +1,100 @@
+packages/server/src/routes/sessions.ts
+  42dcd0f8927d8732 35,55
+packages/server/tests/sessions.routes.test.ts
+  42dcd0f8927d8732 120
+packages/webview/src/types/index.ts
+  42dcd0f8927d8732 281-282
+packages/webview/src/muse/apiClient.ts
+  42dcd0f8927d8732 160
+packages/webview/tests/components/OpenPlanningDialog.test.tsx
+  42dcd0f8927d8732 7-8,11,16-22,52,96,139,177,231,270,293-302,316-358,376-383,390
+packages/webview/src/components/session/SessionTree.tsx
+  42dcd0f8927d8732 132-142,455,473-474,546,548,750-760,782-794,804-808,824-848,880,920
+packages/webview/src/muse/hostBridge/ctx.ts
+  42dcd0f8927d8732 97,109
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  42dcd0f8927d8732 2,7,66-68,225-227,461-462,464-498
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  42dcd0f8927d8732 693,711-758
+packages/webview/src/muse/hostBridge/session.ts
+  42dcd0f8927d8732 68,80
+packages/webview/src/styles/DesktopApp.css
+  42dcd0f8927d8732 619-628,667-675
+packages/webview/src/styles/OpenPlanningDialog.css
+  42dcd0f8927d8732 3,274-307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "464fd570aaa5d226247bafd0c2fe45b9a05b7f6e",
+  "prompts": {
+    "42dcd0f8927d8732": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d7e58de1-c1da-49d8-aa9f-5a871ee3483b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 905,
+      "total_deletions": 639,
+      "accepted_lines": 314,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 294,
+          "deletions": 271,
+          "accepted_lines": 46
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 74,
+          "deletions": 7,
+          "accepted_lines": 74
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/OpenPlanningDialog.css": {
+          "additions": 333,
+          "deletions": 305,
+          "accepted_lines": 35
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/OpenPlanningDialog.test.tsx": {
+          "additions": 123,
+          "deletions": 54,
+          "accepted_lines": 79
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 52,
+          "deletions": 2,
+          "accepted_lines": 51
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 19,
+          "accepted_lines": 19
+        }
+      }
+    }
+  }
+}
