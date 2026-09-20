@@ -1,0 +1,75 @@
+packages/desktop/tests/worktree.test.ts
+  42dcd0f8927d8732 50-97
+packages/webview/src/hooks/useChatSend.ts
+  42dcd0f8927d8732 70-72,74-76,80-88,170-172,178,180,185
+packages/webview/src/styles/MessageInput.css
+  42dcd0f8927d8732 55-56
+packages/webview/src/components/desktop/DesktopWorktreeControls.tsx
+  42dcd0f8927d8732 18-19,73,82-88
+packages/desktop/src/main/worktree.ts
+  42dcd0f8927d8732 128-131
+packages/webview/e2e/demo/desktop-git-context.demo.ts
+  42dcd0f8927d8732 111-167
+packages/webview/src/components/ChatApp.tsx
+  42dcd0f8927d8732 274-278,280-282
+packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx
+  42dcd0f8927d8732 12,121-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4168146dfa37e834b868697d4f56283d5368e039",
+  "prompts": {
+    "42dcd0f8927d8732": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d7e58de1-c1da-49d8-aa9f-5a871ee3483b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 185,
+      "total_deletions": 16,
+      "accepted_lines": 185,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopWorktreeControls.tsx": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/desktop/src/main/worktree.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 8,
+          "deletions": 3,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "packages/webview/e2e/demo/desktop-git-context.demo.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 21,
+          "deletions": 8,
+          "accepted_lines": 21
+        },
+        "packages/desktop/tests/worktree.test.ts": {
+          "additions": 48,
+          "accepted_lines": 48
+        }
+      }
+    }
+  }
+}
