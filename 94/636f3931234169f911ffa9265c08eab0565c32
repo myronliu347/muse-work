@@ -1,0 +1,77 @@
+packages/webview/tests/muse/worktreeCleanup.test.ts
+  42dcd0f8927d8732 1-57
+packages/webview/tests/muse/hostBridge.test.ts
+  42dcd0f8927d8732 339-399
+packages/webview/src/muse/hostBridge/session.ts
+  42dcd0f8927d8732 15-18,31,147-166,267-268,271,392
+packages/webview/src/muse/hostBridge/index.ts
+  42dcd0f8927d8732 323
+packages/webview/src/muse/worktreeCleanup.ts
+  42dcd0f8927d8732 1-47
+packages/webview/src/components/session/SessionTree.tsx
+  42dcd0f8927d8732 1110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "94636f3931234169f911ffa9265c08eab0565c32",
+  "prompts": {
+    "42dcd0f8927d8732": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d7e58de1-c1da-49d8-aa9f-5a871ee3483b",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 216,
+      "total_deletions": 31,
+      "accepted_lines": 216,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/streamingButtonStates.test.tsx": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/worktreeCleanup.test.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 29,
+          "deletions": 9,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 61,
+          "accepted_lines": 61
+        },
+        "packages/webview/src/muse/worktreeCleanup.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 17,
+          "deletions": 16,
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
