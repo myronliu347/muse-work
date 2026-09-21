@@ -1,0 +1,30 @@
+packages/webview/src/styles/DesktopPanelDock.css
+  c608b9c877753989 49-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8a4935a8cc79b0f59662df25c388087a486b15da",
+  "prompts": {
+    "c608b9c877753989": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3b3c385e-0298-4db6-a41b-d93f8eb136fb",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 1,
+      "accepted_lines": 9,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
