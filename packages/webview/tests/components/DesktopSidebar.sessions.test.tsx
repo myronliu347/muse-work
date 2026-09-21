@@ -744,6 +744,55 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(onSelectSession).toHaveBeenCalledWith("/work/demo", "plan-1");
   });
 
+  it("single-agent issue row shows running/waiting/unread status instead of priority flag", () => {
+    const single = (
+      session: Partial<DesktopSessionEntry> & { sessionId: string },
+    ) => [
+      issueGroup({
+        agentMode: "single",
+        executionSessionId: undefined,
+        sessions: [entry(session)],
+      }),
+    ];
+
+    renderSidebar({
+      currentSessionId: "plan-1",
+      isStreaming: true,
+      issueGroups: single({ sessionId: "plan-1" }),
+    });
+    let row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(
+      row.querySelector("[data-testid='desktop-session-status-running']"),
+    ).toBeTruthy();
+    expect(
+      row.querySelector("[data-testid='desktop-session-issue-icon']"),
+    ).toBeNull();
+    cleanup();
+
+    renderSidebar({
+      currentSessionId: "other",
+      issueGroups: single({
+        sessionId: "plan-1",
+        waitingConfirmation: true,
+      }),
+    });
+    row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(
+      row.querySelector("[data-testid='desktop-session-status-waiting']"),
+    ).toBeTruthy();
+    cleanup();
+
+    renderSidebar({
+      currentSessionId: "other",
+      issueGroups: single({
+        sessionId: "plan-1",
+        unreadDone: true,
+      }),
+    });
+    row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(row.querySelector(".desktop-session-unread-dot")).toBeTruthy();
+  });
+
   it("does not offer rename on nested issue role labels", () => {
     renderSidebar({
       issueGroups: [issueGroup({ agentMode: "split" })],

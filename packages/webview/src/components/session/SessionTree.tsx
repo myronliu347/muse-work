@@ -758,6 +758,23 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                   !boundCurrent &&
                   (visibleSessionIds?.includes(boundSession!.sessionId) ??
                     false);
+                const boundRunning =
+                  Boolean(boundSession) &&
+                  (boundSession!.running ||
+                    (boundSession!.sessionId === currentSessionId &&
+                      isStreaming));
+                const boundWaiting = Boolean(
+                  boundSession?.waitingConfirmation,
+                );
+                const boundUnread =
+                  Boolean(boundSession?.unreadDone) && !boundCurrent;
+                const boundStatusIcon = boundWaiting ? (
+                  <SessionStatusGlyph kind="waiting" />
+                ) : boundRunning ? (
+                  <SessionStatusGlyph kind="running" />
+                ) : boundUnread ? (
+                  <span className="desktop-session-unread-dot" />
+                ) : null;
                 return (
                   <div
                     key={group.issueId}
@@ -799,7 +816,9 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           aria-hidden="true"
                         >
                           <span className="desktop-session-workdir-folder">
-                            <IssuePriorityFlag priority={priority} />
+                            {boundStatusIcon ?? (
+                              <IssuePriorityFlag priority={priority} />
+                            )}
                           </span>
                           {boundSession ? null : (
                             <span

@@ -525,7 +525,9 @@
   color: var(--gray-8);
 }
 
-.desktop-session-workdir-folder:has(.desktop-session-issue-icon) {
+.desktop-session-workdir-folder:has(.desktop-session-issue-icon),
+.desktop-session-workdir-folder:has(.desktop-session-status-icon),
+.desktop-session-workdir-folder:has(.desktop-session-unread-dot) {
   opacity: 1;
 }
 
@@ -635,7 +637,7 @@
   background: color-mix(in srgb, var(--gray-4) 88%, transparent);
 }
 
-.issue-sidebar-row:hover .desktop-session-workdir-folder {
+.issue-sidebar-row:hover:has(.desktop-session-workdir-chevron) .desktop-session-workdir-folder {
   opacity: 0;
 }
 
