@@ -11,6 +11,7 @@ import type { SessionStore } from "../sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "../wsHub.js";
 import {
   AGENT_IDLE_TTL_MS,
+  AGENT_MAX_LIVE,
   TURN_STALL_MS,
 } from "../../constants/agent.js";
 import {
@@ -258,6 +259,15 @@ export interface CreateSessionRunnerOptions {
   createAgent?: CreateAgent;
   /** Idle TTL before destroying runtime (keeps store record). Default 10min. */
   idleTtlMs?: number;
+  /** Max live SDK agents; LRU-evict idle ones over this. Default 20. */
+  maxLiveAgents?: number;
+  /**
+   * When heapUsed exceeds this, LRU-evict idle agents (except the session
+   * being ensured). 0 / omitted disables heap eviction.
+   */
+  heapEvictBytes?: number;
+  /** Injectable heap sampler for tests. Defaults to process.memoryUsage. */
+  memoryUsage?: () => { heapUsed: number };
   /** Abort a running turn after this long with no SDK callbacks. Default 5min. */
   stallMs?: number;
   /**
@@ -310,6 +320,8 @@ export interface CoreLayer {
   finishTurnError(sessionId: string, err: unknown): void;
   denyPendingPermissions(sessionId: string, message: string): void;
   rearmIdleIfNeeded(sessionId: string): void;
+  touchAgent(sessionId: string): void;
+  maybeEvictLiveAgents(keepSessionId: string): Promise<void>;
 }
 
 /**
@@ -350,6 +362,9 @@ export interface RunnerContext {
   options: CreateSessionRunnerOptions;
   createAgent: CreateAgent;
   idleTtlMs: number;
+  maxLiveAgents: number;
+  heapEvictBytes: number;
+  memoryUsage: () => { heapUsed: number };
   stallMs: number;
   // --- shared mutable state ---
   /** Turn-settled callback (runner ↔ scheduler wiring; settable after creation). */
@@ -357,6 +372,8 @@ export interface RunnerContext {
     | ((sessionId: string, result: { ok: boolean; error?: string }) => void)
     | undefined;
   agents: Map<string, SessionAgent>;
+  /** Last ensure/activity time for LRU live-agent eviction. */
+  agentLastUsed: Map<string, number>;
   /** Gateway identity used when the session agent was created (model switch → recreate). */
   agentIdentities: Map<string, string>;
   pending: Map<string, PendingPermission>;
@@ -420,9 +437,13 @@ export function createRunnerContext(
     options,
     createAgent: options.createAgent ?? defaultCreateAgent,
     idleTtlMs: options.idleTtlMs ?? AGENT_IDLE_TTL_MS,
+    maxLiveAgents: options.maxLiveAgents ?? AGENT_MAX_LIVE,
+    heapEvictBytes: options.heapEvictBytes ?? 0,
+    memoryUsage: options.memoryUsage ?? (() => process.memoryUsage()),
     stallMs: options.stallMs ?? TURN_STALL_MS,
     onTurnSettled: options.onTurnSettled,
     agents: new Map<string, SessionAgent>(),
+    agentLastUsed: new Map<string, number>(),
     agentIdentities: new Map<string, string>(),
     pending: new Map<string, PendingPermission>(),
     disposed: new Set<string>(),

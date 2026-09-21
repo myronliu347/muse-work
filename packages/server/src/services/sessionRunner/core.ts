@@ -14,6 +14,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     store,
     hub,
     agents,
+    agentLastUsed,
     agentIdentities,
     agentLoading,
     aborting,
@@ -49,6 +50,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
   }
 
   function bumpActivity(sessionId: string): void {
+    touchAgent(sessionId);
     clearStallTimer(sessionId);
     if (!ctx.stallMs || ctx.stallMs <= 0) return;
     if (disposed.has(sessionId) || store.get(sessionId)?.status !== "running") {
@@ -193,6 +195,10 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     if (agents.get(sessionId)?.hasPendingMessages?.()) {
       return false;
     }
+    // Background tasks / live subagents keep the runtime; destroying it kills them.
+    if (agents.get(sessionId)?.hasRunningBackgroundWork?.()) {
+      return false;
+    }
     return true;
   }
 
@@ -222,6 +228,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     closeAgentLogger(sessionId);
     const agent = agents.get(sessionId);
     agents.delete(sessionId);
+    agentLastUsed.delete(sessionId);
     agentIdentities.delete(sessionId);
     if (agent) {
       await agent.dispose();
@@ -324,6 +331,52 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     }
   }
 
+  function touchAgent(sessionId: string): void {
+    if (agents.has(sessionId)) {
+      agentLastUsed.set(sessionId, Date.now());
+    }
+  }
+
+  function overLiveCap(): boolean {
+    if (ctx.maxLiveAgents > 0 && agents.size > ctx.maxLiveAgents) {
+      return true;
+    }
+    if (ctx.heapEvictBytes > 0 && ctx.memoryUsage().heapUsed > ctx.heapEvictBytes) {
+      return true;
+    }
+    return false;
+  }
+
+  function pickLruIdleVictim(keepSessionId: string): string | undefined {
+    let oldestId: string | undefined;
+    let oldestAt = Infinity;
+    for (const id of agents.keys()) {
+      if (id === keepSessionId) continue;
+      if (!canIdleDestroy(id)) continue;
+      const used = agentLastUsed.get(id) ?? 0;
+      if (used < oldestAt) {
+        oldestAt = used;
+        oldestId = id;
+      }
+    }
+    return oldestId;
+  }
+
+  /** Drop LRU idle runtimes until count/heap are within caps (never the keep session). */
+  async function maybeEvictLiveAgents(keepSessionId: string): Promise<void> {
+    while (overLiveCap()) {
+      const victim = pickLruIdleVictim(keepSessionId);
+      if (!victim) break;
+      getLogger().info("evict live agent", {
+        sessionId: victim,
+        keepSessionId,
+        agents: agents.size,
+        heapUsed: ctx.memoryUsage().heapUsed,
+      });
+      await destroyRuntime(victim);
+    }
+  }
+
   return {
     clearIdleTimer,
     clearStallTimer,
@@ -342,5 +395,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     finishTurnError,
     denyPendingPermissions,
     rearmIdleIfNeeded,
+    touchAgent,
+    maybeEvictLiveAgents,
   };
 }

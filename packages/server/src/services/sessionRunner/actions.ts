@@ -32,6 +32,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     store,
     hub,
     agents,
+    agentLastUsed,
     agentIdentities,
     pending,
     disposed,
@@ -215,6 +216,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       }
       const existing = agents.get(sessionId);
       agents.delete(sessionId);
+      agentLastUsed.delete(sessionId);
       agentIdentities.delete(sessionId);
       if (existing) {
         await existing.dispose();
@@ -226,6 +228,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     async disposeAgent(sessionId) {
       const existing = agents.get(sessionId);
       agents.delete(sessionId);
+      agentLastUsed.delete(sessionId);
       agentIdentities.delete(sessionId);
       core.clearIdleTimer(sessionId);
       core.clearStallTimer(sessionId);

@@ -158,6 +158,120 @@ describe("sessionRunner lifecycle", () => {
     expect(restoreIds[1]).toBe("11111111-1111-4111-8111-111111111111");
   });
 
+  it("evicts the least-recently-used idle agent when over maxLiveAgents", async () => {
+    const { store, hub, registry, home } = setup();
+    const a = store.create({ workdir: "/tmp", model: "m1" });
+    const b = store.create({ workdir: "/tmp", model: "m1" });
+    const c = store.create({ workdir: "/tmp", model: "m1" });
+    store.setWaveSessionId(a.id, "wave-a");
+    store.setWaveSessionId(b.id, "wave-b");
+    store.setWaveSessionId(c.id, "wave-c");
+
+    const disposed: string[] = [];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      maxLiveAgents: 2,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {},
+        dispose: async () => {
+          disposed.push(opts.restoreSessionId ?? "unknown");
+        },
+        getMessages: () => [],
+        sessionId: opts.restoreSessionId,
+      }),
+    });
+
+    await runner.sendMessage(a.id, "one");
+    await expect.poll(() => store.get(a.id)?.status).toBe("idle");
+    await runner.sendMessage(b.id, "two");
+    await expect.poll(() => store.get(b.id)?.status).toBe("idle");
+    await runner.sendMessage(c.id, "three");
+    await expect.poll(() => store.get(c.id)?.status).toBe("idle");
+
+    await expect.poll(() => disposed).toEqual(["wave-a"]);
+    expect(store.get(a.id)?.waveSessionId).toBe("wave-a");
+    expect(runner.getAgentCount()).toBe(2);
+  });
+
+  it("does not evict an idle agent that still has background work", async () => {
+    const { store, hub, registry, home } = setup();
+    const a = store.create({ workdir: "/tmp", model: "m1" });
+    const b = store.create({ workdir: "/tmp", model: "m1" });
+    const c = store.create({ workdir: "/tmp", model: "m1" });
+    store.setWaveSessionId(a.id, "wave-a");
+    store.setWaveSessionId(b.id, "wave-b");
+    store.setWaveSessionId(c.id, "wave-c");
+
+    const disposed: string[] = [];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      maxLiveAgents: 2,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {},
+        dispose: async () => {
+          disposed.push(opts.restoreSessionId ?? "unknown");
+        },
+        getMessages: () => [],
+        sessionId: opts.restoreSessionId,
+        hasRunningBackgroundWork: () => opts.restoreSessionId === "wave-a",
+      }),
+    });
+
+    await runner.sendMessage(a.id, "one");
+    await expect.poll(() => store.get(a.id)?.status).toBe("idle");
+    await runner.sendMessage(b.id, "two");
+    await expect.poll(() => store.get(b.id)?.status).toBe("idle");
+    await runner.sendMessage(c.id, "three");
+    await expect.poll(() => store.get(c.id)?.status).toBe("idle");
+
+    await expect.poll(() => disposed).toEqual(["wave-b"]);
+    expect(runner.getAgentCount()).toBe(2);
+  });
+
+  it("evicts LRU idle agents when heap is over the cap", async () => {
+    const { store, hub, registry, home } = setup();
+    const a = store.create({ workdir: "/tmp", model: "m1" });
+    const b = store.create({ workdir: "/tmp", model: "m1" });
+    store.setWaveSessionId(a.id, "wave-a");
+    store.setWaveSessionId(b.id, "wave-b");
+
+    const disposed: string[] = [];
+    const runner = createSessionRunner({
+      store,
+      hub,
+      registry,
+      home,
+      idleTtlMs: 60_000,
+      maxLiveAgents: 20,
+      heapEvictBytes: 1,
+      memoryUsage: () => ({ heapUsed: 100 }),
+      createAgent: async (opts) => ({
+        sendMessage: async () => {},
+        dispose: async () => {
+          disposed.push(opts.restoreSessionId ?? "unknown");
+        },
+        getMessages: () => [],
+        sessionId: opts.restoreSessionId,
+      }),
+    });
+
+    await runner.sendMessage(a.id, "one");
+    await expect.poll(() => store.get(a.id)?.status).toBe("idle");
+    await runner.sendMessage(b.id, "two");
+    await expect.poll(() => store.get(b.id)?.status).toBe("idle");
+
+    await expect.poll(() => disposed).toEqual(["wave-a"]);
+    expect(runner.getAgentCount()).toBe(1);
+  });
+
   it("model change destroys on next ensure and passes restoreSessionId", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });

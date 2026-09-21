@@ -726,7 +726,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     if (existing) {
       if (agentIdentities.get(sessionId) === identity) {
         // getMessages / idle ensureAgent cleared the timer — re-arm if still idle.
+        core.touchAgent(sessionId);
         core.rearmIdleIfNeeded(sessionId);
+        await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
       // Stale identity (provider / ~/.wave/settings.json change). Recreate only
@@ -738,10 +740,13 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         agentLoading.get(sessionId) === true ||
         existing.hasPendingMessages?.()
       ) {
+        core.touchAgent(sessionId);
         core.rearmIdleIfNeeded(sessionId);
+        await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
       agents.delete(sessionId);
+      ctx.agentLastUsed.delete(sessionId);
       agentIdentities.delete(sessionId);
       await existing.dispose();
     }
@@ -783,7 +788,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     rememberWaveSessionId(sessionId, agent.sessionId);
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
+    core.touchAgent(sessionId);
     core.rearmIdleIfNeeded(sessionId);
+    await core.maybeEvictLiveAgents(sessionId);
     return agent;
   }
 
