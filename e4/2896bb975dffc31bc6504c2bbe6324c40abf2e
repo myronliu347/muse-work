@@ -1,0 +1,61 @@
+packages/server/src/services/sessionRunner/core.ts
+  c608b9c877753989 8,252
+packages/server/src/services/sessionRunner/actions.ts
+  c608b9c877753989 252
+packages/server/tests/sessionRunner.lifecycle.test.ts
+  c608b9c877753989 107,138-140,149,464,484,633,641-642
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e42896bb975dffc31bc6504c2bbe6324c40abf2e",
+  "prompts": {
+    "c608b9c877753989": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3b3c385e-0298-4db6-a41b-d93f8eb136fb",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 15,
+      "total_deletions": 136,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/constants/agent.ts": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "deletions": 10
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/appContext.ts": {
+          "deletions": 5
+        },
+        "packages/server/src/services/sessionRunner/index.ts": {
+          "deletions": 1
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "additions": 11,
+          "deletions": 59,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/sessionRunner/core.ts": {
+          "additions": 2,
+          "deletions": 46,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "deletions": 8
+        }
+      }
+    }
+  }
+}
