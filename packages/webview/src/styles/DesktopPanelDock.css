@@ -46,7 +46,15 @@
   gap: var(--space-1);
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
+  /* Keep overflow scroll for trackpad/wheel; the 38px header cannot spare a
+     visible scrollbar under the tabs. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.desktop-panel-dock-tabs::-webkit-scrollbar {
+  display: none;
+  height: 0;
 }
 
 .desktop-panel-tab {
