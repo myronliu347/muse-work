@@ -10,7 +10,6 @@ import {
 import type { SessionStore } from "../sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "../wsHub.js";
 import {
-  AGENT_IDLE_TTL_MS,
   AGENT_MAX_LIVE,
   TURN_STALL_MS,
 } from "../../constants/agent.js";
@@ -257,8 +256,6 @@ export interface CreateSessionRunnerOptions {
   registry: ProviderRegistry;
   home: string;
   createAgent?: CreateAgent;
-  /** Idle TTL before destroying runtime (keeps store record). Default 10min. */
-  idleTtlMs?: number;
   /** Max live SDK agents; LRU-evict idle ones over this. Default 20. */
   maxLiveAgents?: number;
   /**
@@ -303,7 +300,6 @@ export interface CreateSessionRunnerOptions {
  * reach them via ctx.core so core never imports upward.
  */
 export interface CoreLayer {
-  clearIdleTimer(sessionId: string): void;
   clearStallTimer(sessionId: string): void;
   bumpActivity(sessionId: string): void;
   markTurnOutput(sessionId: string): void;
@@ -314,12 +310,10 @@ export interface CoreLayer {
   hasPendingPermission(sessionId: string): boolean;
   canIdleDestroy(sessionId: string): boolean;
   destroyRuntime(sessionId: string): Promise<void>;
-  scheduleIdleDestroy(sessionId: string): void;
   markUnreadDoneIfInactive(sessionId: string): void;
   markIdle(sessionId: string): void;
   finishTurnError(sessionId: string, err: unknown): void;
   denyPendingPermissions(sessionId: string, message: string): void;
-  rearmIdleIfNeeded(sessionId: string): void;
   touchAgent(sessionId: string): void;
   maybeEvictLiveAgents(keepSessionId: string): Promise<void>;
 }
@@ -361,7 +355,6 @@ export interface RunnerContext {
   home: string;
   options: CreateSessionRunnerOptions;
   createAgent: CreateAgent;
-  idleTtlMs: number;
   maxLiveAgents: number;
   heapEvictBytes: number;
   memoryUsage: () => { heapUsed: number };
@@ -408,7 +401,6 @@ export interface RunnerContext {
    * turn shows a bogus "模型没有产生输出" error block.
    */
   loadingSeen: Map<string, boolean>;
-  idleTimers: Map<string, ReturnType<typeof setTimeout>>;
   stallTimers: Map<string, ReturnType<typeof setTimeout>>;
   agentToolBinds: Map<string, Map<string, string>>;
   pendingAgentToolIds: Map<string, string[]>;
@@ -436,7 +428,6 @@ export function createRunnerContext(
     home,
     options,
     createAgent: options.createAgent ?? defaultCreateAgent,
-    idleTtlMs: options.idleTtlMs ?? AGENT_IDLE_TTL_MS,
     maxLiveAgents: options.maxLiveAgents ?? AGENT_MAX_LIVE,
     heapEvictBytes: options.heapEvictBytes ?? 0,
     memoryUsage: options.memoryUsage ?? (() => process.memoryUsage()),
@@ -455,7 +446,6 @@ export function createRunnerContext(
     aborting: new Set<string>(),
     agentLoading: new Map<string, boolean>(),
     loadingSeen: new Map<string, boolean>(),
-    idleTimers: new Map<string, ReturnType<typeof setTimeout>>(),
     stallTimers: new Map<string, ReturnType<typeof setTimeout>>(),
     agentToolBinds: new Map<string, Map<string, string>>(),
     pendingAgentToolIds: new Map<string, string[]>(),

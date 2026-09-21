@@ -85,7 +85,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         calls++;
         if (opts.restoreSessionId === "broken-wave-id") {
@@ -105,7 +104,7 @@ describe("sessionRunner lifecycle", () => {
     expect(store.get(session.id)?.waveSessionId).toBe("new-wave-id");
   });
 
-  it("idle TTL destroys agent but keeps waveSessionId", async () => {
+  it("does not destroy an idle agent on a timer", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
     store.setWaveSessionId(session.id, "11111111-1111-4111-8111-111111111111");
@@ -118,7 +117,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 40,
       createAgent: async (opts) => {
         restoreIds.push(opts.restoreSessionId);
         return {
@@ -137,25 +135,18 @@ describe("sessionRunner lifecycle", () => {
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => restoreIds.length).toBe(1);
     await expect.poll(() => store.get(session.id)?.status).toBe("idle");
-    expect(restoreIds[0]).toBe("11111111-1111-4111-8111-111111111111");
-
-    await expect.poll(() => disposeCount).toBe(1);
+    await new Promise((r) => setTimeout(r, 80));
+    expect(disposeCount).toBe(0);
+    expect(runner.getAgentCount()).toBe(1);
     expect(store.get(session.id)?.waveSessionId).toBe(
       "11111111-1111-4111-8111-111111111111",
     );
-    expect(store.get(session.id)).toBeDefined();
 
-    // getMessages is read-only: it must NOT recreate the destroyed agent.
     await runner.getMessages(session.id);
     expect(restoreIds.length).toBe(1);
-    expect(store.get(session.id)?.waveSessionId).toBe(
-      "11111111-1111-4111-8111-111111111111",
-    );
 
-    // Only sending a message recreates the runtime, restoring waveSessionId.
     await runner.sendMessage(session.id, "again");
-    await expect.poll(() => restoreIds.length).toBe(2);
-    expect(restoreIds[1]).toBe("11111111-1111-4111-8111-111111111111");
+    await expect.poll(() => restoreIds.length).toBe(1);
   });
 
   it("evicts the least-recently-used idle agent when over maxLiveAgents", async () => {
@@ -173,7 +164,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       maxLiveAgents: 2,
       createAgent: async (opts) => ({
         sendMessage: async () => {},
@@ -212,7 +202,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       maxLiveAgents: 2,
       createAgent: async (opts) => ({
         sendMessage: async () => {},
@@ -249,7 +238,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       maxLiveAgents: 20,
       heapEvictBytes: 1,
       memoryUsage: () => ({ heapUsed: 100 }),
@@ -286,7 +274,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         createdModels.push(opts.model ?? "unknown");
         restoreIds.push(opts.restoreSessionId);
@@ -340,7 +327,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async () => ({
         sendMessage: async () => {},
         dispose: async () => {},
@@ -391,7 +377,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async () => ({
         sendMessage: async () => {
           throw new Error("boom");
@@ -438,7 +423,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         onLoadingChange = opts.callbacks?.onLoadingChange;
         return {
@@ -467,21 +451,17 @@ describe("sessionRunner lifecycle", () => {
     store.setWaveSessionId(session.id, "22222222-2222-4222-8222-222222222222");
 
     let restoreIds: Array<string | undefined> = [];
-    let disposeCount = 0;
 
     const runner = createSessionRunner({
       store,
       hub,
       registry,
       home,
-      idleTtlMs: 40,
       createAgent: async (opts) => {
         restoreIds.push(opts.restoreSessionId);
         return {
           sendMessage: async () => {},
-          dispose: async () => {
-            disposeCount += 1;
-          },
+          dispose: async () => {},
           getMessages: () => [{ id: "m" }],
           sessionId: "22222222-2222-4222-8222-222222222222",
         };
@@ -495,15 +475,13 @@ describe("sessionRunner lifecycle", () => {
     expect(restoreIds).toEqual([]);
     expect(store.get(session.id)?.status).toBe("idle");
 
-    // Sending a message creates the runtime and re-arms the idle TTL; the agent
-    // is destroyed after the TTL but waveSessionId is kept.
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => restoreIds.length).toBe(1);
-    await expect.poll(() => disposeCount).toBe(1);
     expect(store.get(session.id)?.waveSessionId).toBe(
       "22222222-2222-4222-8222-222222222222",
     );
     expect(store.get(session.id)).toBeDefined();
+    expect(runner.getAgentCount()).toBe(1);
   });
 
   it("keeps status running after assistant stage end while loading stays true", async () => {
@@ -526,7 +504,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         cbs = opts.callbacks as Callbacks;
         return {
@@ -581,7 +558,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       onTurnSettled: (_id, result) => {
         settled.push(result);
       },
@@ -630,7 +606,6 @@ describe("sessionRunner lifecycle", () => {
     type Callbacks = { onLoadingChange?: (loading: boolean) => void };
     let cbs: Callbacks | undefined;
     let createCount = 0;
-    let disposeCount = 0;
     let releaseEnsure: (() => void) | undefined;
     const settled: Array<{ ok: boolean; error?: string }> = [];
 
@@ -639,7 +614,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 40,
       onTurnSettled: (_id, result) => {
         settled.push(result);
       },
@@ -656,9 +630,7 @@ describe("sessionRunner lifecycle", () => {
             cbs?.onLoadingChange?.(true);
             cbs?.onLoadingChange?.(false);
           },
-          dispose: async () => {
-            disposeCount += 1;
-          },
+          dispose: async () => {},
           getMessages: () => [],
         };
       },
@@ -666,7 +638,8 @@ describe("sessionRunner lifecycle", () => {
 
     await runner.sendMessage(session.id, "first");
     await expect.poll(() => settled.length).toBe(1);
-    await expect.poll(() => disposeCount).toBe(1);
+    // Drop the runtime so the next send recreates and can hang in ensureAgent.
+    await runner.disposeAgent(session.id);
 
     const second = runner.sendMessage(session.id, "second");
     await expect.poll(() => releaseEnsure).toBeTruthy();
@@ -726,7 +699,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         cbs = opts.callbacks as Callbacks;
         return {
@@ -757,41 +729,6 @@ describe("sessionRunner lifecycle", () => {
     fs.rmSync(workdir, { recursive: true, force: true });
   });
 
-  it("idle TTL does not destroy while status is running", async () => {
-    const { store, hub, registry, home } = setup();
-    const session = store.create({ workdir: "/tmp", model: "m1" });
-
-    let disposeCount = 0;
-
-    const runner = createSessionRunner({
-      store,
-      hub,
-      registry,
-      home,
-      idleTtlMs: 200,
-      createAgent: async () => ({
-        sendMessage: async () => {},
-        dispose: async () => {
-          disposeCount += 1;
-        },
-        getMessages: () => [],
-        sessionId: "wave-run",
-      }),
-    });
-
-    await runner.sendMessage(session.id, "hello");
-    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
-
-    // Force running before the armed TTL fires so callback sees !canIdleDestroy.
-    store.updateStatus(session.id, "running");
-    await new Promise((r) => setTimeout(r, 280));
-    expect(disposeCount).toBe(0);
-
-    store.updateStatus(session.id, "idle");
-    // Retry arm from skipped TTL should destroy once idle again.
-    await expect.poll(() => disposeCount).toBe(1);
-  });
-
   it("snapshotEvents includes running status and loading for an in-flight turn", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
@@ -802,7 +739,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => ({
         sendMessage: async () => {
           opts.callbacks?.onLoadingChange?.(true);
@@ -857,7 +793,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => ({
         sendMessage: async () => {
           await opts.canUseTool?.({
@@ -900,7 +835,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       stallMs: 40,
       createAgent: async () => ({
         sendMessage: async () => new Promise(() => {}),
@@ -943,7 +877,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       stallMs: 60_000,
       createAgent: async (opts) => {
         agentsCreated += 1;
@@ -996,7 +929,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       stallMs: 60_000,
       createAgent: async (opts) => {
         agentsCreated += 1;
@@ -1064,7 +996,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      idleTtlMs: 60_000,
       createAgent: async () => ({
         sendMessage: async () => {},
         dispose: async () => {},

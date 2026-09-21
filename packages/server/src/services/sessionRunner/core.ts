@@ -5,7 +5,7 @@ import { enrichFileHistory } from "../../utils/fileHistoryDiff.js";
 import type { CoreLayer, RunnerContext } from "./ctx.js";
 
 /**
- * Lifecycle cross-cutting functions (idle/stall timers, interrupt, idle destroy,
+ * Lifecycle cross-cutting functions (stall timers, interrupt, LRU destroy,
  * turn-end bookkeeping). Mutual callers live here so core never imports
  * agent/actions; upper layers reach them via ctx.core.
  */
@@ -19,7 +19,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     agentLoading,
     aborting,
     disposed,
-    idleTimers,
     stallTimers,
     loadingSeen,
     titleGenerating,
@@ -32,14 +31,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     turnHadOutput,
     pending,
   } = ctx;
-
-  function clearIdleTimer(sessionId: string): void {
-    const timer = idleTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      idleTimers.delete(sessionId);
-    }
-  }
 
   function clearStallTimer(sessionId: string): void {
     const timer = stallTimers.get(sessionId);
@@ -208,7 +199,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     if (!canIdleDestroy(sessionId)) {
       return;
     }
-    clearIdleTimer(sessionId);
     clearStallTimer(sessionId);
     turnEnded.delete(sessionId);
     turnHadOutput.delete(sessionId);
@@ -235,29 +225,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     }
   }
 
-  function scheduleIdleDestroy(sessionId: string): void {
-    clearIdleTimer(sessionId);
-    if (!canIdleDestroy(sessionId)) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      idleTimers.delete(sessionId);
-      if (!canIdleDestroy(sessionId)) {
-        // Still busy — re-arm so cleanup can recover once conditions clear.
-        if (!disposed.has(sessionId) && store.get(sessionId)) {
-          const retry = setTimeout(() => {
-            idleTimers.delete(sessionId);
-            scheduleIdleDestroy(sessionId);
-          }, ctx.idleTtlMs);
-          idleTimers.set(sessionId, retry);
-        }
-        return;
-      }
-      void destroyRuntime(sessionId);
-    }, ctx.idleTtlMs);
-    idleTimers.set(sessionId, timer);
-  }
-
   function markUnreadDoneIfInactive(sessionId: string): void {
     if (store.getActiveSessionId() === sessionId) {
       return;
@@ -282,7 +249,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     if (wasRunning) {
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
-      // Only a finished turn is unread — idle loading=false (TTL dispose,
+      // Only a finished turn is unread — idle loading=false (LRU dispose,
       // ensureAgent, SDK flicker) must not light the sidebar dot.
       markUnreadDoneIfInactive(sessionId);
       // interruptTurn(abort) calls markIdle directly while aborting is set;
@@ -294,7 +261,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
           : { ok: true },
       );
     }
-    scheduleIdleDestroy(sessionId);
   }
 
   function finishTurnError(sessionId: string, err: unknown): void {
@@ -313,7 +279,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     store.updateStatus(sessionId, "idle");
     hub.broadcast(sessionId, { type: "session:status", status: "idle" });
     markUnreadDoneIfInactive(sessionId);
-    scheduleIdleDestroy(sessionId);
     ctx.onTurnSettled?.(sessionId, { ok: false, error: message });
   }
 
@@ -322,12 +287,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
       if (entry.sessionId !== sessionId) continue;
       pending.delete(id);
       entry.resolve({ behavior: "deny", message });
-    }
-  }
-
-  function rearmIdleIfNeeded(sessionId: string): void {
-    if (canIdleDestroy(sessionId)) {
-      scheduleIdleDestroy(sessionId);
     }
   }
 
@@ -378,7 +337,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
   }
 
   return {
-    clearIdleTimer,
     clearStallTimer,
     bumpActivity,
     markTurnOutput,
@@ -389,12 +347,10 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     hasPendingPermission,
     canIdleDestroy,
     destroyRuntime,
-    scheduleIdleDestroy,
     markUnreadDoneIfInactive,
     markIdle,
     finishTurnError,
     denyPendingPermissions,
-    rearmIdleIfNeeded,
     touchAgent,
     maybeEvictLiveAgents,
   };

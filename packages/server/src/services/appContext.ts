@@ -47,8 +47,6 @@ export interface CreateAppContextOptions {
   home?: string;
   /** Injectable Agent factory for tests. */
   createAgent?: CreateAgent;
-  /** Idle TTL before destroying session runtime (default 10min). */
-  idleTtlMs?: number;
   /** Loader for subagent transcripts (tests); defaults to SDK disk read. */
   loadSubagentMessages?: (
     subagentId: string,
@@ -62,7 +60,6 @@ export interface CreateSessionServicesOptions {
   home: string;
   registry: ProviderRegistry;
   createAgent?: CreateAgent;
-  idleTtlMs?: number;
   loadSubagentMessages?: CreateAppContextOptions["loadSubagentMessages"];
   isIssuePlanningSession?: (sessionId: string) => boolean;
 }
@@ -78,7 +75,6 @@ export function createSessionServices(
     registry: options.registry,
     home: options.home,
     createAgent: options.createAgent,
-    idleTtlMs: options.idleTtlMs,
     loadSubagentMessages: options.loadSubagentMessages,
     isIssuePlanningSession: options.isIssuePlanningSession,
   });
@@ -121,7 +117,6 @@ export function createAppContext(
     home,
     registry,
     createAgent: options?.createAgent,
-    idleTtlMs: options?.idleTtlMs,
     loadSubagentMessages: options?.loadSubagentMessages,
     isIssuePlanningSession: (sessionId) => {
       const issue = issues.getByPlanningSession(sessionId);

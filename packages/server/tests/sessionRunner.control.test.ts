@@ -107,7 +107,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         seen.push(String(opts.permissionMode));
         return stubAgent();
@@ -128,7 +127,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async () =>
         stubAgent({
           compact: async () => {
@@ -151,7 +149,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async () =>
         stubAgent({
           clearMessages: async () => {
@@ -196,7 +193,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async () =>
         stubAgent({
           getMessages: () => messages,
@@ -234,7 +230,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent({
@@ -272,7 +267,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async () => {
         createCount += 1;
         return stubAgent();
@@ -297,7 +291,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent({
@@ -352,7 +345,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent({
@@ -404,7 +396,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent({
@@ -451,7 +442,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent();
@@ -499,7 +489,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts;
         return stubAgent();
@@ -544,7 +533,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async () => {
         createCount += 1;
         return stubAgent();
@@ -577,7 +565,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts as unknown as Record<string, unknown>;
         return stubAgent();
@@ -606,7 +593,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       createAgent: async (opts) => {
         captured = opts as unknown as Record<string, unknown>;
         return stubAgent();
@@ -636,7 +622,6 @@ describe("sessionRunner control plane", () => {
       hub,
       registry,
       home: dir,
-      idleTtlMs: 60_000,
       isIssuePlanningSession: (id) => planningIds.has(id),
       createAgent: async (opts) => {
         canUseTool = opts.canUseTool as typeof canUseTool;

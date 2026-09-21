@@ -39,7 +39,6 @@ export type {
   CreateSessionRunnerOptions,
 } from "./ctx.js";
 export type {
-  AGENT_IDLE_TTL_MS,
   EMPTY_TURN_ERROR,
   TURN_STALL_MS,
 } from "../../constants/agent.js";

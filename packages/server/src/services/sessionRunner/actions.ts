@@ -187,7 +187,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
 
     async disposeSession(sessionId) {
       disposed.add(sessionId);
-      core.clearIdleTimer(sessionId);
       core.clearStallTimer(sessionId);
       turnEnded.delete(sessionId);
       turnHadOutput.delete(sessionId);
@@ -230,7 +229,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       agents.delete(sessionId);
       agentLastUsed.delete(sessionId);
       agentIdentities.delete(sessionId);
-      core.clearIdleTimer(sessionId);
       core.clearStallTimer(sessionId);
       if (existing) {
         await existing.dispose();
@@ -239,7 +237,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     },
 
     async getMessages(sessionId) {
-      core.clearIdleTimer(sessionId);
       const session = store.get(sessionId);
       if (!session) {
         throw Object.assign(new Error(`session not found: ${sessionId}`), {
@@ -252,8 +249,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       let sdkMessages: unknown[] = [];
       if (existing?.getMessages) {
         sdkMessages = existing.getMessages();
-        // ensureAgent re-arms on success; re-arm again in case only clearIdleTimer ran.
-        core.rearmIdleIfNeeded(sessionId);
+        core.touchAgent(sessionId);
       } else {
         // SDK persists sessions under its own id (waveSessionId), not the
         // server store's session id — reading by sessionId would miss the file.

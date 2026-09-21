@@ -665,7 +665,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         ) {
           return { behavior: "allow" as const };
         }
-        core.clearIdleTimer(sessionId);
         core.clearStallTimer(sessionId);
         const permissionId = crypto.randomUUID();
         const toolInput =
@@ -706,7 +705,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   }
 
   async function ensureAgent(sessionId: string): Promise<SessionAgent> {
-    core.clearIdleTimer(sessionId);
     const session = store.get(sessionId);
     if (!session) {
       throw Object.assign(new Error(`session not found: ${sessionId}`), {
@@ -725,9 +723,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     const existing = agents.get(sessionId);
     if (existing) {
       if (agentIdentities.get(sessionId) === identity) {
-        // getMessages / idle ensureAgent cleared the timer — re-arm if still idle.
         core.touchAgent(sessionId);
-        core.rearmIdleIfNeeded(sessionId);
         await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
@@ -741,7 +737,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         existing.hasPendingMessages?.()
       ) {
         core.touchAgent(sessionId);
-        core.rearmIdleIfNeeded(sessionId);
         await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
@@ -789,7 +784,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
     core.touchAgent(sessionId);
-    core.rearmIdleIfNeeded(sessionId);
     await core.maybeEvictLiveAgents(sessionId);
     return agent;
   }
@@ -831,7 +825,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
       core.markUnreadDoneIfInactive(sessionId);
-      core.scheduleIdleDestroy(sessionId);
     }
   }
 
@@ -923,7 +916,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       return;
     }
 
-    core.clearIdleTimer(sessionId);
     store.update(sessionId, { lastActiveAt: Date.now() });
     store.updateStatus(sessionId, "running");
     hub.broadcast(sessionId, { type: "session:status", status: "running" });
