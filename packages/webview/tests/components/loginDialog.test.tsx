@@ -52,7 +52,17 @@ describe("LoginDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("auto-closes once authenticated", () => {
+  it("does not auto-close when opened while still locally authenticated", () => {
+    const onCancel = vi.fn();
+    render(
+      <LoginDialog isAuthenticated onLogin={vi.fn()} onCancel={onCancel} />,
+    );
+
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByTestId("login-dialog-overlay")).toBeInTheDocument();
+  });
+
+  it("auto-closes once authenticated after 去登录", () => {
     const onCancel = vi.fn();
     const { rerender } = render(
       <LoginDialog
@@ -62,6 +72,7 @@ describe("LoginDialog", () => {
       />,
     );
 
+    fireEvent.click(screen.getByTestId("login-dialog-login"));
     rerender(
       <LoginDialog isAuthenticated onLogin={vi.fn()} onCancel={onCancel} />,
     );

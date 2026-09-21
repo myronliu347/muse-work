@@ -860,6 +860,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             vscode={vscode}
             host={host}
             onOpenSettings={handleOpenSettings}
+            onLogin={handleLogin}
+            isAuthenticated={state.isAuthenticated}
             api={popoApi}
             postToHost={postToHost}
             {...issueSidebarProps}
@@ -906,6 +908,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
           isStreaming={state.isStreaming}
           disabled={false}
           onOpenSettings={handleOpenSettings}
+          onLogin={handleLogin}
+          isAuthenticated={state.isAuthenticated}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           {...issueSidebarProps}
           currentSessionId={

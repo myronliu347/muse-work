@@ -616,10 +616,12 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     bridge.postMessage({ command: "desktopReady" });
     await flush();
     vi.mocked(api.createSession).mockClear();
+    vi.mocked(api.getAuthStatus).mockClear();
 
     bridge.postMessage({ command: "newSession" });
     await flush();
     expect(api.createSession).not.toHaveBeenCalled();
+    expect(api.getAuthStatus).toHaveBeenCalled();
     expect(messages).toContainEqual({
       command: "updateMessages",
       messages: [],
@@ -2692,6 +2694,11 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     expect(isAuthError("Unauthorized")).toBe(true);
     expect(isAuthError("Request failed with status code 401")).toBe(true);
     expect(isAuthError("CodeMaker token renew failed (401)")).toBe(true);
+    expect(
+      isAuthError(
+        'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}',
+      ),
+    ).toBe(true);
   });
 
   it("isAuthError does not match unrelated errors", () => {
@@ -2757,6 +2764,49 @@ describe("createHostBridge codemaker auth-failure dialog", () => {
     await flush();
 
     expect(messages).not.toContainEqual(
+      expect.objectContaining({ command: "showAuthDialog" }),
+    );
+  });
+
+  it("opens the re-login dialog when a 403 token-expired error:block arrives while still locally authenticated", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+      onStatus: vi.fn(() => () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi({
+        getAuthStatus: vi.fn(async () => ({
+          state: "authenticated",
+          providerId: "codemaker",
+        })),
+      }),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "error:block",
+      sessionId: "sess-active",
+      error:
+        'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}',
+    });
+    await flush();
+
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "authStatusResponse",
+        isAuthenticated: false,
+      }),
+    );
+    expect(messages).toContainEqual(
       expect.objectContaining({ command: "showAuthDialog" }),
     );
   });

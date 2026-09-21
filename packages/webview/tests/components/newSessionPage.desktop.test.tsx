@@ -41,6 +41,27 @@ describe("Desktop draft NewSessionPage", () => {
     expect(screen.queryByTestId("desktop-panel-dock")).not.toBeInTheDocument();
   });
 
+  it("shows the welcome login CTA on a draft when unauthenticated", () => {
+    renderDesktopApp();
+    sendCommand("desktopWorkdirState", { recentWorkdirs: [] });
+    sendCommand("setInitialState", {
+      messages: [],
+      isAuthenticated: false,
+      configurationData: {},
+      session: {
+        id: "__draft__",
+        sessionType: "main",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+
+    expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-login")).toBeInTheDocument();
+    expect(screen.getByText("登 录")).toBeVisible();
+  });
+
   it("leaves NewSessionPage after the session is bound", () => {
     renderDesktopApp();
     sendCommand("desktopWorkdirState", {

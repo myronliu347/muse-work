@@ -250,6 +250,11 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     }
     emitDraftSession();
     try {
+      await ctx.refreshAuth();
+    } catch {
+      // Welcome login CTA can stay stale until the next webviewReady.
+    }
+    try {
       await refreshTree();
     } catch {
       // Sidebar can stay stale; retry on the next successful WS open.
@@ -374,6 +379,11 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
       }
     } catch {
       // Keep workdir bootstrap even if session APIs fail.
+    }
+    try {
+      await ctx.refreshAuth();
+    } catch {
+      // Draft page can still render; next webviewReady retries auth.
     }
     try {
       await ctx.ensureWs();

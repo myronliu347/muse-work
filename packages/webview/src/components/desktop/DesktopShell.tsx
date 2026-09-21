@@ -38,6 +38,8 @@ interface DesktopShellProps {
   host: DesktopHostProps;
   /** Sidebar settings — owned by the delegating ChatApp instance. */
   onOpenSettings: () => void;
+  onLogin?: () => void;
+  isAuthenticated?: boolean;
   /** Issue 侧栏分组（与 host.issueGroups 同源，可由父组件显式传入）。 */
   issueGroups?: DesktopHostProps["issueGroups"];
   onNewIssue?: () => void;
@@ -71,6 +73,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   vscode,
   host,
   onOpenSettings,
+  onLogin,
+  isAuthenticated,
   issueGroups,
   onNewIssue,
   onOpenPlanning,
@@ -665,6 +669,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         isStreaming={false}
         disabled={false}
         onOpenSettings={onOpenSettings}
+        onLogin={onLogin}
+        isAuthenticated={isAuthenticated}
         {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
         issueGroups={issueGroups ?? host.issueGroups}
         onNewIssue={onNewIssue}

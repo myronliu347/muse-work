@@ -268,5 +268,28 @@ describe("createCodeMakerProvider", () => {
     const g = await p.resolveGateway("deepseek-v4-pro");
     expect(g.model).toBe("deepseek-v4-pro");
   });
+
+  it("getAuthStatus treats a live 403 token-expired probe as unauthenticated", async () => {
+    const home = makeTempHome();
+    const p = createCodeMakerProvider({
+      getConfig: () => ({ enabled: true, models }),
+      loadCredentials: () => validCreds,
+      home,
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            msg: "auth failed",
+            extra: {
+              code: 30002,
+              msg: "request access token is invalid: token error: Token is expired",
+            },
+          }),
+          { status: 403 },
+        ),
+    });
+
+    expect((await p.getAuthStatus()).state).toBe("unauthenticated");
+    fs.rmSync(home, { recursive: true, force: true });
+  });
 });
 

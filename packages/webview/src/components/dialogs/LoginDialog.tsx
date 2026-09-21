@@ -24,10 +24,12 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
 }) => {
   const [waiting, setWaiting] = useState(false);
 
-  // Auto-close once the user completes login in the browser.
+  // Auto-close only after the user started SSO and it succeeded. Opening the
+  // dialog while local state is still authenticated (API already 403'd) must
+  // not dismiss it immediately.
   useEffect(() => {
-    if (isAuthenticated) onCancel();
-  }, [isAuthenticated, onCancel]);
+    if (waiting && isAuthenticated) onCancel();
+  }, [waiting, isAuthenticated, onCancel]);
 
   // A reported failure ends the waiting state so the user can retry.
   useEffect(() => {

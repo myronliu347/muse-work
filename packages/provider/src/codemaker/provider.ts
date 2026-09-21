@@ -19,6 +19,7 @@ import { createCodeMakerFetch, tokenHashPrefix } from "./sign.js";
 import type { CodeMakerCreds } from "./types.js";
 
 export const CODEMAKER_BASE_URL = "https://api-code-maker.nie.netease.com";
+const ACCESS_PROBE_PATH = "/api/v1/user_quota/usage?quota_type=global";
 
 export interface CodeMakerProviderDeps {
   getConfig: () => CodeMakerProviderConfig;
@@ -76,6 +77,30 @@ export function createCodeMakerProvider(
     }
   }
 
+  const ACCESS_REJECTED_RE =
+    /auth failed|token.*(?:expired|invalid|revoked)|unauthorized/i;
+
+  /** Live check: local expire can still look valid after the API revoked the token. */
+  async function probeAccess(
+    creds: CodeMakerCreds,
+    fetchImpl: typeof fetch,
+  ): Promise<"ok" | "rejected" | "unknown"> {
+    try {
+      const signed = createCodeMakerFetch(creds, fetchImpl);
+      const res = await signed(
+        `${CODEMAKER_BASE_URL}${ACCESS_PROBE_PATH}`,
+      );
+      if (res.ok) return "ok";
+      const body = await res.text().catch(() => "");
+      if (res.status === 401 || ACCESS_REJECTED_RE.test(body)) {
+        return "rejected";
+      }
+      return "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+
   return {
     id: "codemaker",
     displayName: "CodeMaker",
@@ -84,6 +109,14 @@ export function createCodeMakerProvider(
       const creds = await ensureFreshCreds();
       if (!creds) {
         return { state: "unauthenticated", providerId: "codemaker" };
+      }
+      if (deps.fetch) {
+        const probe = await probeAccess(creds, deps.fetch);
+        if (probe === "rejected") {
+          clearCodeMakerCredentials(deps.home);
+          refreshedCreds = null;
+          return { state: "unauthenticated", providerId: "codemaker" };
+        }
       }
       return {
         state: "authenticated",

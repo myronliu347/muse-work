@@ -152,6 +152,13 @@
   display: block;
 }
 
+.desktop-sidebar-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.desktop-sidebar-icon-btn,
 .desktop-sidebar-settings-btn {
   width: 28px;
   height: 28px;
@@ -166,10 +173,12 @@
   justify-content: center;
 }
 
+.desktop-sidebar-icon-btn:hover,
 .desktop-sidebar-settings-btn:hover {
   background-color: var(--gray-4);
 }
 
+.desktop-sidebar-icon-btn .codicon,
 .desktop-sidebar-settings-btn .codicon {
   font-size: var(--font-size-3);
 }

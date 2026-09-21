@@ -57,6 +57,12 @@ export function createAuthModule(ctx: BridgeCtx): AuthModule {
 
   function maybePromptAuthDialog(error: string): void {
     if (!isAuthError(error)) return;
+    // Local getAuthStatus can still be authenticated (expire timestamp not
+    // hit yet). Flip UI auth so LoginDialog is not auto-closed on mount.
+    postToWebview({
+      command: "authStatusResponse",
+      isAuthenticated: false,
+    });
     promptCodeMakerReauth();
   }
 

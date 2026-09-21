@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderChatApp, screen, fireEvent, act } from "./test-utils";
+import { renderChatApp, screen, fireEvent, act, sendCommand } from "./test-utils";
 
 /**
  * Desktop-only: the chat-header more menu (more-btn / MoreMenu) is hidden —
@@ -38,5 +38,37 @@ describe("Desktop settings entry", () => {
       fireEvent.click(closeBtn);
     });
     expect(screen.queryByTestId("config-dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows a login button next to settings when unauthenticated", () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("authStatusResponse", { isAuthenticated: false });
+    });
+
+    expect(screen.getByTestId("desktop-login-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-logout-btn")).not.toBeInTheDocument();
+  });
+
+  it("posts login when the sidebar login button is clicked", () => {
+    const { vscode } = renderChatApp();
+    act(() => {
+      sendCommand("authStatusResponse", { isAuthenticated: false });
+    });
+    vscode.postMessage.mockClear();
+
+    act(() => {
+      fireEvent.click(screen.getByTestId("desktop-login-btn"));
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "login" }),
+    );
+  });
+
+  it("hides the login button when authenticated", () => {
+    renderChatApp();
+    expect(screen.queryByTestId("desktop-login-btn")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-logout-btn")).not.toBeInTheDocument();
   });
 });

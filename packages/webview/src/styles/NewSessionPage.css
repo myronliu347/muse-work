@@ -6,7 +6,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* flex-start + column margin:auto: center when short, scroll from top when
+     tall. justify-content:center + overflow:auto clips the login CTA. */
+  justify-content: flex-start;
   align-items: center;
   flex: 1 1 0;
   align-self: stretch;

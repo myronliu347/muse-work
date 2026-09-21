@@ -1475,6 +1475,49 @@ describe("sessions + websocket streaming", () => {
     expect(errorEvents).toEqual([]);
   });
 
+  it("403 token-expired error block broadcasts auth:changed", async () => {
+    const tokenExpired =
+      'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}';
+    const createAgent: CreateAgent = async (opts) => ({
+      sendMessage: async () => {
+        opts.callbacks?.onErrorBlockAdded?.(tokenExpired);
+      },
+      dispose: async () => {},
+    });
+
+    const app = await listenSessionsApp({ createAgent });
+    server = app.server;
+    home = app.home;
+
+    const sessionRes = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: home }),
+    });
+    const session = (await sessionRes.json()) as { id: string };
+
+    const { ready, events } = openWsCollector(app.baseUrl, session.id, {
+      minCount: 2,
+      filter: (e) => e.type === "auth:changed" || e.type === "error:block",
+    });
+    await ready;
+
+    const msgRes = await fetch(`${app.baseUrl}/sessions/${session.id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "hello" }),
+    });
+    expect(msgRes.status).toBe(200);
+
+    const received = await events;
+    expect(
+      received.some(
+        (e) => e.type === "error:block" && e.error === tokenExpired,
+      ),
+    ).toBe(true);
+    expect(received.some((e) => e.type === "auth:changed")).toBe(true);
+  });
+
   it("401 from resolveGateway broadcasts auth:changed and marks session error", async () => {
     const createAgent: CreateAgent = async () => ({
       sendMessage: async () => {},

@@ -89,7 +89,13 @@ export function userMessageText(message: unknown): string {
     .trim();
 }
 
+const AUTH_FAILURE_RE =
+  /credentials?\s+(missing|expired)|\bunauthorized\b|\b401\b|auth failed|token.*(?:expired|invalid|revoked)/i;
+
 export function isUnauthorized(err: unknown): boolean {
+  if (typeof err === "string") {
+    return AUTH_FAILURE_RE.test(err);
+  }
   if (!err || typeof err !== "object") {
     return false;
   }
@@ -101,7 +107,7 @@ export function isUnauthorized(err: unknown): boolean {
   if (e.status === 401 || e.statusCode === 401) {
     return true;
   }
-  if (typeof e.message === "string" && /\b401\b|unauthorized/i.test(e.message)) {
+  if (typeof e.message === "string" && AUTH_FAILURE_RE.test(e.message)) {
     return true;
   }
   return false;

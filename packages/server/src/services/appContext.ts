@@ -101,6 +101,7 @@ export function createAppContext(
     getConfig: () => getConfig().providers.codemaker,
     // Prefer returning authUrl to UI/desktop; do not auto-open here.
     openBrowser: () => {},
+    fetch: globalThis.fetch.bind(globalThis),
   });
 
   const openai = createOpenAiCompatibleProvider({

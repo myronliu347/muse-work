@@ -501,6 +501,11 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             isCompacting: false,
           });
           hub.broadcast(sessionId, { type: "error:block", error });
+          // Mid-turn CodeMaker 403 (token expired) arrives as an error block,
+          // not a thrown sendMessage — still prompt re-login.
+          if (isUnauthorized(error)) {
+            void handleUnauthorized(sessionId);
+          }
         },
         onCompactionStateChange: (isCompacting) => {
           if (disposed.has(sessionId)) return;
@@ -793,7 +798,15 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
     const active = registry.getActive();
     const provider = registry.get(active.providerId);
-    if (provider) {
+    if (provider?.id === "codemaker") {
+      // Local expire may still look valid while the API already rejected the
+      // token; drop creds so the next login does not reuse the dead token.
+      await provider.logout();
+      hub.broadcast(sessionId, {
+        type: "auth:changed",
+        status: { state: "unauthenticated", providerId: "codemaker" },
+      });
+    } else if (provider) {
       const status = await provider.getAuthStatus();
       hub.broadcast(sessionId, { type: "auth:changed", status });
     } else {

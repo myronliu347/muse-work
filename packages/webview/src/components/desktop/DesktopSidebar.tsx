@@ -53,6 +53,9 @@ export interface DesktopSidebarProps {
   disabled: boolean;
   /** Opens provider settings from the sidebar footer. */
   onOpenSettings: () => void;
+  /** CodeMaker SSO from the sidebar footer (next to settings). */
+  onLogin?: () => void;
+  isAuthenticated?: boolean;
   /**
    * Legacy session tree groups. Prefer `pinnedSessions` / `recentSessions`.
    * When those are omitted, pin/recent groups are derived from workdir
@@ -114,6 +117,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isStreaming,
   disabled,
   onOpenSettings,
+  onLogin,
+  isAuthenticated = false,
   sessionTree,
   pinnedSessions,
   recentSessions,
@@ -250,17 +255,32 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             draggable={false}
           />
         </span>
-        <Tooltip text="设置" position="top">
-          <button
-            type="button"
-            className="desktop-sidebar-settings-btn"
-            onClick={onOpenSettings}
-            data-testid="desktop-settings-btn"
-            aria-label="设置"
-          >
-            <span className="codicon codicon-settings-gear" aria-hidden="true" />
-          </button>
-        </Tooltip>
+        <div className="desktop-sidebar-footer-actions">
+          {!isAuthenticated && onLogin && (
+            <Tooltip text="登录" position="top">
+              <button
+                type="button"
+                className="desktop-sidebar-icon-btn"
+                onClick={onLogin}
+                data-testid="desktop-login-btn"
+                aria-label="登录"
+              >
+                <span className="codicon codicon-sign-in" aria-hidden="true" />
+              </button>
+            </Tooltip>
+          )}
+          <Tooltip text="设置" position="top">
+            <button
+              type="button"
+              className="desktop-sidebar-icon-btn"
+              onClick={onOpenSettings}
+              data-testid="desktop-settings-btn"
+              aria-label="设置"
+            >
+              <span className="codicon codicon-settings-gear" aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );
