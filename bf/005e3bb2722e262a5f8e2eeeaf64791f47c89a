@@ -1,0 +1,81 @@
+packages/webview/src/components/panels/FilePane.tsx
+  e37ff5e720d19504 40-44,70,159-161,163-168
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  e37ff5e720d19504 56-57,111,185
+packages/webview/src/hooks/useFilePanel.ts
+  e37ff5e720d19504 25-29,232-247,381
+packages/webview/tests/components/filePane.test.tsx
+  e37ff5e720d19504 43,55,72,87,152-159,163-164,177-181,186,197-204,215-216,229-235,244,252-256,259,264-271,273
+packages/webview/src/components/ChatApp.tsx
+  e37ff5e720d19504 389,713
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bf005e3bb2722e262a5f8e2eeeaf64791f47c89a",
+  "prompts": {
+    "c608b9c877753989": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3b3c385e-0298-4db6-a41b-d93f8eb136fb",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 159,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "accepted_lines": 21
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 7
+        },
+        "packages/server/tests/sessionRunner.lifecycle.test.ts": {
+          "accepted_lines": 75
+        },
+        "packages/server/src/constants/agent.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/core.ts": {
+          "accepted_lines": 51
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "accepted_lines": 3
+        }
+      }
+    },
+    "e37ff5e720d19504": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "628b36d6-80d2-4180-8d0f-059f68b90523",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 96,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "accepted_lines": 53
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
