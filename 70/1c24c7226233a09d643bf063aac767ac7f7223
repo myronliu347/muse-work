@@ -1,0 +1,151 @@
+packages/server/tests/sessions.ws.test.ts
+  c608b9c877753989 1478-1520
+packages/webview/tests/muse/hostBridge.test.ts
+  c608b9c877753989 619,624,2697-2701,2771-2813
+packages/webview/src/muse/hostBridge/auth.ts
+  c608b9c877753989 60-65
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  c608b9c877753989 56-58,120-121,258-283
+packages/webview/src/components/dialogs/LoginDialog.tsx
+  c608b9c877753989 27-29,31-32
+packages/webview/tests/components/newSessionPage.desktop.test.tsx
+  c608b9c877753989 44-64
+packages/server/src/services/appContext.ts
+  c608b9c877753989 104
+packages/webview/src/muse/hostBridge/session.ts
+  c608b9c877753989 253-256,384-387
+packages/webview/src/styles/NewSessionPage.css
+  c608b9c877753989 9-11
+packages/provider/tests/provider.codemaker.test.ts
+  c608b9c877753989 271-293
+packages/server/src/services/sessionRunner/serialization.ts
+  c608b9c877753989 92-94,96-98,110
+packages/webview/src/components/ChatApp.tsx
+  c608b9c877753989 863-864,911-912
+packages/server/src/services/sessionRunner/agent.ts
+  c608b9c877753989 504-508,801-809
+packages/provider/src/codemaker/provider.ts
+  c608b9c877753989 22,80-103,113-120
+packages/webview/src/components/desktop/DesktopShell.tsx
+  c608b9c877753989 41-42,76-77,672-673
+packages/server/tests/sessionRunner.unauthorized.test.ts
+  c608b9c877753989 1-30
+packages/webview/tests/components/loginDialog.test.tsx
+  c608b9c877753989 55,57-65,75
+packages/webview/src/styles/DesktopApp.css
+  c608b9c877753989 155-161,176,181
+packages/webview/tests/webview/moreMenu.test.tsx
+  c608b9c877753989 2,42-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "701c24c7226233a09d643bf063aac767ac7f7223",
+  "prompts": {
+    "c608b9c877753989": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3b3c385e-0298-4db6-a41b-d93f8eb136fb",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 381,
+      "total_deletions": 62,
+      "accepted_lines": 341,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 35,
+          "deletions": 2,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 9,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 50,
+          "accepted_lines": 50
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 61,
+          "deletions": 41,
+          "accepted_lines": 31
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "deletions": 3
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/newSessionPage.desktop.test.tsx": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "packages/server/tests/sessionRunner.unauthorized.test.ts": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/tests/webview/moreMenu.test.tsx": {
+          "additions": 35,
+          "deletions": 3,
+          "accepted_lines": 33
+        },
+        "packages/server/src/services/sessionRunner/serialization.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/hostBridge/auth.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/dialogs/LoginDialog.tsx": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 43,
+          "accepted_lines": 43
+        },
+        "packages/webview/tests/components/loginDialog.test.tsx": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/provider/tests/provider.codemaker.test.ts": {
+          "additions": 24,
+          "deletions": 1,
+          "accepted_lines": 23
+        }
+      }
+    }
+  }
+}
