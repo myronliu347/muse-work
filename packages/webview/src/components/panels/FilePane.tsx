@@ -37,6 +37,11 @@ export interface FilePaneProps {
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   /** File-tree double-click: open as a permanent (pinned) tab. */
   onOpenFilePinned?: (path: string) => void;
+  /**
+   * Soft re-read of the open file without activating the file panel.
+   * Used by toolbar refresh and generation-end auto-refresh.
+   */
+  onRefreshOpenFile?: (path: string) => void;
   /** Local HTML files: open in the built-in browser preview instead of the OS. */
   onOpenInPreview?: (path: string) => void;
   onRevealInFinder?: (path: string) => void;
@@ -62,6 +67,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
   onContentSearchChange,
   onOpenFile,
   onOpenFilePinned,
+  onRefreshOpenFile,
   onOpenInPreview,
   onRevealInFinder,
   isStreaming,
@@ -150,10 +156,16 @@ export const FilePane: React.FC<FilePaneProps> = ({
   };
 
   // Re-request the currently open file from the host (soft refresh: old
-  // content stays visible until the reply lands). Shared by the tree's
-  // refresh and the collapsed-toolbar refresh.
+  // content stays visible until the reply lands). Must not go through
+  // onOpenFile — that activates the file panel and would yank the user
+  // away from preview/diff/terminal after every AI turn.
   const refreshOpenFile = () => {
-    if (fileView?.path) onOpenFile(fileView.path);
+    if (!fileView?.path) return;
+    if (onRefreshOpenFile) {
+      onRefreshOpenFile(fileView.path);
+      return;
+    }
+    onOpenFile(fileView.path);
   };
 
   // Same scope as the tree's refresh button: re-read the open file and

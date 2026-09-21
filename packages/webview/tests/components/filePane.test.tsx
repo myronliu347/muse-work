@@ -40,6 +40,7 @@ function renderPane(
     fileTree?: FileTreeState;
     onRevealInFinder?: (path: string) => void;
     onOpenFile?: (path: string) => void;
+    onRefreshOpenFile?: (path: string) => void;
     onOpenInPreview?: (path: string) => void;
     onFileTreeChange?: (next: FileTreeState) => void;
     onClose?: () => void;
@@ -51,6 +52,7 @@ function renderPane(
   const onClose = options.onClose ?? vi.fn();
   const onWidthChange = options.onWidthChange ?? vi.fn();
   const onOpenFile = options.onOpenFile ?? vi.fn();
+  const onRefreshOpenFile = options.onRefreshOpenFile ?? vi.fn();
   const onOpenInPreview = options.onOpenInPreview ?? vi.fn();
   const onFileTreeChange = options.onFileTreeChange ?? vi.fn();
   const vscode = { postMessage: vi.fn() };
@@ -67,6 +69,7 @@ function renderPane(
     fileTree: options.fileTree ?? emptyFileTreeState(),
     onFileTreeChange,
     onOpenFile,
+    onRefreshOpenFile,
     onOpenInPreview,
     onRevealInFinder: options.onRevealInFinder,
     isStreaming: options.isStreaming,
@@ -81,6 +84,7 @@ function renderPane(
     onClose,
     onWidthChange,
     onOpenFile,
+    onRefreshOpenFile,
     onOpenInPreview,
     onFileTreeChange,
     vscode,
@@ -145,17 +149,19 @@ describe("FilePane", () => {
     });
 
     it("re-opens the current file and refreshes listings", () => {
-      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
-        fileTree: {
-          ...emptyFileTreeState(),
-          expanded: ["src"],
-          childrenCache: { "": [] },
-        },
-      });
+      const { onOpenFile, onRefreshOpenFile, onFileTreeChange, vscode } =
+        renderPane({
+          fileTree: {
+            ...emptyFileTreeState(),
+            expanded: ["src"],
+            childrenCache: { "": [] },
+          },
+        });
 
       fireEvent.click(screen.getByTestId("file-refresh-btn"));
 
-      expect(onOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onRefreshOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onOpenFile).not.toHaveBeenCalled();
       expect(onFileTreeChange).toHaveBeenCalledWith(
         expect.objectContaining({ childrenCache: {} }),
       );
@@ -168,14 +174,16 @@ describe("FilePane", () => {
     });
 
     it("still refreshes listings when no file is open", () => {
-      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
-        fileView: null,
-        fileTree: { ...emptyFileTreeState(), expanded: ["src"] },
-      });
+      const { onOpenFile, onRefreshOpenFile, onFileTreeChange, vscode } =
+        renderPane({
+          fileView: null,
+          fileTree: { ...emptyFileTreeState(), expanded: ["src"] },
+        });
 
       fireEvent.click(screen.getByTestId("file-refresh-btn"));
 
       expect(onOpenFile).not.toHaveBeenCalled();
+      expect(onRefreshOpenFile).not.toHaveBeenCalled();
       expect(onFileTreeChange).toHaveBeenCalledWith(
         expect.objectContaining({ childrenCache: {} }),
       );
@@ -186,8 +194,14 @@ describe("FilePane", () => {
   });
 
   describe("auto-refresh when an AI turn ends", () => {
-    it("re-reads the open file and refreshes listings on the streaming falling edge", () => {
-      const { onOpenFile, onFileTreeChange, vscode, rerenderWith } = renderPane({
+    it("soft-refreshes the open file without activating via onOpenFile", () => {
+      const {
+        onOpenFile,
+        onRefreshOpenFile,
+        onFileTreeChange,
+        vscode,
+        rerenderWith,
+      } = renderPane({
         isStreaming: true,
         fileTree: {
           ...emptyFileTreeState(),
@@ -198,7 +212,8 @@ describe("FilePane", () => {
 
       rerenderWith({ isStreaming: false });
 
-      expect(onOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onRefreshOpenFile).toHaveBeenCalledWith("/work/a/src/app.ts");
+      expect(onOpenFile).not.toHaveBeenCalled();
       expect(onFileTreeChange).toHaveBeenCalledWith(
         expect.objectContaining({ childrenCache: {} }),
       );
@@ -211,7 +226,13 @@ describe("FilePane", () => {
     });
 
     it("does not refresh when streaming starts", () => {
-      const { onOpenFile, onFileTreeChange, vscode, rerenderWith } = renderPane({
+      const {
+        onOpenFile,
+        onRefreshOpenFile,
+        onFileTreeChange,
+        vscode,
+        rerenderWith,
+      } = renderPane({
         fileTree: {
           ...emptyFileTreeState(),
           expanded: ["src"],
@@ -220,6 +241,7 @@ describe("FilePane", () => {
       });
       rerenderWith({ isStreaming: true });
       expect(onOpenFile).not.toHaveBeenCalled();
+      expect(onRefreshOpenFile).not.toHaveBeenCalled();
       expect(vscode.postMessage).not.toHaveBeenCalled();
       expect(onFileTreeChange).not.toHaveBeenCalledWith(
         expect.objectContaining({ childrenCache: {} }),
@@ -227,24 +249,28 @@ describe("FilePane", () => {
     });
 
     it("does not refresh when the panel is hidden", () => {
-      const { onOpenFile, vscode, rerenderWith } = renderPane({
-        isStreaming: true,
-        visible: false,
-      });
+      const { onOpenFile, onRefreshOpenFile, vscode, rerenderWith } =
+        renderPane({
+          isStreaming: true,
+          visible: false,
+        });
       rerenderWith({ isStreaming: false, visible: false });
       expect(onOpenFile).not.toHaveBeenCalled();
+      expect(onRefreshOpenFile).not.toHaveBeenCalled();
       expect(vscode.postMessage).not.toHaveBeenCalled();
     });
 
     it("does not refresh on initial mount while not streaming", () => {
-      const { onOpenFile, onFileTreeChange, vscode } = renderPane({
-        fileTree: {
-          ...emptyFileTreeState(),
-          expanded: ["src"],
-          childrenCache: { "": [], src: [] },
-        },
-      });
+      const { onOpenFile, onRefreshOpenFile, onFileTreeChange, vscode } =
+        renderPane({
+          fileTree: {
+            ...emptyFileTreeState(),
+            expanded: ["src"],
+            childrenCache: { "": [], src: [] },
+          },
+        });
       expect(onOpenFile).not.toHaveBeenCalled();
+      expect(onRefreshOpenFile).not.toHaveBeenCalled();
       expect(vscode.postMessage).not.toHaveBeenCalled();
       // Mount expands the tree for the open file; that is not a refresh.
       expect(onFileTreeChange).not.toHaveBeenCalledWith(

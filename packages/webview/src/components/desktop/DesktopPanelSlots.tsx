@@ -53,6 +53,8 @@ export interface DesktopPanelSlotsProps {
   recentFiles: WorkspaceDiffFile[];
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   onOpenFilePinned: (path: string) => void;
+  /** Soft re-read without activating the file panel. */
+  onRefreshOpenFile: (path: string) => void;
   onSendMessage: (text: string) => void;
   fileView: FileViewState | null;
   fileTabs: FileViewState[];
@@ -106,6 +108,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   recentFiles,
   onOpenFile,
   onOpenFilePinned,
+  onRefreshOpenFile,
   onSendMessage,
   fileView,
   fileTabs,
@@ -179,6 +182,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           onContentSearchChange={onContentSearchChange}
           onOpenFile={onOpenFile}
           onOpenFilePinned={onOpenFilePinned}
+          onRefreshOpenFile={onRefreshOpenFile}
           onOpenInPreview={onOpenInPreview}
           onRevealInFinder={onRevealInFinder}
           isStreaming={isStreaming}

@@ -386,6 +386,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   const {
     handleOpenFile,
     handleOpenFilePin,
+    handleRefreshOpenFile,
     handleSelectFileTab,
     handleCloseFileTab,
     handlePinFileTab,
@@ -709,6 +710,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     recentFiles: recentDiffFiles,
     onOpenFile: handleOpenFile,
     onOpenFilePinned: handleOpenFilePin,
+    onRefreshOpenFile: handleRefreshOpenFile,
     onSendMessage: (text) => handleSendMessage(text),
     fileView,
     fileTabs,

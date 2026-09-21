@@ -22,6 +22,11 @@ export interface FilePanelHandlers {
   handleOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   /** Open straight into a permanent (pinned) tab — file-tree double-click. */
   handleOpenFilePin: (path: string) => void;
+  /**
+   * Soft re-read: ask the host for fresh content without activating the file
+   * panel (used by background refresh after an AI turn ends).
+   */
+  handleRefreshOpenFile: (path: string) => void;
   handleSelectFileTab: (path: string) => void;
   handleCloseFileTab: (path: string) => void;
   handlePinFileTab: (path: string) => void;
@@ -224,6 +229,22 @@ export function useFilePanel({
     ],
   );
 
+  // Soft re-read only — must not call tryOpenPanel. Generation-end refresh
+  // runs while the file panel may be checked-but-inactive (user is on
+  // preview/diff/terminal); activating would yank them away from the browser.
+  const handleRefreshOpenFile = useCallback(
+    (path: string) => {
+      if (!path) return;
+      postToHost({
+        command: "openFile",
+        path,
+        host: effectiveHost,
+        workdir: effectiveWorkdir ?? undefined,
+      });
+    },
+    [effectiveHost, effectiveWorkdir, postToHost],
+  );
+
   // Clicking a file-name tab in the dock's top bar also brings the file panel
   // forward (the tab bar is shared with the other panels).
   const handleSelectFileTab = useCallback(
@@ -357,6 +378,7 @@ export function useFilePanel({
   return {
     handleOpenFile,
     handleOpenFilePin,
+    handleRefreshOpenFile,
     handleSelectFileTab,
     handleCloseFileTab,
     handlePinFileTab,
