@@ -1,0 +1,89 @@
+packages/webview/src/styles/PathTree.css
+  e7d0dfe7f5ffd4f4 1-71
+packages/webview/src/utils/pathTree.ts
+  e7d0dfe7f5ffd4f4 1-119
+packages/webview/src/components/panels/FileContentSearch.tsx
+  e7d0dfe7f5ffd4f4 3,5,46-56,233-262
+packages/webview/src/components/panels/DiffPane.tsx
+  e7d0dfe7f5ffd4f4 13,16,405-414,714-760
+packages/webview/src/styles/DiffPane.css
+  e7d0dfe7f5ffd4f4 406
+packages/webview/tests/utils/pathTree.test.ts
+  e7d0dfe7f5ffd4f4 1-97
+packages/webview/src/components/panels/PathTree.tsx
+  e7d0dfe7f5ffd4f4 1-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6c203b4bfd1cf6eb2b2df81d008d83eaaa5082af",
+  "prompts": {
+    "bcc17ae9ca20b32f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bfc91bf-24b9-463a-9318-00dce6e799f5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e7d0dfe7f5ffd4f4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "910b1cf6-e3bd-40a0-be35-693157422bd4",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 536,
+      "total_deletions": 390,
+      "accepted_lines": 536,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/utils/pathTree.ts": {
+          "additions": 119,
+          "accepted_lines": 119
+        },
+        "packages/webview/tests/utils/pathTree.test.ts": {
+          "additions": 97,
+          "accepted_lines": 97
+        },
+        "packages/webview/src/styles/PathTree.css": {
+          "additions": 71,
+          "accepted_lines": 71
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 59,
+          "deletions": 163,
+          "accepted_lines": 59
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 1,
+          "deletions": 68,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/FileContentSearch.tsx": {
+          "additions": 43,
+          "deletions": 159,
+          "accepted_lines": 43
+        },
+        "packages/webview/src/components/panels/PathTree.tsx": {
+          "additions": 146,
+          "accepted_lines": 146
+        }
+      }
+    }
+  }
+}
