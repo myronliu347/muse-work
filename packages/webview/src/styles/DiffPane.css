@@ -403,67 +403,7 @@
   padding: var(--space-1) 0;
 }
 
-.diff-tree-dir,
-.diff-tree-file {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  width: 100%;
-  padding-top: 3px;
-  padding-bottom: 3px;
-  padding-right: var(--space-2);
-  border: none;
-  background: transparent;
-  color: var(--gray-12);
-  font-size: var(--font-size-1);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.diff-tree-dir:hover,
-.diff-tree-file:hover {
-  background: var(--gray-4);
-}
-
-.diff-tree-file--active {
-  background: color-mix(in srgb, var(--accent-9) 25%, transparent);
-}
-
-.diff-tree-chevron {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  font-size: 14px;
-  line-height: 16px;
-  text-align: center;
-  color: var(--gray-11);
-  opacity: 0.85;
-}
-
-.diff-tree-folder-icon {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  font-size: var(--font-size-2);
-  color: var(--gray-11);
-}
-
-.diff-tree-dir-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diff-tree-dir-count {
-  flex-shrink: 0;
-  color: var(--gray-9);
-  font-size: var(--font-size-1);
-}
-
+/* Selection highlight comes from path-tree-row--selected; keep the class hook. */
 .diff-tree-file-status {
   flex-shrink: 0;
   width: 16px;
@@ -498,13 +438,6 @@
 
 .diff-pane .diff-tree-file-status-untracked {
   color: var(--gray-11);
-}
-
-.diff-tree-file-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .diff-tree-file-stats {

@@ -1,0 +1,71 @@
+/* Shared path-tree row styles (Diff / content-search sidebars). */
+
+.path-tree {
+  width: 100%;
+}
+
+.path-tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.path-tree-row:hover {
+  background: var(--gray-4);
+}
+
+.path-tree-row--selected {
+  background: color-mix(in srgb, var(--accent-9) 25%, transparent);
+}
+
+.path-tree-chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--gray-11);
+  opacity: 0.85;
+}
+
+.path-tree-chevron-slot {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.path-tree-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.path-tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.path-tree-trailing {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--gray-9);
+  font-size: var(--font-size-1);
+}

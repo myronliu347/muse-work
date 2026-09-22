@@ -10,8 +10,10 @@ import {
   resolveWorkspaceFilePath,
   displayFilePath,
 } from "../../utils/filePathDisplay";
+import { buildPathTree, pathSegments } from "../../utils/pathTree";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
+import { PathTree } from "./PathTree";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
 
@@ -55,95 +57,6 @@ const STATUS_ICON: Record<WorkspaceFileStatus, string> = {
   renamed: "codicon-diff-renamed",
   untracked: "codicon-diff-added",
 };
-
-/** One node of the tree view: either a directory (children) or a changed
- *  file (file). Built from the flat diff file list in buildDiffTree. */
-export interface DiffTreeNode {
-  name: string;
-  /** Directory key ("src/sub") for dirs; the original file path for files. */
-  path: string;
-  isDir: boolean;
-  file?: WorkspaceDiffFile;
-  children?: DiffTreeNode[];
-}
-
-const DIR_PATH_SEP = "/";
-
-/** Split a (relative or absolute) file path into non-empty segments. */
-function pathSegments(path: string): string[] {
-  return path
-    .replace(/\\/g, DIR_PATH_SEP)
-    .split(DIR_PATH_SEP)
-    .filter((s) => s.length > 0);
-}
-
-/** Organize the flat diff file list into a directory tree. Only directories
- *  affected by the changed files are created; each file becomes a leaf node
- *  carrying its WorkspaceDiffFile. Paths under workdir are shown relative to
- *  it (same semantics as the list view); single-child directory chains are
- *  merged into one node so deep "a/b/c" tunnels do not bury the file. */
-export function buildDiffTree(
-  files: WorkspaceDiffFile[],
-  workdir?: string,
-): DiffTreeNode[] {
-  const dirs = new Map<string, DiffTreeNode>();
-  const roots: DiffTreeNode[] = [];
-  for (const file of files) {
-    const segments = pathSegments(displayFilePath(file.path, workdir));
-    if (segments.length === 0) continue;
-    let siblings = roots;
-    let dirPath = "";
-    for (let i = 0; i < segments.length - 1; i++) {
-      dirPath = dirPath ? `${dirPath}${DIR_PATH_SEP}${segments[i]}` : segments[i];
-      let dirNode = dirs.get(dirPath);
-      if (!dirNode) {
-        const children: DiffTreeNode[] = [];
-        dirNode = { name: segments[i], path: dirPath, isDir: true, children };
-        dirs.set(dirPath, dirNode);
-        siblings.push(dirNode);
-      }
-      siblings = dirNode.children!;
-    }
-    siblings.push({
-      name: segments[segments.length - 1],
-      path: file.path,
-      isDir: false,
-      file,
-    });
-  }
-  return mergeSingleDirChains(roots);
-}
-
-/** Collapse runs of directories whose only child is another directory into a
- *  single node (GitHub/VS Code compact-folders style): "a/b/c/file.ts"
- *  renders as one "a/b/c" row plus the file, not three nested rows. */
-function mergeSingleDirChains(nodes: DiffTreeNode[]): DiffTreeNode[] {
-  return nodes.map((node) => {
-    if (!node.isDir) return node;
-    let dir = node;
-    while (
-      dir.children !== undefined &&
-      dir.children.length === 1 &&
-      dir.children[0].isDir
-    ) {
-      const only = dir.children[0];
-      dir = { ...only, name: `${dir.name}${DIR_PATH_SEP}${only.name}` };
-    }
-    return {
-      ...dir,
-      children: mergeSingleDirChains(dir.children ?? []),
-    };
-  });
-}
-
-/** Total number of changed files under a tree node (directories recurse). */
-export function countDiffTreeFiles(node: DiffTreeNode): number {
-  if (!node.isDir) return 1;
-  return (node.children ?? []).reduce(
-    (sum, child) => sum + countDiffTreeFiles(child),
-    0,
-  );
-}
 
 export interface DiffComment {
   path?: string;
@@ -489,10 +402,16 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   };
 
   // Tree view data derived from the current ok-state files.
-  const diffTree = useMemo(
-    () => (state.kind === "ok" ? buildDiffTree(state.files, workdir) : []),
-    [state, workdir],
-  );
+  const diffTree = useMemo(() => {
+    if (state.kind !== "ok") return [];
+    return buildPathTree(
+      state.files.map((file) => ({
+        segments: pathSegments(displayFilePath(file.path, workdir)),
+        path: file.path,
+        data: file,
+      })),
+    );
+  }, [state, workdir]);
   const treeFiles = state.kind === "ok" ? state.files : [];
   // The file shown on the tree view's left side: the tree selection when set,
   // else the list view's expanded file, else the first file. Falls back to the
@@ -784,75 +703,6 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     </div>
   );
 
-  const renderDiffTreeNode = (
-    node: DiffTreeNode,
-    depth: number,
-  ): React.ReactNode => {
-    if (node.isDir) {
-      const collapsed = collapsedDirs.has(node.path);
-      return (
-        <div key={node.path}>
-          <button
-            type="button"
-            className="diff-tree-dir"
-            data-testid={`diff-tree-dir-${node.path}`}
-            aria-expanded={!collapsed}
-            title={node.path}
-            onClick={() => toggleDir(node.path)}
-            style={{ paddingLeft: 8 + depth * 14 }}
-          >
-            <i
-              className={`codicon ${collapsed ? "codicon-chevron-right" : "codicon-chevron-down"} diff-tree-chevron`}
-              aria-hidden
-            />
-            <i
-              className="codicon codicon-folder diff-tree-folder-icon"
-              aria-hidden
-            />
-            <span className="diff-tree-dir-name">{node.name}</span>
-            <span className="diff-tree-dir-count">
-              {countDiffTreeFiles(node)}
-            </span>
-          </button>
-          {!collapsed &&
-            (node.children ?? []).map((child) =>
-              renderDiffTreeNode(child, depth + 1),
-            )}
-        </div>
-      );
-    }
-    const file = node.file!;
-    const isActive = node.path === activePath;
-    return (
-      <button
-        type="button"
-        key={node.path}
-        className={`diff-tree-file${isActive ? " diff-tree-file--active" : ""}`}
-        data-testid={`diff-tree-file-${file.status}`}
-        data-path={node.path}
-        title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
-        aria-current={isActive}
-        onClick={() => {
-          setTreeSelected(node.path);
-          clearComment();
-        }}
-        style={{ paddingLeft: 8 + depth * 14 }}
-      >
-        <span
-          className={`diff-tree-file-status diff-tree-file-status-${file.status}`}
-          title={STATUS_LABEL[file.status]}
-        >
-          <i className={`codicon ${STATUS_ICON[file.status]}`} aria-hidden />
-        </span>
-        <span className="diff-tree-file-name">{node.name}</span>
-        <span className="diff-tree-file-stats">
-          <span className="diff-tree-file-stats-add">+{file.additions}</span>
-          <span className="diff-tree-file-stats-del">-{file.deletions}</span>
-        </span>
-      </button>
-    );
-  };
-
   const renderTreeView = () => (
     <div className="diff-pane-tree-view" data-testid="diff-tree-view">
       <div className="diff-pane-tree-content">
@@ -861,7 +711,53 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <nav className="diff-pane-tree-nav" data-testid="diff-tree-nav">
         <div className="diff-pane-tree-header">变更文件</div>
         <div className="diff-pane-tree-scroll">
-          {diffTree.map((node) => renderDiffTreeNode(node, 0))}
+          <PathTree
+            nodes={diffTree}
+            collapsedDirs={collapsedDirs}
+            onToggleDir={toggleDir}
+            selectedPath={activePath}
+            onFileClick={(node) => {
+              setTreeSelected(node.path);
+              clearComment();
+            }}
+            getDirTestId={(node) => `diff-tree-dir-${node.path}`}
+            getFileTestId={(node) => `diff-tree-file-${node.data.status}`}
+            getFileClassName={(_node, selected) =>
+              selected ? "diff-tree-file--active" : undefined
+            }
+            getFileDataAttrs={(node) => ({
+              title: node.data.oldPath
+                ? `${node.data.oldPath} → ${node.data.path}`
+                : node.data.path,
+            })}
+            renderDirTrailing={(node) => (
+              <span className="path-tree-trailing">{node.fileCount}</span>
+            )}
+            renderFileTrailing={(node) => {
+              const file = node.data;
+              return (
+                <span className="path-tree-trailing">
+                  <span
+                    className={`diff-tree-file-status diff-tree-file-status-${file.status}`}
+                    title={STATUS_LABEL[file.status]}
+                  >
+                    <i
+                      className={`codicon ${STATUS_ICON[file.status]}`}
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="diff-tree-file-stats">
+                    <span className="diff-tree-file-stats-add">
+                      +{file.additions}
+                    </span>
+                    <span className="diff-tree-file-stats-del">
+                      -{file.deletions}
+                    </span>
+                  </span>
+                </span>
+              );
+            }}
+          />
         </div>
       </nav>
     </div>

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import type { ContentSearchFileHit, ContentSearchState } from "../../types";
+import { buildPathTree, pathSegments } from "../../utils/pathTree";
 import { FileIcon } from "./FileIcon";
+import { PathTree } from "./PathTree";
 
 export type FileContentSearchProps = {
   workdir: string | undefined;
@@ -10,87 +12,6 @@ export type FileContentSearchProps = {
 };
 
 type ViewMode = "list" | "tree";
-
-type SearchTreeFile = { kind: "file"; file: ContentSearchFileHit };
-type SearchTreeDir = {
-  kind: "dir";
-  name: string;
-  path: string;
-  children: SearchTreeNode[];
-  fileCount: number;
-};
-type SearchTreeNode = SearchTreeFile | SearchTreeDir;
-
-function buildSearchTree(results: ContentSearchFileHit[]): SearchTreeNode[] {
-  const root: SearchTreeDir = {
-    kind: "dir",
-    name: "",
-    path: "",
-    children: [],
-    fileCount: 0,
-  };
-  for (const file of results) {
-    const parts = file.relativePath.split("/");
-    const fileName = parts.pop() || file.relativePath;
-    let node = root;
-    let dirPath = "";
-    for (const part of parts) {
-      dirPath = dirPath ? `${dirPath}/${part}` : part;
-      let child = node.children.find(
-        (c): c is SearchTreeDir => c.kind === "dir" && c.path === dirPath,
-      );
-      if (!child) {
-        child = {
-          kind: "dir",
-          name: part,
-          path: dirPath,
-          children: [],
-          fileCount: 0,
-        };
-        node.children.push(child);
-      }
-      node = child;
-    }
-    node.children.push({ kind: "file", file });
-  }
-  const countFiles = (dir: SearchTreeDir): number => {
-    dir.fileCount = dir.children.reduce(
-      (n, c) => n + (c.kind === "file" ? 1 : countFiles(c)),
-      0,
-    );
-    return dir.fileCount;
-  };
-  countFiles(root);
-  return compressTree(root.children);
-}
-
-// Collapse chains of single-child dirs into one node: src -> components -> ui
-// renders as a single "src/components/ui" node instead of three nested empty
-// dirs. A dir with file siblings (or multiple children) stays as is.
-function compressTree(nodes: SearchTreeNode[]): SearchTreeNode[] {
-  const out: SearchTreeNode[] = [];
-  for (const node of nodes) {
-    if (node.kind === "dir") {
-      const children = compressTree(node.children);
-      // Single dir child and nothing else: fold the child's name into ours.
-      if (children.length === 1 && children[0].kind === "dir") {
-        const child = children[0];
-        out.push({
-          kind: "dir",
-          name: `${node.name}/${child.name}`,
-          path: child.path,
-          children: child.children,
-          fileCount: child.fileCount,
-        });
-      } else {
-        out.push({ ...node, children });
-      }
-    } else {
-      out.push(node);
-    }
-  }
-  return out;
-}
 
 function highlightLine(
   text: string,
@@ -122,7 +43,17 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
   const fileCount = state.results.length;
   const expanded = new Set(state.expandedFiles);
 
-  const tree = useMemo(() => buildSearchTree(state.results), [state.results]);
+  const tree = useMemo(
+    () =>
+      buildPathTree(
+        state.results.map((file) => ({
+          segments: pathSegments(file.relativePath),
+          path: file.path,
+          data: file,
+        })),
+      ),
+    [state.results],
+  );
 
   const toggleExpanded = (rel: string) => {
     const next = new Set(state.expandedFiles);
@@ -144,78 +75,6 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
       else next.add(dirPath);
       return next;
     });
-  };
-
-  const renderTreeDir = (dir: SearchTreeDir, depth: number): React.ReactNode => {
-    const collapsed = collapsedDirs.has(dir.path);
-    return (
-      <div key={dir.path}>
-        <button
-          type="button"
-          className="file-content-search-tree-row"
-          style={{ paddingLeft: 4 + depth * 12 }}
-          data-testid={`content-search-tree-dir-${dir.path}`}
-          onClick={() => toggleDir(dir.path)}
-        >
-          <i
-            className={`codicon ${
-              collapsed ? "codicon-chevron-right" : "codicon-chevron-down"
-            } file-tree-chevron`}
-            aria-hidden
-          />
-          <FileIcon name="folder" isDirectory className="file-tree-icon" />
-          <span className="file-content-search-tree-name">{dir.name}</span>
-          <span className="file-content-search-file-count">
-            ({dir.fileCount})
-          </span>
-        </button>
-        {!collapsed &&
-          dir.children.map((child) =>
-            child.kind === "dir"
-              ? renderTreeDir(child, depth + 1)
-              : renderTreeFile(child.file, depth + 1),
-          )}
-      </div>
-    );
-  };
-
-  const renderTreeFile = (
-    file: ContentSearchFileHit,
-    depth: number,
-  ): React.ReactNode => {
-    const name = file.relativePath.split("/").pop() || file.relativePath;
-    const open = expanded.has(file.relativePath);
-    return (
-      <div key={file.path}>
-        <button
-          type="button"
-          className="file-content-search-tree-row"
-          style={{ paddingLeft: 4 + depth * 12 }}
-          data-testid={`content-search-tree-file-${file.relativePath}`}
-          onClick={() => toggleExpanded(file.relativePath)}
-        >
-          <i
-            className={`codicon ${
-              open ? "codicon-chevron-down" : "codicon-chevron-right"
-            } file-tree-chevron`}
-            aria-hidden
-          />
-          <FileIcon name={name} className="file-tree-icon" />
-          <span className="file-content-search-tree-name">{name}</span>
-          <span className="file-content-search-file-count">
-            ({file.matches.length})
-          </span>
-        </button>
-        {open && (
-          <div
-            className="file-content-search-tree-matches"
-            style={{ paddingLeft: 4 + (depth + 1) * 12 }}
-          >
-            {renderMatches(file)}
-          </div>
-        )}
-      </div>
-    );
   };
 
   const viewToggles = (
@@ -371,11 +230,36 @@ export const FileContentSearch: React.FC<FileContentSearchProps> = ({
           className="file-content-search-tree"
           data-testid="content-search-tree-panel"
         >
-          {tree.map((node) =>
-            node.kind === "dir"
-              ? renderTreeDir(node, 0)
-              : renderTreeFile(node.file, 0),
-          )}
+          <PathTree
+            nodes={tree}
+            collapsedDirs={collapsedDirs}
+            onToggleDir={toggleDir}
+            fileExpandable
+            isFileExpanded={(node) => expanded.has(node.data.relativePath)}
+            onFileClick={(node) => toggleExpanded(node.data.relativePath)}
+            getDirTestId={(node) => `content-search-tree-dir-${node.path}`}
+            getFileTestId={(node) =>
+              `content-search-tree-file-${node.data.relativePath}`
+            }
+            renderDirTrailing={(node) => (
+              <span className="file-content-search-file-count">
+                ({node.fileCount})
+              </span>
+            )}
+            renderFileTrailing={(node) => (
+              <span className="file-content-search-file-count">
+                ({node.data.matches.length})
+              </span>
+            )}
+            renderFileChildren={(node, depth) => (
+              <div
+                className="file-content-search-tree-matches"
+                style={{ paddingLeft: 8 + (depth + 1) * 12 }}
+              >
+                {renderMatches(node.data)}
+              </div>
+            )}
+          />
         </div>
       )}
     </div>
