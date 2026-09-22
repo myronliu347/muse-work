@@ -1,0 +1,65 @@
+packages/webview/tests/webview/userMessageDedupe.test.tsx
+  bcc17ae9ca20b32f 183-262
+packages/webview/src/muse/messageRouter.ts
+  bcc17ae9ca20b32f 15,518-529,533-537,541-542,548-552
+packages/webview/src/reducers/chatReducer.ts
+  bcc17ae9ca20b32f 14,42-45,56-57,60-61,590-591
+packages/webview/src/utils/messageUtils.ts
+  bcc17ae9ca20b32f 99-105
+packages/webview/tests/reducers/chatReducer.test.ts
+  bcc17ae9ca20b32f 136-165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "97630ec0d4e16eb118db10886f77e6350a638d23",
+  "prompts": {
+    "bcc17ae9ca20b32f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bfc91bf-24b9-463a-9318-00dce6e799f5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 181,
+      "total_deletions": 36,
+      "accepted_lines": 154,
+      "overriden_lines": 4,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 7,
+          "deletions": 3,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 12,
+          "deletions": 3,
+          "accepted_lines": 11
+        },
+        "packages/webview/tests/webview/userMessageDedupe.test.tsx": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 19,
+          "deletions": 14,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/utils/messageUtils.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/reducers/chatReducer.test.ts": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 25,
+          "deletions": 16,
+          "accepted_lines": 25
+        }
+      }
+    }
+  }
+}
