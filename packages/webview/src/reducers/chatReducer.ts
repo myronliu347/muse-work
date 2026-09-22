@@ -11,6 +11,7 @@ import type {
 } from "../types";
 import { pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
+import { normalizeUserTextForDedupe } from "../utils/messageUtils";
 import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
 
 const SESSION_SCOPED_DIALOGS = new Set([
@@ -38,6 +39,10 @@ function userTextContent(message: Message): string | undefined {
   return text || undefined;
 }
 
+function userTextsMatch(a: string, b: string): boolean {
+  return a === b || normalizeUserTextForDedupe(a) === normalizeUserTextForDedupe(b);
+}
+
 function isEmptyTurnErrorMessage(message: Message): boolean {
   return (
     message.role === "assistant" &&
@@ -48,9 +53,12 @@ function isEmptyTurnErrorMessage(message: Message): boolean {
   );
 }
 
+/** Nearest visible (non-meta) user message — meta SessionStart hooks must not
+ *  shadow the optimistic bubble during user:message / APPEND_MESSAGE dedupe. */
 function nearestUserIndex(messages: Message[]): number {
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") return i;
+    const m = messages[i];
+    if (m.role === "user" && !m.isMeta) return i;
   }
   return -1;
 }
@@ -579,7 +587,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           const idx = nearestUserIndex(state.messages);
           if (idx !== -1) {
             const nearest = state.messages[idx];
-            if (userTextContent(nearest) === incoming) {
+            const nearestText = userTextContent(nearest);
+            if (nearestText && userTextsMatch(nearestText, incoming)) {
               const incomingOpt = isOptimisticUserId(action.payload.id);
               const nearestOpt = isOptimisticUserId(nearest.id);
               if (incomingOpt && !nearestOpt) {

@@ -180,4 +180,84 @@ describe("user:message dedupe with [Image source: ...] markers", () => {
     });
     expect(getMessageIds()[0]).toBe("msg-real-uuid");
   });
+
+  it("dedupes against the optimistic bubble when an isMeta user lands between (Issue first /skill)", async () => {
+    // Issue 规划会话预创建后，首条常发斜杠技能。ensureAgent / SessionStart 会把
+    // isMeta 用户消息写入转录；若它插在乐观气泡与 user:message 回声之间，
+    // 「只取最近一条 role=user」会命中 meta（真实 id、正文不同）→ 去重失败，
+    // 列表里留下乐观气泡 + 回声两条相同可见气泡（meta 被 MessageList 过滤）。
+    renderChatApp();
+
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_opt_skill",
+        role: "user",
+        timestamp: new Date().toISOString(),
+        blocks: [
+          {
+            type: "text",
+            content:
+              "/mattpocock:grill-with-docs 结合当前项目的情况，做一个新的原型生成方案方案，\n\n分支修改范围，需求分析六 design 各个文档生成\n原型阶段页面生成逻辑",
+          },
+        ],
+      },
+    });
+
+    sendCommand("appendMessage", {
+      message: {
+        id: "msg-meta-session-start",
+        role: "user",
+        isMeta: true,
+        timestamp: new Date().toISOString(),
+        blocks: [
+          {
+            type: "text",
+            content:
+              "<system-reminder>\nSessionStart hook additional context\n</system-reminder>",
+          },
+        ],
+      },
+    });
+
+    sendCommand("user:message", {
+      id: "msg-real-skill",
+      content:
+        "/mattpocock:grill-with-docs 结合当前项目的情况，做一个新的原型生成方案方案，\n\n分支修改范围，需求分析六 design 各个文档生成\n原型阶段页面生成逻辑",
+    });
+
+    await waitFor(() => {
+      expect(getMessages()).toHaveLength(1);
+    });
+    expect(getMessageIds()).toEqual(["msg-real-skill"]);
+    expect(getMessages()[0]).toHaveTextContent("grill-with-docs");
+  });
+
+  it("dedupes slash-skill echo when SDK collapses extra spaces in the reconstructed command", async () => {
+    // contenteditable may leave double spaces; SDK rebuilds `/${name} ${args.trim()}`.
+    renderChatApp();
+
+    sendCommand("appendMessage", {
+      message: {
+        id: "user_opt_spaces",
+        role: "user",
+        timestamp: new Date().toISOString(),
+        blocks: [
+          {
+            type: "text",
+            content: "/mattpocock:grill-with-docs  结合当前项目",
+          },
+        ],
+      },
+    });
+
+    sendCommand("user:message", {
+      id: "msg-real-spaces",
+      content: "/mattpocock:grill-with-docs 结合当前项目",
+    });
+
+    await waitFor(() => {
+      expect(getMessages()).toHaveLength(1);
+    });
+    expect(getMessageIds()).toEqual(["msg-real-spaces"]);
+  });
 });

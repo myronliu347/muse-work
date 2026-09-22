@@ -12,7 +12,7 @@ import type {
 } from "../types";
 import { patchPaneUi, usePanelGroupStore } from "../stores";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
-import { stripImageSourceMarkers } from "../utils/messageUtils";
+import { stripImageSourceMarkers, normalizeUserTextForDedupe } from "../utils/messageUtils";
 
 /**
  * Refs the message router reads at event time. Structurally typed so the
@@ -515,32 +515,41 @@ export function createMessageHandler({
         if (!content && !um.images?.length) break;
         const realId =
           typeof um.id === "string" && um.id.length > 0 ? um.id : undefined;
-        // 乐观气泡可能已被插队的错误块（如空 turn 提示）压到非最后一条，
-        // 只比对最后一条会漏掉匹配、重复渲染同一条用户气泡。向上找最近
-        // 一条用户消息做去重。判据是「未对齐的乐观气泡」而非时间窗：SDK
-        // 排队（上轮慢流未结束）时 echo 可能在发送数秒后才广播，时间窗会
-        // 误判为新消息、重复渲染；而乐观气泡用客户端临时 id（user_/user-
-        // 前缀），对齐后变成 SDK 真实 id（msg- 前缀）。所以只有 id 仍为
-        // 临时前缀、或已等于本 echo 真实 id（幂等重播）的消息才是去重目标
-        // ——已对齐的历史消息（真实 id）不会被误配，连续发送的相同内容也
-        // 不会被错误合并。
+        // 乐观气泡可能已被插队的错误块（如空 turn 提示）或 isMeta SessionStart
+        // 提醒压到非最后一条，只比对「最近一条 role=user」会漏掉匹配、重复渲染
+        // 同一条用户气泡。向上找最近一条未对齐的乐观气泡做去重。判据是「未对齐
+        // 的乐观气泡」而非时间窗：SDK 排队（上轮慢流未结束）或斜杠技能先
+        // executeSkill 再 addUserMessage 时，echo 可能在发送数秒后才广播，时间
+        // 窗会误判为新消息、重复渲染；而乐观气泡用客户端临时 id（user_/user-
+        // 前缀），对齐后变成 SDK 真实 id（msg- 前缀）。所以只有 id 仍为临时前缀、
+        // 或已等于本 echo 真实 id（幂等重播）的消息才是去重目标——已对齐的历史
+        // 消息（真实 id）不会被误配，连续发送的相同内容也不会被错误合并。
+        // isMeta 用户消息（SessionStart hook）不参与匹配，也不打断向上扫描。
+        const isOptimisticId = (id: string) =>
+          id.startsWith("user_") || id.startsWith("user-");
         let lastMsg: (typeof stateRef.current.messages)[number] | undefined;
         for (let i = stateRef.current.messages.length - 1; i >= 0; i--) {
           const m = stateRef.current.messages[i];
-          if (m.role === "user") {
+          if (m.role !== "user" || m.isMeta) continue;
+          if (
+            isOptimisticId(m.id) ||
+            (realId != null && m.id === realId)
+          ) {
             lastMsg = m;
             break;
           }
+          // 已对齐的真实用户消息：停止扫描，避免误配更早的同文乐观气泡。
+          break;
         }
-        const isOptimisticId = (id: string) =>
-          id.startsWith("user_") || id.startsWith("user-");
         if (
           lastMsg != null &&
           content &&
-          (isOptimisticId(lastMsg.id) ||
-            (realId != null && lastMsg.id === realId)) &&
           lastMsg.blocks?.some(
-            (b) => b.type === "text" && b.content === content,
+            (b) =>
+              b.type === "text" &&
+              (b.content === content ||
+                normalizeUserTextForDedupe(b.content ?? "") ===
+                  normalizeUserTextForDedupe(content)),
           )
         ) {
           // 命中乐观气泡：把客户端临时 id 对齐成 SDK 真实 id，否则该消息

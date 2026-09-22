@@ -133,6 +133,36 @@ describe("chatReducer", () => {
       ]);
     });
 
+    it("aligns the optimistic bubble even when an isMeta user is the nearest user", () => {
+      const optimistic: Message = {
+        id: "user_opt1",
+        role: "user",
+        timestamp: "0",
+        blocks: [{ type: "text", content: "/skill hello" }],
+      };
+      const meta: Message = {
+        id: "msg-meta",
+        role: "user",
+        isMeta: true,
+        timestamp: "1",
+        blocks: [{ type: "text", content: "SessionStart hook" }],
+      };
+      const state = { ...initialState, messages: [optimistic, meta] };
+      const newState = chatReducer(state, {
+        type: "APPEND_MESSAGE",
+        payload: {
+          id: "msg-real-uuid",
+          role: "user",
+          timestamp: "2",
+          blocks: [{ type: "text", content: "/skill hello" }],
+        },
+      });
+      expect(newState.messages.map((m) => m.id)).toEqual([
+        "msg-real-uuid",
+        "msg-meta",
+      ]);
+    });
+
     it("still appends a second send of the same text after the first echo", () => {
       const first: Message = {
         id: "msg-real-1",

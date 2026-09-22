@@ -96,6 +96,14 @@ export const stripImageSourceMarkers = (text: string): string =>
   text.replace(/\[Image source: [^\]]+\](\n\[Image source: [^\]]+\])*/g, "");
 
 /**
+ * Normalize user text for optimistic ↔ SDK echo dedupe. Slash-skill paths
+ * rebuild `/${name} ${args.trim()}` which can collapse runs of spaces that
+ * contenteditable / convertToMarkdown left in the optimistic bubble.
+ */
+export const normalizeUserTextForDedupe = (text: string): string =>
+  text.trim().replace(/\s+/g, " ");
+
+/**
  * 解析 Markdown 中的标签语法 [@file:path], [Selection: fileName#start-end] 和 [imageN]
  */
 export const parseMentions = (
