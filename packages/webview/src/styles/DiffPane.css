@@ -378,13 +378,27 @@
 }
 
 .diff-pane-tree-nav {
+  position: relative;
   flex-shrink: 0;
-  width: 240px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   border-left: 1px solid var(--gray-6);
   background: var(--color-background);
+}
+
+.diff-pane-tree-drag-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.diff-pane-tree-drag-handle:hover {
+  background: var(--accent-9);
 }
 
 .diff-pane-tree-header {

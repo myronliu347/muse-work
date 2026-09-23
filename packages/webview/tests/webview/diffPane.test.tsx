@@ -999,6 +999,20 @@ describe("DiffPane", () => {
       expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
     });
 
+    it("resizes the change-tree column by dragging the left edge", () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([makeFile()]);
+      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      const nav = screen.getByTestId("diff-tree-nav");
+      expect(nav).toHaveStyle({ width: "240px" });
+      const handle = screen.getByTestId("diff-tree-resize");
+      fireEvent.mouseDown(handle, { clientX: 500 });
+      fireEvent.mouseMove(window, { clientX: 460 });
+      fireEvent.mouseUp(window);
+      // Dragging left 40px widens a right-side column to 280.
+      expect(nav).toHaveStyle({ width: "280px" });
+    });
+
     it("collapses and expands a directory node in the tree", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([

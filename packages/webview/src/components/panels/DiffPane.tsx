@@ -11,6 +11,10 @@ import {
   displayFilePath,
 } from "../../utils/filePathDisplay";
 import { buildPathTree, pathSegments } from "../../utils/pathTree";
+import {
+  clampFileTreeWidth,
+  FILE_TREE_WIDTH_DEFAULT,
+} from "../../stores/panelGroupStore";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
 import { PathTree } from "./PathTree";
@@ -178,6 +182,8 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
   const [treeSelected, setTreeSelected] = useState<string | null>(null);
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
+  /** Right-side change-tree column width (tree view only); session-local. */
+  const [treeNavWidth, setTreeNavWidth] = useState(FILE_TREE_WIDTH_DEFAULT);
   // True while a refresh request is in flight; drives the toolbar spinner.
   const [refreshing, setRefreshing] = useState(false);
   const [pendingRevert, setPendingRevert] = useState<PendingRevert | null>(
@@ -437,6 +443,27 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       else next.add(dirPath);
       return next;
     });
+  };
+
+  const onTreeNavDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const handle = e.currentTarget as HTMLElement;
+    handle.style.background = "var(--accent-9)";
+    document.body.classList.add("is-panel-resizing");
+    const startX = e.clientX;
+    const startW = treeNavWidth;
+    const onMove = (ev: MouseEvent) => {
+      // Nav is on the right; dragging left increases width (same as FileTree).
+      setTreeNavWidth(clampFileTreeWidth(startW + (startX - ev.clientX)));
+    };
+    const onUp = () => {
+      handle.style.background = "";
+      document.body.classList.remove("is-panel-resizing");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   const onDragStart = (e: React.MouseEvent) => {
@@ -708,7 +735,16 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <div className="diff-pane-tree-content">
         {activeFile ? renderFileDetail(activeFile) : null}
       </div>
-      <nav className="diff-pane-tree-nav" data-testid="diff-tree-nav">
+      <nav
+        className="diff-pane-tree-nav"
+        data-testid="diff-tree-nav"
+        style={{ width: treeNavWidth }}
+      >
+        <div
+          className="diff-pane-tree-drag-handle"
+          data-testid="diff-tree-resize"
+          onMouseDown={onTreeNavDragStart}
+        />
         <div className="diff-pane-tree-header">变更文件</div>
         <div className="diff-pane-tree-scroll">
           <PathTree
