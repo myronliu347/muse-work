@@ -1,0 +1,162 @@
+packages/server/src/popo/popoAgent.ts
+  e7d0dfe7f5ffd4f4 128-134,144-146
+packages/server/src/services/agentConfig.ts
+  e7d0dfe7f5ffd4f4 108,115,122,129
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  e7d0dfe7f5ffd4f4 29
+packages/server/tests/popoAgent.test.ts
+  e7d0dfe7f5ffd4f4 350-352,355-408
+packages/provider/src/configStore.ts
+  e7d0dfe7f5ffd4f4 8,19
+packages/server/src/services/waveAgentSettings.ts
+  e7d0dfe7f5ffd4f4 38-47
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  e7d0dfe7f5ffd4f4 171,180,215
+packages/provider/providers.json.example
+  e7d0dfe7f5ffd4f4 3,8
+packages/webview/tests/components/museModelSelect.session.test.tsx
+  e7d0dfe7f5ffd4f4 114,129,132,140,156
+packages/server/tests/agents.routes.test.ts
+  e7d0dfe7f5ffd4f4 38
+packages/provider/tests/configStore.test.ts
+  e7d0dfe7f5ffd4f4 24-25
+packages/server/tests/agentConfig.test.ts
+  e7d0dfe7f5ffd4f4 138
+packages/webview/e2e/utils/museApiMock.ts
+  e7d0dfe7f5ffd4f4 55,65
+packages/server/tests/sessions.routes.test.ts
+  e7d0dfe7f5ffd4f4 206,225,355,366,476
+packages/webview/src/muse/defaultModel.ts
+  e7d0dfe7f5ffd4f4 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b31d5097fc3bdcfdae632758add3cf18d2157d04",
+  "prompts": {
+    "bcc17ae9ca20b32f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bfc91bf-24b9-463a-9318-00dce6e799f5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e7d0dfe7f5ffd4f4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "910b1cf6-e3bd-40a0-be35-693157422bd4",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 177,
+      "total_deletions": 36,
+      "accepted_lines": 174,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/agentConfig.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/provider/tests/configStore.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/defaultModel.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/utils/museApiMock.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 15
+        },
+        "packages/server/src/services/waveAgentSettings.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/museModelSelect.session.test.tsx": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/agents.routes.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 62,
+          "deletions": 5,
+          "accepted_lines": 59
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/agentConfig.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 37,
+          "deletions": 1,
+          "accepted_lines": 37
+        },
+        "packages/provider/providers.json.example": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/provider/src/configStore.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
