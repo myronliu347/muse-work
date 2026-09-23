@@ -1,0 +1,65 @@
+packages/provider/src/codemaker/provider.ts
+  e7d0dfe7f5ffd4f4 77-83
+packages/provider/src/codemaker/models.ts
+  e7d0dfe7f5ffd4f4 5-9,12-15,110-114,167-178,210-215
+packages/provider/tests/models.test.ts
+  e7d0dfe7f5ffd4f4 164-190,265,285-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "923893be6b46df29b7c5fd4423ef5213d8b19f1a",
+  "prompts": {
+    "bcc17ae9ca20b32f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bfc91bf-24b9-463a-9318-00dce6e799f5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e7d0dfe7f5ffd4f4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "910b1cf6-e3bd-40a0-be35-693157422bd4",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 71,
+      "total_deletions": 13,
+      "accepted_lines": 71,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/provider/tests/models.test.ts": {
+          "additions": 30,
+          "deletions": 3,
+          "accepted_lines": 30
+        },
+        "packages/provider/src/codemaker/models.ts": {
+          "additions": 33,
+          "deletions": 7,
+          "accepted_lines": 33
+        },
+        "packages/provider/src/codemaker/provider.ts": {
+          "additions": 8,
+          "deletions": 3,
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
