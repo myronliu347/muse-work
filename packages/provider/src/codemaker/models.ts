@@ -2,12 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir } from "../paths.js";
 import type { ModelInfo } from "../types.js";
-import { buildCodeMakerClientHeaders } from "./sign.js";
+import type { CodeMakerCreds } from "./types.js";
+import {
+  buildCodeMakerClientHeaders,
+  createCodeMakerFetch,
+} from "./sign.js";
 
 /**
- * Dynamic model catalog served by the CodeMaker gateway (no auth required).
- * Same source the CodeMaker CLI `/models` command uses; falls back to the
- * bundled config list when unreachable.
+ * Dynamic model catalog served by the CodeMaker gateway. Requires a signed
+ * session when the gateway gates the catalog (unauthenticated GETs may return
+ * an empty `models` object). Falls back to the bundled config list when
+ * unreachable.
  */
 export const CODEMAKER_MODELS_API_URL =
   "https://api-code-maker.nie.netease.com/main/models/api.json";
@@ -102,6 +107,11 @@ export interface CodeMakerModelsDeps {
   home?: string;
   fetch?: typeof fetch;
   now?: () => number;
+  /** When set, catalog requests are signed with the active CodeMaker session. */
+  getCredentials?: () =>
+    | CodeMakerCreds
+    | null
+    | Promise<CodeMakerCreds | null>;
 }
 
 export interface CodeMakerModelsLoader {
@@ -154,9 +164,18 @@ export function createCodeMakerModelsLoader(
     inflight = (async () => {
       const fetchImpl = deps.fetch ?? fetch;
       try {
-        const res = await fetchImpl(CODEMAKER_MODELS_API_URL, {
-          headers: buildCodeMakerClientHeaders(),
-        });
+        const creds = deps.getCredentials
+          ? await deps.getCredentials()
+          : null;
+        const doFetch = creds
+          ? createCodeMakerFetch(creds, fetchImpl)
+          : fetchImpl;
+        const res = await doFetch(
+          CODEMAKER_MODELS_API_URL,
+          creds
+            ? undefined
+            : { headers: buildCodeMakerClientHeaders() },
+        );
         if (!res.ok) return null;
         const payload = (await res.json()) as unknown;
         const models = parseRemoteModels(payload);
@@ -187,6 +206,13 @@ export function createCodeMakerModelsLoader(
         memory = { fetchedAt: now(), models: remote };
         writeDisk(remote);
         return remote;
+      }
+      // Soft-fail: keep serving the last good catalog rather than dropping to
+      // the short bundled providers.json list when the gateway is briefly down.
+      if (memory) return memory.models;
+      if (disk) {
+        memory = disk;
+        return disk.models;
       }
       return null;
     },

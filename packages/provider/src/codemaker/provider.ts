@@ -41,9 +41,6 @@ export function createCodeMakerProvider(
     deps.loadCredentials ??
     (() => loadCodeMakerCredentials(deps.home));
   const renew = deps.renewCredentials ?? renewCodeMakerCredentials;
-  const modelsLoader =
-    deps.modelsLoader ??
-    createCodeMakerModelsLoader({ home: deps.home, fetch: deps.fetch });
 
   let activeLogin: CodeMakerLoginStart | null = null;
   /** In-memory override after a successful refresh within this process. */
@@ -76,6 +73,14 @@ export function createCodeMakerProvider(
       return null;
     }
   }
+
+  const modelsLoader =
+    deps.modelsLoader ??
+    createCodeMakerModelsLoader({
+      home: deps.home,
+      fetch: deps.fetch,
+      getCredentials: () => ensureFreshCreds(),
+    });
 
   const ACCESS_REJECTED_RE =
     /auth failed|token.*(?:expired|invalid|revoked)|unauthorized/i;

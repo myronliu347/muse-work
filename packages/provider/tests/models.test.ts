@@ -161,6 +161,33 @@ describe("sortModels", () => {
 });
 
 describe("createCodeMakerModelsLoader", () => {
+  it("sends signed auth headers when credentials are available", async () => {
+    const home = makeTempHome();
+    const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      expect(headers.get("X-Access-Token")).toBe("tok-abc");
+      expect(headers.get("X-Auth-User")).toBe("alice");
+      expect(headers.get("X-Signature")).toBeTruthy();
+      expect(headers.get("ide")).toBe("cli");
+      return new Response(JSON.stringify(remotePayload), { status: 200 });
+    });
+    const loader = createCodeMakerModelsLoader({
+      home,
+      fetch: fetchMock as unknown as typeof fetch,
+      getCredentials: () => ({
+        accessToken: "tok-abc",
+        accessUser: "alice",
+        refreshKey: "rk",
+      }),
+    });
+
+    const models = await loader.list();
+    expect(models).not.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("fetches remote models and caches to disk", async () => {
     const home = makeTempHome();
     const fetchMock = vi.fn(async () =>
@@ -235,7 +262,7 @@ describe("createCodeMakerModelsLoader", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("refetches after TTL expires and falls back to null on failure", async () => {
+  it("refetches after TTL expires and falls back to stale disk on failure", async () => {
     const home = makeTempHome();
     const cachePath = getCodeMakerModelsCachePath(home);
     fs.mkdirSync(path.dirname(cachePath), { recursive: true });
@@ -255,8 +282,8 @@ describe("createCodeMakerModelsLoader", () => {
       now: () => 1_000 + CODEMAKER_MODELS_CACHE_TTL_MS + 1,
     });
 
-    // Stale disk cache → refetch → fetch fails → null.
-    expect(await loader.list()).toBeNull();
+    // Stale disk cache → refetch → fetch fails → keep last good catalog.
+    expect(await loader.list()).toEqual([{ id: "stale", label: "Stale" }]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     fs.rmSync(home, { recursive: true, force: true });
