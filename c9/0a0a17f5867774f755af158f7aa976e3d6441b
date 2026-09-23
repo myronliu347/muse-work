@@ -1,0 +1,59 @@
+packages/webview/src/styles/DiffPane.css
+  e7d0dfe7f5ffd4f4 381,390-401
+packages/webview/src/components/panels/DiffPane.tsx
+  e7d0dfe7f5ffd4f4 14-17,185-186,448-468,738-747
+packages/webview/tests/webview/diffPane.test.tsx
+  e7d0dfe7f5ffd4f4 1002-1015
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c90a0a17f5867774f755af158f7aa976e3d6441b",
+  "prompts": {
+    "bcc17ae9ca20b32f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6bfc91bf-24b9-463a-9318-00dce6e799f5",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e7d0dfe7f5ffd4f4": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "910b1cf6-e3bd-40a0-be35-693157422bd4",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 66,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "accepted_lines": 37
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
