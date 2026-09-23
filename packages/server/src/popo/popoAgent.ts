@@ -125,7 +125,13 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const active = options.registry.getActive();
     const provider = options.registry.get(active.providerId);
     if (!provider) throw new Error(`active provider not found: ${active.providerId}`);
-    const model = active.modelId ?? (await provider.listModels())[0]?.id;
+    // Prefer the popo scenario agent's model (agents.json), same as issue
+    // sessions — not the UI's global activeModelId.
+    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
+    const model =
+      agent.model ??
+      active.modelId ??
+      (await provider.listModels())[0]?.id;
     if (!model) throw new Error("no active model");
     return provider.resolveGateway(model);
   }
@@ -135,6 +141,9 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     gateway?: GatewayResolution,
   ): Promise<{ agent: SessionAgent; identity: string }> {
     fs.mkdirSync(workdir, { recursive: true });
+    // Resolve agent first so gateway can prefer agent.model when no gateway
+    // was pre-resolved (refreshResidentAgent passes an explicit gateway).
+    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
     const resolved = gateway ?? (await resolvePopoGateway());
 
     const plugins: Array<{ type: "local"; path: string }> = [];
@@ -144,7 +153,6 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (automationDir) plugins.push({ type: "local", path: automationDir });
 
     // popo 场景 agent：默认 popo 内置（systemPrompt 即 POPO 指令）；工具/权限规则生效
-    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
     const permission = resolvePermission(agent.permission);
     // agent 显式给 fastModel 才覆盖；不给保持 gateway.fastModel ?? gateway.model（与现状一致）
     const fastModel = agent.fastModel ?? resolved.fastModel ?? resolved.model;

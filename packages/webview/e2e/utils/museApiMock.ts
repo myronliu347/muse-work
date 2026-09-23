@@ -52,7 +52,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
             id: "codemaker",
             displayName: "CodeMaker",
             models: [
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+              { id: "deepseek-flash", label: "DeepSeek Flash" },
               { id: "glm-5.2", label: "GLM 5.2" },
             ],
           },
@@ -62,7 +62,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
             models: [{ id: "gpt-4o", label: "GPT-4o" }],
           },
         ],
-        active: { providerId: "codemaker", modelId: "deepseek-v4-flash" },
+        active: { providerId: "codemaker", modelId: "deepseek-flash" },
       }),
     });
   });

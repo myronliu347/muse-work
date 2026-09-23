@@ -1,10 +1,11 @@
 {
   "activeProviderId": "codemaker",
-  "activeModelId": "deepseek-v4-flash",
+  "activeModelId": "deepseek-flash",
   "providers": {
     "codemaker": {
       "enabled": true,
       "models": [
+        { "id": "deepseek-flash", "label": "DeepSeek Flash" },
         { "id": "deepseek-v4-flash", "label": "DeepSeek V4 Flash" },
         { "id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro" },
         { "id": "claude-opus-4-6", "label": "Claude Opus 4.6" },

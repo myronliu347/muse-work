@@ -347,8 +347,65 @@ describe("popoAgent", () => {
     expect(String(captured?.systemPrompt)).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
     expect(String(captured?.systemPrompt)).toContain("你是 Muse 机器人，运行在 POPO 即时通讯上");
     expect(captured?.disallowedTools).toEqual(["Workflow"]);
-    // fastModel 不给时保持 gateway.fastModel ?? gateway.model（这里 gateway 无 fastModel → model）
-    expect(captured?.fastModel).toBe("m1");
+    // 内置 popo agent 默认 model=deepseek-flash；未单独配 fastModel 时与主模型相同
+    expect(captured?.model).toBe("deepseek-flash");
+    expect(captured?.fastModel).toBe("deepseek-flash");
+  });
+
+  it("uses agents.json popo.model instead of the global active model", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { getMuseHomeDir } = await import("@muse-work/provider");
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "popo-agent-model-"));
+    const museHome = getMuseHomeDir(home);
+    fs.mkdirSync(museHome, { recursive: true });
+    fs.writeFileSync(
+      path.join(museHome, "agents.json"),
+      JSON.stringify({
+        version: 1,
+        agents: {
+          popo: {
+            key: "popo",
+            name: "Yui",
+            personality: "professional",
+            systemPrompt: "",
+            model: "agent-model",
+            fastModel: "agent-fast",
+          },
+        },
+      }),
+    );
+
+    let captured: Record<string, unknown> | undefined;
+    let resolvedModel: string | undefined;
+    const factory = createPopoAgentFactory({
+      home,
+      registry: {
+        get: () => ({
+          id: "codemaker",
+          listModels: async () => [{ id: "m1", label: "M1" }],
+          resolveGateway: async (model: string) => {
+            resolvedModel = model;
+            return { baseURL: "http://gw", model };
+          },
+        }),
+        getActive: () => ({
+          providerId: "codemaker",
+          modelId: "global-old-model",
+        }),
+      } as never,
+      createAgent: async (options) => {
+        captured = options as unknown as Record<string, unknown>;
+        return stubAgent("ok");
+      },
+    });
+    const runner = await factory({ chatKey: "p2p:model", type: "p2p" });
+    await runner.run("hello");
+    expect(resolvedModel).toBe("agent-model");
+    expect(captured?.model).toBe("agent-model");
+    expect(captured?.fastModel).toBe("agent-fast");
+    fs.rmSync(home, { recursive: true, force: true });
   });
 
   it("mounts issue and automation plugins so POPO can manage issues and rules", async () => {

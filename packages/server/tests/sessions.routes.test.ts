@@ -203,7 +203,7 @@ describe("sessions HTTP routes", () => {
     expect(bGet.model).toBe("m2");
   });
 
-  it("POST /sessions without model uses deepseek-v4-flash not the global active", async () => {
+  it("POST /sessions without model uses deepseek-flash not the global active", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -222,7 +222,7 @@ describe("sessions HTTP routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ workdir: "/tmp/a" }),
     }).then((r) => r.json());
-    expect(created.model).toBe("deepseek-v4-flash");
+    expect(created.model).toBe("deepseek-flash");
   });
 
   it("POST /sessions honors permissionMode", async () => {
@@ -352,7 +352,7 @@ describe("sessions agent resolution", () => {
     }
   });
 
-  it("POST /sessions 不传 agent → default agent：model=deepseek-v4-flash + 人格段 + Muse 基座 systemPrompt", async () => {
+  it("POST /sessions 不传 agent → default agent：model=deepseek-flash + 人格段 + Muse 基座 systemPrompt", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -363,7 +363,7 @@ describe("sessions agent resolution", () => {
       body: JSON.stringify({ workdir: "/tmp/a" }),
     }).then((r) => r.json());
     expect(created.agentName).toBe("default");
-    expect(created.model).toBe("deepseek-v4-flash");
+    expect(created.model).toBe("deepseek-flash");
     expect(created.systemPrompt).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
     // default 内置 systemPrompt = Muse 基座 → 人格合成含基座指令
     expect(created.systemPrompt).toContain("You are Muse, an AI coding assistant");
@@ -473,7 +473,7 @@ describe("sessions agent resolution", () => {
     }).then((r) => r.json());
     expect(created.agentName).toBe("default");
     // default agent 展开：model=deepseek、无 fastModel/tools/权限
-    expect(created.model).toBe("deepseek-v4-flash");
+    expect(created.model).toBe("deepseek-flash");
     expect(created.fastModel).toBeUndefined();
     expect(created.tools).toBeUndefined();
     expect(created.disallowedTools).toBeUndefined();

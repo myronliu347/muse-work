@@ -105,28 +105,28 @@ export function defaultAgents(): Record<string, Agent> {
       name: "Muse",
       personality: "professional",
       systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
-      model: "deepseek-v4-flash",
+      model: "deepseek-flash",
     },
     plan: {
       key: "plan",
       name: "规划助手",
       personality: "professional",
       systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
-      model: "deepseek-v4-flash",
+      model: "deepseek-flash",
     },
     execute: {
       key: "execute",
       name: "执行助手",
       personality: "professional",
       systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
-      model: "deepseek-v4-flash",
+      model: "deepseek-flash",
     },
     popo: {
       key: "popo",
       name: "Muse",
       personality: "professional",
       systemPrompt: POPO_SYSTEM_PROMPT,
-      model: "deepseek-v4-flash",
+      model: "deepseek-flash",
     },
   };
 }

@@ -26,7 +26,7 @@ import { notifyProvidersChanged } from "../../muse/providersEvents";
 import { Field } from "../../ui/Field";
 
 /** Prefer this when active model is missing from CodeMaker list (not models[0]). */
-const CODEMAKER_DEFAULT_MODEL_ID = "deepseek-v4-flash";
+const CODEMAKER_DEFAULT_MODEL_ID = "deepseek-flash";
 
 export interface MuseProviderSettingsProps {
   api?: MuseApiClient;

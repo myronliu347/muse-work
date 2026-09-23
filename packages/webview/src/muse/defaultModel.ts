@@ -1,5 +1,5 @@
 /** Default model for new / draft sessions. Keep in sync with provider DEFAULT_ACTIVE_MODEL_ID. */
-export const DEFAULT_SESSION_MODEL_ID = "deepseek-v4-flash";
+export const DEFAULT_SESSION_MODEL_ID = "deepseek-flash";
 
 /** Minimal shape of an agent entry needed to resolve its model. */
 export interface DraftAgentLike {

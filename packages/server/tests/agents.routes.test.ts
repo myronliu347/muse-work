@@ -35,7 +35,7 @@ describe("agents HTTP routes", () => {
     expect(def.personality).toBe("professional");
     // 性格显示名由 server PERSONALITIES 导出（单一数据源）
     expect(def.personalityLabel).toBe("专业严谨");
-    expect(def.model).toBe("deepseek-v4-flash");
+    expect(def.model).toBe("deepseek-flash");
     const popo = body.agents.find((a: { key: string }) => a.key === "popo");
     expect(popo.systemPrompt).toContain("你是 Muse 机器人");
   });

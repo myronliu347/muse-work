@@ -21,8 +21,8 @@ describe("configStore", () => {
     const cfg = loadProvidersConfig(tmp);
     expect(cfg.activeProviderId).toBe("codemaker");
     expect(cfg.activeModelId).toBe(DEFAULT_ACTIVE_MODEL_ID);
-    expect(cfg.activeModelId).toBe("deepseek-v4-flash");
-    expect(cfg.providers.codemaker.models[0]?.id).toBe("deepseek-v4-flash");
+    expect(cfg.activeModelId).toBe("deepseek-flash");
+    expect(cfg.providers.codemaker.models[0]?.id).toBe("deepseek-flash");
     expect(cfg.providers.codemaker.models.length).toBeGreaterThan(0);
     expect(cfg.providers["openai-compatible"]).toBeDefined();
   });

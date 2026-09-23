@@ -5,7 +5,7 @@ import { getProvidersConfigPath } from "./paths.js";
 import type { ProvidersFile } from "./types.js";
 
 /** Default model for new sessions / CodeMaker fallback (not models[0]). */
-export const DEFAULT_ACTIVE_MODEL_ID = "deepseek-v4-flash";
+export const DEFAULT_ACTIVE_MODEL_ID = "deepseek-flash";
 
 function defaultProvidersConfig(): ProvidersFile {
   return {
@@ -16,6 +16,7 @@ function defaultProvidersConfig(): ProvidersFile {
         enabled: true,
         models: [
           // Keep default model first so naive models[0] fallbacks stay correct.
+          { id: "deepseek-flash", label: "DeepSeek Flash" },
           { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
           { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
           { id: "claude-opus-4-6", label: "Claude Opus 4.6" },

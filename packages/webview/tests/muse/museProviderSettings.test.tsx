@@ -168,7 +168,7 @@ describe("MuseProviderSettings", () => {
     window.removeEventListener(MUSE_PROVIDERS_CHANGED_EVENT, changed);
   });
 
-  it("falls back to deepseek-v4-flash when switching to CodeMaker without matching active", async () => {
+  it("falls back to deepseek-flash when switching to CodeMaker without matching active", async () => {
     const api = createApi({
       listProviders: vi.fn(async () => ({
         providers: [
@@ -177,7 +177,7 @@ describe("MuseProviderSettings", () => {
             displayName: "CodeMaker",
             models: [
               { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+              { id: "deepseek-flash", label: "DeepSeek Flash" },
             ],
           },
           {
@@ -212,7 +212,7 @@ describe("MuseProviderSettings", () => {
     expect(ok).toBe(true);
     expect(api.setActive).toHaveBeenCalledWith(
       "codemaker",
-      "deepseek-v4-flash",
+      "deepseek-flash",
     );
   });
 });

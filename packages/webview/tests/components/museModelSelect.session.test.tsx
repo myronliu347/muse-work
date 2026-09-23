@@ -111,7 +111,7 @@ describe("MuseModelSelect controlled session mode", () => {
             ...providersBody.providers[0],
             models: [
               { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+              { id: "deepseek-flash", label: "DeepSeek Flash" },
             ],
           },
         ],
@@ -126,10 +126,10 @@ describe("MuseModelSelect controlled session mode", () => {
     );
 
     const trigger = await screen.findByTestId("muse-model-select");
-    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
+    expect(trigger).toHaveTextContent("DeepSeek Flash");
   });
 
-  it("defaults to deepseek-v4-flash in session mode even if global active is opus", async () => {
+  it("defaults to deepseek-flash in session mode even if global active is opus", async () => {
     const api = stubProvidersApi({
       listProviders: vi.fn(async () => ({
         ...providersBody,
@@ -137,7 +137,7 @@ describe("MuseModelSelect controlled session mode", () => {
           {
             ...providersBody.providers[0],
             models: [
-              { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+              { id: "deepseek-flash", label: "DeepSeek Flash" },
               { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
             ],
           },
@@ -153,7 +153,7 @@ describe("MuseModelSelect controlled session mode", () => {
     );
 
     const trigger = await screen.findByTestId("muse-model-select");
-    expect(trigger).toHaveTextContent("DeepSeek V4 Flash");
+    expect(trigger).toHaveTextContent("DeepSeek Flash");
   });
 
   it("commits a user pick via the Radix dropdown", async () => {

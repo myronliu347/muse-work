@@ -135,7 +135,7 @@ describe("agentConfig", () => {
     const agent = resolveAgent("ghost", home);
     expect(agent.key).toBe("default");
     expect(agent.name).toBe("Muse");
-    expect(agent.model).toBe("deepseek-v4-flash");
+    expect(agent.model).toBe("deepseek-flash");
   });
 
   it("buildSystemPrompt 人格合成：人格段 + agent.systemPrompt + extra", () => {

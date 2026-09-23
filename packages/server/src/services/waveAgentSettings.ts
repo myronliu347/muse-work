@@ -35,6 +35,16 @@ export const DEFAULT_WAVE_USER_SETTINGS = {
         promptCaching: true,
       },
     },
+    "deepseek-flash": {
+      capabilities: {
+        vision: false,
+      },
+      disableThinkingOptions: {
+        thinking: {
+          type: "disabled",
+        },
+      },
+    },
     "deepseek-v4-flash": {
       capabilities: {
         vision: false,
