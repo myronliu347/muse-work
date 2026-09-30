@@ -117,7 +117,7 @@ export interface AgentOptions {
   customTools?: ToolPlugin[];
   /**
    * Optional hook configuration to inject at creation time.
-   * File-based hooks (from config.json/.waverc.json) merge on top of these.
+   * File-based hooks (from settings.json) merge on top of these.
    */
   hooks?: PartialHookConfiguration;
   [key: string]: unknown;

@@ -323,6 +323,10 @@ describe("gitUtils", () => {
         excludePath,
         expect.stringContaining("**/.muse-work/settings.local.json"),
       );
+      expect(fsSync.appendFileSync).toHaveBeenCalledWith(
+        excludePath,
+        expect.stringContaining("**/.wave/worktrees/"),
+      );
     });
 
     it("should skip when marker already present (idempotent)", () => {

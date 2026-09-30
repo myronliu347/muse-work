@@ -13,7 +13,7 @@ import type { ModelConfig } from "./config.js";
 export type Scope = "user" | "project" | "local";
 
 /**
- * Root configuration structure for all Wave Agent settings including hooks and environment variables
+ * Root configuration structure for Muse Agent settings including hooks and environment variables.
  */
 export interface WaveConfiguration {
   hooks?: Partial<Record<HookEvent, HookEventConfig[]>>;

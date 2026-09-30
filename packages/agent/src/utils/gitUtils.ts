@@ -229,12 +229,13 @@ export function getDefaultRemoteBranch(cwd: string): string {
 const excludedGitDirs = new Set<string>();
 
 /**
- * Ensure that Wave runtime files are excluded from git status by writing
- * patterns to `.git/info/exclude` (per-repo, not global).
+ * Keep Muse runtime files out of git status via `.git/info/exclude`
+ * (per-repo, not global). Home worktrees live at `~/.muse-work/worktrees`
+ * and are outside the repo; these patterns only cover leftover in-repo
+ * `.muse-work/worktrees` / `.wave/worktrees` plus local settings/locks.
  *
- * Idempotent: if the marker `# wave-runtime` is already present in the
- * exclude file, it skips writing. A module-level Set provides additional
- * per-process dedup to avoid redundant file reads.
+ * Idempotent: if the marker `# wave-runtime` is already present, skip.
+ * A module-level Set provides additional per-process dedup.
  *
  * @param cwd Working directory to start searching from
  */
@@ -264,6 +265,7 @@ export function ensureWaveRuntimeFilesExcluded(cwd: string): void {
       "**/.muse-work/scheduled_tasks.lock",
       "**/.muse-work/scheduled_tasks.json",
       "**/.muse-work/worktrees/",
+      "**/.wave/worktrees/",
       "**/.muse-work/settings.local.json",
       "",
     ].join("\n");

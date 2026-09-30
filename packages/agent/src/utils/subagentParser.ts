@@ -239,7 +239,7 @@ export async function loadSubagentConfigurations(
   workdir: string,
   env: Record<string, string> = process.env as Record<string, string>,
 ): Promise<SubagentConfiguration[]> {
-  const projectWaveDir = join(workdir, CONFIG_DIR_NAME, "agents");
+  const projectMuseDir = join(workdir, CONFIG_DIR_NAME, "agents");
   const projectClaudeDir = join(workdir, ".claude", "agents");
   // Resolve user-level dirs via os.homedir() (NOT process.env.HOME): every
   // other user-path resolver in the SDK (settings, skills, MCP, rules, ~/
@@ -247,7 +247,7 @@ export async function loadSubagentConfigurations(
   // back to USERPROFILE. Windows GUI-launched processes (Electron desktop)
   // typically have no HOME set, so process.env.HOME made user-level subagents
   // silently invisible there (`~/.muse-work/agents` resolved as a relative path).
-  const userWaveDir = join(homedir(), CONFIG_DIR_NAME, "agents");
+  const userMuseDir = join(homedir(), CONFIG_DIR_NAME, "agents");
   const userClaudeDir = join(homedir(), ".claude", "agents");
   const builtinDir = getBuiltinSubagentsDir();
 
@@ -263,24 +263,24 @@ export async function loadSubagentConfigurations(
     );
   }
   const userClaudeConfigs = scanSubagentDirectory(userClaudeDir, "user");
-  const userWaveConfigs = scanSubagentDirectory(userWaveDir, "user");
+  const userMuseConfigs = scanSubagentDirectory(userMuseDir, "user");
   const projectClaudeConfigs = scanSubagentDirectory(
     projectClaudeDir,
     "project",
   );
-  const projectWaveConfigs = scanSubagentDirectory(projectWaveDir, "project");
+  const projectMuseConfigs = scanSubagentDirectory(projectMuseDir, "project");
 
   // Merge configurations, with .muse-work taking priority over .claude
   const configMap = new Map<string, SubagentConfiguration>();
 
-  // Merge order: builtin → userClaude → userWave → projectClaude → projectWave
+  // Merge order: builtin → userClaude → userMuse → projectClaude → projectMuse
   // Later writes override earlier ones, so .muse-work takes priority over .claude
   for (const config of [
     ...builtinConfigs,
     ...userClaudeConfigs,
-    ...userWaveConfigs,
+    ...userMuseConfigs,
     ...projectClaudeConfigs,
-    ...projectWaveConfigs,
+    ...projectMuseConfigs,
   ]) {
     configMap.set(config.name, config);
   }

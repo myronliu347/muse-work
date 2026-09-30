@@ -1,5 +1,5 @@
 /**
- * Permission system types for Wave Agent SDK
+ * Permission system types for the Muse Agent runtime
  * Dependencies: None
  */
 

@@ -4,7 +4,7 @@ import type { Scope } from "./configuration.js";
  * Environment Variable System Types
  *
  * Provides comprehensive TypeScript types for environment variable validation,
- * merging, and conflict resolution in the Wave Agent SDK.
+ * merging, and conflict resolution in the Muse Agent runtime.
  */
 
 /**

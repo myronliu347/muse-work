@@ -62,7 +62,7 @@ export function ensureDefaultWaveUserSettings(home = os.homedir()): void {
       home,
     );
   } catch (err) {
-    getLogger().warn("failed to write default wave settings", {
+    getLogger().warn("failed to write default Muse settings", {
       file,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -102,7 +102,7 @@ export function readWaveUserSettingsText(home = os.homedir()): {
 
 /**
  * Parse + validate editor JSON, write `~/.muse-work/settings.json`.
- * Root must be a non-array object (Wave settings schema is otherwise freeform).
+ * Root must be a non-array object (settings schema is otherwise freeform).
  */
 export function writeWaveUserSettingsText(
   content: string,

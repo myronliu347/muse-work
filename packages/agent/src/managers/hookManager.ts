@@ -358,7 +358,7 @@ export class HookManager {
         };
 
       case "PreToolUse":
-        // Block tool execution and show error to Wave Agent via tool block
+        // Block tool execution and show the error via the tool block
         if (toolId) {
           messageManager.updateToolBlock({
             id: toolId,
@@ -372,7 +372,7 @@ export class HookManager {
         return { shouldBlock: true };
 
       case "PostToolUse":
-        // Show error to Wave Agent via user message and allow AI to continue
+        // Show the error as a user message and allow the model to continue
         messageManager.addUserMessage({
           content: errorMessage,
           source: MessageSource.HOOK,
@@ -380,7 +380,7 @@ export class HookManager {
         return { shouldBlock: false };
 
       case "Stop":
-        // Show error to Wave Agent via user message and block stopping to continue conversation
+        // Show the error as a user message and block stop so the turn continues
         messageManager.addUserMessage({
           content: errorMessage,
           source: MessageSource.HOOK,

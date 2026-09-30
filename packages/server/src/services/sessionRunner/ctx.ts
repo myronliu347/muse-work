@@ -57,7 +57,7 @@ export interface SessionAgent {
   abortMessage?: () => void;
   /** Optional SDK message snapshot (used after compaction). */
   getMessages?: () => unknown[];
-  /** Wave session id when available (SDK agent or test stub). */
+  /** SDK session id when available (Agent.create or a test stub). */
   sessionId?: string;
   compact?: (instructions?: string) => Promise<void>;
   clearMessages?: () => Promise<void>;

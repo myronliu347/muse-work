@@ -62,7 +62,7 @@ export class MemoryService {
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
           const initialContent =
-            "# Project Memory\n\nThis file serves as an index for the project's auto-memory. Wave uses this to track knowledge across sessions.\n\n";
+            "# Project Memory\n\nThis file serves as an index for the project's auto-memory. Muse uses this to track knowledge across sessions.\n\n";
           await atomicWriteFile(memoryFile, initialContent);
           logger.debug(`Created auto-memory file: ${memoryFile}`);
         } else {
