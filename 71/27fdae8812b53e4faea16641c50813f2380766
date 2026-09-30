@@ -1,0 +1,158 @@
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 7,40
+packages/agent/tests/services/configurationService.test.ts
+  98ab170ac30fbe53 335
+packages/agent/tests/managers/liveConfigManager.validation.test.ts
+  98ab170ac30fbe53 152-153
+packages/agent/src/tools/writeTool.ts
+  98ab170ac30fbe53 97
+packages/webview/src/components/dialogs/ConfirmationDialog.tsx
+  98ab170ac30fbe53 96-97,205,595,670,691,700
+packages/agent/src/managers/permissionManager.ts
+  98ab170ac30fbe53 152-153,252,579,595-596,598
+packages/agent/tests/integration/askUserQuestion.integration.test.ts
+  98ab170ac30fbe53 75
+packages/webview/src/components/message/Message.tsx
+  98ab170ac30fbe53 734
+packages/agent/tests/managers/toolManager.public.test.ts
+  98ab170ac30fbe53 122,155-156,196
+packages/agent/src/managers/toolManager.ts
+  98ab170ac30fbe53 426
+packages/agent/src/prompts/index.ts
+  98ab170ac30fbe53 83-86
+packages/agent/src/types/permissions.ts
+  98ab170ac30fbe53 79-80
+packages/agent/src/tools/editTool.ts
+  98ab170ac30fbe53 118,120,145-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7127fdae8812b53e4faea16641c50813f2380766",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 39,
+      "total_deletions": 363,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/tools/askUserQuestion.ts": {
+          "deletions": 2
+        },
+        "packages/agent/src/managers/subagentManager.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/managers/toolManager.public.test.ts": {
+          "additions": 4,
+          "deletions": 42,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/integration/subagentPermission.integration.test.ts": {
+          "deletions": 4
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 1,
+          "deletions": 14,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/tools/writeTool.ts": {
+          "additions": 1,
+          "deletions": 8,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/constants/tools.ts": {
+          "deletions": 2
+        },
+        "packages/agent/tests/managers/liveConfigManager.validation.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/tools/editTool.ts": {
+          "additions": 4,
+          "deletions": 10,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/dialogs/ConfirmationDialog.tsx": {
+          "additions": 7,
+          "deletions": 82,
+          "accepted_lines": 7
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/toolManager.ts": {
+          "additions": 1,
+          "deletions": 8,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/agent.ts": {
+          "deletions": 26
+        },
+        "packages/agent/src/types/agent.ts": {
+          "deletions": 6
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "deletions": 4
+        },
+        "packages/agent/tests/integration/askUserQuestion.integration.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/containerSetup.ts": {
+          "deletions": 11
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/types/permissions.ts": {
+          "additions": 2,
+          "deletions": 19,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/managers/aiManager.compactParamsRunning.test.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/prompts/index.ts": {
+          "additions": 5,
+          "deletions": 6,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/managers/permissionManager.test.ts": {
+          "deletions": 14
+        },
+        "packages/agent/src/managers/permissionManager.ts": {
+          "additions": 7,
+          "deletions": 93,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
