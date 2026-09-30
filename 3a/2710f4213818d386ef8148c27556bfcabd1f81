@@ -1,0 +1,131 @@
+packages/webview/src/styles/MessageInput.css
+  c8df0f85b58f7a52 33,45,47,65,68,93,97,109,143,236,415,444
+packages/webview/src/styles/WelcomeView.css
+  c8df0f85b58f7a52 1,67,69-72,80-81,90,94,112,114,143-145,162
+packages/webview/tests/components/newSessionPage.test.tsx
+  c8df0f85b58f7a52 22
+packages/webview/src/styles/NewSessionPage.css
+  c8df0f85b58f7a52 20,43,45,52,62,66,71
+packages/webview/src/styles/globals.css
+  c8df0f85b58f7a52 3-18,31,40-41
+packages/webview/tests/components/automationsPage.test.tsx
+  c8df0f85b58f7a52 172,232
+packages/desktop/tests/windowWebviewTag.test.ts
+  c8df0f85b58f7a52 16-17,65-77
+packages/desktop/src/main/window.ts
+  c8df0f85b58f7a52 30,67-70
+packages/webview/src/styles/AutomationsPage.css
+  c8df0f85b58f7a52 13,218,669
+packages/desktop/scripts/syncWebview.mjs
+  c8df0f85b58f7a52 58-62
+packages/webview/src/styles/ChatApp.css
+  c8df0f85b58f7a52 16,21
+packages/webview/src/styles/DesktopApp.css
+  c8df0f85b58f7a52 22,43-44,48,71,75,102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3a2710f4213818d386ef8148c27556bfcabd1f81",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 109,
+      "total_deletions": 353,
+      "accepted_lines": 262,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/WelcomeBackdrop.tsx": {
+          "deletions": 20
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        },
+        "packages/webview/e2e/demo/desktop-automations-empty.demo.ts": {
+          "deletions": 1
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/e2e/demo/desktop-sender-cat.demo.ts": {
+          "deletions": 22
+        },
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 8,
+          "deletions": 41,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 8,
+          "deletions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/chat/welcomeWallpapers.ts": {
+          "deletions": 42
+        },
+        "packages/webview/tests/components/welcomeWallpaper.test.ts": {
+          "deletions": 27
+        },
+        "packages/desktop/scripts/syncWebview.mjs": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "deletions": 2
+        },
+        "packages/webview/src/components/chat/useWelcomeWallpaper.ts": {
+          "deletions": 30
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 26,
+          "deletions": 132,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "deletions": 4
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 21,
+          "deletions": 1,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 12,
+          "deletions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 3,
+          "deletions": 7,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
