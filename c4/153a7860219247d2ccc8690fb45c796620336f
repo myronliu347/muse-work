@@ -1,0 +1,84 @@
+packages/agent/src/managers/mcpManager.ts
+  98ab170ac30fbe53 597
+packages/agent/src/utils/containerSetup.ts
+  98ab170ac30fbe53 93-94
+packages/agent/tests/managers/mcpManager.test.ts
+  98ab170ac30fbe53 752
+packages/agent/src/utils/runtimeDeps.ts
+  98ab170ac30fbe53 495-497,562,580
+packages/agent/src/tools/webFetchTool.ts
+  98ab170ac30fbe53 16
+packages/agent/tests/tools/webFetchTool.test.ts
+  98ab170ac30fbe53 490
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 43-44
+packages/agent/src/builtin/skills/settings.ts
+  98ab170ac30fbe53 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c4153a7860219247d2ccc8690fb45c796620336f",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 14,
+      "total_deletions": 121,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/tests/tools/webFetchTool.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/mcpManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/demo/plugin-search.demo.ts": {
+          "deletions": 104
+        },
+        "packages/agent/src/utils/runtimeDeps.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/builtin/skills/settings.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/managers/mcpManager.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/containerSetup.ts": {
+          "additions": 2,
+          "deletions": 5,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/tools/webFetchTool.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "deletions": 2
+        }
+      }
+    }
+  }
+}
