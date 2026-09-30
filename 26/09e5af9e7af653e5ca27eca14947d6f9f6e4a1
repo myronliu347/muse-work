@@ -1,0 +1,84 @@
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  c8df0f85b58f7a52 236,246-254,258-260,262
+packages/webview/src/components/session/SessionTree.tsx
+  c8df0f85b58f7a52 640
+packages/webview/src/styles/MessageList.css
+  c8df0f85b58f7a52 21-22,38-39,52-63
+packages/webview/src/components/chat/MessageList.tsx
+  c8df0f85b58f7a52 156-157,162-163,165-170,431-438,442
+packages/webview/tests/webview/stickyUserMessage.test.tsx
+  c8df0f85b58f7a52 40-51,53,55-67
+packages/webview/src/styles/IssueSessionHeader.css
+  c8df0f85b58f7a52 3-5,8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2609e5af9e7af653e5ca27eca14947d6f9f6e4a1",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 98,
+      "total_deletions": 81,
+      "accepted_lines": 94,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 23,
+          "deletions": 11,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "additions": 14,
+          "deletions": 10,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 15,
+          "deletions": 28,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 19,
+          "deletions": 10,
+          "accepted_lines": 19
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 26,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 1,
+          "deletions": 14,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "deletions": 7,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
