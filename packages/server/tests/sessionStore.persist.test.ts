@@ -107,4 +107,28 @@ describe("sessionStore persistence", () => {
     );
     expect(store.listGrouped().recent.map((s) => s.id)).toEqual([user.id]);
   });
+
+  it("reads leftover waveSessionId and rewrites museSessionId", () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sess-"));
+    const store1 = createSessionStore({ home });
+    const s = store1.create({
+      workdir: "/tmp/proj",
+      model: "deepseek-v4-flash",
+    });
+    const configPath = getSessionsConfigPath(home);
+    const file = JSON.parse(fs.readFileSync(configPath, "utf8")) as {
+      sessions: Array<{ museSessionId?: string; waveSessionId?: string }>;
+    };
+    file.sessions[0].waveSessionId = "legacy-sdk-id";
+    delete file.sessions[0].museSessionId;
+    fs.writeFileSync(configPath, `${JSON.stringify(file, null, 2)}\n`);
+
+    const store2 = createSessionStore({ home });
+    expect(store2.get(s.id)?.museSessionId).toBe("legacy-sdk-id");
+    const rewritten = JSON.parse(fs.readFileSync(configPath, "utf8")) as {
+      sessions: Array<{ museSessionId?: string; waveSessionId?: string }>;
+    };
+    expect(rewritten.sessions[0]?.museSessionId).toBe("legacy-sdk-id");
+    expect(rewritten.sessions[0]?.waveSessionId).toBeUndefined();
+  });
 });

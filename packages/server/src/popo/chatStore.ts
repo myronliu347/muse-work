@@ -17,8 +17,8 @@ export interface PopoChat {
   chatKey: string;
   type: PopoChatType;
   title: string;
-  /** SDK 会话 id。字段名刻意保留（已落盘 POPO 会话），暂不改名。 */
-  waveSessionId?: string;
+  /** SDK transcript id. Disk still accepts leftover `waveSessionId`. */
+  museSessionId?: string;
   /** agent 正在处理该会话的消息时为 true（详情页展示"处理中"） */
   processing?: boolean;
   messages: PopoMessage[];
@@ -31,9 +31,9 @@ export interface ChatStore {
   listChats(): PopoChat[];
   getOrCreateChat(chatKey: string, type: PopoChatType, title: string): PopoChat;
   appendMessage(chatKey: string, message: PopoMessage): void;
-  /** 清空展示历史（/clear 命令）；不动 waveSessionId（agent 侧由 runner.clear 负责换新会话） */
+  /** 清空展示历史（/clear 命令）；不动 museSessionId（agent 侧由 runner.clear 负责换新会话） */
   clearMessages(chatKey: string): void;
-  setWaveSessionId(chatKey: string, waveSessionId: string): void;
+  setMuseSessionId(chatKey: string, museSessionId: string): void;
   setProcessing(chatKey: string, processing: boolean): void;
   /** 删除会话记录；不存在时返回 false。 */
   deleteChat(chatKey: string): boolean;
@@ -53,20 +53,6 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
   const file = path.join(getMuseHomeDir(options.home), "popo-chats.json");
   const chats = new Map<string, PopoChat>();
 
-  function load(): void {
-    try {
-      const raw = JSON.parse(fs.readFileSync(file, "utf8")) as {
-        version?: number;
-        chats?: Record<string, PopoChat>;
-      };
-      for (const [key, chat] of Object.entries(raw.chats ?? {})) {
-        chats.set(key, chat);
-      }
-    } catch {
-      // 文件不存在或损坏：从空开始
-    }
-  }
-
   function persist(): void {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const tmp = `${file}.${process.pid}.tmp`;
@@ -79,7 +65,28 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
     options.onChange?.();
   }
 
+  let migratedLegacyId = false;
+  function load(): void {
+    try {
+      const raw = JSON.parse(fs.readFileSync(file, "utf8")) as {
+        version?: number;
+        chats?: Record<string, PopoChat & { waveSessionId?: string }>;
+      };
+      for (const [key, chat] of Object.entries(raw.chats ?? {})) {
+        const { waveSessionId: legacyId, ...rest } = chat;
+        if (legacyId && !rest.museSessionId) migratedLegacyId = true;
+        chats.set(key, {
+          ...rest,
+          museSessionId: rest.museSessionId ?? legacyId,
+        });
+      }
+    } catch {
+      // 文件不存在或损坏：从空开始
+    }
+  }
+
   load();
+  if (migratedLegacyId) persist();
 
   return {
     getChat(chatKey) {
@@ -117,10 +124,10 @@ export function createChatStore(options: ChatStoreOptions): ChatStore {
       chat.updatedAt = Date.now();
       persist();
     },
-    setWaveSessionId(chatKey, waveSessionId) {
+    setMuseSessionId(chatKey, museSessionId) {
       const chat = chats.get(chatKey);
       if (!chat) return;
-      chat.waveSessionId = waveSessionId;
+      chat.museSessionId = museSessionId;
       persist();
     },
     clearMessages(chatKey) {

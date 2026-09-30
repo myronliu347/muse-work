@@ -277,14 +277,14 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     });
   }
 
-  function rememberWaveSessionId(
+  function rememberMuseSessionId(
     sessionId: string,
-    waveSessionId: string | undefined,
+    museSessionId: string | undefined,
   ): void {
-    if (!waveSessionId || disposed.has(sessionId) || !store.get(sessionId)) {
+    if (!museSessionId || disposed.has(sessionId) || !store.get(sessionId)) {
       return;
     }
-    store.setWaveSessionId(sessionId, waveSessionId);
+    store.setMuseSessionId(sessionId, museSessionId);
   }
 
   async function resolveSessionGateway(
@@ -347,7 +347,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         : {}),
       callbacks: {
         onSessionIdChange: (id) => {
-          rememberWaveSessionId(sessionId, id);
+          rememberMuseSessionId(sessionId, id);
         },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
@@ -749,7 +749,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       });
     }
 
-    const restoreId = store.get(sessionId)?.waveSessionId;
+    const restoreId = store.get(sessionId)?.museSessionId;
     let agent: SessionAgent;
     try {
       agent = await createAgentWithRestore(
@@ -778,7 +778,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       });
     }
 
-    rememberWaveSessionId(sessionId, agent.sessionId);
+    rememberMuseSessionId(sessionId, agent.sessionId);
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
     core.touchAgent(sessionId);

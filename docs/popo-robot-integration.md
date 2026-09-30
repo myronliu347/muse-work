@@ -106,7 +106,7 @@ REST 域名 `https://open.popo.netease.com`。
 
 ## 7. Agent 侧约定
 
-- **会话续聊**：服务端为每个 chatKey 持久化 agent 的 `waveSessionId`，创建时作为 `restoreSessionId` 恢复上下文，回答前读最终 sessionId 回写落库。
+- **会话续聊**：服务端为每个 chatKey 持久化 agent 的 `museSessionId`，创建时作为 `restoreSessionId` 恢复上下文，回答前读最终 sessionId 回写落库。
 - **生命周期**：私聊常驻 agent 跨消息复用；群聊可每条消息新建 agent、用完即毁（恢复成本主要靠 session 恢复）。
 - **系统提示要点**：说明群聊 `@机器人名` 前缀语义；需要群历史时引导用 popo-cli 读群消息；回复简洁、中文。
 - **禁后台任务**：机器人收不到后台任务完成通知——禁 `run_in_background`、禁 cron 类工具（如 Workflow），所有命令前台执行。

@@ -94,8 +94,8 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     workdir: popoWorkdir,
     registry: ctx.registry,
     createAgent: options?.createAgent,
-    onWaveSessionId: (chatKey, waveSessionId) => {
-      chatStore.setWaveSessionId(chatKey, waveSessionId);
+    onMuseSessionId: (chatKey, museSessionId) => {
+      chatStore.setMuseSessionId(chatKey, museSessionId);
     },
   });
   runtime.disposeChat = (chatKey) => agentFactory.disposeChat?.(chatKey) ?? Promise.resolve();

@@ -193,7 +193,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     return true;
   }
 
-  /** Destroy runtime only — keep sessions.json / waveSessionId. */
+  /** Destroy runtime only — keep sessions.json / museSessionId. */
   async function destroyRuntime(sessionId: string): Promise<void> {
     // Re-check immediately before dispose (TOCTOU vs runTurn / ensureAgent).
     if (!canIdleDestroy(sessionId)) {

@@ -251,9 +251,9 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         sdkMessages = existing.getMessages();
         core.touchAgent(sessionId);
       } else {
-        // SDK persists sessions under its own id (waveSessionId), not the
+        // SDK persists sessions under its own id (museSessionId), not the
         // server store's session id — reading by sessionId would miss the file.
-        const diskId = session.waveSessionId ?? sessionId;
+        const diskId = session.museSessionId ?? sessionId;
         const data = await agent.loadMainSessionFromDisk(
           diskId,
           session.workdir,
@@ -445,7 +445,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         workdir: session.workdir,
         permissionMode: session.permissionMode,
         latestTotalTokens,
-        waveSessionId: session.waveSessionId,
+        museSessionId: session.museSessionId,
       };
     },
 

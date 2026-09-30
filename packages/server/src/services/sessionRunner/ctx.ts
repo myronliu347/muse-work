@@ -227,7 +227,7 @@ export interface SessionRunner {
     workdir: string;
     permissionMode: "acceptEdits" | "bypassPermissions";
     latestTotalTokens: number;
-    waveSessionId?: string;
+    museSessionId?: string;
   }>;
   getMcpServers(sessionId: string): Promise<unknown[]>;
   connectMcpServer(sessionId: string, name: string): Promise<{ ok: boolean }>;

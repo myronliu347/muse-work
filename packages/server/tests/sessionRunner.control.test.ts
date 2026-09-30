@@ -543,8 +543,8 @@ describe("sessionRunner control plane", () => {
       },
     });
     const session = store.create({ workdir: dir, model: "m1" });
-    // SDK persists under its own waveSessionId, not the server store's id.
-    store.setWaveSessionId(session.id, "wave-123");
+    // SDK persists under its own museSessionId, not the server store's id.
+    store.setMuseSessionId(session.id, "wave-123");
 
     // No agent exists: getMessages reads the persisted jsonl (injected) and
     // must NOT create an agent — only sendMessage does.
@@ -553,7 +553,7 @@ describe("sessionRunner control plane", () => {
     }>;
     expect(messages.map((m) => m.id)).toEqual(["u1", "a1"]);
     expect(createCount).toBe(0);
-    // The disk lookup must use the SDK's waveSessionId so the file is found.
+    // The disk lookup must use the SDK's museSessionId so the file is found.
     expect(loadCalls).toEqual([{ id: "wave-123", workdir: dir }]);
   });
 
