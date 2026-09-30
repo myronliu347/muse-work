@@ -1,0 +1,92 @@
+docs/superpowers/plans/2026-09-01-issue-workflow.md
+  c8df0f85b58f7a52 139
+packages/server/src/services/issueStore.ts
+  c8df0f85b58f7a52 5-9,154,211,231-234,244-246,254,257-262
+CONTEXT.md
+  c8df0f85b58f7a52 51
+packages/server/tests/issueStore.test.ts
+  c8df0f85b58f7a52 7,196-207,210-211,266-277,279-280
+packages/server/src/services/issueClosedStorage.ts
+  c8df0f85b58f7a52 1-138
+packages/server/tests/issueClosedStorage.test.ts
+  c8df0f85b58f7a52 1-104
+docs/superpowers/specs/2026-09-01-issue-design.md
+  c8df0f85b58f7a52 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8e6847827fb9aa0b36657fbee539c1becaabc7aa",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 304,
+      "total_deletions": 49,
+      "accepted_lines": 311,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CONTEXT.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/issueStore.test.ts": {
+          "additions": 29,
+          "deletions": 11,
+          "accepted_lines": 29
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 28,
+          "deletions": 33,
+          "accepted_lines": 24
+        },
+        "docs/superpowers/plans/2026-09-01-issue-workflow.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/issueClosedStorage.ts": {
+          "additions": 138,
+          "accepted_lines": 138
+        },
+        "docs/superpowers/specs/2026-09-01-issue-design.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/server/tests/issueClosedStorage.test.ts": {
+          "additions": 106,
+          "deletions": 2,
+          "accepted_lines": 104
+        }
+      }
+    }
+  }
+}
