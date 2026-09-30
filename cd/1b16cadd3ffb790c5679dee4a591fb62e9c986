@@ -1,0 +1,113 @@
+packages/server/src/utils/paths.ts
+  98ab170ac30fbe53 42-44
+packages/agent/src/types/plugins.ts
+  98ab170ac30fbe53 8-10,12-20,22
+packages/agent/tests/services/pluginLoader.test.ts
+  98ab170ac30fbe53 54,59-68,86-109
+packages/agent/src/services/configurationService.ts
+  98ab170ac30fbe53 45
+packages/agent/src/services/memory.ts
+  98ab170ac30fbe53 4
+packages/agent/src/utils/constants.ts
+  98ab170ac30fbe53 6,9-13,19
+packages/agent/src/services/MarketplaceService.ts
+  98ab170ac30fbe53 15-18,456-461,464-467,1108-1113,1116-1119
+packages/agent/src/types/marketplace.ts
+  98ab170ac30fbe53 37
+packages/agent/src/core/plugin.ts
+  98ab170ac30fbe53 16,267
+packages/agent/src/services/pluginLoader.ts
+  98ab170ac30fbe53 5-6,28,30-47,51,55,76-78
+packages/server/src/services/museSettings.ts
+  98ab170ac30fbe53 92-95
+packages/agent/tests/services/memory.test.ts
+  98ab170ac30fbe53 37
+packages/agent/src/services/authService.ts
+  98ab170ac30fbe53 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "cd1b16cadd3ffb790c5679dee4a591fb62e9c986",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 132,
+      "total_deletions": 90,
+      "accepted_lines": 130,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/museSettings.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/services/authService.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/pluginLoader.ts": {
+          "additions": 26,
+          "deletions": 43,
+          "accepted_lines": 26
+        },
+        "packages/agent/src/utils/constants.ts": {
+          "additions": 10,
+          "deletions": 3,
+          "accepted_lines": 9
+        },
+        "packages/agent/tests/services/memory.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/memory.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/MarketplaceService.ts": {
+          "additions": 26,
+          "deletions": 30,
+          "accepted_lines": 26
+        },
+        "packages/agent/tests/services/pluginLoader.test.ts": {
+          "additions": 39,
+          "deletions": 4,
+          "accepted_lines": 39
+        },
+        "packages/agent/src/types/plugins.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/src/utils/paths.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/types/marketplace.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/core/plugin.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
