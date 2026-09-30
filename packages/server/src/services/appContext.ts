@@ -86,7 +86,7 @@ export function createAppContext(
   options?: CreateAppContextOptions,
 ): AppContext {
   const home = resolveHome(options?.home);
-  // 启动自动生成 agent 配置文件（agents.json / agent-scenarios.json），无则写默认内置
+  // 启动时若无 scenario-models.json 则写默认场景模型
   ensureDefaultConfigs(home);
   ensureDefaultMuseUserSettings(home);
 

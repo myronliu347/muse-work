@@ -124,7 +124,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     const active = options.registry.getActive();
     const provider = options.registry.get(active.providerId);
     if (!provider) throw new Error(`active provider not found: ${active.providerId}`);
-    // Prefer the popo scenario agent's model (agents.json), same as issue
+    // Prefer the popo scenario default model (scenario-models.json)
     // sessions — not the UI's global activeModelId.
     const agent = resolveAgentForScenario("popo", options.home);
     const model =

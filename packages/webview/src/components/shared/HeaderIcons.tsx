@@ -4,29 +4,6 @@ interface IconProps {
   className?: string;
 }
 
-/** Agent 选择器：实心头像，避免 stick-person / 星芒。 */
-export const AgentIcon: React.FC<IconProps> = ({
-  className = "header-icon",
-}) => (
-  <svg
-    width={16}
-    height={16}
-    viewBox="0 0 16 16"
-    fill="none"
-    className={className}
-    aria-hidden="true"
-  >
-    <path
-      d="M8 8.25a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z"
-      fill="currentColor"
-    />
-    <path
-      d="M1.75 13.15c0-2.42 2.72-3.9 6.25-3.9s6.25 1.48 6.25 3.9v.6H1.75v-.6Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
 /** 自动化：时钟，和「新对话」纸飞机同级的侧栏图标。 */
 export const AutomationsIcon: React.FC<IconProps> = ({
   className = "header-icon",

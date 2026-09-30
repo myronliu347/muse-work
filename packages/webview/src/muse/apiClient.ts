@@ -88,7 +88,7 @@ export interface MuseSession {
   worktreeBranch?: string;
   baseBranch?: string;
   worktreeRepoRoot?: string;
-  /** 会话选用的数字人 agent key（缺省由 session 场景映射解析）。 */
+  /** 内置角色 key（default/plan/execute/popo），会话创建时写入；不可再通过 API 切换。 */
   agentName?: string;
   /** 自定义 system prompt（会话级覆盖）。 */
   systemPrompt?: string;

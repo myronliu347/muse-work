@@ -15,11 +15,6 @@ import { MUSE_BASE_SYSTEM_PROMPT } from "../constants/musePrompt.js";
 
 export const SCENARIO_MODELS_FILE = "scenario-models.json";
 
-/** @deprecated 旧版 agents.json，不再读取。 */
-export const AGENTS_FILE = "agents.json";
-/** @deprecated 旧版 agent-scenarios.json，不再读取。 */
-export const AGENT_SCENARIOS_FILE = "agent-scenarios.json";
-
 export type AgentScenarioKey = "session" | "popo" | "issue-plan" | "issue-exec";
 
 export const AGENT_SCENARIO_KEYS: AgentScenarioKey[] = [
@@ -102,24 +97,12 @@ export function defaultScenarioModels(): Record<AgentScenarioKey, string> {
   return out;
 }
 
-export function agentsConfigPath(home = os.homedir()): string {
-  return path.join(getMuseHomeDir(home), AGENTS_FILE);
-}
-
-export function agentScenariosConfigPath(home = os.homedir()): string {
-  return path.join(getMuseHomeDir(home), AGENT_SCENARIOS_FILE);
-}
-
 export function scenarioModelsConfigPath(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), SCENARIO_MODELS_FILE);
 }
 
 export function loadAgents(_home = os.homedir()): Map<string, Agent> {
   return new Map(Object.entries(defaultAgents()));
-}
-
-export function loadScenarios(_home = os.homedir()): Record<AgentScenarioKey, string> {
-  return defaultScenarios();
 }
 
 export function resolveScenarioAgent(

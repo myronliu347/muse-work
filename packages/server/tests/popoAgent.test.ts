@@ -352,27 +352,24 @@ describe("popoAgent", () => {
     expect(captured?.fastModel).toBe("deepseek-flash");
   });
 
-  it("uses agents.json popo.model instead of the global active model", async () => {
+  it("uses scenario-models popo model instead of the global active model", async () => {
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
     const { getMuseHomeDir } = await import("@muse-work/provider");
+    const { defaultScenarioModels } = await import(
+      "../src/services/agentConfig.js"
+    );
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "popo-agent-model-"));
     const museHome = getMuseHomeDir(home);
     fs.mkdirSync(museHome, { recursive: true });
     fs.writeFileSync(
-      path.join(museHome, "agents.json"),
+      path.join(museHome, "scenario-models.json"),
       JSON.stringify({
         version: 1,
-        agents: {
-          popo: {
-            key: "popo",
-            name: "Yui",
-            personality: "professional",
-            systemPrompt: "",
-            model: "agent-model",
-            fastModel: "agent-fast",
-          },
+        models: {
+          ...defaultScenarioModels(),
+          popo: "agent-model",
         },
       }),
     );
@@ -404,7 +401,7 @@ describe("popoAgent", () => {
     await runner.run("hello");
     expect(resolvedModel).toBe("agent-model");
     expect(captured?.model).toBe("agent-model");
-    expect(captured?.fastModel).toBe("agent-fast");
+    expect(captured?.fastModel).toBe("agent-model");
     fs.rmSync(home, { recursive: true, force: true });
   });
 

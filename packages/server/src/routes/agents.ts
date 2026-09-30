@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
 import {
-  AGENT_SCENARIO_KEYS,
   loadScenarioModels,
   saveScenarioModelsFile,
 } from "../services/agentConfig.js";
@@ -47,5 +46,3 @@ agentsRoutes.all("/agents", (c) =>
 agentsRoutes.all("/agents/*", (c) =>
   c.json({ error: "agent management removed; use /scenarios/models" }, 404),
 );
-
-export { AGENT_SCENARIO_KEYS };
