@@ -119,7 +119,7 @@ describe("ToolManager.initializeBuiltInTools", () => {
 });
 
 describe("ToolManager bypassPermissions mode", () => {
-  it("should include both EnterPlanMode and ExitPlanMode in bypassPermissions mode", async () => {
+  it("should include core tools in bypassPermissions mode", async () => {
     const mockMcpManager = {
       getMcpToolsConfig: vi.fn().mockReturnValue([]),
       getMcpToolOutputSchemas: vi.fn().mockReturnValue(new Map()),
@@ -152,8 +152,8 @@ describe("ToolManager bypassPermissions mode", () => {
     const toolsConfig = toolManager.getToolsConfig();
     const names = toolsConfig.map((t) => t.function.name);
 
-    expect(names).toContain("ExitPlanMode");
-    expect(names).toContain("EnterPlanMode");
+    expect(names).not.toContain("ExitPlanMode");
+    expect(names).not.toContain("EnterPlanMode");
     expect(names).toContain("AskUserQuestion");
     expect(names).toContain("Bash");
     expect(names).toContain("Read");
@@ -193,45 +193,7 @@ describe("ToolManager bypassPermissions mode", () => {
     const names = toolsConfig.map((t) => t.function.name);
 
     expect(names).toContain("AskUserQuestion");
-    expect(names).toContain("ExitPlanMode"); // always in tool list
-  });
-
-  it("should include both EnterPlanMode and ExitPlanMode in plan mode", async () => {
-    const mockMcpManager = {
-      getMcpToolsConfig: vi.fn().mockReturnValue([]),
-      getMcpToolOutputSchemas: vi.fn().mockReturnValue(new Map()),
-    } as unknown as McpManager;
-
-    const mockPermissionManager = {
-      isToolDenied: vi.fn().mockReturnValue(false),
-      getCurrentEffectiveMode: vi.fn().mockReturnValue("plan"),
-    } as unknown as PermissionManager;
-
-    const container = new Container();
-    container.register("McpManager", mockMcpManager);
-    container.register("PermissionManager", mockPermissionManager);
-    container.register("TaskManager", {} as unknown as TaskManager);
-    container.register("ReversionManager", {} as unknown as ReversionManager);
-    container.register(
-      "BackgroundTaskManager",
-      {} as unknown as BackgroundTaskManager,
-    );
-    container.register(
-      "ForegroundTaskManager",
-      {} as unknown as IForegroundTaskManager,
-    );
-    container.register("LspManager", {} as unknown as ILspManager);
-
-    const toolManager = new ToolManager({ container });
-
-    toolManager.initializeBuiltInTools();
-
-    const toolsConfig = toolManager.getToolsConfig();
-    const names = toolsConfig.map((t) => t.function.name);
-
-    expect(names).toContain("ExitPlanMode");
-    expect(names).toContain("EnterPlanMode");
-    expect(names).toContain("AskUserQuestion");
+    expect(names).not.toContain("ExitPlanMode");
   });
 
   it("should register TaskStop tool", () => {

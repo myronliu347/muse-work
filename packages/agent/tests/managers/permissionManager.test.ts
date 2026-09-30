@@ -575,18 +575,6 @@ describe("PermissionManager", () => {
         expect(result.behavior).toBe("deny");
       });
 
-      it("should auto-approve EnterPlanMode in bypassPermissions mode", async () => {
-        const context: ToolPermissionContext = {
-          toolName: "EnterPlanMode",
-          permissionMode: "bypassPermissions",
-        };
-
-        const result = await permissionManager.checkPermission(context);
-
-        // EnterPlanMode is auto-allowed in bypass mode (matching Claude Code)
-        expect(result).toEqual({ behavior: "allow" });
-      });
-
       it("should allow mkdir in bypassPermissions mode", async () => {
         const context: ToolPermissionContext = {
           toolName: "Bash",
@@ -1966,8 +1954,6 @@ describe("PermissionManager", () => {
         "Edit",
         "Bash",
         "Write",
-        "EnterPlanMode",
-        "ExitPlanMode",
         "AskUserQuestion",
       ]);
     });

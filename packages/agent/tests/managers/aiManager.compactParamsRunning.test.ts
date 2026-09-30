@@ -111,7 +111,6 @@ describe("aiManager: running-stage tool block updates carry compactParams", () =
     });
     container.register("HookManager", undefined);
     container.register("ReversionManager", undefined);
-    container.register("PlanManager", undefined);
     return container;
   }
 

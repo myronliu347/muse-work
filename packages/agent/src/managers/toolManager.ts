@@ -3,8 +3,6 @@ import { bashTool } from "../tools/bashTool.js";
 import { taskStopTool } from "../tools/taskStopTool.js";
 import { editTool } from "../tools/editTool.js";
 import { writeTool } from "../tools/writeTool.js";
-import { exitPlanModeTool } from "../tools/exitPlanMode.js";
-import { enterPlanModeTool } from "../tools/enterPlanMode.js";
 import { askUserQuestionTool } from "../tools/askUserQuestion.js";
 import { webFetchTool } from "../tools/webFetchTool.js";
 import { workflowTool } from "../tools/workflowTool.js";
@@ -108,8 +106,6 @@ class ToolManager {
       taskStopTool,
       editTool,
       writeTool,
-      exitPlanModeTool,
-      enterPlanModeTool,
       askUserQuestionTool,
       globTool,
       grepTool,
@@ -427,10 +423,7 @@ class ToolManager {
   }
 
   /**
-   * Request a full permission mode transition (planManager + UI callback).
-   * Used by tools like EnterPlanMode in bypass mode where the canUseTool
-   * callback (which normally handles the transition) is not invoked.
-   * In normal mode, the callback already handles the transition.
+   * Request a full permission mode transition (UI callback).
    */
   public requestPermissionModeChange(mode: PermissionMode): void {
     if (this.container.has("PermissionModeTransition")) {

@@ -149,8 +149,8 @@ describe("LiveConfigManager - Validation", () => {
       await testValidation("acceptEdits", true);
     });
 
-    it('should accept "plan" as a valid permissionMode', async () => {
-      await testValidation("plan", true);
+    it('should accept "dontAsk" as a valid permissionMode', async () => {
+      await testValidation("dontAsk", true);
     });
 
     it("should reject invalid permissionMode values", async () => {

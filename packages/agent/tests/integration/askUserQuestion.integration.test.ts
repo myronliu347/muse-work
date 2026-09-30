@@ -65,7 +65,6 @@ describe("AskUserQuestion Integration", () => {
     const container = new Container();
     const mcpManager = new McpManager(container);
     const permissionManager = new PermissionManager(container);
-    permissionManager.setPlanFilePath("/tmp/plan.md");
     vi.spyOn(permissionManager, "checkPermission").mockResolvedValue({
       behavior: "allow",
       message: JSON.stringify({ "Confirm?": "Yes" }),
@@ -73,7 +72,7 @@ describe("AskUserQuestion Integration", () => {
 
     container.register("PermissionManager", permissionManager);
     container.register("McpManager", mcpManager);
-    container.register("PermissionMode", "plan");
+    container.register("PermissionMode", "default");
     container.register("TaskManager", {} as unknown as Record<string, unknown>);
     container.register(
       "ReversionManager",

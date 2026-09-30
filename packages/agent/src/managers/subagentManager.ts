@@ -449,7 +449,6 @@ export class SubagentManager {
         parentPermissionManager?.getInstanceAdditionalDirectories?.(),
       systemAdditionalDirectories:
         parentPermissionManager?.getSystemAdditionalDirectories(),
-      planFilePath: parentPermissionManager?.getPlanFilePath(),
     });
     subagentContainer.register("PermissionManager", subagentPermissionManager);
 

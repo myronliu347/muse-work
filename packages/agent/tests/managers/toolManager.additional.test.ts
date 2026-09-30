@@ -73,10 +73,10 @@ describe("ToolManager additional coverage", () => {
 
   it("should include plan mode tools regardless of permission mode", () => {
     const exitTool = {
-      name: "ExitPlanMode",
+      name: "AskUserQuestion",
       config: {
         type: "function",
-        function: { name: "ExitPlanMode", description: "d" },
+        function: { name: "AskUserQuestion", description: "d" },
       },
     };
     const askTool = {
@@ -102,7 +102,7 @@ describe("ToolManager additional coverage", () => {
     toolManager.setPermissionMode("default");
     let config = toolManager.getToolsConfig();
     expect(
-      config.find((c) => c.function.name === "ExitPlanMode"),
+      config.find((c) => c.function.name === "AskUserQuestion"),
     ).toBeDefined();
     expect(
       config.find((c) => c.function.name === "AskUserQuestion"),
@@ -110,17 +110,17 @@ describe("ToolManager additional coverage", () => {
     expect(config.find((c) => c.function.name === "NormalTool")).toBeDefined();
 
     // Plan mode
-    toolManager.setPermissionMode("plan");
+    toolManager.setPermissionMode("acceptEdits");
     config = toolManager.getToolsConfig();
     expect(
-      config.find((c) => c.function.name === "ExitPlanMode"),
+      config.find((c) => c.function.name === "AskUserQuestion"),
     ).toBeDefined();
 
     // Bypass mode
     toolManager.setPermissionMode("bypassPermissions");
     config = toolManager.getToolsConfig();
     expect(
-      config.find((c) => c.function.name === "ExitPlanMode"),
+      config.find((c) => c.function.name === "AskUserQuestion"),
     ).toBeDefined();
     expect(
       config.find((c) => c.function.name === "AskUserQuestion"),

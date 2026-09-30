@@ -9,7 +9,6 @@ import { ToolManager } from "../managers/toolManager.js";
 import { McpManager } from "../managers/mcpManager.js";
 import { LspManager } from "../managers/lspManager.js";
 import { PermissionManager } from "../managers/permissionManager.js";
-import { PlanManager } from "../managers/planManager.js";
 import { HookManager } from "../managers/hookManager.js";
 import { SkillManager } from "../managers/skillManager.js";
 import { SlashCommandManager } from "../managers/slashCommandManager.js";
@@ -53,7 +52,6 @@ export interface AgentContainerSetupOptions {
   onBackgroundTasksChange: (tasks: BackgroundTask[]) => void;
   onTasksChange: (tasks: Task[]) => void;
   onPermissionModeChange: (mode: PermissionMode) => void;
-  handlePlanModeTransition: (mode: PermissionMode) => void;
   setPermissionMode: (mode: PermissionMode) => void;
   addPermissionRule: (rule: string) => Promise<void>;
   addUsage: (usage: Usage) => void;
@@ -82,7 +80,6 @@ export function setupAgentContainer(
     onBackgroundTasksChange,
     onTasksChange,
     onPermissionModeChange,
-    handlePlanModeTransition,
     setPermissionMode,
     addPermissionRule,
     addUsage,
@@ -193,12 +190,8 @@ export function setupAgentContainer(
   }
   container.register("PermissionManager", permissionManager);
   permissionManager.setOnConfiguredPermissionModeChange((mode) => {
-    handlePlanModeTransition(mode);
     onPermissionModeChange(mode);
   });
-
-  const planManager = new PlanManager(container);
-  container.register("PlanManager", planManager);
 
   const hookManager = new HookManager(container, workdir);
   if (options.hooks) {
@@ -248,7 +241,6 @@ export function setupAgentContainer(
             cwd: workdir,
             toolName: context.toolName,
             toolInput: context.toolInput,
-            planFilePath: permissionManager.getPlanFilePath(),
             env: Object.fromEntries(
               Object.entries(configurationService.getMergedEnv()).filter(
                 (e) => e[1] !== undefined,
@@ -321,9 +313,6 @@ export function setupAgentContainer(
   container.register("ToolManager", toolManager);
 
   container.register("PermissionMode", options.permissionMode);
-  // Register the full permission mode transition (Agent.setPermissionMode) so
-  // tools like EnterPlanMode can trigger planManager.handlePlanModeTransition
-  // and onPermissionModeChange even in bypass mode (where canUseTool is skipped).
   container.register("PermissionModeTransition", setPermissionMode);
   logger.info("Registering CanUseToolCallback", {
     hasCallback: !!canUseToolWithPermissionRequest,

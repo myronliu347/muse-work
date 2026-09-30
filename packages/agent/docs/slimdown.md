@@ -4,7 +4,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 
 ## 保留
 
-- 进程内 Agent、消息 / session jsonl、权限、Plan、Skill、MCP、LSP
+- 进程内 Agent、消息 / session jsonl、权限、Issue 规划助手、Plan subagent、Skill、MCP、LSP
 - **本地插件**：`PluginLoader` + `PluginManager.loadPlugins([{ type: "local", path }])`
 - Workflow（工具 / manager / UI；POPO 与定时自动化会话不挂这个工具）
 - AskUserQuestion、auto-memory、WebFetch、任务列表、subagent
@@ -37,6 +37,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | serverUrl | `AgentOptions.serverUrl`、`DEFAULT_SERVER_URL`、用户偏好里的服务端地址 |
 | enabledPlugins / @builtin | SDK 内置插件目录与 settings 启用表；Muse 只走本地 `path` |
 | webview 市场残件 | `projectSettings.enabledPlugins`、`MarketplaceInfo`、marketplace CSS |
+| Plan mode | `EnterPlanMode` / `ExitPlanMode` / `PlanManager`；Issue 规划助手与 Plan subagent 仍在 |
 
 ## 第三轮
 

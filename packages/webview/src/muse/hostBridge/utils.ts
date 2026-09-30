@@ -130,10 +130,6 @@ export function confirmationTypeForTool(toolName: string): string {
     case "Edit":
     case "Write":
       return "代码修改确认";
-    case "ExitPlanMode":
-      return "计划执行确认";
-    case "EnterPlanMode":
-      return "进入计划模式确认";
     default:
       if (toolName.startsWith("mcp__")) return "MCP 工具确认";
       return "工具确认";

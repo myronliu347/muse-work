@@ -149,7 +149,6 @@ export function validateConfigurationObject(
           "default",
           "bypassPermissions",
           "acceptEdits",
-          "plan",
           "dontAsk",
         ];
         if (!validModes.includes(config.permissions.defaultMode)) {

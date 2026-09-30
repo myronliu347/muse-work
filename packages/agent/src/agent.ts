@@ -12,7 +12,6 @@ import { PluginManager } from "./managers/pluginManager.js";
 import { HookManager } from "./managers/hookManager.js";
 import { ReversionManager } from "./managers/reversionManager.js";
 import { PermissionManager } from "./managers/permissionManager.js";
-import { PlanManager } from "./managers/planManager.js";
 import {
   SlashCommand,
   CustomSlashCommand,
@@ -59,7 +58,6 @@ export class Agent {
   private mcpManager: McpManager; // Add MCP manager instance
   private lspManager: ILspManager; // Add LSP manager instance
   private permissionManager: PermissionManager; // Add permission manager instance
-  private planManager: PlanManager; // Add plan manager instance
   private subagentManager: SubagentManager; // Add subagent manager instance
   private slashCommandManager: SlashCommandManager; // Add slash command manager instance
   private pluginManager: PluginManager; // Add plugin manager instance
@@ -208,9 +206,6 @@ export class Agent {
       onPermissionModeChange: (mode) => {
         this.options.callbacks?.onPermissionModeChange?.(mode);
       },
-      handlePlanModeTransition: (mode) => {
-        this.planManager.handlePlanModeTransition(mode);
-      },
       setPermissionMode: (mode) => {
         this.setPermissionMode(mode);
       },
@@ -229,7 +224,6 @@ export class Agent {
     this.mcpManager = this.container.get("McpManager")!;
     this.lspManager = this.container.get("LspManager")!;
     this.permissionManager = this.container.get("PermissionManager")!;
-    this.planManager = this.container.get("PlanManager")!;
     this.hookManager = this.container.get("HookManager")!;
     this.skillManager = this.container.get("SkillManager")!;
     this.reversionManager = this.container.get("ReversionManager")!;
@@ -1261,8 +1255,6 @@ export class Agent {
     this.logger?.debug("Setting permission mode", { mode });
     this.toolManager.setPermissionMode(mode);
 
-    this.planManager.handlePlanModeTransition(mode);
-
     this.options.callbacks?.onPermissionModeChange?.(mode);
   }
 
@@ -1286,24 +1278,6 @@ export class Agent {
     sessionIds: string[];
   }> {
     return this.messageManager.getFullMessageThread();
-  }
-
-  /**
-   * Get the current plan file path (for testing and UI)
-   */
-  public getPlanFilePath(): string | undefined {
-    return this.permissionManager.getPlanFilePath();
-  }
-
-  /**
-   * Resolve once the plan file path has been generated and set after entering
-   * plan mode. Resolves `undefined` when no generation is in flight.
-   * Used by the CLI /plan command and the stdio getPlanFile RPC to avoid
-   * querying the model before the path is known (the plan mode reminder needs
-   * the path to be set).
-   */
-  public awaitPlanFilePath(): Promise<string | undefined> {
-    return this.planManager.awaitPlanFilePath();
   }
 
   /**

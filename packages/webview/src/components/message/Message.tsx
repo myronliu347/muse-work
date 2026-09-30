@@ -14,7 +14,6 @@ import {
   EDIT_TOOL_NAME,
   READ_TOOL_NAME,
   ASK_USER_QUESTION_TOOL_NAME,
-  EXIT_PLAN_MODE_TOOL_NAME,
   AGENT_TOOL_NAME,
 } from "@muse-work/agent/constants";
 import type {
@@ -732,7 +731,7 @@ export const Message: React.FC<MessageProps> = React.memo(
       }
 
       // For ExitPlanMode tools, show the decision
-      if (toolBlock.name === EXIT_PLAN_MODE_TOOL_NAME) {
+      if (toolBlock.name === "ExitPlanMode") {
         const result = toolBlock.shortResult || toolBlock.result;
         const resultText =
           typeof result === "string"

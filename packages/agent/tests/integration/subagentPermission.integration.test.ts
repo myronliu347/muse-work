@@ -152,7 +152,6 @@ describe("Subagent Permission Integration", () => {
       allowedRules: ["git:*"],
       deniedRules: ["Bash(rm *)"],
       additionalDirectories: ["/tmp/other"],
-      planFilePath: "/tmp/test/plan.md",
     });
     container.register("PermissionManager", parentPermissionManager);
 
@@ -189,9 +188,6 @@ describe("Subagent Permission Integration", () => {
     // D:\tmp\other on Windows. Mirror the transformation in the assertion.
     expect(subagentPermissionManager.getAdditionalDirectories()).toContain(
       path.resolve("/tmp/other"),
-    );
-    expect(subagentPermissionManager.getPlanFilePath()).toBe(
-      "/tmp/test/plan.md",
     );
   });
 

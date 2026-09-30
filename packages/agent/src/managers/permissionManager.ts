@@ -140,8 +140,6 @@ export interface PermissionManagerOptions {
   instanceAdditionalDirectories?: string[];
   /** System additional directories (persistent across reloads) */
   systemAdditionalDirectories?: string[];
-  /** Path to the current plan file */
-  planFilePath?: string;
   /** Optional logger */
   logger?: Logger;
 }
@@ -151,10 +149,8 @@ export class PermissionManager {
   /**
    * Session-level bypass authorization: the permission mode in effect when the
    * session was created was `bypassPermissions`. Frozen at session start, so a
-   * later mode switch (or config reload) can never grant it. Its only effect is
-   * that plan mode skips permission checks instead of re-asking — mirroring
-   * Claude Code's `isBypassPermissionsModeAvailable`. `undefined` = not
-   * captured yet (subagents get an explicit value instead).
+   * later mode switch (or config reload) can never grant it.
+   * `undefined` = not captured yet (subagents get an explicit value instead).
    */
   private bypassAuthorization?: boolean;
   private allowedRules: string[] = [];
@@ -165,9 +161,6 @@ export class PermissionManager {
   private additionalDirectories: string[] = [];
   private instanceAdditionalDirectories: string[] = [];
   private systemAdditionalDirectories: string[] = [];
-  private planFilePath?: string;
-  private hasExitedPlanMode: boolean = false;
-  private needsPlanModeExitAttachment: boolean = false;
   private workdir?: string;
   private worktreeName?: string;
   private mainRepoRoot?: string;
@@ -184,7 +177,6 @@ export class PermissionManager {
     this.deniedRules = options.deniedRules || [];
     this.instanceAllowedRules = options.instanceAllowedRules || [];
     this.instanceDeniedRules = options.instanceDeniedRules || [];
-    this.planFilePath = options.planFilePath;
     this._logger = options.logger;
     // Read workdir first so relative additional directories resolve against it.
     this.workdir = this.container.get<string>("Workdir");
@@ -257,7 +249,7 @@ export class PermissionManager {
   }
 
   /**
-   * Whether this session keeps bypass semantics while in plan mode
+   * Whether this session was created with bypassPermissions.
    */
   public getBypassAuthorization(): boolean {
     return this.bypassAuthorization === true;
@@ -436,36 +428,6 @@ export class PermissionManager {
   }
 
   /**
-   * Set the current plan file path
-   */
-  public setPlanFilePath(path: string | undefined): void {
-    this.planFilePath = path;
-  }
-
-  /**
-   * Get the current plan file path
-   */
-  public getPlanFilePath(): string | undefined {
-    return this.planFilePath;
-  }
-
-  public setHasExitedPlanMode(value: boolean): void {
-    this.hasExitedPlanMode = value;
-  }
-
-  public hasExitedPlanModeInSession(): boolean {
-    return this.hasExitedPlanMode;
-  }
-
-  public setNeedsPlanModeExitAttachment(value: boolean): void {
-    this.needsPlanModeExitAttachment = value;
-  }
-
-  public getNeedsPlanModeExitAttachment(): boolean {
-    return this.needsPlanModeExitAttachment;
-  }
-
-  /**
    * Public wrapper for isInsideSafeZone to check if a path is in the safe zone
    */
   public isPathInSafeZone(targetPath: string): boolean {
@@ -614,25 +576,7 @@ export class PermissionManager {
           effectiveWorkdir,
         );
 
-        // Allow the plan file even if outside worktree
-        if (this.planFilePath) {
-          const absolutePlanPath = path.resolve(this.planFilePath);
-          if (absoluteTargetPath === absolutePlanPath) {
-            // Fall through — plan file is allowed
-          } else if (isInsideMainRepo && !isInsideWorktree) {
-            logger?.warn("Worktree safety violation", {
-              toolName: context.toolName,
-              targetPath,
-              worktreeName: effectiveWorktreeName,
-              mainRepoRoot: effectiveMainRepoRoot,
-              workdir: effectiveWorkdir,
-            });
-            return {
-              behavior: "deny",
-              message: `Access denied: You are currently in a worktree session ("${effectiveWorktreeName}"). Modifying files in the main repository (outside the worktree) is not allowed. Please only modify files within the worktree directory: ${effectiveWorkdir}`,
-            };
-          }
-        } else if (isInsideMainRepo && !isInsideWorktree) {
+        if (isInsideMainRepo && !isInsideWorktree) {
           logger?.warn("Worktree safety violation", {
             toolName: context.toolName,
             targetPath,
@@ -648,16 +592,10 @@ export class PermissionManager {
       }
     }
 
-    // If bypassPermissions mode — or plan mode in a session that was authorized
-    // to bypass at creation time — always allow.
-    // Exception: tools that require user interaction (AskUserQuestion and
-    // ExitPlanMode) must still prompt, matching Claude Code's
-    // requiresUserInteraction behavior (its step 1e returns the tool's ask
-    // result before the bypass step).
-    // Worktree safety check above runs unconditionally, so bypass never skips it.
+    // If bypassPermissions mode, always allow except tools that require
+    // user interaction (AskUserQuestion).
     const bypassesPermissionChecks =
-      context.permissionMode === "bypassPermissions" ||
-      (context.permissionMode === "plan" && this.getBypassAuthorization());
+      context.permissionMode === "bypassPermissions";
     if (bypassesPermissionChecks) {
       const requiresUserInteraction = (
         USER_INTERACTION_REQUIRED_TOOLS as readonly string[]
@@ -734,28 +672,6 @@ export class PermissionManager {
     // 1.2 Check if tool call is allowed by persistent or temporary rules
     if (this.isAllowedByRule(context)) {
       return { behavior: "allow" };
-    }
-
-    // 1.3 If plan mode, allow Read-only tools and Edit/Write for plan file
-    if (context.permissionMode === "plan") {
-      const writeTools = [EDIT_TOOL_NAME, WRITE_TOOL_NAME];
-      if (writeTools.includes(context.toolName)) {
-        const targetPath = context.toolInput?.file_path as string | undefined;
-
-        if (this.planFilePath && targetPath) {
-          const absoluteTargetPath = path.resolve(targetPath);
-          const absolutePlanPath = path.resolve(this.planFilePath);
-
-          if (absoluteTargetPath === absolutePlanPath) {
-            return { behavior: "allow" };
-          }
-        }
-
-        return {
-          behavior: "deny",
-          message: `In plan mode, you are only allowed to edit the designated plan file: ${this.planFilePath || "not set"}.`,
-        };
-      }
     }
 
     // 2. If not a restricted tool, always allow
@@ -849,7 +765,6 @@ export class PermissionManager {
     callback?: PermissionCallback,
     toolInput?: Record<string, unknown>,
     toolCallId?: string,
-    planContent?: string,
   ): ToolPermissionContext {
     let suggestedPrefix: string | undefined;
     if (toolName === BASH_TOOL_NAME && toolInput?.command) {
@@ -871,7 +786,6 @@ export class PermissionManager {
       toolInput,
       suggestedPrefix,
       toolCallId,
-      planContent,
     };
 
     // Set hidePersistentOption for out-of-bounds file operations

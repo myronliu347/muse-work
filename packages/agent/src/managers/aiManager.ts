@@ -48,13 +48,8 @@ import {
   buildSystemPrompt,
   formatCompactSummary,
   getCompactPrompt,
-} from "../prompts/index.js";
-import {
-  buildPlanModeReminder,
-  buildPlanModeReEntryReminder,
-  buildExitedPlanModeReminder,
   wrapInSystemReminder,
-} from "../prompts/planModeReminders.js";
+} from "../prompts/index.js";
 import { Container } from "../utils/container.js";
 import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
 import { recoverTruncatedJson } from "../utils/stringUtils.js";
@@ -141,12 +136,6 @@ export interface AIManagerCallbacks {
   onCompactionReasoningUpdate?: (content: string) => void;
   onUsageAdded?: (usage: Usage) => void;
   onCwdChange?: (newCwd: string) => void;
-  /**
-   * Full plan-file content after a successful `Write`/`Edit` of the plan file
-   * (spec: 计划文件更新后刷新计划面板). Inherited from AgentCallbacks via the
-   * spread in container setup.
-   */
-  onPlanFileUpdated?: (content: string) => void;
 }
 
 export interface AIManagerOptions {
@@ -248,14 +237,6 @@ export class AIManager {
 
   private get mcpManager(): McpManager | undefined {
     return this.container.get<McpManager>("McpManager");
-  }
-
-  private get planManager():
-    | import("./planManager.js").PlanManager
-    | undefined {
-    return this.container.get<import("./planManager.js").PlanManager>(
-      "PlanManager",
-    );
   }
 
   private get configurationService(): ConfigurationService {
@@ -416,57 +397,6 @@ export class AIManager {
       workdir: this.getWorkdir(),
       isSubagent: !!this.subagentType,
     });
-  }
-
-  /**
-   * Add plan mode reminder as a persistent meta message to the message manager.
-   * Called before getMessages() so the stored message is included in the API call.
-   */
-  private maybeAddPlanModeMessage(
-    currentMode: PermissionMode | undefined,
-  ): void {
-    if (!this.permissionManager) return;
-
-    // Handle exit notification (one-time after leaving plan mode)
-    if (this.permissionManager.getNeedsPlanModeExitAttachment()) {
-      const planFilePath = this.permissionManager.getPlanFilePath();
-      const planExists = planFilePath ? existsSync(planFilePath) : false;
-      this.messageManager.addUserMessage({
-        content: buildExitedPlanModeReminder(planFilePath, planExists),
-        isMeta: true,
-      });
-      this.permissionManager.setNeedsPlanModeExitAttachment(false);
-    }
-
-    if (currentMode !== "plan") return;
-
-    const planFilePath = this.permissionManager.getPlanFilePath();
-    if (!planFilePath) return;
-
-    const planExists = existsSync(planFilePath);
-
-    // One-time plan entry reminder
-    const planMgr = this.planManager;
-    if (planMgr?.isPlanEntryReminderPending()) {
-      if (this.permissionManager.hasExitedPlanModeInSession() && planExists) {
-        // Re-entry: use small reminder
-        this.messageManager.addUserMessage({
-          content: buildPlanModeReEntryReminder(planFilePath),
-          isMeta: true,
-        });
-      } else {
-        // First entry: use full reminder
-        this.messageManager.addUserMessage({
-          content: buildPlanModeReminder(
-            planFilePath,
-            planExists,
-            !!this.subagentType,
-          ),
-          isMeta: true,
-        });
-      }
-      planMgr.consumePlanEntryReminder();
-    }
   }
 
   private async maybeGetTaskReminderText(
@@ -718,25 +648,6 @@ export class AIManager {
       // compact flow): a file_unchanged stub would otherwise reference Read
       // results that were just folded away. Clearing forces a real re-read.
       this.readFileState.clear();
-
-      // Re-add plan mode reminder as persistent meta message after compaction
-      const postCompactMode = this.permissionManager?.getCurrentEffectiveMode(
-        this.getModelConfig().permissionMode,
-      );
-      if (postCompactMode === "plan") {
-        const planFilePath = this.permissionManager?.getPlanFilePath();
-        if (planFilePath) {
-          const planExists = existsSync(planFilePath);
-          this.messageManager.addUserMessage({
-            content: buildPlanModeReminder(
-              planFilePath,
-              planExists,
-              !!this.subagentType,
-            ),
-            isMeta: true,
-          });
-        }
-      }
 
       // 9. Track usage
       if (compactUsage && this.callbacks?.onUsageAdded) {
@@ -1586,14 +1497,6 @@ ${question}`;
         try {
           // Save session in each iteration to ensure message persistence
           await this.messageManager.saveSession();
-
-          // Get current permission mode
-          const currentMode = this.permissionManager?.getCurrentEffectiveMode(
-            this.getModelConfig().permissionMode,
-          );
-
-          // Add plan mode reminder as persistent meta message before getting messages
-          this.maybeAddPlanModeMessage(currentMode);
 
           // Process conditional rules triggered by file reads (persist as meta messages)
           const triggeredRules = this.messageManager.processTriggeredRules();
@@ -2513,11 +2416,6 @@ ${question}`;
         timestamp: Date.now(),
       });
 
-      // Plan panel refresh (spec: 计划文件更新后刷新计划面板): a successful
-      // Write/Edit of the plan file broadcasts the new content so hosts can
-      // update an already-open plan panel without waiting for ExitPlanMode.
-      await this.notifyPlanFileUpdate(toolName, toolArgs, toolResult.success);
-
       // Execute PostToolUse hooks after successful tool completion
       await this.executePostToolUseHooks(
         toolId,
@@ -2540,44 +2438,6 @@ ${question}`;
         compactParams,
         timestamp: Date.now(),
       });
-    }
-  }
-
-  /**
-   * Plan panel refresh (spec: 计划文件更新后刷新计划面板).
-   *
-   * When a successful `Write`/`Edit` targets the current plan file, read it and
-   * emit the full content so hosts can update an already-open plan panel. The
-   * path comparison mirrors the plan-mode allow branch in PermissionManager so
-   * "the write that was allowed" and "the write that refreshes the panel" stay
-   * the same set. The path is only set while plan mode is active, so post-exit
-   * writes can't reach the panels.
-   */
-  private async notifyPlanFileUpdate(
-    toolName: string,
-    toolArgs: Record<string, unknown>,
-    success: boolean,
-  ): Promise<void> {
-    if (!success) return;
-    if (toolName !== WRITE_TOOL_NAME && toolName !== EDIT_TOOL_NAME) return;
-
-    const targetPath = toolArgs.file_path;
-    if (typeof targetPath !== "string" || targetPath.trim() === "") return;
-
-    const planFilePath = this.container
-      .get<PermissionManager>("PermissionManager")
-      ?.getPlanFilePath();
-    if (!planFilePath) return;
-    if (path.resolve(targetPath) !== path.resolve(planFilePath)) return;
-
-    try {
-      const content = await readFile(planFilePath, "utf8");
-      this.callbacks?.onPlanFileUpdated?.(content);
-    } catch (error) {
-      logger?.warn(
-        `Failed to read plan file for panel refresh: ${planFilePath}`,
-        error,
-      );
     }
   }
 
@@ -2671,7 +2531,6 @@ ${question}`;
         toolInput,
         toolResponse,
         subagentType: this.subagentType, // Include subagent type in hook context
-        planFilePath: this.permissionManager?.getPlanFilePath(),
         env: Object.fromEntries(
           Object.entries(this.mergedEnv).filter((e) => e[1] !== undefined),
         ) as Record<string, string>, // Include environment variables

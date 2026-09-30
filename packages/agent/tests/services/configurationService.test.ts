@@ -332,10 +332,10 @@ describe("ConfigurationService", () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should validate "plan" as a valid defaultMode', () => {
+    it('should validate "dontAsk" as a valid defaultMode', () => {
       const config = {
         permissions: {
-          defaultMode: "plan" as const,
+          defaultMode: "dontAsk" as const,
         },
       };
 
