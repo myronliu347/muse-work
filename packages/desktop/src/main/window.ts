@@ -27,6 +27,7 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     minWidth: 720,
     minHeight: 480,
     title: opts.title ?? "Muse",
+    show: false,
     backgroundColor: opts.backgroundColor,
     icon: icon.isEmpty() ? undefined : icon,
     ...(process.platform === "darwin"
@@ -61,6 +62,10 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
     if (/^https?:/.test(url)) {
       void shell.openExternal(url);
     }
+  });
+
+  win.once("ready-to-show", () => {
+    if (!win.isDestroyed()) win.show();
   });
 
   void win.loadFile(opts.webviewHtmlPath);

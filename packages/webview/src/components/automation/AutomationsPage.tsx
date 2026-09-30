@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MuseApiClient, MuseAutomation } from "../../muse/apiClient";
-import { WelcomeBackdrop } from "../chat/WelcomeBackdrop";
 import { AutomationEditor } from "./AutomationEditor";
 import { blankAutomation, isNewAutomation } from "./automationDraft";
 import { summarizeTrigger } from "./scheduleUi";
@@ -85,9 +84,6 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
       className={`automations-page${selected ? " automations-page--editor" : ""}`}
       data-testid="automations-page"
     >
-      {!selected ? (
-        <WelcomeBackdrop testId="automations-wallpaper" />
-      ) : null}
       {selected ? (
         <AutomationEditor
           key={selected.id}

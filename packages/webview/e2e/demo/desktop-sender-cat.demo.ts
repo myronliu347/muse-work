@@ -42,28 +42,6 @@ test.describe("Desktop New Session Sender Cat", () => {
     ).toBeVisible();
     await expect(webviewPage.getByTestId("welcome-headline")).toBeVisible();
 
-    const wallpaper = webviewPage.getByTestId("new-session-wallpaper");
-    await expect(wallpaper).toBeVisible();
-    const cover = await wallpaper.evaluate((el) => {
-      const style = getComputedStyle(el);
-      const parent = el.parentElement;
-      if (!parent) return null;
-      const box = el.getBoundingClientRect();
-      const frame = parent.getBoundingClientRect();
-      return {
-        backgroundSize: style.backgroundSize,
-        backgroundPosition: style.backgroundPosition,
-        parentOverflow: getComputedStyle(parent).overflow,
-        bleedsX: box.width > frame.width + 8,
-        bleedsY: box.height > frame.height + 8,
-      };
-    });
-    expect(cover?.backgroundSize).toBe("cover");
-    expect(cover?.backgroundPosition).toBe("50% 50%");
-    expect(cover?.parentOverflow).toBe("hidden");
-    expect(cover?.bleedsX).toBe(true);
-    expect(cover?.bleedsY).toBe(true);
-
     await webviewPage.evaluate(() => {
       document.documentElement.setAttribute("data-theme", "dark");
       document.body.classList.add("vscode-dark");

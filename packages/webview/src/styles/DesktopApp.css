@@ -19,7 +19,7 @@
   height: 100vh;
   overflow: hidden;
   position: relative;
-  background-color: var(--color-background);
+  background-color: var(--color-background, #111111);
 }
 
 .desktop-loading {
@@ -40,14 +40,12 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid color-mix(in srgb, var(--gray-6) 55%, transparent);
-  background: transparent;
-  backdrop-filter: blur(32px) saturate(1.45);
-  -webkit-backdrop-filter: blur(32px) saturate(1.45);
+  border-right: 1px solid var(--gray-6);
+  background: var(--gray-2);
   box-shadow: none;
   overflow: hidden;
   position: relative;
-  /* Traffic-light row: children start below; glass ::before still covers this inset. */
+  /* Traffic-light row: children start below this inset. */
   padding-top: var(--desktop-shell-titlebar-height);
   -webkit-app-region: no-drag;
 }
@@ -62,15 +60,6 @@
   -webkit-app-region: drag;
 }
 
-.desktop-sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--gray-2) 52%, transparent);
-}
-
 .desktop-sidebar
   > *:not(.desktop-sidebar-titlebar-drag):not(.desktop-sidebar-resize) {
   position: relative;
@@ -79,33 +68,11 @@
 }
 
 :root[data-theme="light"] .desktop-sidebar {
-  box-shadow: none;
-}
-
-:root[data-theme="light"] .desktop-sidebar::before {
-  background: color-mix(in srgb, var(--gray-1) 55%, transparent);
+  background: var(--gray-2);
 }
 
 :root[data-theme="light"] .desktop-sidebar-footer {
-  background: color-mix(in srgb, var(--gray-1) 50%, transparent);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .desktop-sidebar {
-    background: var(--gray-3);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
-  }
-
-  .desktop-sidebar::before {
-    background: var(--gray-3);
-  }
-
-  :root[data-theme="light"] .desktop-sidebar,
-  :root[data-theme="light"] .desktop-sidebar::before {
-    background: var(--gray-2);
-  }
+  background: var(--gray-2);
 }
 
 .desktop-sidebar-resize {
@@ -132,7 +99,7 @@
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
   border-top: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
-  background: color-mix(in srgb, var(--gray-2) 48%, transparent);
+  background: var(--gray-2);
   position: relative;
   flex-shrink: 0;
 }

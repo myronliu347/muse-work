@@ -2,7 +2,6 @@ import React from "react";
 import "../../styles/NewSessionPage.css";
 import "../../styles/WelcomeView.css";
 import { SenderCat } from "./SenderCat";
-import { WelcomeBackdrop } from "./WelcomeBackdrop";
 
 export interface NewSessionPageProps {
   welcome: React.ReactNode;
@@ -16,7 +15,6 @@ export const NewSessionPage: React.FC<NewSessionPageProps> = ({
 }) => {
   return (
     <div className="new-session-page" data-testid="new-session-page">
-      <WelcomeBackdrop />
       <div className="new-session-page-column">
         <div className="new-session-page-welcome">{welcome}</div>
         <div

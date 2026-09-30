@@ -10,7 +10,7 @@
 }
 
 .automations-page:not(.automations-page--editor) {
-  background: transparent;
+  background: var(--color-background);
 }
 
 .automations-editor {
@@ -215,9 +215,7 @@
   border: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
   border-radius: 12px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--gray-2) 78%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--gray-3);
 }
 
 .automations-card {
@@ -668,9 +666,7 @@
 }
 
 .automations-empty-preview .automations-list {
-  background: color-mix(in srgb, var(--gray-2) 72%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--gray-3);
 }
 
 .automations-empty-preview .automations-switch {

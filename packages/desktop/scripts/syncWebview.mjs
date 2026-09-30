@@ -55,6 +55,12 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Muse</title>
   <style>
+    html, body, #root { background: #111111; color-scheme: dark; }
+    html[data-theme="light"], html[data-theme="light"] body, html[data-theme="light"] #root {
+      background: #fcfcfc; color-scheme: light;
+    }
+  </style>
+  <style>
 ${chatCss}
 ${terminalCss}
 </style>

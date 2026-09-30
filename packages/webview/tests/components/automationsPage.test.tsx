@@ -169,7 +169,7 @@ describe("automations dedicated page", () => {
     expect(screen.queryByTestId("chat-container")).toBeNull();
     expect(screen.getByTestId("automations-page").closest(".desktop-layout")).not.toBeNull();
     expect(await screen.findByText("工作日 changelog 巡检")).toBeInTheDocument();
-    expect(screen.getByTestId("automations-wallpaper")).toBeInTheDocument();
+    expect(screen.queryByTestId("automations-wallpaper")).toBeNull();
     expect(screen.getByTestId("desktop-automations-menu").className).toContain(
       "active",
     );
@@ -229,7 +229,7 @@ describe("automations dedicated page", () => {
     expect(empty).toHaveTextContent("还没有自动化");
     expect(empty).toHaveTextContent("新建自动化");
     expect(empty.querySelector(".automations-empty-preview")).not.toBeNull();
-    expect(screen.getByTestId("automations-wallpaper")).toBeInTheDocument();
+    expect(screen.queryByTestId("automations-wallpaper")).toBeNull();
     expect(
       screen.getAllByRole("button", { name: "新建自动化" }),
     ).toHaveLength(1);

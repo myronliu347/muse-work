@@ -51,7 +51,6 @@ test.describe("Desktop automations empty state", () => {
     await expect(webviewPage.getByTestId("automations-empty")).toContainText(
       "还没有自动化",
     );
-    await expect(webviewPage.getByTestId("automations-wallpaper")).toBeVisible();
     await screenshotWebp(
       webviewPage,
       "../../docs/public/screenshots/desktop-automations-empty.webp",

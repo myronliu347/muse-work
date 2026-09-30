@@ -1,5 +1,21 @@
 /* Muse webview global styles */
 
+/* Keep in sync with packages/desktop windowBackgroundFor. Hex fallbacks
+   paint before Radix --color-background exists, so the first frame is not white. */
+html,
+body,
+#root {
+  background-color: #111111;
+  color-scheme: dark;
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root {
+  background-color: #fcfcfc;
+  color-scheme: light;
+}
+
 /* 全局统一 border-box：Radix 只在 .rt-reset 元素上设置。 */
 *,
 *::before,
@@ -12,13 +28,17 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   font-size: var(--font-size-1);
   line-height: 1.45;
-  background-color: var(--color-background, var(--gray-2));
+  background-color: var(--color-background, #111111);
   color: var(--gray-12);
   margin: 0;
   padding: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+html[data-theme="light"] body {
+  background-color: var(--color-background, #fcfcfc);
 }
 
 #root {

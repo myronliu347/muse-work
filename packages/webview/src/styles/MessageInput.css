@@ -30,7 +30,7 @@
   padding: 12px var(--space-3) 10px;
   background-color: var(--gray-3);
   border: 1px solid var(--gray-6);
-  border-radius: 20px;
+  border-radius: 16px;
   max-height: 192px;
   box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
   container-type: inline-size;
@@ -42,9 +42,9 @@
 }
 
 .input-content:focus-within {
-  border-color: var(--accent-9);
+  border-color: var(--gray-6);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
     0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
 
@@ -62,10 +62,10 @@
   padding: 20px var(--space-3) 8px;
   box-sizing: border-box;
   overflow: visible;
-  background: color-mix(in srgb, var(--gray-3) 72%, var(--gray-2));
+  background: var(--gray-2);
   border: 1px solid var(--gray-6);
   border-top: 0;
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 16px 16px;
 }
 
 .input-meta-row:has(.permission-mode-panel),
@@ -90,11 +90,11 @@
   height: 24px;
   max-width: 220px;
   margin: 0;
-  padding: 0 4px 0 0;
+  padding: 0 6px;
   border: none;
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--gray-10);
+  color: var(--gray-12);
   font-size: var(--font-size-1);
   font-weight: 400;
   font-family: inherit;
@@ -106,7 +106,7 @@
 .input-meta-row .desktop-workdir-trigger:hover,
 .input-meta-row .permission-mode-select:hover,
 .input-meta-row .permission-mode-select:focus {
-  background-color: transparent;
+  background-color: var(--gray-4);
   color: var(--gray-12);
 }
 
@@ -140,7 +140,7 @@
 
 .input-meta-row .permission-mode-select.mode-acceptEdits,
 .input-meta-row .permission-mode-select.mode-bypassPermissions {
-  color: var(--gray-11);
+  color: var(--gray-12);
   font-weight: 400;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .input-buttons-row .agent-selector-trigger {
-  color: var(--gray-11);
+  color: var(--gray-12);
 }
 
 .message-input {
@@ -412,7 +412,7 @@
 
 .input-model-select .muse-model-select.rt-SelectTrigger:hover,
 .input-model-select .muse-model-select.rt-SelectTrigger:focus-visible {
-  background-color: var(--gray-3);
+  background-color: var(--gray-4);
 }
 
 @container composer (max-width: 420px) {
@@ -441,7 +441,7 @@
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  color: var(--gray-11);
+  color: var(--gray-12);
   border: none;
   border-radius: 999px;
   cursor: pointer;

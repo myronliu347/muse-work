@@ -19,7 +19,7 @@ describe("NewSessionPage", () => {
     );
     const page = screen.getByTestId("new-session-page");
     expect(page).toBeInTheDocument();
-    expect(screen.getByTestId("new-session-wallpaper")).toBeInTheDocument();
+    expect(screen.queryByTestId("new-session-wallpaper")).toBeNull();
     expect(screen.getByTestId("welcome-slot")).toBeInTheDocument();
     expect(screen.getByTestId("composer-slot")).toBeInTheDocument();
     const html = page.innerHTML;

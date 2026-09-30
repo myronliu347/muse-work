@@ -13,12 +13,12 @@
        column match the message list. Hosts set body to editor-background
        (the editor-area chrome), which would otherwise bleed through the
        transparent wrappers around .messages-container. */
-  background-color: var(--color-background);
+  background-color: var(--color-background, #111111);
 }
 
 .input-area-container {
   position: relative;
-  background-color: var(--color-background);
+  background-color: var(--color-background, #111111);
   display: flex;
   flex-direction: column;
   /* Match .messages-container gutters so the 800px sender lines up with

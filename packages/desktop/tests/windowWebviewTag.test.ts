@@ -13,6 +13,8 @@ vi.mock("electron", () => {
     isDestroyed = () => false;
     reload = vi.fn();
     on = vi.fn();
+    once = vi.fn();
+    show = vi.fn();
     constructor(opts: Record<string, unknown>) {
       ctorOpts.push(opts);
     }
@@ -59,5 +61,18 @@ describe("createMainWindow", () => {
     } else {
       expect(ctorOpts[0].titleBarStyle).toBeUndefined();
     }
+  });
+
+  it("stays hidden until ready-to-show so the first paint is not a white flash", () => {
+    ctorOpts.length = 0;
+    const win = createMainWindow({
+      serverBaseUrl: "http://127.0.0.1:8787",
+      backgroundColor: "#111111",
+      preloadPath: "/tmp/preload.cjs",
+      webviewHtmlPath: "/tmp/index.html",
+    });
+    expect(ctorOpts[0].show).toBe(false);
+    expect(ctorOpts[0].backgroundColor).toBe("#111111");
+    expect(win.once).toHaveBeenCalledWith("ready-to-show", expect.any(Function));
   });
 });
