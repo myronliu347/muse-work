@@ -26,8 +26,8 @@ import {
   ConfigurationService,
   validateEnvironmentConfig,
   mergeEnvironmentConfig,
-  loadMergedWaveConfig,
-  loadWaveConfigFromFile,
+  loadMergedMuseConfig,
+  loadMuseConfigFromFile,
   loadUserConfigEnv,
 } from "../../src/services/configurationService.js";
 import { atomicWriteFile } from "../../src/utils/atomicWrite.js";
@@ -35,7 +35,7 @@ import {
   DEFAULT_MUSE_MAX_INPUT_TOKENS,
   DEFAULT_LANGUAGE,
 } from "../../src/utils/constants.js";
-import type { WaveConfiguration } from "../../src/types/configuration.js";
+import type { MuseConfiguration } from "../../src/types/configuration.js";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
@@ -211,7 +211,7 @@ describe("ConfigurationService", () => {
     });
   });
 
-  describe("loadMergedWaveConfig", () => {
+  describe("loadMergedMuseConfig", () => {
     it("should correctly merge all 3 configuration files in priority order", async () => {
       const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
       const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
@@ -271,7 +271,7 @@ describe("ConfigurationService", () => {
         return "";
       });
 
-      const result = loadMergedWaveConfig(tempDir);
+      const result = loadMergedMuseConfig(tempDir);
 
       expect(result).not.toBeNull();
 
@@ -351,7 +351,7 @@ describe("ConfigurationService", () => {
             { hooks: [{ type: "command" as const, command: "echo" }] },
           ],
         },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const result = configService.validateConfiguration(config);
       expect(result.isValid).toBe(true); // Unknown events are warnings
@@ -1370,7 +1370,7 @@ describe("ConfigurationService", () => {
     });
   });
 
-  describe("loadMergedWaveConfig — model field", () => {
+  describe("loadMergedMuseConfig — model field", () => {
     it("should merge model field with last-write-wins", async () => {
       const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
       const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
@@ -1394,7 +1394,7 @@ describe("ConfigurationService", () => {
         return "";
       });
 
-      const result = loadMergedWaveConfig(tempDir);
+      const result = loadMergedMuseConfig(tempDir);
       expect(result?.model).toBe("project-model");
     });
 
@@ -1421,20 +1421,20 @@ describe("ConfigurationService", () => {
         return "";
       });
 
-      const result = loadMergedWaveConfig(tempDir);
+      const result = loadMergedMuseConfig(tempDir);
       expect(result?.model).toBe("user-model");
     });
   });
 
 
-  describe("loadWaveConfigFromFile — read tolerance", () => {
+  describe("loadMuseConfigFromFile — read tolerance", () => {
     it("should return null for empty file (not throw)", () => {
       const configPath = path.join(tempDir, "settings.json");
       mockExistsSync.mockImplementation((p) => p.toString() === configPath);
       mockReadFileSync.mockReturnValue("");
 
-      expect(() => loadWaveConfigFromFile(configPath)).not.toThrow();
-      expect(loadWaveConfigFromFile(configPath)).toBeNull();
+      expect(() => loadMuseConfigFromFile(configPath)).not.toThrow();
+      expect(loadMuseConfigFromFile(configPath)).toBeNull();
     });
 
     it("should return null for whitespace-only file (not throw)", () => {
@@ -1442,8 +1442,8 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockImplementation((p) => p.toString() === configPath);
       mockReadFileSync.mockReturnValue("   \n\t  ");
 
-      expect(() => loadWaveConfigFromFile(configPath)).not.toThrow();
-      expect(loadWaveConfigFromFile(configPath)).toBeNull();
+      expect(() => loadMuseConfigFromFile(configPath)).not.toThrow();
+      expect(loadMuseConfigFromFile(configPath)).toBeNull();
     });
 
     it("should return null for corrupted JSON (not throw)", () => {
@@ -1451,8 +1451,8 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockImplementation((p) => p.toString() === configPath);
       mockReadFileSync.mockReturnValue('{"model": "test"');
 
-      expect(() => loadWaveConfigFromFile(configPath)).not.toThrow();
-      expect(loadWaveConfigFromFile(configPath)).toBeNull();
+      expect(() => loadMuseConfigFromFile(configPath)).not.toThrow();
+      expect(loadMuseConfigFromFile(configPath)).toBeNull();
     });
 
     it("should still return config for valid JSON", () => {
@@ -1462,7 +1462,7 @@ describe("ConfigurationService", () => {
         JSON.stringify({ model: "valid-model" }),
       );
 
-      const result = loadWaveConfigFromFile(configPath);
+      const result = loadMuseConfigFromFile(configPath);
       expect(result).not.toBeNull();
       expect(result?.model).toBe("valid-model");
     });

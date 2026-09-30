@@ -13,7 +13,7 @@ import { ConfigurationService } from "../../src/services/configurationService.js
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import { PermissionManager } from "../../src/managers/permissionManager.js";
 import * as configPaths from "../../src/utils/configPaths.js";
-import type { WaveConfiguration } from "../../src/types/configuration.js";
+import type { MuseConfiguration } from "../../src/types/configuration.js";
 import type { ConfigurationLoadResult } from "../../src/types/configuration.js";
 import { logger } from "../../src/utils/globalLogger.js";
 
@@ -48,7 +48,7 @@ describe("LiveConfigManager - Configuration Management", () => {
 
     // Mock hook manager
     mockHookManager = {
-      loadConfigurationFromWaveConfig: vi.fn(),
+      loadConfigurationFromMuseConfig: vi.fn(),
     } as Partial<HookManager> as HookManager;
 
     // Mock permission manager
@@ -117,7 +117,7 @@ describe("LiveConfigManager - Configuration Management", () => {
 
   describe("Configuration Loading", () => {
     it("should load configuration on initialize", async () => {
-      const mockConfig: WaveConfiguration = {
+      const mockConfig: MuseConfiguration = {
         hooks: {
           PreToolUse: [
             {
@@ -145,7 +145,7 @@ describe("LiveConfigManager - Configuration Management", () => {
         mockConfigurationService.loadMergedConfiguration,
       ).toHaveBeenCalledWith(workdir);
       expect(
-        mockHookManager.loadConfigurationFromWaveConfig,
+        mockHookManager.loadConfigurationFromMuseConfig,
       ).toHaveBeenCalledWith(mockConfig);
       expect(liveConfigManager.getCurrentConfiguration()).toEqual(mockConfig);
     });
@@ -172,8 +172,8 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     it("should reload configuration when requested", async () => {
-      const initialConfig: WaveConfiguration = { hooks: {} };
-      const newConfig: WaveConfiguration = {
+      const initialConfig: MuseConfiguration = { hooks: {} };
+      const newConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -213,7 +213,7 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     it("should apply environment variables when present in configuration", async () => {
-      const mockConfig: WaveConfiguration = {
+      const mockConfig: MuseConfiguration = {
         hooks: {},
         env: {
           TEST_VAR: "test_value",
@@ -261,7 +261,7 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     it("should return copy of configuration to prevent mutations", async () => {
-      const mockConfig: WaveConfiguration = {
+      const mockConfig: MuseConfiguration = {
         hooks: {
           PreToolUse: [
             {
@@ -295,7 +295,7 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     it("should clean up state on shutdown", async () => {
-      const mockConfig: WaveConfiguration = { hooks: {} };
+      const mockConfig: MuseConfiguration = { hooks: {} };
       const mockResult: ConfigurationLoadResult = {
         success: true,
         configuration: mockConfig,
@@ -317,7 +317,7 @@ describe("LiveConfigManager - Configuration Management", () => {
 
   describe("Error Handling", () => {
     it("should use last valid configuration on reload error", async () => {
-      const validConfig: WaveConfiguration = { hooks: {} };
+      const validConfig: MuseConfiguration = { hooks: {} };
       const validResult: ConfigurationLoadResult = {
         success: true,
         configuration: validConfig,
@@ -345,7 +345,7 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     it("should handle exceptions during reload gracefully", async () => {
-      const validConfig: WaveConfiguration = { hooks: {} };
+      const validConfig: MuseConfiguration = { hooks: {} };
       const validResult: ConfigurationLoadResult = {
         success: true,
         configuration: validConfig,
@@ -369,7 +369,7 @@ describe("LiveConfigManager - Configuration Management", () => {
 
   describe("Permission Reload", () => {
     it("should reset permissions to empty arrays when they are missing in the new configuration", async () => {
-      const initialConfig: WaveConfiguration = {
+      const initialConfig: MuseConfiguration = {
         permissions: {
           allow: ["Bash(ls)"],
           deny: ["Bash(rm *)"],
@@ -378,7 +378,7 @@ describe("LiveConfigManager - Configuration Management", () => {
         },
       };
 
-      const emptyConfig: WaveConfiguration = {
+      const emptyConfig: MuseConfiguration = {
         permissions: {},
       };
 

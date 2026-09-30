@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Agent } from "../../src/agent.js";
 import { SubagentManager } from "../../src/managers/subagentManager.js";
 import type { SubagentConfiguration } from "../../src/utils/subagentParser.js";
-import { loadMergedWaveConfig } from "../../src/services/configurationService.js";
+import { loadMergedMuseConfig } from "../../src/services/configurationService.js";
 import {
   getUserConfigPaths,
   getProjectConfigPaths,
@@ -24,14 +24,14 @@ vi.mock("../../src/utils/configPaths.js", async () => {
   };
 });
 
-// Mock loadMergedWaveConfig
+// Mock loadMergedMuseConfig
 vi.mock("../../src/services/configurationService.js", async () => {
   const actual = await vi.importActual(
     "../../src/services/configurationService.js",
   );
   return {
     ...actual,
-    loadMergedWaveConfig: vi.fn(),
+    loadMergedMuseConfig: vi.fn(),
   };
 });
 
@@ -53,8 +53,8 @@ describe("Subagent Dynamic Configuration Tests", () => {
     delete process.env.MUSE_FAST_MODEL;
     delete process.env.MUSE_VISION_MODEL;
     delete process.env.MUSE_MAX_INPUT_TOKENS;
-    // Reset and setup loadMergedWaveConfig mock
-    vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
+    // Reset and setup loadMergedMuseConfig mock
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
     // Mock config paths to return empty arrays
     vi.mocked(getUserConfigPaths).mockReturnValue([]);
     vi.mocked(getProjectConfigPaths).mockReturnValue([]);

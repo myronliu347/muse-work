@@ -8,7 +8,7 @@ import {
   runSessionCleanupInBackground,
 } from "../../src/utils/sessionCleanup.js";
 import { SESSION_DIR } from "../../src/services/session.js";
-import { loadMergedWaveConfig } from "../../src/services/configurationService.js";
+import { loadMergedMuseConfig } from "../../src/services/configurationService.js";
 
 vi.mock("fs", () => ({
   existsSync: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock(
       >();
     return {
       ...actual,
-      loadMergedWaveConfig: vi.fn(),
+      loadMergedMuseConfig: vi.fn(),
     };
   },
 );
@@ -59,7 +59,7 @@ const daysAgo = (days: number): Date =>
 
 describe("cleanupOldSessionFiles", () => {
   beforeEach(() => {
-    vi.mocked(loadMergedWaveConfig).mockReset();
+    vi.mocked(loadMergedMuseConfig).mockReset();
     vi.mocked(fs.readdir).mockReset();
     vi.mocked(fs.stat).mockReset();
     vi.mocked(fs.unlink).mockReset();
@@ -172,12 +172,12 @@ describe("cleanupOldSessionFiles", () => {
 
 describe("resolveCleanupPeriodDays", () => {
   beforeEach(() => {
-    vi.mocked(loadMergedWaveConfig).mockReset();
+    vi.mocked(loadMergedMuseConfig).mockReset();
     vi.mocked(existsSync).mockReset();
   });
 
   it("returns the default 30 days when no settings files exist", () => {
-    vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
     vi.mocked(existsSync).mockReturnValue(false);
 
     expect(resolveCleanupPeriodDays("/mock/workdir")).toBe(
@@ -186,19 +186,19 @@ describe("resolveCleanupPeriodDays", () => {
   });
 
   it("returns the configured cleanupPeriodDays", () => {
-    vi.mocked(loadMergedWaveConfig).mockReturnValue({ cleanupPeriodDays: 60 });
+    vi.mocked(loadMergedMuseConfig).mockReturnValue({ cleanupPeriodDays: 60 });
 
     expect(resolveCleanupPeriodDays("/mock/workdir")).toBe(60);
   });
 
   it("returns 0 when cleanupPeriodDays is 0 (cleanup disabled)", () => {
-    vi.mocked(loadMergedWaveConfig).mockReturnValue({ cleanupPeriodDays: 0 });
+    vi.mocked(loadMergedMuseConfig).mockReturnValue({ cleanupPeriodDays: 0 });
 
     expect(resolveCleanupPeriodDays("/mock/workdir")).toBe(0);
   });
 
   it("returns null (skip) when settings exist but cannot be parsed", () => {
-    vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
     vi.mocked(existsSync).mockReturnValue(true);
 
     expect(resolveCleanupPeriodDays("/mock/workdir")).toBeNull();
@@ -206,14 +206,14 @@ describe("resolveCleanupPeriodDays", () => {
 
   it("returns null (skip) when validation fails and cleanupPeriodDays was set", () => {
     // Negative value is invalid → validation errors + explicit key → guard
-    vi.mocked(loadMergedWaveConfig).mockReturnValue({ cleanupPeriodDays: -5 });
+    vi.mocked(loadMergedMuseConfig).mockReturnValue({ cleanupPeriodDays: -5 });
 
     expect(resolveCleanupPeriodDays("/mock/workdir")).toBeNull();
   });
 
   it("returns the default when validation fails but cleanupPeriodDays was not set", () => {
     // autoMemoryFrequency must be positive → validation errors, no explicit key
-    vi.mocked(loadMergedWaveConfig).mockReturnValue({
+    vi.mocked(loadMergedMuseConfig).mockReturnValue({
       autoMemoryFrequency: -1,
     });
 
@@ -225,20 +225,20 @@ describe("resolveCleanupPeriodDays", () => {
 
 describe("runSessionCleanupInBackground", () => {
   beforeEach(() => {
-    vi.mocked(loadMergedWaveConfig).mockReset();
+    vi.mocked(loadMergedMuseConfig).mockReset();
     vi.mocked(fs.readdir).mockReset();
   });
 
   it("is a no-op in test environment", () => {
     runSessionCleanupInBackground("/mock/workdir");
 
-    expect(loadMergedWaveConfig).not.toHaveBeenCalled();
+    expect(loadMergedMuseConfig).not.toHaveBeenCalled();
   });
 
   it("runs cleanup at most once per process", async () => {
     const oldEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
-    vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
     vi.mocked(existsSync).mockReturnValue(false);
     vi.mocked(fs.readdir).mockResolvedValue(
       [] as unknown as Awaited<ReturnType<typeof fs.readdir>>,
@@ -249,7 +249,7 @@ describe("runSessionCleanupInBackground", () => {
       runSessionCleanupInBackground("/mock/other");
 
       await vi.waitFor(() => {
-        expect(loadMergedWaveConfig).toHaveBeenCalledTimes(1);
+        expect(loadMergedMuseConfig).toHaveBeenCalledTimes(1);
       });
     } finally {
       process.env.NODE_ENV = oldEnv;

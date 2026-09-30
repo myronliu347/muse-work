@@ -137,7 +137,7 @@ export class InitializationService {
       // Plugin agents are preserved by refreshConfigurations.
       await subagentManager.refreshConfigurations();
 
-      hookManager.loadConfigurationFromWaveConfig(configResult.configuration);
+      hookManager.loadConfigurationFromMuseConfig(configResult.configuration);
 
       // Initialize permission manager with loaded rules
       if (configResult.configuration?.permissions) {

@@ -14,9 +14,8 @@ export type Scope = "user" | "project" | "local";
 
 /**
  * Root configuration structure for Muse Agent settings including hooks and environment variables.
- * 类型名 `WaveConfiguration` 刻意保留：全仓引用面大，暂不改名。
  */
-export interface WaveConfiguration {
+export interface MuseConfiguration {
   hooks?: Partial<Record<HookEvent, HookEventConfig[]>>;
   env?: Record<string, string>; // Environment variables key-value pairs
   /** New field for persistent permissions */
@@ -96,7 +95,7 @@ export interface UserPreferenceSettingsView extends UserPreferenceSettings {
 /**
  * Legacy alias for backward compatibility - will be deprecated
  */
-export interface HookConfiguration extends WaveConfiguration {
+export interface HookConfiguration extends MuseConfiguration {
   hooks: Partial<Record<HookEvent, HookEventConfig[]>>;
 }
 
@@ -117,7 +116,7 @@ export type HookConfigurationRecord = Record<HookEvent, HookEventConfig[]>;
  */
 export interface ConfigurationLoadResult {
   /** The loaded configuration, or null if loading failed */
-  configuration: WaveConfiguration | null;
+  configuration: MuseConfiguration | null;
   /** Whether the loading operation was successful */
   success: boolean;
   /** Error message if loading failed */
@@ -181,19 +180,19 @@ interface Logger {
 export interface RemoteSettingsResponse {
   uuid: string;
   checksum: string;
-  settings: WaveConfiguration;
+  settings: MuseConfiguration;
 }
 
 export interface RemoteSettingsCache {
   uuid: string;
   checksum: string;
-  settings: WaveConfiguration;
+  settings: MuseConfiguration;
   fetchedAt: string;
 }
 
 export interface RemoteSettingsFetchResult {
   success: boolean;
-  settings?: WaveConfiguration | null;
+  settings?: MuseConfiguration | null;
   checksum?: string;
   error?: string;
   notConfigured?: boolean;

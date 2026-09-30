@@ -12,7 +12,7 @@ import {
   HookConfigurationError,
   type HookEvent,
   type HookEventConfig,
-  type WaveConfiguration,
+  type MuseConfiguration,
   type HookExecutionContext,
   type HookExecutionResult,
   type HookValidationResult,
@@ -75,7 +75,7 @@ describe("HookManager", () => {
     });
 
     it("should load wave configuration successfully", () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -89,7 +89,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
       const loadedConfig = manager.getConfiguration();
 
       expect(loadedConfig?.PostToolUse).toBeDefined();
@@ -97,7 +97,7 @@ describe("HookManager", () => {
     });
 
     it("should load partial wave configuration", () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -107,7 +107,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
       const loadedConfig = manager.getConfiguration();
 
       expect(loadedConfig?.PostToolUse).toBeDefined();
@@ -115,7 +115,7 @@ describe("HookManager", () => {
     });
 
     it("should clear wave configuration", () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -125,7 +125,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
       expect(manager.getConfiguration()).not.toBeUndefined();
 
       manager.clearConfiguration();
@@ -158,7 +158,7 @@ describe("HookManager", () => {
 
   describe("Hook Execution", () => {
     it("should execute hooks for event", async () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -169,7 +169,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
 
       const context: HookExecutionContext = {
         event: "PostToolUse",
@@ -185,7 +185,7 @@ describe("HookManager", () => {
     });
 
     it("should execute async hooks without awaiting", async () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -203,7 +203,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
 
       const context: HookExecutionContext = {
         event: "PostToolUse",
@@ -235,7 +235,7 @@ describe("HookManager", () => {
     });
 
     it("should handle event with no matching configurations", async () => {
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           UserPromptSubmit: [
             {
@@ -245,7 +245,7 @@ describe("HookManager", () => {
         },
       };
 
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
 
       const context: HookExecutionContext = {
         event: "Stop", // Different event
@@ -315,7 +315,7 @@ describe("HookManager", () => {
 
   describe("Validation", () => {
     it("should validate a correct configuration", () => {
-      const config: WaveConfiguration = {
+      const config: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -342,7 +342,7 @@ describe("HookManager", () => {
             },
           ],
         },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const result: HookValidationResult =
         manager.validateConfiguration(config);
@@ -352,7 +352,7 @@ describe("HookManager", () => {
 
     it("should return error if config is not an object", () => {
       const result = manager.validateConfiguration(
-        null as unknown as WaveConfiguration,
+        null as unknown as MuseConfiguration,
       );
       expect(result.valid).toBe(false);
     });
@@ -360,7 +360,7 @@ describe("HookManager", () => {
     it("should validate env property", () => {
       const config = {
         env: { VALID: "value", INVALID: 123 },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const result = manager.validateConfiguration(config);
 
@@ -373,7 +373,7 @@ describe("HookManager", () => {
     it("should validate hook event names", () => {
       const config = {
         hooks: { InvalidEvent: [] },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const result = manager.validateConfiguration(config);
 
@@ -391,7 +391,7 @@ describe("HookManager", () => {
             },
           ],
         },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const result = manager.validateConfiguration(config);
 
@@ -405,13 +405,13 @@ describe("HookManager", () => {
   describe("Error Handling", () => {
     it("should handle invalid wave configuration gracefully", () => {
       // This should not throw
-      manager.loadConfigurationFromWaveConfig({});
+      manager.loadConfigurationFromMuseConfig({});
       expect(manager.getConfiguration()).toBeUndefined();
     });
 
     it("should handle null wave configuration", () => {
       // This should not throw
-      manager.loadConfigurationFromWaveConfig(null);
+      manager.loadConfigurationFromMuseConfig(null);
       expect(manager.getConfiguration()).toBeUndefined();
     });
 
@@ -433,13 +433,13 @@ describe("HookManager", () => {
         throw new Error("Unexpected error");
       });
 
-      manager.loadConfigurationFromWaveConfig({
+      manager.loadConfigurationFromMuseConfig({
         hooks: {
           UserPromptSubmit: [
             { hooks: [{ type: "command" as const, command: "test" }] },
           ],
         },
-      } as unknown as WaveConfiguration);
+      } as unknown as MuseConfiguration);
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to load configuration"),
@@ -468,7 +468,7 @@ describe("HookManager", () => {
       expect(manager.hasHooks("SessionStart")).toBe(true);
 
       // Settings with no hooks key (e.g. settings.local.json with only permissions)
-      manager.loadConfigurationFromWaveConfig({});
+      manager.loadConfigurationFromMuseConfig({});
 
       // Plugin hooks should still be present (regression: was being wiped out)
       expect(manager.hasHooks("SessionStart")).toBe(true);
@@ -486,7 +486,7 @@ describe("HookManager", () => {
       };
 
       manager.registerPluginHooks("/plugin/root", pluginHooks);
-      manager.loadConfigurationFromWaveConfig(null);
+      manager.loadConfigurationFromMuseConfig(null);
 
       expect(manager.hasHooks("SessionStart")).toBe(true);
     });
@@ -501,7 +501,7 @@ describe("HookManager", () => {
       };
       manager.registerPluginHooks("/plugin/root", pluginHooks);
 
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -511,7 +511,7 @@ describe("HookManager", () => {
           ],
         },
       };
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
 
       // Both plugin and settings hooks should be present
       expect(manager.hasHooks("SessionStart")).toBe(true);
@@ -529,7 +529,7 @@ describe("HookManager", () => {
       };
       manager.registerPluginHooks("/plugin/root", pluginHooks);
 
-      const waveConfig: WaveConfiguration = {
+      const waveConfig: MuseConfiguration = {
         hooks: {
           PostToolUse: [
             {
@@ -539,7 +539,7 @@ describe("HookManager", () => {
           ],
         },
       };
-      manager.loadConfigurationFromWaveConfig(waveConfig);
+      manager.loadConfigurationFromMuseConfig(waveConfig);
 
       // Settings concatenate with plugin hooks for the same event
       const config = manager.getConfiguration();

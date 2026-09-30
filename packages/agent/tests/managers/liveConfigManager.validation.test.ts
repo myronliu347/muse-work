@@ -11,7 +11,7 @@ import { Container } from "../../src/utils/container.js";
 import { ConfigurationService } from "../../src/services/configurationService.js";
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import * as configPaths from "../../src/utils/configPaths.js";
-import type { WaveConfiguration } from "../../src/types/configuration.js";
+import type { MuseConfiguration } from "../../src/types/configuration.js";
 import type { ConfigurationLoadResult } from "../../src/types/configuration.js";
 import { logger } from "../../src/utils/globalLogger.js";
 
@@ -102,7 +102,7 @@ describe("LiveConfigManager - Validation", () => {
         permissions: {
           permissionMode,
         },
-      } as unknown as WaveConfiguration;
+      } as unknown as MuseConfiguration;
 
       const mockResult: ConfigurationLoadResult = {
         success: expectedValid,

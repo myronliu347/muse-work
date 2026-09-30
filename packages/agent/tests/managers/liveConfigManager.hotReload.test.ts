@@ -16,7 +16,7 @@ import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import { PermissionManager } from "../../src/managers/permissionManager.js";
 import * as configPaths from "../../src/utils/configPaths.js";
 import * as fs from "fs";
-import type { WaveConfiguration } from "../../src/types/configuration.js";
+import type { MuseConfiguration } from "../../src/types/configuration.js";
 
 vi.mock("../../src/utils/globalLogger.js", () => ({
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -36,7 +36,7 @@ describe("LiveConfigManager 热重载边界", () => {
   let mockPermissionManager: PermissionManager;
   let mockConfigurationService: ConfigurationService;
   let mockFileWatcherService: FileWatcherService;
-  let currentConfig: WaveConfiguration | null;
+  let currentConfig: MuseConfiguration | null;
   const existsSync = vi.mocked(fs.existsSync);
 
   /** 让监视目标解析看到「这些路径存在」。 */
@@ -88,7 +88,7 @@ describe("LiveConfigManager 热重载边界", () => {
     } as Partial<ConfigurationService> as ConfigurationService;
 
     const mockHookManager = {
-      loadConfigurationFromWaveConfig: vi.fn(),
+      loadConfigurationFromMuseConfig: vi.fn(),
     } as Partial<HookManager> as HookManager;
 
     container = new Container();

@@ -29,9 +29,9 @@ export * from "./utils/pathEncoder.js";
 export { ensureRuntimeDeps } from "./utils/runtimeDeps.js";
 export type { RuntimeDepsResult } from "./utils/runtimeDeps.js";
 export {
-  loadMergedWaveConfig,
+  loadMergedMuseConfig,
   loadUserConfigEnv,
-  loadWaveConfigFromFile,
+  loadMuseConfigFromFile,
 } from "./services/configurationService.js";
 export {
   getUserConfigPaths,

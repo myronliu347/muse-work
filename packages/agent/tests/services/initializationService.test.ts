@@ -68,7 +68,7 @@ describe("InitializationService", () => {
       configurationService:
         mockConfigurationService as unknown as InitializationContext["configurationService"],
       hookManager: {
-        loadConfigurationFromWaveConfig: vi.fn(),
+        loadConfigurationFromMuseConfig: vi.fn(),
         executeHooks: vi.fn().mockResolvedValue([]),
         processHookResults: vi.fn(),
         executeSessionStartHooks: vi.fn().mockResolvedValue({ results: [] }),

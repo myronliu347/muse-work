@@ -19,7 +19,7 @@ import {
   isValidHookEventConfig,
 } from "../types/hooks.js";
 import type {
-  WaveConfiguration,
+  MuseConfiguration,
   PartialHookConfiguration,
 } from "../types/configuration.js";
 import { HookMatcher } from "../utils/hookMatcher.js";
@@ -42,7 +42,7 @@ export class HookManager {
    * exactly one plugin's hooks (and re-registering would double them).
    */
   private pluginHooks = new Map<string, PartialHookConfiguration>();
-  private waveConfigHooks: PartialHookConfiguration = {};
+  private museConfigHooks: PartialHookConfiguration = {};
   private readonly matcher: HookMatcher;
   private readonly workdir: string;
 
@@ -93,23 +93,23 @@ export class HookManager {
   }
 
   /**
-   * Load hooks configuration from a pre-loaded WaveConfiguration
+   * Load hooks configuration from a pre-loaded MuseConfiguration
    * Configuration loading is now handled by ConfigurationService
    */
-  loadConfigurationFromWaveConfig(waveConfig: WaveConfiguration | null): void {
+  loadConfigurationFromMuseConfig(museConfig: MuseConfiguration | null): void {
     try {
-      // Replace (not append) wave config hooks to avoid duplicates on reload
-      this.waveConfigHooks = {};
+      // Replace (not append) settings-file hooks to avoid duplicates on reload
+      this.museConfigHooks = {};
 
-      if (waveConfig?.hooks) {
-        const validation = this.validatePartialConfiguration(waveConfig.hooks);
+      if (museConfig?.hooks) {
+        const validation = this.validatePartialConfiguration(museConfig.hooks);
         if (!validation.valid) {
           throw new HookConfigurationError(
             "provided configuration",
             validation.errors,
           );
         }
-        this.waveConfigHooks = { ...waveConfig.hooks };
+        this.museConfigHooks = { ...museConfig.hooks };
       }
 
       this.rebuildConfiguration();
@@ -136,7 +136,7 @@ export class HookManager {
     for (const hooks of this.pluginHooks.values()) {
       this.mergeHooksConfiguration(rebuilt, hooks);
     }
-    this.mergeHooksConfiguration(rebuilt, this.waveConfigHooks);
+    this.mergeHooksConfiguration(rebuilt, this.museConfigHooks);
     this.configuration = Object.keys(rebuilt).length > 0 ? rebuilt : undefined;
   }
 
@@ -453,7 +453,7 @@ export class HookManager {
   /**
    * Validate settings.json structure and content
    */
-  validateConfiguration(config: WaveConfiguration): HookValidationResult {
+  validateConfiguration(config: MuseConfiguration): HookValidationResult {
     const errors: string[] = [];
 
     if (!config || typeof config !== "object") {

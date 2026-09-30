@@ -24,7 +24,7 @@ import type {
   UserPreferenceKey,
   UserPreferenceSettings,
   UserPreferenceSource,
-  WaveConfiguration,
+  MuseConfiguration,
 } from "../types/configuration.js";
 
 export type { UserPreferenceSettings };
@@ -180,7 +180,7 @@ export function readUserPreferenceSettings(
  * 优先级：Remote 组织下发（若仍传入）> 用户级文件 > 机器环境变量 > 默认。
  */
 export function readUserPreferenceView(
-  remote: WaveConfiguration | null = null,
+  remote: MuseConfiguration | null = null,
   filePath: string = userSettingsFilePath(),
   env: Record<string, string | undefined> = process.env,
 ): UserPreferenceView {

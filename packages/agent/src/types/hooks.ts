@@ -6,7 +6,7 @@
  */
 
 export type {
-  WaveConfiguration,
+  MuseConfiguration,
   HookConfiguration,
   PartialHookConfiguration,
   HookConfigurationRecord,

@@ -19,7 +19,7 @@ import { join } from "path";
 import { logger } from "./globalLogger.js";
 import { SESSION_DIR } from "../services/session.js";
 import {
-  loadMergedWaveConfig,
+  loadMergedMuseConfig,
   validateConfigurationObject,
 } from "../services/configurationService.js";
 import { getProjectConfigPaths, getUserConfigPaths } from "./configPaths.js";
@@ -50,7 +50,7 @@ let cleanupScheduled = false;
 export function resolveCleanupPeriodDays(workdir: string): number | null {
   let merged;
   try {
-    merged = loadMergedWaveConfig(workdir);
+    merged = loadMergedMuseConfig(workdir);
   } catch (error) {
     logger.debug(
       `Session cleanup: skipping (failed to load settings: ${(error as Error).message})`,
@@ -175,7 +175,7 @@ export function runSessionCleanupInBackground(workdir: string): void {
 }
 
 /**
- * Whether any settings file exists that loadMergedWaveConfig would consider
+ * Whether any settings file exists that loadMergedMuseConfig would consider
  * (user settings.json + project settings.json/local.json).
  */
 function hasAnySettingsFile(workdir: string): boolean {

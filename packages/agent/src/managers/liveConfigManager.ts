@@ -25,14 +25,14 @@ import { Container } from "../utils/container.js";
 
 import type {
   ConfigurationLoadResult,
-  WaveConfiguration,
+  MuseConfiguration,
 } from "../types/configuration.js";
 
 import { logger } from "../utils/globalLogger.js";
 
 export interface LiveConfigManagerOptions {
   workdir: string;
-  onReload?: (config: WaveConfiguration) => void | Promise<void>;
+  onReload?: (config: MuseConfiguration) => void | Promise<void>;
 }
 
 export class LiveConfigManager {
@@ -40,8 +40,8 @@ export class LiveConfigManager {
   private isInitialized: boolean = false;
 
   // Configuration state
-  private currentConfiguration: WaveConfiguration | null = null;
-  private lastValidConfiguration: WaveConfiguration | null = null;
+  private currentConfiguration: MuseConfiguration | null = null;
+  private lastValidConfiguration: MuseConfiguration | null = null;
 
   // Turn-scoped snapshot of the settings.json-derived configuration the running
   // turn reads from. Captured at turn start, dropped at turn end, so a live
@@ -161,7 +161,7 @@ export class LiveConfigManager {
   /**
    * Get current configuration
    */
-  getCurrentConfiguration(): WaveConfiguration | null {
+  getCurrentConfiguration(): MuseConfiguration | null {
     return this.currentConfiguration ? { ...this.currentConfiguration } : null;
   }
 
@@ -254,7 +254,7 @@ export class LiveConfigManager {
    * Reload configuration from files
    * Maps to FR-008: Continue with previous valid configuration on errors
    */
-  private async reloadConfiguration(): Promise<WaveConfiguration> {
+  private async reloadConfiguration(): Promise<MuseConfiguration> {
     if (this.reloadInProgress) {
       return this.currentConfiguration || {};
     }
@@ -295,7 +295,7 @@ export class LiveConfigManager {
 
           // Update hook manager if available
           if (this.hookManager) {
-            this.hookManager.loadConfigurationFromWaveConfig(
+            this.hookManager.loadConfigurationFromMuseConfig(
               this.lastValidConfiguration,
             );
           }
@@ -333,7 +333,7 @@ export class LiveConfigManager {
 
       // Update hook manager if available
       if (this.hookManager) {
-        this.hookManager.loadConfigurationFromWaveConfig(
+        this.hookManager.loadConfigurationFromMuseConfig(
           this.currentConfiguration,
         );
       }
@@ -379,7 +379,7 @@ export class LiveConfigManager {
 
         // Update hook manager if available
         if (this.hookManager) {
-          this.hookManager.loadConfigurationFromWaveConfig(
+          this.hookManager.loadConfigurationFromMuseConfig(
             this.lastValidConfiguration,
           );
         }
@@ -399,7 +399,7 @@ export class LiveConfigManager {
   /**
    * Reload configuration from files (public method)
    */
-  async reload(): Promise<WaveConfiguration> {
+  async reload(): Promise<MuseConfiguration> {
     return await this.reloadConfiguration();
   }
 
@@ -463,8 +463,8 @@ export class LiveConfigManager {
   }
 
   private detectChanges(
-    oldConfig: WaveConfiguration | null,
-    newConfig: WaveConfiguration | null,
+    oldConfig: MuseConfiguration | null,
+    newConfig: MuseConfiguration | null,
   ): {
     added: string[];
     modified: string[];

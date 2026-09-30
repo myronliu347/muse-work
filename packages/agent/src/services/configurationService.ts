@@ -15,7 +15,7 @@ import type {
   ConfigurationLoadResult,
   ValidationResult,
   ConfigurationPaths,
-  WaveConfiguration,
+  MuseConfiguration,
   Scope,
 } from "../types/configuration.js";
 import {
@@ -54,7 +54,7 @@ import { envGet, MUSE_ENV, projectDirEnv } from "../utils/museEnv.js";
  * session cleanup runs before config is loaded).
  */
 export function validateConfigurationObject(
-  config: WaveConfiguration,
+  config: MuseConfiguration,
 ): ValidationResult {
   const result: ValidationResult = {
     isValid: true,
@@ -221,7 +221,7 @@ export function validateConfigurationObject(
  * while a turn runs so a live reload can't shift values under it.
  */
 export interface TurnConfigurationSnapshot {
-  configuration: WaveConfiguration | null;
+  configuration: MuseConfiguration | null;
   env: Record<string, string>;
 }
 
@@ -232,7 +232,7 @@ export interface TurnConfigurationSnapshot {
  * Extracted from distributed logic in hook.ts with improved error handling.
  */
 export class ConfigurationService {
-  private currentConfiguration: WaveConfiguration | null = null;
+  private currentConfiguration: MuseConfiguration | null = null;
   private options: AgentOptions = {};
   private _configuredEnvKeys = new Set<string>();
   // Per-session environment snapshot: settings.json `env` is stored here (NOT
@@ -264,7 +264,7 @@ export class ConfigurationService {
   }
 
   /** Configuration the current turn reads from (live configuration outside a turn). */
-  private get liveConfiguration(): WaveConfiguration | null {
+  private get liveConfiguration(): MuseConfiguration | null {
     const snapshot = this.turnSnapshotSource?.();
     return snapshot ? snapshot.configuration : this.currentConfiguration;
   }
@@ -307,7 +307,7 @@ export class ConfigurationService {
   ): Promise<ConfigurationLoadResult> {
     try {
       // Use the merged configuration function (this loads user and project configs internally)
-      const mergedConfig = loadMergedWaveConfig(workdir);
+      const mergedConfig = loadMergedMuseConfig(workdir);
 
       if (!mergedConfig) {
         // Still set system environment variables even if no config is found
@@ -369,7 +369,7 @@ export class ConfigurationService {
   /**
    * Validate configuration object structure and values
    */
-  validateConfiguration(config: WaveConfiguration): ValidationResult {
+  validateConfiguration(config: MuseConfiguration): ValidationResult {
     return validateConfigurationObject(config);
   }
 
@@ -391,7 +391,7 @@ export class ConfigurationService {
 
     try {
       const content = readFileSync(filePath, "utf-8");
-      const config = JSON.parse(content) as WaveConfiguration;
+      const config = JSON.parse(content) as MuseConfiguration;
 
       // Use the main validation method
       const configValidation = this.validateConfiguration(config);
@@ -720,7 +720,7 @@ export class ConfigurationService {
   }
 
   private resolveAutoMemoryEnabledFrom(
-    config: WaveConfiguration | null,
+    config: MuseConfiguration | null,
     env: Record<string, string>,
   ): boolean {
     // 1. Per-session options override (session-level override semantics; user
@@ -842,7 +842,7 @@ export class ConfigurationService {
       await fs.mkdir(configDir, { recursive: true });
     }
 
-    let config: WaveConfiguration = {};
+    let config: MuseConfiguration = {};
     if (existsSync(configPath)) {
       try {
         const content = await fs.readFile(configPath, "utf-8");
@@ -914,7 +914,7 @@ export class ConfigurationService {
       await fs.mkdir(waveDir, { recursive: true });
     }
 
-    let config: WaveConfiguration = {};
+    let config: MuseConfiguration = {};
     if (existsSync(localConfigPath)) {
       try {
         const content = await fs.readFile(localConfigPath, "utf-8");
@@ -954,7 +954,7 @@ export class ConfigurationService {
       await fs.mkdir(waveDir, { recursive: true });
     }
 
-    let config: WaveConfiguration = {};
+    let config: MuseConfiguration = {};
     if (existsSync(localConfigPath)) {
       try {
         const content = await fs.readFile(localConfigPath, "utf-8");
@@ -1018,7 +1018,7 @@ export class ConfigurationService {
     }
     try {
       const content = await fs.readFile(configPath, "utf-8");
-      const config = JSON.parse(content) as WaveConfiguration;
+      const config = JSON.parse(content) as MuseConfiguration;
       return config.hooks || {};
     } catch {
       return {};
@@ -1047,7 +1047,7 @@ export class ConfigurationService {
       await fs.mkdir(configDir, { recursive: true });
     }
 
-    let config: WaveConfiguration = {};
+    let config: MuseConfiguration = {};
     if (existsSync(configPath)) {
       try {
         const content = await fs.readFile(configPath, "utf-8");
@@ -1081,8 +1081,8 @@ export class ConfigurationService {
    * Load Muse settings from a JSON file
    * Supports both hooks and environment variables with proper validation
    */
-  loadWaveConfigFromFile(filePath: string): WaveConfiguration | null {
-    return loadWaveConfigFromFile(filePath);
+  loadMuseConfigFromFile(filePath: string): MuseConfiguration | null {
+    return loadMuseConfigFromFile(filePath);
   }
 }
 // =============================================================================
@@ -1199,11 +1199,10 @@ export function mergeEnvironmentConfig(
 /**
  * Load Muse settings from a JSON file
  * Supports both hooks and environment variables with proper validation.
- * 函数名 `loadWaveConfigFromFile` 刻意保留，暂不改名。
  */
-export function loadWaveConfigFromFile(
+export function loadMuseConfigFromFile(
   filePath: string,
-): WaveConfiguration | null {
+): MuseConfiguration | null {
   if (!existsSync(filePath)) {
     return null;
   }
@@ -1219,7 +1218,7 @@ export function loadWaveConfigFromFile(
       return null;
     }
 
-    const config = JSON.parse(content) as WaveConfiguration;
+    const config = JSON.parse(content) as MuseConfiguration;
 
     return {
       hooks: config.hooks || undefined,
@@ -1260,7 +1259,7 @@ export function loadWaveConfigFromFile(
  * dependency.
  */
 export function loadUserConfigEnv(): Record<string, string> {
-  const config = loadWaveConfigFromFile(getUserConfigPaths()[0]);
+  const config = loadMuseConfigFromFile(getUserConfigPaths()[0]);
   return config?.env ?? {};
 }
 
@@ -1268,11 +1267,10 @@ export function loadUserConfigEnv(): Record<string, string> {
  * Load and merge Muse settings from both user and project sources
  * Project configuration takes precedence over user configuration
  * Checks .local.json files first, then falls back to .json files.
- * 函数名 `loadMergedWaveConfig` 刻意保留，暂不改名。
  */
-export function loadMergedWaveConfig(
+export function loadMergedMuseConfig(
   workdir: string,
-): WaveConfiguration | null {
+): MuseConfiguration | null {
   const userPaths = getUserConfigPaths(); // [json]
   const projectPaths = getProjectConfigPaths(workdir); // [local, json]
 
@@ -1284,9 +1282,9 @@ export function loadMergedWaveConfig(
     projectPaths[0], // local settings.local.json
   ];
 
-  const configs: WaveConfiguration[] = [];
+  const configs: MuseConfiguration[] = [];
   for (const path of pathsToLoad) {
-    const config = loadWaveConfigFromFile(path);
+    const config = loadMuseConfigFromFile(path);
     if (config) {
       configs.push(config);
     }
@@ -1297,7 +1295,7 @@ export function loadMergedWaveConfig(
   }
 
   // Merge all configurations in order
-  const mergedConfig: WaveConfiguration = {};
+  const mergedConfig: MuseConfiguration = {};
 
   for (const config of configs) {
     // Merge hooks
