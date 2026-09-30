@@ -1,0 +1,84 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ab2eef8d6077ffbf4ef20b8e3f5b2297556e5d81",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 65,
+      "accepted_lines": 555,
+      "overriden_lines": 17,
+      "per_file_stats": {
+        "packages/webview/src/styles/Message.css": {
+          "additions": 2,
+          "deletions": 2,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "additions": 3,
+          "deletions": 3,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "additions": 1,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 3,
+          "deletions": 3,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 29,
+          "deletions": 20
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "additions": 5,
+          "deletions": 5,
+          "overriden_lines": 1
+        },
+        "docs/superpowers/prototypes/2026-09-30-issue-plan-exec-switch-demo.html": {
+          "accepted_lines": 396
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "additions": 2,
+          "deletions": 2,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 6,
+          "deletions": 6,
+          "overriden_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "additions": 1,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 18,
+          "deletions": 18,
+          "overriden_lines": 5
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 3,
+          "overriden_lines": 1
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        }
+      }
+    }
+  }
+}
