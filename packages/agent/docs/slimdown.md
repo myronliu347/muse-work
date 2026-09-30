@@ -33,6 +33,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | Bash `!` | `BashModeManager`、`Agent.bang`（历史 transcript 里的 bang block 仍可渲染） |
 | settings skill | 去掉 CLI / stdio / 市场 / Artifact 百科，改成 Muse 本地配置说明 |
 | deep-research | 依赖 Workflow 的内置 skill；Workflow 暂留，skill 先去掉 |
+| code-review / simplify | 内置质量向 skill，先去掉 |
 | serverUrl | `AgentOptions.serverUrl`、`DEFAULT_SERVER_URL`、用户偏好里的服务端地址 |
 | enabledPlugins / @builtin | SDK 内置插件目录与 settings 启用表；Muse 只走本地 `path` |
 | webview 市场残件 | `projectSettings.enabledPlugins`、`MarketplaceInfo`、marketplace CSS |
