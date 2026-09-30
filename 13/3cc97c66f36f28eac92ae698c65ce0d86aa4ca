@@ -1,0 +1,155 @@
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  c8df0f85b58f7a52 667-669,692,695-696,698-699,702-703,705,735-745,848-850
+packages/webview/src/components/chat/ChatHeader.tsx
+  c8df0f85b58f7a52 23,39-56,58-60
+packages/webview/src/components/chat/ChatChrome.tsx
+  c8df0f85b58f7a52 1,3-5,34-36,66-67,85,134-138,140-203
+packages/webview/tests/components/IssueSessionChrome.test.tsx
+  c8df0f85b58f7a52 1-27
+packages/webview/src/muse/hostBridge/chat.ts
+  c8df0f85b58f7a52 361,397-407
+packages/webview/src/stores/paneUiStore.ts
+  c8df0f85b58f7a52 5,36-37,56
+packages/webview/src/utils/issueGroups.ts
+  c8df0f85b58f7a52 1-37
+packages/webview/src/components/desktop/DesktopShell.tsx
+  c8df0f85b58f7a52 47,82,680
+packages/webview/src/hooks/useChatSend.ts
+  c8df0f85b58f7a52 17-20,202-212,218
+packages/webview/src/components/ChatApp.tsx
+  c8df0f85b58f7a52 2,21-30,604-683,889-890,900-904
+packages/webview/src/types/index.ts
+  c8df0f85b58f7a52 655-656
+packages/webview/src/styles/IssueSessionHeader.css
+  c8df0f85b58f7a52 1-124
+packages/webview/tests/components/IssueSessionHeader.test.tsx
+  c8df0f85b58f7a52 1-39
+packages/webview/src/styles/DesktopApp.css
+  c8df0f85b58f7a52 659-670,1831,1833-1853
+packages/webview/src/components/session/SessionTree.tsx
+  c8df0f85b58f7a52 250-251,303,708-710,712-734,736,738,741-744,766,772-784,798,800,823,826,828-829,839,842,844,847
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  c8df0f85b58f7a52 94-95,140,244
+packages/webview/e2e/demo/issue-session-chrome.demo.ts
+  c8df0f85b58f7a52 1-84
+packages/webview/src/components/issue/IssueSessionHeader.tsx
+  c8df0f85b58f7a52 1-75
+packages/webview/src/styles/ChatApp.css
+  c8df0f85b58f7a52 2-10,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "133cc97c66f36f28eac92ae698c65ce0d86aa4ca",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1325,
+      "total_deletions": 350,
+      "accepted_lines": 1307,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatApp.css": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/e2e/demo/issue-session-chrome.demo.ts": {
+          "additions": 89,
+          "deletions": 5,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "additions": 178,
+          "deletions": 54,
+          "accepted_lines": 124
+        },
+        "packages/webview/src/components/chat/ChatHeader.tsx": {
+          "additions": 22,
+          "deletions": 19,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/components/IssueSessionHeader.test.tsx": {
+          "additions": 39,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 59,
+          "deletions": 85,
+          "accepted_lines": 59
+        },
+        "docs/superpowers/prototypes/2026-09-30-issue-plan-exec-switch-demo.html": {
+          "additions": 396,
+          "accepted_lines": 396
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 16,
+          "deletions": 1,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/stores/paneUiStore.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/IssueSessionChrome.test.tsx": {
+          "additions": 28,
+          "deletions": 1,
+          "accepted_lines": 27
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        },
+        "packages/webview/src/components/issue/IssueSessionHeader.tsx": {
+          "additions": 133,
+          "deletions": 58,
+          "accepted_lines": 75
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 39,
+          "deletions": 5,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/chat/ChatChrome.tsx": {
+          "additions": 131,
+          "deletions": 87,
+          "accepted_lines": 80
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 25,
+          "deletions": 34,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/utils/issueGroups.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        }
+      }
+    }
+  }
+}
