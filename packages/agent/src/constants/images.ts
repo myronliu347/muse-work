@@ -13,7 +13,7 @@
  *
  * The value lives here rather than in `utils/imageBudget.ts` because the
  * webview is a browser bundle: by contract it may only take *values* from
- * `wave-agent-sdk/constants`, and `utils/*` is not a public subpath. Copying
+ * `@muse-work/agent/constants`, and `utils/*` is not a public subpath. Copying
  * `2000` into the webview would let the two gates drift apart silently — the
  * paste would shrink to one number while the SDK judged by another.
  *

@@ -2,13 +2,8 @@
  * Main type index - Barrel export for backward compatibility
  * Re-exports all domain types for legacy imports
  *
- * Legacy import pattern (continues to work):
- *   import { Message, Logger, McpTool } from 'wave-agent-sdk/types';
- *
- * New domain-specific import pattern:
- *   import { Message } from 'wave-agent-sdk/types/messaging';
- *   import { Logger } from 'wave-agent-sdk/types/core';
- *   import { McpTool } from 'wave-agent-sdk/types/mcp';
+ * Import pattern:
+ *   import { Message, Logger, McpTool } from '@muse-work/agent/types';
  */
 
 // Core foundational types
@@ -36,9 +31,8 @@ export * from "./tasks.js";
 export * from "./agent.js";
 export * from "./workflow.js";
 
-// Types UI consumers (vsce, desktop webview) import via the `wave-agent-sdk/types`
-// entry; they live outside this barrel's domain files, so re-export them here
-// (type-only, erased at compile time).
+// Types UI consumers import via `@muse-work/agent/types`; they live outside
+// this barrel's domain files, so re-export them here (type-only).
 export type { SessionMetadata, SessionData } from "../services/session.js";
 export type { ToolBlockUpdateCallbackParams } from "../utils/messageOperations.js";
 export type { QueuedMessage } from "../managers/messageQueue.js";

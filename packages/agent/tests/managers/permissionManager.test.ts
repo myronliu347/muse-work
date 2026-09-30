@@ -1239,7 +1239,7 @@ describe("PermissionManager", () => {
           permissionMode: "default",
           toolInput: {
             command:
-              'node "/usr/lib/node_modules/wave-agent-sdk/builtin/plugins/sdd/scripts/spec-count.js"',
+              'node "/usr/lib/node_modules/@muse-work/agent/builtin/plugins/sdd/scripts/spec-count.js"',
           },
         };
 
@@ -1256,7 +1256,7 @@ describe("PermissionManager", () => {
           permissionMode: "default",
           toolInput: {
             command:
-              "node /usr/lib/node_modules/wave-agent-sdk/builtin/plugins/sdd/scripts/spec-count.js",
+              "node /usr/lib/node_modules/@muse-work/agent/builtin/plugins/sdd/scripts/spec-count.js",
           },
         };
 
@@ -1273,7 +1273,7 @@ describe("PermissionManager", () => {
           permissionMode: "default",
           toolInput: {
             command:
-              "node /usr/lib/node_modules/wave-agent-sdk/builtin/plugins/sdd/scripts/other.js",
+              "node /usr/lib/node_modules/@muse-work/agent/builtin/plugins/sdd/scripts/other.js",
           },
         };
 
@@ -1299,7 +1299,7 @@ describe("PermissionManager", () => {
           permissionMode: "default",
           toolInput: {
             command:
-              "node /usr/lib/node_modules/wave-agent-sdk/builtin/plugins/sdd/scripts/spec-count.js",
+              "node /usr/lib/node_modules/@muse-work/agent/builtin/plugins/sdd/scripts/spec-count.js",
           },
         };
         expect(

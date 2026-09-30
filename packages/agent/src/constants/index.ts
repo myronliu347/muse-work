@@ -1,5 +1,5 @@
 /**
- * Constants entry (`wave-agent-sdk/constants`).
+ * Constants entry (`@muse-work/agent/constants`).
  *
  * Hosts that drive the agent over JSON-RPC import shared values from here rather
  * than from the SDK barrel: the barrel pulls in the whole agent runtime,
