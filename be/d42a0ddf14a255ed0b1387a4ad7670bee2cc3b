@@ -1,0 +1,102 @@
+packages/agent/src/managers/mcpManager.ts
+  98ab170ac30fbe53 164,671
+packages/agent/src/tools/types.ts
+  98ab170ac30fbe53 156
+packages/agent/tests/services/session.additional.test.ts
+  98ab170ac30fbe53 125
+packages/agent/src/managers/backgroundTaskManager.ts
+  98ab170ac30fbe53 41
+packages/agent/src/services/taskManager.ts
+  98ab170ac30fbe53 51
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 45
+packages/agent/src/services/session.ts
+  98ab170ac30fbe53 1232-1233
+packages/agent/src/builtin/skills/settings.ts
+  98ab170ac30fbe53 66
+packages/agent/src/managers/hookManager.ts
+  98ab170ac30fbe53 61
+packages/agent/src/services/configurationService.ts
+  98ab170ac30fbe53 239
+packages/agent/tests/services/configurationService.test.ts
+  98ab170ac30fbe53 124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bed42a0ddf14a255ed0b1387a4ad7670bee2cc3b",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 413,
+      "accepted_lines": 13,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/tools/types.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/taskManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ConfigurationDialog.css": {
+          "deletions": 400
+        },
+        "packages/agent/src/managers/mcpManager.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/services/session.additional.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/session.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/backgroundTaskManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/builtin/skills/settings.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
