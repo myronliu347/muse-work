@@ -53,7 +53,7 @@ Set \`model\` for the default, and \`models.<name>\` for per-model overrides (vi
 `,
   "skills/settings/PERMISSIONS.md": `# Permissions
 
-\`permissions.allow\` / \`permissions.deny\` use \`ToolName\` or \`ToolName(pattern)\`. \`permissions.defaultMode\` is \`default\`, \`acceptEdits\`, \`plan\`, or \`bypassPermissions\`. \`additionalDirectories\` expands the safe zone for file tools.
+\`permissions.allow\` / \`permissions.deny\` use \`ToolName\` or \`ToolName(pattern)\`. \`permissions.defaultMode\` is \`default\`, \`acceptEdits\`, \`dontAsk\`, or \`bypassPermissions\`. \`additionalDirectories\` expands the safe zone for file tools.
 `,
   "skills/settings/PLUGINS.md": `# Plugins
 

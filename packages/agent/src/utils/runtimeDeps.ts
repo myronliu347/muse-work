@@ -492,9 +492,9 @@ async function runInstall(options?: {
 
   if (!isManagedCliInstall(moduleUrl, cliHome)) {
     const reason =
-      "当前 wave CLI 不是 ~/.muse-work/cli 下的副本，无法自动安装运行时依赖" +
-      "（sharp / ripgrep）；请重装 wave-code（不要使用 --omit=optional）";
-    logWarn(`[Wave] ${reason}`);
+      "当前 CLI 不是 ~/.muse-work/cli 下的副本，无法自动安装运行时依赖" +
+      "（sharp / ripgrep）；请重装 Muse（不要使用 --omit=optional）";
+    logWarn(`[Muse] ${reason}`);
     return { available: false, reason };
   }
 
@@ -559,7 +559,7 @@ async function runInstall(options?: {
         )}\n`,
       );
       logger.info(
-        `[Wave] 已安装 ${dependency.name} ${meta.version}（平台 ${platformKey}）到 ${installDir}`,
+        `[Muse] 已安装 ${dependency.name} ${meta.version}（平台 ${platformKey}）到 ${installDir}`,
       );
     } catch (error) {
       fail(
@@ -577,7 +577,7 @@ async function runInstall(options?: {
 
 /** Log and record one dependency's failure, without aborting the batch. */
 function fail(failures: string[], reason: string): void {
-  logWarn(`[Wave] ${reason}`);
+  logWarn(`[Muse] ${reason}`);
   failures.push(reason);
 }
 

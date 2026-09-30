@@ -594,7 +594,7 @@ export class McpManager {
       const createClient = () =>
         new Client(
           {
-            name: "wave-code",
+            name: "muse-work",
             version: "1.0.0",
           },
           {

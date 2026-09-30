@@ -749,7 +749,7 @@ describe("McpManager", () => {
 
       expect(result).toBe(true);
       expect(Client).toHaveBeenCalledWith(
-        { name: "wave-code", version: "1.0.0" },
+        { name: "muse-work", version: "1.0.0" },
         { capabilities: {} },
       );
       expect(StdioClientTransport).toHaveBeenCalledWith({

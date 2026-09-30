@@ -13,7 +13,7 @@ const MAX_HTTP_CONTENT_LENGTH = 10 * 1024 * 1024; // 10MB
 const FETCH_TIMEOUT_MS = 60_000; // 60s
 const MAX_REDIRECTS = 10;
 const MAX_MARKDOWN_LENGTH = 100_000;
-const USER_AGENT = "Wave-User (+https://github.com/netease-lcap/wave-agent)";
+const USER_AGENT = "Muse-User";
 
 // --- Cache (LRU with 15min TTL, 50MB max) ---
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes

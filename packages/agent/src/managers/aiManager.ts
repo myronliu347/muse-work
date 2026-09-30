@@ -1998,8 +1998,6 @@ ${question}`;
       // Finally-equivalent (runs once per outer iteration):
       // Only execute cleanup and hooks for the initial call
       if (turnOffset === 0) {
-        // OpenTelemetry: end interaction span
-
         // Save session in each iteration to ensure message persistence
         await this.messageManager.saveSession();
 

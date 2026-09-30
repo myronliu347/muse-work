@@ -40,6 +40,8 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | Plan mode | `EnterPlanMode` / `ExitPlanMode` / `PlanManager`；Issue 规划助手与 Plan subagent 仍在 |
 | Plan / worktree hook 残件 | `planFilePath`、`planContent`、`WorktreeCreate`/`WorktreeRemove` hook |
 | Bang 运行态 | `onCommandRunningChange`、`isCommandRunning`、队列 `type: "bang"`（历史 bang 消息块仍渲染） |
+| 对外 Wave 名 | settings skill 的 `plan` mode、MCP `wave-code`、WebFetch UA、runtimeDeps 文案 |
+| 市场 e2e | `plugin-search.demo.ts` |
 
 ## 第三轮
 

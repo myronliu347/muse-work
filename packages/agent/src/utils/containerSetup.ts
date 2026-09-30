@@ -90,11 +90,8 @@ export function setupAgentContainer(
   container.register("AgentOptions", options);
   container.register("Workdir", workdir);
 
-  // Module-level listener teardowns collected during setup and returned to the
-  // agent, which invokes them in destroy(). The remote-settings callback
-  // strongly captures the per-agent LiveConfigManager: without unsubscribing
-  // it in destroy(), the module-level callback array keeps every created
-  // agent's object graph alive even after the host drops its references.
+  // Listener teardowns collected during setup; Agent.destroy() runs them so
+  // per-session managers are not held after the host drops the agent.
   const teardowns: Array<() => void> = [];
 
   if (options.worktreeName) {

@@ -487,7 +487,7 @@ describe("webFetchTool - headers", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           "User-Agent":
-            "Wave-User (+https://github.com/netease-lcap/wave-agent)",
+            "Muse-User",
         }),
       }),
     );
