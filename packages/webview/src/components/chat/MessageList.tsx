@@ -153,14 +153,21 @@ export const MessageList = forwardRef<
       setStickyMessage(null);
       return;
     }
-    const scrollTop = container.scrollTop;
+    const containerRect = container.getBoundingClientRect();
+    const viewportTop = containerRect.top;
     const nodes = container.querySelectorAll<HTMLElement>(
       '[data-role="user"][data-message-id]',
     );
     let candidate: HTMLElement | null = null;
-    // Find the last user message whose top edge has scrolled above the viewport top.
+    // Last user message fully scrolled above the scrollport top (avoid duplicate
+    // overlap while the bubble is still partly visible).
     for (const node of nodes) {
-      if (node.offsetTop < scrollTop) {
+      const rect = node.getBoundingClientRect();
+      const aboveViewport =
+        rect.height > 0
+          ? rect.bottom <= viewportTop + 1
+          : node.offsetTop < container.scrollTop;
+      if (aboveViewport) {
         candidate = node;
       } else {
         break;
@@ -419,18 +426,20 @@ export const MessageList = forwardRef<
         className={`messages-container${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
         data-testid="messages-container"
       >
-        <div className="messages-column">
       {stickyMessage && (
         <div className="sticky-user-wrapper">
-          <div
-            className="sticky-user-message"
-            data-testid="sticky-user-message"
-            onClick={() => scrollToMessage(stickyMessage.id)}
-          >
-            <div className="sticky-user-content">{stickyMessage.text}</div>
+          <div className="sticky-user-dock">
+            <div
+              className="sticky-user-message"
+              data-testid="sticky-user-message"
+              onClick={() => scrollToMessage(stickyMessage.id)}
+            >
+              <div className="sticky-user-content">{stickyMessage.text}</div>
+            </div>
           </div>
         </div>
       )}
+        <div className="messages-column">
       {/* Chat messages - filter out user meta messages */}
       {useMemo(() => {
         // Filter out user messages with isMeta (hidden from the list)

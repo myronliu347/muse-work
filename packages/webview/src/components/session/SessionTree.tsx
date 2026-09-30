@@ -603,8 +603,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     sectionId: SectionId;
     title: string;
     testId: string;
-    /** 会话数量，跟随标题展示（如「置顶（2）」）。 */
-    count?: number;
     /** 标题行右侧额外操作（如「+」新建）。 */
     trailing?: React.ReactNode;
   }) => {
@@ -619,9 +617,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           aria-expanded={!collapsed}
         >
           <span className="desktop-session-section-title">{opts.title}</span>
-          {opts.count !== undefined ? (
-            <span className="desktop-session-count">（{opts.count}）</span>
-          ) : null}
           <span
             className={`codicon codicon-chevron-down desktop-session-section-chevron${collapsed ? " desktop-session-section-chevron--collapsed" : ""}`}
             aria-hidden="true"
@@ -642,10 +637,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     const open = !collapsedSections.has(opts.sectionId);
     return (
       <div className="desktop-session-section" data-testid={opts.testId}>
-        {renderSectionHeader({
-          ...opts,
-          count: opts.sessions.length,
-        })}
+        {renderSectionHeader(opts)}
         <CollapsibleBody open={open}>
           {opts.sessions.length === 0 ? (
             <div className="desktop-session-empty">无会话</div>
@@ -665,7 +657,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   const renderIssuesSection = () => {
     const open = !collapsedSections.has("issues");
     const groups = issueGroups ?? [];
-    const count = groups.length;
     return (
       <div
         className="desktop-session-section"
@@ -675,7 +666,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           sectionId: "issues",
           title: "待办事项",
           testId: "desktop-session-section-issues",
-          count,
           trailing: onNewIssue ? (
             <Tooltip text="新建 Issue" position="top">
               <button
@@ -899,7 +889,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           sectionId: "popo",
           title: "POPO",
           testId: "desktop-session-section-popo",
-          count: chats.length,
         })}
         <CollapsibleBody open={open}>
           {chats.length === 0 ? (
@@ -976,7 +965,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           sectionId: "tasks",
           title: "任务",
           testId: "desktop-session-section-tasks",
-          count: taskSessions.length,
         })}
         <CollapsibleBody open={open}>
           {taskSessions.length === 0 ? (
@@ -1004,7 +992,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           sectionId: "workspace",
           title: "工作空间",
           testId: "desktop-session-section-recent",
-          count: workspaceGroups.reduce((sum, g) => sum + g.sessions.length, 0),
         })}
         <CollapsibleBody open={open}>
           {workspaceGroups.length === 0 ? (

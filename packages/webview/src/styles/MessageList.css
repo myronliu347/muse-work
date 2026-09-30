@@ -18,8 +18,8 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Right gutter keeps diffs/images off the user-message-nav ticks. */
-  padding: var(--space-4) 28px min(36vh, var(--space-9)) var(--space-4);
+  /* Top inset lives on .messages-column so sticky-user can sit flush at top: 0. */
+  padding: 0 28px min(36vh, var(--space-9)) var(--space-4);
   background-color: var(--color-background);
   position: relative;
 }
@@ -35,6 +35,8 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-3);
+  overflow: visible;
+  padding-top: var(--space-4);
 }
 
 /* Sticky user message pinned at the top of the viewport (设计稿 2248-9471).
@@ -45,10 +47,20 @@
 .sticky-user-wrapper {
   position: sticky;
   top: 0;
-  align-self: stretch;
   z-index: 20;
   box-sizing: border-box;
-  margin-bottom: calc(-1 * var(--space-3));
+  width: 100%;
+  margin: 0 0 calc(-1 * var(--space-3));
+  pointer-events: none;
+  background: var(--color-background);
+  padding: 0 0 var(--space-2);
+}
+
+.sticky-user-dock {
+  box-sizing: border-box;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
   pointer-events: none;
 }
 

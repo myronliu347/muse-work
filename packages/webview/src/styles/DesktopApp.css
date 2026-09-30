@@ -570,13 +570,6 @@
   font-size: var(--font-size-1);
 }
 
-.desktop-session-count {
-  flex-shrink: 0;
-  margin-left: var(--space-1);
-  color: var(--gray-10);
-  font-size: var(--font-size-00);
-}
-
 /* Issue 分组：侧栏「待办事项」 */
 .issue-sidebar-group {
   margin: 0 0 2px;

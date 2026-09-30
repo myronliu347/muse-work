@@ -233,7 +233,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toContainElement(screen.getByTestId("desktop-session-item-t1"));
   });
 
-  it("shows session counts on all top-level section headers", () => {
+  it("does not show session counts on section headers", () => {
     renderSidebar({
       pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
       recentSessions: [
@@ -242,19 +242,25 @@ describe("DesktopSidebar pin/recent sessions", () => {
           workdir: "/home/u/.muse-work/projects/20260813-aaaa",
         }),
         entry({ sessionId: "r1", workdir: "/repo/beta" }),
-        entry({ sessionId: "r2", workdir: "/repo/beta" }),
+      ],
+      issueGroups: [issueGroup({ issueId: "a", title: "Issue A" })],
+      popoEnabled: true,
+      popoChats: [
+        {
+          chatKey: "c1",
+          title: "chat",
+          updatedAt: Date.now(),
+          processing: false,
+        },
       ],
     });
 
+    expect(
+      document.querySelector(".desktop-session-count"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("desktop-session-section-pin")).toHaveTextContent(
-      "置顶（1）",
+      "置顶",
     );
-    expect(
-      screen.getByTestId("desktop-session-section-tasks"),
-    ).toHaveTextContent("任务（1）");
-    expect(
-      screen.getByTestId("desktop-session-section-recent"),
-    ).toHaveTextContent("工作空间（2）");
   });
 
   it("shows workdir chevron over folder icon on hover", () => {
@@ -804,25 +810,6 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       row.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
     ).toBeTruthy();
-  });
-
-  it("counts 待办事项 by Issue group, not nested sessions", () => {
-    renderSidebar({
-      issueGroups: [
-        issueGroup({ issueId: "a", title: "Issue A" }),
-        issueGroup({
-          issueId: "b",
-          title: "Issue B",
-          sessions: [
-            entry({ sessionId: "p2", title: "B 规划" }),
-            entry({ sessionId: "e2", title: "B 执行" }),
-          ],
-        }),
-      ],
-    });
-    const section = screen.getByTestId("desktop-session-section-issues");
-    const count = section.querySelector(".desktop-session-count");
-    expect(count).toHaveTextContent("（2）");
   });
 
   it("keeps the issue title on one line and overlays status/more on hover", () => {

@@ -37,9 +37,34 @@ function fakeGeometryAndScroll(scrollTop: number) {
   const nodes = container.querySelectorAll<HTMLElement>(
     '[data-role="user"][data-message-id]',
   );
+  const containerTop = 80;
+  Object.defineProperty(container, "getBoundingClientRect", {
+    value: () => ({
+      top: containerTop,
+      left: 0,
+      right: 800,
+      bottom: containerTop + 400,
+      width: 800,
+      height: 400,
+    }),
+    configurable: true,
+  });
   nodes.forEach((node, i) => {
+    const offsetTop = i * 500;
     Object.defineProperty(node, "offsetTop", {
-      value: i * 500,
+      value: offsetTop,
+      configurable: true,
+    });
+    const topInView = containerTop + offsetTop - scrollTop;
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({
+        top: topInView,
+        left: 0,
+        right: 800,
+        bottom: topInView + 48,
+        width: 800,
+        height: 48,
+      }),
       configurable: true,
     });
   });
