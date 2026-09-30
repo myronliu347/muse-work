@@ -1,0 +1,151 @@
+packages/webview/src/components/shared/HeaderIcons.tsx
+  c8df0f85b58f7a52 203
+packages/webview/src/styles/MessageInput.css
+  c8df0f85b58f7a52 12-13,22,24-25,30-31,33-35,40-43,47-48,51,53-54,57,59-63,65-72,77-78,80-81,84-88,90-95,97,99-103,106-109,114-117,119,123-129,132-136,138-144,152-232,250-251
+packages/webview/src/styles/NewSessionPage.css
+  c8df0f85b58f7a52 36-37,40,46-47,50-56,60,62,68-74,146-149
+packages/webview/tests/components/workdirSelector.draft.test.tsx
+  c8df0f85b58f7a52 47,63
+packages/webview/tests/components/permissionModeTwoOptions.test.tsx
+  c8df0f85b58f7a52 3,5,10-11,30-32,35
+packages/webview/tests/components/messageInput.localFiles.test.tsx
+  c8df0f85b58f7a52 93-108
+packages/webview/tests/components/newSessionPage.test.tsx
+  c8df0f85b58f7a52 3,6,9-12,45-54
+packages/webview/src/components/desktop/DesktopWorkdirSelector.tsx
+  c8df0f85b58f7a52 21-24
+packages/webview/e2e/demo/product-spec-confirmations.demo.ts
+  c8df0f85b58f7a52 219
+packages/webview/tests/webview/test-utils.tsx
+  c8df0f85b58f7a52 111-134,162-180
+packages/webview/src/components/chat/MessageInput.tsx
+  c8df0f85b58f7a52 85,94-97,1535,1630-1678,1680
+packages/webview/tests/webview/permissionModeCycle.test.tsx
+  c8df0f85b58f7a52 4,18,66
+packages/webview/src/components/chat/WelcomeView.tsx
+  c8df0f85b58f7a52 3-4,24-25,30-40
+packages/webview/src/components/chat/ChatComposer.tsx
+  c8df0f85b58f7a52 151
+packages/webview/tests/components/welcomeView.test.tsx
+  c8df0f85b58f7a52 28
+packages/webview/src/styles/WelcomeView.css
+  c8df0f85b58f7a52 96-99,101-102,119-124,286,289-291,302-307
+packages/webview/tests/webview/permissionModeDropdown.test.tsx
+  c8df0f85b58f7a52 4,16-17,32,39-42,46,59-60,77-78,80-84
+packages/webview/src/components/chat/SenderCat.tsx
+  c8df0f85b58f7a52 2,8,10-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "598d6412f5fc45c771844f3dc7f84833c8c45500",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1394,
+      "total_deletions": 1135,
+      "accepted_lines": 806,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/permissionModeDropdown.test.tsx": {
+          "additions": 85,
+          "deletions": 149,
+          "accepted_lines": 68
+        },
+        "packages/webview/tests/webview/test-utils.tsx": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 53,
+          "deletions": 39,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/styles/WelcomeView.css": {
+          "additions": 41,
+          "deletions": 30,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/chat/ChatComposer.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "additions": 350,
+          "deletions": 194,
+          "accepted_lines": 156
+        },
+        "packages/webview/tests/components/workdirSelector.draft.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/permissionModeCycle.test.tsx": {
+          "additions": 65,
+          "deletions": 65,
+          "accepted_lines": 49
+        },
+        "packages/webview/src/components/chat/SenderCat.tsx": {
+          "additions": 27,
+          "deletions": 21,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 261,
+          "deletions": 246,
+          "accepted_lines": 122
+        },
+        "packages/webview/tests/components/permissionModeTwoOptions.test.tsx": {
+          "additions": 39,
+          "deletions": 47,
+          "accepted_lines": 19
+        },
+        "packages/webview/tests/components/newSessionPage.test.tsx": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/desktop/DesktopWorkdirSelector.tsx": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/welcomeView.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/WelcomeView.tsx": {
+          "additions": 30,
+          "deletions": 16,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/demo/product-spec-confirmations.demo.ts": {
+          "additions": 36,
+          "deletions": 39,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 305,
+          "deletions": 267,
+          "accepted_lines": 171
+        },
+        "packages/webview/tests/components/messageInput.localFiles.test.tsx": {
+          "additions": 32,
+          "deletions": 14,
+          "accepted_lines": 21
+        }
+      }
+    }
+  }
+}
