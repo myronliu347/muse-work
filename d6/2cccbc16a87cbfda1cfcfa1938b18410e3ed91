@@ -1,0 +1,68 @@
+packages/agent/package.json
+  98ab170ac30fbe53 2-5,49,75,78,80-81,84
+packages/agent/src/index.ts
+  98ab170ac30fbe53 75-77
+packages/agent/README.md
+  98ab170ac30fbe53 1,3,5-9,11,14-16
+packages/desktop/scripts/prepareServer.mjs
+  98ab170ac30fbe53 32
+packages/agent/src/types/index.ts
+  98ab170ac30fbe53 50
+packages/agent/src/types/messaging.ts
+  98ab170ac30fbe53 28,87-95
+README.md
+  98ab170ac30fbe53 104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d62cccbc16a87cbfda1cfcfa1938b18410e3ed91",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 39,
+      "total_deletions": 31,
+      "accepted_lines": 37,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/types/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "README.md": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/package.json": {
+          "additions": 12,
+          "deletions": 17,
+          "accepted_lines": 10
+        },
+        "packages/agent/src/index.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/desktop/scripts/prepareServer.mjs": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/README.md": {
+          "additions": 11,
+          "deletions": 13,
+          "accepted_lines": 11
+        },
+        "packages/agent/src/types/messaging.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
