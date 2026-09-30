@@ -1,0 +1,49 @@
+packages/server/src/services/sessionStore.ts
+  98ab170ac30fbe53 15-18,61-67,138-141,174,178-184,189
+packages/server/tests/popoChats.test.ts
+  98ab170ac30fbe53 6,113-139
+packages/server/src/popo/chatStore.ts
+  98ab170ac30fbe53 20,68-87,89
+packages/server/tests/sessionStore.persist.test.ts
+  98ab170ac30fbe53 110-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8c68c7e46d3f3febb5825b901fe014274bee9f8b",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 98,
+      "total_deletions": 22,
+      "accepted_lines": 98,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/popoChats.test.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/server/src/popo/chatStore.ts": {
+          "additions": 22,
+          "deletions": 15,
+          "accepted_lines": 22
+        },
+        "packages/server/tests/sessionStore.persist.test.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/src/services/sessionStore.ts": {
+          "additions": 24,
+          "deletions": 7,
+          "accepted_lines": 24
+        }
+      }
+    }
+  }
+}
