@@ -40,7 +40,7 @@ test.describe("Background Task List Demo", () => {
             command: "npm run build",
             description: "构建 monorepo",
             runtime: 45000,
-            outputPath: "/tmp/wave-task-bt-1.log",
+            outputPath: "/tmp/muse-task-bt-1.log",
           },
           {
             id: "bt-2",
@@ -51,7 +51,7 @@ test.describe("Background Task List Demo", () => {
             description: "探索 packages/webview 结构",
             runtime: 40000,
             exitCode: 0,
-            outputPath: "/tmp/wave-task-bt-2.log",
+            outputPath: "/tmp/muse-task-bt-2.log",
           },
           {
             id: "bt-3",
@@ -63,7 +63,7 @@ test.describe("Background Task List Demo", () => {
             description: "运行测试套件",
             runtime: 5000,
             exitCode: 1,
-            outputPath: "/tmp/wave-task-bt-3.log",
+            outputPath: "/tmp/muse-task-bt-3.log",
           },
         ],
       });

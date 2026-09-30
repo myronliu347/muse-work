@@ -30,7 +30,7 @@ const initMermaidForTheme = () => {
       htmlLabels: false,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
       deterministicIds: true,
-      deterministicIDSeed: "wave-vscode",
+      deterministicIDSeed: "muse-webview",
       flowchart: {
         useMaxWidth: true,
         htmlLabels: false,

@@ -53,23 +53,23 @@ export class MemoryRuleManager {
    * Scans .muse-work/rules and ~/.muse-work/rules for memory rule files.
    */
   async discoverRules(): Promise<void> {
-    const projectWaveRulesDir = path.join(this.workdir, CONFIG_DIR_NAME, "rules");
+    const projectMuseRulesDir = path.join(this.workdir, CONFIG_DIR_NAME, "rules");
     const projectClaudeRulesDir = path.join(this.workdir, ".claude", "rules");
-    const userWaveRulesDir = path.join(os.homedir(), CONFIG_DIR_NAME, "rules");
+    const userMuseRulesDir = path.join(os.homedir(), CONFIG_DIR_NAME, "rules");
     const userClaudeRulesDir = path.join(os.homedir(), ".claude", "rules");
 
     logger.debug(`Scanning for modular memory rules...`);
-    logger.debug(`  User rules directory: ${userWaveRulesDir}`);
-    logger.debug(`  Project rules directory: ${projectWaveRulesDir}`);
+    logger.debug(`  User rules directory: ${userMuseRulesDir}`);
+    logger.debug(`  Project rules directory: ${projectMuseRulesDir}`);
 
     const newRules: Record<string, MemoryRule> = {};
 
-    // Scan order: userClaude → userWave → projectClaude → projectWave
+    // Scan order: userClaude → userMuse → projectClaude → projectMuse
     // Later writes override, so .muse-work takes priority over .claude
     await this.scanDirectory(userClaudeRulesDir, "user", newRules);
-    await this.scanDirectory(userWaveRulesDir, "user", newRules);
+    await this.scanDirectory(userMuseRulesDir, "user", newRules);
     await this.scanDirectory(projectClaudeRulesDir, "project", newRules);
-    await this.scanDirectory(projectWaveRulesDir, "project", newRules);
+    await this.scanDirectory(projectMuseRulesDir, "project", newRules);
 
     this.state.rules = newRules;
     const ruleCount = Object.keys(newRules).length;

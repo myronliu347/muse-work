@@ -568,7 +568,7 @@ export class SubagentManager {
         const startTime = Date.now();
 
         // Create log file
-        const logPath = path.join(os.tmpdir(), `wave-subagent-${taskId}.log`);
+        const logPath = path.join(os.tmpdir(), `muse-subagent-${taskId}.log`);
         const logStream = fs.createWriteStream(logPath, { flags: "a" });
         instance.logStream = logStream;
 
@@ -673,7 +673,7 @@ export class SubagentManager {
     const startTime = Date.now();
 
     // Create log file
-    const logPath = path.join(os.tmpdir(), `wave-subagent-${taskId}.log`);
+    const logPath = path.join(os.tmpdir(), `muse-subagent-${taskId}.log`);
     const logStream = fs.createWriteStream(logPath, { flags: "a" });
     instance.logStream = logStream;
 

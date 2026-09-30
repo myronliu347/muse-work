@@ -159,7 +159,7 @@ describe("bashTool", () => {
       };
       mockSpawn.mockReturnValue(mockProcess as unknown as ChildProcess);
 
-      // Session workdir was deleted behind wave's back (manual git worktree remove)
+      // Session workdir was deleted behind Muse's back (manual git worktree remove)
       context.aiManager = {
         consumeCwdRecovery: vi.fn().mockReturnValue({
           from: "/repo/.muse-work/worktrees/feat-a",
@@ -773,7 +773,7 @@ describe("bashTool", () => {
       expect(wrapped).toContain("pwd -P");
       // Temp file path is platform-specific (C:/tmp on a "/tmp" mock, the real
       // temp dir otherwise) — only assert the file naming pattern.
-      expect(wrapped).toMatch(/&& pwd -P >\| .*wave_cwd_.*\.tmp$/);
+      expect(wrapped).toMatch(/&& pwd -P >\| .*muse_cwd_.*\.tmp$/);
     });
 
     it("should escape single quotes in the user command", async () => {
@@ -786,7 +786,7 @@ describe("bashTool", () => {
       const wrapped = mockSpawn.mock.calls[0][0] as string;
       // Each single quote in the user command is replaced with '"'"'
       expect(wrapped).toContain(`eval 'echo '"'"'hi'"'"''`);
-      expect(wrapped).toMatch(/^eval '.*' && pwd -P >\| .*wave_cwd_.*\.tmp$/);
+      expect(wrapped).toMatch(/^eval '.*' && pwd -P >\| .*muse_cwd_.*\.tmp$/);
     });
 
     it("should keep && pwd -P outside the eval quotes for a heredoc command", async () => {
@@ -811,7 +811,7 @@ EOF
       const evalStart = wrapped.lastIndexOf("eval '");
       const pwdIndex = wrapped.indexOf("&& pwd -P");
       expect(pwdIndex).toBeGreaterThan(evalStart);
-      expect(wrapped).toMatch(/&& pwd -P >\| .*wave_cwd_.*\.tmp$/);
+      expect(wrapped).toMatch(/&& pwd -P >\| .*muse_cwd_.*\.tmp$/);
     });
   });
 

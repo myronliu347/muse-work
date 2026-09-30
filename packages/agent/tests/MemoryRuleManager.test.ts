@@ -279,10 +279,10 @@ describe("MemoryRuleManager", () => {
 
     it("should let .muse-work/rules override .claude/rules for same-named rule", async () => {
       const projectClaudeRulesDir = path.join(workdir, ".claude", "rules");
-      const projectWaveRulesDir = path.join(workdir, ".muse-work", "rules");
+      const projectMuseRulesDir = path.join(workdir, ".muse-work", "rules");
 
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
-        if (dir === projectClaudeRulesDir || dir === projectWaveRulesDir) {
+        if (dir === projectClaudeRulesDir || dir === projectMuseRulesDir) {
           return [
             { isFile: () => true, name: "common.md" },
           ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
@@ -298,7 +298,7 @@ describe("MemoryRuleManager", () => {
           return "Claude version";
         if (
           typeof filePath === "string" &&
-          filePath.includes(projectWaveRulesDir)
+          filePath.includes(projectMuseRulesDir)
         )
           return "Wave version";
         return "";

@@ -53,7 +53,7 @@ const LOG_FLUSH_TIMEOUT_MS = 3000;
 const LOG_STREAM_CLOSE_TIMEOUT_MS = 2000;
 
 // SubagentManager writes its background log to
-// `path.join(os.tmpdir(), `wave-subagent-${taskId}.log`)` opened with
+// `path.join(os.tmpdir(), `muse-subagent-${taskId}.log`)` opened with
 // `flags: "a"`. BackgroundTaskManager is mocked here, so its ids are constants
 // (`task_1`, `task_123`, …) and that path is byte-identical on every run: any
 // content left behind by an earlier run is still there when this run asserts on
@@ -63,7 +63,7 @@ const LOG_STREAM_CLOSE_TIMEOUT_MS = 2000;
 // red instead of green.
 const ISOLATED_TMP_DIR = path.join(
   os.tmpdir(),
-  `wave-subagent-log-test-${process.pid}-${Date.now()}`,
+  `muse-subagent-log-test-${process.pid}-${Date.now()}`,
 );
 fs.mkdirSync(ISOLATED_TMP_DIR, { recursive: true });
 vi.spyOn(os, "tmpdir").mockReturnValue(ISOLATED_TMP_DIR);
@@ -384,7 +384,7 @@ describe("SubagentManager - Backgrounding Coverage", () => {
     const addTaskMock = vi.mocked(mockBackgroundTaskManager.addTask);
     const outputPath = addTaskMock.mock.calls[0][0].outputPath!;
 
-    expect(outputPath).toContain("wave-subagent-task_");
+    expect(outputPath).toContain("muse-subagent-task_");
     expect(outputPath).toContain(".log");
 
     // refreshSubagentState pulls from messageManager.getMessages on every

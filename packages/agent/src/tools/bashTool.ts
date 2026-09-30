@@ -286,7 +286,7 @@ The working directory persists between commands. Try to maintain your current wo
       // Create a temporary file to store the CWD
       const tempCwdFile = path.join(
         os.tmpdir(),
-        `wave_cwd_${Date.now()}_${Math.random().toString(36).substring(2, 11)}.tmp`,
+        `muse_cwd_${Date.now()}_${Math.random().toString(36).substring(2, 11)}.tmp`,
       );
       const tempCwdFileForBash = toPosixPath(tempCwdFile);
       const wrappedCommand = wrapCommandForCwdTracking(

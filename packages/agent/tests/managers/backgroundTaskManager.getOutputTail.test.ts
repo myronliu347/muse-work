@@ -48,13 +48,13 @@ describe("BackgroundTaskManager.getOutput — log-file tail fallback", () => {
       "[2026-01-01T00:00:00.000Z] Read src/index.ts\n[2026-01-01T00:00:01.000Z] Bash ls\n",
     );
     manager.addTask(
-      subagentTask({ outputPath: "/tmp/wave-subagent-task_1.log" }),
+      subagentTask({ outputPath: "/tmp/muse-subagent-task_1.log" }),
     );
 
     const output = manager.getOutput("task_1");
 
     expect(readTailTextSyncMock).toHaveBeenCalledWith(
-      "/tmp/wave-subagent-task_1.log",
+      "/tmp/muse-subagent-task_1.log",
     );
     expect(output?.stdout).toBe(
       "[2026-01-01T00:00:00.000Z] Read src/index.ts\n[2026-01-01T00:00:01.000Z] Bash ls\n",
@@ -97,7 +97,7 @@ describe("BackgroundTaskManager.getOutput — log-file tail fallback", () => {
       command: "npm run build",
       stdout: "$ npm run build\n> building...\n",
       stderr: "",
-      outputPath: "/tmp/wave-task-task_2.log",
+      outputPath: "/tmp/muse-task-task_2.log",
       process: {} as ChildProcess,
     };
     manager.addTask(shell);

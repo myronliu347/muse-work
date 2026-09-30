@@ -42,7 +42,7 @@ export interface PluginManifest {
 }
 
 /**
- * Plugin configuration in AgentOptions or wave.settings.json
+ * Plugin configuration in AgentOptions or settings.json
  */
 export interface PluginConfig {
   type: "local";

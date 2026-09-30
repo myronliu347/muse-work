@@ -127,7 +127,7 @@ export class HookManager {
 
   /**
    * Rebuild the full configuration from all sources:
-   * programmatic (AgentOptions.hooks) + plugin + wave config (settings.json)
+   * programmatic (AgentOptions.hooks) + plugin + settings.json
    * Order determines precedence on conflict (later sources append).
    */
   private rebuildConfiguration(): void {

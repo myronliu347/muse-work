@@ -321,7 +321,7 @@ export class AIManager {
 
     // The stored workdir no longer exists — e.g. the current worktree
     // directory was removed manually with `git worktree remove` outside
-    // wave's exit flow. Node spawn() chdirs to `cwd` before spawning, so
+    // Muse's worktree teardown. Node spawn() chdirs to `cwd` before spawning, so
     // every tool that spawns a subprocess (Bash, Grep, background tasks)
     // would fail with ENOENT and cripple the session. Recover to the
     // original workdir (main repo) so the session keeps working.

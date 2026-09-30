@@ -29,7 +29,7 @@ import { DesktopSidebarToggle } from "./DesktopSidebarToggle";
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
     the row separator clamps to it (the desktop host enforces the same limit). */
 const MIN_ROW_HEIGHT = 280;
-const PANE_DRAG_MIME = "application/x-wave-pane";
+const PANE_DRAG_MIME = "application/x-muse-pane";
 
 type DropZone = "above" | "below";
 

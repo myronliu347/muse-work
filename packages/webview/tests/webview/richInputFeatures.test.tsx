@@ -172,7 +172,7 @@ describe("Rich Input Features", () => {
     const { vscode } = renderChatApp();
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
 
-    // 1. Simulate "Add to Wave" command from extension
+    // 1. Simulate "Add to Muse" command from extension
     const selection = {
       filePath: "/workspace/src/app.ts",
       fileName: "app.ts",

@@ -930,7 +930,7 @@ describe("Agent Message Compaction Tests", () => {
         startTime: Date.now(),
         stdout: "",
         stderr: "",
-        outputPath: "/tmp/wave-task-123.log",
+        outputPath: "/tmp/muse-task-123.log",
       });
 
       setupCompactionMocks();
@@ -938,7 +938,7 @@ describe("Agent Message Compaction Tests", () => {
 
       const compactContent = getCompactBlockContent(agent);
       expect(compactContent).toContain(
-        "You can read partial output at /tmp/wave-task-123.log.",
+        "You can read partial output at /tmp/muse-task-123.log.",
       );
     });
 

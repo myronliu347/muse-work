@@ -194,7 +194,7 @@ describe("Hook Types", () => {
 
 describe("Type Integration", () => {
   it("should work together for complete validation", () => {
-    const completeWaveConfig = {
+    const completeMuseConfig = {
       hooks: {
         PostToolUse: [
           {
@@ -220,8 +220,8 @@ describe("Type Integration", () => {
     };
 
     // Validate the complete structure using individual validators
-    if (completeWaveConfig.hooks) {
-      Object.entries(completeWaveConfig.hooks).forEach(([event, configs]) => {
+    if (completeMuseConfig.hooks) {
+      Object.entries(completeMuseConfig.hooks).forEach(([event, configs]) => {
         expect(isValidHookEvent(event)).toBe(true);
         if (configs) {
           configs.forEach((config) => {

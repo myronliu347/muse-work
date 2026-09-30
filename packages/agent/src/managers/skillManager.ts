@@ -320,13 +320,14 @@ export class SkillManager extends EventEmitter {
     };
 
     if (type === "project") {
-      // Scan .agents/skills first, then .claude/skills, then .muse-work/skills (wave overrides)
+      // Scan .agents/skills first, then .claude/skills, then .muse-work/skills
+      // (.muse-work overrides)
       const agentsPath = join(basePath, ".agents", "skills");
       const claudePath = join(basePath, ".claude", "skills");
-      const wavePath = join(basePath, CONFIG_DIR_NAME, "skills");
+      const museSkillsPath = join(basePath, CONFIG_DIR_NAME, "skills");
       await this.scanSkillPath(agentsPath, collection);
       await this.scanSkillPath(claudePath, collection);
-      await this.scanSkillPath(wavePath, collection);
+      await this.scanSkillPath(museSkillsPath, collection);
     } else {
       await this.scanSkillPath(basePath, collection);
     }

@@ -189,7 +189,7 @@ export function isValidHookEventConfig(
 // JSON structure passed to hooks via stdin
 export interface HookJsonInput {
   // Required fields for all events
-  session_id: string; // Format: "wave_session_{uuid}_{shortId}"
+  session_id: string;
   transcript_path: string; // Format: "~/.muse-work/sessions/session_{shortId}.json"
   cwd: string; // Absolute path to current working directory
   hook_event_name: HookEvent;
