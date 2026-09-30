@@ -1,0 +1,63 @@
+packages/webview/src/styles/DesktopApp.css
+  c8df0f85b58f7a52 920,924,1893-1898,1922,1930-1934,1993,1997
+packages/webview/src/styles/PopoRobotView.css
+  c8df0f85b58f7a52 57-61,64-68,71-74
+packages/webview/src/components/popo/PopoChatDetail.tsx
+  c8df0f85b58f7a52 1-2,9,71-84,86,91,95-99
+packages/webview/tests/components/popo/PopoChatDetail.test.tsx
+  c8df0f85b58f7a52 1,49-55,73,81-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4dbdc223b53b281ac92ebb4ee3952a4ea20313bb",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 49,
+      "accepted_lines": 81,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/popo/PopoChatDetail.tsx": {
+          "additions": 24,
+          "deletions": 28,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 18,
+          "deletions": 8,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/popo/PopoChatDetail.test.tsx": {
+          "additions": 17,
+          "deletions": 5,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "additions": 16,
+          "deletions": 8,
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
