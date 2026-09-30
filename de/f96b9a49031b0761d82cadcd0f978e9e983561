@@ -1,0 +1,38 @@
+.gitignore
+  98ab170ac30fbe53 4
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "def96b9a49031b0761d82cadcd0f978e9e983561",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 4,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".gitignore": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/builtin/index.ts": {
+          "deletions": 4
+        }
+      }
+    }
+  }
+}
