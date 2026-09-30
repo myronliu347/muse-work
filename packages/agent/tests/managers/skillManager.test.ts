@@ -1012,7 +1012,7 @@ describe("SkillManager", () => {
       });
 
       expect(result.content).toContain("• No skills available");
-      expect(result.content).toContain("Wave Skills documentation");
+      expect(result.content).toContain(".muse-work/skills");
     });
   });
 

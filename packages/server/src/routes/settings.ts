@@ -14,7 +14,7 @@ settingsRoutes.get("/settings", (c) => {
   return c.json(loadMuseSettings(ctx.home));
 });
 
-/** Wave user-scope agent settings (`~/.muse-work/settings.json`) for the Agent tab. */
+/** User-scope agent settings (`~/.muse-work/settings.json`) for the Agent tab. */
 settingsRoutes.get("/settings/raw", (c) => {
   const ctx = c.get("ctx");
   try {

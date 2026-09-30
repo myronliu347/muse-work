@@ -74,7 +74,7 @@ export function expandEnvVars(
   return value.replace(/\$\{([^}]+)\}/g, (_match, expr: string) => {
     const [varName, ...rest] = expr.split(":-");
     const defaultValue = rest.join(":-");
-    // Skip Wave-specific template variables — they are handled at spawn time
+    // Skip plugin-root template variables — they are handled at spawn time
     if (PLUGIN_ROOT_PLACEHOLDERS.includes(varName)) {
       return _match; // return original ${...} string untouched
     }

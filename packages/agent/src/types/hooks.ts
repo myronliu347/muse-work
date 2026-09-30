@@ -1,7 +1,7 @@
 /**
  * Hooks System Type Definitions
  *
- * Provides comprehensive TypeScript types for the Wave Code hooks system,
+ * Provides comprehensive TypeScript types for the Muse hooks system,
  * enabling automated actions at specific workflow points.
  */
 
@@ -27,8 +27,8 @@ export type HookEvent =
   | "PostCompact";
 
 // One-line summary per hook event, aligned with Claude Code's
-// HookEventMetadata.summary (hooksConfigManager.ts). Shared by the CLI
-// /hooks detail view and the webview settings hooks page; unknown/plugin
+// HookEventMetadata.summary (hooksConfigManager.ts). Shared by the
+// Muse settings hooks page; unknown/plugin
 // events fall back to displaying the event name itself.
 export const HOOK_EVENT_SUMMARIES: Record<HookEvent, string> = {
   PreToolUse: "Before tool execution",

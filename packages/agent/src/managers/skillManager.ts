@@ -577,7 +577,7 @@ export class SkillManager extends EventEmitter {
     const skills = this.getAvailableSkills();
 
     if (skills.length === 0) {
-      return "• No skills available\n\nTo create skills, see the Wave Skills documentation.";
+      return "• No skills available\n\nTo create skills, add a SKILL.md under ~/.muse-work/skills or the project .muse-work/skills directory.";
     }
 
     return skills

@@ -34,7 +34,7 @@ const nouns = [
   "pike",
 ];
 
-/** Random adjective-noun-number slug, matching Wave's worktree naming style. */
+/** Random adjective-noun-number slug for Issue worktree names. */
 export function generateRandomName(): string {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)]!;
   const noun = nouns[Math.floor(Math.random() * nouns.length)]!;

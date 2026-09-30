@@ -9,7 +9,7 @@ export interface ApiRound {
 /**
  * Groups messages into "API rounds" — each round corresponds to one API
  * call-response cycle. This is critical because in agentic sessions with a
- * single user prompt, Wave creates a new Message per API round (each recursive
+ * single user prompt, Muse creates a new Message per API round (each recursive
  * sendAIMessage call creates a new assistant message).
  *
  * Boundaries:

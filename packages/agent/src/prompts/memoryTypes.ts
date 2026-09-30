@@ -9,7 +9,7 @@
  * simultaneously tells the model to save and not to save the same category.
  *
  * Aligned with Claude Code's `memdir/memoryTypes.ts`, individual-only variant
- * (no `<scope>` tags, no private/team split: Wave has a single memory
+ * (no `<scope>` tags, no private/team split: Muse has a single memory
  * directory).
  */
 

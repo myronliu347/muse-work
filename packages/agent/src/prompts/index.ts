@@ -339,7 +339,7 @@ export function buildSystemPrompt(
     if (options.isSubagent) {
       // Subagent env section, aligned with Claude Code's computeEnvInfo() +
       // enhanceSystemPromptWithEnvDetails() (without the model description and
-      // knowledge cutoff lines, which Wave does not use).
+      // knowledge cutoff lines, which Muse does not use).
       const additionalDirsInfo =
         additionalWorkingDirectories.length > 0
           ? `Additional working directories: ${additionalWorkingDirectories.join(", ")}\n`
@@ -360,7 +360,7 @@ OS Version: ${osVersion}
     } else {
       // Main agent env section, aligned with Claude Code's
       // computeSimpleEnvInfo() (without the model description, knowledge
-      // cutoff, and marketing lines, which Wave does not use).
+      // cutoff, and marketing lines, which Muse does not use).
       const envItems: Array<string | string[]> = [
         `Primary working directory: ${primaryWorkdir}`,
         `Is a git repository: ${isGitRepo}`,

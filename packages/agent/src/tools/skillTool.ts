@@ -9,7 +9,7 @@ import {
 } from "../utils/messageOperations.js";
 
 /**
- * Skill tool plugin for invoking Wave skills
+ * Skill tool plugin for invoking Muse skills
  */
 const SKILL_TOOL_DESCRIPTION =
   "Execute a skill within the main conversation. When users ask you to perform tasks, check if any of the available skills match. Skills provide specialized capabilities and domain knowledge.";

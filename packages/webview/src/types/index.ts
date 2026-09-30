@@ -1,5 +1,5 @@
 /**
- * TypeScript type definitions for the Wave AI Chat webview
+ * TypeScript type definitions for the Muse AI Chat webview
  *
  * This file contains all the interfaces and types used throughout the React webview,
  * providing type safety and better development experience.

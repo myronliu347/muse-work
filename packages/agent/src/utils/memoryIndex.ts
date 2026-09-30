@@ -26,7 +26,7 @@ const MAX_MEMORY_FILES = 200;
  * is excluded — it is the index, not a topic file.
  *
  * Aligned with Claude Code's `memdir/memoryScan.ts`. Two deliberate
- * differences: Wave has a single memory directory (no private/team split), and
+ * differences: Muse has a single memory directory (no private/team split), and
  * we read the whole file instead of the first 30 lines — memory topic files are
  * small, and one `readFile` plus one `stat` is simpler than a bounded read that
  * has to return the mtime itself.

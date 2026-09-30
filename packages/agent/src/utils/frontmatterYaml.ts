@@ -1,8 +1,8 @@
 /**
- * Shared YAML frontmatter reader for wave's markdown artifacts: skills
+ * Shared YAML frontmatter reader for Muse markdown artifacts: skills
  * (SKILL.md), subagents, custom slash commands, memory rules and memory files.
  *
- * Wave ships no YAML dependency, so this is a hand-rolled parser for the subset
+ * No YAML dependency is shipped, so this is a hand-rolled parser for the subset
  * those files actually use: `key: value`, block lists (`key:` + indented
  * `- item`), block scalars (`key: >-` / `key: |` and their chomping variants)
  * and indented multi-line plain scalars. Block scalars matter in practice — a
