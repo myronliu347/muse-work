@@ -1,0 +1,94 @@
+packages/webview/src/styles/AgentManager.css
+  c8df0f85b58f7a52 37,44,48-49,53,55-56
+packages/server/src/services/appContext.ts
+  c8df0f85b58f7a52 89
+packages/server/tests/popoAgent.test.ts
+  c8df0f85b58f7a52 355,360-362,367,370-372,404
+packages/webview/src/muse/apiClient.ts
+  c8df0f85b58f7a52 91
+packages/server/src/popo/popoAgent.ts
+  c8df0f85b58f7a52 127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "553987f5fd4a982664f655483e76845ae2b11666",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 19,
+      "total_deletions": 226,
+      "accepted_lines": 35,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "additions": 9,
+          "deletions": 12,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/server/src/popo/popoAgent.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "additions": 7,
+          "deletions": 168,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/agentConfig.ts": {
+          "deletions": 17
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/routes/agents.ts": {
+          "deletions": 3
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "deletions": 23
+        }
+      }
+    }
+  }
+}
