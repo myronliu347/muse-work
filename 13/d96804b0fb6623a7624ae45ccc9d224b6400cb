@@ -1,0 +1,84 @@
+packages/webview/src/components/automation/AutomationEditor.tsx
+  c8df0f85b58f7a52 1028
+packages/webview/src/muse/hostBridge/chat.ts
+  c8df0f85b58f7a52 405
+packages/webview/src/utils/messageUtils.ts
+  c8df0f85b58f7a52 272,276-277
+packages/webview/src/components/issue/OpenPlanningDialog.tsx
+  c8df0f85b58f7a52 63,294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "13d96804b0fb6623a7624ae45ccc9d224b6400cb",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 9,
+      "accepted_lines": 29,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 1,
+          "deletions": 3,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/issue/OpenPlanningDialog.tsx": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/utils/messageUtils.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/shared/MuseModelSelect.tsx": {
+          "deletions": 1
+        }
+      }
+    }
+  }
+}
