@@ -90,6 +90,24 @@ describe("MessageInput local file pick", () => {
     expect(screen.queryByTestId("input-workdir-row")).toBeNull();
   });
 
+  it("shows the footer only when a workdir selector is provided", () => {
+    const vscode = stubVscode();
+    render(
+      <MessageInput
+        onSendMessage={vi.fn()}
+        isStreaming={false}
+        onAbortMessage={vi.fn()}
+        vscode={vscode}
+        workdirSelector={<span data-testid="workdir-slot">workdir</span>}
+      />,
+    );
+    const content = document.querySelector(".input-content");
+    const metaRow = screen.getByTestId("input-workdir-row");
+    expect(content?.contains(metaRow)).toBe(false);
+    expect(screen.getByTestId("workdir-slot")).toBeTruthy();
+    expect(metaRow.querySelector(".permission-mode-select")).toBeTruthy();
+  });
+
   it("click posts desktopSelectFiles; result inserts @file tags", async () => {
     const vscode = stubVscode();
     render(

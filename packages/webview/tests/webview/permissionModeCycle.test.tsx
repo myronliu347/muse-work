@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  renderChatApp,
+  renderDraftChatApp,
   screen,
   waitFor,
   fireEvent,
@@ -15,7 +15,7 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
   });
 
   it("should cycle acceptEdits <-> bypassPermissions", async () => {
-    const { vscode } = renderChatApp();
+    const { vscode } = renderDraftChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
@@ -63,7 +63,7 @@ describe("Permission Mode Cycling via Shift+Tab", () => {
   });
 
   it("should update the select visual style when mode changes via extension update", async () => {
-    renderChatApp();
+    renderDraftChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {

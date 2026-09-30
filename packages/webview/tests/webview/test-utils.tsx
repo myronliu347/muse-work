@@ -108,6 +108,30 @@ export function establishSession(opts?: {
   );
 }
 
+/** Draft / new-session page so the composer footer (workdir + permission) renders. */
+export function establishDraftSession(opts?: {
+  workdir?: string;
+  permissionMode?: "acceptEdits" | "bypassPermissions";
+  isAuthenticated?: boolean;
+}) {
+  sendHostMessage(
+    fixtures.setInitialState({
+      workdir: opts?.workdir,
+      messages: [],
+      isAuthenticated: opts?.isAuthenticated ?? true,
+      permissionMode: opts?.permissionMode ?? "acceptEdits",
+      session: {
+        id: "__draft__",
+        sessionType: "main",
+        workdir: opts?.workdir,
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    }),
+  );
+}
+
 /**
  * Render the ChatApp with a mock VS Code API on the desktop host. Desktop-only:
  * the extension entry (index.tsx → DesktopApp) always boots the desktop layout,
@@ -130,6 +154,26 @@ export function renderChatApp(vscode?: VsCodeApi) {
   sendHostMessage(fixtures.authStatusResponse());
   // Bind a session so the draft new-session page is not shown.
   establishSession();
+  const user = userEvent.setup();
+  return { ...result, vscode: mockVscode, user };
+}
+
+/**
+ * Same as renderChatApp, but stays on the draft new-session page
+ * (composer footer with workdir + permission is visible).
+ */
+export function renderDraftChatApp(vscode?: VsCodeApi) {
+  resetWebviewStores();
+  const mockVscode = (vscode || createMockVscode()) as ReturnType<
+    typeof createMockVscode
+  >;
+  const result = render(
+    <MuseTheme>
+      <ChatApp vscode={mockVscode} host={createMockDesktopHost()} />
+    </MuseTheme>,
+  );
+  sendHostMessage(fixtures.authStatusResponse());
+  establishDraftSession();
   const user = userEvent.setup();
   return { ...result, vscode: mockVscode, user };
 }

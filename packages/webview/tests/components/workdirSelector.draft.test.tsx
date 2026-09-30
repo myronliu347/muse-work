@@ -44,6 +44,7 @@ describe("Desktop workdir picker visibility", () => {
     readyDraft({ workdir: "/home/user/project" });
 
     expect(screen.getByTestId("desktop-workdir")).toBeInTheDocument();
+    expect(screen.getByTestId("input-workdir-row")).toBeInTheDocument();
 
     sendCommand("setInitialState", {
       messages: [MockDataGenerator.createUserMessage("hi")],
@@ -59,6 +60,7 @@ describe("Desktop workdir picker visibility", () => {
     });
 
     expect(screen.queryByTestId("desktop-workdir")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("input-workdir-row")).not.toBeInTheDocument();
   });
 
   it("does not restore the folder picker after clearing a bound session", () => {

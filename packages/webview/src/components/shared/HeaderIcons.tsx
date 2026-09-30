@@ -200,7 +200,7 @@ export const QueueSendIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-// Permission mode: acceptEdits ("自动接受修改") — shield + edit arrow, Figma 12 x 14.001 glyph centered.
+// Permission mode: acceptEdits ("默认权限") — shield + edit arrow, Figma 12 x 14.001 glyph centered.
 export const PermModeAcceptIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (

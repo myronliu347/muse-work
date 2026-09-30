@@ -18,11 +18,10 @@ export interface DesktopWorkdirSelectorProps {
 }
 
 /**
- * Workdir dropdown shown at the top-left of the message input (desktop host,
- * new-session state only). Same pattern as the permission-mode dropdown in
- * MessageInput: a relative container holds the trigger + an absolutely
- * positioned menu. The menu expands UPWARD (bottom:100%) because the input
- * sits at the bottom of the viewport. Clicking outside closes it.
+ * Workdir dropdown shown under the message input (desktop host,
+ * new-session state only). Relative container holds the trigger + an
+ * absolutely positioned menu. The menu expands UPWARD (bottom:100%) because
+ * the input sits at the bottom of the viewport. Clicking outside closes it.
  */
 export const DesktopWorkdirSelector: React.FC<DesktopWorkdirSelectorProps> = ({
   workdir,

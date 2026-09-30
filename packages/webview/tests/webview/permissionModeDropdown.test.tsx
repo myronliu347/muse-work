@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  renderChatApp,
+  renderDraftChatApp,
   waitFor,
   fireEvent,
   act,
@@ -13,8 +13,8 @@ describe("Permission Mode Select", () => {
     vi.clearAllMocks();
   });
 
-  it("should select a different mode and update the UI", async () => {
-    const { vscode } = renderChatApp();
+  it("toggles full access from the permission panel", async () => {
+    const { vscode } = renderDraftChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
@@ -29,16 +29,21 @@ describe("Permission Mode Select", () => {
     ) as HTMLElement;
     expect(select).toBeInTheDocument();
     expect(select.className).toContain("mode-acceptEdits");
+    expect(select).toHaveTextContent("默认权限");
 
     vscode.postMessage.mockClear();
 
     await act(async () => {
       fireEvent.click(select);
     });
+    expect(
+      document.querySelector('[data-testid="permission-mode-panel"]'),
+    ).toBeInTheDocument();
+
     await act(async () => {
       fireEvent.click(
         document.querySelector(
-          '.permission-mode-item[data-value="bypassPermissions"]',
+          '[data-testid="permission-full-access-toggle"]',
         ) as HTMLElement,
       );
     });
@@ -49,16 +54,10 @@ describe("Permission Mode Select", () => {
         mode: "bypassPermissions",
       });
     });
-
-    await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "bypassPermissions" });
-    });
-
-    expect(select.className).toContain("mode-bypassPermissions");
   });
 
-  it("should include only acceptEdits and bypassPermissions", async () => {
-    const { vscode } = renderChatApp();
+  it("shows sandbox copy and the full-access toggle", async () => {
+    renderDraftChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
@@ -71,80 +70,17 @@ describe("Permission Mode Select", () => {
     const select = document.querySelector(
       ".permission-mode-select",
     ) as HTMLElement;
-    expect(select).toBeInTheDocument();
-
     await act(async () => {
       fireEvent.click(select);
     });
 
-    const options = Array.from(
-      document.querySelectorAll(".permission-mode-item"),
+    const panel = document.querySelector(
+      '[data-testid="permission-mode-panel"]',
     );
-    const optionValues = options.map((o) => o.getAttribute("data-value"));
-    expect(optionValues).toEqual(["acceptEdits", "bypassPermissions"]);
-
-    vscode.postMessage.mockClear();
-    await act(async () => {
-      fireEvent.click(
-        document.querySelector(
-          '.permission-mode-item[data-value="bypassPermissions"]',
-        ) as HTMLElement,
-      );
-    });
-
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "setPermissionMode",
-        mode: "bypassPermissions",
-      });
-    });
-
-    await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "bypassPermissions" });
-    });
-
-    expect(select.className).toContain("mode-bypassPermissions");
-  });
-
-  it("should switch back to acceptEdits from bypassPermissions", async () => {
-    const { vscode } = renderChatApp();
-
-    await act(async () => {
-      sendCommand("setInitialState", {
-        messages: [],
-        permissionMode: "bypassPermissions",
-        configurationData: {},
-      });
-    });
-
-    const select = document.querySelector(
-      ".permission-mode-select",
-    ) as HTMLElement;
-    expect(select.className).toContain("mode-bypassPermissions");
-
-    vscode.postMessage.mockClear();
-    await act(async () => {
-      fireEvent.click(select);
-    });
-    await act(async () => {
-      fireEvent.click(
-        document.querySelector(
-          '.permission-mode-item[data-value="acceptEdits"]',
-        ) as HTMLElement,
-      );
-    });
-
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "setPermissionMode",
-        mode: "acceptEdits",
-      });
-    });
-
-    await act(async () => {
-      sendCommand("updatePermissionMode", { mode: "acceptEdits" });
-    });
-
-    expect(select.className).toContain("mode-acceptEdits");
+    expect(panel).toHaveTextContent("当前为默认权限");
+    expect(panel).toHaveTextContent("允许完全访问");
+    expect(
+      document.querySelector('[data-testid="permission-full-access-toggle"]'),
+    ).toBeInTheDocument();
   });
 });

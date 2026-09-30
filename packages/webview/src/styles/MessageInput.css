@@ -9,6 +9,8 @@
   margin: 0 auto;
   width: 100%;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .input-row {
@@ -17,91 +19,217 @@
   align-items: flex-end;
 }
 
-/* Single bordered box wrapping the text area + toolbar (设计稿 2237-5088).
-   No overflow:hidden here — the toolbar's upward-expanding dropdowns (permission
-   mode, "+" menu) must be able to escape the box top; the inner .message-input
-   handles its own scrolling via overflow-y:auto. */
+/* Sender: independent rounded card. Footer tucks under it. */
 .input-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   box-sizing: border-box;
-  padding: var(--space-2) var(--space-3) var(--space-2);
-  background-color: var(--color-background);
+  padding: 12px var(--space-3) 10px;
+  background-color: var(--gray-3);
   border: 1px solid var(--gray-6);
-  border-radius: calc(var(--radius-4) + 2px);
-  max-height: 176px;
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 42%, transparent);
+  border-radius: 20px;
+  max-height: 192px;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
   container-type: inline-size;
   container-name: composer;
 }
 
-/* Focus state: the whole box border turns brand red (设计稿 Focus state). */
+:root[data-theme="light"] .input-content {
+  background-color: #fff;
+}
+
 .input-content:focus-within {
   border-color: var(--accent-9);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
-    0 10px 32px color-mix(in srgb, var(--gray-1) 48%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 18%, transparent),
+    0 3px 8px color-mix(in srgb, var(--gray-1) 28%, transparent);
 }
 
-/* Workdir / agent sit under the card (ghost chips), not inside the writing box. */
+/* Footer: own surface, slightly darker, flush under sender. */
 .input-meta-row {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 14px;
   min-width: 0;
-  padding: var(--space-2) 2px 0;
+  min-height: 40px;
+  width: 100%;
+  margin: -16px 0 0;
+  padding: 20px var(--space-3) 8px;
+  box-sizing: border-box;
   overflow: visible;
-  position: relative;
+  background: color-mix(in srgb, var(--gray-3) 72%, var(--gray-2));
+  border: 1px solid var(--gray-6);
+  border-top: 0;
+  border-radius: 0 0 20px 20px;
+}
+
+.input-meta-row:has(.permission-mode-panel),
+.input-meta-row:has(.desktop-workdir-menu) {
   z-index: 3;
 }
 
 .input-meta-row .desktop-workdir-container,
-.input-meta-row .desktop-worktree-controls {
+.input-meta-row .desktop-worktree-controls,
+.input-meta-row .permission-mode-container {
   min-width: 0;
-}
-
-.input-meta-row .desktop-workdir-trigger {
   position: relative;
-  box-sizing: border-box;
-  height: 28px;
-  max-width: 180px;
-  padding: 0 28px 0 var(--space-3);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--gray-11);
-  font-size: var(--font-size-1);
-  line-height: 26px;
+  flex-shrink: 0;
 }
 
-.input-meta-row .desktop-workdir-trigger:hover {
-  background-color: var(--gray-3);
+.input-meta-row .desktop-workdir-trigger,
+.input-meta-row .permission-mode-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  max-width: 220px;
+  margin: 0;
+  padding: 0 4px 0 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+  font-weight: 400;
+  font-family: inherit;
+  line-height: 24px;
+  cursor: pointer;
+  outline: none;
+}
+
+.input-meta-row .desktop-workdir-trigger:hover,
+.input-meta-row .permission-mode-select:hover,
+.input-meta-row .permission-mode-select:focus {
+  background-color: transparent;
   color: var(--gray-12);
 }
 
 .input-meta-row .desktop-workdir-trigger .codicon-folder-opened,
-.input-meta-row .desktop-workdir-trigger .codicon-git-branch {
+.input-meta-row .desktop-workdir-trigger .codicon-git-branch,
+.input-meta-row .permission-mode-icon {
+  width: 14px;
+  height: 14px;
+  font-size: var(--font-size-1);
+  opacity: 0.78;
+  flex-shrink: 0;
+}
+
+.input-meta-row .desktop-workdir-name,
+.input-meta-row .permission-mode-label {
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input-meta-row .desktop-workdir-caret,
+.input-meta-row .permission-mode-caret {
+  position: static;
+  transform: none;
   font-size: var(--font-size-1);
   opacity: 0.72;
   flex-shrink: 0;
 }
 
-.input-meta-row .desktop-workdir-name {
-  max-width: 120px;
-}
-
-.input-meta-row .desktop-workdir-caret {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.72;
+.input-meta-row .permission-mode-select.mode-acceptEdits,
+.input-meta-row .permission-mode-select.mode-bypassPermissions {
+  color: var(--gray-11);
+  font-weight: 400;
 }
 
 .input-meta-row .desktop-worktree-checkbox {
   font-size: var(--font-size-1);
   color: var(--gray-11);
+}
+
+.permission-mode-panel {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 10000;
+  box-sizing: border-box;
+  width: min(240px, 72vw);
+  padding: var(--space-3);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--color-panel);
+  color: var(--gray-12);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 40%, transparent);
+}
+
+.permission-mode-desc {
+  margin: 0 0 var(--space-3);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  line-height: 1.5;
+}
+
+.permission-mode-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.permission-mode-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.permission-mode-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.permission-mode-switch-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: var(--gray-6);
+  border-radius: 999px;
+  transition: background-color 0.15s ease;
+}
+
+.permission-mode-switch-slider:before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease;
+}
+
+.permission-mode-switch input:checked + .permission-mode-switch-slider {
+  background: var(--accent-9);
+}
+
+.permission-mode-switch input:checked + .permission-mode-switch-slider:before {
+  transform: translateX(16px);
+}
+
+.permission-mode-switch input:disabled + .permission-mode-switch-slider {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .input-buttons-row .agent-selector-trigger {
@@ -119,8 +247,8 @@
   font-family: inherit;
   font-size: var(--font-size-1);
   line-height: 20px;
-  min-height: 32px;
-  max-height: 112px;
+  min-height: 48px;
+  max-height: 128px;
   overflow-y: auto;
   word-break: break-word;
   white-space: pre-wrap;
@@ -301,96 +429,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-}
-
-.permission-mode-container {
-  /* Temporarily hidden in the sender toolbar; keep DOM for mode cycle tests. */
-  display: none;
-  position: relative;
-}
-
-.permission-mode-select {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-2);
-  font-size: var(--font-size-1);
-  color: var(--gray-11);
-  cursor: pointer;
-  padding: var(--space-1) var(--space-1);
-  outline: none;
-  font-family: inherit;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.permission-mode-icon {
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  flex-shrink: 0;
-}
-
-.permission-mode-caret {
-  font-size: var(--font-size-1);
-  opacity: 0.8;
-}
-
-.permission-mode-select:hover,
-.permission-mode-select:focus {
-  background-color: var(--gray-4);
-  color: var(--gray-12);
-  border-color: transparent;
-}
-
-.permission-mode-select.mode-acceptEdits {
-  color: var(--amber-11);
-}
-
-.permission-mode-select.mode-bypassPermissions {
-  color: var(--red-11);
-  font-weight: bold;
-}
-
-/* Custom permission dropdown — expands upward (bottom:100%) so it is not clipped at
-   the bottom of the webview viewport in JCEF, where a native <select> popup expands
-   downward and gets cut off. */
-.permission-mode-menu {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: var(--space-1);
-  list-style: none;
-  margin-top: 0;
-  padding: var(--space-1) 0;
-  background: var(--color-panel);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
-  border-radius: var(--radius-3);
-  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
-  z-index: 10000;
-  min-width: 140px;
-  white-space: nowrap;
-  font-size: var(--font-size-1);
-}
-
-.permission-mode-item {
-  padding: var(--space-1) var(--space-3);
-  cursor: pointer;
-  color: var(--gray-12);
-}
-
-.permission-mode-item:hover,
-.permission-mode-item.selected {
-  background: var(--gray-4);
-  color: var(--gray-12);
-}
-
-.permission-mode-item.selected {
-  background: var(--gray-4);
 }
 
 /* Toolbar icon buttons ("+") — 22px square, 16px icon */

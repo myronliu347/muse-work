@@ -81,13 +81,8 @@ function findTextOffset(
   return null;
 }
 
-const PERMISSION_MODES: { value: PermissionMode; label: string }[] = [
-  { value: "acceptEdits", label: "自动接受修改" },
-  { value: "bypassPermissions", label: "跳过权限确认" },
-];
-
 const permissionModeLabel = (m?: PermissionMode): string =>
-  PERMISSION_MODES.find((x) => x.value === m)?.label ?? "自动接受修改";
+  m === "bypassPermissions" ? "完全访问" : "默认权限";
 
 const permissionModeIcon = (m?: PermissionMode): React.ReactNode => {
   if (m === "bypassPermissions") {
@@ -95,6 +90,11 @@ const permissionModeIcon = (m?: PermissionMode): React.ReactNode => {
   }
   return <PermModeAcceptIcon className="permission-mode-icon" />;
 };
+
+const permissionModeDescription = (m?: PermissionMode): string =>
+  m === "bypassPermissions"
+    ? "当前为完全访问，助手可在较少确认的情况下执行操作。请仅在信任当前任务时开启。"
+    : "当前为默认权限，所有操作都会在安全沙箱约束内进行，超出范围会请求你的允许。";
 
 export interface MessageInputHandle {
   focus: () => void;
@@ -143,7 +143,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           command: "setPermissionMode",
           mode: mode,
         });
-        setPermMenuOpen(false);
       },
       [vscode],
     );
@@ -1533,8 +1532,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     return (
       <div className="input-container" data-testid="input-container">
         <div className="input-wrapper">
-          {/* Single bordered box wrapping the text area and toolbar (设计稿 2237-5088).
-            Focus turns the whole box's border red via :focus-within. */}
+          {/* Sender card. Footer (workdir + permission) sits as a sibling underneath. */}
           <div className="input-content">
             <AttachedImages
               images={attachedImages}
@@ -1558,7 +1556,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               data-placeholder="@提及文件，粘贴图片，Enter发送..."
             />
 
-            {/* Inner footer: attach + model + send. Workdir/agent sit under the card. */}
             <div className="input-buttons-row">
               <Tooltip text="添加文件" position="top">
                 <button
@@ -1581,38 +1578,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                 disabled={disabled}
               />
               <div className="button-spacer" />
-              <div className="permission-mode-container" ref={permMenuRef}>
-                <button
-                  type="button"
-                  className={`permission-mode-select mode-${permissionMode || "acceptEdits"}`}
-                  aria-label="权限模式"
-                  aria-expanded={permMenuOpen}
-                  disabled={disabled}
-                  onClick={() => setPermMenuOpen((o) => !o)}
-                >
-                  {permissionModeIcon(permissionMode)}
-                  {permissionModeLabel(permissionMode)}
-                  <i className="codicon codicon-chevron-down permission-mode-caret" />
-                </button>
-                {permMenuOpen && (
-                  <ul className="permission-mode-menu" role="listbox">
-                    {PERMISSION_MODES.map((m) => (
-                      <li
-                        key={m.value}
-                        role="option"
-                        data-value={m.value}
-                        aria-selected={
-                          m.value === (permissionMode || "acceptEdits")
-                        }
-                        className={`permission-mode-item${m.value === (permissionMode || "acceptEdits") ? " selected" : ""}`}
-                        onClick={() => handlePermissionModeSelect(m.value)}
-                      >
-                        {m.label}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
               {onModelChange && (
                 <div
                   className="input-model-select"
@@ -1662,7 +1627,57 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           {workdirSelector ? (
             <div className="input-meta-row" data-testid="input-workdir-row">
               {workdirSelector}
+              <div className="permission-mode-container" ref={permMenuRef}>
+              <button
+                type="button"
+                className={`permission-mode-select mode-${permissionMode || "acceptEdits"}`}
+                aria-label="权限模式"
+                aria-expanded={permMenuOpen}
+                disabled={disabled}
+                onClick={() => setPermMenuOpen((o) => !o)}
+                data-testid="permission-mode-select"
+              >
+                {permissionModeIcon(permissionMode)}
+                <span className="permission-mode-label">
+                  {permissionModeLabel(permissionMode)}
+                </span>
+                <i
+                  className={`codicon codicon-chevron-${permMenuOpen ? "up" : "down"} permission-mode-caret`}
+                />
+              </button>
+              {permMenuOpen && (
+                <div
+                  className="permission-mode-panel"
+                  role="dialog"
+                  aria-label="权限设置"
+                  data-testid="permission-mode-panel"
+                >
+                  <p className="permission-mode-desc">
+                    {permissionModeDescription(permissionMode)}
+                  </p>
+                  <label className="permission-mode-toggle-row">
+                    <span>允许完全访问</span>
+                    <span className="permission-mode-switch">
+                      <input
+                        type="checkbox"
+                        data-testid="permission-full-access-toggle"
+                        checked={permissionMode === "bypassPermissions"}
+                        disabled={disabled}
+                        onChange={(e) =>
+                          handlePermissionModeSelect(
+                            e.target.checked
+                              ? "bypassPermissions"
+                              : "acceptEdits",
+                          )
+                        }
+                      />
+                      <span className="permission-mode-switch-slider" />
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
+          </div>
           ) : null}
 
           {/* File Suggestion Dropdown */}

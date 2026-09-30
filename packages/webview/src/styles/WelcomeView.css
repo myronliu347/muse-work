@@ -93,9 +93,13 @@
 }
 
 .welcome-headline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   margin: 0;
-  max-width: 18em;
-  font-size: 28px;
+  max-width: 22em;
+  font-size: 36px;
   font-weight: 600;
   line-height: 1.35;
   color: var(--gray-12);
@@ -112,15 +116,12 @@
     0 8px 24px rgb(255 255 255 / 0.65);
 }
 
-.welcome-brand {
-  color: var(--accent-9);
-  text-shadow:
-    0 0 1px rgb(0 0 0 / 0.8),
-    0 4px 16px rgb(0 0 0 / 0.45);
-}
-
-:root[data-theme="light"] .welcome-brand {
-  text-shadow: 0 1px 8px rgb(255 255 255 / 0.7);
+.welcome-headline-logo {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.35));
 }
 
 .welcome-cards {
@@ -282,7 +283,12 @@
 
 @media (max-width: 640px) {
   .welcome-headline {
-    font-size: 22px;
+    font-size: 28px;
+  }
+
+  .welcome-headline-logo {
+    width: 52px;
+    height: 52px;
   }
 
   .welcome-cards {
@@ -293,7 +299,12 @@
 /* 720px: overlay sidebar already ate ~240px, so 4 columns crush before 640. */
 @container (max-width: 720px) {
   .welcome-headline {
-    font-size: 22px;
+    font-size: 28px;
+  }
+
+  .welcome-headline-logo {
+    width: 52px;
+    height: 52px;
   }
 
   .welcome-cards {

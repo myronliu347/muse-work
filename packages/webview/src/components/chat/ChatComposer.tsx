@@ -148,6 +148,7 @@ export const ChatComposer = forwardRef<
               onSelectWorkdir={host.onSelectWorkdir}
               onSelectRecentWorkdir={host.onSelectRecentWorkdir}
               onRemoveRecentWorkdir={host.onRemoveRecentWorkdir}
+              variant="ghost"
             />
             {effectiveWorkdir &&
               gitBranches &&

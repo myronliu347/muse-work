@@ -1,5 +1,7 @@
 import React from "react";
 import { WELCOME_PROMPTS } from "./welcomePrompts";
+import { useMuseTheme } from "../../ui/theme";
+import museM from "../../assets/muse-m.png";
 import "../../styles/WelcomeView.css";
 
 export interface WelcomeViewProps {
@@ -19,11 +21,23 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({
   embedded = false,
   onSelectPrompt,
 }) => {
+  const { effective } = useMuseTheme();
+  const showLogo = effective !== "light";
   const showLogin = !isAuthenticated && !hasDirectConnectConfig;
   const inner = (
     <div className="welcome-view">
       <h1 className="welcome-headline" data-testid="welcome-headline">
-        今天想在 <span className="welcome-brand">Muse</span> 里做什么？
+        {showLogo ? (
+          <img
+            src={museM}
+            alt=""
+            className="welcome-headline-logo"
+            width={64}
+            height={64}
+            draggable={false}
+          />
+        ) : null}
+        今天想让我帮你做些什么？
       </h1>
       <div className="welcome-cards" data-testid="welcome-cards">
         {WELCOME_PROMPTS.map((card) => (

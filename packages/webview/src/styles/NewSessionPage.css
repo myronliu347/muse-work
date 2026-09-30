@@ -33,31 +33,45 @@
 }
 
 .new-session-page .input-content {
-  background: color-mix(in srgb, var(--gray-2) 82%, transparent);
-  border-color: color-mix(in srgb, var(--gray-12) 14%, transparent);
+  background: color-mix(in srgb, var(--gray-3) 88%, transparent);
+  border-color: color-mix(in srgb, var(--gray-12) 12%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.28);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.18);
 }
 
 .new-session-page .input-content:focus-within {
   border-color: color-mix(in srgb, var(--accent-9) 32%, var(--gray-6));
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
-    0 12px 40px rgb(0 0 0 / 0.28);
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 18%, transparent),
+    0 3px 8px rgb(0 0 0 / 0.18);
+}
+
+.new-session-page .input-meta-row {
+  min-width: 0;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--gray-3) 78%, var(--gray-2));
+  border-color: color-mix(in srgb, var(--gray-12) 10%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 :root[data-theme="light"] .new-session-page .input-content {
-  background: rgb(255 255 255 / 0.9);
+  background: rgb(255 255 255 / 0.92);
   border-color: rgb(0 0 0 / 0.08);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.08);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.08);
 }
 
 :root[data-theme="light"] .new-session-page .input-content:focus-within {
   border-color: color-mix(in srgb, var(--accent-9) 45%, white);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-9) 28%, transparent),
-    0 12px 32px rgb(0 0 0 / 0.08);
+    0 0 0 1px color-mix(in srgb, var(--accent-9) 22%, transparent),
+    0 3px 8px rgb(0 0 0 / 0.08);
+}
+
+:root[data-theme="light"] .new-session-page .input-meta-row {
+  background: rgb(248 248 250 / 0.94);
+  border-color: rgb(0 0 0 / 0.06);
 }
 
 .chat-container:has(.new-session-page) {
@@ -77,12 +91,6 @@
 .new-session-page .input-wrapper {
   max-width: 100%;
   margin: 0;
-}
-
-.new-session-page .input-meta-row {
-  min-width: 0;
-  flex: 1 1 auto;
-  padding-top: var(--space-2);
 }
 
 .new-session-page-composer {
@@ -133,6 +141,12 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .new-session-page .input-content {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--gray-3);
+  }
+
+  .new-session-page .input-meta-row {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--gray-2);

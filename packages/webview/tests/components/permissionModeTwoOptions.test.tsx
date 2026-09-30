@@ -1,20 +1,14 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  renderChatApp,
-  waitFor,
-  fireEvent,
-  act,
-  sendCommand,
-} from "../webview/test-utils";
+import { renderDraftChatApp, fireEvent, act, sendCommand } from "../webview/test-utils";
 
-describe("Permission Mode two options", () => {
+describe("Permission Mode panel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("shows only acceptEdits and bypassPermissions in the dropdown", async () => {
-    renderChatApp();
+  it("exposes a full-access toggle instead of plan/default list options", async () => {
+    renderDraftChatApp();
 
     await act(async () => {
       sendCommand("setInitialState", {
@@ -33,13 +27,11 @@ describe("Permission Mode two options", () => {
       fireEvent.click(select);
     });
 
-    const options = Array.from(
-      document.querySelectorAll(".permission-mode-item"),
-    );
-    const optionValues = options.map((o) => o.getAttribute("data-value"));
-    expect(options).toHaveLength(2);
-    expect(optionValues).toEqual(["acceptEdits", "bypassPermissions"]);
+    expect(
+      document.querySelector('[data-testid="permission-full-access-toggle"]'),
+    ).toBeInTheDocument();
     expect(document.querySelector('[data-value="plan"]')).toBeNull();
     expect(document.querySelector('[data-value="default"]')).toBeNull();
+    expect(document.querySelectorAll(".permission-mode-item")).toHaveLength(0);
   });
 });

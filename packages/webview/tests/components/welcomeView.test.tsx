@@ -25,7 +25,7 @@ describe("WelcomeView", () => {
   it("renders the headline and four prompt cards", () => {
     renderWelcome({ embedded: true });
     expect(screen.getByTestId("welcome-headline")).toHaveTextContent(
-      "今天想在 Muse 里做什么？",
+      "今天想让我帮你做些什么？",
     );
     for (const card of WELCOME_PROMPTS) {
       expect(screen.getByTestId(`welcome-card-${card.id}`)).toHaveTextContent(

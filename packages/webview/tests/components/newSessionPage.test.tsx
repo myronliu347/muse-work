@@ -1,10 +1,15 @@
 /** @vitest-environment jsdom */
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NewSessionPage } from "../../src/components/chat/NewSessionPage";
+import { setThemePreference } from "../../src/ui/themePreference";
 
 describe("NewSessionPage", () => {
+  beforeEach(() => {
+    setThemePreference("dark");
+  });
+
   it("renders welcome above composer inside a dedicated page shell", () => {
     render(
       <NewSessionPage
@@ -36,5 +41,16 @@ describe("NewSessionPage", () => {
     expect(getComputedStyle(cat).pointerEvents).toBe("none");
     const composer = screen.getByTestId("new-session-page-composer");
     expect(composer.contains(cat)).toBe(true);
+  });
+
+  it("hides the decorative cat in light theme", () => {
+    setThemePreference("light");
+    render(
+      <NewSessionPage
+        welcome={<div data-testid="welcome-slot">欢迎</div>}
+        composer={<button type="button">发送</button>}
+      />,
+    );
+    expect(screen.queryByTestId("new-session-sender-cat")).toBeNull();
   });
 });
