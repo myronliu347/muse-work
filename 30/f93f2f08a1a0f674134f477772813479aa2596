@@ -1,0 +1,233 @@
+packages/agent/src/services/hook.ts
+  98ab170ac30fbe53 20,226
+README.md
+  98ab170ac30fbe53 44
+packages/agent/src/utils/constants.ts
+  98ab170ac30fbe53 55
+packages/agent/src/utils/museEnv.ts
+  98ab170ac30fbe53 1-85
+packages/agent/src/utils/userSettings.ts
+  98ab170ac30fbe53 11-12,14-15,32,43,48,50-51,54,57-75,97,102,163,176-178,207-208,254,258-261,263,270,277-288,300-302,304-312,320,325,370-373,386,390
+packages/agent/src/services/authService.ts
+  98ab170ac30fbe53 25,49,142-146,154
+packages/agent/src/services/configurationService.ts
+  98ab170ac30fbe53 56,364,400,478-481,494-496,542,546,573-577,588-592,597-601,604-608,618-622,664,670,676,747,755-759,843-847,893-897,928,986
+packages/agent/src/managers/skillManager.ts
+  98ab170ac30fbe53 24,576,578
+packages/agent/src/tools/bashTool.ts
+  98ab170ac30fbe53 204-205
+packages/agent/tests/services/configurationService.test.ts
+  98ab170ac30fbe53 190,428-429,438,445,447
+packages/agent/src/services/aiService.ts
+  98ab170ac30fbe53 14,233,242
+packages/agent/src/utils/subagentParser.ts
+  98ab170ac30fbe53 14,164,236,257,260
+packages/agent/src/services/GitService.ts
+  98ab170ac30fbe53 3,9
+packages/agent/src/services/officialMarketplaceMirror.ts
+  98ab170ac30fbe53 35,50,61,89
+packages/agent/tests/managers/hookManager.pluginRoot.test.ts
+  98ab170ac30fbe53 98,133
+packages/agent/src/managers/subagentManager.ts
+  98ab170ac30fbe53 34,317-318
+packages/agent/tests/utils/museEnv.test.ts
+  98ab170ac30fbe53 1-57
+packages/agent/README.md
+  98ab170ac30fbe53 11-34
+packages/agent/src/services/taskManager.ts
+  98ab170ac30fbe53 12,56-60
+packages/agent/src/utils/containerSetup.ts
+  98ab170ac30fbe53 45,156-157
+packages/agent/src/types/hooks.ts
+  98ab170ac30fbe53 276-278
+packages/agent/tests/utils/userSettings.test.ts
+  98ab170ac30fbe53 117-130
+packages/agent/src/utils/shellResolver.ts
+  98ab170ac30fbe53 4,111,158-160
+packages/agent/src/builtin/skills/settings.ts
+  98ab170ac30fbe53 19,21,467-468,968
+packages/agent/tests/workflow/workflowManager.test.ts
+  98ab170ac30fbe53 388-394,513
+packages/agent/tests/setup.ts
+  98ab170ac30fbe53 3-10
+packages/agent/src/managers/hookManager.ts
+  98ab170ac30fbe53 31,209,215
+packages/agent/src/services/worktreeHooks.ts
+  98ab170ac30fbe53 25,173,179
+packages/agent/src/managers/mcpManager.ts
+  98ab170ac30fbe53 28-32,57,78,88,681-684,687
+packages/agent/src/builtin/plugins.ts
+  98ab170ac30fbe53 18,30,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "30f93f2f08a1a0f674134f477772813479aa2596",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 456,
+      "total_deletions": 209,
+      "accepted_lines": 435,
+      "overriden_lines": 5,
+      "per_file_stats": {
+        "packages/agent/src/managers/mcpManager.ts": {
+          "additions": 18,
+          "deletions": 38,
+          "accepted_lines": 15
+        },
+        "README.md": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/GitService.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/builtin/plugins.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/managers/subagentManager.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/agent/tests/utils/museEnv.test.ts": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "additions": 3,
+          "deletions": 11,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/services/authService.ts": {
+          "additions": 10,
+          "deletions": 5,
+          "accepted_lines": 8
+        },
+        "packages/agent/tests/managers/hookManager.pluginRoot.test.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/utils/subagentParser.ts": {
+          "additions": 6,
+          "deletions": 8,
+          "accepted_lines": 5,
+          "overriden_lines": 1
+        },
+        "packages/agent/src/services/worktreeHooks.ts": {
+          "additions": 3,
+          "deletions": 10,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/types/hooks.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 3,
+          "deletions": 16,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/services/hook.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/setup.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/agent/src/utils/museEnv.ts": {
+          "additions": 87,
+          "deletions": 2,
+          "accepted_lines": 85
+        },
+        "packages/agent/src/utils/constants.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 62,
+          "deletions": 47,
+          "accepted_lines": 58
+        },
+        "packages/agent/tests/managers/mcpManager.test.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 16,
+          "deletions": 5,
+          "accepted_lines": 16
+        },
+        "packages/agent/src/utils/containerSetup.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/services/aiService.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/agent/tests/workflow/workflowManager.test.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/agent/src/services/taskManager.ts": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/agent/tests/utils/userSettings.test.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/agent/src/builtin/skills/settings.ts": {
+          "additions": 5,
+          "deletions": 4,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/tools/bashTool.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/services/officialMarketplaceMirror.ts": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 4,
+          "overriden_lines": 1
+        },
+        "packages/agent/src/utils/shellResolver.ts": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 5,
+          "overriden_lines": 3
+        },
+        "packages/agent/src/utils/userSettings.ts": {
+          "additions": 79,
+          "deletions": 34,
+          "accepted_lines": 77
+        },
+        "packages/agent/README.md": {
+          "additions": 24,
+          "accepted_lines": 24
+        }
+      }
+    }
+  }
+}
