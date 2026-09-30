@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FileIcon } from "./FileIcon";
+import { MiddleEllipsisText } from "../shared/MiddleEllipsisText";
 
 export type QuickOpenHit = {
   path: string;
@@ -168,7 +169,10 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
                 }}
               >
                 <FileIcon name={hit.name} className="file-tree-icon" />
-                <span className="quick-open-item-path">{hit.relativePath}</span>
+                <MiddleEllipsisText
+                  text={hit.relativePath}
+                  className="quick-open-item-path"
+                />
               </button>
             ))
           )}

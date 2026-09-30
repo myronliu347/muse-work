@@ -726,8 +726,8 @@
 .quick-open-item-path {
   flex: 1;
   min-width: 0;
+  display: block;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

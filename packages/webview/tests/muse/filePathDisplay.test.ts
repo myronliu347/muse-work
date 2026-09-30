@@ -35,4 +35,13 @@ describe("middleEllipsis", () => {
   it("keeps short paths intact", () => {
     expect(middleEllipsis("src/a.ts")).toBe("src/a.ts");
   });
+
+  it("keeps the file name visible for long paths", () => {
+    const path =
+      "apps/a-nasl-book/src/nasl-book/KE04-example-permission--logic-override-permission-upload.ts";
+    const out = middleEllipsis(path, 48);
+    expect(out.endsWith("permission-upload.ts")).toBe(true);
+    expect(out).toContain("…");
+    expect(out.length).toBeLessThanOrEqual(48);
+  });
 });

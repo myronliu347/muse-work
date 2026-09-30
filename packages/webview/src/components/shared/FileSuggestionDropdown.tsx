@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { FileSuggestionDropdownProps, FileItem } from "../../types";
 import { breadcrumbCrumbs } from "../../utils/fileMentionBrowse";
 import "../../styles/FileSuggestionDropdown.css";
+import { MiddleEllipsisText } from "./MiddleEllipsisText";
 
 export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
   suggestions,
@@ -110,7 +111,10 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
               {highlightMatch(file.name, filterText)}
             </div>
             {!isBrowse && (
-              <div className="suggestion-path">{file.relativePath}</div>
+              <MiddleEllipsisText
+                text={file.relativePath}
+                className="suggestion-path"
+              />
             )}
           </div>
           {isBrowse && file.isDirectory && (
