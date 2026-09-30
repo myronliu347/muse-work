@@ -1,0 +1,47 @@
+packages/webview/src/styles/DesktopApp.css
+  c8df0f85b58f7a52 464-475,478-479,482-483,486,488-490
+packages/webview/src/components/session/SessionTree.tsx
+  c8df0f85b58f7a52 739-740,780-786,789-793,799-803,805-811,885
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  c8df0f85b58f7a52 667-668,770,796-807,913,915-917
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "900dd1835f2cfe24234639121940b2533e72a76e",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 86,
+      "total_deletions": 150,
+      "accepted_lines": 228,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 35,
+          "deletions": 70,
+          "accepted_lines": 27
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 25,
+          "deletions": 10,
+          "accepted_lines": 19
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 26,
+          "deletions": 70,
+          "accepted_lines": 26
+        }
+      }
+    }
+  }
+}
