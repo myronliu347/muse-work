@@ -1,0 +1,1269 @@
+/**
+ * Permission Manager for handling tool permission checks
+ *
+ * This manager provides utilities for checking permissions before tool execution.
+ * It implements the permission logic for different modes (default vs bypass) and
+ * handles custom callback integration.
+ */
+
+import path from "node:path";
+import os from "node:os";
+import { minimatch } from "minimatch";
+import type {
+  PermissionDecision,
+  ToolPermissionContext,
+  PermissionCallback,
+  PermissionMode,
+} from "../types/permissions.js";
+import {
+  RESTRICTED_TOOLS,
+  USER_INTERACTION_REQUIRED_TOOLS,
+} from "../types/permissions.js";
+import type { Logger } from "../types/index.js";
+import {
+  splitBashCommand,
+  stripEnvVars,
+  stripRedirections,
+  hasWriteRedirections,
+  getSmartPrefix,
+  isDangerousFind,
+  hasCommandSubstitution,
+  hasProcessSubstitution,
+  hasSedInPlace,
+  stripGitScopePrefix,
+  DANGEROUS_COMMANDS,
+  READ_ONLY_COMMANDS,
+  PATH_COMMANDS,
+  extractPathArgs,
+} from "../utils/bashParser.js";
+import {
+  parseBashStructure,
+  type BashLeaf,
+} from "../utils/bashStructure/index.js";
+import { isPathInside } from "../utils/pathSafety.js";
+import { toWindowsPath } from "../utils/path.js";
+import {
+  BASH_TOOL_NAME,
+  EDIT_TOOL_NAME,
+  WRITE_TOOL_NAME,
+  READ_TOOL_NAME,
+} from "../constants/tools.js";
+import { Container } from "../utils/container.js";
+import { ConfigurationService } from "../services/configurationService.js";
+
+const DEFAULT_ALLOWED_RULES = [
+  "Bash(git status*)",
+  "Bash(git diff*)",
+  "Bash(git log*)",
+  "Bash(git show*)",
+  "Bash(git branch)",
+  "Bash(git branch --list*)",
+  "Bash(git branch -a*)",
+  "Bash(git branch -r*)",
+  "Bash(git branch --show-current*)",
+  "Bash(git branch --merged*)",
+  "Bash(git branch --no-merged*)",
+  "Bash(git branch --contains*)",
+  "Bash(git branch --no-contains*)",
+  "Bash(git branch --verbose*)",
+  "Bash(git branch -v*)",
+  "Bash(git branch -vv*)",
+  "Bash(git tag*)",
+  "Bash(git remote*)",
+  "Bash(git ls-files*)",
+  "Bash(git rev-parse*)",
+  "Bash(git config --list*)",
+  "Bash(git config -l*)",
+  "Bash(git cat-file*)",
+  "Bash(git count-objects*)",
+  "Bash(echo*)",
+  "Bash(ls*)",
+  "Bash(find*)",
+  "Bash(which*)",
+  "Bash(type*)",
+  "Bash(hostname*)",
+  "Bash(whoami*)",
+  "Bash(date*)",
+  "Bash(uptime*)",
+  "Bash(grep*)",
+  "Bash(rg*)",
+  "Bash(cat*)",
+  "Bash(head*)",
+  "Bash(tail*)",
+  "Bash(wc*)",
+  "Bash(sleep*)",
+];
+
+import { logger } from "../utils/globalLogger.js";
+
+/**
+ * Resolve an additional-directory config entry to an absolute path.
+ * Supports `~` / `~/` prefixes (expanded against the user home directory,
+ * aligned with Claude Code's expandPath) alongside absolute paths and paths
+ * relative to the working directory.
+ */
+export function resolveAdditionalDirectory(
+  dir: string,
+  workdir: string | undefined,
+): string {
+  if (dir === "~" || dir.startsWith("~/")) {
+    const expanded =
+      dir === "~" ? os.homedir() : path.join(os.homedir(), dir.slice(2));
+    return path.resolve(expanded);
+  }
+  if (workdir && !path.isAbsolute(dir)) {
+    return path.resolve(workdir, dir);
+  }
+  return path.resolve(dir);
+}
+
+export interface PermissionManagerOptions {
+  /** Configured permission mode from settings */
+  configuredPermissionMode?: PermissionMode;
+  /**
+   * Session-level bypass authorization (see `captureBypassAuthorization`).
+   * Passed explicitly by subagents so they inherit the parent session's value
+   * instead of re-deriving it from their own (mid-session) mode.
+   */
+  bypassAuthorization?: boolean;
+  /** Allowed rules from settings */
+  allowedRules?: string[];
+  /** Denied rules from settings */
+  deniedRules?: string[];
+  /** Instance-specific allowed rules (from AgentOptions) */
+  instanceAllowedRules?: string[];
+  /** Instance-specific denied rules (from AgentOptions) */
+  instanceDeniedRules?: string[];
+  /** Additional directories considered part of the Safe Zone */
+  additionalDirectories?: string[];
+  /** Instance-specific additional directories (from AgentOptions, session-level) */
+  instanceAdditionalDirectories?: string[];
+  /** System additional directories (persistent across reloads) */
+  systemAdditionalDirectories?: string[];
+  /** Optional logger */
+  logger?: Logger;
+}
+
+export class PermissionManager {
+  private configuredPermissionMode?: PermissionMode;
+  /**
+   * Session-level bypass authorization: the permission mode in effect when the
+   * session was created was `bypassPermissions`. Frozen at session start, so a
+   * later mode switch (or config reload) can never grant it.
+   * `undefined` = not captured yet (subagents get an explicit value instead).
+   */
+  private bypassAuthorization?: boolean;
+  private allowedRules: string[] = [];
+  private deniedRules: string[] = [];
+  private instanceAllowedRules: string[] = [];
+  private instanceDeniedRules: string[] = [];
+  private temporaryRules: string[] = [];
+  private additionalDirectories: string[] = [];
+  private instanceAdditionalDirectories: string[] = [];
+  private systemAdditionalDirectories: string[] = [];
+  private workdir?: string;
+  private worktreeName?: string;
+  private mainRepoRoot?: string;
+  private onConfiguredPermissionModeChange?: (mode: PermissionMode) => void;
+  private _logger?: Logger;
+
+  constructor(
+    private container: Container,
+    options: PermissionManagerOptions = {},
+  ) {
+    this.configuredPermissionMode = options.configuredPermissionMode;
+    this.bypassAuthorization = options.bypassAuthorization;
+    this.allowedRules = options.allowedRules || [];
+    this.deniedRules = options.deniedRules || [];
+    this.instanceAllowedRules = options.instanceAllowedRules || [];
+    this.instanceDeniedRules = options.instanceDeniedRules || [];
+    this._logger = options.logger;
+    // Read workdir first so relative additional directories resolve against it.
+    this.workdir = this.container.get<string>("Workdir");
+    this.worktreeName = this.container.get<string | undefined>("WorktreeName");
+    this.mainRepoRoot = this.container.get<string | undefined>("MainRepoRoot");
+    this.updateAdditionalDirectories(options.additionalDirectories || []);
+    for (const dir of options.instanceAdditionalDirectories || []) {
+      this.addInstanceAdditionalDirectory(dir);
+    }
+    for (const dir of options.systemAdditionalDirectories || []) {
+      this.addSystemAdditionalDirectory(dir);
+    }
+  }
+
+  /**
+   * Resolve the working directory from the DI container
+   */
+  private getWorkdir(): string | undefined {
+    return this.container.get<string>("Workdir");
+  }
+
+  /**
+   * Set a callback to be notified when the effective permission mode changes due to configuration updates
+   */
+  public setOnConfiguredPermissionModeChange(
+    callback: (mode: PermissionMode) => void,
+  ): void {
+    this.onConfiguredPermissionModeChange = callback;
+  }
+
+  /**
+   * Update the configured default mode (e.g., when configuration reloads)
+   */
+  updateConfiguredPermissionMode(permissionMode?: PermissionMode): void {
+    const oldEffectiveMode = this.getCurrentEffectiveMode();
+
+    this.configuredPermissionMode = permissionMode;
+
+    const newEffectiveMode = this.getCurrentEffectiveMode();
+    if (
+      oldEffectiveMode !== newEffectiveMode &&
+      this.onConfiguredPermissionModeChange
+    ) {
+      this.onConfiguredPermissionModeChange(newEffectiveMode);
+    }
+  }
+
+  /**
+   * Get the configured default mode
+   */
+  public getConfiguredPermissionMode(): PermissionMode | undefined {
+    return this.configuredPermissionMode;
+  }
+
+  /**
+   * Freeze the session-level bypass authorization from the permission mode in
+   * effect when the session was created (CLI mode > configured default mode >
+   * `default`). No-op once captured, so switching to `bypassPermissions`
+   * mid-session does not grant it.
+   */
+  public captureBypassAuthorization(): void {
+    if (this.bypassAuthorization !== undefined) {
+      return;
+    }
+    const sessionMode = this.container.has("PermissionMode")
+      ? this.container.get<PermissionMode>("PermissionMode")
+      : undefined;
+    this.bypassAuthorization =
+      this.getCurrentEffectiveMode(sessionMode) === "bypassPermissions";
+  }
+
+  /**
+   * Whether this session was created with bypassPermissions.
+   */
+  public getBypassAuthorization(): boolean {
+    return this.bypassAuthorization === true;
+  }
+
+  /**
+   * Get all currently allowed rules (user-defined)
+   */
+  public getAllowedRules(): string[] {
+    return [...this.allowedRules];
+  }
+
+  /**
+   * Get all currently denied rules
+   */
+  public getDeniedRules(): string[] {
+    return [...this.deniedRules];
+  }
+
+  /**
+   * Get all instance-specific allowed rules
+   */
+  public getInstanceAllowedRules(): string[] {
+    return [...this.instanceAllowedRules];
+  }
+
+  /**
+   * Get all instance-specific denied rules
+   */
+  public getInstanceDeniedRules(): string[] {
+    return [...this.instanceDeniedRules];
+  }
+
+  /**
+   * Add an instance-level allowed rule (session-level, in-memory only).
+   * Unlike addPermissionRule, this does NOT persist to settings.local.json.
+   */
+  public addInstanceAllowedRule(rule: string): void {
+    if (!this.instanceAllowedRules.includes(rule)) {
+      this.instanceAllowedRules.push(rule);
+    }
+  }
+
+  /**
+   * Remove an instance-level allowed rule added via addInstanceAllowedRule.
+   * Used when a builtin plugin that contributed a helper-script grant is
+   * unloaded, so the grant does not outlive the plugin.
+   * @returns true if the rule was present
+   */
+  public removeInstanceAllowedRule(rule: string): boolean {
+    const index = this.instanceAllowedRules.indexOf(rule);
+    if (index === -1) {
+      return false;
+    }
+    this.instanceAllowedRules.splice(index, 1);
+    return true;
+  }
+
+  /**
+   * Get all additional directories
+   */
+  public getAdditionalDirectories(): string[] {
+    return [...this.additionalDirectories];
+  }
+
+  /**
+   * Get all instance-specific additional directories (session-level, from AgentOptions or /add-dir)
+   */
+  public getInstanceAdditionalDirectories(): string[] {
+    return [...this.instanceAdditionalDirectories];
+  }
+
+  /**
+   * Get the effective union of additional directories (config + instance, deduplicated).
+   * This is the data source for system prompt injection and Safe Zone checks.
+   */
+  public getEffectiveAdditionalDirectories(): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const dir of [
+      ...this.additionalDirectories,
+      ...this.instanceAdditionalDirectories,
+    ]) {
+      if (!seen.has(dir)) {
+        seen.add(dir);
+        result.push(dir);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get all system additional directories
+   */
+  public getSystemAdditionalDirectories(): string[] {
+    return [...this.systemAdditionalDirectories];
+  }
+
+  /**
+   * Get all default allowed rules
+   */
+  public getDefaultAllowedRules(): string[] {
+    return [...DEFAULT_ALLOWED_RULES];
+  }
+
+  /**
+   * Update the allowed rules (e.g., when configuration reloads)
+   */
+  updateAllowedRules(rules: string[]): void {
+    this.allowedRules = rules;
+  }
+
+  /**
+   * Update the denied rules (e.g., when configuration reloads)
+   */
+  updateDeniedRules(rules: string[]): void {
+    this.deniedRules = rules;
+  }
+
+  /**
+   * Add temporary rules for the current session
+   */
+  public addTemporaryRules(rules: string[]): void {
+    this.temporaryRules.push(...rules);
+  }
+
+  /**
+   * Clear all temporary rules
+   */
+  public clearTemporaryRules(): void {
+    this.temporaryRules = [];
+  }
+
+  /**
+   * Update the additional directories (e.g., when configuration reloads)
+   */
+  updateAdditionalDirectories(directories: string[]): void {
+    this.additionalDirectories = directories.map((dir) =>
+      resolveAdditionalDirectory(dir, this.workdir),
+    );
+  }
+
+  /**
+   * Add an instance-level additional directory (session-level, e.g. /add-dir command)
+   */
+  public addInstanceAdditionalDirectory(directory: string): void {
+    const resolvedPath = resolveAdditionalDirectory(directory, this.workdir);
+
+    if (!this.instanceAdditionalDirectories.includes(resolvedPath)) {
+      this.instanceAdditionalDirectories.push(resolvedPath);
+    }
+  }
+
+  /**
+   * Add a system-level additional directory that is persistent across configuration reloads
+   */
+  public addSystemAdditionalDirectory(directory: string): void {
+    const resolvedPath = resolveAdditionalDirectory(directory, this.workdir);
+
+    if (!this.systemAdditionalDirectories.includes(resolvedPath)) {
+      this.systemAdditionalDirectories.push(resolvedPath);
+    }
+  }
+
+  /**
+   * Remove a system-level additional directory (idempotent). Used when a
+   * settings.json change revokes a privilege that was granted at construction
+   * time — e.g. turning auto-memory off removes its directory from the safe
+   * zone (core/agent-config.md scenario 6).
+   */
+  public removeSystemAdditionalDirectory(directory: string): void {
+    const resolvedPath = resolveAdditionalDirectory(directory, this.workdir);
+    this.systemAdditionalDirectories = this.systemAdditionalDirectories.filter(
+      (dir) => dir !== resolvedPath,
+    );
+  }
+
+  /**
+   * Public wrapper for isInsideSafeZone to check if a path is in the safe zone
+   */
+  public isPathInSafeZone(targetPath: string): boolean {
+    return this.isInsideSafeZone(targetPath).isInside;
+  }
+
+  /**
+   * Check if a path is inside the Safe Zone (workdir + additionalDirectories)
+   */
+  private isInsideSafeZone(
+    targetPath: string,
+    workdir?: string,
+  ): { isInside: boolean; resolvedPath: string } {
+    const effectiveWorkdir = this.workdir || workdir;
+
+    // Convert MSYS/git-bash style paths (/c/Users/...) to native Windows form
+    // so `cd /c/...` and file args resolve correctly on win32 instead of
+    // becoming bogus C:\c\... paths that never match the Safe Zone.
+    const normalizedTarget = toWindowsPath(targetPath);
+    const normalizedWorkdir = effectiveWorkdir
+      ? toWindowsPath(effectiveWorkdir)
+      : undefined;
+
+    // Resolve the target path relative to effectiveWorkdir if it's not absolute
+    const absolutePath =
+      normalizedWorkdir && !path.isAbsolute(normalizedTarget)
+        ? path.resolve(normalizedWorkdir, normalizedTarget)
+        : path.resolve(normalizedTarget);
+
+    // Check workdir
+    if (
+      effectiveWorkdir &&
+      isPathInside(absolutePath, toWindowsPath(effectiveWorkdir))
+    ) {
+      return { isInside: true, resolvedPath: absolutePath };
+    }
+
+    // Check additional directories
+    for (const dir of this.additionalDirectories) {
+      if (isPathInside(absolutePath, toWindowsPath(dir))) {
+        return { isInside: true, resolvedPath: absolutePath };
+      }
+    }
+
+    // Check instance additional directories
+    for (const dir of this.instanceAdditionalDirectories) {
+      if (isPathInside(absolutePath, toWindowsPath(dir))) {
+        return { isInside: true, resolvedPath: absolutePath };
+      }
+    }
+
+    // Check system additional directories
+    for (const dir of this.systemAdditionalDirectories) {
+      if (isPathInside(absolutePath, toWindowsPath(dir))) {
+        return { isInside: true, resolvedPath: absolutePath };
+      }
+    }
+
+    return { isInside: false, resolvedPath: absolutePath };
+  }
+
+  /**
+   * Get the current effective permission mode for tool execution context
+   */
+  getCurrentEffectiveMode(cliPermissionMode?: PermissionMode): PermissionMode {
+    return this.resolveEffectivePermissionMode(cliPermissionMode);
+  }
+
+  /**
+   * Resolve the effective permission mode based on CLI override and configured default
+   */
+  resolveEffectivePermissionMode(
+    cliPermissionMode?: PermissionMode,
+  ): PermissionMode {
+    // CLI override takes highest precedence
+    if (cliPermissionMode !== undefined) {
+      return cliPermissionMode;
+    }
+
+    // Use configured default mode if available
+    if (this.configuredPermissionMode !== undefined) {
+      return this.configuredPermissionMode;
+    }
+
+    // Fall back to system default
+    return "default";
+  }
+
+  /**
+   * Check if a tool execution requires permission and handle the authorization flow
+   * Called by individual tools after validation/diff, before real operation
+   */
+  async checkPermission(
+    context: ToolPermissionContext,
+  ): Promise<PermissionDecision> {
+    // 0. Check instance-specific denied rules first - Deny always takes precedence
+    for (const rule of this.instanceDeniedRules) {
+      if (this.matchesRule(context, rule)) {
+        logger?.warn("Permission denied by instance rule", {
+          toolName: context.toolName,
+          rule,
+        });
+        return {
+          behavior: "deny",
+          message: `Access to tool '${context.toolName}' is explicitly denied by instance rule: ${rule}`,
+        };
+      }
+    }
+
+    // 0. Check denied rules first - Deny always takes precedence
+    for (const rule of this.deniedRules) {
+      if (this.matchesRule(context, rule)) {
+        logger?.warn("Permission denied by rule", {
+          toolName: context.toolName,
+          rule,
+        });
+        return {
+          behavior: "deny",
+          message: `Access to tool '${context.toolName}' is explicitly denied by rule: ${rule}`,
+        };
+      }
+    }
+
+    // Check worktree safety for Write and Edit tools — unconditional safety
+    // check, applied regardless of permission mode (same as read-before-edit).
+    const effectiveWorktreeName = this.worktreeName;
+    const effectiveWorkdir = this.workdir;
+    const effectiveMainRepoRoot = this.mainRepoRoot;
+
+    if (
+      effectiveWorktreeName &&
+      effectiveMainRepoRoot &&
+      effectiveWorkdir &&
+      (context.toolName === WRITE_TOOL_NAME ||
+        context.toolName === EDIT_TOOL_NAME)
+    ) {
+      const targetPath = context.toolInput?.file_path as string | undefined;
+      if (targetPath) {
+        const absoluteTargetPath = path.resolve(effectiveWorkdir, targetPath);
+        const isInsideMainRepo = isPathInside(
+          absoluteTargetPath,
+          effectiveMainRepoRoot,
+        );
+        const isInsideWorktree = isPathInside(
+          absoluteTargetPath,
+          effectiveWorkdir,
+        );
+
+        if (isInsideMainRepo && !isInsideWorktree) {
+          logger?.warn("Worktree safety violation", {
+            toolName: context.toolName,
+            targetPath,
+            worktreeName: effectiveWorktreeName,
+            mainRepoRoot: effectiveMainRepoRoot,
+            workdir: effectiveWorkdir,
+          });
+          return {
+            behavior: "deny",
+            message: `Access denied: You are currently in a worktree session ("${effectiveWorktreeName}"). Modifying files in the main repository (outside the worktree) is not allowed. Please only modify files within the worktree directory: ${effectiveWorkdir}`,
+          };
+        }
+      }
+    }
+
+    // If bypassPermissions mode, always allow except tools that require
+    // user interaction (AskUserQuestion).
+    const bypassesPermissionChecks =
+      context.permissionMode === "bypassPermissions";
+    if (bypassesPermissionChecks) {
+      const requiresUserInteraction = (
+        USER_INTERACTION_REQUIRED_TOOLS as readonly string[]
+      ).includes(context.toolName);
+      if (!requiresUserInteraction) {
+        return { behavior: "allow" };
+      }
+    }
+
+    // If acceptEdits mode, allow Edit, Write, and mkdir in safe zone
+    if (context.permissionMode === "acceptEdits") {
+      const autoAcceptedTools = [EDIT_TOOL_NAME, WRITE_TOOL_NAME];
+      if (autoAcceptedTools.includes(context.toolName)) {
+        // Enforce Safe Zone for file operations
+        const targetPath = context.toolInput?.file_path as string | undefined;
+        const workdir = context.toolInput?.workdir as string | undefined;
+
+        if (targetPath) {
+          const { isInside, resolvedPath } = this.isInsideSafeZone(
+            targetPath,
+            workdir,
+          );
+          if (!isInside) {
+            logger?.info(
+              "File operation outside the Safe Zone in acceptEdits mode, falling back to manual confirmation",
+              {
+                toolName: context.toolName,
+                targetPath,
+                resolvedPath,
+              },
+            );
+            // Fall through to normal permission check flow to trigger confirmation prompt
+          } else {
+            return { behavior: "allow" };
+          }
+        }
+      }
+
+      // Special case for mkdir in Bash tool
+      if (context.toolName === BASH_TOOL_NAME && context.toolInput?.command) {
+        const command = String(context.toolInput.command).trim();
+        if (command.startsWith("mkdir ")) {
+          const parts = splitBashCommand(command);
+          // Check if it's a simple mkdir command (first part is mkdir)
+          if (parts.length === 1) {
+            const processedPart = stripEnvVars(parts[0]);
+            if (processedPart.startsWith("mkdir ")) {
+              const args = processedPart.slice(6).trim();
+              const pathArgs =
+                (args.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || []).filter(
+                  (arg) => !arg.startsWith("-"),
+                ) || [];
+
+              if (pathArgs.length > 0) {
+                const allPathsSafe = pathArgs.every((pathArg) => {
+                  const cleanPath = pathArg.replace(/^['"](.*)['"]$/, "$1");
+                  const { isInside } = this.isInsideSafeZone(
+                    cleanPath,
+                    context.toolInput?.workdir as string | undefined,
+                  );
+                  return isInside;
+                });
+
+                if (allPathsSafe) {
+                  return { behavior: "allow" };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 1.2 Check if tool call is allowed by persistent or temporary rules
+    if (this.isAllowedByRule(context)) {
+      return { behavior: "allow" };
+    }
+
+    // 2. If not a restricted tool, always allow
+    if (!this.isRestrictedTool(context.toolName)) {
+      return { behavior: "allow" };
+    }
+
+    // 2.1 If dontAsk mode, auto-deny restricted tools that were not allowed by rules above
+    if (context.permissionMode === "dontAsk") {
+      logger?.info("Restricted tool automatically denied in dontAsk mode", {
+        toolName: context.toolName,
+      });
+      return {
+        behavior: "deny",
+        message: `Tool '${context.toolName}' was automatically denied because 'dontAsk' permission mode is active and no pre-approved rule matches this call.`,
+      };
+    }
+
+    // 3. If custom callback provided, call it and return result
+    if (context.canUseToolCallback) {
+      try {
+        const decision = await context.canUseToolCallback(context);
+        if (decision.behavior !== "allow") {
+          logger?.debug("Custom callback returned decision", {
+            toolName: context.toolName,
+            decision,
+          });
+        }
+        return decision;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        logger?.error("Error in permission callback", {
+          toolName: context.toolName,
+          error: errorMessage,
+        });
+        return {
+          behavior: "deny",
+          message: "Error in permission callback",
+        };
+      }
+    }
+
+    // 4. For default mode on restricted tools without callback, integrate with CLI confirmation
+    // Note: CLI confirmation integration will be implemented in Phase 2
+    logger?.warn(
+      "No permission callback provided for restricted tool in default mode",
+      {
+        toolName: context.toolName,
+      },
+    );
+    return {
+      behavior: "deny",
+      message: `Tool '${context.toolName}' requires permission approval. No permission callback configured.`,
+    };
+  }
+
+  /**
+   * Determine if a tool requires permission checks based on its name
+   */
+  isRestrictedTool(toolName: string): boolean {
+    return (
+      (RESTRICTED_TOOLS as readonly string[]).includes(toolName) ||
+      toolName.startsWith("mcp__")
+    );
+  }
+
+  /**
+   * Check if a tool is completely denied by name in instance or global rules
+   */
+  public isToolDenied(toolName: string): boolean {
+    // Check instance-specific denied rules
+    if (this.instanceDeniedRules.includes(toolName)) {
+      return true;
+    }
+
+    // Check global denied rules
+    if (this.deniedRules.includes(toolName)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Helper method to create a permission context for CLI integration
+   */
+  createContext(
+    toolName: string,
+    permissionMode: PermissionMode,
+    callback?: PermissionCallback,
+    toolInput?: Record<string, unknown>,
+    toolCallId?: string,
+  ): ToolPermissionContext {
+    let suggestedPrefix: string | undefined;
+    if (toolName === BASH_TOOL_NAME && toolInput?.command) {
+      const command = String(toolInput.command);
+      const parts = splitBashCommand(command);
+      // Only suggest prefix for single commands to avoid confusion with complex chains
+      if (parts.length === 1) {
+        const processedPart = stripRedirections(stripEnvVars(parts[0]));
+        suggestedPrefix = getSmartPrefix(processedPart) ?? undefined;
+      }
+    } else if (toolName.startsWith("mcp__")) {
+      suggestedPrefix = toolName;
+    }
+
+    const context: ToolPermissionContext = {
+      toolName,
+      permissionMode,
+      canUseToolCallback: callback,
+      toolInput,
+      suggestedPrefix,
+      toolCallId,
+    };
+
+    // Set hidePersistentOption for out-of-bounds file operations
+    const fileTools = [EDIT_TOOL_NAME, WRITE_TOOL_NAME];
+    if (fileTools.includes(toolName)) {
+      const targetPath = toolInput?.file_path as string | undefined;
+      const workdir = toolInput?.workdir as string | undefined;
+
+      if (targetPath) {
+        const { isInside, resolvedPath } = this.isInsideSafeZone(
+          targetPath,
+          workdir,
+        );
+        if (!isInside) {
+          context.hidePersistentOption = true;
+          // Surface the target's directory so the confirmation UI can offer
+          // adding it to the session Safe Zone.
+          context.outsideSafeZoneDirectory = path.dirname(resolvedPath);
+        }
+      }
+    }
+
+    // Set hidePersistentOption for dangerous or out-of-bounds bash commands
+    if (toolName === BASH_TOOL_NAME && toolInput?.command) {
+      const command = String(toolInput.command);
+      const workdir = toolInput.workdir as string | undefined;
+      const parts = splitBashCommand(command);
+
+      const isDangerous = parts.some((part) => {
+        if (hasWriteRedirections(part)) {
+          return true;
+        }
+        // Command/process substitution and sed -i are dangerous (FR-019.5, FR-019.6)
+        if (
+          hasCommandSubstitution(part) ||
+          hasProcessSubstitution(part) ||
+          hasSedInPlace(part)
+        ) {
+          return true;
+        }
+        const processedPart = stripRedirections(stripEnvVars(part));
+        const commandMatch = processedPart.match(/^(\w+)(\s+.*)?$/);
+        if (commandMatch) {
+          const cmd = commandMatch[1];
+
+          // Check blacklist
+          if (DANGEROUS_COMMANDS.includes(cmd)) {
+            return true;
+          }
+
+          // Check out-of-bounds for cd and path-taking read-only commands
+          return this.isOutOfSafeZonePart(part, workdir);
+        }
+        return false;
+      });
+
+      if (isDangerous) {
+        context.hidePersistentOption = true;
+      }
+    }
+
+    return context;
+  }
+
+  /**
+   * Check if a tool call matches a specific permission rule
+   */
+  private matchesRule(context: ToolPermissionContext, rule: string): boolean {
+    // 1. Simple tool name match (e.g., "Bash", "Write")
+    if (rule === context.toolName) {
+      return true;
+    }
+
+    // 2. Tool with pattern match (e.g., "Bash(rm *)", "Read(**/*.env)")
+    const match = rule.match(/^(\w+)\((.*)\)$/);
+    if (!match) {
+      return false;
+    }
+
+    const [, toolName, pattern] = match;
+    if (toolName !== context.toolName) {
+      return false;
+    }
+
+    // Handle Bash command rules
+    if (toolName === BASH_TOOL_NAME) {
+      const command = String(context.toolInput?.command || "");
+      const hasWriteInPattern = hasWriteRedirections(pattern);
+      const hasWriteInCommand = hasWriteRedirections(command);
+
+      // If the command has write redirections, it must match a pattern that also has write redirections
+      if (hasWriteInCommand && !hasWriteInPattern) {
+        return false;
+      }
+
+      const processedPart = hasWriteInPattern
+        ? stripEnvVars(command)
+        : stripRedirections(stripEnvVars(command));
+      // For Bash commands, we want '*' to match everything including slashes and spaces
+      // minimatch's default behavior for '*' is to not match across directory separators
+      // We use a regex to replace '*' with '.*' (match anything)
+      const regexPattern = pattern
+        .replace(/[.+^${}()|[\]\\?]/g, "\\$&") // Escape regex special chars including ?
+        .replace(/\*/g, ".*"); // Replace * with .*
+      const regex = new RegExp(`^${regexPattern}$`, "s");
+      const matched = regex.test(processedPart);
+      if (matched) return true;
+      // Leading git global scope flags (e.g. `git -C <path>`) only change the
+      // target repository, not the subcommand being run, so rules like
+      // Bash(git status*) also cover `git -C <path> status`. The raw command
+      // is checked first so path-specific rules (e.g. deny rules on
+      // `git -C /secret status`) still match.
+      return regex.test(stripGitScopePrefix(processedPart));
+    }
+
+    // Handle path-based rules (e.g., "Read(**/*.env)")
+    const pathTools = [READ_TOOL_NAME, WRITE_TOOL_NAME, EDIT_TOOL_NAME];
+    if (pathTools.includes(toolName)) {
+      const targetPath = (context.toolInput?.file_path ||
+        context.toolInput?.path) as string | undefined;
+
+      if (targetPath) {
+        if (minimatch(targetPath, pattern, { dot: true })) {
+          return true;
+        }
+
+        // If direct match fails, try matching relative path if targetPath is absolute and pattern is relative
+        const currentWorkdir = this.getWorkdir();
+        if (
+          path.isAbsolute(targetPath) &&
+          !path.isAbsolute(pattern) &&
+          currentWorkdir
+        ) {
+          const relativePath = path.relative(currentWorkdir, targetPath);
+          // Ensure the path is not outside the workdir (doesn't start with ..)
+          if (
+            !relativePath.startsWith("..") &&
+            !path.isAbsolute(relativePath)
+          ) {
+            return minimatch(relativePath, pattern, { dot: true });
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if a single bash command part is auto-allowed (read-only and safe).
+   * Auto-allowed commands skip the confirmation dialog entirely.
+   * FR-019.2 through FR-019.7: read-only commands without write redirections,
+   * command substitution, process substitution, or sed -i are auto-allowed.
+   */
+  private isAutoAllowedPart(part: string, workdir?: string): boolean {
+    // Write redirections disqualify (FR-019.4)
+    if (hasWriteRedirections(part)) return false;
+    // Command substitution $(...) or `...` disqualifies (FR-019.6)
+    if (hasCommandSubstitution(part)) return false;
+    // Process substitution <(...) or >(...) disqualifies (FR-019.6)
+    if (hasProcessSubstitution(part)) return false;
+
+    const processedPart = stripRedirections(stripEnvVars(part));
+    const commandMatch = processedPart.match(/^(\w+)(\s+.*)?$/);
+    if (!commandMatch) return false;
+
+    const cmd = commandMatch[1];
+    const args = commandMatch[2]?.trim() || "";
+
+    // sed -i (in-place edit) disqualifies (FR-019.5)
+    if (hasSedInPlace(part)) return false;
+
+    // Read-only commands are auto-allowed (FR-019.2, FR-019.3)
+    if (READ_ONLY_COMMANDS.includes(cmd)) {
+      // find with dangerous flags (e.g. -exec, -delete) disqualifies
+      if (cmd === "find" && isDangerousFind(part)) return false;
+      // Path-taking read-only commands must stay within the Safe Zone:
+      // accessing a path outside workdir / additional directories
+      // disqualifies (aligned with Claude Code's path constraints)
+      if (PATH_COMMANDS.includes(cmd)) {
+        const pathArgs = extractPathArgs(args);
+        if (pathArgs.length > 0) {
+          if (!workdir) return false;
+          if (
+            !pathArgs.every(
+              (pathArg) => this.isInsideSafeZone(pathArg, workdir).isInside,
+            )
+          ) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    // cd is not read-only but is safe if all paths are within the Safe Zone
+    if (cmd === "cd") {
+      if (!workdir) return false;
+      const pathArgs =
+        (args.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || []).filter(
+          (arg) => !arg.startsWith("-"),
+        ) || [];
+      if (pathArgs.length === 0) return true; // cd without args = current dir
+      return pathArgs.every((pathArg) => {
+        const cleanPath = pathArg.replace(/^['"](.*)['"]$/, "$1");
+        const { isInside } = this.isInsideSafeZone(cleanPath, workdir);
+        return isInside;
+      });
+    }
+
+    return false;
+  }
+
+  /**
+   * Check whether a bash command part takes path arguments (cd or a
+   * path-taking read-only command) that escape the Safe Zone. Used to
+   * disqualify auto-allow via DEFAULT_ALLOWED_RULES and to hide the
+   * "don't ask again" persistence option for out-of-bounds access.
+   */
+  private isOutOfSafeZonePart(part: string, workdir?: string): boolean {
+    const processedPart = stripRedirections(stripEnvVars(part));
+    const commandMatch = processedPart.match(/^(\w+)(\s+.*)?$/);
+    if (!commandMatch) return false;
+    const cmd = commandMatch[1];
+    if (cmd !== "cd" && !PATH_COMMANDS.includes(cmd)) return false;
+    const args = commandMatch[2]?.trim() || "";
+    const pathArgs = extractPathArgs(args);
+    if (pathArgs.length === 0) return false;
+    return pathArgs.some(
+      (pathArg) => !this.isInsideSafeZone(pathArg, workdir).isInside,
+    );
+  }
+
+  /**
+   * Check if a tool call is allowed by persistent or temporary rules
+   */
+  private isAllowedByRule(context: ToolPermissionContext): boolean {
+    // All allow-rule sources are matched as a union: each part of a chained
+    // command only needs to hit at least one rule across all sources, so
+    // different parts may be covered by different sources.
+    const explicitRules = [
+      ...this.instanceAllowedRules,
+      ...this.temporaryRules,
+      ...this.allowedRules,
+    ];
+
+    if (context.toolName === BASH_TOOL_NAME && context.toolInput?.command) {
+      const command = String(context.toolInput.command);
+      const workdir = context.toolInput?.workdir as string | undefined;
+
+      // Structure-aware expansion: compound commands and command substitutions
+      // are reduced to their leaf simple commands; each leaf is classified
+      // exactly like a top-level part of a chained command would be (spec:
+      // "复合命令与命令替换的结构感知判定").
+      const structure = parseBashStructure(command);
+      if (structure.status === "ok") {
+        if (structure.leaves.length === 0) return false;
+        return structure.leaves.every((leaf) =>
+          this.isBashLeafAllowed(leaf, workdir, context, explicitRules),
+        );
+      }
+
+      // Fail-closed (heredoc / process substitution / arithmetic / brace /
+      // parse failure / eval / trap / …): the command cannot be statically
+      // reduced to leaves, so it is never auto-allowed and never matches the
+      // built-in default rules. Only an explicit user rule covering the whole
+      // command may allow it.
+      const wholeContext = {
+        ...context,
+        toolInput: { ...context.toolInput, command },
+      };
+      return explicitRules.some((rule) => this.matchesRule(wholeContext, rule));
+    }
+
+    // For other tools, check if any rule matches
+    const allRules = [...explicitRules, ...DEFAULT_ALLOWED_RULES];
+    return allRules.some((rule) => this.matchesRule(context, rule));
+  }
+
+  /**
+   * Classify one expanded leaf command. Every leaf of a compound command or
+   * command substitution is judged with the exact rules used for a plain
+   * command, with two structure-aware additions:
+   *
+   *  - a leaf the parser flagged `unsafe` (a bare reference to a variable whose
+   *    value is not statically known, or a command substitution inside the
+   *    leaf's own argument words) is never auto-allowed and never matches the
+   *    built-in default rules — only an explicit allow rule may cover it;
+   *  - `read` (e.g. the condition of `while read …`) only reads stdin, so it
+   *    is treated as safe when it carries no redirection of its own.
+   */
+  private isBashLeafAllowed(
+    leaf: BashLeaf,
+    workdir: string | undefined,
+    context: ToolPermissionContext,
+    explicitRules: string[],
+  ): boolean {
+    // Check for auto-allowed read-only commands (FR-019.2 through FR-019.7)
+    if (!leaf.unsafe) {
+      if (leaf.command === "read" && !/[<>]/.test(leaf.text)) return true;
+      if (this.isAutoAllowedPart(leaf.text, workdir)) return true;
+    }
+
+    if (
+      explicitRules.some((rule) =>
+        this.matchesRule(this.ruleContext(context, leaf.text), rule),
+      ) ||
+      explicitRules.some((rule) =>
+        this.matchesRule(
+          this.ruleContext(context, unquotedLeafCommand(leaf)),
+          rule,
+        ),
+      )
+    ) {
+      return true;
+    }
+
+    // Default rules must not auto-allow dangerous variants (write
+    // redirections, substitutions, sed -i, dangerous find, out-of-safe-zone
+    // paths, bare-unknown-variable / in-word substitution leaves) through
+    // broad rules like Bash(echo*) or Bash(cat*)
+    const isDangerousVariant =
+      leaf.unsafe ||
+      hasWriteRedirections(leaf.text) ||
+      isDangerousFind(leaf.text) ||
+      hasCommandSubstitution(leaf.text) ||
+      hasProcessSubstitution(leaf.text) ||
+      hasSedInPlace(leaf.text) ||
+      this.isOutOfSafeZonePart(leaf.text, workdir);
+    if (
+      !isDangerousVariant &&
+      DEFAULT_ALLOWED_RULES.some((rule) =>
+        this.matchesRule(this.ruleContext(context, leaf.text), rule),
+      )
+    ) {
+      return true;
+    }
+
+    return !this.isRestrictedTool(context.toolName);
+  }
+
+  /** A context whose Bash command is a single part/leaf text. */
+  private ruleContext(
+    context: ToolPermissionContext,
+    command: string,
+  ): ToolPermissionContext {
+    return {
+      ...context,
+      toolInput: { ...context.toolInput, command },
+    };
+  }
+
+  /**
+   * Expand a bash command into individual permission rules, filtering out safe commands.
+   * Used when saving permissions to the allow list.
+   *
+   * @param command The full bash command string
+   * @param workdir The working directory for path safety checks
+   * @returns Array of permission rules in "Bash(cmd)" format
+   */
+  public expandBashRule(command: string, workdir: string): string[] {
+    // Expand compound commands structurally when possible so control-structure
+    // keywords (do/done/then/…) never leak into persisted rules. Constructs the
+    // parser cannot reduce fall back to the legacy textual part splitter.
+    const structure = parseBashStructure(command);
+    const parts =
+      structure.status === "ok" && structure.leaves.length > 0
+        ? structure.leaves.map((leaf) => leaf.text)
+        : splitBashCommand(command);
+    const rules: string[] = [];
+
+    for (const part of parts) {
+      const hasWrite = hasWriteRedirections(part);
+      const processedPart = stripRedirections(stripEnvVars(part));
+
+      // Check for auto-allowed read-only commands
+      const isSafe = this.isAutoAllowedPart(part, workdir);
+
+      if (!isSafe) {
+        // Check if command is dangerous or out-of-bounds
+        const commandMatch = processedPart.match(/^(\w+)(\s+.*)?$/);
+        if (commandMatch) {
+          const cmd = commandMatch[1];
+
+          if (
+            DANGEROUS_COMMANDS.includes(cmd) ||
+            isDangerousFind(part) ||
+            hasSedInPlace(part) ||
+            this.isOutOfSafeZonePart(part, workdir)
+          ) {
+            continue;
+          }
+        }
+
+        const smartPrefix = hasWrite ? null : getSmartPrefix(processedPart);
+        if (smartPrefix) {
+          rules.push(`Bash(${smartPrefix}*)`);
+        } else {
+          rules.push(`Bash(${hasWrite ? stripEnvVars(part) : processedPart})`);
+        }
+      }
+    }
+
+    return rules;
+  }
+
+  /**
+   * Add a persistent permission rule
+   * @param rule - The rule to add (e.g., "Bash(ls)")
+   */
+  public async addPermissionRule(rule: string): Promise<void> {
+    const workdir = this.workdir;
+    if (!workdir) {
+      throw new Error("Working directory not set in PermissionManager");
+    }
+
+    // 1. Expand rule if it's a Bash command
+    let rulesToAdd = [rule];
+    const bashMatch = rule.match(/^Bash\((.*)\)$/);
+    if (bashMatch) {
+      const command = bashMatch[1];
+      rulesToAdd = this.expandBashRule(command, workdir);
+    }
+
+    const configurationService = this.container.get<ConfigurationService>(
+      "ConfigurationService",
+    );
+
+    for (const ruleToAdd of rulesToAdd) {
+      // 2. Update PermissionManager state
+      const currentRules = this.getAllowedRules();
+      const defaultRules = this.getDefaultAllowedRules();
+      if (
+        !currentRules.includes(ruleToAdd) &&
+        !defaultRules.includes(ruleToAdd)
+      ) {
+        this.updateAllowedRules([...currentRules, ruleToAdd]);
+
+        // 3. Persist to settings.local.json
+        try {
+          if (configurationService) {
+            await configurationService.addAllowedRule(workdir, ruleToAdd);
+            this._logger?.debug("Persistent permission rule added", {
+              rule: ruleToAdd,
+            });
+          }
+        } catch (error) {
+          this._logger?.error("Failed to persist permission rule", {
+            rule: ruleToAdd,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Build a rule-matching form of a leaf command with quoting removed from words
+ * that are a single quoted segment (`node "scripts/x"` → `node scripts/x`).
+ * Shell quoting that does not change the executed words must not prevent a
+ * rule such as `Bash(node scripts*)` from matching a leaf like
+ * `node "scripts/$f" --dry-run`. Redirect operators/targets (the text tail
+ * beyond argv) are preserved verbatim so write-redirection guards still apply.
+ */
+function unquotedLeafCommand(leaf: BashLeaf): string {
+  const rawCommand = leaf.argv.join(" ");
+  const tail = leaf.text.slice(rawCommand.length);
+  return leaf.argv.map(unquoteWord).join(" ") + tail;
+}
+
+/** Strip one layer of enclosing single/double quotes from a whole word. */
+function unquoteWord(raw: string): string {
+  if (raw.length < 2) return raw;
+  const first = raw[0];
+  const last = raw[raw.length - 1];
+  if ((first === '"' || first === "'") && first === last) {
+    return raw.slice(1, -1);
+  }
+  return raw;
+}

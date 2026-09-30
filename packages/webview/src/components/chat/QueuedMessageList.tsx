@@ -71,8 +71,7 @@ export const QueuedMessageList: React.FC<QueuedMessageListProps> = ({
       >
         {items.map((qm, index) => {
           const id = qm.id ?? String(index);
-          const fullText =
-            (qm.type === "bang" ? "!" : "") + (qm.content || qm.text || "");
+          const fullText = qm.content || qm.text || "";
           const isEditing =
             editingQueuedId != null && editingQueuedId === qm.id;
           return (

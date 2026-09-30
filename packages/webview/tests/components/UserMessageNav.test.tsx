@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import type { Message } from "wave-agent-sdk";
+import type { Message } from "@muse-work/agent";
 import {
   UserMessageNav,
   navEntriesFromMessages,

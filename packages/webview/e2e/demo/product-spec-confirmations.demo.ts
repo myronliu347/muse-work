@@ -4,10 +4,8 @@ import {
   EDIT_TOOL_NAME,
   BASH_TOOL_NAME,
   ASK_USER_QUESTION_TOOL_NAME,
-  ENTER_PLAN_MODE_TOOL_NAME,
-  EXIT_PLAN_MODE_TOOL_NAME,
   type Message,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Confirmations", () => {
@@ -252,57 +250,6 @@ test.describe("Product Specification Screenshots - Confirmations", () => {
       /mode-acceptEdits/,
     );
 
-    // 15. Plan 确认对话框 - 只显示确认对话框组件
-    await injector.simulateExtensionMessage("showConfirmation", {
-      confirmationId: "plan-confirm-001",
-      confirmationType: "计划执行确认",
-      toolName: EXIT_PLAN_MODE_TOOL_NAME, // "ExitPlanMode"
-      planContent: `## PaymentService 高并发重构计划
-
-### 第一阶段：乐观锁引入
-- 在 PaymentRepository 中添加 version 字段
-- 实现 withOptimisticLock 中间件
-- 处理乐观锁冲突重试逻辑
-
-### 第二阶段：缓存层接入
-- 引入 Redis 作为热数据缓存
-- 实现缓存失效策略（TTL + 主动失效）
-- 添加缓存命中率监控
-
-### 第三阶段：异步化改造
-- 将审计日志改为异步写入
-- 接入消息队列处理非核心流程
-- 性能基准测试与对比`,
-    });
-    const planConfirmDialog = webviewPage.locator(".confirmation-dialog");
-    await planConfirmDialog.waitFor({ state: "visible" });
-    await elementScreenshotWebp(
-      planConfirmDialog,
-      "../../docs/public/screenshots/spec-plan-confirm.webp",
-    );
-
-    // 关闭当前确认对话框
-    await webviewPage.keyboard.press("Escape");
-    await planConfirmDialog.waitFor({ state: "detached" });
-
-    // 15.1 EnterPlanMode 确认对话框 - 简洁选项（仅批准/拒绝）
-    await injector.simulateExtensionMessage("showConfirmation", {
-      confirmationId: "enter-plan-mode-001",
-      confirmationType: "进入计划模式确认",
-      toolName: ENTER_PLAN_MODE_TOOL_NAME, // "EnterPlanMode"
-      toolInput: {},
-      hidePersistentOption: true,
-    });
-    const enterPlanDialog = webviewPage.locator(".confirmation-dialog");
-    await enterPlanDialog.waitFor({ state: "visible" });
-    await elementScreenshotWebp(
-      enterPlanDialog,
-      "../../docs/public/screenshots/spec-enter-plan-mode.webp",
-    );
-
-    // 关闭当前确认对话框
-    await webviewPage.keyboard.press("Escape");
-    await enterPlanDialog.waitFor({ state: "detached" });
 
     // 16. 代码修改确认对话框 - 只显示确认对话框组件
     await injector.simulateExtensionMessage("showConfirmation", {

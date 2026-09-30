@@ -8,8 +8,8 @@ import { renderWordLevelDiff } from "../../utils/diffHighlight";
 import {
   WRITE_TOOL_NAME,
   EDIT_TOOL_NAME,
-} from "wave-agent-sdk/dist/constants/tools.js";
-import type { ToolBlock } from "wave-agent-sdk/dist/types/messaging.js";
+} from "@muse-work/agent/constants";
+import type { ToolBlock } from "@muse-work/agent/types";
 import "../../styles/DiffViewer.css";
 
 interface DiffViewerProps {
@@ -20,7 +20,7 @@ interface DiffViewerProps {
 
 /**
  * DiffViewer component that extracts and displays diffs from tool blocks
- * Uses transformToolBlockToChanges from wave-agent-sdk to get file changes
+ * Uses transformToolBlockToChanges from @muse-work/agent to get file changes
  */
 export const DiffViewer: React.FC<DiffViewerProps> = ({
   toolBlock,

@@ -7,7 +7,7 @@ import {
   act,
   fireInput,
 } from "./test-utils";
-import type { Message, TextBlock } from "wave-agent-sdk";
+import type { Message, TextBlock } from "@muse-work/agent";
 
 /**
  * Helper: append text to contenteditable input without destroying existing child nodes.
@@ -33,7 +33,7 @@ describe("Selection Feature (Inline Tags)", () => {
   it("should insert inline selection tag and render it in history", async () => {
     const { vscode } = renderChatApp();
 
-    // 1. Simulate "Add to Wave" command from extension
+    // 1. Simulate "Add to Muse" command from extension
     const selection = {
       filePath: "/path/to/src/file.ts",
       fileName: "src/file.ts",

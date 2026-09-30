@@ -13,7 +13,7 @@ import { screenshotWebp } from "../utils/screenshot.js";
  * chat input (via the real ChatApp handleAddComment handler) — nothing is sent
  * to the agent, so several comments can be batched.
  */
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const initialState = {
   messages: [],

@@ -1,0 +1,251 @@
+import {
+  ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionCreateParamsStreaming,
+  ChatCompletionChunk,
+  ChatCompletion,
+} from "openai/resources.js";
+import { GatewayConfig } from "../types/config.js";
+import { logger } from "./globalLogger.js";
+
+const MAX_RETRIES = 10;
+const BASE_DELAY_MS = 500;
+const MAX_DELAY_MS = 32000;
+
+function getRetryDelay(
+  attempt: number,
+  retryAfterHeader: string | null,
+): number {
+  if (retryAfterHeader) {
+    const seconds = parseInt(retryAfterHeader, 10);
+    if (!isNaN(seconds)) {
+      return seconds * 1000;
+    }
+  }
+  const baseDelay = Math.min(
+    BASE_DELAY_MS * Math.pow(2, attempt - 1),
+    MAX_DELAY_MS,
+  );
+  const jitter = Math.random() * 0.25 * baseDelay;
+  return baseDelay + jitter;
+}
+
+type CreateParams =
+  | ChatCompletionCreateParamsNonStreaming
+  | ChatCompletionCreateParamsStreaming;
+
+interface APIResponse<T> {
+  data: T;
+  response: Response;
+}
+
+interface APIPromise<T> extends Promise<T> {
+  withResponse(): Promise<APIResponse<T>>;
+}
+
+export class OpenAIClient {
+  constructor(private config: GatewayConfig) {}
+
+  get chat() {
+    return {
+      completions: {
+        create: <P extends CreateParams>(
+          params: P,
+          options?: { signal?: AbortSignal },
+        ): APIPromise<
+          P extends ChatCompletionCreateParamsStreaming
+            ? AsyncIterable<ChatCompletionChunk>
+            : ChatCompletion
+        > => {
+          const responsePromise = this._create(params, options);
+          const promise = responsePromise.then(
+            (res) => res.data,
+          ) as unknown as APIPromise<
+            P extends ChatCompletionCreateParamsStreaming
+              ? AsyncIterable<ChatCompletionChunk>
+              : ChatCompletion
+          >;
+          promise.withResponse = () =>
+            responsePromise as Promise<
+              APIResponse<
+                P extends ChatCompletionCreateParamsStreaming
+                  ? AsyncIterable<ChatCompletionChunk>
+                  : ChatCompletion
+              >
+            >;
+          // Prevent unhandled rejection if only withResponse() is used
+          promise.catch((e) => {
+            if (!(e instanceof Error && e.name === "AbortError")) {
+              logger.error("Unhandled OpenAI promise rejection:", e);
+            }
+          });
+          return promise;
+        },
+      },
+    };
+  }
+
+  private async _create<P extends CreateParams>(
+    params: P,
+    options?: { signal?: AbortSignal },
+  ): Promise<
+    APIResponse<
+      P extends ChatCompletionCreateParamsStreaming
+        ? AsyncIterable<ChatCompletionChunk>
+        : ChatCompletion
+    >
+  > {
+    const {
+      baseURL,
+      apiKey,
+      sessionId,
+      defaultHeaders,
+      fetchOptions,
+      fetch: customFetch,
+    } = this.config;
+    const url = `${baseURL}/chat/completions`;
+    const headers = {
+      "Content-Type": "application/json",
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      ...(sessionId ? { "x-session-id": sessionId } : {}),
+      ...defaultHeaders,
+    };
+
+    const fetchFn = (customFetch as typeof fetch) || fetch;
+    let lastError: (Error & { status?: number; body?: unknown }) | undefined;
+    let lastRetryAfter: string | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = getRetryDelay(attempt, lastRetryAfter);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      let response: Response;
+      try {
+        response = await fetchFn(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(params),
+          signal: options?.signal,
+          ...(fetchOptions as RequestInit),
+        });
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          throw e;
+        }
+        if (attempt < MAX_RETRIES) {
+          logger.warn("OpenAI API network error, retrying...", {
+            model: params.model,
+            attempt: attempt + 1,
+            error: e,
+          });
+          lastError = e as Error;
+          lastRetryAfter = null;
+          continue;
+        }
+        throw e;
+      }
+
+      if (response.ok) {
+        if (params.stream) {
+          return {
+            data: this.streamChatCompletion(response),
+            response,
+          } as unknown as APIResponse<
+            P extends ChatCompletionCreateParamsStreaming
+              ? AsyncIterable<ChatCompletionChunk>
+              : ChatCompletion
+          >;
+        } else {
+          const data = await response.json();
+          return {
+            data,
+            response,
+          } as unknown as APIResponse<
+            P extends ChatCompletionCreateParamsStreaming
+              ? AsyncIterable<ChatCompletionChunk>
+              : ChatCompletion
+          >;
+        }
+      }
+
+      let responseText = "";
+      try {
+        responseText = await response.text();
+      } catch (e) {
+        logger.error("Failed to read error response text", { error: e });
+      }
+
+      const error = new Error(
+        `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}: ${responseText}`,
+      ) as Error & { status?: number; body?: unknown };
+      error.status = response.status;
+      error.body = responseText;
+
+      const retryableStatus =
+        response.status === 429 ||
+        (response.status >= 500 && response.status !== 501);
+      if (retryableStatus && attempt < MAX_RETRIES) {
+        lastRetryAfter = response.headers.get("retry-after");
+        logger.warn("OpenAI API error, retrying...", {
+          model: params.model,
+          attempt: attempt + 1,
+          status: response.status,
+          retryAfter: lastRetryAfter,
+        });
+        lastError = error;
+        continue;
+      }
+
+      logger.error("OpenAI API Error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText,
+      });
+      throw error;
+    }
+    throw lastError;
+  }
+
+  private async *streamChatCompletion(
+    response: Response,
+  ): AsyncIterable<ChatCompletionChunk> {
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || !trimmedLine.startsWith("data:")) continue;
+
+          const data = trimmedLine.slice(5).trim();
+          if (data === "[DONE]") return;
+          if (!data) continue; // Skip empty data lines (keepalive heartbeats)
+
+          try {
+            const json = JSON.parse(data);
+            yield json as ChatCompletionChunk;
+          } catch (e) {
+            logger.error("Failed to parse stream chunk", {
+              error: e instanceof Error ? e.message : String(e),
+              data,
+            });
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { test, expect } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
-import { AGENT_TOOL_NAME, type Message } from "wave-agent-sdk";
+import { AGENT_TOOL_NAME, type Message } from "@muse-work/agent";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Agent transcript / compaction / user nav", () => {

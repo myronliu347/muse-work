@@ -1,4 +1,4 @@
-import type { Message, SessionMetadata } from "wave-agent-sdk";
+import type { Message, SessionMetadata } from "@muse-work/agent";
 
 const DEFAULT_SESSION_TITLE = "新对话";
 

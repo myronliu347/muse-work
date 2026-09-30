@@ -1,0 +1,326 @@
+import { promises as fs } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+import { EventEmitter } from "events";
+import { Task } from "../types/tasks.js";
+import { logger } from "../utils/globalLogger.js";
+import { Container } from "../utils/container.js";
+import type { MessageManager } from "../managers/messageManager.js";
+import type { ConfigurationService } from "./configurationService.js";
+
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
+function byIdAsc(a: Task, b: Task) {
+  const aNum = parseInt(a.id, 10);
+  const bNum = parseInt(b.id, 10);
+  if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+  return a.id.localeCompare(b.id);
+}
+
+export class TaskManager extends EventEmitter {
+  private readonly baseDir: string;
+  private taskListId: string;
+
+  constructor(
+    private container: Container,
+    taskListId: string,
+  ) {
+    super();
+    this.taskListId = taskListId;
+    this.baseDir = join(homedir(), CONFIG_DIR_NAME, "tasks");
+  }
+
+  public getTaskListId(): string {
+    return this.taskListId;
+  }
+
+  public setTaskListId(taskListId: string): void {
+    this.taskListId = taskListId;
+  }
+
+  /**
+   * Syncs the task list ID with the current session's root session ID.
+   * This is typically called when the session is cleared or compacted.
+   */
+  public async syncWithSession(): Promise<void> {
+    const messageManager = this.container.get<MessageManager>("MessageManager");
+    if (!messageManager) return;
+
+    const rootSessionId = messageManager.getRootSessionId();
+    // Read the per-session snapshot (not process.env) so multiple sessions in
+    // the same host process don't cross-pollute this flag.
+    const envSnap =
+      this.container
+        .get<ConfigurationService>("ConfigurationService")
+        ?.getEnvSnapshot() ?? {};
+    const pinnedTaskListId = envGet(
+      MUSE_ENV.TASK_LIST_ID,
+      envSnap,
+      process.env,
+    );
+    if (this.taskListId !== rootSessionId && !pinnedTaskListId) {
+      this.setTaskListId(rootSessionId);
+      await this.refreshTasks();
+    }
+  }
+
+  private getSessionDir(): string {
+    return join(this.baseDir, this.taskListId);
+  }
+
+  public getTaskPath(taskId: string): string {
+    return join(this.getSessionDir(), `${taskId}.json`);
+  }
+
+  private getLockPath(): string {
+    return join(this.getSessionDir(), `.lock`);
+  }
+
+  async ensureSessionDir(): Promise<void> {
+    await fs.mkdir(this.getSessionDir(), { recursive: true });
+  }
+
+  private async withLock<T>(operation: () => Promise<T>): Promise<T> {
+    const lockPath = this.getLockPath();
+    let lockHandle;
+    const maxRetries = 100;
+    const retryDelay = process.env.NODE_ENV === "test" ? 1 : 100;
+    const staleThreshold = 10000;
+
+    await this.ensureSessionDir();
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        lockHandle = await fs.open(lockPath, "wx");
+        break;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+
+        // Only EEXIST (lock held) and EPERM (Windows pending-delete window)
+        // are transient lock-contention errors. EACCES/ENOENT are real failures
+        // and must not be retried as lock competition.
+        if (code !== "EEXIST" && code !== "EPERM") {
+          throw error;
+        }
+
+        if (i === maxRetries - 1) {
+          throw new Error(
+            `Could not acquire lock for task list ${this.taskListId} after ${maxRetries} retries`,
+          );
+        }
+
+        // Stale recovery: if the lock holder crashed without releasing, the
+        // lock file remains forever. Check mtime — if older than the threshold,
+        // remove it. Aligns with proper-lockfile's default 10s stale detection.
+        // The lock file is empty (no PID content), so mtime is the only signal.
+        if (
+          code === "EEXIST" &&
+          (await this.isLockStale(lockPath, staleThreshold))
+        ) {
+          logger.warn(
+            `TaskManager: removing stale lock for task list ${this.taskListId}`,
+          );
+          try {
+            await fs.unlink(lockPath);
+          } catch {
+            // Another waiter may have already removed it — retry anyway
+          }
+          continue;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      }
+    }
+
+    try {
+      return await operation();
+    } finally {
+      if (lockHandle) {
+        await lockHandle.close();
+      }
+      try {
+        await fs.unlink(lockPath);
+      } catch (error) {
+        logger.error(
+          `Failed to release lock for task list ${this.taskListId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  private async isLockStale(
+    lockPath: string,
+    threshold: number,
+  ): Promise<boolean> {
+    try {
+      const stats = await fs.stat(lockPath);
+      return Date.now() - stats.mtimeMs > threshold;
+    } catch {
+      // Lock was removed between our EEXIST and stat — not stale, just retry
+      return false;
+    }
+  }
+
+  private validateTask(task: Task): void {
+    if (!task.id || typeof task.id !== "string")
+      throw new Error("Invalid task ID");
+    if (!task.subject || typeof task.subject !== "string")
+      throw new Error("Invalid task subject");
+    if (!task.description || typeof task.description !== "string")
+      throw new Error("Invalid task description");
+    if (
+      !task.status ||
+      !["pending", "in_progress", "completed", "deleted"].includes(task.status)
+    ) {
+      throw new Error(`Invalid task status: ${task.status}`);
+    }
+  }
+
+  async createTask(task: Omit<Task, "id">): Promise<string> {
+    return await this.withLock(async () => {
+      const taskId = await this.getNextTaskId();
+      const fullTask: Task = { ...task, id: taskId };
+      this.validateTask(fullTask);
+      const taskPath = this.getTaskPath(taskId);
+      const content = JSON.stringify(fullTask, null, 2);
+      await fs.writeFile(taskPath, content, "utf8");
+      this.emit("tasksChange", this.taskListId);
+      logger.debug(`Task ${taskId} created in task list ${this.taskListId}`);
+      return taskId;
+    });
+  }
+
+  async getTask(taskId: string): Promise<Task | null> {
+    const taskPath = this.getTaskPath(taskId);
+    try {
+      const content = await fs.readFile(taskPath, "utf8");
+      try {
+        return JSON.parse(content.trim()) as Task;
+      } catch (parseError) {
+        logger.error(`Failed to parse task file ${taskPath}:`, parseError);
+        logger.error(`Corrupted content: ${content}`);
+        throw parseError;
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async updateTask(task: Task): Promise<void> {
+    this.validateTask(task);
+    await this.withLock(async () => {
+      const taskPath = this.getTaskPath(task.id);
+      const content = JSON.stringify(task, null, 2);
+      await fs.writeFile(taskPath, content, "utf8");
+      this.emit("tasksChange", this.taskListId);
+      logger.debug(`Task ${task.id} updated in task list ${this.taskListId}`);
+    });
+  }
+
+  async deleteTask(taskId: string): Promise<void> {
+    await this.withLock(async () => {
+      const taskPath = this.getTaskPath(taskId);
+      try {
+        await fs.unlink(taskPath);
+        this.emit("tasksChange", this.taskListId);
+        logger.debug(
+          `Task ${taskId} deleted from task list ${this.taskListId}`,
+        );
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw error;
+        }
+      }
+    });
+  }
+
+  async cleanupOldTaskLists(days: number = 30): Promise<void> {
+    const threshold = Date.now() - days * 24 * 60 * 60 * 1000;
+    try {
+      const dirs = await fs.readdir(this.baseDir);
+      for (const dir of dirs) {
+        if (dir === this.taskListId) continue;
+
+        const dirPath = join(this.baseDir, dir);
+        const stats = await fs.stat(dirPath);
+        if (!stats.isDirectory()) continue;
+
+        // Check mtime of the directory and its contents
+        let latestMtime = stats.mtimeMs;
+        const files = await fs.readdir(dirPath);
+        for (const file of files) {
+          const filePath = join(dirPath, file);
+          const fileStats = await fs.stat(filePath);
+          if (fileStats.mtimeMs > latestMtime) {
+            latestMtime = fileStats.mtimeMs;
+          }
+        }
+
+        if (latestMtime < threshold) {
+          logger.info(`Cleaning up old task list directory: ${dirPath}`);
+          await fs.rm(dirPath, { recursive: true, force: true });
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.error("Failed to cleanup old task lists:", error);
+      }
+    }
+  }
+
+  async listTasks(): Promise<Task[]> {
+    const sessionDir = this.getSessionDir();
+    try {
+      const files = await fs.readdir(sessionDir);
+      const taskFiles = files.filter((f) => f.endsWith(".json"));
+
+      const tasks = await Promise.all(
+        taskFiles.map(async (file) => {
+          const taskPath = join(sessionDir, file);
+          try {
+            const content = await fs.readFile(taskPath, "utf8");
+            return JSON.parse(content.trim()) as Task;
+          } catch (error) {
+            logger.error(
+              `Failed to read or parse task file ${taskPath}:`,
+              error,
+            );
+            return null;
+          }
+        }),
+      );
+
+      return tasks.filter((t): t is Task => t !== null).sort(byIdAsc);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getNextTaskId(): Promise<string> {
+    const tasks = await this.listTasks();
+    if (tasks.length === 0) {
+      return "1";
+    }
+    const ids = tasks.map((t) => parseInt(t.id, 10)).filter((id) => !isNaN(id));
+
+    if (ids.length === 0) {
+      return (tasks.length + 1).toString();
+    }
+
+    return (Math.max(...ids) + 1).toString();
+  }
+
+  /**
+   * Refreshes the task list by re-reading tasks from disk and emitting a change event.
+   */
+  public async refreshTasks(): Promise<void> {
+    this.emit("tasksChange", this.taskListId);
+  }
+}

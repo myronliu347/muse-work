@@ -2,7 +2,7 @@ import {
   Agent,
   type AgentOptions,
   type PermissionDecision,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import {
   loadProvidersConfig,
   type ProviderRegistry,
@@ -57,7 +57,7 @@ export interface SessionAgent {
   abortMessage?: () => void;
   /** Optional SDK message snapshot (used after compaction). */
   getMessages?: () => unknown[];
-  /** Wave session id when available (SDK agent or test stub). */
+  /** SDK session id when available (Agent.create or a test stub). */
   sessionId?: string;
   compact?: (instructions?: string) => Promise<void>;
   clearMessages?: () => Promise<void>;
@@ -227,7 +227,7 @@ export interface SessionRunner {
     workdir: string;
     permissionMode: "acceptEdits" | "bypassPermissions";
     latestTotalTokens: number;
-    waveSessionId?: string;
+    museSessionId?: string;
   }>;
   getMcpServers(sessionId: string): Promise<unknown[]>;
   connectMcpServer(sessionId: string, name: string): Promise<{ ok: boolean }>;

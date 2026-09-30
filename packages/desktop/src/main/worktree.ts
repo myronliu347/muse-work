@@ -1,10 +1,13 @@
 /**
- * Git worktree helpers ported from wave-agent `packages/code/src/utils/worktree.ts`.
- * Paths live under `<repo>/.wave/worktrees/<name>` with branch `worktree-<name>`.
+ * Git worktree helpers. New trees live under `~/.muse-work/worktrees/<name>`
+ * (or `$HOME/$MUSE_HOME_DIR/worktrees`). Existing trees under
+ * `<repo>/.wave/worktrees` or `<repo>/.muse-work/worktrees` are reused.
+ * `.wave/worktrees` 是旧树兼容路径，刻意保留读取，暂不删。
  */
 
 import { execFile, execFileSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 
@@ -21,6 +24,23 @@ export interface WorktreeSession {
 
 const VALID_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const MAX_NAME_LEN = 64;
+
+export function getMuseWorktreesRoot(home = os.homedir()): string {
+  const dirName = process.env.MUSE_HOME_DIR ?? ".muse-work";
+  return path.join(home, dirName, "worktrees");
+}
+
+/** Prefer an existing tree (home, then in-repo Muse, then legacy Wave). */
+export function resolveWorktreePath(name: string, repoRoot: string): string {
+  const next = path.join(getMuseWorktreesRoot(), name);
+  const inRepoMuse = path.join(repoRoot, ".muse-work", "worktrees", name);
+  // 旧 Wave 落点；已有树继续复用，新树不再写这里。
+  const legacyWave = path.join(repoRoot, ".wave", "worktrees", name);
+  if (fs.existsSync(next)) return next;
+  if (fs.existsSync(inRepoMuse)) return inRepoMuse;
+  if (fs.existsSync(legacyWave)) return legacyWave;
+  return next;
+}
 
 export function validateWorktreeSlug(name: string): void {
   if (name.length > MAX_NAME_LEN) {
@@ -92,7 +112,7 @@ export async function createWorktree(
 ): Promise<WorktreeSession> {
   validateWorktreeSlug(name);
   const repoRoot = getGitMainRepoRoot(cwd);
-  const worktreePath = path.join(repoRoot, ".wave", "worktrees", name);
+  const worktreePath = resolveWorktreePath(name, repoRoot);
   const branchName = `worktree-${name}`;
   const resolvedBaseBranch = options?.baseBranch || getDefaultRemoteBranch(cwd);
 

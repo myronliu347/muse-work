@@ -10,8 +10,8 @@ import {
   sendCommand,
 } from "./test-utils";
 import { MockDataGenerator } from "../fixtures/mockData";
-import type { Message } from "wave-agent-sdk";
-import { MessageSource } from "wave-agent-sdk";
+import type { Message } from "@muse-work/agent";
+import { MessageSource } from "@muse-work/agent";
 
 /** Scope text queries to the message list — UserMessageNav repeats the same labels. */
 function messagesView() {

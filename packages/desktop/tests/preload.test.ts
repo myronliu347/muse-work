@@ -30,11 +30,11 @@ vi.stubGlobal("document", {
 });
 
 describe("main preload", () => {
-  it("exposes wavePickerPreloadPath as a file:// URL next to itself", async () => {
+  it("exposes musePickerPreloadPath as a file:// URL next to itself", async () => {
     await import("../src/main/preload.js");
 
     const pickerCall = exposeInMainWorld.mock.calls.find(
-      ([key]) => key === "wavePickerPreloadPath",
+      ([key]) => key === "musePickerPreloadPath",
     );
     expect(pickerCall).toBeDefined();
     const url: string = pickerCall![1];

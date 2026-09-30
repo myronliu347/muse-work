@@ -1,0 +1,32 @@
+import { defineConfig } from "vitest/config";
+import { resolve } from "path";
+
+export default defineConfig(() => {
+  return {
+    test: {
+      globals: true,
+      setupFiles: ["./tests/setup.ts"],
+      environment: "node",
+      include: ["tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+      exclude: ["node_modules", "dist"],
+      // reporters: ["dot"],
+      coverage: {
+        provider: "v8" as const,
+        reporter: ["text", "json", "html"],
+        include: ["src/**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+        exclude: ["node_modules", "dist", "tests", "examples"],
+      },
+      env: {
+        MUSE_API_KEY: "test-token",
+        MUSE_BASE_URL: "http://localhost:8080",
+        MUSE_MODEL: "test-model",
+        MUSE_FAST_MODEL: "test-fast-model",
+      },
+    },
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "src"),
+      },
+    },
+  };
+});

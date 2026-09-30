@@ -75,9 +75,9 @@ describe("popo routes", () => {
     expect(body.chats[0]).toMatchObject({ chatKey: "p2p:master@corp.netease.com", processing: true });
   });
 
-  it("GET /popo/chats/:chatKey returns full session messages when waveSessionId exists", async () => {
+  it("GET /popo/chats/:chatKey returns full session messages when museSessionId exists", async () => {
     const rt = runtime();
-    rt.chatStore.setWaveSessionId("p2p:master@corp.netease.com", "wave-s1");
+    rt.chatStore.setMuseSessionId("p2p:master@corp.netease.com", "wave-s1");
     const app = createPopoRoutes(rt, {
       loadSession: async () => ({
         messages: [
@@ -95,8 +95,8 @@ describe("popo routes", () => {
       }),
     });
     const res = await app.fetch(new Request("http://x/popo/chats/p2p%3Amaster%40corp.netease.com"));
-    const body = (await res.json()) as { chat: { waveSessionId: string }; messages: Array<{ role: string; blocks: unknown[] }> };
-    expect(body.chat.waveSessionId).toBe("wave-s1");
+    const body = (await res.json()) as { chat: { museSessionId: string }; messages: Array<{ role: string; blocks: unknown[] }> };
+    expect(body.chat.museSessionId).toBe("wave-s1");
     expect(body.messages).toHaveLength(2);
     expect(body.messages[1].blocks.map((b) => (b as { type: string }).type)).toEqual([
       "reasoning",
@@ -128,7 +128,7 @@ describe("popo routes", () => {
         messages: [{ id: "stale", role: "user", blocks: [{ type: "text", content: "旧的" }] }],
       }),
     });
-    rt.chatStore.setWaveSessionId("p2p:master@corp.netease.com", "wave-stale");
+    rt.chatStore.setMuseSessionId("p2p:master@corp.netease.com", "wave-stale");
     const res = await app.fetch(new Request("http://x/popo/chats/p2p%3Amaster%40corp.netease.com"));
     const body = (await res.json()) as { messages: Array<{ id: string; blocks: Array<{ type: string }> }> };
     expect(body.messages.map((m) => m.id)).toEqual(["live-user", "live-asst"]);

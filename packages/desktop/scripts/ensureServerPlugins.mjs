@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 
 export function superpowersManifestPath(pluginsDir) {
-  return path.join(pluginsDir, "superpowers", ".wave-plugin", "plugin.json");
+  return path.join(pluginsDir, "superpowers", ".muse-plugin", "plugin.json");
 }
 
 /**
- * Ensure `pluginsDest` contains the Superpowers Wave manifest.
+ * Ensure `pluginsDest` contains the Superpowers Muse plugin manifest.
  * Copies from `pluginsSrc` when dest is missing/incomplete, or when `force`.
  */
 export function ensureServerPlugins(pluginsSrc, pluginsDest, opts = {}) {

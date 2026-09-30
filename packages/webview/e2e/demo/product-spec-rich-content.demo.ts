@@ -1,7 +1,7 @@
 import { test } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
-import { type Message } from "wave-agent-sdk";
+import { type Message } from "@muse-work/agent";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Rich Content", () => {

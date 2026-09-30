@@ -1,6 +1,6 @@
 import { test } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
-import type { Message } from "wave-agent-sdk";
+import type { Message } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Task Notification Demo", () => {

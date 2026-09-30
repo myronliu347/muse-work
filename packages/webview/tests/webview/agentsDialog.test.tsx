@@ -8,7 +8,7 @@ import {
   sendHostMessage,
   fixtures,
 } from "./test-utils";
-import type { SubagentConfiguration } from "wave-agent-sdk/dist/types/index.js";
+import type { SubagentConfiguration } from "@muse-work/agent/types";
 
 const builtinAgent: SubagentConfiguration = {
   name: "explore",
@@ -39,7 +39,7 @@ const userAgent: SubagentConfiguration = {
   systemPrompt: "你是严格的代码评审专家。",
   scope: "user",
   priority: 0,
-  filePath: "~/.wave/agents/code-review.md",
+  filePath: "~/.muse-work/agents/code-review.md",
 };
 
 async function openAgentsDialog() {

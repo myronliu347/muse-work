@@ -10,47 +10,13 @@ import {
   EDIT_TOOL_NAME,
   BASH_TOOL_NAME,
   WRITE_TOOL_NAME,
-  EXIT_PLAN_MODE_TOOL_NAME,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 
 describe("Confirmation Dialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should show confirmation dialog for ExitPlanMode with planContent", async () => {
-    renderChatApp();
-
-    const planContent = "## Test Plan\n- Step 1\n- Step 2";
-
-    // Simulate a confirmation request for ExitPlanMode tool
-    await act(async () => {
-      sendCommand("showConfirmation", {
-        confirmationId: "test_plan_confirmation",
-        toolName: EXIT_PLAN_MODE_TOOL_NAME,
-        confirmationType: "计划待确认",
-        planContent: planContent,
-      });
-    });
-
-    // Verify confirmation dialog is visible
-    const confirmationDialog = document.querySelector(".confirmation-dialog");
-    expect(confirmationDialog).toBeInTheDocument();
-
-    // Verify plan content is rendered
-    const planPreview = document.querySelector(".plan-content-preview");
-    expect(planPreview).toBeInTheDocument();
-    const h2 = planPreview!.querySelector("h2");
-    expect(h2).toHaveTextContent("Test Plan");
-    const lis = planPreview!.querySelectorAll("li");
-    expect(lis).toHaveLength(2);
-
-    // Verify buttons
-    const applyBtn = document.querySelector(".confirmation-btn-apply");
-    expect(applyBtn).toHaveTextContent("批准并继续");
-    const autoBtn = document.querySelector(".confirmation-btn-auto");
-    expect(autoBtn).toHaveTextContent("批准并自动接受后续修改");
-  });
 
   it("should show confirmation dialog for code modification tools", async () => {
     renderChatApp();
@@ -82,7 +48,7 @@ describe("Confirmation Dialog", () => {
     expect(applyBtn).toHaveTextContent("批准并继续");
     const feedbackBtn = document.querySelector(".confirmation-btn-feedback");
     expect(feedbackBtn).toHaveTextContent("提供反馈");
-    // reject button is only shown for EnterPlanMode and feedback cancel — not for Edit tool initially
+    // reject button is only shown for feedback cancel — not for Edit tool initially
     const rejectBtns = document.querySelectorAll(".confirmation-btn-reject");
     expect(rejectBtns.length).toBe(0);
 
@@ -624,42 +590,6 @@ describe("Confirmation Dialog", () => {
     });
   });
 
-  it("should show bypass button for ExitPlanMode and send bypassPermissions decision", async () => {
-    const { vscode } = renderChatApp();
-    vscode.postMessage.mockClear();
-
-    await act(async () => {
-      sendCommand("showConfirmation", {
-        confirmationId: "test_exit_plan_bypass",
-        toolName: EXIT_PLAN_MODE_TOOL_NAME,
-        confirmationType: "计划待确认",
-        planContent: "## Test Plan\n- Step 1",
-      });
-    });
-
-    const bypassBtn = screen.getByText("是，并跳过权限确认").closest("button");
-    expect(bypassBtn).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(bypassBtn as HTMLElement);
-    });
-
-    expect(
-      document.querySelector(".confirmation-dialog"),
-    ).not.toBeInTheDocument();
-
-    const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
-    expect(sentMessages).toHaveLength(1);
-    expect(sentMessages[0]).toEqual({
-      command: "confirmationResponse",
-      confirmationId: "test_exit_plan_bypass",
-      approved: true,
-      decision: {
-        behavior: "allow",
-        newPermissionMode: "bypassPermissions",
-      },
-    });
-  });
 
   it("should show bypass button even when persistent option is hidden", async () => {
     renderChatApp();
@@ -701,37 +631,5 @@ describe("Confirmation Dialog", () => {
     expect(screen.queryByText("是，并跳过权限确认")).not.toBeInTheDocument();
   });
 
-  it("should not show bypass button for Bash tool in plan mode", async () => {
-    renderChatApp();
 
-    await act(async () => {
-      sendCommand("showConfirmation", {
-        confirmationId: "test_bash_plan_no_bypass",
-        toolName: BASH_TOOL_NAME,
-        confirmationType: "命令执行待确认",
-        toolInput: { command: "ls -la" },
-        permissionMode: "plan",
-      });
-    });
-
-    expect(document.querySelector(".confirmation-dialog")).toBeInTheDocument();
-    expect(screen.queryByText("是，并跳过权限确认")).not.toBeInTheDocument();
-  });
-
-  it("should still show bypass button for ExitPlanMode in plan mode", async () => {
-    renderChatApp();
-
-    await act(async () => {
-      sendCommand("showConfirmation", {
-        confirmationId: "test_exit_plan_mode_bypass",
-        toolName: EXIT_PLAN_MODE_TOOL_NAME,
-        confirmationType: "计划待确认",
-        planContent: "## Test Plan\n- Step 1",
-        permissionMode: "plan",
-      });
-    });
-
-    expect(document.querySelector(".confirmation-dialog")).toBeInTheDocument();
-    expect(screen.getByText("是，并跳过权限确认")).toBeInTheDocument();
-  });
 });

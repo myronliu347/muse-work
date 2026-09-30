@@ -5,17 +5,17 @@ import type {
   ErrorBlock,
   MessageBlock,
   TaskNotificationBlock,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import {
   READ_TOOL_NAME,
   WRITE_TOOL_NAME,
   BASH_TOOL_NAME,
   EDIT_TOOL_NAME,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 
 /**
  * Mock data generators for testing webview functionality
- * Based on actual wave-agent-sdk data structures
+ * Based on actual @muse-work/agent data structures
  */
 
 export class MockDataGenerator {

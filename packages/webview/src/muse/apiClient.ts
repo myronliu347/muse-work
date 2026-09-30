@@ -3,7 +3,7 @@ export type MuseFetch = (
   init?: RequestInit,
 ) => Promise<Response>;
 
-import type { Message } from "wave-agent-sdk/dist/types/index.js";
+import type { Message } from "@muse-work/agent/types";
 
 export interface MuseApiClientOptions {
   baseUrl: string;
@@ -97,7 +97,7 @@ export interface MuseSession {
   model: string;
   pinned: boolean;
   permissionMode?: "acceptEdits" | "bypassPermissions";
-  waveSessionId?: string;
+  museSessionId?: string;
   worktreeName?: string;
   worktreeBranch?: string;
   baseBranch?: string;
@@ -286,7 +286,7 @@ export interface PopoChatDetail {
   chatKey: string;
   type: "p2p" | "team";
   title: string;
-  waveSessionId?: string;
+  museSessionId?: string;
   processing: boolean;
   messages: PopoChatMessage[];
   createdAt: number;
@@ -686,7 +686,7 @@ export class MuseApiClient {
     workdir: string;
     permissionMode: string;
     latestTotalTokens: number;
-    waveSessionId?: string;
+    museSessionId?: string;
   }> {
     const res = await this.request(
       `/sessions/${encodeURIComponent(sessionId)}/status`,

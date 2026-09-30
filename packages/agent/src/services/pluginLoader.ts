@@ -1,0 +1,271 @@
+import * as fs from "fs/promises";
+import * as path from "path";
+import {
+  PluginManifest,
+  PLUGIN_MANIFEST_DIR,
+  PLUGIN_MANIFEST_DIRS,
+  CustomSlashCommand,
+  Skill,
+  LspConfig,
+  McpConfig,
+  McpServerConfig,
+  PartialHookConfiguration,
+} from "../types/index.js";
+import { scanCommandsDirectory } from "../utils/customCommands.js";
+import { parseSkillFile } from "../utils/skillParser.js";
+import {
+  parseAgentFile,
+  type SubagentConfiguration,
+} from "../utils/subagentParser.js";
+import { logger } from "../utils/globalLogger.js";
+
+export class PluginLoader {
+  /**
+   * Load and validate a plugin manifest from a directory
+   * @param pluginPath Absolute path to the plugin directory
+   */
+  static async loadManifest(pluginPath: string): Promise<PluginManifest> {
+    const tried: string[] = [];
+
+    for (const dirName of PLUGIN_MANIFEST_DIRS) {
+      const manifestDir = path.join(pluginPath, dirName);
+      tried.push(manifestDir);
+
+      let entries: string[];
+      try {
+        entries = await fs.readdir(manifestDir);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error as { code?: string }).code === "ENOENT"
+        ) {
+          continue;
+        }
+        throw error;
+      }
+
+      // Only plugin.json should live in the manifest directory
+      const misplaced = entries.filter((e) => e !== "plugin.json");
+      if (misplaced.length > 0) {
+        throw new Error(
+          `Misplaced files/directories in ${dirName}/: ${misplaced.join(", ")}. Only plugin.json should be in this directory.`,
+        );
+      }
+
+      const manifestPath = path.join(manifestDir, "plugin.json");
+      try {
+        const content = await fs.readFile(manifestPath, "utf-8");
+        const manifest = JSON.parse(content) as PluginManifest;
+        this.validateManifest(manifest);
+        return manifest;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error as { code?: string }).code === "ENOENT"
+        ) {
+          throw new Error(`Plugin manifest not found at ${manifestPath}`);
+        }
+        throw new Error(
+          `Failed to load plugin manifest at ${manifestPath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    throw new Error(
+      `Plugin manifest not found at ${tried.join(" or ")} (expected ${PLUGIN_MANIFEST_DIR}/plugin.json)`,
+    );
+  }
+
+  /**
+   * Load commands from a plugin's commands directory
+   * @param pluginPath Absolute path to the plugin directory
+   */
+  static loadCommands(pluginPath: string): CustomSlashCommand[] {
+    const commandsPath = path.join(pluginPath, "commands");
+    return scanCommandsDirectory(commandsPath);
+  }
+
+  /**
+   * Load skills from a plugin's skills directory
+   * @param pluginPath Absolute path to the plugin directory
+   */
+  static async loadSkills(pluginPath: string): Promise<Skill[]> {
+    const skillsPath = path.join(pluginPath, "skills");
+    const skills: Skill[] = [];
+
+    try {
+      const entries = await fs.readdir(skillsPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const skillDir = path.join(skillsPath, entry.name);
+          const skillFilePath = path.join(skillDir, "SKILL.md");
+          try {
+            await fs.stat(skillFilePath);
+            const parsed = parseSkillFile(skillFilePath, {
+              basePath: skillDir,
+              validateMetadata: true,
+            });
+            if (parsed.isValid) {
+              skills.push({
+                ...parsed.skillMetadata,
+                type: "project", // Plugin skills are treated as project skills
+                pluginRoot: pluginPath,
+                content: parsed.content,
+                frontmatter: parsed.frontmatter,
+                isValid: parsed.isValid,
+                errors: parsed.validationErrors,
+              });
+            }
+          } catch {
+            // Skip directories without SKILL.md
+          }
+        }
+      }
+    } catch {
+      // skills directory might not exist
+    }
+
+    return skills;
+  }
+
+  /**
+   * Load LSP configuration from a plugin
+   */
+  static async loadLspConfig(
+    pluginPath: string,
+  ): Promise<LspConfig | undefined> {
+    const lspPath = path.join(pluginPath, ".lsp.json");
+    try {
+      const content = await fs.readFile(lspPath, "utf-8");
+      return JSON.parse(content) as LspConfig;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Load MCP configuration from a plugin.
+   *
+   * Accepts both declaration shapes found in the wild (spec plugin A-023): the
+   * wrapped `{"mcpServers": {…}}` and the flat `{"<serverName>": {…}}`, matching
+   * Claude Code's `parsed.mcpServers || parsed`. A plugin manifest that declares
+   * `mcpServers` inline is equivalent to a sibling `.mcp.json`; when both exist
+   * they are merged by server name, the file winning.
+   *
+   * @param manifestMcpServers Inline declarations from the plugin manifest
+   */
+  static async loadMcpConfig(
+    pluginPath: string,
+    manifestMcpServers?: Record<string, McpServerConfig>,
+  ): Promise<McpConfig | undefined> {
+    const servers: Record<string, McpServerConfig> = {
+      ...(manifestMcpServers ?? {}),
+    };
+
+    const mcpPath = path.join(pluginPath, ".mcp.json");
+    try {
+      const content = await fs.readFile(mcpPath, "utf-8");
+      const parsed: unknown = JSON.parse(content);
+      // Return raw config — let McpManager resolve templates and capture originalUrl
+      Object.assign(servers, extractMcpServers(parsed));
+    } catch {
+      // no .mcp.json — inline declarations (if any) stand alone
+    }
+
+    if (Object.keys(servers).length === 0) return undefined;
+    return { mcpServers: servers };
+  }
+
+  /**
+   * Load hooks configuration from a plugin
+   */
+  static async loadHooksConfig(
+    pluginPath: string,
+  ): Promise<PartialHookConfiguration | undefined> {
+    const hooksPath = path.join(pluginPath, "hooks", "hooks.json");
+    try {
+      const content = await fs.readFile(hooksPath, "utf-8");
+      const parsed = JSON.parse(content);
+      // Claude Code wrapper format: { "hooks": { "SessionStart": [...] } }
+      // (optional "description" sibling key)
+      if (parsed && typeof parsed === "object" && "hooks" in parsed) {
+        return parsed.hooks as PartialHookConfiguration;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Load agent configurations from a plugin's agents directory
+   */
+  static async loadAgents(
+    pluginPath: string,
+  ): Promise<SubagentConfiguration[]> {
+    const agentsPath = path.join(pluginPath, "agents");
+    const agents: SubagentConfiguration[] = [];
+
+    try {
+      const entries = await fs.readdir(agentsPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith(".md")) {
+          const agentFilePath = path.join(agentsPath, entry.name);
+          try {
+            const config = parseAgentFile(agentFilePath, "plugin", pluginPath);
+            agents.push(config);
+          } catch (parseError) {
+            // Log error but continue with other files
+            logger?.warn(
+              `Warning: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+            );
+          }
+        }
+      }
+    } catch {
+      // agents directory might not exist
+    }
+
+    return agents;
+  }
+
+  /**
+   * Validate the plugin manifest structure
+   */
+  private static validateManifest(manifest: PluginManifest): void {
+    if (!manifest.name) {
+      throw new Error("Plugin manifest missing 'name'");
+    }
+    if (!manifest.description) {
+      throw new Error("Plugin manifest missing 'description'");
+    }
+    // `version` is optional: the Claude Code ecosystem omits it freely and the
+    // install path already defaults it (spec plugin A-022).
+    if (!/^[a-z0-9-]+$/.test(manifest.name)) {
+      throw new Error(
+        `Invalid plugin name: ${manifest.name}. Only lowercase letters, numbers, and hyphens are allowed.`,
+      );
+    }
+  }
+}
+
+/**
+ * Normalizes an MCP declaration to a server map, accepting both the wrapped and
+ * the flat shape (spec plugin A-023). Anything that is not an object of server
+ * configs yields an empty map rather than throwing, so one malformed declaration
+ * cannot fail the whole plugin.
+ */
+function extractMcpServers(parsed: unknown): Record<string, McpServerConfig> {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+  const record = parsed as Record<string, unknown>;
+  const wrapped = record.mcpServers;
+  const servers =
+    wrapped && typeof wrapped === "object" && !Array.isArray(wrapped)
+      ? (wrapped as Record<string, McpServerConfig>)
+      : (record as Record<string, McpServerConfig>);
+  return servers;
+}

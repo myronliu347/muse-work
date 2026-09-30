@@ -12,7 +12,11 @@ export function normalizePermissionMode(value: unknown): MusePermissionMode {
 
 export interface Session {
   id: string;
-  waveSessionId?: string;
+  /**
+   * SDK transcript id. Disk still accepts leftover `waveSessionId`;
+   * new writes only persist `museSessionId`.
+   */
+  museSessionId?: string;
   title: string;
   workdir: string;
   permissionMode: MusePermissionMode;
@@ -20,7 +24,7 @@ export interface Session {
   pinned: boolean;
   createdAt: number;
   lastActiveAt: number;
-  /** Git worktree slug under `.wave/worktrees/<name>` when session is isolated. */
+  /** Git worktree slug under `~/.muse-work/worktrees/<name>` when session is isolated. */
   worktreeName?: string;
   /** Branch created for the worktree (typically `worktree-<name>`). */
   worktreeBranch?: string;
@@ -54,7 +58,13 @@ export interface Session {
 export type SessionsFile = {
   version: 1;
   activeSessionId?: string;
-  sessions: Array<Omit<Session, "interrupted"> & { status?: SessionStatus }>;
+  sessions: Array<
+    Omit<Session, "interrupted"> & {
+      status?: SessionStatus;
+      /** leftover key from Wave-era sessions.json */
+      waveSessionId?: string;
+    }
+  >;
 };
 
 export interface SessionStore {
@@ -89,7 +99,7 @@ export interface SessionStore {
     patch: Partial<Omit<Session, "id" | "status">>,
   ): Session | undefined;
   select(id: string): void;
-  setWaveSessionId(id: string, waveSessionId: string): Session | undefined;
+  setMuseSessionId(id: string, museSessionId: string): Session | undefined;
   setUnreadDone(id: string, unreadDone: boolean): Session | undefined;
   updateStatus(id: string, status: SessionStatus): Session | undefined;
   delete(id: string): Session | undefined;
@@ -125,13 +135,16 @@ function toPersistedSession(
   session: Session,
 ): Omit<Session, "interrupted"> {
   const { interrupted: _interrupted, ...rest } = session;
-  return rest;
+  const { waveSessionId: _legacy, ...clean } = rest as typeof rest & {
+    waveSessionId?: string;
+  };
+  return clean;
 }
 
 /** Listed only after the user has actually started chatting. */
 export function isStartedSession(session: Session): boolean {
   return (
-    Boolean(session.waveSessionId) ||
+    Boolean(session.museSessionId) ||
     session.title !== "新对话" ||
     session.lastActiveAt > session.createdAt
   );
@@ -158,17 +171,22 @@ export function createSessionStore(
   }
 
   let recoveredRunning = false;
+  let migratedLegacyId = false;
   for (const record of file.sessions) {
     const wasRunning = record.status === "running";
     if (wasRunning) recoveredRunning = true;
-    sessions.set(record.id, {
-      ...record,
-      permissionMode: normalizePermissionMode(record.permissionMode),
+    const { waveSessionId: legacyId, ...rest } = record;
+    const museSessionId = rest.museSessionId ?? legacyId;
+    if (legacyId && !rest.museSessionId) migratedLegacyId = true;
+    sessions.set(rest.id, {
+      ...rest,
+      museSessionId,
+      permissionMode: normalizePermissionMode(rest.permissionMode),
       status: "idle",
       ...(wasRunning ? { interrupted: true } : {}),
     });
   }
-  if (recoveredRunning) {
+  if (recoveredRunning || migratedLegacyId) {
     persist();
   }
 
@@ -281,15 +299,15 @@ export function createSessionStore(
       persist();
     },
 
-    setWaveSessionId(
+    setMuseSessionId(
       id: string,
-      waveSessionId: string,
+      museSessionId: string,
     ): Session | undefined {
       const session = sessions.get(id);
       if (!session) {
         return undefined;
       }
-      session.waveSessionId = waveSessionId;
+      session.museSessionId = museSessionId;
       persist();
       return toSession(session);
     },

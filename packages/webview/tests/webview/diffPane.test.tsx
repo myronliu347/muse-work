@@ -383,14 +383,14 @@ describe("DiffPane", () => {
     const onOpenFile = vi.fn();
     const { container } = renderPane({
       onOpenFile,
-      workdir: "/Users/dev/projects/wave-agent",
+      workdir: "/Users/dev/projects/muse-work",
     });
     sendDiffResult([makeFile()]);
     const header = container.querySelector(".diff-file-header") as HTMLElement;
     expect(header).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(screen.getByTestId("diff-file-path"));
     expect(onOpenFile).toHaveBeenCalledWith(
-      "/Users/dev/projects/wave-agent/src/a.ts",
+      "/Users/dev/projects/muse-work/src/a.ts",
     );
     expect(header).toHaveAttribute("aria-expanded", "true");
   });

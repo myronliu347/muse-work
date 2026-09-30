@@ -6,7 +6,7 @@ import { ipcRenderer } from "electron";
  * Runs inside the guest page with `webpreferences="sandbox=yes,
  * contextIsolation=yes"`, so it can only use the sandboxed electron polyfill
  * (ipcRenderer) plus the DOM — no other Node APIs. Protocol on channel
- * "wave-picker" (see PreviewPane.tsx):
+ * "muse-picker" (see PreviewPane.tsx):
  *
  *   host → guest : { action: "activate", palette? } | { action: "deactivate" }
  *   guest → host : { type: "ready" }  (preload finished mounting)
@@ -20,7 +20,7 @@ import { ipcRenderer } from "electron";
  * testable in the desktop (node) test env.
  */
 
-export const PICKER_CHANNEL = "wave-picker";
+export const PICKER_CHANNEL = "muse-picker";
 
 export interface PickerPalette {
   accent: string;
@@ -438,17 +438,17 @@ export function createPickerHost(deps: DomPickerDeps): PickerHost {
     if (!styleEl) {
       styleEl = doc.createElement("style");
       styleEl.textContent = [
-        ".wave-picker-mode,",
-        ".wave-picker-mode *",
+        ".muse-picker-mode,",
+        ".muse-picker-mode *",
         "{ cursor: crosshair !important; }",
       ].join("");
       doc.head?.appendChild(styleEl);
     }
-    doc.documentElement.classList.add("wave-picker-mode");
+    doc.documentElement.classList.add("muse-picker-mode");
   };
 
   const disableMode = () => {
-    doc.documentElement.classList.remove("wave-picker-mode");
+    doc.documentElement.classList.remove("muse-picker-mode");
     styleEl?.remove();
     styleEl = null;
     hideCard();

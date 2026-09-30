@@ -1,11 +1,11 @@
 /**
- * TypeScript type definitions for the Wave AI Chat webview
+ * TypeScript type definitions for the Muse AI Chat webview
  *
  * This file contains all the interfaces and types used throughout the React webview,
  * providing type safety and better development experience.
  */
 
-// Import message structures and session types from wave-agent-sdk
+// Import message structures and session types from @muse-work/agent
 import type {
   Message,
   MessageBlock,
@@ -29,13 +29,13 @@ import type {
   BackgroundTaskSummary,
   SerializableWorkflowRun,
   SubagentConfiguration,
-} from "wave-agent-sdk/dist/types/index.js";
-import type { FileSnapshot } from "wave-agent-sdk/dist/types/reversion.js";
+} from "@muse-work/agent/types";
+import type { FileSnapshot } from "@muse-work/agent/types";
 import type {
   SessionMetadata,
   SessionData,
-} from "wave-agent-sdk/dist/services/session.js";
-import type { ToolBlockUpdateCallbackParams } from "wave-agent-sdk/dist/utils/messageOperations.js";
+} from "@muse-work/agent/types";
+import type { ToolBlockUpdateCallbackParams } from "@muse-work/agent/types";
 
 export type {
   Message,
@@ -128,10 +128,10 @@ declare global {
   interface Window {
     /** Provided by the Electron preload (and the VS Code webview runtime). */
     acquireVsCodeApi(): VsCodeApi;
-    /** Set by the Electron preload (packages/desktop). */
-    waveHostType?: string;
-    /** file:// URL of the element-picker preload, exposed by the Electron preload. */
-    wavePickerPreloadPath?: string;
+    /** Set by the Electron preload (`packages/desktop`). */
+    museHostType?: string;
+    /** file:// URL of the element-picker preload. */
+    musePickerPreloadPath?: string;
     /**
      * Desktop Electron 32+: map a clipboard/drop File to an absolute path
      * (replaces removed File.path). Undefined on non-desktop hosts.
@@ -292,7 +292,7 @@ export interface DesktopSessionEntry {
   workdir?: string;
   /** True when this session lives in a worktree (delete also cleans up branch+dir). */
   hasWorktree: boolean;
-  /** Worktree slug under `.wave/worktrees/<name>` when isolated. */
+  /** Worktree slug under `~/.muse-work/worktrees/<name>` when isolated. */
   worktreeName?: string;
   /** Branch created for the worktree (e.g. `worktree-<name>`). */
   worktreeBranch?: string;
@@ -666,10 +666,10 @@ export interface ChatHeaderProps {
   }>;
 }
 
-// Matches wave-agent-sdk's QueuedMessage type
+// Matches @muse-work/agent's QueuedMessage type
 export interface QueuedMessage {
   id?: string;
-  type?: "message" | "bang";
+  type?: "message";
   content: string;
   images?: Array<{ path: string; mimeType: string }>;
   longTextMap?: Record<string, string>;
@@ -705,7 +705,6 @@ export interface ChatState {
   // the target session and shows the sweep loading animation over the message
   // + input area while the host connects and replays the transcript.
   isRestoring: boolean;
-  isCommandRunning: boolean;
   shouldClearInput: boolean;
   sessions: SessionMetadata[];
   currentSession?: SessionMetadata;
@@ -741,9 +740,6 @@ export interface ChatState {
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
-  // Project-scoped settings (read from .wave/settings.json merged config via
-  // stdio RPC). Holds the merged enabledPlugins map for the 项目设置 tab.
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
   // Permission mode state
   permissionMode?: PermissionMode;
   // Attached images state
@@ -761,7 +757,6 @@ export interface ConfirmationRequest {
   toolName: string;
   confirmationType: string;
   toolInput?: Record<string, unknown>;
-  planContent?: string;
   suggestedPrefix?: string;
   hidePersistentOption?: boolean;
   permissionMode?: PermissionMode;
@@ -800,8 +795,6 @@ export interface ConfigurationData {
   fastModel?: string;
   /** Preferred language for agent communication */
   language?: string;
-  /** CodeChat server URL (reported by SDK, used for update checks) */
-  serverUrl?: string;
 }
 
 // Plugin related types
@@ -812,13 +805,7 @@ export interface PluginInfo {
   version?: string;
   enabled?: boolean;
   installed?: boolean;
-  marketplace?: string;
   scope?: PluginScope;
-}
-
-export interface MarketplaceInfo {
-  name: string;
-  url: string;
 }
 
 export type PluginScope = "user" | "project" | "local";
@@ -842,16 +829,6 @@ export interface ConfigDialogProps {
   error?: string;
   onSave: (config: ConfigurationData) => void;
   onCancel: () => void;
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
-  onLoadProjectSettings?: () => void;
-  onToggleBuiltinPlugin?: (pluginId: string, enabled: boolean) => void;
-}
-
-/**
- * Props for the plugin management dialog component
- */
-export interface PluginDialogProps {
-  onClose: () => void;
 }
 
 /**
@@ -923,13 +900,8 @@ export type ChatAction =
   | { type: "SET_CONFIGURATION_LOADING"; payload: boolean }
   | { type: "SET_CONFIGURATION_ERROR"; payload: string | undefined }
   | { type: "SET_CONFIGURATION_DATA"; payload: ConfigurationData }
-  | {
-      type: "SET_PROJECT_SETTINGS";
-      payload: { enabledPlugins: Record<string, boolean> };
-    }
   | { type: "UPDATE_SELECTION"; payload: SelectionInfo | undefined }
   | { type: "SET_PERMISSION_MODE"; payload: PermissionMode }
-  | { type: "SET_COMMAND_RUNNING"; payload: boolean }
   | { type: "SET_WORKDIR"; payload: string }
   | { type: "SET_QUEUED_MESSAGES"; payload: QueuedMessage[] }
   | { type: "SET_EDITING_QUEUED_ID"; payload: string | null }
@@ -939,7 +911,6 @@ export type ChatAction =
         messages: Message[];
         tasks?: Task[];
         isStreaming: boolean;
-        isCommandRunning?: boolean;
         isCompacting?: boolean;
         isRestoring?: boolean;
         isTaskListCollapsed?: boolean;

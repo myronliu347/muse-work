@@ -1,4 +1,4 @@
-import type { Message, SessionMetadata } from "wave-agent-sdk";
+import type { Message, SessionMetadata } from "@muse-work/agent";
 import { getSessionTitle } from "../../src/utils/session";
 
 function session(

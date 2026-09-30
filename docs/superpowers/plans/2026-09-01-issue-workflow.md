@@ -659,7 +659,7 @@ EOF
 ### Task 6: 内置 issue 插件（对话创建与调度）
 
 **Files:**
-- Create: `packages/server/plugins/issue/.wave-plugin/plugin.json`
+- Create: `packages/server/plugins/issue/.muse-plugin/plugin.json`
 - Create: `packages/server/plugins/issue/skills/issue-management/SKILL.md`
 - Create: `packages/server/plugins/issue/skills/issue-management/scripts/issue.mjs`
 - Modify: `packages/server/src/services/sessionRunner/agent.ts` `enabledPluginDirs(session)`：settings 的 superpowers/mattpocock 之后，若 `session?.agentName !== resolveScenarioAgent("issue-exec", home)`，再 `pluginDirIfPresent("issue")`

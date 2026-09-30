@@ -1,10 +1,10 @@
 import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
-import { READ_TOOL_NAME } from "wave-agent-sdk";
+import { READ_TOOL_NAME } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const SAMPLE_MD = `# Yui 模式前端适配 — lcap-ide 侧实施计划
 
@@ -45,7 +45,7 @@ Task 7 写的是「结果投递入框，用户再点发送」；但入口流结�
 - [ ] 代码块对比度
 
 \`\`\`bash
-cd /Users/dev/projects/wave-agent
+cd /Users/dev/projects/muse-work
 pnpm exec vitest run packages/lcap-snippets
 \`\`\`
 

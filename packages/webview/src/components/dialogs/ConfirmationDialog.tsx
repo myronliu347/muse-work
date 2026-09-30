@@ -2,19 +2,15 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   ASK_USER_QUESTION_TOOL_NAME,
   BASH_TOOL_NAME,
-  ENTER_PLAN_MODE_TOOL_NAME,
-  EXIT_PLAN_MODE_TOOL_NAME,
   EDIT_TOOL_NAME,
   WRITE_TOOL_NAME,
-} from "wave-agent-sdk/dist/constants/tools.js";
+} from "@muse-work/agent/constants";
 import type {
   ConfirmationDialogProps,
   ConfirmationDecision,
   AskUserQuestionInput,
 } from "../../types";
 import "../../styles/ConfirmationDialog.css";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { DiffViewer } from "../message/DiffViewer";
 
 /**
@@ -97,15 +93,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
 
   const handleReject = useCallback(() => {
-    if (confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME) {
-      onConfirm(confirmation.confirmationId, {
-        behavior: "deny",
-        message: "不，现在开始实现",
-      });
-    } else {
-      onReject(confirmation.confirmationId);
-    }
-  }, [onReject, onConfirm, confirmation.confirmationId, confirmation.toolName]);
+    onReject(confirmation.confirmationId);
+  }, [onReject, confirmation.confirmationId]);
 
   const handleOptionChange = useCallback(
     (
@@ -213,12 +202,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   }, [handleReject, isComposing]);
 
   const handleConfirm = useCallback(() => {
-    if (confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME) {
-      onConfirm(confirmation.confirmationId, {
-        behavior: "allow",
-      });
-    } else if (
-      confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
+    if (
       confirmation.toolName === BASH_TOOL_NAME ||
       [EDIT_TOOL_NAME, WRITE_TOOL_NAME].includes(confirmation.toolName)
     ) {
@@ -291,11 +275,6 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         behavior: "allow",
         newPermissionRule: rule,
       };
-    } else if (confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME) {
-      decision = {
-        behavior: "allow",
-        newPermissionMode: "acceptEdits",
-      };
     } else if (confirmation.toolName.startsWith("mcp__")) {
       decision = {
         behavior: "allow",
@@ -324,34 +303,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       }
       return "是，且在此工作目录下不再询问此命令";
     }
-    if (confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME) {
-      return "批准并自动接受后续修改";
-    }
     if (confirmation.toolName.startsWith("mcp__")) {
       return `是，且不再询问：${confirmation.toolName}`;
     }
     return "是，且自动接受修改";
-  };
-
-  const renderPlanContent = () => {
-    const planContent =
-      confirmation.planContent || confirmation.toolInput?.plan_content;
-    if (confirmation.toolName !== EXIT_PLAN_MODE_TOOL_NAME || !planContent) {
-      return null;
-    }
-
-    const html = DOMPurify.sanitize(
-      marked.parse(String(planContent)) as string,
-    );
-    return (
-      <div className="plan-content-preview" tabIndex={0}>
-        <h3>计划内容：</h3>
-        <div
-          className="markdown-body"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      </div>
-    );
   };
 
   const renderQuestions = () => {
@@ -636,12 +591,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         );
       });
     }
-    const isPlanModeTool =
-      confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
-      confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME;
     if (
-      (isPlanModeTool ||
-        confirmation.toolName === BASH_TOOL_NAME ||
+      (confirmation.toolName === BASH_TOOL_NAME ||
         [EDIT_TOOL_NAME, WRITE_TOOL_NAME].includes(confirmation.toolName) ||
         confirmation.toolName.startsWith("mcp__")) &&
       showFeedbackInput
@@ -695,7 +646,6 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           )}
         </div>
 
-        {renderPlanContent()}
         {renderQuestions()}
 
         {[WRITE_TOOL_NAME, EDIT_TOOL_NAME].includes(confirmation.toolName) && (
@@ -717,9 +667,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   disabled={isConfirmDisabled()}
                 >
                   <span className="btn-text">
-                    {confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
-                    confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME ||
-                    confirmation.toolName === BASH_TOOL_NAME ||
+                    {confirmation.toolName === BASH_TOOL_NAME ||
                     [EDIT_TOOL_NAME, WRITE_TOOL_NAME].includes(
                       confirmation.toolName,
                     ) ||
@@ -729,27 +677,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   </span>
                 </button>
 
-                {confirmation.toolName === ENTER_PLAN_MODE_TOOL_NAME && (
-                  <button
-                    className="confirmation-btn confirmation-btn-reject"
-                    onClick={handleReject}
-                  >
-                    <span className="btn-text">不，现在开始实现</span>
-                  </button>
-                )}
-
-                {confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME && (
-                  <button
-                    className="confirmation-btn confirmation-btn-auto"
-                    onClick={handleAutoConfirm}
-                  >
-                    <span className="btn-text">批准并自动接受后续修改</span>
-                  </button>
-                )}
-
                 {confirmation.toolName !== ASK_USER_QUESTION_TOOL_NAME &&
-                  confirmation.toolName !== EXIT_PLAN_MODE_TOOL_NAME &&
-                  confirmation.toolName !== ENTER_PLAN_MODE_TOOL_NAME &&
                   !showFeedbackInput &&
                   !confirmation.hidePersistentOption && (
                     <button
@@ -760,9 +688,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                     </button>
                   )}
 
-                {(confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
-                  (confirmation.toolName === BASH_TOOL_NAME &&
-                    confirmation.permissionMode !== "plan")) && (
+                {confirmation.toolName === BASH_TOOL_NAME && (
                   <button
                     className="confirmation-btn confirmation-btn-auto"
                     onClick={handleBypassConfirm}
@@ -771,8 +697,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   </button>
                 )}
 
-                {(confirmation.toolName === EXIT_PLAN_MODE_TOOL_NAME ||
-                  confirmation.toolName === BASH_TOOL_NAME ||
+                {(confirmation.toolName === BASH_TOOL_NAME ||
                   [EDIT_TOOL_NAME, WRITE_TOOL_NAME].includes(
                     confirmation.toolName,
                   ) ||

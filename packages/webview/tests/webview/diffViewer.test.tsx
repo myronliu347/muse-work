@@ -5,7 +5,7 @@ import {
   EDIT_TOOL_NAME,
   WRITE_TOOL_NAME,
   READ_TOOL_NAME,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 
 describe("Diff Viewer", () => {
   beforeEach(() => {

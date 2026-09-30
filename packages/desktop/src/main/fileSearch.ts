@@ -1,6 +1,6 @@
 /**
  * Lightweight workspace file search for @ mentions (local desktop only).
- * Avoids pulling wave-agent-sdk / ripgrep into the Electron main process.
+ * Avoids pulling @muse-work/agent / ripgrep into the Electron main process.
  */
 
 import fs from "node:fs";
@@ -90,19 +90,26 @@ function isSkippedDir(name: string): boolean {
 }
 
 /**
- * Worktree dirs minted by the sidebar live at `<repo>/.wave/worktrees/<name>`.
- * They are transient copies of the repo and must not surface in the file panel,
- * file search, or directory listings (same rule as isTransientWorkdir).
+ * Worktree dirs minted by the sidebar live at `~/.muse-work/worktrees/<name>`.
+ * Legacy copies may still sit under the repo; hide those too so they do not
+ * surface in the file panel (same rule as isTransientWorkdir).
+ * `.wave/worktrees` 是旧树兼容路径，刻意保留隐藏规则。
  */
 function isTransientDirRel(rel: string): boolean {
-  return rel === ".wave/worktrees" || rel.startsWith(".wave/worktrees/");
+  const posix = rel.replace(/\\/g, "/");
+  return (
+    posix === ".wave/worktrees" ||
+    posix.startsWith(".wave/worktrees/") ||
+    posix === ".muse-work/worktrees" ||
+    posix.startsWith(".muse-work/worktrees/")
+  );
 }
 
 /**
  * A linked git worktree root can live anywhere: its dir contains a `.git`
  * *file* whose `gitdir:` line points at `<repo>/.git/worktrees/<name>` (the
  * main repo has `.git` as a directory; submodules point at
- * `.git/modules/…`). Detects worktrees minted outside `.wave/worktrees`.
+ * `.git/modules/…`). Detects worktrees minted outside the Muse worktrees dir.
  */
 function isLinkedWorktreeRoot(abs: string): boolean {
   try {

@@ -1,6 +1,6 @@
 /**
  * Desktop-only terminal chunk entry. Built as a separate IIFE bundle
- * (dist/terminal.js, global `window.WaveTerminal`) and lazy-injected by
+ * (dist/terminal.js, global `window.MuseTerminal`) and lazy-injected by
  * TerminalPane only on the desktop host, so xterm stays out of the main
  * webview bundle.
  */

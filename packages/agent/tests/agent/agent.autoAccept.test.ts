@@ -1,0 +1,347 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as os from "os";
+import type { ChildProcess } from "child_process";
+
+import { TaskManager } from "../../src/services/taskManager.js";
+import { Agent } from "@/agent.js";
+import { ToolManager } from "../../src/managers/toolManager.js";
+import type { PermissionCallback } from "../../src/types/permissions.js";
+import * as fs from "fs/promises";
+import * as path from "path";
+import { longFormTempDir } from "../helpers/tempDir.js";
+
+// Mock child_process to prevent real command execution (e.g. npm install triggers network I/O)
+vi.mock("child_process");
+import { spawn } from "child_process";
+const mockSpawn = vi.mocked(spawn);
+
+describe("Agent Auto-Accept Permissions Integration", () => {
+  let tempDir: string;
+  const originalEnv = process.env;
+  let activeAgent: Agent | undefined;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(
+      path.join(longFormTempDir(), "wave-agent-test-"),
+    );
+    process.env = {
+      ...originalEnv,
+      MUSE_API_KEY: "test-token",
+      MUSE_BASE_URL: "https://test.api",
+    };
+    vi.mocked(os.homedir).mockReturnValue(longFormTempDir());
+
+    // Return a mock process that exits successfully without executing anything
+    mockSpawn.mockReturnValue({
+      pid: 1234,
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      on: vi.fn((event: string, callback: (...args: unknown[]) => void) => {
+        if (event === "exit") setTimeout(() => callback(0), 0);
+      }),
+      kill: vi.fn(),
+      killed: false,
+    } as unknown as ChildProcess);
+  });
+
+  afterEach(async () => {
+    if (activeAgent) {
+      await activeAgent.destroy();
+      activeAgent = undefined;
+    }
+    process.env = originalEnv;
+    await fs.rm(tempDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it("should update permission mode and persist rules from callback", async () => {
+    const mockCallback = vi.fn();
+
+    const agent = await Agent.create({
+      workdir: tempDir,
+      permissionMode: "default",
+      canUseTool: mockCallback as unknown as PermissionCallback,
+    });
+    activeAgent = agent;
+
+    // 1. Test transition to acceptEdits
+    mockCallback.mockResolvedValueOnce({
+      behavior: "allow",
+      newPermissionMode: "acceptEdits",
+    });
+
+    // We need to trigger a permission check.
+    // We'll use the toolManager directly.
+    const toolManager = (agent as unknown as { toolManager: ToolManager })
+      .toolManager;
+    const taskManager = (agent as unknown as { taskManager: TaskManager })
+      .taskManager;
+
+    await toolManager.execute(
+      "Bash",
+      { command: "rm test.txt" },
+      { workdir: tempDir, taskManager },
+    );
+
+    expect(agent.getPermissionMode()).toBe("acceptEdits");
+
+    // 2. Test persistent rule
+    mockCallback.mockResolvedValueOnce({
+      behavior: "allow",
+      newPermissionRule: "Bash(npm install)",
+    });
+
+    // Switch back to default mode to test rule matching
+    agent.setPermissionMode("default");
+
+    await toolManager.execute(
+      "Bash",
+      { command: "npm install" },
+      { workdir: tempDir, taskManager },
+    );
+
+    // Check if rule was persisted to settings.local.json
+    const configPath = path.join(tempDir, ".muse-work", "settings.local.json");
+    const configContent = await fs.readFile(configPath, "utf-8");
+    const config = JSON.parse(configContent);
+
+    expect(config.permissions.allow).toContain("Bash(npm install*)");
+
+    // 3. Test that the rule actually allows the command without calling the callback
+    mockCallback.mockClear();
+    await toolManager.execute(
+      "Bash",
+      { command: "npm install" },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+  });
+
+  it("should add a peer directory to the session Safe Zone from the decision", async () => {
+    const mockCallback = vi.fn();
+    const agent = await Agent.create({
+      workdir: tempDir,
+      permissionMode: "default",
+      canUseTool: mockCallback as unknown as PermissionCallback,
+    });
+    activeAgent = agent;
+
+    const toolManager = (agent as unknown as { toolManager: ToolManager })
+      .toolManager;
+    const taskManager = (agent as unknown as { taskManager: TaskManager })
+      .taskManager;
+
+    // A directory outside the working directory (peer of the temp workdir).
+    // Name it after the temp workdir so runs never share it — a leftover file
+    // would make the Write below a no-op and its assertions vacuous.
+    const outsideDir = path.join(
+      path.dirname(tempDir),
+      `wave-outside-zone-${path.basename(tempDir)}`,
+    );
+    await fs.mkdir(outsideDir, { recursive: true });
+    expect(agent.getAdditionalDirectories()).not.toContain(outsideDir);
+
+    // 1. The user approves the operation AND the directory — session-level only,
+    //    nothing is written to settings.local.json.
+    mockCallback.mockResolvedValueOnce({
+      behavior: "allow",
+      newAdditionalDirectory: outsideDir,
+    });
+
+    await toolManager.execute(
+      "Bash",
+      { command: `ls ${outsideDir}` },
+      { workdir: tempDir, taskManager },
+    );
+
+    expect(agent.getAdditionalDirectories()).toContain(outsideDir);
+    const persisted = await fs
+      .readFile(path.join(tempDir, ".muse-work", "settings.local.json"), "utf-8")
+      .catch(() => "");
+    expect(persisted).not.toContain(outsideDir);
+
+    // 2. That directory is now part of the Safe Zone: the same command is no
+    //    longer out-of-bounds and needs no confirmation.
+    mockCallback.mockClear();
+    await toolManager.execute(
+      "Bash",
+      { command: `ls ${outsideDir}` },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+
+    // 3. The label promises "allow all edits in <dir>/ during this session", so
+    //    later edits there are auto-allowed too — without the session-level
+    //    Edit/Write rules `default` mode would prompt for every write.
+    const notesPath = path.join(outsideDir, "notes.md");
+    try {
+      const writeResult = await toolManager.execute(
+        "Write",
+        { file_path: notesPath, content: "hello" },
+        { workdir: tempDir, taskManager },
+      );
+      // Guard against a vacuous pass: the write must actually have happened
+      // (an identical-content no-op skips the permission check entirely).
+      expect(writeResult.success).toBe(true);
+      expect(mockCallback).not.toHaveBeenCalled();
+      await expect(fs.readFile(notesPath, "utf-8")).resolves.toBe("hello");
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should load persistent rules on startup", async () => {
+    // 1. Create a settings.local.json file
+    const configDir = path.join(tempDir, ".muse-work");
+    await fs.mkdir(configDir, { recursive: true });
+    const config = {
+      permissions: {
+        allow: ["Bash(rm -rf /tmp/test)"],
+      },
+    };
+    await fs.writeFile(
+      path.join(configDir, "settings.local.json"),
+      JSON.stringify(config),
+    );
+
+    // 2. Create agent
+    const mockCallback = vi.fn();
+    const agent = await Agent.create({
+      workdir: tempDir,
+      permissionMode: "default",
+      canUseTool: mockCallback as unknown as PermissionCallback,
+    });
+    activeAgent = agent;
+
+    // 3. Verify rule is loaded and applied
+    const toolManager = (agent as unknown as { toolManager: ToolManager })
+      .toolManager;
+    const taskManager = (agent as unknown as { taskManager: TaskManager })
+      .taskManager;
+    await toolManager.execute(
+      "Bash",
+      { command: "rm -rf /tmp/test" },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+  });
+
+  it("should trigger onPermissionModeChange callback when mode changes", async () => {
+    const mockModeCallback = vi.fn();
+    const agent = await Agent.create({
+      workdir: tempDir,
+      callbacks: {
+        onPermissionModeChange: mockModeCallback,
+      },
+    });
+    activeAgent = agent;
+
+    agent.setPermissionMode("acceptEdits");
+    expect(mockModeCallback).toHaveBeenCalledWith("acceptEdits");
+  });
+
+  it("should merge global and local rules", async () => {
+    // 1. Setup global config
+    const userHome = await fs.mkdtemp(
+      path.join(longFormTempDir(), "wave-user-home-"),
+    );
+    vi.mocked(os.homedir).mockReturnValue(userHome);
+
+    const userWaveDir = path.join(userHome, ".muse-work");
+    await fs.mkdir(userWaveDir, { recursive: true });
+    await fs.writeFile(
+      path.join(userWaveDir, "settings.json"),
+      JSON.stringify({ permissions: { allow: ["Bash(global)"] } }),
+    );
+
+    // 2. Setup local config
+    const projectWaveDir = path.join(tempDir, ".muse-work");
+    await fs.mkdir(projectWaveDir, { recursive: true });
+    await fs.writeFile(
+      path.join(projectWaveDir, "settings.json"),
+      JSON.stringify({ permissions: { allow: ["Bash(local)"] } }),
+    );
+
+    // 3. Create agent
+    const mockCallback = vi.fn();
+    const agent = await Agent.create({
+      workdir: tempDir,
+      permissionMode: "default",
+      canUseTool: mockCallback as unknown as PermissionCallback,
+    });
+    activeAgent = agent;
+
+    // 4. Verify both rules are applied
+    const toolManager = (agent as unknown as { toolManager: ToolManager })
+      .toolManager;
+    const taskManager = (agent as unknown as { taskManager: TaskManager })
+      .taskManager;
+
+    await toolManager.execute(
+      "Bash",
+      { command: "global" },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+
+    await toolManager.execute(
+      "Bash",
+      { command: "local" },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+
+    await fs.rm(userHome, { recursive: true, force: true });
+  });
+
+  it("should split chained bash commands and filter safe ones when persisting rules", async () => {
+    const mockCallback = vi.fn();
+    const agent = await Agent.create({
+      workdir: tempDir,
+      permissionMode: "default",
+      canUseTool: mockCallback as unknown as PermissionCallback,
+    });
+    activeAgent = agent;
+
+    const toolManager = (agent as unknown as { toolManager: ToolManager })
+      .toolManager;
+    const taskManager = (agent as unknown as { taskManager: TaskManager })
+      .taskManager;
+
+    // 1. Trigger permission check for a chained command
+    mockCallback.mockResolvedValueOnce({
+      behavior: "allow",
+      newPermissionRule: "Bash(mkdir -p test && cd test)",
+    });
+
+    // Create the directory so cd test is considered safe
+    await fs.mkdir(path.join(tempDir, "test"));
+
+    await toolManager.execute(
+      "Bash",
+      { command: "mkdir -p test && cd test" },
+      { workdir: tempDir, taskManager },
+    );
+
+    // 2. Check if rules were split and filtered in settings.local.json
+    const configPath = path.join(tempDir, ".muse-work", "settings.local.json");
+    const configContent = await fs.readFile(configPath, "utf-8");
+    const config = JSON.parse(configContent);
+
+    // Should contain mkdir -p test but NOT cd test
+    expect(config.permissions.allow).toContain("Bash(mkdir -p test)");
+    expect(config.permissions.allow).not.toContain("Bash(cd test)");
+    expect(config.permissions.allow).not.toContain(
+      "Bash(mkdir -p test && cd test)",
+    );
+
+    // 3. Verify that mkdir -p test is now auto-allowed
+    mockCallback.mockClear();
+    await toolManager.execute(
+      "Bash",
+      { command: "mkdir -p test" },
+      { workdir: tempDir, taskManager },
+    );
+    expect(mockCallback).not.toHaveBeenCalled();
+  });
+});

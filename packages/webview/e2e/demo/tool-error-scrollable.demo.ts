@@ -1,6 +1,6 @@
 import { test, expect } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
-import { BASH_TOOL_NAME, type Message } from "wave-agent-sdk";
+import { BASH_TOOL_NAME, type Message } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Tool Error Scrollable Demo", () => {

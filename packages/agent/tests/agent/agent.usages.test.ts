@@ -1,0 +1,401 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Agent } from "@/agent.js";
+import * as aiService from "@/services/aiService.js";
+import { createMockToolManager } from "../helpers/mockFactories.js";
+import type { Usage } from "@/types/index.js";
+import { generateMessageId } from "@/utils/messageOperations.js";
+
+// Mock AI Service
+vi.mock("@/services/aiService");
+
+// Mock tool registry
+const { instance: mockToolManagerInstance } = createMockToolManager();
+vi.mock("@/managers/toolManager", () => ({
+  ToolManager: vi.fn().mockImplementation(function () {
+    return mockToolManagerInstance;
+  }),
+}));
+
+describe("Agent Usage Tracking", () => {
+  let agent: Agent;
+  let usagesHistory: Usage[];
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeEach(async () => {
+    // Save original environment
+    originalEnv = process.env;
+    // Clear environment variables that might affect model selection
+    process.env = { ...originalEnv };
+    process.env.MUSE_MODEL = "gemini-3-flash";
+    process.env.MUSE_FAST_MODEL = "gemini-2.5-flash";
+    process.env.MUSE_DISABLE_AUTO_MEMORY = "true";
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
+
+    // Create mock callbacks that track usage changes
+    usagesHistory = [];
+    const mockCallbacks = {
+      onLoadingChange: vi.fn(),
+      onUsagesChange: vi.fn((usages: Usage[]) => {
+        usagesHistory = [...usages];
+      }),
+    };
+
+    // Create Agent instance with required parameters
+    agent = await Agent.create({
+      callbacks: mockCallbacks,
+    });
+
+    // Inject mock ToolManager into the container
+    const container = (
+      agent as unknown as {
+        container: { register: (name: string, instance: unknown) => void };
+      }
+    ).container;
+    container.register("ToolManager", mockToolManagerInstance);
+
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (agent) {
+      await agent.destroy();
+    }
+    // Restore original environment
+    process.env = originalEnv;
+  });
+
+  describe("usages getter", () => {
+    it("should return empty array initially", () => {
+      expect(agent.usages).toEqual([]);
+      expect(Array.isArray(agent.usages)).toBe(true);
+    });
+
+    it("should return a copy of the internal _usages array", () => {
+      const usages1 = agent.usages;
+      const usages2 = agent.usages;
+
+      // Should get different array instances (copies)
+      expect(usages1).not.toBe(usages2);
+      expect(usages1).toEqual(usages2);
+    });
+
+    it("should not allow external modification of internal state", () => {
+      const usagesBefore = agent.usages;
+      expect(usagesBefore).toEqual([]);
+
+      // Try to modify the returned array
+      usagesBefore.push({
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        model: "gpt-4",
+        operation_type: "agent",
+      });
+
+      // Internal state should remain unchanged
+      const usagesAfter = agent.usages;
+      expect(usagesAfter).toEqual([]);
+    });
+  });
+
+  describe("usage tracking through AI calls", () => {
+    it("should track usage when AI service returns usage data", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      const expectedUsage: Usage = {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        model: "gemini-3-flash",
+        operation_type: "agent",
+      };
+
+      mockCallAgent.mockResolvedValue({
+        content: "Test response",
+        usage: {
+          prompt_tokens: expectedUsage.prompt_tokens,
+          completion_tokens: expectedUsage.completion_tokens,
+          total_tokens: expectedUsage.total_tokens,
+        },
+      });
+
+      await agent.sendMessage("Test message");
+
+      expect(agent.usages).toHaveLength(1);
+      expect(agent.usages[0]).toMatchObject(expectedUsage);
+      expect(usagesHistory).toHaveLength(1);
+      expect(usagesHistory[0]).toMatchObject(expectedUsage);
+    });
+
+    it("should accumulate multiple usage entries from multiple AI calls", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      const usage1 = {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+      };
+
+      const usage2 = {
+        prompt_tokens: 200,
+        completion_tokens: 100,
+        total_tokens: 300,
+      };
+
+      mockCallAgent
+        .mockResolvedValueOnce({
+          content: "First response",
+          usage: usage1,
+        })
+        .mockResolvedValueOnce({
+          content: "Second response",
+          usage: usage2,
+        });
+
+      await agent.sendMessage("First message");
+      await agent.sendMessage("Second message");
+
+      expect(agent.usages).toHaveLength(2);
+      expect(agent.usages[0]).toMatchObject({
+        ...usage1,
+        operation_type: "agent",
+      });
+      expect(agent.usages[1]).toMatchObject({
+        ...usage2,
+        operation_type: "agent",
+      });
+      expect(usagesHistory).toHaveLength(2);
+    });
+
+    it("should maintain correct order of usage entries", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      const usageData = [];
+      for (let i = 1; i <= 3; i++) {
+        usageData.push({
+          prompt_tokens: i * 10,
+          completion_tokens: i * 5,
+          total_tokens: i * 15,
+        });
+      }
+
+      // Mock multiple calls
+      for (let i = 0; i < usageData.length; i++) {
+        mockCallAgent.mockResolvedValueOnce({
+          content: `Response ${i + 1}`,
+          usage: usageData[i],
+        });
+      }
+
+      // Send multiple messages
+      for (let i = 1; i <= 3; i++) {
+        await agent.sendMessage(`Message ${i}`);
+      }
+
+      expect(agent.usages).toHaveLength(3);
+      for (let i = 0; i < 3; i++) {
+        expect(agent.usages[i]).toMatchObject({
+          ...usageData[i],
+          operation_type: "agent",
+        });
+      }
+    });
+  });
+
+  describe("integration with usage callbacks", () => {
+    it("should trigger onUsageChange callback when usage is tracked", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      mockCallAgent.mockResolvedValue({
+        content: "Test response",
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+        },
+      });
+
+      await agent.sendMessage("Test message");
+
+      // Verify callback was triggered with usage data
+      expect(usagesHistory).toHaveLength(1);
+      expect(usagesHistory[0]).toMatchObject({
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        operation_type: "agent",
+      });
+    });
+
+    it("should handle multiple usage updates correctly", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      mockCallAgent
+        .mockResolvedValueOnce({
+          content: "First response",
+          usage: {
+            prompt_tokens: 50,
+            completion_tokens: 25,
+            total_tokens: 75,
+          },
+        })
+        .mockResolvedValueOnce({
+          content: "Second response",
+          usage: {
+            prompt_tokens: 80,
+            completion_tokens: 40,
+            total_tokens: 120,
+          },
+        });
+
+      await agent.sendMessage("First message");
+      await agent.sendMessage("Second message");
+
+      // Verify accumulated usage data
+      expect(usagesHistory).toHaveLength(2);
+      expect(usagesHistory[0].total_tokens).toBe(75);
+      expect(usagesHistory[1].total_tokens).toBe(120);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("should handle usage with zero tokens", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      mockCallAgent.mockResolvedValue({
+        content: "Empty response",
+        usage: {
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0,
+        },
+      });
+
+      await agent.sendMessage("Test message");
+
+      expect(agent.usages).toHaveLength(1);
+      expect(agent.usages[0]).toMatchObject({
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+        operation_type: "agent",
+      });
+    });
+
+    it("should handle AI calls without usage data", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      mockCallAgent.mockResolvedValue({
+        content: "Response without usage",
+        // No usage field
+      });
+
+      await agent.sendMessage("Test message");
+
+      // Should not add any usage when no usage data is provided
+      expect(agent.usages).toHaveLength(0);
+      expect(usagesHistory).toHaveLength(0);
+    });
+
+    it("should track compaction usage when it occurs", async () => {
+      const mockCallAgent = vi.mocked(aiService.callAgent);
+
+      // Lower the input token limit so the short message history exceeds it
+      // and the pre-request estimate triggers compaction
+      process.env.MUSE_MAX_INPUT_TOKENS = "30";
+
+      // Set up an agent instance with initial messages to have enough content for compaction
+      const initialMessages = [
+        {
+          id: generateMessageId(),
+          role: "user" as const,
+          blocks: [{ type: "text" as const, content: "Message 1" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "assistant" as const,
+          blocks: [{ type: "text" as const, content: "Response 1" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "user" as const,
+          blocks: [{ type: "text" as const, content: "Message 2" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "assistant" as const,
+          blocks: [{ type: "text" as const, content: "Response 2" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "user" as const,
+          blocks: [{ type: "text" as const, content: "Message 3" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "assistant" as const,
+          blocks: [{ type: "text" as const, content: "Response 3" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "user" as const,
+          blocks: [{ type: "text" as const, content: "Message 4" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: generateMessageId(),
+          role: "assistant" as const,
+          blocks: [{ type: "text" as const, content: "Response 4" }],
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      // Create new agent instance with initial messages
+      await agent.destroy();
+      agent = await Agent.create({
+        callbacks: {
+          onUsagesChange: vi.fn((usages: Usage[]) => {
+            usagesHistory = [...usages];
+          }),
+        },
+        messages: initialMessages,
+      });
+
+      // Inject mock ToolManager into the container
+      const container = (
+        agent as unknown as {
+          container: { register: (name: string, instance: unknown) => void };
+        }
+      ).container;
+      container.register("ToolManager", mockToolManagerInstance);
+
+      vi.clearAllMocks();
+
+      // Both the compaction fork and the main loop reuse callAgent; the
+      // fork result content is used as the summary.
+      mockCallAgent.mockResolvedValue({
+        content: "Response that triggers compaction",
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+        },
+      });
+
+      await agent.sendMessage("Message that triggers compaction");
+
+      // Should track both compaction and agent usage — the fork runs before
+      // the main-loop request (pre-request compaction), so it is recorded
+      // first
+      expect(agent.usages).toHaveLength(2);
+      expect(agent.usages[0].operation_type).toBe("compact");
+      expect(agent.usages[1].operation_type).toBe("agent");
+    });
+  });
+});

@@ -89,8 +89,10 @@ export function patchMuseSettings(
 
 export function pluginDirIfPresent(pluginName: string): string | undefined {
   const dir = resolvePluginDir(pluginName);
-  const manifest = path.join(dir, ".wave-plugin", "plugin.json");
-  if (!fs.existsSync(manifest)) {
+  const hasManifest = [".muse-plugin", ".wave-plugin", ".claude-plugin"].some(
+    (name) => fs.existsSync(path.join(dir, name, "plugin.json")),
+  );
+  if (!hasManifest) {
     getLogger().error(`${pluginName} plugin directory missing`, { dir });
     return undefined;
   }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
-import type { Message as MessageType } from "wave-agent-sdk";
+import type { Message as MessageType } from "@muse-work/agent";
 
 export function formatWorkedDuration(ms: number): string {
   const totalSec = Math.max(0, Math.round(ms / 1000));

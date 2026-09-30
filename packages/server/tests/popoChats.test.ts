@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { createChatStore } from "../src/popo/chatStore.js";
+import { getMuseHomeDir } from "@muse-work/provider";
 
 function tempHome(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "popo-chats-"));
@@ -13,13 +14,13 @@ describe("popo chatStore", () => {
     const home = tempHome();
     const store = createChatStore({ home });
     const chat = store.getOrCreateChat("p2p:me@corp.netease.com", "p2p", "me@corp.netease.com");
-    expect(chat.waveSessionId).toBeUndefined();
-    store.setWaveSessionId(chat.chatKey, "wave-1");
+    expect(chat.museSessionId).toBeUndefined();
+    store.setMuseSessionId(chat.chatKey, "wave-1");
     store.appendMessage(chat.chatKey, { role: "user", content: "hi", at: "t1" });
 
     const reloaded = createChatStore({ home });
     const got = reloaded.getChat("p2p:me@corp.netease.com");
-    expect(got?.waveSessionId).toBe("wave-1");
+    expect(got?.museSessionId).toBe("wave-1");
     expect(got?.messages).toEqual([{ role: "user", content: "hi", at: "t1" }]);
   });
 
@@ -68,24 +69,24 @@ describe("popo chatStore", () => {
     expect(store.getChat(chat.chatKey)?.messages.map((m) => m.content)).toEqual(["2", "3", "4"]);
   });
 
-  it("clearMessages empties history, keeps waveSessionId, and persists", () => {
+  it("clearMessages empties history, keeps museSessionId, and persists", () => {
     const home = tempHome();
     const store = createChatStore({ home });
     const chat = store.getOrCreateChat("p2p:me@corp.netease.com", "p2p", "me@corp.netease.com");
-    store.setWaveSessionId(chat.chatKey, "wave-1");
+    store.setMuseSessionId(chat.chatKey, "wave-1");
     store.appendMessage(chat.chatKey, { role: "user", content: "hi", at: "t1" });
     store.appendMessage(chat.chatKey, { role: "assistant", content: "yo", at: "t2" });
 
     store.clearMessages(chat.chatKey);
     const got = store.getChat(chat.chatKey);
     expect(got?.messages).toEqual([]);
-    // agent 侧会话由 runner.clear 换新，展示层不动 waveSessionId
-    expect(got?.waveSessionId).toBe("wave-1");
+    // agent 侧会话由 runner.clear 换新，展示层不动 museSessionId
+    expect(got?.museSessionId).toBe("wave-1");
 
     const reloaded = createChatStore({ home });
     const reloadedChat = reloaded.getChat(chat.chatKey);
     expect(reloadedChat?.messages).toEqual([]);
-    expect(reloadedChat?.waveSessionId).toBe("wave-1");
+    expect(reloadedChat?.museSessionId).toBe("wave-1");
   });
 
   it("clearMessages on missing chat is a no-op", () => {
@@ -108,5 +109,32 @@ describe("popo chatStore", () => {
   it("deleteChat returns false for a missing chat", () => {
     const store = createChatStore({ home: tempHome() });
     expect(store.deleteChat("p2p:nobody@corp.netease.com")).toBe(false);
+  });
+
+  it("reads leftover waveSessionId and rewrites museSessionId", () => {
+    const home = tempHome();
+    const store = createChatStore({ home });
+    store.getOrCreateChat("p2p:me@corp.netease.com", "p2p", "me@corp.netease.com");
+    const file = path.join(getMuseHomeDir(home), "popo-chats.json");
+    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as {
+      chats: Record<string, { museSessionId?: string; waveSessionId?: string }>;
+    };
+    raw.chats["p2p:me@corp.netease.com"].waveSessionId = "legacy-sdk-id";
+    delete raw.chats["p2p:me@corp.netease.com"].museSessionId;
+    fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`);
+
+    const reloaded = createChatStore({ home });
+    expect(reloaded.getChat("p2p:me@corp.netease.com")?.museSessionId).toBe(
+      "legacy-sdk-id",
+    );
+    const rewritten = JSON.parse(fs.readFileSync(file, "utf8")) as {
+      chats: Record<string, { museSessionId?: string; waveSessionId?: string }>;
+    };
+    expect(rewritten.chats["p2p:me@corp.netease.com"]?.museSessionId).toBe(
+      "legacy-sdk-id",
+    );
+    expect(
+      rewritten.chats["p2p:me@corp.netease.com"]?.waveSessionId,
+    ).toBeUndefined();
   });
 });

@@ -53,7 +53,7 @@ test.describe("Agents Dialog Demo", () => {
             tools: ["Bash", "Read", "Grep"],
             systemPrompt:
               "你是严格的代码评审专家。逐文件检查：\n1. 潜在缺陷与边界条件\n2. 类型安全与空值处理\n3. 错误处理与日志\n输出按严重程度分组的问题清单，并给出修改建议。",
-            filePath: "~/.wave/agents/code-review.md",
+            filePath: "~/.muse-work/agents/code-review.md",
             scope: "user",
             priority: 0,
           },
@@ -64,7 +64,7 @@ test.describe("Agents Dialog Demo", () => {
             tools: ["Bash", "Read", "Grep"],
             systemPrompt:
               "你是发布检查专家。发布前依次验证：版本号一致性、changelog 完整性、CI 状态与工作区干净度。任一检查失败时给出明确的修复指引。",
-            filePath: ".wave/agents/release-bot.md",
+            filePath: ".muse-work/agents/release-bot.md",
             scope: "project",
             priority: 0,
           },

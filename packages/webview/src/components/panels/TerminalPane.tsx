@@ -11,7 +11,7 @@ import "../../styles/TerminalPane.css";
 declare global {
   interface Window {
     /** Set by the lazily injected desktop-only terminal chunk (terminal.js). */
-    WaveTerminal?: {
+    MuseTerminal?: {
       Terminal: typeof XtermTerminal;
       FitAddon: typeof FitAddon;
       WebLinksAddon: typeof WebLinksAddon;
@@ -22,18 +22,18 @@ declare global {
 const MIN_WIDTH = 320;
 
 /** Singleton loader for the desktop-only xterm chunk. */
-let terminalLibPromise: Promise<NonNullable<Window["WaveTerminal"]>> | null =
+let terminalLibPromise: Promise<NonNullable<Window["MuseTerminal"]>> | null =
   null;
 
-function loadTerminalLib(): Promise<NonNullable<Window["WaveTerminal"]>> {
-  if (window.WaveTerminal) return Promise.resolve(window.WaveTerminal);
+function loadTerminalLib(): Promise<NonNullable<Window["MuseTerminal"]>> {
+  if (window.MuseTerminal) return Promise.resolve(window.MuseTerminal);
   if (terminalLibPromise) return terminalLibPromise;
   terminalLibPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "./terminal.js";
     script.onload = () => {
-      if (window.WaveTerminal) resolve(window.WaveTerminal);
-      else reject(new Error("terminal chunk 未导出 WaveTerminal"));
+      if (window.MuseTerminal) resolve(window.MuseTerminal);
+      else reject(new Error("terminal chunk 未导出 MuseTerminal"));
     };
     script.onerror = () => reject(new Error("terminal.js 加载失败"));
     document.head.appendChild(script);

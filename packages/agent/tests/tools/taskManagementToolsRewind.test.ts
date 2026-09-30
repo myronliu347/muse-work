@@ -1,0 +1,199 @@
+import { describe, it, expect, vi, beforeEach, type Mocked } from "vitest";
+import {
+  taskCreateTool,
+  taskUpdateTool,
+} from "../../src/tools/taskManagementTools.js";
+import { TaskManager } from "../../src/services/taskManager.js";
+import { Task } from "../../src/types/tasks.js";
+import type { ToolContext } from "../../src/tools/types.js";
+import { ReversionManager } from "../../src/managers/reversionManager.js";
+import { Container } from "../../src/utils/container.js";
+
+// Mock TaskManager
+vi.mock("../../src/services/taskManager.js", () => {
+  const TaskManager = vi.fn();
+  TaskManager.prototype.createTask = vi.fn();
+  TaskManager.prototype.getTask = vi.fn();
+  TaskManager.prototype.updateTask = vi.fn();
+  TaskManager.prototype.getTaskPath = vi.fn();
+  return { TaskManager };
+});
+
+// Mock ReversionManager
+vi.mock("../../src/managers/reversionManager.js", () => {
+  const ReversionManager = vi.fn();
+  ReversionManager.prototype.recordSnapshot = vi.fn();
+  ReversionManager.prototype.commitSnapshot = vi.fn();
+  return { ReversionManager };
+});
+
+describe("Task Management Tools - Rewind Support", () => {
+  const sessionId = "test-session-id";
+  const messageId = "test-message-id";
+  let context: ToolContext;
+  let mockTaskManager: Mocked<TaskManager>;
+  let mockReversionManager: Mocked<ReversionManager>;
+  const container = new Container();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTaskManager = new TaskManager(
+      container,
+      sessionId,
+    ) as Mocked<TaskManager>;
+    mockReversionManager = new ReversionManager(
+      container,
+    ) as Mocked<ReversionManager>;
+
+    context = {
+      sessionId,
+      messageId,
+      taskManager: mockTaskManager,
+      reversionManager: mockReversionManager,
+      workdir: "/test/workdir",
+    } as ToolContext;
+  });
+
+  describe("TaskCreate tool rewind support", () => {
+    it("should record a 'create' snapshot when a task is created", async () => {
+      const args = {
+        subject: "Test Task",
+        description: "Test Description",
+      };
+      const taskId = "1";
+      const taskPath = "/path/to/task/1.json";
+
+      mockTaskManager.createTask.mockResolvedValue(taskId);
+      mockTaskManager.getTaskPath.mockReturnValue(taskPath);
+      mockReversionManager.recordSnapshot.mockResolvedValue("snapshot-1");
+
+      const result = await taskCreateTool.execute(args, context);
+
+      expect(result.success).toBe(true);
+      expect(mockTaskManager.createTask).toHaveBeenCalled();
+      expect(mockReversionManager.recordSnapshot).toHaveBeenCalledWith(
+        messageId,
+        taskPath,
+        "create",
+      );
+      expect(mockReversionManager.commitSnapshot).toHaveBeenCalled();
+    });
+
+    it("should not fail if reversionManager is missing", async () => {
+      const args = {
+        subject: "Test Task",
+        description: "Test Description",
+      };
+      mockTaskManager.createTask.mockResolvedValue("1");
+
+      const contextWithoutReversion = {
+        ...context,
+        reversionManager: undefined,
+      };
+      const result = await taskCreateTool.execute(
+        args,
+        contextWithoutReversion,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockTaskManager.createTask).toHaveBeenCalled();
+    });
+  });
+
+  describe("TaskUpdate tool rewind support", () => {
+    it("should record a 'modify' snapshot before a task is updated", async () => {
+      const taskId = "1";
+      const taskPath = "/path/to/task/1.json";
+      const existingTask: Task = {
+        id: taskId,
+        subject: "Old Subject",
+        description: "Old Description",
+        status: "pending",
+        blocks: [],
+        blockedBy: [],
+        metadata: {},
+      };
+
+      mockTaskManager.getTask.mockResolvedValue(existingTask);
+      mockTaskManager.getTaskPath.mockReturnValue(taskPath);
+      mockReversionManager.recordSnapshot.mockResolvedValue("snapshot-1");
+
+      const args = {
+        taskId,
+        subject: "New Subject",
+      };
+
+      const result = await taskUpdateTool.execute(args, context);
+
+      expect(result.success).toBe(true);
+      expect(mockReversionManager.recordSnapshot).toHaveBeenCalledWith(
+        messageId,
+        taskPath,
+        "modify",
+      );
+      expect(mockReversionManager.commitSnapshot).toHaveBeenCalled();
+      // Ensure snapshot is recorded BEFORE update
+      const recordCallOrder =
+        mockReversionManager.recordSnapshot.mock.invocationCallOrder[0];
+      const updateCallOrder =
+        mockTaskManager.updateTask.mock.invocationCallOrder[0];
+      expect(recordCallOrder).toBeLessThan(updateCallOrder);
+    });
+
+    it("should record snapshots for other tasks updated via addBlocks", async () => {
+      const taskId = "1";
+      const targetId = "2";
+      const taskPath = "/path/to/task/1.json";
+      const targetPath = "/path/to/task/2.json";
+      const existingTask: Task = {
+        id: taskId,
+        subject: "Task 1",
+        description: "Desc 1",
+        status: "pending",
+        blocks: [],
+        blockedBy: [],
+        metadata: {},
+      };
+      const targetTask: Task = {
+        id: targetId,
+        subject: "Task 2",
+        description: "Desc 2",
+        status: "pending",
+        blocks: [],
+        blockedBy: [],
+        metadata: {},
+      };
+
+      mockTaskManager.getTask.mockImplementation(async (id) => {
+        if (id === taskId) return existingTask;
+        if (id === targetId) return targetTask;
+        return null;
+      });
+      mockTaskManager.getTaskPath.mockImplementation(
+        (id) => `/path/to/task/${id}.json`,
+      );
+      mockReversionManager.recordSnapshot.mockResolvedValue("snapshot-id");
+
+      const args = {
+        taskId,
+        addBlocks: [targetId],
+      };
+
+      const result = await taskUpdateTool.execute(args, context);
+
+      expect(result.success).toBe(true);
+      // Should record snapshot for both tasks
+      expect(mockReversionManager.recordSnapshot).toHaveBeenCalledWith(
+        messageId,
+        taskPath,
+        "modify",
+      );
+      expect(mockReversionManager.recordSnapshot).toHaveBeenCalledWith(
+        messageId,
+        targetPath,
+        "modify",
+      );
+      expect(mockReversionManager.commitSnapshot).toHaveBeenCalledTimes(2);
+    });
+  });
+});

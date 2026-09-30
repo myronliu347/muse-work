@@ -74,10 +74,10 @@ describe("sessionRunner lifecycle", () => {
     return { store, hub, registry, home };
   }
 
-  it("restore failure falls back to new agent and writes waveSessionId", async () => {
+  it("restore failure falls back to new agent and writes museSessionId", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "broken-wave-id");
+    store.setMuseSessionId(session.id, "broken-wave-id");
 
     let calls = 0;
     const runner = createSessionRunner({
@@ -101,13 +101,13 @@ describe("sessionRunner lifecycle", () => {
 
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => calls).toBe(2);
-    expect(store.get(session.id)?.waveSessionId).toBe("new-wave-id");
+    expect(store.get(session.id)?.museSessionId).toBe("new-wave-id");
   });
 
   it("does not destroy an idle agent on a timer", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "11111111-1111-4111-8111-111111111111");
+    store.setMuseSessionId(session.id, "11111111-1111-4111-8111-111111111111");
 
     const restoreIds: Array<string | undefined> = [];
     let disposeCount = 0;
@@ -138,7 +138,7 @@ describe("sessionRunner lifecycle", () => {
     await new Promise((r) => setTimeout(r, 80));
     expect(disposeCount).toBe(0);
     expect(runner.getAgentCount()).toBe(1);
-    expect(store.get(session.id)?.waveSessionId).toBe(
+    expect(store.get(session.id)?.museSessionId).toBe(
       "11111111-1111-4111-8111-111111111111",
     );
 
@@ -154,9 +154,9 @@ describe("sessionRunner lifecycle", () => {
     const a = store.create({ workdir: "/tmp", model: "m1" });
     const b = store.create({ workdir: "/tmp", model: "m1" });
     const c = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(a.id, "wave-a");
-    store.setWaveSessionId(b.id, "wave-b");
-    store.setWaveSessionId(c.id, "wave-c");
+    store.setMuseSessionId(a.id, "wave-a");
+    store.setMuseSessionId(b.id, "wave-b");
+    store.setMuseSessionId(c.id, "wave-c");
 
     const disposed: string[] = [];
     const runner = createSessionRunner({
@@ -183,7 +183,7 @@ describe("sessionRunner lifecycle", () => {
     await expect.poll(() => store.get(c.id)?.status).toBe("idle");
 
     await expect.poll(() => disposed).toEqual(["wave-a"]);
-    expect(store.get(a.id)?.waveSessionId).toBe("wave-a");
+    expect(store.get(a.id)?.museSessionId).toBe("wave-a");
     expect(runner.getAgentCount()).toBe(2);
   });
 
@@ -192,9 +192,9 @@ describe("sessionRunner lifecycle", () => {
     const a = store.create({ workdir: "/tmp", model: "m1" });
     const b = store.create({ workdir: "/tmp", model: "m1" });
     const c = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(a.id, "wave-a");
-    store.setWaveSessionId(b.id, "wave-b");
-    store.setWaveSessionId(c.id, "wave-c");
+    store.setMuseSessionId(a.id, "wave-a");
+    store.setMuseSessionId(b.id, "wave-b");
+    store.setMuseSessionId(c.id, "wave-c");
 
     const disposed: string[] = [];
     const runner = createSessionRunner({
@@ -229,8 +229,8 @@ describe("sessionRunner lifecycle", () => {
     const { store, hub, registry, home } = setup();
     const a = store.create({ workdir: "/tmp", model: "m1" });
     const b = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(a.id, "wave-a");
-    store.setWaveSessionId(b.id, "wave-b");
+    store.setMuseSessionId(a.id, "wave-a");
+    store.setMuseSessionId(b.id, "wave-b");
 
     const disposed: string[] = [];
     const runner = createSessionRunner({
@@ -263,7 +263,7 @@ describe("sessionRunner lifecycle", () => {
   it("model change destroys on next ensure and passes restoreSessionId", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "wave-1");
+    store.setMuseSessionId(session.id, "wave-1");
 
     const createdModels: string[] = [];
     const restoreIds: Array<string | undefined> = [];
@@ -448,7 +448,7 @@ describe("sessionRunner lifecycle", () => {
   it("getMessages is read-only: does not create an agent for a never-sent session", async () => {
     const { store, hub, registry, home } = setup();
     const session = store.create({ workdir: "/tmp", model: "m1" });
-    store.setWaveSessionId(session.id, "22222222-2222-4222-8222-222222222222");
+    store.setMuseSessionId(session.id, "22222222-2222-4222-8222-222222222222");
 
     let restoreIds: Array<string | undefined> = [];
 
@@ -477,7 +477,7 @@ describe("sessionRunner lifecycle", () => {
 
     await runner.sendMessage(session.id, "hello");
     await expect.poll(() => restoreIds.length).toBe(1);
-    expect(store.get(session.id)?.waveSessionId).toBe(
+    expect(store.get(session.id)?.museSessionId).toBe(
       "22222222-2222-4222-8222-222222222222",
     );
     expect(store.get(session.id)).toBeDefined();
@@ -1002,13 +1002,13 @@ describe("sessionRunner lifecycle", () => {
         getMessages: () => [],
       }),
       // Session reload with no live agent: serve history from disk. The disk
-      // lookup uses the SDK's waveSessionId, not the server store's session id.
+      // lookup uses the SDK's museSessionId, not the server store's session id.
       loadMainSessionFromDisk: async (id) => {
         expect(id).toBe("wave-reload");
         return { messages };
       },
     });
-    store.setWaveSessionId(session.id, "wave-reload");
+    store.setMuseSessionId(session.id, "wave-reload");
 
     // Simulate a session reload (switching back to this session).
     const reloaded = (await runner.getMessages(session.id)) as Array<{

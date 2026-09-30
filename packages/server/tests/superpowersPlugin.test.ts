@@ -11,7 +11,7 @@ describe("superpowers builtin plugin", () => {
   it("has Wave manifest, LICENSE, and using-superpowers skill", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(pluginDir, ".wave-plugin", "plugin.json"),
+        path.join(pluginDir, ".muse-plugin", "plugin.json"),
         "utf8",
       ),
     ) as { name: string; version: string };
@@ -29,7 +29,7 @@ describe("superpowers builtin plugin", () => {
     const script = path.join(pluginDir, "scripts", "session-start.js");
     const result = spawnSync(process.execPath, [script], {
       encoding: "utf8",
-      env: { ...process.env, WAVE_PLUGIN_ROOT: pluginDir },
+      env: { ...process.env, MUSE_PLUGIN_ROOT: pluginDir },
     });
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout) as {

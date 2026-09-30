@@ -1,0 +1,74 @@
+{
+  "name": "@muse-work/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Muse Agent runtime (forked from wave-agent-sdk)",
+  "keywords": [
+    "ai",
+    "sdk",
+    "agent",
+    "development-tools",
+    "typescript",
+    "mcp"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "default": "./dist/constants/index.js"
+    },
+    "./package.json": "./package.json",
+    "./*": "./*"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "type-check": "tsc --noEmit --incremental",
+    "test": "vitest run --reporter=dot",
+    "test:coverage": "vitest run --coverage --reporter=dot",
+    "test:unit": "vitest run --reporter=dot --exclude 'tests/integration/**' --exclude '**/*.integration.test.ts'",
+    "test:unit:coverage": "vitest run --coverage --reporter=dot --exclude 'tests/integration/**' --exclude '**/*.integration.test.ts'",
+    "test:integration": "vitest run --reporter=dot tests/integration .integration.test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@vscode/ripgrep": "^1.18.0",
+    "chokidar": "^4.0.3",
+    "fuzzysort": "^3.1.0",
+    "glob": "^13.0.0",
+    "lru-cache": "^11.3.5",
+    "marked": "^17.0.2",
+    "minimatch": "^10.0.3",
+    "openai": "^5.12.2",
+    "semver": "^7.7.4",
+    "sharp": "^0.35.4",
+    "turndown": "^7.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/semver": "^7.7.1",
+    "@types/turndown": "^5.0.6",
+    "@vitest/coverage-v8": "^4.1.7",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.7"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

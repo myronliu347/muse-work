@@ -564,7 +564,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       }),
       entry({
         sessionId: "wt-a",
-        workdir: "/repo/.wave/worktrees/a",
+        workdir: "/Users/me/.muse-work/worktrees/a",
         worktreeRepoRoot: "/repo",
         hasWorktree: true,
         worktreeName: "a",
@@ -573,7 +573,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       }),
       entry({
         sessionId: "wt-b",
-        workdir: "/repo/.wave/worktrees/b",
+        workdir: "/Users/me/.muse-work/worktrees/b",
         worktreeRepoRoot: "/repo",
         hasWorktree: true,
         worktreeName: "b",
@@ -601,7 +601,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       recentSessions: [
         entry({
           sessionId: "wt1",
-          workdir: "/repo/.wave/worktrees/a",
+          workdir: "/Users/me/.muse-work/worktrees/a",
           hasWorktree: true,
           worktreeName: "a",
           worktreeBranch: "worktree-a",
@@ -627,7 +627,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
         entry({
           sessionId: "wt1",
           title: "WT session",
-          workdir: "/repo/.wave/worktrees/a",
+          workdir: "/Users/me/.muse-work/worktrees/a",
           hasWorktree: true,
           worktreeName: "a",
           worktreeBranch: "worktree-a",
@@ -640,7 +640,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(card.textContent).toContain("WT session");
     expect(card.textContent).toContain("worktree-a");
     expect(card.textContent).toContain("a");
-    expect(card.textContent).toContain("/repo/.wave/worktrees/a");
+    expect(card.textContent).toContain("/Users/me/.muse-work/worktrees/a");
     expect(card.textContent).toContain("Worktree");
   });
 
@@ -968,7 +968,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       recentSessions: [
         entry({
           sessionId: "wt1",
-          workdir: "/repo/.wave/worktrees/a",
+          workdir: "/Users/me/.muse-work/worktrees/a",
           hasWorktree: true,
           worktreeName: "a",
           worktreeBranch: "worktree-a",

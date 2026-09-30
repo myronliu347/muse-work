@@ -317,7 +317,7 @@ describe("createPickerController", () => {
 });
 
 describe("pickerPreload entry", () => {
-  it("announces ready via sendToHost and registers the wave-picker channel", () => {
+  it("announces ready via sendToHost and registers the muse-picker channel", () => {
     expect(ipcSendToHost).toHaveBeenCalledWith(PICKER_CHANNEL, {
       type: "ready",
     });

@@ -4,7 +4,7 @@ import fs from "fs";
 
 /**
  * Desktop variant of the webview test harness: loads the same shared webview
- * bundle but sets `window.waveHostType = 'desktop'` before the bundle runs so
+ * bundle but sets `window.museHostType = 'desktop'` before the bundle runs so
  * the entry point mounts DesktopApp instead of ChatApp. Waits for the
  * desktop-loading element (DesktopApp's first render) instead of
  * chat-container; tests then push `desktopWorkdirState` to mount the layout.
@@ -144,7 +144,7 @@ export const test = base.extend<DesktopTestContext>({
 
 /**
  * Mock host bridge: same surface as the VS Code mock plus the desktop host
- * marker. The Electron preload script sets window.waveHostType before the
+ * marker. The Electron preload script sets window.museHostType before the
  * bundle runs; here we do it inline in the mock script.
  */
 const mockDesktopApiJs = `
@@ -158,7 +158,7 @@ const mockDesktopApiJs = `
     window.__MUSE_E2E_PASS_THROUGH__ = true;
 
     // Select the desktop root component (mirrors the Electron preload script).
-    window.waveHostType = 'desktop';
+    window.museHostType = 'desktop';
 
     let messageHandlers = [];
 

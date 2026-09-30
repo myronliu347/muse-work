@@ -54,8 +54,9 @@ describe("workdirHost state helpers", () => {
   it("loadPersistedWorkdirState drops transient recents", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-purge-"));
     const state: WorkdirHostState = {
-      workdir: "/repo/.wave/worktrees/feat-x",
+      workdir: "/Users/me/.muse-work/worktrees/feat-x",
       recentWorkdirs: [
+        "/Users/me/.muse-work/worktrees/feat-x",
         "/repo/.wave/worktrees/feat-x",
         "/proj",
         "/Users/me/.muse-work/projects/20260818-abc123",
@@ -64,7 +65,7 @@ describe("workdirHost state helpers", () => {
     };
     savePersistedWorkdirState(dir, state);
     expect(loadPersistedWorkdirState(dir)).toEqual({
-      workdir: "/repo/.wave/worktrees/feat-x",
+      workdir: "/Users/me/.muse-work/worktrees/feat-x",
       recentWorkdirs: ["/proj"],
       host: "local",
     });
@@ -92,7 +93,13 @@ describe("isTransientWorkdir", () => {
     }
   });
 
-  it("flags worktree dirs under .wave/worktrees", () => {
+  it("flags worktree dirs under ~/.muse-work/worktrees", () => {
+    expect(isTransientWorkdir("/Users/me/.muse-work/worktrees/feat-x")).toBe(
+      true,
+    );
+  });
+
+  it("flags leftover worktree dirs under .wave/worktrees", () => {
     expect(isTransientWorkdir("/repo/.wave/worktrees/feat-x")).toBe(true);
   });
 

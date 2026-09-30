@@ -1,0 +1,479 @@
+import { describe, it, expect } from "vitest";
+import {
+  splitBashCommand,
+  stripEnvVars,
+  stripRedirections,
+  hasWriteRedirections,
+  hasHeredoc,
+  isBashHeredocWrite,
+  getSmartPrefix,
+  isDangerousFind,
+  hasCommandSubstitution,
+  hasProcessSubstitution,
+  hasSedInPlace,
+  stripGitScopePrefix,
+  READ_ONLY_COMMANDS,
+} from "../../src/utils/bashParser.js";
+
+describe("bashParser", () => {
+  describe("splitBashCommand", () => {
+    it("should split simple commands", () => {
+      expect(splitBashCommand("ls && cd ..")).toEqual(["ls", "cd .."]);
+      expect(splitBashCommand("ls ; cd ..")).toEqual(["ls", "cd .."]);
+      expect(splitBashCommand("ls | grep foo")).toEqual(["ls", "grep foo"]);
+      expect(splitBashCommand("ls || echo fail")).toEqual(["ls", "echo fail"]);
+      expect(splitBashCommand("ls & cd ..")).toEqual(["ls", "cd .."]);
+    });
+
+    it("should handle quotes", () => {
+      expect(splitBashCommand('echo "&&" && ls')).toEqual(['echo "&&"', "ls"]);
+      expect(splitBashCommand("echo '||' || ls")).toEqual(["echo '||'", "ls"]);
+      expect(splitBashCommand('echo ";" ; ls')).toEqual(['echo ";"', "ls"]);
+    });
+
+    it("should handle escaped characters", () => {
+      expect(splitBashCommand("echo \\&& && ls")).toEqual(["echo \\&&", "ls"]);
+    });
+
+    it("should handle nested subshells recursively", () => {
+      expect(splitBashCommand("(cd /tmp && ls) && pwd")).toEqual([
+        "cd /tmp",
+        "ls",
+        "pwd",
+      ]);
+      expect(splitBashCommand("((cmd1 | cmd2) && cmd3)")).toEqual([
+        "cmd1",
+        "cmd2",
+        "cmd3",
+      ]);
+      expect(splitBashCommand("(cd /tmp && (ls | grep foo))")).toEqual([
+        "cd /tmp",
+        "ls",
+        "grep foo",
+      ]);
+    });
+
+    it("should handle subshells with redirections and env vars", () => {
+      expect(splitBashCommand("(echo foo) > out.txt")).toEqual([
+        "(echo foo) > out.txt",
+      ]);
+      expect(
+        splitBashCommand("VAR=val (echo foo && echo bar) > out.txt"),
+      ).toEqual(["VAR=val (echo foo && echo bar) > out.txt"]);
+    });
+
+    it("should handle complex combinations", () => {
+      expect(
+        splitBashCommand("ls | grep foo && echo done || echo failed"),
+      ).toEqual(["ls", "grep foo", "echo done", "echo failed"]);
+    });
+  });
+
+  describe("stripEnvVars", () => {
+    it("should strip single env var", () => {
+      expect(stripEnvVars("NODE_ENV=production node app.js")).toBe(
+        "node app.js",
+      );
+    });
+
+    it("should strip multiple env vars", () => {
+      expect(stripEnvVars("VAR1=val1 VAR2=val2 cmd arg")).toBe("cmd arg");
+    });
+
+    it("should handle quoted values", () => {
+      expect(stripEnvVars('VAR="val with spaces" cmd')).toBe("cmd");
+      expect(stripEnvVars("VAR='val with spaces' cmd")).toBe("cmd");
+    });
+
+    it("should not strip if not at the beginning", () => {
+      expect(stripEnvVars("echo VAR=val")).toBe("echo VAR=val");
+    });
+  });
+
+  describe("stripRedirections", () => {
+    it("should strip simple redirections", () => {
+      expect(stripRedirections('echo "hello" > out.txt')).toBe('echo "hello"');
+      expect(stripRedirections("cat < in.txt")).toBe("cat");
+      expect(stripRedirections("ls >> out.txt")).toBe("ls");
+    });
+
+    it("should strip redirections with file descriptors", () => {
+      expect(stripRedirections("ls 2> err.txt")).toBe("ls");
+      expect(stripRedirections("ls 2>> err.txt")).toBe("ls");
+      expect(stripRedirections("ls &> out.txt")).toBe("ls");
+      expect(stripRedirections("ls >& out.txt")).toBe("ls");
+    });
+
+    it("should handle redirections in the middle", () => {
+      expect(stripRedirections("grep foo > out.txt bar")).toBe("grep foo bar");
+    });
+
+    it("should handle quoted redirections (should NOT strip)", () => {
+      expect(stripRedirections('echo "> out.txt"')).toBe('echo "> out.txt"');
+    });
+
+    it("should handle redirections with subshells", () => {
+      expect(stripRedirections('(echo "hello") > out.txt')).toBe(
+        '(echo "hello")',
+      );
+    });
+
+    it("should handle complex redirections", () => {
+      expect(stripRedirections("ls 2>&1")).toBe("ls");
+      expect(stripRedirections("ls &>out.txt")).toBe("ls");
+      expect(stripRedirections("ls >out.txt 2>&1")).toBe("ls");
+      expect(stripRedirections("ls >>out.txt")).toBe("ls");
+      expect(stripRedirections("ls >| out.txt")).toBe("ls");
+      expect(stripRedirections("ls 3>&2")).toBe("ls");
+      expect(stripRedirections("cat <&0")).toBe("cat");
+      expect(stripRedirections("exec 3<>file")).toBe("exec");
+    });
+
+    it("should handle spaces correctly", () => {
+      expect(stripRedirections('echo  "a  b"')).toBe('echo "a  b"');
+      expect(stripRedirections("ls    -l")).toBe("ls -l");
+      expect(stripRedirections("ls > out.txt  -l")).toBe("ls -l");
+    });
+  });
+
+  describe("hasWriteRedirections", () => {
+    it("should detect simple write redirections", () => {
+      expect(hasWriteRedirections("echo hi > file")).toBe(true);
+      expect(hasWriteRedirections("echo hi >> file")).toBe(true);
+      expect(hasWriteRedirections("ls > file")).toBe(true);
+    });
+
+    it("should detect write redirections with file descriptors", () => {
+      expect(hasWriteRedirections("ls 2> file")).toBe(true);
+      expect(hasWriteRedirections("ls &> file")).toBe(true);
+      expect(hasWriteRedirections("ls >| file")).toBe(true);
+    });
+
+    it("should ignore file descriptor redirections", () => {
+      expect(hasWriteRedirections("ls 2>&1")).toBe(false);
+      expect(hasWriteRedirections("ls >&2")).toBe(false);
+      expect(hasWriteRedirections("ls 1>&2")).toBe(false);
+    });
+
+    it("should NOT detect read redirections", () => {
+      expect(hasWriteRedirections("cat < file")).toBe(false);
+      expect(hasWriteRedirections("cat <<EOF")).toBe(false);
+    });
+
+    it("should NOT detect quoted or escaped redirections", () => {
+      expect(hasWriteRedirections('echo "hi > file"')).toBe(false);
+      expect(hasWriteRedirections("echo 'hi > file'")).toBe(false);
+      expect(hasWriteRedirections("echo hi \\> file")).toBe(false);
+    });
+
+    it("should handle complex commands", () => {
+      expect(hasWriteRedirections("ls && echo hi > file")).toBe(true);
+      expect(hasWriteRedirections("ls > file && echo hi")).toBe(true);
+    });
+
+    it("should detect write redirections on subshells", () => {
+      expect(hasWriteRedirections("(echo hi) > file")).toBe(true);
+    });
+
+    it("should ignore redirections to /dev/null", () => {
+      expect(hasWriteRedirections("ls > /dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls 2> /dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls >> /dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls &> /dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls >| /dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls >/dev/null")).toBe(false);
+      expect(hasWriteRedirections("ls 2>/dev/null")).toBe(false);
+      expect(hasWriteRedirections('ls > "/dev/null"')).toBe(false);
+      expect(hasWriteRedirections("ls > '/dev/null'")).toBe(false);
+    });
+
+    it("should still detect other write redirections when /dev/null is present", () => {
+      expect(hasWriteRedirections("ls > /dev/null > file")).toBe(true);
+      expect(hasWriteRedirections("ls > file 2> /dev/null")).toBe(true);
+      expect(hasWriteRedirections("ls > /dev/null 2>&1")).toBe(false); // 2>&1 is now ignored
+    });
+  });
+
+  describe("hasHeredoc", () => {
+    it("should detect simple heredocs", () => {
+      expect(hasHeredoc("cat <<EOF")).toBe(true);
+      expect(hasHeredoc("cat <<-EOF")).toBe(true);
+    });
+
+    it("should NOT detect other redirections", () => {
+      expect(hasHeredoc("cat < file")).toBe(false);
+      expect(hasHeredoc("echo hi > file")).toBe(false);
+    });
+
+    it("should NOT detect quoted or escaped heredocs", () => {
+      expect(hasHeredoc('echo "<<EOF"')).toBe(false);
+      expect(hasHeredoc("echo '<<EOF'")).toBe(false);
+      expect(hasHeredoc("echo \\<\\<EOF")).toBe(false);
+    });
+  });
+
+  describe("isBashHeredocWrite", () => {
+    it("should detect heredoc write operations", () => {
+      expect(isBashHeredocWrite("cat <<EOF > file")).toBe(true);
+      expect(isBashHeredocWrite("cat > file <<EOF")).toBe(true);
+      expect(isBashHeredocWrite("cat <<EOF >> file")).toBe(true);
+    });
+
+    it("should NOT detect heredoc without write redirection", () => {
+      expect(isBashHeredocWrite("cat <<EOF")).toBe(false);
+    });
+
+    it("should NOT detect write redirection without heredoc", () => {
+      expect(isBashHeredocWrite("echo hi > file")).toBe(false);
+    });
+  });
+
+  describe("isDangerousFind", () => {
+    it("should return false for non-find commands", () => {
+      expect(isDangerousFind("ls")).toBe(false);
+      expect(isDangerousFind("echo find")).toBe(false);
+    });
+
+    it("should return false for safe find commands", () => {
+      expect(isDangerousFind("find .")).toBe(false);
+      expect(isDangerousFind("find . -name '*.ts'")).toBe(false);
+      expect(isDangerousFind("find src -type f")).toBe(false);
+    });
+
+    it("should return true for dangerous find flags", () => {
+      expect(isDangerousFind("find . -delete")).toBe(true);
+      expect(isDangerousFind("find . -exec rm {} \\;")).toBe(true);
+      expect(isDangerousFind("find . -execdir ls {} \\;")).toBe(true);
+      expect(isDangerousFind("find . -ok rm {} \\;")).toBe(true);
+      expect(isDangerousFind("find . -okdir ls {} \\;")).toBe(true);
+      expect(isDangerousFind("find . -fprint output.txt")).toBe(true);
+      expect(isDangerousFind("find . -fprint0 output.txt")).toBe(true);
+      expect(isDangerousFind("find . -fprintf output.txt '%p\\n'")).toBe(true);
+    });
+
+    it("should handle environment variables and redirections", () => {
+      expect(isDangerousFind("VAR=val find . -delete > out.txt")).toBe(true);
+      // Even if it's an argument to -name, we currently block it for safety
+      expect(isDangerousFind("find . -name '-exec'")).toBe(true);
+    });
+
+    it("should handle quoted flags correctly", () => {
+      expect(isDangerousFind('find . "-delete"')).toBe(true);
+      expect(isDangerousFind("find . '-exec'")).toBe(true);
+    });
+  });
+
+  describe("getSmartPrefix", () => {
+    it("should return null for destructive git branch commands", () => {
+      expect(getSmartPrefix("git branch -d some-branch")).toBe(null);
+      expect(getSmartPrefix("git branch -D some-branch")).toBe(null);
+      expect(getSmartPrefix("git branch --delete some-branch")).toBe(null);
+      expect(getSmartPrefix("git branch -d")).toBe(null);
+    });
+
+    it("should return 'git branch' for safe git branch commands", () => {
+      expect(getSmartPrefix("git branch")).toBe("git branch");
+      expect(getSmartPrefix("git branch --list")).toBe("git branch");
+      expect(getSmartPrefix("git branch -a")).toBe("git branch");
+      expect(getSmartPrefix("git branch -r")).toBe("git branch");
+      expect(getSmartPrefix("git branch --show-current")).toBe("git branch");
+    });
+
+    it("should return correct prefix for other git commands", () => {
+      expect(getSmartPrefix("git status")).toBe("git status");
+      expect(getSmartPrefix("git diff")).toBe("git diff");
+      expect(getSmartPrefix("git add .")).toBe("git add");
+      expect(getSmartPrefix("git commit -m 'msg'")).toBe("git commit");
+    });
+
+    it("should handle -C flag in git by keeping it", () => {
+      expect(getSmartPrefix("git -C some/path status")).toBe(
+        "git -C some/path status",
+      );
+      expect(getSmartPrefix("git -C some/path branch -D some-branch")).toBe(
+        null,
+      );
+    });
+
+    it("should handle npm commands", () => {
+      expect(getSmartPrefix("npm install lodash")).toBe("npm install");
+      expect(getSmartPrefix("npm i lodash")).toBe("npm i");
+      expect(getSmartPrefix("npm run build")).toBe("npm run build");
+      expect(getSmartPrefix("npm test")).toBe("npm test");
+    });
+
+    it("should handle gcloud commands", () => {
+      expect(
+        getSmartPrefix("gcloud compute instances list --project my-project"),
+      ).toBe("gcloud compute instances list");
+    });
+
+    it("should handle python commands", () => {
+      expect(getSmartPrefix("python3 -m pip install requests")).toBe(
+        "python3 -m pip install",
+      );
+      expect(getSmartPrefix("python3 -m venv .venv")).toBe("python3 -m venv");
+    });
+
+    it("should return null for dangerous commands", () => {
+      expect(getSmartPrefix("rm -rf /")).toBe(null);
+      expect(getSmartPrefix("bash script.sh")).toBe(null);
+      expect(getSmartPrefix("sudo rm -rf /")).toBe(null);
+    });
+
+    it("should return null for heredoc writes (no TOOL_RULE for cat)", () => {
+      expect(getSmartPrefix("cat <<EOF > file.txt")).toBe(null);
+    });
+
+    it("should stop at file paths and URLs", () => {
+      expect(getSmartPrefix("git status file.txt")).toBe("git status");
+      expect(getSmartPrefix("npm install ./pkg")).toBe("npm install");
+    });
+
+    it("should handle sudo correctly", () => {
+      expect(getSmartPrefix("sudo apt update")).toBe(null); // apt is dangerous
+      expect(getSmartPrefix("sudo npm install")).toBe("sudo npm install");
+      expect(getSmartPrefix("sudo git status")).toBe("sudo git status");
+    });
+  });
+
+  describe("stripGitScopePrefix", () => {
+    it("should strip leading -C <path>", () => {
+      expect(stripGitScopePrefix("git -C /tmp/foo status")).toBe("git status");
+      expect(stripGitScopePrefix("git -C /tmp/foo diff --stat")).toBe(
+        "git diff --stat",
+      );
+    });
+
+    it("should strip quoted -C <path>", () => {
+      expect(stripGitScopePrefix('git -C "/tmp/my repo" status')).toBe(
+        "git status",
+      );
+      expect(stripGitScopePrefix("git -C '/tmp/my repo' log --oneline")).toBe(
+        "git log --oneline",
+      );
+    });
+
+    it("should strip --flag=value and other scope flags", () => {
+      expect(stripGitScopePrefix("git --git-dir=/tmp/foo status")).toBe(
+        "git status",
+      );
+      expect(stripGitScopePrefix("git -c core.pager=cat log --oneline")).toBe(
+        "git log --oneline",
+      );
+      expect(stripGitScopePrefix("git --work-tree /tmp/foo status")).toBe(
+        "git status",
+      );
+    });
+
+    it("should strip multiple consecutive scope flags", () => {
+      expect(
+        stripGitScopePrefix("git -C /tmp/foo -c core.pager=cat status"),
+      ).toBe("git status");
+    });
+
+    it("should return the command unchanged when nothing is stripped", () => {
+      const cmd = "git status";
+      expect(stripGitScopePrefix(cmd)).toBe(cmd);
+      expect(stripGitScopePrefix("git commit -m 'msg'")).toBe(
+        "git commit -m 'msg'",
+      );
+      expect(stripGitScopePrefix("npm -C /tmp run build")).toBe(
+        "npm -C /tmp run build",
+      );
+      expect(stripGitScopePrefix("echo git -C /tmp status")).toBe(
+        "echo git -C /tmp status",
+      );
+    });
+  });
+
+  describe("hasCommandSubstitution", () => {
+    it("should detect $(...) substitution", () => {
+      expect(hasCommandSubstitution("cat $(rm file)")).toBe(true);
+      expect(hasCommandSubstitution("echo $(date)")).toBe(true);
+      expect(hasCommandSubstitution("ls $(pwd)")).toBe(true);
+    });
+
+    it("should detect backtick substitution", () => {
+      expect(hasCommandSubstitution("cat `rm file`")).toBe(true);
+      expect(hasCommandSubstitution("echo `date`")).toBe(true);
+    });
+
+    it("should not trigger on $() inside quotes", () => {
+      expect(hasCommandSubstitution('echo "$(date)"')).toBe(false);
+      expect(hasCommandSubstitution("echo '$(date)'")).toBe(false);
+      expect(hasCommandSubstitution('echo "`date`"')).toBe(false);
+    });
+
+    it("should return false for commands without substitution", () => {
+      expect(hasCommandSubstitution("ls -la")).toBe(false);
+      expect(hasCommandSubstitution("cat file.txt")).toBe(false);
+      expect(hasCommandSubstitution("echo $HOME")).toBe(false);
+      expect(hasCommandSubstitution("sed -n '19631,19900p' file.d.ts")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("hasProcessSubstitution", () => {
+    it("should detect <(...) substitution", () => {
+      expect(hasProcessSubstitution("diff <(ls a) <(ls b)")).toBe(true);
+      expect(hasProcessSubstitution("cat <(echo hi)")).toBe(true);
+    });
+
+    it("should detect >(...) substitution", () => {
+      expect(hasProcessSubstitution("tee >(gzip > out.gz)")).toBe(true);
+    });
+
+    it("should not trigger on <() inside quotes", () => {
+      expect(hasProcessSubstitution('echo "<(ls)"')).toBe(false);
+      expect(hasProcessSubstitution("echo '>(ls)'")).toBe(false);
+    });
+
+    it("should return false for commands without process substitution", () => {
+      expect(hasProcessSubstitution("ls -la")).toBe(false);
+      expect(hasProcessSubstitution("cat file.txt")).toBe(false);
+      expect(hasProcessSubstitution("echo a > b")).toBe(false);
+    });
+  });
+
+  describe("hasSedInPlace", () => {
+    it("should detect sed -i", () => {
+      expect(hasSedInPlace("sed -i 's/a/b/' file.txt")).toBe(true);
+      expect(hasSedInPlace("sed -i.bak 's/a/b/' file.txt")).toBe(true);
+    });
+
+    it("should not flag sed without -i", () => {
+      expect(hasSedInPlace("sed -n '19631,19900p' file.d.ts")).toBe(false);
+      expect(hasSedInPlace("sed 's/a/b/' file.txt")).toBe(false);
+      expect(hasSedInPlace("sed -e 's/a/b/' file.txt")).toBe(false);
+    });
+
+    it("should return false for non-sed commands", () => {
+      expect(hasSedInPlace("cat file.txt")).toBe(false);
+      expect(hasSedInPlace("awk '{print $1}' file.txt")).toBe(false);
+    });
+  });
+
+  describe("READ_ONLY_COMMANDS", () => {
+    it("should include common read-only commands", () => {
+      expect(READ_ONLY_COMMANDS).toContain("sed");
+      expect(READ_ONLY_COMMANDS).toContain("awk");
+      expect(READ_ONLY_COMMANDS).toContain("jq");
+      expect(READ_ONLY_COMMANDS).toContain("cat");
+      expect(READ_ONLY_COMMANDS).toContain("grep");
+      expect(READ_ONLY_COMMANDS).toContain("diff");
+      expect(READ_ONLY_COMMANDS).toContain("tr");
+      expect(READ_ONLY_COMMANDS).toContain("cut");
+    });
+
+    it("should not include interactive pagers or command executors", () => {
+      expect(READ_ONLY_COMMANDS).not.toContain("less");
+      expect(READ_ONLY_COMMANDS).not.toContain("more");
+      expect(READ_ONLY_COMMANDS).not.toContain("man");
+      expect(READ_ONLY_COMMANDS).not.toContain("xargs");
+      expect(READ_ONLY_COMMANDS).not.toContain("yes");
+      expect(READ_ONLY_COMMANDS).not.toContain("cd");
+    });
+  });
+});

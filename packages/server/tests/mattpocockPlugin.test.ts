@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { PluginLoader } from "wave-agent-sdk/dist/services/pluginLoader.js";
+import { PluginLoader } from "@muse-work/agent";
 import { resolvePluginDir } from "../src/services/museSettings.js";
 
 const pluginDir = resolvePluginDir("mattpocock");
@@ -10,7 +10,7 @@ describe("mattpocock builtin plugin", () => {
   it("has Wave manifest, LICENSE, SOURCE.txt, and flat skills", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(pluginDir, ".wave-plugin", "plugin.json"),
+        path.join(pluginDir, ".muse-plugin", "plugin.json"),
         "utf8",
       ),
     ) as { name: string; version: string };

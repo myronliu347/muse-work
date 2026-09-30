@@ -5,7 +5,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { Message } from "../../src/components/message/Message";
 import { AgentTranscriptPopup } from "../../src/components/dialogs/AgentTranscriptPopup";
 import { MuseTheme } from "../../src/ui/theme";
-import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import type { Message as MessageType, VsCodeApi } from "../../src/types";
 
 const vscode = {

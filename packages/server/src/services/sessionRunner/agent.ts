@@ -1,9 +1,9 @@
 import {
   loadSessionFromJsonl,
   type PermissionDecision,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import type { GatewayResolution } from "@muse-work/provider";
-import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import { resolveScenarioAgent } from "../agentConfig.js";
 import { planningCodeWriteDecision } from "../issuePlanning.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
@@ -277,14 +277,14 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     });
   }
 
-  function rememberWaveSessionId(
+  function rememberMuseSessionId(
     sessionId: string,
-    waveSessionId: string | undefined,
+    museSessionId: string | undefined,
   ): void {
-    if (!waveSessionId || disposed.has(sessionId) || !store.get(sessionId)) {
+    if (!museSessionId || disposed.has(sessionId) || !store.get(sessionId)) {
       return;
     }
-    store.setWaveSessionId(sessionId, waveSessionId);
+    store.setMuseSessionId(sessionId, museSessionId);
   }
 
   async function resolveSessionGateway(
@@ -345,10 +345,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             })),
           }
         : {}),
-      // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
         onSessionIdChange: (id) => {
-          rememberWaveSessionId(sessionId, id);
+          rememberMuseSessionId(sessionId, id);
         },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
@@ -682,7 +681,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           toolName: context.toolName,
           description,
           toolInput,
-          planContent: context.planContent,
           suggestedPrefix: context.suggestedPrefix,
           hidePersistentOption: context.hidePersistentOption,
           permissionMode: context.permissionMode,
@@ -727,7 +725,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
-      // Stale identity (provider / ~/.wave/settings.json change). Recreate only
+      // Stale identity (provider / ~/.muse-work/settings.json change). Recreate only
       // when the agent is not mid-turn — an in-flight turn keeps its live agent.
       // Note: not `canIdleDestroy` (its status=running check would always veto
       // during runTurn, where status is set to "running" before ensureAgent).
@@ -751,7 +749,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       });
     }
 
-    const restoreId = store.get(sessionId)?.waveSessionId;
+    const restoreId = store.get(sessionId)?.museSessionId;
     let agent: SessionAgent;
     try {
       agent = await createAgentWithRestore(
@@ -780,7 +778,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       });
     }
 
-    rememberWaveSessionId(sessionId, agent.sessionId);
+    rememberMuseSessionId(sessionId, agent.sessionId);
     agents.set(sessionId, agent);
     agentIdentities.set(sessionId, identity);
     core.touchAgent(sessionId);

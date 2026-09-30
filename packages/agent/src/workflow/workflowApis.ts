@@ -1,0 +1,410 @@
+import type { SubagentManager } from "../managers/subagentManager.js";
+import * as fs from "fs";
+import * as path from "path";
+import { ConcurrencyLimiter } from "./concurrencyLimiter.js";
+import { BudgetTracker } from "./budgetTracker.js";
+import { ProgressReporter } from "./progressReporter.js";
+import { Journal } from "./journal.js";
+import type { BudgetInfo, AgentMeta } from "./types.js";
+import {
+  createStructuredOutputPrompt,
+  createStructuredOutputTool,
+  extractStructuredResult,
+} from "./structuredOutput.js";
+import { AGENT_TOOL_NAME, WORKFLOW_TOOL_NAME } from "../constants/tools.js";
+import { logger } from "../utils/globalLogger.js";
+
+/**
+ * Attempt to parse args if it was passed as a JSON string.
+ * LLMs may serialize array/object args as a string (e.g. "[3,8,15,42,7]")
+ * which would cause `for...of` to iterate character-by-character.
+ */
+function parseArgsIfNeeded(args: unknown): unknown {
+  if (typeof args === "string") {
+    try {
+      const parsed = JSON.parse(args);
+      // Only accept parsed arrays/objects, not primitives like "42" → 42
+      if (typeof parsed === "object" && parsed !== null) {
+        return parsed;
+      }
+    } catch {
+      // Not valid JSON — use as-is (string)
+    }
+  }
+  return args;
+}
+
+const MAX_TOTAL_AGENTS = 1000;
+const MAX_ITEMS_PER_CALL = 4096;
+
+interface WorkflowApiContext {
+  subagentManager: SubagentManager;
+  concurrencyLimiter: ConcurrencyLimiter;
+  budgetTracker: BudgetTracker;
+  progressReporter: ProgressReporter;
+  journal: Journal;
+  abortSignal: AbortSignal;
+  args: unknown;
+  onLog?: (message: string) => void;
+  /** When resuming, offset the agent counter by this many existing entries */
+  initialAgentCount?: number;
+  /** Session directory for computing transcript paths */
+  sessionDir: string;
+  /** Per-run directory for writing agent metadata sidecars */
+  runDir: string;
+  /** Per-agent abort controllers for kill/skip support */
+  agentControllers: Map<number, AbortController>;
+}
+
+interface AgentOpts {
+  label?: string;
+  phase?: string;
+  schema?: object;
+  model?: string;
+  isolation?: string;
+  agentType?: string;
+}
+
+export interface WorkflowApis {
+  agent: (prompt: string, opts?: AgentOpts) => Promise<unknown>;
+  parallel: (thunks: Array<() => Promise<unknown>>) => Promise<unknown[]>;
+  pipeline: (
+    items: unknown[],
+    ...stages: Array<
+      (prev: unknown, item: unknown, index: number) => Promise<unknown>
+    >
+  ) => Promise<unknown[]>;
+  phase: (title: string) => void;
+  log: (message: string) => void;
+  args: unknown;
+  budget: BudgetInfo;
+}
+
+export function createWorkflowApis(ctx: WorkflowApiContext): WorkflowApis {
+  let agentCounter = ctx.initialAgentCount ?? 0;
+
+  const agent = async (prompt: string, opts?: AgentOpts): Promise<unknown> => {
+    const index = agentCounter++;
+
+    // Check agent limit
+    if (index >= MAX_TOTAL_AGENTS) {
+      throw new Error(
+        `Workflow exceeded maximum agent count of ${MAX_TOTAL_AGENTS}`,
+      );
+    }
+
+    // Check abort
+    if (ctx.abortSignal.aborted) {
+      return null;
+    }
+
+    // Check budget
+    if (ctx.budgetTracker.isExceeded()) {
+      throw new Error("Workflow token budget exceeded");
+    }
+
+    // Check journal for cached result (resume)
+    const cached = ctx.journal.getCachedResult(index);
+    if (cached !== undefined) {
+      logger.debug(`[Workflow] agent(${index}): using cached result`);
+      return cached;
+    }
+
+    // Acquire concurrency slot
+    await ctx.concurrencyLimiter.acquire();
+
+    // Create per-agent abort controller linked to the run's signal
+    const agentController = new AbortController();
+    ctx.agentControllers.set(index, agentController);
+    // If the run is already aborted, abort this agent immediately
+    if (ctx.abortSignal.aborted) {
+      agentController.abort();
+    }
+    // Propagate run abort to agent abort
+    const onRunAbort = () => agentController.abort();
+    ctx.abortSignal.addEventListener("abort", onRunAbort);
+
+    try {
+      // Resolve subagent type
+      const subagentType = opts?.agentType || "general-purpose";
+      let configuration = await ctx.subagentManager.findSubagent(subagentType);
+
+      if (!configuration) {
+        logger.warn(
+          `[Workflow] agent(${index}): subagent type "${subagentType}" not found, falling back to general-purpose`,
+        );
+        configuration =
+          await ctx.subagentManager.findSubagent("general-purpose");
+        if (!configuration) {
+          throw new Error(`No subagent type available for agent call`);
+        }
+      }
+
+      // Build the effective prompt
+      let effectivePrompt = prompt;
+      if (opts?.schema) {
+        effectivePrompt += createStructuredOutputPrompt(opts.schema);
+      }
+
+      // Set phase if specified
+      if (opts?.phase) {
+        ctx.progressReporter.setPhase(opts.phase);
+      }
+      ctx.progressReporter.agentStarted();
+
+      // Create subagent instance
+      const instance = await ctx.subagentManager.createInstance(configuration, {
+        description: opts?.label || `workflow-agent-${index}`,
+        prompt: effectivePrompt,
+        subagent_type: subagentType,
+        model: opts?.model,
+      });
+
+      // Capture subagent linkage info
+      const subagentId = instance.subagentId;
+      const transcriptPath = instance.messageManager.getTranscriptPath();
+
+      // If schema provided, register StructuredOutput tool on the subagent's tool manager
+      // and force the model to call it via tool_choice
+      if (opts?.schema) {
+        const structuredTool = createStructuredOutputTool(opts.schema);
+        instance.toolManager.register(structuredTool);
+        instance.aiManager.toolChoiceOverride = {
+          type: "function",
+          function: { name: "StructuredOutput" },
+        };
+      }
+
+      // Deny Agent and Workflow tools in workflow subagents
+      // (prevent infinite recursion)
+      instance.permissionManager.addTemporaryRules([
+        `${AGENT_TOOL_NAME}:deny`,
+        `${WORKFLOW_TOOL_NAME}:deny`,
+      ]);
+
+      // Execute agent
+      const result = await ctx.subagentManager.executeAgent(
+        instance,
+        effectivePrompt,
+        agentController.signal,
+        false,
+      );
+
+      // Track token usage — sum from assistant messages' usage field
+      // (getUsages() is empty because onUsageAdded targets the parent agent)
+      const messages = instance.messageManager.getMessages();
+      const tokens = messages.reduce((sum, msg) => {
+        if (msg.role !== "assistant" || !msg.usage) return sum;
+        const u = msg.usage;
+        return (
+          sum +
+          (u.total_tokens || 0) +
+          (u.cache_read_input_tokens || 0) +
+          (u.cache_creation_input_tokens || 0)
+        );
+      }, 0);
+      ctx.budgetTracker.addUsage(tokens);
+      ctx.progressReporter.agentCompleted(tokens);
+
+      // Extract structured result if schema was provided
+      let finalResult: unknown;
+      if (opts?.schema) {
+        const messages = instance.messageManager.getMessages();
+        // Build the format extractStructuredResult expects:
+        // Look for StructuredOutput tool calls in ToolBlocks
+        const structuredToolBlocks = messages
+          .filter((m) => m.role === "assistant")
+          .flatMap((m) => m.blocks)
+          .filter(
+            (b): b is import("../types/messaging.js").ToolBlock =>
+              b.type === "tool" &&
+              b.name === "StructuredOutput" &&
+              b.stage === "end",
+          );
+
+        if (structuredToolBlocks.length > 0) {
+          // Parse the StructuredOutput tool call parameters
+          const lastBlock =
+            structuredToolBlocks[structuredToolBlocks.length - 1];
+          try {
+            const parsed = JSON.parse(lastBlock.parameters || "{}");
+            finalResult = parsed;
+          } catch {
+            // Parameters parse failed, try result
+            try {
+              const parsed = JSON.parse(lastBlock.result || "null");
+              finalResult = parsed;
+            } catch {
+              finalResult = result;
+            }
+          }
+        } else {
+          // Fallback: try extractStructuredResult with message content
+          finalResult = extractStructuredResult(
+            messages.map((m) => {
+              const textBlock = m.blocks.find(
+                (b): b is import("../types/messaging.js").TextBlock =>
+                  b.type === "text",
+              );
+              return {
+                role: m.role,
+                content: textBlock?.content,
+                tool_calls: (
+                  m as unknown as {
+                    tool_calls?: Array<{
+                      function: { name: string; arguments: string };
+                    }>;
+                  }
+                ).tool_calls,
+              };
+            }),
+            opts.schema,
+          );
+          if (finalResult === null) {
+            // Schema enforcement failed — return the raw text
+            finalResult = result;
+          }
+        }
+      } else {
+        finalResult = result;
+      }
+
+      // Append to journal
+      ctx.journal.append({
+        agentIndex: index,
+        prompt,
+        opts: { ...opts } as Record<string, unknown>,
+        result: finalResult,
+        tokens,
+        subagentId,
+        transcriptPath,
+      });
+
+      // Write agent metadata sidecar
+      try {
+        const agentMeta: AgentMeta = {
+          agentType: subagentType,
+          subagentId,
+          transcriptPath,
+          label: opts?.label,
+          phase: opts?.phase,
+        };
+        const metaPath = path.join(ctx.runDir, "agents", `${index}.meta.json`);
+        await fs.promises.writeFile(
+          metaPath,
+          JSON.stringify(agentMeta, null, 2),
+          "utf-8",
+        );
+      } catch (metaErr) {
+        logger.warn(
+          `[Workflow] Failed to write agent meta for ${index}: ${metaErr instanceof Error ? metaErr.message : String(metaErr)}`,
+        );
+      }
+
+      // Cleanup
+      ctx.subagentManager.cleanupInstance(instance.subagentId);
+
+      return finalResult;
+    } catch (error) {
+      // Agent errors are logged but don't crash the workflow
+      // Return null so the caller can filter with .filter(Boolean)
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.warn(`[Workflow] agent(${index}) failed: ${errorMsg}`);
+
+      // Write agent_failed entry to journal for skip/retry tracking
+      ctx.journal.append({
+        type: "agent_failed",
+        agentIndex: index,
+        error: errorMsg,
+      });
+
+      // Emit progress event for agent failure
+      ctx.progressReporter.agentFailed(index);
+
+      return null;
+    } finally {
+      ctx.agentControllers.delete(index);
+      ctx.abortSignal.removeEventListener("abort", onRunAbort);
+      ctx.concurrencyLimiter.release();
+    }
+  };
+
+  const parallel = async (
+    thunks: Array<() => Promise<unknown>>,
+  ): Promise<unknown[]> => {
+    if (thunks.length > MAX_ITEMS_PER_CALL) {
+      throw new Error(
+        `parallel() accepts at most ${MAX_ITEMS_PER_CALL} items, got ${thunks.length}`,
+      );
+    }
+
+    // Note: thunks typically call agent() which acquires its own slot,
+    // so parallel does NOT acquire a slot per thunk to avoid deadlock.
+    const results = await Promise.allSettled(
+      thunks.map(async (thunk) => {
+        try {
+          return await thunk();
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    // Convert rejected promises to null
+    return results.map((r) => (r.status === "fulfilled" ? r.value : null));
+  };
+
+  const pipeline = async (
+    items: unknown[],
+    ...stages: Array<
+      (prev: unknown, item: unknown, index: number) => Promise<unknown>
+    >
+  ): Promise<unknown[]> => {
+    if (items.length > MAX_ITEMS_PER_CALL) {
+      throw new Error(
+        `pipeline() accepts at most ${MAX_ITEMS_PER_CALL} items, got ${items.length}`,
+      );
+    }
+
+    // Run each item through all stages, items are independent.
+    // Note: agent() inside stages acquires its own concurrency slot,
+    // so pipeline does NOT acquire a slot per item to avoid deadlock.
+    const results = await Promise.allSettled(
+      items.map(async (item, index) => {
+        try {
+          let result: unknown = undefined;
+          for (const stage of stages) {
+            result = await stage(result, item, index);
+          }
+          return result;
+        } catch (error) {
+          logger.warn(
+            `[Workflow] pipeline item ${index} failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          return null;
+        }
+      }),
+    );
+
+    return results.map((r) => (r.status === "fulfilled" ? r.value : null));
+  };
+
+  const phase = (title: string): void => {
+    ctx.progressReporter.setPhase(title);
+  };
+
+  const log = (message: string): void => {
+    ctx.journal.appendLog(message);
+    ctx.onLog?.(message);
+  };
+
+  return {
+    agent,
+    parallel,
+    pipeline,
+    phase,
+    log,
+    args: parseArgsIfNeeded(ctx.args),
+    budget: ctx.budgetTracker.toBudgetInfo(),
+  };
+}

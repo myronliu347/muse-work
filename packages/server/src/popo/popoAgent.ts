@@ -25,7 +25,7 @@ export interface PopoAgentRunner {
   run(content: string): Promise<string>;
   /**
    * 清空该会话的 agent 上下文（/clear 命令）。p2p 常驻 runner 实现为
-   * agent.clearMessages()（SDK 清内存+换新 sessionId，onWaveSessionId 自动落库）；
+   * agent.clearMessages()（SDK 清内存+换新 sessionId，onMuseSessionId 自动落库）；
    * team runner 每消息新建 agent，无持久上下文可清，空实现。
    */
   clear?(): Promise<void>;
@@ -38,7 +38,7 @@ export interface PopoAgentRunner {
 }
 
 export interface PopoAgentFactory {
-  (chat: { chatKey: string; type: PopoChatType; waveSessionId?: string }): Promise<PopoAgentRunner>;
+  (chat: { chatKey: string; type: PopoChatType; museSessionId?: string }): Promise<PopoAgentRunner>;
   disposeChat?(chatKey: string): Promise<void>;
   /** 正在跑的 agent 内存消息（详情页展示思考/工具进度；jsonl 要等回合结束才落盘）。 */
   getLiveMessages?(chatKey: string): unknown[];
@@ -50,8 +50,8 @@ export type PopoAgentFactoryOptions = {
   createAgent?: CreateAgent;
   /** 机器人 agent 工作目录；默认 path.join(home, "popo-chat") */
   workdir?: string;
-  /** waveSessionId 变化时回调（用于持久化到 chatStore） */
-  onWaveSessionId?: (chatKey: string, waveSessionId: string) => void;
+  /** museSessionId 变化时回调（用于持久化到 chatStore） */
+  onMuseSessionId?: (chatKey: string, museSessionId: string) => void;
 };
 
 function sanitizeSessionId(chatKey: string): string {
@@ -137,7 +137,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   }
 
   async function createSdkAgent(
-    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    chat: { chatKey: string; type: PopoChatType; museSessionId?: string },
     gateway?: GatewayResolution,
   ): Promise<{ agent: SessionAgent; identity: string }> {
     fs.mkdirSync(workdir, { recursive: true });
@@ -180,11 +180,11 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
       }),
       callbacks: {
         onSessionIdChange: (id: string) => {
-          options.onWaveSessionId?.(chat.chatKey, id);
+          options.onMuseSessionId?.(chat.chatKey, id);
         },
       },
     };
-    const restoreId = chat.waveSessionId;
+    const restoreId = chat.museSessionId;
     let sdkAgent: SessionAgent;
     try {
       sdkAgent = await (createAgent as CreateAgent)({
@@ -192,7 +192,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
         ...(restoreId ? { restoreSessionId: restoreId } : {}),
       });
     } catch (error) {
-      // Same as sessionRunner: stale waveSessionId / missing jsonl must not
+      // Same as sessionRunner: stale museSessionId / missing jsonl must not
       // pin the chat forever. Drop restore and open a fresh SDK session.
       if (!restoreId) throw error;
       sdkAgent = await (createAgent as CreateAgent)(agentOptions);
@@ -201,16 +201,16 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   }
 
   async function refreshResidentAgent(
-    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    chat: { chatKey: string; type: PopoChatType; museSessionId?: string },
     agentBox: { current: SessionAgent },
   ): Promise<void> {
     const gateway = await resolvePopoGateway();
     const identity = gatewayIdentity(gateway);
     if (identity === residentIdentities.get(chat.chatKey)) return;
     const prev = agentBox.current;
-    const restoreId = prev.sessionId ?? chat.waveSessionId;
+    const restoreId = prev.sessionId ?? chat.museSessionId;
     const created = await createSdkAgent(
-      { ...chat, waveSessionId: restoreId },
+      { ...chat, museSessionId: restoreId },
       gateway,
     );
     agentBox.current = created.agent;
@@ -226,14 +226,14 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   /** 单轮：sendMessage + 取最后文本。不负责 agent 生命周期（由调用方决定）。 */
   async function runTurn(
     agent: SessionAgent,
-    chat: { chatKey: string; type: PopoChatType; waveSessionId?: string },
+    chat: { chatKey: string; type: PopoChatType; museSessionId?: string },
     content: string,
   ): Promise<string> {
     await agent.sendMessage(content);
     // SDK 的 onSessionIdChange 只在 sessionId 变化时触发（新建 agent 不触发），
     // 这里直接读最终 sessionId 落库，详情路由据此加载完整处理过程。
     if (agent.sessionId) {
-      options.onWaveSessionId?.(chat.chatKey, agent.sessionId);
+      options.onMuseSessionId?.(chat.chatKey, agent.sessionId);
     }
     const msgs = (agent.getMessages?.() ?? []) as PopoAgentMessage[];
     const last = msgs[msgs.length - 1];
@@ -266,7 +266,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
   }
 
   const create: PopoAgentFactory = Object.assign(
-    async (chat: { chatKey: string; type: PopoChatType; waveSessionId?: string }) => {
+    async (chat: { chatKey: string; type: PopoChatType; museSessionId?: string }) => {
     // p2p 私聊：常驻 agent，复用 runner，不销毁也不轮询后台任务。
     if (chat.type === "p2p") {
       const existing = residentRunners.get(chat.chatKey);

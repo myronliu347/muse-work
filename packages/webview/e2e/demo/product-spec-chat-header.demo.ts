@@ -1,6 +1,6 @@
 import { test } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
-import { type Message, type SessionMetadata } from "wave-agent-sdk";
+import { type Message, type SessionMetadata } from "@muse-work/agent";
 import { elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Chat Header", () => {

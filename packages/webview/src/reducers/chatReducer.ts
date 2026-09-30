@@ -12,7 +12,7 @@ import type {
 import { pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
 import { normalizeUserTextForDedupe } from "../utils/messageUtils";
-import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 
 const SESSION_SCOPED_DIALOGS = new Set([
   "mcp",
@@ -239,7 +239,6 @@ export const initialState: ChatState = {
   isStreaming: false,
   isCompacting: false,
   isRestoring: false,
-  isCommandRunning: false,
   shouldClearInput: false,
   sessions: [],
   currentSession: undefined,
@@ -251,7 +250,6 @@ export const initialState: ChatState = {
   configurationData: undefined,
   configurationLoading: false,
   configurationError: undefined,
-  projectSettings: undefined,
   // Permission mode state
   permissionMode: "acceptEdits",
   // Attached images state
@@ -474,11 +472,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         configurationData: action.payload,
         configurationLoading: false,
       };
-    case "SET_PROJECT_SETTINGS":
-      return {
-        ...state,
-        projectSettings: action.payload,
-      };
     case "SET_INITIAL_STATE":
       return {
         ...state,
@@ -492,10 +485,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           action.payload.isStreaming !== undefined
             ? action.payload.isStreaming
             : state.isStreaming,
-        isCommandRunning:
-          action.payload.isCommandRunning !== undefined
-            ? action.payload.isCommandRunning
-            : state.isCommandRunning,
         // A session switch must not inherit the previous session's compaction
         // hint; the host pushes the activated session's own state (or omits
         // it, meaning "not compacting").
@@ -556,11 +545,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         editingQueuedId: action.payload,
-      };
-    case "SET_COMMAND_RUNNING":
-      return {
-        ...state,
-        isCommandRunning: action.payload,
       };
     case "SET_PERMISSION_MODE":
       return {

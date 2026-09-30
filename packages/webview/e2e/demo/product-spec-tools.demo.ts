@@ -10,7 +10,7 @@ import {
   WRITE_TOOL_NAME,
   AGENT_TOOL_NAME,
   type Message,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Tools", () => {

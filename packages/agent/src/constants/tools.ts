@@ -1,0 +1,17 @@
+export const ASK_USER_QUESTION_TOOL_NAME = "AskUserQuestion";
+export const BASH_TOOL_NAME = "Bash";
+export const TASK_STOP_TOOL_NAME = "TaskStop";
+export const EDIT_TOOL_NAME = "Edit";
+export const GLOB_TOOL_NAME = "Glob";
+export const GREP_TOOL_NAME = "Grep";
+export const LSP_TOOL_NAME = "LSP";
+export const READ_TOOL_NAME = "Read";
+export const SKILL_TOOL_NAME = "Skill";
+export const AGENT_TOOL_NAME = "Agent";
+export const TASK_CREATE_TOOL_NAME = "TaskCreate";
+export const TASK_GET_TOOL_NAME = "TaskGet";
+export const TASK_UPDATE_TOOL_NAME = "TaskUpdate";
+export const TASK_LIST_TOOL_NAME = "TaskList";
+export const WRITE_TOOL_NAME = "Write";
+export const WEB_FETCH_TOOL_NAME = "WebFetch";
+export const WORKFLOW_TOOL_NAME = "Workflow";

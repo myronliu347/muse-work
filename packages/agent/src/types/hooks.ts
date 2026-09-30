@@ -1,0 +1,256 @@
+/**
+ * Hooks System Type Definitions
+ *
+ * Provides comprehensive TypeScript types for the Muse hooks system,
+ * enabling automated actions at specific workflow points.
+ */
+
+export type {
+  MuseConfiguration,
+  HookConfiguration,
+  PartialHookConfiguration,
+  HookConfigurationRecord,
+} from "./configuration.js";
+
+// Hook event types - trigger points in the AI workflow
+export type HookEvent =
+  | "PreToolUse"
+  | "PostToolUse"
+  | "UserPromptSubmit"
+  | "Stop"
+  | "SubagentStop"
+  | "PermissionRequest"
+  | "CwdChanged"
+  | "SessionStart"
+  | "SessionEnd"
+  | "PreCompact"
+  | "PostCompact";
+
+// One-line summary per hook event, aligned with Claude Code's
+// HookEventMetadata.summary (hooksConfigManager.ts). Shared by the
+// Muse settings hooks page; unknown/plugin
+// events fall back to displaying the event name itself.
+export const HOOK_EVENT_SUMMARIES: Record<HookEvent, string> = {
+  PreToolUse: "Before tool execution",
+  PostToolUse: "After tool execution",
+  UserPromptSubmit: "When the user submits a prompt",
+  Stop: "Right before Claude concludes its response",
+  SubagentStop:
+    "Right before a subagent (Agent tool call) concludes its response",
+  PermissionRequest: "When a permission dialog is displayed",
+  CwdChanged: "After the working directory changes",
+  SessionStart: "When a new session is started",
+  SessionEnd: "When a session is ending",
+  PreCompact: "Before conversation compaction",
+  PostCompact: "After conversation compaction",
+};
+
+// Individual hook command configuration
+export interface HookCommand {
+  type: "command";
+  command: string;
+  async?: boolean;
+  timeout?: number; // seconds
+  pluginRoot?: string; // Plugin directory path for plugin-originated hooks
+}
+
+// Hook event configuration with optional pattern matching
+export interface HookEventConfig {
+  matcher?: string; // Required for PreToolUse/PostToolUse, omitted for others
+  hooks: HookCommand[];
+}
+
+// Context passed to hook during execution
+export interface HookExecutionContext {
+  event: HookEvent;
+  toolName?: string; // Present for PreToolUse/PostToolUse events
+  projectDir: string; // Absolute path for $MUSE_PROJECT_DIR
+  timestamp: Date;
+}
+
+// Result of hook execution
+export interface HookExecutionResult {
+  success: boolean;
+  exitCode?: number;
+  stdout?: string;
+  stderr?: string;
+  duration: number; // milliseconds
+  timedOut: boolean;
+  /** The executed command, tagged onto results by callers that iterate multiple hooks */
+  command?: string;
+}
+
+// Hook execution options
+export interface HookExecutionOptions {
+  timeout?: number; // milliseconds, default 10000
+  cwd?: string; // working directory, defaults to projectDir
+  continueOnFailure?: boolean; // continue executing remaining hooks on failure
+}
+
+// Validation result for hook configuration
+export interface HookValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+// Hook execution errors (non-blocking)
+export class HookExecutionError extends Error {
+  constructor(
+    public readonly hookCommand: string,
+    public readonly originalError: Error,
+    public readonly context: HookExecutionContext,
+  ) {
+    super(`Hook execution failed: ${hookCommand} - ${originalError.message}`);
+    this.name = "HookExecutionError";
+  }
+}
+
+// Configuration validation errors (blocking)
+export class HookConfigurationError extends Error {
+  constructor(
+    public readonly configPath: string,
+    public readonly validationErrors: string[],
+  ) {
+    super(
+      `Hook configuration error in ${configPath}: ${validationErrors.join(", ")}`,
+    );
+    this.name = "HookConfigurationError";
+  }
+}
+
+export type SessionStartSource = "startup" | "resume" | "compact" | "clear";
+
+export type SessionEndSource = "exit" | "resume" | "stop" | "compact" | "clear";
+
+// Type guards for runtime validation
+export function isValidHookEvent(event: string): event is HookEvent {
+  return [
+    "PreToolUse",
+    "PostToolUse",
+    "UserPromptSubmit",
+    "Stop",
+    "SubagentStop",
+    "PermissionRequest",
+    "CwdChanged",
+    "SessionStart",
+    "SessionEnd",
+    "PreCompact",
+    "PostCompact",
+  ].includes(event);
+}
+
+export function isValidHookCommand(cmd: unknown): cmd is HookCommand {
+  if (
+    typeof cmd !== "object" ||
+    cmd === null ||
+    !("type" in cmd) ||
+    cmd.type !== "command" ||
+    !("command" in cmd) ||
+    typeof cmd.command !== "string" ||
+    cmd.command.length === 0
+  ) {
+    return false;
+  }
+
+  const hookCmd = cmd as Record<string, unknown>;
+
+  if ("async" in hookCmd && typeof hookCmd.async !== "boolean") {
+    return false;
+  }
+
+  if ("timeout" in hookCmd && typeof hookCmd.timeout !== "number") {
+    return false;
+  }
+
+  if ("pluginRoot" in hookCmd && typeof hookCmd.pluginRoot !== "string") {
+    return false;
+  }
+
+  return true;
+}
+
+export function isValidHookEventConfig(
+  config: unknown,
+): config is HookEventConfig {
+  if (typeof config !== "object" || config === null) return false;
+
+  const cfg = config as Record<string, unknown>;
+
+  // Validate hooks array
+  if (!Array.isArray(cfg.hooks) || cfg.hooks.length === 0) return false;
+  if (!cfg.hooks.every(isValidHookCommand)) return false;
+
+  // Validate optional matcher
+  if ("matcher" in cfg && typeof cfg.matcher !== "string") return false;
+
+  return true;
+}
+
+// JSON structure passed to hooks via stdin
+export interface HookJsonInput {
+  // Required fields for all events
+  session_id: string;
+  transcript_path: string; // Format: "~/.muse-work/sessions/session_{shortId}.json"
+  cwd: string; // Absolute path to current working directory
+  hook_event_name: HookEvent;
+
+  // Optional fields based on event type
+  tool_name?: string; // Present for PreToolUse, PostToolUse, PermissionRequest
+  tool_input?: unknown; // Present for PreToolUse, PostToolUse, PermissionRequest
+  tool_response?: unknown; // Present for PostToolUse only
+  user_prompt?: string; // Present for UserPromptSubmit only
+  subagent_type?: string; // Present when hook is executed by a subagent
+  old_cwd?: string; // Present for CwdChanged events
+  new_cwd?: string; // Present for CwdChanged events
+  source?: SessionStartSource; // Present for SessionStart events
+  agent_type?: string; // Present for SessionStart events
+  end_source?: SessionEndSource; // Present for SessionEnd events
+  compact_instructions?: string; // Present for PreCompact events
+  compact_summary?: string; // Present for PostCompact events
+  background_tasks?: BackgroundTaskInfo[]; // Present for Stop events: running background tasks snapshot
+  last_assistant_message?: string; // Present for Stop and SubagentStop events: text content of the last assistant message
+}
+
+// Describes one in-flight background task in the Stop hook input.
+// Aligned with Claude Code (v2.1.145+) background_tasks array element schema.
+// Conditional fields are populated based on `type`:
+//   - "shell":    `command` is set
+//   - "subagent": `agent_type` is set
+//   - "workflow": `name` is set
+export interface BackgroundTaskInfo {
+  id: string;
+  type: "shell" | "subagent" | "workflow";
+  status: string;
+  description: string; // Capped at 1000 chars with "… [+N chars]" marker
+  command?: string; // Present only for shell tasks (≤1000 chars)
+  agent_type?: string; // Present only for subagent tasks
+  name?: string; // Present only for workflow tasks
+}
+
+// Extended context interface for passing additional data to hook executor
+export interface ExtendedHookExecutionContext extends HookExecutionContext {
+  sessionId?: string; // Session identifier for JSON construction
+  transcriptPath?: string; // Path to session transcript file
+  cwd?: string; // Current working directory
+  toolInput?: unknown; // Tool input parameters (PreToolUse/PostToolUse)
+  toolResponse?: unknown; // Tool execution result (PostToolUse only)
+  env?: Record<string, string>; // Additional environment variables (from configuration)
+  userPrompt?: string; // User prompt text (UserPromptSubmit only)
+  subagentType?: string; // Subagent type when hook is executed by a subagent
+  oldCwd?: string; // Previous working directory (CwdChanged only)
+  newCwd?: string; // New working directory (CwdChanged only)
+  source?: SessionStartSource; // Session start source (SessionStart only)
+  agentType?: string; // Agent type identifier (SessionStart only)
+  endSource?: SessionEndSource; // Session end source (SessionEnd only)
+  compactInstructions?: string; // Custom instructions for PreCompact
+  compactSummary?: string; // Summary text for PostCompact
+  backgroundTasks?: BackgroundTaskInfo[]; // Running background tasks snapshot (Stop only)
+  lastAssistantMessage?: string; // Text content of last assistant message (Stop and SubagentStop only)
+}
+
+// Environment variables injected into hook processes
+export interface HookEnvironment {
+  MUSE_PROJECT_DIR: string;
+  WAVE_PROJECT_DIR: string;
+  [key: string]: string;
+}

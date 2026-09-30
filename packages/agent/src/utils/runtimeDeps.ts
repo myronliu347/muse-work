@@ -1,0 +1,593 @@
+/**
+ * Runtime dependencies Muse installs on demand (`sharp`, `@vscode/ripgrep`).
+ *
+ * Both are too big to ship in every host bundle. If they are already on
+ * Node's module path (repo `node_modules`, or a full install), this no-ops.
+ * Otherwise, when running from a copy under `~/.muse-work/cli/`, they are
+ * downloaded into that shared `node_modules`. An install that is *not* under
+ * that directory must not write there — Node would never resolve it, and a
+ * global prefix may lack permissions.
+ *
+ * ## Layout
+ *
+ * ```
+ * ~/.muse-work/cli/node_modules/          <- shared downloads, survives upgrades
+ *   sharp/  semver/  detect-libc/  @img/colour/
+ *   @img/sharp-<key>/                key = linux-x64 | linuxmusl-x64 | darwin-arm64 | win32-x64
+ *   @img/sharp-libvips-<key>/        must stay a sibling of the above: its .node has
+ *                                    rpath `$ORIGIN/../../sharp-libvips-<key>/lib`
+ *   @vscode/ripgrep/                 the wrapper (ESM, no dependencies of its own)
+ *   @vscode/ripgrep-<platform>-<arch>/  holds bin/rg, published with the exec bit
+ *   .muse-runtime-deps.json          <- marker, written last: present means this
+ *                                       batch completed（读时仍认遗留 `.wave-runtime-deps.json`）
+ * ```
+ *
+ * Node resolves the modules from `~/.muse-work/cli/<end>/dist/bundle/` by
+ * walking up, which lands on this `node_modules`.
+ *
+ * ## Why detect-libc decides the platform key
+ *
+ * `linux-x64` and `linuxmusl-x64` are different downloads, and a wrong guess
+ * means a `.node` that refuses to dlopen. The key is therefore computed *by*
+ * `detect-libc` (the very module sharp consults, `dist/libvips.cjs`:
+ * `` `${process.platform}${isNonGlibcLinuxSync() ? familySync() : ""}-${process.arch}` ``)
+ * rather than by a copy of that logic. A future sharp that renames or drops a
+ * dependency is followed automatically; only a *renamed* dependency needs a
+ * code change here.
+ *
+ * A row can opt out of the libc family (`libcAwarePlatformKey: false`):
+ * `@vscode/ripgrep` publishes only `@vscode/ripgrep-linux-x64`, so a musl key
+ * would match nothing.
+ */
+import { CONFIG_DIR_NAME } from "./constants.js";
+import { createHash } from "node:crypto";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import { maxSatisfying } from "semver";
+import { logWarn, logger } from "./globalLogger.js";
+import {
+  getImageProcessor,
+  resetImageProcessor,
+  resolveSharp,
+} from "./imageProcessor.js";
+import { extractNpmTarball } from "./npmTarball.js";
+import { getRgPath, resetRipgrep, resolveRipgrep } from "./ripgrep.js";
+
+/** npm registry mirror for China users (same choice as the ripgrep download). */
+export const RUNTIME_DEPS_REGISTRY = "https://registry.npmmirror.com";
+
+/** 磁盘完成标记。新写入用 Muse 名；读时仍认遗留 `.wave-runtime-deps.json`。 */
+const MARKER_FILE = ".muse-runtime-deps.json";
+const LEGACY_MARKER_FILE = ".wave-runtime-deps.json";
+
+export interface RuntimeDepsResult {
+  available: boolean;
+  reason?: string;
+}
+
+/** One npm package to fetch; `range` is resolved against the registry. */
+interface PackageRequest {
+  name: string;
+  range: string;
+}
+
+/** Registry metadata for a single version of a package. */
+interface VersionMeta {
+  version: string;
+  /** Where the tarball lives and what its digest is. */
+  dist?: { tarball?: string; integrity?: string };
+  dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+}
+
+/**
+ * A runtime dependency the CLI knows how to install. The table shape is what
+ * keeps this generic: a second row is a row, not a second implementation.
+ */
+interface RuntimeDependency {
+  /** npm package declared in the CLI's package.json. */
+  name: string;
+  /** Packages needed on every platform (the JS side). */
+  sharedPackages(entry: VersionMeta): PackageRequest[];
+  /** Packages for the native build of [platformKey]. */
+  platformPackages(entry: VersionMeta, platformKey: string): PackageRequest[];
+  /**
+   * Whether [platformKey] carries the libc family (`linuxmusl-x64`). Defaults to
+   * true; false for packages that publish a single Linux build.
+   */
+  libcAwarePlatformKey?: boolean;
+  /** True when this process can already use the dependency. */
+  isAvailable(): boolean;
+  /**
+   * True when [requireBase]'s `node_modules` can load the dependency — the only
+   * require base that proves the layout works for the bundle that will use it.
+   */
+  loadsFrom(requireBase: string): boolean;
+  /** Called after a successful install. */
+  onInstalled(): void;
+}
+
+const sharpDependency: RuntimeDependency = {
+  name: "sharp",
+  sharedPackages(entry) {
+    const requests: PackageRequest[] = [
+      { name: "sharp", range: entry.version },
+    ];
+    // The plain JS deps come from sharp's own ranges, so a sharp upgrade that
+    // adds or drops one is followed without a code change.
+    for (const [name, range] of Object.entries(entry.dependencies ?? {})) {
+      requests.push({ name, range });
+    }
+    return requests;
+  },
+  platformPackages(entry, platformKey) {
+    // Platform builds are pinned exactly in sharp's optionalDependencies —
+    // including the libvips version, which no other field carries.
+    const optional = entry.optionalDependencies ?? {};
+    return ["@img/sharp", "@img/sharp-libvips"].map((prefix) => {
+      const name = `${prefix}-${platformKey}`;
+      const range = optional[name];
+      if (!range) {
+        throw new Error(`sharp 不支持当前平台（${platformKey}）：缺 ${name}`);
+      }
+      return { name, range };
+    });
+  },
+  isAvailable: () => getImageProcessor() !== undefined,
+  loadsFrom: (requireBase) =>
+    resolveSharp(requireFnFor(requireBase)) !== undefined,
+  onInstalled: () => resetImageProcessor(),
+};
+
+/**
+ * ripgrep row. The wrapper declares no dependencies of its own — only the
+ * platform packages in `optionalDependencies` — and keys them by
+ * `<platform>-<arch>` with no libc family.
+ */
+const ripgrepDependency: RuntimeDependency = {
+  name: "@vscode/ripgrep",
+  sharedPackages(entry) {
+    return [{ name: "@vscode/ripgrep", range: entry.version }];
+  },
+  platformPackages(entry, platformKey) {
+    const name = `@vscode/ripgrep-${platformKey}`;
+    const range = entry.optionalDependencies?.[name];
+    if (!range) {
+      throw new Error(`ripgrep 不支持当前平台（${platformKey}）：缺 ${name}`);
+    }
+    return [{ name, range }];
+  },
+  libcAwarePlatformKey: false,
+  isAvailable: () => getRgPath() !== undefined,
+  loadsFrom: (requireBase) =>
+    resolveRipgrep(requireFnFor(requireBase)) !== undefined,
+  onInstalled: () => resetRipgrep(),
+};
+
+const RUNTIME_DEPENDENCIES: RuntimeDependency[] = [
+  sharpDependency,
+  ripgrepDependency,
+];
+
+/** `<home>/.muse-work/cli` — where hosts copy the CLI into and share downloads. */
+function defaultCliHome(): string {
+  return path.join(os.homedir(), CONFIG_DIR_NAME, "cli");
+}
+
+/**
+ * Whether this code runs from a copy under the shared `~/.muse-work/cli` home.
+ *
+ * An npm-layout install (bundle under some `node_modules/.../dist/...`) must
+ * not self-install into `~/.muse-work/cli/node_modules`: Node would never look
+ * there from the foreign prefix, and writing into a global prefix may lack
+ * permissions. Such a setup either already has the dependencies or degrades
+ * with a warning.
+ */
+export function isManagedCliInstall(
+  moduleUrl: string,
+  cliHome = defaultCliHome(),
+): boolean {
+  let file: string;
+  try {
+    file = fileURLToPath(moduleUrl);
+  } catch {
+    return false;
+  }
+  const relative = path.relative(cliHome, file);
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+}
+
+/** Nearest `package.json` upwards from [from] that declares [dependency]. */
+function findEntryPackageJson(
+  from: string,
+  dependency: string,
+): { range: string } | undefined {
+  let dir = path.dirname(from);
+  for (;;) {
+    try {
+      const parsed = JSON.parse(
+        fs.readFileSync(path.join(dir, "package.json"), "utf-8"),
+      ) as { dependencies?: Record<string, string> };
+      const range = parsed.dependencies?.[dependency];
+      if (range) return { range };
+    } catch {
+      // Unreadable or absent — keep walking towards the filesystem root.
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+async function downloadBuffer(
+  url: string,
+  fetchImpl: typeof fetch,
+): Promise<Buffer> {
+  const res = await fetchImpl(url, { redirect: "follow" });
+  if (!res.ok) {
+    throw new Error(`下载失败（HTTP ${res.status}）：${url}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
+/** sha512/base64 check against the registry's `dist.integrity`. */
+export function verifyIntegrity(buffer: Buffer, integrity: string): void {
+  for (const part of integrity.split(/\s+/)) {
+    const separator = part.indexOf("-");
+    if (separator === -1) continue;
+    const algorithm = part.slice(0, separator);
+    if (algorithm !== "sha512") continue;
+    const actual = createHash("sha512").update(buffer).digest("base64");
+    if (actual !== part.slice(separator + 1)) {
+      throw new Error("下载内容 sha512 校验失败");
+    }
+    return;
+  }
+  throw new Error(`不支持的完整性摘要：${integrity}`);
+}
+
+/** Registry metadata for the highest version of [name] matching [range]. */
+async function resolveVersion(
+  name: string,
+  range: string,
+  fetchImpl: typeof fetch,
+): Promise<VersionMeta> {
+  const res = await fetchImpl(`${RUNTIME_DEPS_REGISTRY}/${name}`, {
+    redirect: "follow",
+  });
+  if (!res.ok) {
+    throw new Error(`获取 ${name} 元数据失败（HTTP ${res.status}）`);
+  }
+  const metadata = (await res.json()) as {
+    versions?: Record<string, Omit<VersionMeta, "version">>;
+  };
+  const versions = metadata.versions ?? {};
+  const best = maxSatisfying(Object.keys(versions), range);
+  if (!best) {
+    throw new Error(`没有满足 ${range} 的 ${name} 版本`);
+  }
+  return { version: best, ...versions[best] };
+}
+
+/**
+ * A `require` rooted at [requireBase] — the cli home when the packages are
+ * already on disk, the temp dir mid-install. Used both to ask `detect-libc`
+ * which build to fetch and to verify an install afterwards.
+ */
+function requireFnFor(requireBase: string): NodeRequire {
+  return createRequire(path.join(requireBase, "index.js"));
+}
+
+/**
+ * Platform key of the native build. With [libcFamily] (the default) the key
+ * carries the libc family — `linuxmusl-x64` vs `linux-x64` — decided by
+ * `detect-libc`, resolved from `[requireBase]/node_modules` and falling back to
+ * Node's own report when it cannot be loaded. Dependencies that publish a single
+ * Linux build pass `false`.
+ */
+function runtimePlatformKey(
+  requireBase: string | undefined,
+  libcFamily = true,
+): string {
+  if (!libcFamily) return `${process.platform}-${process.arch}`;
+  if (requireBase) {
+    try {
+      const detect = requireFnFor(requireBase)("detect-libc") as {
+        familySync?: () => string | null;
+        isNonGlibcLinuxSync?: () => boolean;
+      };
+      const family = detect.isNonGlibcLinuxSync?.()
+        ? (detect.familySync?.() ?? "")
+        : "";
+      return `${process.platform}${family}-${process.arch}`;
+    } catch {
+      // Fall through to the report-based fallback.
+    }
+  }
+  let family = "";
+  if (process.platform === "linux") {
+    const report = process.report?.getReport() as
+      | { header?: { glibcVersionRuntime?: string } }
+      | undefined;
+    if (!report?.header?.glibcVersionRuntime) family = "musl";
+  }
+  return `${process.platform}${family}-${process.arch}`;
+}
+
+/** Write the tarball's entries under [dest], creating parent directories. */
+function writeEntries(
+  dest: string,
+  entries: ReturnType<typeof extractNpmTarball>,
+): void {
+  for (const entry of entries) {
+    const target = path.join(dest, entry.path);
+    fs.mkdirSync(entry.kind === "directory" ? target : path.dirname(target), {
+      recursive: true,
+    });
+    if (entry.kind !== "file") continue;
+    fs.writeFileSync(target, entry.data);
+    // npm publishes executables (the ripgrep binary) as 0755; without the exec
+    // bit every spawn fails with EACCES. Only the exec bit is worth restoring —
+    // the rest is umask's business. A no-op on Windows, where there is no mode.
+    if (entry.mode & 0o111) fs.chmodSync(target, entry.mode & 0o777);
+  }
+}
+
+/** Fetch one package and unpack it into `modulesDir/<name>`. */
+async function fetchPackage(
+  request: PackageRequest,
+  modulesDir: string,
+  fetchImpl: typeof fetch,
+  known?: VersionMeta,
+): Promise<void> {
+  const meta =
+    known ?? (await resolveVersion(request.name, request.range, fetchImpl));
+  const tarball = meta.dist?.tarball;
+  if (!tarball) {
+    throw new Error(`${request.name}@${meta.version} 缺少下载地址`);
+  }
+  const buffer = await downloadBuffer(tarball, fetchImpl);
+  if (meta.dist?.integrity) verifyIntegrity(buffer, meta.dist.integrity);
+  writeEntries(path.join(modulesDir, request.name), extractNpmTarball(buffer));
+}
+
+/**
+ * Install one dependency: download into a temp `node_modules` beside the real
+ * one, then move each package into place. A crash mid-way leaves the marker
+ * absent, so the next launch redoes the batch — packages already moved are
+ * skipped.
+ *
+ * Returns the platform key the batch was built for.
+ */
+async function installDependency(
+  dependency: RuntimeDependency,
+  entry: VersionMeta,
+  cliHome: string,
+  fetchImpl: typeof fetch,
+): Promise<string> {
+  const installDir = path.join(cliHome, "node_modules");
+  fs.mkdirSync(installDir, { recursive: true });
+  const tempDir = path.join(
+    cliHome,
+    `.muse-runtime-tmp-${process.pid}-${Math.random().toString(36).slice(2)}`,
+  );
+  const tempModules = path.join(tempDir, "node_modules");
+  fs.mkdirSync(tempModules, { recursive: true });
+  try {
+    const shared = dependency.sharedPackages(entry);
+    // detect-libc has to land first: it decides which native build to fetch.
+    for (const request of shared) {
+      await fetchPackage(
+        request,
+        tempModules,
+        fetchImpl,
+        // The entry package's metadata is already in hand — no second round trip.
+        request.name === dependency.name ? entry : undefined,
+      );
+    }
+    const platformKey = runtimePlatformKey(
+      tempDir,
+      dependency.libcAwarePlatformKey ?? true,
+    );
+    const platform = dependency.platformPackages(entry, platformKey);
+    for (const request of platform) {
+      await fetchPackage(request, tempModules, fetchImpl);
+    }
+    for (const { name } of [...shared, ...platform]) {
+      const target = path.join(installDir, name);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      // Already there: either a previous run or a process racing us.
+      if (fs.existsSync(target)) continue;
+      try {
+        fs.renameSync(path.join(tempModules, name), target);
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        const raced =
+          code === "EEXIST" || code === "ENOTEMPTY" || code === "EPERM";
+        if (!raced) throw error;
+      }
+    }
+    return platformKey;
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function markerReadPath(installDir: string): string {
+  const next = path.join(installDir, MARKER_FILE);
+  const legacy = path.join(installDir, LEGACY_MARKER_FILE);
+  if (fs.existsSync(next)) return next;
+  if (fs.existsSync(legacy)) return legacy;
+  return next;
+}
+
+function removeMarker(installDir: string): void {
+  fs.rmSync(path.join(installDir, MARKER_FILE), { force: true });
+  fs.rmSync(path.join(installDir, LEGACY_MARKER_FILE), { force: true });
+}
+
+function readMarker(installDir: string): Record<string, string> {
+  try {
+    return JSON.parse(
+      fs.readFileSync(markerReadPath(installDir), "utf-8"),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function writeMarker(installDir: string, data: Record<string, string>): void {
+  fs.writeFileSync(
+    path.join(installDir, MARKER_FILE),
+    `${JSON.stringify(data, null, 2)}\n`,
+  );
+  fs.rmSync(path.join(installDir, LEGACY_MARKER_FILE), { force: true });
+}
+
+let inFlight: Promise<RuntimeDepsResult> | undefined;
+let settled: RuntimeDepsResult | undefined;
+
+/**
+ * Make sure the runtime dependencies are installed. Never throws: the long-lived
+ * CLI entry points await it before serving, so a first pasted image (or a first
+ * search) cannot race a download — the same reason the hosts used to block on
+ * ripgrep before spawning the CLI. A failed install is reported once and only
+ * degrades images and grep.
+ *
+ * The outcome is memoised for the process lifetime, failures included — one
+ * attempt per launch, so a broken network does not retry on every image.
+ */
+export function ensureRuntimeDeps(options?: {
+  moduleUrl?: string;
+  fetchImpl?: typeof fetch;
+  cliHome?: string;
+}): Promise<RuntimeDepsResult> {
+  if (settled) return Promise.resolve(settled);
+  if (!inFlight) {
+    inFlight = runInstall(options).then(
+      (result) => {
+        settled = result;
+        return result;
+      },
+      (error: unknown) => {
+        settled = {
+          available: false,
+          reason: error instanceof Error ? error.message : String(error),
+        };
+        return settled;
+      },
+    );
+  }
+  return inFlight;
+}
+
+async function runInstall(options?: {
+  moduleUrl?: string;
+  fetchImpl?: typeof fetch;
+  cliHome?: string;
+}): Promise<RuntimeDepsResult> {
+  const fetchImpl = options?.fetchImpl ?? fetch;
+  const moduleUrl = options?.moduleUrl ?? import.meta.url;
+  const cliHome = options?.cliHome ?? defaultCliHome();
+
+  if (RUNTIME_DEPENDENCIES.every((dependency) => dependency.isAvailable())) {
+    return { available: true };
+  }
+
+  if (!isManagedCliInstall(moduleUrl, cliHome)) {
+    const reason =
+      "当前 CLI 不是 ~/.muse-work/cli 下的副本，无法自动安装运行时依赖" +
+      "（sharp / ripgrep）；请重装 Muse（不要使用 --omit=optional）";
+    logWarn(`[Muse] ${reason}`);
+    return { available: false, reason };
+  }
+
+  const installDir = path.join(cliHome, "node_modules");
+  // One dependency failing must not skip the others: they degrade independently
+  // (a broken image codec has nothing to do with grep).
+  const failures: string[] = [];
+  for (const dependency of RUNTIME_DEPENDENCIES) {
+    if (dependency.isAvailable()) continue;
+    try {
+      const entry = findEntryPackageJson(
+        fileURLToPath(moduleUrl),
+        dependency.name,
+      );
+      if (!entry) {
+        fail(failures, `找不到声明 ${dependency.name} 依赖范围的 package.json`);
+        continue;
+      }
+      // A batch that completed but still will not load is a platform problem
+      // (wrong libc, unsupported CPU). Downloading ~19MB again on every launch
+      // would not fix it, so report instead.
+      if (readMarker(installDir)[dependency.name] === entry.range) {
+        fail(
+          failures,
+          `${dependency.name} 已安装但无法加载（平台 ${runtimePlatformKey(
+            cliHome,
+            dependency.libcAwarePlatformKey ?? true,
+          )}）`,
+        );
+        continue;
+      }
+
+      const meta = await resolveVersion(
+        dependency.name,
+        entry.range,
+        fetchImpl,
+      );
+      const platformKey = await installDependency(
+        dependency,
+        meta,
+        cliHome,
+        fetchImpl,
+      );
+
+      // Verify through the cli home itself: the only require base that proves
+      // the layout works for the bundle that will load it.
+      if (!dependency.loadsFrom(cliHome)) {
+        removeMarker(installDir);
+        fail(
+          failures,
+          `${dependency.name} 安装后仍无法加载（平台 ${platformKey}）`,
+        );
+        continue;
+      }
+      dependency.onInstalled();
+      writeMarker(installDir, {
+        ...readMarker(installDir),
+        [dependency.name]: entry.range,
+      });
+      logger.info(
+        `[Muse] 已安装 ${dependency.name} ${meta.version}（平台 ${platformKey}）到 ${installDir}`,
+      );
+    } catch (error) {
+      fail(
+        failures,
+        `安装 ${dependency.name} 失败：${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+  if (failures.length > 0)
+    return { available: false, reason: failures.join("；") };
+  return { available: true };
+}
+
+/** Log and record one dependency's failure, without aborting the batch. */
+function fail(failures: string[], reason: string): void {
+  logWarn(`[Muse] ${reason}`);
+  failures.push(reason);
+}
+
+/** Forget the memoised outcome, and the settled result (tests). */
+export function __resetRuntimeDepsForTesting(): void {
+  inFlight = undefined;
+  settled = undefined;
+}

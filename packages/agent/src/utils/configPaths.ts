@@ -1,0 +1,199 @@
+/**
+ * Configuration Path Utilities
+ *
+ * Centralized utilities for resolving Muse settings.json paths.
+ * Supports both regular settings.json and local settings.local.json with proper priority.
+ *
+ * Priority system:
+ * - User configs: ~/.muse-work/settings.json
+ * - Local configs: {workdir}/.muse-work/settings.local.json > {workdir}/.muse-work/settings.json
+ * - Project configs override user configs (existing behavior)
+ */
+import { CONFIG_DIR_NAME } from "./constants.js";
+
+import { join } from "path";
+import { homedir } from "os";
+import { existsSync } from "fs";
+import { ensureBuiltinMaterialized } from "./builtinEmbed.js";
+
+/**
+ * Get the builtin skills directory path
+ */
+export function getBuiltinSkillsDir(): string {
+  return join(ensureBuiltinMaterialized(), "skills");
+}
+
+/**
+ * Get the builtin subagents directory path
+ */
+export function getBuiltinSubagentsDir(): string {
+  return join(ensureBuiltinMaterialized(), "subagents");
+}
+
+/**
+ * Get the builtin plugins directory path
+ */
+export function getBuiltinPluginsDir(): string {
+  return join(ensureBuiltinMaterialized(), "plugins");
+}
+
+/**
+ * Get the user-specific configuration file path (legacy function)
+ * @deprecated Use getUserConfigPaths() for better priority support
+ */
+export function getUserConfigPath(): string {
+  return join(homedir(), CONFIG_DIR_NAME, "settings.json");
+}
+
+/**
+ * Get the project-specific configuration file path (legacy function)
+ * @deprecated Use getProjectConfigPaths() for better priority support
+ */
+export function getProjectConfigPath(workdir: string): string {
+  return join(workdir, CONFIG_DIR_NAME, "settings.json");
+}
+
+/**
+ * Get the user-specific configuration file paths in priority order
+ * Returns array with .json only
+ */
+export function getUserConfigPaths(): string[] {
+  const baseDir = join(homedir(), CONFIG_DIR_NAME);
+  return [join(baseDir, "settings.json")];
+}
+
+/**
+ * Get the plugins directory path
+ */
+export function getPluginsDir(): string {
+  return join(homedir(), CONFIG_DIR_NAME, "plugins");
+}
+
+/**
+ * Get the local configuration file paths in priority order
+ * Returns array with .local.json first, then .json
+ */
+export function getProjectConfigPaths(workdir: string): string[] {
+  const baseDir = join(workdir, CONFIG_DIR_NAME);
+  return [join(baseDir, "settings.local.json"), join(baseDir, "settings.json")];
+}
+
+/**
+ * Get all configuration file paths (user and project) in priority order
+ * Useful for comprehensive configuration detection
+ */
+export function getAllConfigPaths(workdir: string): {
+  userPaths: string[];
+  projectPaths: string[];
+  builtinPaths: string[];
+  allPaths: string[];
+} {
+  const userPaths = getUserConfigPaths();
+  const projectPaths = getProjectConfigPaths(workdir);
+  const builtinPaths = [join(getBuiltinSkillsDir(), "settings", "SKILL.md")];
+
+  return {
+    userPaths,
+    projectPaths,
+    builtinPaths,
+    allPaths: [...userPaths, ...projectPaths, ...builtinPaths],
+  };
+}
+
+/**
+ * Get existing configuration file paths
+ * Returns only the paths that actually exist on the filesystem
+ */
+export function getExistingConfigPaths(workdir: string): {
+  userPaths: string[];
+  projectPaths: string[];
+  builtinPaths: string[];
+  existingPaths: string[];
+} {
+  const allPaths = getAllConfigPaths(workdir);
+
+  const existingUserPaths = allPaths.userPaths.filter(existsSync);
+  const existingProjectPaths = allPaths.projectPaths.filter(existsSync);
+  const existingBuiltinPaths = allPaths.builtinPaths.filter(existsSync);
+  const allExistingPaths = allPaths.allPaths.filter(existsSync);
+
+  return {
+    userPaths: existingUserPaths,
+    projectPaths: existingProjectPaths,
+    builtinPaths: existingBuiltinPaths,
+    existingPaths: allExistingPaths,
+  };
+}
+
+/**
+ * Get the first existing configuration file path with the specified priority
+ * @param paths Array of paths in priority order
+ * @returns The first path that exists, or undefined if none exist
+ */
+export function getFirstExistingPath(paths: string[]): string | undefined {
+  return paths.find((path) => existsSync(path));
+}
+
+/**
+ * Get effective configuration paths (the ones that would actually be used)
+ * Returns the highest priority existing path for each category
+ */
+export function getEffectiveConfigPaths(workdir: string): {
+  userPath?: string;
+  projectPath?: string;
+  effectivePath?: string; // The path that takes final precedence
+} {
+  const userPaths = getUserConfigPaths();
+  const projectPaths = getProjectConfigPaths(workdir);
+
+  const userPath = getFirstExistingPath(userPaths);
+  const projectPath = getFirstExistingPath(projectPaths);
+
+  // Project path takes precedence over user path if both exist
+  const effectivePath = projectPath || userPath;
+
+  return {
+    userPath,
+    projectPath,
+    effectivePath,
+  };
+}
+
+/**
+ * Check if any configuration files exist
+ */
+export function hasAnyConfig(workdir: string): boolean {
+  const { existingPaths } = getExistingConfigPaths(workdir);
+  return existingPaths.length > 0;
+}
+
+/**
+ * Get configuration information for debugging and monitoring
+ */
+export function getConfigurationInfo(workdir: string): {
+  hasUser: boolean;
+  hasProject: boolean;
+  paths: string[];
+  userPaths: string[];
+  projectPaths: string[];
+  existingPaths: string[];
+  effectivePaths: {
+    userPath?: string;
+    projectPath?: string;
+    effectivePath?: string;
+  };
+} {
+  const allPaths = getAllConfigPaths(workdir);
+  const existingPaths = getExistingConfigPaths(workdir);
+  const effectivePaths = getEffectiveConfigPaths(workdir);
+
+  return {
+    hasUser: existingPaths.userPaths.length > 0,
+    hasProject: existingPaths.projectPaths.length > 0,
+    paths: allPaths.allPaths,
+    userPaths: allPaths.userPaths,
+    projectPaths: allPaths.projectPaths,
+    existingPaths: existingPaths.existingPaths,
+    effectivePaths,
+  };
+}

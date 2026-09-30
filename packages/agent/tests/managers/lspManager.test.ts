@@ -1,0 +1,540 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as path from "path";
+import { LspManager } from "../../src/managers/lspManager.js";
+import { Container } from "../../src/utils/container.js";
+import { spawn, ChildProcess } from "child_process";
+import { EventEmitter } from "events";
+import { PassThrough } from "stream";
+import { promises as fs } from "fs";
+
+vi.mock("child_process", () => ({
+  spawn: vi.fn(),
+}));
+
+vi.mock("fs", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("fs");
+  return {
+    ...actual,
+    promises: {
+      ...actual.promises,
+      readFile: vi.fn(),
+    },
+  };
+});
+
+describe("LspManager (Mocked)", () => {
+  let lspManager: LspManager;
+
+  beforeEach(() => {
+    const container = new Container();
+    lspManager = new LspManager(container);
+    vi.clearAllMocks();
+    vi.mocked(fs.readFile).mockResolvedValue("mock content");
+  });
+
+  afterEach(async () => {
+    await lspManager.cleanup();
+  });
+
+  function setupMockProcess() {
+    const stdin = new PassThrough();
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const mockProcess = new EventEmitter() as unknown as ChildProcess;
+    mockProcess.stdin = stdin;
+    mockProcess.stdout = stdout;
+    mockProcess.stderr = stderr;
+    mockProcess.kill = vi.fn();
+    Object.defineProperty(mockProcess, "killed", {
+      value: false,
+      writable: true,
+    });
+
+    vi.mocked(spawn).mockReturnValue(mockProcess);
+
+    return { stdin, stdout, stderr, mockProcess };
+  }
+
+  function respondToInitialize(stdin: PassThrough, stdout: PassThrough) {
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      }
+    });
+  }
+
+  it("should register and start an LSP server", async () => {
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const lspProc = await lspManager.getProcessForFile("/mock/workdir/test.ts");
+    expect(lspProc).toBeDefined();
+    expect(spawn).toHaveBeenCalledWith(
+      "typescript-language-server",
+      ["--stdio"],
+      expect.any(Object),
+    );
+  });
+
+  it("should execute an LSP operation", async () => {
+    const { stdin, stdout } = setupMockProcess();
+
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      } else if (str.includes('"method":"textDocument/definition"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 55\r\n\r\n{"jsonrpc":"2.0","id":1,"result":{"uri":"file://test"}}',
+          );
+        });
+      }
+    });
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const result = await lspManager.execute({
+      operation: "goToDefinition",
+      filePath: "test.ts",
+      line: 1,
+      character: 1,
+    });
+
+    expect(result.success).toBe(true);
+    expect(JSON.parse(result.content)).toEqual({ uri: "file://test" });
+  });
+
+  it("should handle server returning an error in JSON-RPC response", async () => {
+    const { stdin, stdout } = setupMockProcess();
+
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      } else if (str.includes('"method":"textDocument/definition"')) {
+        process.nextTick(() => {
+          const res = JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            error: { code: -32601, message: "Method not found" },
+          });
+          stdout.write(`Content-Length: ${res.length}\r\n\r\n${res}`);
+        });
+      }
+    });
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const result = await lspManager.execute({
+      operation: "goToDefinition",
+      filePath: "test.ts",
+      line: 1,
+      character: 1,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.content).toContain("Method not found");
+  });
+
+  it("should handle unsupported operation", async () => {
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const result = await lspManager.execute({
+      operation: "invalidOp",
+      filePath: "test.ts",
+      line: 1,
+      character: 1,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.content).toContain("Unsupported LSP operation");
+  });
+
+  it("should handle file read failure during didOpen", async () => {
+    const { stdin, stdout } = setupMockProcess();
+
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      } else if (str.includes('"method":"textDocument/definition"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 55\r\n\r\n{"jsonrpc":"2.0","id":1,"result":{"uri":"file://test"}}',
+          );
+        });
+      }
+    });
+
+    vi.mocked(fs.readFile).mockRejectedValueOnce(new Error("Read failed"));
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const result = await lspManager.execute({
+      operation: "goToDefinition",
+      filePath: "test.ts",
+      line: 1,
+      character: 1,
+    });
+
+    expect(result.success).toBe(true);
+    expect(JSON.parse(result.content)).toEqual({ uri: "file://test" });
+  });
+
+  it("should perform graceful shutdown during cleanup", async () => {
+    const { stdin, stdout, mockProcess } = setupMockProcess();
+
+    let shutdownReceived = false;
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      } else if (str.includes('"method":"shutdown"')) {
+        shutdownReceived = true;
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":1,"result":{}}',
+          );
+        });
+      }
+    });
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    await lspManager.getProcessForFile("test.ts");
+    await lspManager.cleanup();
+
+    expect(shutdownReceived).toBe(true);
+    expect(mockProcess.kill).toHaveBeenCalled();
+  });
+
+  it("should handle server timeout during initialization", async () => {
+    setupMockProcess();
+    // No response to initialize request
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      startupTimeout: 1,
+    });
+
+    const lspProc = await lspManager.getProcessForFile("test.ts");
+    expect(lspProc).toBeNull();
+  });
+
+  it("should load config from .lsp.json", async () => {
+    const workdir = "/mock/workdir";
+    const lspJsonPath = path.join(workdir, ".lsp.json");
+    const mockConfig = {
+      python: {
+        command: "pyright-langserver",
+        args: ["--stdio"],
+        extensionToLanguage: { ".py": "python" },
+        shutdownTimeout: 1,
+      },
+    };
+
+    vi.mocked(fs.readFile).mockImplementation((path) => {
+      if (path === lspJsonPath) {
+        return Promise.resolve(JSON.stringify(mockConfig));
+      }
+      return Promise.resolve("mock content");
+    });
+
+    await lspManager.initialize(workdir);
+
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    const lspProc = await lspManager.getProcessForFile("test.py");
+    expect(lspProc).toBeDefined();
+    expect(spawn).toHaveBeenCalledWith(
+      "pyright-langserver",
+      ["--stdio"],
+      expect.any(Object),
+    );
+  });
+
+  it("should handle server stderr data", async () => {
+    const { stderr } = setupMockProcess();
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      startupTimeout: 1,
+      shutdownTimeout: 1,
+    });
+
+    // Trigger server start
+    await lspManager.getProcessForFile("test.ts");
+
+    // Write to stderr
+    stderr.write("some error log");
+    // No specific assertion needed other than ensuring it doesn't crash
+    // and covers the stderr listener line.
+  });
+
+  it("should handle server exit", async () => {
+    const { mockProcess } = setupMockProcess();
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      startupTimeout: 1,
+      shutdownTimeout: 1,
+    });
+
+    await lspManager.getProcessForFile("test.ts");
+    mockProcess.emit("close", 0);
+  });
+
+  it("should handle multiple chunks of data in stdout", async () => {
+    const { stdin, stdout } = setupMockProcess();
+
+    stdin.on("data", (data: Buffer) => {
+      const str = data.toString();
+      if (str.includes('"method":"initialize"')) {
+        process.nextTick(() => {
+          stdout.write(
+            'Content-Length: 36\r\n\r\n{"jsonrpc":"2.0","id":0,"result":{}}',
+          );
+        });
+      } else if (str.includes('"method":"textDocument/definition"')) {
+        const res = JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          result: { uri: "file://test" },
+        });
+        const fullResponse = `Content-Length: ${res.length}\r\n\r\n${res}`;
+
+        // Split into chunks
+        const chunk1 = fullResponse.substring(0, 10);
+        const chunk2 = fullResponse.substring(10, 25);
+        const chunk3 = fullResponse.substring(25);
+
+        process.nextTick(() => {
+          stdout.write(chunk1);
+          process.nextTick(() => {
+            stdout.write(chunk2);
+            process.nextTick(() => {
+              stdout.write(chunk3);
+            });
+          });
+        });
+      }
+    });
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    const result = await lspManager.execute({
+      operation: "goToDefinition",
+      filePath: "test.ts",
+      line: 1,
+      character: 1,
+    });
+
+    expect(result.success).toBe(true);
+    expect(JSON.parse(result.content)).toEqual({ uri: "file://test" });
+  });
+
+  it("should inject MUSE_PLUGIN_ROOT into env for plugin-owned LSP servers", async () => {
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    lspManager.registerServer("typescript", {
+      command: "typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      pluginRoot: "/path/to/plugin",
+      shutdownTimeout: 1,
+    });
+
+    await lspManager.getProcessForFile("/mock/workdir/test.ts");
+
+    expect(spawn).toHaveBeenCalledWith(
+      "typescript-language-server",
+      ["--stdio"],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          MUSE_PLUGIN_ROOT: "/path/to/plugin",
+        }),
+      }),
+    );
+  });
+
+  it("should substitute ${MUSE_PLUGIN_ROOT} in command/args for plugin-owned LSP servers", async () => {
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    lspManager.registerServer("typescript", {
+      command: "${MUSE_PLUGIN_ROOT}/bin/typescript-language-server",
+      args: ["--stdio", "--config", "${MUSE_PLUGIN_ROOT}/config.json"],
+      extensionToLanguage: { ".ts": "typescript" },
+      pluginRoot: "/path/to/plugin",
+      env: { CUSTOM_PATH: "${MUSE_PLUGIN_ROOT}/custom" },
+      shutdownTimeout: 1,
+    });
+
+    await lspManager.getProcessForFile("/mock/workdir/test.ts");
+
+    expect(spawn).toHaveBeenCalledWith(
+      "/path/to/plugin/bin/typescript-language-server",
+      ["--stdio", "--config", "/path/to/plugin/config.json"],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          MUSE_PLUGIN_ROOT: "/path/to/plugin",
+          CUSTOM_PATH: "/path/to/plugin/custom",
+        }),
+      }),
+    );
+  });
+
+  it("should not substitute ${MUSE_PLUGIN_ROOT} for non-plugin LSP servers", async () => {
+    const { stdin, stdout } = setupMockProcess();
+    respondToInitialize(stdin, stdout);
+
+    lspManager.registerServer("typescript", {
+      command: "${MUSE_PLUGIN_ROOT}/bin/typescript-language-server",
+      args: ["--stdio"],
+      extensionToLanguage: { ".ts": "typescript" },
+      shutdownTimeout: 1,
+    });
+
+    await lspManager.getProcessForFile("/mock/workdir/test.ts");
+
+    expect(spawn).toHaveBeenCalledWith(
+      "${MUSE_PLUGIN_ROOT}/bin/typescript-language-server",
+      ["--stdio"],
+      expect.any(Object),
+    );
+  });
+
+  // 插件变更的就地重载（docs/specs/ecosystem/plugin.md「插件变更的就地重载」
+  // 场景 3 / 12）：插件来源的 LSP 服务器按 pluginRoot 整批摘掉，其它来源不受
+  // 影响；已为该插件语言启动的进程一并停掉，免得住留指向旧目录的进程。
+  it("should drop only the given plugin root's LSP servers", async () => {
+    lspManager.registerServer("typescript", {
+      command: "ts-server",
+      extensionToLanguage: { ".ts": "typescript" },
+      pluginRoot: "/plugin/a",
+      shutdownTimeout: 1,
+    });
+    lspManager.registerServer("python", {
+      command: "py-server",
+      extensionToLanguage: { ".py": "python" },
+      pluginRoot: "/plugin/b",
+      shutdownTimeout: 1,
+    });
+
+    const removed = await lspManager.unregisterServersForPlugin("/plugin/a");
+
+    expect(removed).toBe(1);
+    // 该语言已无配置：不会再为它启动服务器。
+    expect(
+      await lspManager.getProcessForFile("/mock/workdir/test.ts"),
+    ).toBeNull();
+  });
+
+  it("should stop the running process of the unregistered plugin's server", async () => {
+    const { mockProcess } = setupMockProcess();
+    lspManager.registerServer("typescript", {
+      command: "ts-server",
+      extensionToLanguage: { ".ts": "typescript" },
+      pluginRoot: "/plugin/a",
+      shutdownTimeout: 1,
+    });
+    (
+      lspManager as unknown as {
+        processes: Map<string, unknown>;
+      }
+    ).processes.set("typescript", {
+      process: mockProcess,
+      config: {
+        command: "ts-server",
+        extensionToLanguage: { ".ts": "typescript" },
+        pluginRoot: "/plugin/a",
+        shutdownTimeout: 1,
+      },
+      language: "typescript",
+      initialized: true,
+      requestId: 0,
+      pendingRequests: new Map(),
+      openedFiles: new Set(),
+    });
+
+    await lspManager.unregisterServersForPlugin("/plugin/a");
+
+    expect(mockProcess.kill).toHaveBeenCalled();
+  });
+
+  it("should report 0 when no LSP server belongs to that plugin root", async () => {
+    expect(await lspManager.unregisterServersForPlugin("/plugin/unknown")).toBe(
+      0,
+    );
+  });
+});

@@ -1,0 +1,1446 @@
+/**
+ * Configuration Service
+ *
+ * Centralized service for loading, validating, and managing Muse settings.json.
+ * Replaces distributed configuration logic previously embedded in hook.ts.
+ */
+
+import { readFileSync, existsSync, promises as fs } from "fs";
+import * as path from "path";
+import * as os from "os";
+import { isValidHookEvent } from "../types/hooks.js";
+import type { HookEvent, HookEventConfig } from "../types/hooks.js";
+import { logger } from "../utils/globalLogger.js";
+import type {
+  ConfigurationLoadResult,
+  ValidationResult,
+  ConfigurationPaths,
+  MuseConfiguration,
+  Scope,
+} from "../types/configuration.js";
+import {
+  getAllConfigPaths,
+  getExistingConfigPaths,
+  getUserConfigPaths,
+  getProjectConfigPaths,
+} from "../utils/configPaths.js";
+import {
+  type EnvironmentValidationResult,
+  type MergedEnvironmentContext,
+  type EnvironmentMergeOptions,
+  isValidEnvironmentVars,
+} from "../types/environment.js";
+import {
+  GatewayConfig,
+  ModelConfig,
+  PermissionMode,
+  AgentOptions,
+} from "../types/index.js";
+import {
+  DEFAULT_MUSE_MAX_INPUT_TOKENS,
+  DEFAULT_MUSE_MAX_OUTPUT_TOKENS,
+  DEFAULT_LANGUAGE,
+  CONFIG_DIR_NAME,
+} from "../utils/constants.js";
+import { ClientOptions } from "openai";
+import { parseCustomHeaders } from "../utils/stringUtils.js";
+import { ensureMuseRuntimeFilesExcluded } from "../utils/gitUtils.js";
+import { atomicWriteFile } from "../utils/atomicWrite.js";
+import { envGet, MUSE_ENV, projectDirEnv } from "../utils/museEnv.js";
+
+/**
+ * Validate a configuration object's structure and values. Module-level so it
+ * can be reused without instantiating ConfigurationService (e.g. background
+ * session cleanup runs before config is loaded).
+ */
+export function validateConfigurationObject(
+  config: MuseConfiguration,
+): ValidationResult {
+  const result: ValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Validate basic structure
+  if (!config || typeof config !== "object") {
+    result.isValid = false;
+    result.errors.push("Configuration must be a valid object");
+    return result;
+  }
+
+  // Validate hooks if present
+  if (config.hooks !== undefined) {
+    if (typeof config.hooks !== "object" || config.hooks === null) {
+      result.isValid = false;
+      result.errors.push("Hooks configuration must be an object");
+    } else {
+      for (const [event, eventConfigs] of Object.entries(config.hooks)) {
+        if (!isValidHookEvent(event)) {
+          result.warnings.push(`Unknown hook event: ${event}`);
+          continue;
+        }
+
+        if (!Array.isArray(eventConfigs)) {
+          result.isValid = false;
+          result.errors.push(`Hook event '${event}' must be an array`);
+          continue;
+        }
+
+        // Validate individual hook configurations
+        for (let i = 0; i < eventConfigs.length; i++) {
+          const hookConfig = eventConfigs[i];
+          if (!hookConfig || typeof hookConfig !== "object") {
+            result.isValid = false;
+            result.errors.push(
+              `Hook configuration ${i} for event '${event}' must be an object`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // Validate environment variables if present
+  if (config.env !== undefined) {
+    const envValidation = validateEnvironmentConfig(config.env);
+    if (!envValidation.isValid) {
+      result.isValid = false;
+      result.errors.push(...envValidation.errors);
+    }
+    result.warnings.push(...envValidation.warnings);
+  }
+
+  // Validate permissions if present
+  if (config.permissions !== undefined) {
+    if (typeof config.permissions !== "object" || config.permissions === null) {
+      result.isValid = false;
+      result.errors.push("Permissions configuration must be an object");
+    } else {
+      // Validate allow if present
+      if (config.permissions.allow !== undefined) {
+        if (!Array.isArray(config.permissions.allow)) {
+          result.isValid = false;
+          result.errors.push("Permissions allow must be an array of strings");
+        } else if (
+          !config.permissions.allow.every((rule) => typeof rule === "string")
+        ) {
+          result.isValid = false;
+          result.errors.push("All permission allow rules must be strings");
+        }
+      }
+
+      // Validate deny if present
+      if (config.permissions.deny !== undefined) {
+        if (!Array.isArray(config.permissions.deny)) {
+          result.isValid = false;
+          result.errors.push("Permissions deny must be an array of strings");
+        } else if (
+          !config.permissions.deny.every((rule) => typeof rule === "string")
+        ) {
+          result.isValid = false;
+          result.errors.push("All permission deny rules must be strings");
+        }
+      }
+
+      // Validate defaultMode if present
+      if (config.permissions.defaultMode !== undefined) {
+        const validModes: PermissionMode[] = [
+          "default",
+          "bypassPermissions",
+          "acceptEdits",
+          "dontAsk",
+        ];
+        if (!validModes.includes(config.permissions.defaultMode)) {
+          result.isValid = false;
+          result.errors.push(
+            `Invalid defaultMode: "${config.permissions.defaultMode}". Must be one of: ${validModes.join(", ")}`,
+          );
+        }
+      }
+    }
+  }
+
+  // Validate autoMemoryEnabled if present
+  if (
+    config.autoMemoryEnabled !== undefined &&
+    typeof config.autoMemoryEnabled !== "boolean"
+  ) {
+    result.isValid = false;
+    result.errors.push("autoMemoryEnabled configuration must be a boolean");
+  }
+
+  // Validate autoMemoryFrequency if present
+  if (
+    config.autoMemoryFrequency !== undefined &&
+    (typeof config.autoMemoryFrequency !== "number" ||
+      config.autoMemoryFrequency <= 0)
+  ) {
+    result.isValid = false;
+    result.errors.push(
+      "autoMemoryFrequency configuration must be a positive number",
+    );
+  }
+
+  // Validate cleanupPeriodDays if present
+  if (
+    config.cleanupPeriodDays !== undefined &&
+    (typeof config.cleanupPeriodDays !== "number" ||
+      !Number.isInteger(config.cleanupPeriodDays) ||
+      config.cleanupPeriodDays < 0)
+  ) {
+    result.isValid = false;
+    result.errors.push(
+      "cleanupPeriodDays configuration must be a non-negative integer",
+    );
+  }
+
+  // Validate models if present
+  if (config.models !== undefined) {
+    if (typeof config.models !== "object" || config.models === null) {
+      result.isValid = false;
+      result.errors.push("models configuration must be an object");
+    } else {
+      for (const [modelName, modelConfig] of Object.entries(config.models)) {
+        if (typeof modelConfig !== "object" || modelConfig === null) {
+          result.isValid = false;
+          result.errors.push(
+            `Configuration for model '${modelName}' must be an object`,
+          );
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * The settings.json-derived configuration a turn reads from, captured when the
+ * turn started (see {@link ConfigurationService.setTurnSnapshotSource}). Held
+ * while a turn runs so a live reload can't shift values under it.
+ */
+export interface TurnConfigurationSnapshot {
+  configuration: MuseConfiguration | null;
+  env: Record<string, string>;
+}
+
+/**
+ * Default ConfigurationService implementation
+ *
+ * Provides centralized configuration loading, validation, and management.
+ * Extracted from distributed logic in hook.ts with improved error handling.
+ */
+export class ConfigurationService {
+  private currentConfiguration: MuseConfiguration | null = null;
+  private options: AgentOptions = {};
+  private _configuredEnvKeys = new Set<string>();
+  // Per-session environment snapshot: settings.json `env` is stored here (NOT
+  // written to process.env) so multiple sessions in the same host process
+  // don't cross-pollute. Resolve methods read `this.liveEnvSnapshot ?? process.env`.
+  private envSnapshot: Record<string, string> = {};
+
+  // Turn-scoped snapshot of the settings.json-derived configuration, owned by
+  // LiveConfigManager (it knows the turn boundaries and the live reload) and
+  // read here through a source registered at wiring time. Live reload updates
+  // `currentConfiguration` as soon as the file changes, but a turn must not see
+  // the value shift under it: while a turn is running the snapshot is what the
+  // resolve methods read, so changes land at the next turn boundary
+  // (docs/specs/core/agent-config.md scenario 5).
+  private turnSnapshotSource?: () => TurnConfigurationSnapshot | null;
+
+  /**
+   * Register the turn-snapshot source (see {@link TurnConfigurationSnapshot}).
+   */
+  setTurnSnapshotSource(source: () => TurnConfigurationSnapshot | null): void {
+    this.turnSnapshotSource = source;
+  }
+
+  /**
+   * Set agent options for configuration resolution
+   */
+  setOptions(options: AgentOptions): void {
+    this.options = options;
+  }
+
+  /** Configuration the current turn reads from (live configuration outside a turn). */
+  private get liveConfiguration(): MuseConfiguration | null {
+    const snapshot = this.turnSnapshotSource?.();
+    return snapshot ? snapshot.configuration : this.currentConfiguration;
+  }
+
+  /** Environment snapshot the current turn reads from. */
+  private get liveEnvSnapshot(): Record<string, string> {
+    const snapshot = this.turnSnapshotSource?.();
+    return snapshot ? snapshot.env : this.envSnapshot;
+  }
+
+  /**
+   * Returns a copy of the per-session environment snapshot (settings.json `env`).
+   * Priority over OS env; does NOT include OS env. For subprocess spawning use
+   * {@link getMergedEnv} instead.
+   */
+  getEnvSnapshot(): Record<string, string> {
+    return { ...this.liveEnvSnapshot };
+  }
+
+  /**
+   * Returns OS env merged with the session snapshot (snapshot wins). Use this
+   * when spawning user-facing subprocesses (bash, hooks, bang, background, MCP)
+   * so they inherit both OS env and the session's settings env.
+   */
+  getMergedEnv(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries({ ...process.env, ...this.liveEnvSnapshot }).filter(
+        ([, v]) => v !== undefined,
+      ),
+    ) as Record<string, string>;
+  }
+
+  // Core loading operations
+
+  /**
+   * Load and merge configuration with comprehensive validation
+   */
+  async loadMergedConfiguration(
+    workdir: string,
+  ): Promise<ConfigurationLoadResult> {
+    try {
+      // Use the merged configuration function (this loads user and project configs internally)
+      const mergedConfig = loadMergedMuseConfig(workdir);
+
+      if (!mergedConfig) {
+        // Still set system environment variables even if no config is found
+        const env = projectDirEnv(workdir);
+        this.setEnvironmentVars(env);
+
+        return {
+          configuration: { env },
+          success: true, // No config is valid
+          warnings: [
+            "No configuration files found in user or project directories",
+          ],
+        };
+      }
+
+      // Comprehensive validation
+      const validation = this.validateConfiguration(mergedConfig);
+
+      if (!validation.isValid) {
+        return {
+          configuration: null,
+          success: false,
+          error: `Merged configuration validation failed: ${validation.errors.join(", ")}`,
+          warnings: validation.warnings,
+        };
+      }
+
+      const finalConfig = mergedConfig;
+
+      // Success case
+      this.currentConfiguration = finalConfig;
+
+      // Set environment variables from merged config and inject system variables
+      const env = {
+        ...(finalConfig.env || {}),
+        ...projectDirEnv(workdir),
+      };
+      this.setEnvironmentVars(env);
+      finalConfig.env = env;
+
+      return {
+        configuration: finalConfig,
+        success: true,
+        sourcePath: "merged configuration",
+        warnings: validation.warnings,
+      };
+    } catch (error) {
+      return {
+        configuration: null,
+        success: false,
+        error: `Failed to load merged configuration from ${workdir}: ${(error as Error).message}`,
+        warnings: [],
+      };
+    }
+  }
+
+  // Validation operations
+
+  /**
+   * Validate configuration object structure and values
+   */
+  validateConfiguration(config: MuseConfiguration): ValidationResult {
+    return validateConfigurationObject(config);
+  }
+
+  /**
+   * Validate configuration file without loading
+   */
+  validateConfigurationFile(filePath: string): ValidationResult {
+    const result: ValidationResult = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+    };
+
+    if (!existsSync(filePath)) {
+      result.isValid = false;
+      result.errors.push(`Configuration file not found: ${filePath}`);
+      return result;
+    }
+
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const config = JSON.parse(content) as MuseConfiguration;
+
+      // Use the main validation method
+      const configValidation = this.validateConfiguration(config);
+      result.isValid = configValidation.isValid;
+      result.errors = configValidation.errors;
+      result.warnings = configValidation.warnings;
+    } catch (error) {
+      result.isValid = false;
+      if (error instanceof SyntaxError) {
+        result.errors.push(
+          `Invalid JSON syntax in ${filePath}: ${error.message}`,
+        );
+      } else {
+        result.errors.push(
+          `Error reading configuration file ${filePath}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  // Utility operations
+
+  /**
+   * Store environment variables from configuration into the per-session
+   * snapshot (NOT process.env). Settings `env` shadows OS env for this session
+   * only — multiple sessions in one process stay isolated.
+   */
+  setEnvironmentVars(env: Record<string, string>): void {
+    for (const [key, value] of Object.entries(env)) {
+      if (
+        process.env[key] !== undefined &&
+        !this._configuredEnvKeys.has(key) &&
+        process.env[key] !== value
+      ) {
+        logger.warn(`Overriding environment variable: ${key}`);
+      }
+      this.envSnapshot[key] = value;
+      this._configuredEnvKeys.add(key);
+    }
+  }
+
+  // =============================================================================
+  // Configuration Resolution Methods (merged from configResolver.ts)
+  // =============================================================================
+
+  /**
+   * Resolves gateway configuration from constructor args and environment
+   * Resolution priority: SSO_TOKEN > options > env (from settings.json) > process.env > error
+   * @param apiKey - API key override (optional)
+   * @param baseURL - Base URL override (optional)
+   * @param defaultHeaders - HTTP headers override (optional)
+   * @param fetchOptions - Fetch options override (optional)
+   * @param fetch - Custom fetch implementation override (optional)
+   * @returns Resolved gateway configuration
+   * @returns Resolved model configuration (model/fastModel may be undefined if not yet configured)
+   */
+  resolveGatewayConfig(
+    apiKey?: string,
+    baseURL?: string,
+    defaultHeaders?: Record<string, string>,
+    fetchOptions?: ClientOptions["fetchOptions"],
+    fetch?: ClientOptions["fetch"],
+  ): GatewayConfig {
+    // Resolve API key: override > options > env (settings.json) > process.env
+    // Note: Explicitly provided empty strings should be treated as invalid, not fall back to env
+    let resolvedApiKey: string | undefined;
+    if (apiKey !== undefined) {
+      resolvedApiKey = apiKey;
+    } else if (this.options.apiKey !== undefined) {
+      resolvedApiKey = this.options.apiKey;
+    } else {
+      resolvedApiKey = envGet(
+        MUSE_ENV.API_KEY,
+        this.liveEnvSnapshot,
+        process.env,
+      );
+    }
+
+    // Resolve base URL: override > options > env (settings.json) > process.env
+    // Note: Explicitly provided empty strings should be treated as invalid, not fall back to env
+    let resolvedBaseURL: string | undefined;
+    if (baseURL !== undefined) {
+      resolvedBaseURL = baseURL;
+    } else if (this.options.baseURL !== undefined) {
+      resolvedBaseURL = this.options.baseURL;
+    } else {
+      resolvedBaseURL = envGet(
+        MUSE_ENV.BASE_URL,
+        this.liveEnvSnapshot,
+        process.env,
+      );
+    }
+
+    // Fallback to process.env if still not resolved (for dynamic updates in tests)
+    if (resolvedApiKey === undefined) {
+      resolvedApiKey = envGet(
+        MUSE_ENV.API_KEY,
+        this.liveEnvSnapshot,
+        process.env,
+      );
+    }
+    if (!resolvedBaseURL) {
+      resolvedBaseURL = envGet(
+        MUSE_ENV.BASE_URL,
+        this.liveEnvSnapshot,
+        process.env,
+      );
+    }
+
+    // Treat empty string as not provided
+    if (resolvedBaseURL?.trim() === "") {
+      resolvedBaseURL = undefined;
+    }
+
+    // Resolve custom headers from environment: env (settings.json) > process.env
+    const envCustomHeaders =
+      envGet(
+        MUSE_ENV.CUSTOM_HEADERS,
+        this.liveEnvSnapshot,
+        process.env,
+      ) ?? "";
+    const parsedEnvHeaders = parseCustomHeaders(envCustomHeaders);
+
+    // Merge headers: env headers < options < override
+    const resolvedHeaders = {
+      ...parsedEnvHeaders,
+      ...this.options.defaultHeaders,
+      ...defaultHeaders,
+    };
+
+    return {
+      apiKey: resolvedApiKey,
+      baseURL: resolvedBaseURL,
+      defaultHeaders:
+        Object.keys(resolvedHeaders).length > 0 ? resolvedHeaders : undefined,
+      fetchOptions: fetchOptions ?? this.options.fetchOptions,
+      fetch: fetch ?? this.options.fetch,
+    };
+  }
+
+  /**
+   * Resolves model configuration with fallbacks
+   * Resolution priority: override > options > env (from settings.json) > process.env > default
+   * @param model - Agent model override (optional)
+   * @param fastModel - Fast model override (optional)
+   * @param permissionMode - Permission mode override (optional)
+   * @param visionModel - Vision model override (optional)
+   * @returns Resolved model configuration with defaults
+   */
+  resolveModelConfig(
+    model?: string,
+    fastModel?: string,
+    permissionMode?: PermissionMode,
+    visionModel?: string,
+  ): ModelConfig {
+    // Resolve agent model: override > options > currentConfiguration (settings.json model, possibly remote-merged) > process.env
+    // Priority: user's explicit model field > admin's env.MUSE_MODEL default.
+    // If admin wants hard enforcement, they set the `model` scalar field (overwrites local in mergeRemoteSettings).
+    const resolvedAgentModel =
+      model ||
+      this.options.model ||
+      this.liveConfiguration?.model ||
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
+
+    // Resolve fast model: override > options > process.env (includes settings.json env)
+    const resolvedFastModel =
+      fastModel ||
+      this.options.fastModel ||
+      envGet(MUSE_ENV.FAST_MODEL, this.liveEnvSnapshot, process.env);
+
+    // Resolve vision model: override > options > process.env (includes settings.json env)
+    const resolvedVisionModel =
+      visionModel ||
+      this.options.visionModel ||
+      envGet(MUSE_ENV.VISION_MODEL, this.liveEnvSnapshot, process.env);
+
+    const baseConfig: ModelConfig = {
+      model: resolvedAgentModel,
+      fastModel: resolvedFastModel,
+      visionModel: resolvedVisionModel,
+      permissionMode: permissionMode ?? this.options.permissionMode,
+    };
+
+    // Resolve fast model generation params from models[fastModel].options.
+    // Set on baseConfig before the modelSpecificConfig spread so it isn't overwritten.
+    const fastModelSource =
+      resolvedFastModel && this.liveConfiguration?.models?.[resolvedFastModel];
+    if (fastModelSource && fastModelSource.options) {
+      baseConfig.fastModelOptions = fastModelSource.options;
+    }
+
+    // Resolve fast-model disable-thinking params from models[fastModel].disableThinkingOptions
+    const fastModelDisableThinking =
+      fastModelSource && fastModelSource.disableThinkingOptions
+        ? fastModelSource.disableThinkingOptions
+        : undefined;
+    if (fastModelDisableThinking) {
+      baseConfig.disableThinkingOptions = fastModelDisableThinking;
+    }
+
+    // Merge model-specific settings from configuration
+    const modelSpecificConfig =
+      resolvedAgentModel &&
+      this.liveConfiguration?.models?.[resolvedAgentModel];
+
+    if (modelSpecificConfig) {
+      const resolved: ModelConfig = {
+        ...baseConfig,
+        ...modelSpecificConfig,
+      };
+      // Re-apply after the spread so the agent model's own
+      // disableThinkingOptions cannot clobber the fast-model value.
+      if (fastModelDisableThinking) {
+        resolved.disableThinkingOptions = fastModelDisableThinking;
+      }
+      return resolved;
+    }
+
+    return baseConfig;
+  }
+
+  /**
+   * Resolves token limit with fallbacks
+   * Resolution priority: override > options > models[model].maxInputTokens > env (from settings.json) > process.env > default
+   * @param constructorLimit - Token limit override (optional)
+   * @param model - Model to resolve per-model maxInputTokens for (optional; falls back to the resolved agent model chain)
+   * @returns Resolved token limit
+   */
+  resolveMaxInputTokens(constructorLimit?: number, model?: string): number {
+    // If override value provided, use it
+    if (constructorLimit !== undefined) {
+      return constructorLimit;
+    }
+
+    // If options value provided, use it
+    if (this.options.maxInputTokens !== undefined) {
+      return this.options.maxInputTokens;
+    }
+
+    // Per-model config (models[X].maxInputTokens). Resolve the model with the
+    // same chain as resolveModelConfig: caller > options > currentConfiguration > env.
+    const resolvedModel =
+      model ||
+      this.options.model ||
+      this.liveConfiguration?.model ||
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
+    const modelConfig =
+      resolvedModel && this.liveConfiguration?.models?.[resolvedModel];
+    if (modelConfig && modelConfig.maxInputTokens !== undefined) {
+      return modelConfig.maxInputTokens;
+    }
+
+    // Try env (settings.json snapshot) first, then process.env
+    const envMaxInputTokens = envGet(
+      MUSE_ENV.MAX_INPUT_TOKENS,
+      this.liveEnvSnapshot,
+      process.env,
+    );
+    if (envMaxInputTokens) {
+      const parsed = parseInt(envMaxInputTokens, 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+
+    // Use default
+    return DEFAULT_MUSE_MAX_INPUT_TOKENS;
+  }
+
+  /**
+   * Resolves preferred language with fallbacks
+   * Resolution priority: override > options > settings.json > default (`zh-CN`)
+   *
+   * 末尾的默认值保证「未设置」时也有明确生效值，且与设置页下拉的默认项一致
+   * （spec agent-config 边界说明「语言默认值」）。调用方不得再假定
+   * 「undefined = 不注入语言指令」。
+   *
+   * @param constructorLanguage - Language override (optional)
+   * @returns Resolved language (never empty)
+   */
+  resolveLanguage(constructorLanguage?: string): string {
+    // 1. Override (highest priority)
+    if (constructorLanguage !== undefined) {
+      return constructorLanguage;
+    }
+
+    // 2. Agent options
+    if (this.options.language !== undefined) {
+      return this.options.language;
+    }
+
+    // 3. settings.json (merged)
+    if (this.liveConfiguration?.language) {
+      return this.liveConfiguration.language;
+    }
+
+    // 4. Default
+    return DEFAULT_LANGUAGE;
+  }
+
+  /**
+   * Resolves auto-memory enabled state with fallbacks
+   * Resolution priority: session options (session-level override) > settings.json > MUSE_DISABLE_AUTO_MEMORY > default (true)
+   * @returns Resolved auto-memory enabled state
+   */
+  resolveAutoMemoryEnabled(): boolean {
+    return this.resolveAutoMemoryEnabledFrom(
+      this.liveConfiguration,
+      this.liveEnvSnapshot,
+    );
+  }
+
+  /**
+   * Same resolution chain but read from the live merged configuration, ignoring
+   * the turn snapshot. The permission safe zone is a live mechanism (like
+   * permission rules, applied by LiveConfigManager on reload), so its sync must
+   * not be pinned to the turn-start value.
+   */
+  resolveAutoMemoryEnabledNow(): boolean {
+    return this.resolveAutoMemoryEnabledFrom(
+      this.currentConfiguration,
+      this.envSnapshot,
+    );
+  }
+
+  private resolveAutoMemoryEnabledFrom(
+    config: MuseConfiguration | null,
+    env: Record<string, string>,
+  ): boolean {
+    // 1. Per-session options override (session-level override semantics; user
+    //    preferences are no longer passed this way — see core/agent-config.md)
+    if (this.options.autoMemoryEnabled !== undefined) {
+      return this.options.autoMemoryEnabled;
+    }
+
+    // 2. settings.json (merged)
+    if (config?.autoMemoryEnabled !== undefined) {
+      return config.autoMemoryEnabled;
+    }
+
+    // 3. MUSE_DISABLE_AUTO_MEMORY environment variable (settings snapshot > OS env)
+    const disableAutoMemory = envGet(
+      MUSE_ENV.DISABLE_AUTO_MEMORY,
+      env,
+      process.env,
+    );
+    if (disableAutoMemory === "1" || disableAutoMemory === "true") {
+      return false;
+    }
+
+    // 4. Default (true)
+    return true;
+  }
+
+  /**
+   * Resolves auto-memory extraction frequency with fallbacks
+   * Resolution priority: session options (程序化会话级覆盖) > settings.json > MUSE_AUTO_MEMORY_FREQUENCY > default (1)
+   * @returns Resolved auto-memory extraction frequency (turns)
+   */
+  resolveAutoMemoryFrequency(): number {
+    // 1. Per-session options override (Agent.create → setOptions 的程序化会话级
+    //    覆盖；三端设置页的值不走这里——它们落用户级 settings.json，由实时重载
+    //    在下一轮生效，见 spec core/agent-config.md「设置实时重载」)。
+    //    Only positive values are honored so a malformed 0/negative never
+    //    degenerates into per-turn extraction.
+    if (
+      this.options.autoMemoryFrequency !== undefined &&
+      this.options.autoMemoryFrequency > 0
+    ) {
+      return this.options.autoMemoryFrequency;
+    }
+
+    // 2. settings.json (merged)
+    if (this.liveConfiguration?.autoMemoryFrequency !== undefined) {
+      return this.liveConfiguration.autoMemoryFrequency;
+    }
+
+    // 3. MUSE_AUTO_MEMORY_FREQUENCY environment variable (settings snapshot > OS env)
+    const envFrequency = envGet(
+      MUSE_ENV.AUTO_MEMORY_FREQUENCY,
+      this.liveEnvSnapshot,
+      process.env,
+    );
+    if (envFrequency) {
+      const parsed = parseInt(envFrequency, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    // 4. Default (1)
+    return 1;
+  }
+
+  /**
+   * Resolves max output tokens with fallbacks
+   * Resolution priority: override > options > env (from settings.json) > process.env > default
+   * @param constructorLimit - Max output tokens override (optional)
+   * @returns Resolved max output tokens
+   */
+  resolveMaxOutputTokens(constructorLimit?: number): number {
+    // If override value provided, use it
+    if (constructorLimit !== undefined) {
+      return constructorLimit;
+    }
+
+    // If options value provided, use it
+    if (this.options.maxTokens !== undefined) {
+      return this.options.maxTokens;
+    }
+
+    // Try env (settings.json snapshot) first, then process.env
+    const envMaxOutputTokens =
+      envGet(MUSE_ENV.MAX_OUTPUT_TOKENS, this.liveEnvSnapshot, process.env);
+    if (envMaxOutputTokens) {
+      const parsed = parseInt(envMaxOutputTokens, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    // Use default
+    return DEFAULT_MUSE_MAX_OUTPUT_TOKENS;
+  }
+
+  /**
+   * Set the active model in the session.
+   *
+   * Persisting to `~/.muse-work/settings.json` is best-effort: the in-memory model
+   * applies immediately, and a failed write (e.g. a locked file / rename EPERM
+   * on Windows) is logged instead of escaping as an unhandled rejection.
+   */
+  async setModel(model: string): Promise<void> {
+    this.options.model = model;
+    try {
+      await this.persistModelToSettings(model);
+    } catch (error) {
+      logger.warn(`Failed to persist model to settings: ${error}`);
+    }
+  }
+
+  private async persistModelToSettings(model: string): Promise<void> {
+    const configPath = getUserConfigPaths()[0]; // ~/.muse-work/settings.json
+    const configDir = path.dirname(configPath);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: MuseConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // Start fresh if corrupted
+      }
+    }
+
+    config.model = model;
+    await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+  }
+
+  /**
+   * Get all configured models from settings.json and environment
+   */
+  getConfiguredModels(): string[] {
+    const models = new Set<string>();
+
+    // Add current model from options or environment (settings snapshot > OS env)
+    const currentModel =
+      this.options.model ||
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
+    if (currentModel) {
+      models.add(currentModel);
+    }
+
+    // Persisted model from settings (includes remote-merged)
+    if (this.liveConfiguration?.model) {
+      models.add(this.liveConfiguration.model);
+    }
+
+    // Add models from merged configuration
+    if (this.liveConfiguration?.models) {
+      Object.keys(this.liveConfiguration.models).forEach((model) => {
+        models.add(model);
+      });
+    }
+
+    return Array.from(models);
+  }
+
+  /**
+   * Resolve all configuration file paths
+   */
+  getConfigurationPaths(workdir: string): ConfigurationPaths {
+    const allPaths = getAllConfigPaths(workdir);
+    const existingPaths = getExistingConfigPaths(workdir);
+
+    return {
+      userPaths: allPaths.userPaths,
+      projectPaths: allPaths.projectPaths,
+      builtinPaths: allPaths.builtinPaths,
+      allPaths: allPaths.allPaths,
+      existingPaths: existingPaths.existingPaths,
+    };
+  }
+
+  /**
+   * Add a permission rule to the local settings.local.json
+   */
+  async addAllowedRule(workdir: string, rule: string): Promise<void> {
+    const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
+
+    // Ensure .muse-work directory exists
+    const configDir = path.join(workdir, CONFIG_DIR_NAME);
+    ensureMuseRuntimeFilesExcluded(workdir);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: MuseConfiguration = {};
+    if (existsSync(localConfigPath)) {
+      try {
+        const content = await fs.readFile(localConfigPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // If file is corrupted, start with empty config
+      }
+    }
+
+    if (!config.permissions) {
+      config.permissions = {};
+    }
+    if (!config.permissions.allow) {
+      config.permissions.allow = [];
+    }
+
+    if (!config.permissions.allow.includes(rule)) {
+      config.permissions.allow.push(rule);
+      await atomicWriteFile(localConfigPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Add an additional directory to the local settings.local.json
+   * `permissions.additionalDirectories`, so it persists across sessions.
+   */
+  async addAdditionalDirectory(
+    workdir: string,
+    directory: string,
+  ): Promise<void> {
+    const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
+
+    // Ensure .muse-work directory exists
+    const configDir = path.join(workdir, CONFIG_DIR_NAME);
+    ensureMuseRuntimeFilesExcluded(workdir);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: MuseConfiguration = {};
+    if (existsSync(localConfigPath)) {
+      try {
+        const content = await fs.readFile(localConfigPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // If file is corrupted, start with empty config
+      }
+    }
+
+    if (!config.permissions) {
+      config.permissions = {};
+    }
+    if (!config.permissions.additionalDirectories) {
+      config.permissions.additionalDirectories = [];
+    }
+
+    if (!config.permissions.additionalDirectories.includes(directory)) {
+      config.permissions.additionalDirectories.push(directory);
+      await atomicWriteFile(localConfigPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Resolve the settings.json path for a hook scope.
+   * user → ~/.muse-work/settings.json; project → <workdir>/.muse-work/settings.json
+   */
+  private resolveHookConfigPath(
+    workdir: string,
+    scope: Scope,
+  ): { configPath: string; configDir: string } {
+    const configPath =
+      scope === "user"
+        ? getUserConfigPaths()[0]
+        : getProjectConfigPaths(workdir)[1];
+    return { configPath, configDir: path.dirname(configPath) };
+  }
+
+  /**
+   * Absolute path of the settings.json that holds hooks for `scope`
+   * (user → ~/.muse-work/settings.json, project → <workdir>/.muse-work/settings.json).
+   * Hosts surface it to the GUI so editors / file panels can open the file —
+   * they cannot expand a `~` prefix, so the path must already be absolute.
+   */
+  getHookConfigPath(workdir: string, scope: "user" | "project"): string {
+    return this.resolveHookConfigPath(workdir, scope).configPath;
+  }
+
+  /**
+   * Get hook configurations at a specific scope (user or project settings.json)
+   */
+  async getHooksByScope(
+    workdir: string,
+    scope: Scope,
+  ): Promise<Partial<Record<HookEvent, HookEventConfig[]>>> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      return {};
+    }
+    const { configPath } = this.resolveHookConfigPath(workdir, scope);
+    if (!existsSync(configPath)) {
+      return {};
+    }
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const config = JSON.parse(content) as MuseConfiguration;
+      return config.hooks || {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Delete a hook at a specific scope, identified by hookName of the form
+   * `Event:Matcher`. Removes the matching entry from the scope's settings.json
+   * hooks block.
+   */
+  async deleteHook(
+    workdir: string,
+    scope: Scope,
+    hookName: string,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    const { configPath, configDir } = this.resolveHookConfigPath(
+      workdir,
+      scope,
+    );
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: MuseConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // Start with empty config if file is corrupted
+      }
+    }
+
+    const hooks = config.hooks || {};
+    const { event, matcher } = parseHookName(hookName);
+    if (!isValidHookEvent(event)) {
+      throw new Error(`Invalid hook event: ${event}`);
+    }
+    const eventConfigs = hooks[event];
+    if (eventConfigs) {
+      const remaining = eventConfigs.filter(
+        (cfg) => (cfg.matcher || "") !== (matcher || ""),
+      );
+      if (remaining.length > 0) {
+        hooks[event] = remaining;
+      } else {
+        delete hooks[event];
+      }
+      config.hooks = hooks;
+      await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Load Muse settings from a JSON file
+   * Supports both hooks and environment variables with proper validation
+   */
+  loadMuseConfigFromFile(filePath: string): MuseConfiguration | null {
+    return loadMuseConfigFromFile(filePath);
+  }
+}
+// =============================================================================
+// Extracted Configuration Functions
+// =============================================================================
+
+/**
+ * Validate environment variable configuration
+ */
+export function validateEnvironmentConfig(
+  env: unknown,
+  configPath?: string,
+): EnvironmentValidationResult {
+  const result: EnvironmentValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Check if env is defined
+  if (env === undefined || env === null) {
+    return result; // undefined/null env is valid (means no env vars)
+  }
+
+  // Validate that env is a Record<string, string>
+  if (!isValidEnvironmentVars(env)) {
+    result.isValid = false;
+    result.errors.push(
+      `Invalid env field format${configPath ? ` in ${configPath}` : ""}. Environment variables must be a Record<string, string>.`,
+    );
+    return result;
+  }
+
+  // Additional validation for environment variable names
+  const envVars = env as Record<string, string>;
+  for (const [key, value] of Object.entries(envVars)) {
+    // Check for valid environment variable naming convention
+    if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) {
+      result.warnings.push(
+        `Environment variable '${key}' does not follow standard naming convention (alphanumeric and underscores only).`,
+      );
+    }
+
+    // Check for empty values
+    if (value === "") {
+      result.warnings.push(`Environment variable '${key}' has an empty value.`);
+    }
+
+    // Check for reserved variable names that might cause conflicts
+    const reservedNames = [
+      "PATH",
+      "HOME",
+      "USER",
+      "PWD",
+      "SHELL",
+      "TERM",
+      "NODE_ENV",
+    ];
+    if (reservedNames.includes(key.toUpperCase())) {
+      result.warnings.push(
+        `Environment variable '${key}' overrides a system variable, which may cause unexpected behavior.`,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Merge environment configurations with project taking precedence over user
+ */
+export function mergeEnvironmentConfig(
+  userEnv: Record<string, string> | undefined,
+  projectEnv: Record<string, string> | undefined,
+  options: EnvironmentMergeOptions = {},
+): MergedEnvironmentContext {
+  const userVars = userEnv || {};
+  const projectVars = projectEnv || {};
+  const mergedVars: Record<string, string> = {};
+  const conflicts: MergedEnvironmentContext["conflicts"] = [];
+
+  // Start with user environment variables
+  Object.assign(mergedVars, userVars);
+
+  // Override with project environment variables and track conflicts
+  for (const [key, projectValue] of Object.entries(projectVars)) {
+    const userValue = userVars[key];
+
+    if (
+      userValue !== undefined &&
+      userValue !== projectValue &&
+      options.includeConflictWarnings !== false
+    ) {
+      // Conflict detected - project value takes precedence
+      conflicts.push({
+        key,
+        userValue,
+        projectValue,
+        resolvedValue: projectValue,
+      });
+    }
+
+    mergedVars[key] = projectValue;
+  }
+
+  return {
+    userVars,
+    projectVars,
+    mergedVars,
+    conflicts,
+  };
+}
+
+/**
+ * Load Muse settings from a JSON file
+ * Supports both hooks and environment variables with proper validation.
+ */
+export function loadMuseConfigFromFile(
+  filePath: string,
+): MuseConfiguration | null {
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const content = readFileSync(filePath, "utf-8");
+
+    // Tolerate empty/whitespace-only files: a concurrent writer may have the
+    // file truncated mid-write. Returning null lets callers skip this source
+    // instead of crashing (consistent with the "file not found" path).
+    if (content.trim() === "") {
+      logger.warn(`Empty configuration file (likely mid-write): ${filePath}`);
+      return null;
+    }
+
+    const config = JSON.parse(content) as MuseConfiguration;
+
+    return {
+      hooks: config.hooks || undefined,
+      env: config.env || undefined,
+      permissions: config.permissions || undefined,
+      language: config.language || undefined,
+      model: config.model || undefined,
+      autoMemoryEnabled:
+        config.autoMemoryEnabled !== undefined
+          ? config.autoMemoryEnabled
+          : undefined,
+      autoMemoryFrequency:
+        config.autoMemoryFrequency !== undefined
+          ? config.autoMemoryFrequency
+          : undefined,
+      cleanupPeriodDays:
+        config.cleanupPeriodDays !== undefined
+          ? config.cleanupPeriodDays
+          : undefined,
+      models: config.models || undefined,
+    };
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      // Tolerate corrupt JSON: a concurrent writer may leave the file in a
+      // partially-written state. Warn and return null so callers skip this
+      // source instead of crashing.
+      logger.warn(`Invalid JSON syntax in ${filePath}: ${error.message}`);
+      return null;
+    }
+
+    // Re-throw other errors as-is
+    throw error;
+  }
+}
+
+/**
+ * Load the user-level (~/.muse-work/settings.json) `env` block only — no workdir
+ * dependency.
+ */
+export function loadUserConfigEnv(): Record<string, string> {
+  const config = loadMuseConfigFromFile(getUserConfigPaths()[0]);
+  return config?.env ?? {};
+}
+
+/**
+ * Load and merge Muse settings from both user and project sources
+ * Project configuration takes precedence over user configuration
+ * Checks .local.json files first, then falls back to .json files.
+ */
+export function loadMergedMuseConfig(
+  workdir: string,
+): MuseConfiguration | null {
+  const userPaths = getUserConfigPaths(); // [json]
+  const projectPaths = getProjectConfigPaths(workdir); // [local, json]
+
+  // Priority order (lowest to highest):
+  // user settings.json -> project settings.json -> local settings.local.json
+  const pathsToLoad = [
+    userPaths[0], // user settings.json
+    projectPaths[1], // project settings.json
+    projectPaths[0], // local settings.local.json
+  ];
+
+  const configs: MuseConfiguration[] = [];
+  for (const path of pathsToLoad) {
+    const config = loadMuseConfigFromFile(path);
+    if (config) {
+      configs.push(config);
+    }
+  }
+
+  if (configs.length === 0) {
+    return null;
+  }
+
+  // Merge all configurations in order
+  const mergedConfig: MuseConfiguration = {};
+
+  for (const config of configs) {
+    // Merge hooks
+    if (config.hooks) {
+      if (!mergedConfig.hooks) mergedConfig.hooks = {};
+      for (const [event, eventConfigs] of Object.entries(config.hooks)) {
+        if (!isValidHookEvent(event)) continue;
+        if (!mergedConfig.hooks[event]) mergedConfig.hooks[event] = [];
+        mergedConfig.hooks[event]!.push(...eventConfigs);
+      }
+    }
+
+    // Merge env
+    if (config.env) {
+      const environmentContext = mergeEnvironmentConfig(
+        mergedConfig.env,
+        config.env,
+        { includeConflictWarnings: true },
+      );
+      mergedConfig.env = environmentContext.mergedVars;
+    }
+
+    // Merge permissions
+    if (config.permissions) {
+      if (!mergedConfig.permissions) mergedConfig.permissions = {};
+
+      // Merge allow rules
+      if (config.permissions.allow) {
+        if (!mergedConfig.permissions.allow)
+          mergedConfig.permissions.allow = [];
+        mergedConfig.permissions.allow = [
+          ...new Set([
+            ...mergedConfig.permissions.allow,
+            ...config.permissions.allow,
+          ]),
+        ];
+      }
+
+      // Merge deny rules
+      if (config.permissions.deny) {
+        if (!mergedConfig.permissions.deny) mergedConfig.permissions.deny = [];
+        mergedConfig.permissions.deny = [
+          ...new Set([
+            ...mergedConfig.permissions.deny,
+            ...config.permissions.deny,
+          ]),
+        ];
+      }
+
+      // Merge defaultMode (last one wins)
+      if (config.permissions.defaultMode !== undefined) {
+        mergedConfig.permissions.defaultMode = config.permissions.defaultMode;
+      }
+
+      // Merge additionalDirectories
+      if (config.permissions.additionalDirectories) {
+        if (!mergedConfig.permissions.additionalDirectories)
+          mergedConfig.permissions.additionalDirectories = [];
+        mergedConfig.permissions.additionalDirectories = [
+          ...new Set([
+            ...mergedConfig.permissions.additionalDirectories,
+            ...config.permissions.additionalDirectories,
+          ]),
+        ];
+      }
+    }
+
+    // Merge language (last one wins)
+    if (config.language !== undefined) {
+      mergedConfig.language = config.language;
+    }
+
+    // Merge model (last one wins)
+    if (config.model !== undefined) {
+      mergedConfig.model = config.model;
+    }
+
+    // Merge autoMemoryEnabled (last one wins)
+    if (config.autoMemoryEnabled !== undefined) {
+      mergedConfig.autoMemoryEnabled = config.autoMemoryEnabled;
+    }
+
+    // Merge autoMemoryFrequency (last one wins)
+    if (config.autoMemoryFrequency !== undefined) {
+      mergedConfig.autoMemoryFrequency = config.autoMemoryFrequency;
+    }
+
+    // Merge cleanupPeriodDays (last one wins)
+    if (config.cleanupPeriodDays !== undefined) {
+      mergedConfig.cleanupPeriodDays = config.cleanupPeriodDays;
+    }
+
+    // Merge models
+    if (config.models) {
+      if (!mergedConfig.models) mergedConfig.models = {};
+      for (const [modelName, modelConfig] of Object.entries(config.models)) {
+        if (!mergedConfig.models[modelName]) {
+          mergedConfig.models[modelName] = {};
+        }
+        Object.assign(mergedConfig.models[modelName], modelConfig);
+      }
+    }
+  }
+
+  return {
+    hooks:
+      mergedConfig.hooks && Object.keys(mergedConfig.hooks).length > 0
+        ? mergedConfig.hooks
+        : undefined,
+    env:
+      mergedConfig.env && Object.keys(mergedConfig.env).length > 0
+        ? mergedConfig.env
+        : undefined,
+    permissions:
+      mergedConfig.permissions &&
+      Object.keys(mergedConfig.permissions).length > 0
+        ? mergedConfig.permissions
+        : undefined,
+    language: mergedConfig.language,
+    model: mergedConfig.model,
+    autoMemoryEnabled: mergedConfig.autoMemoryEnabled,
+    autoMemoryFrequency: mergedConfig.autoMemoryFrequency,
+    cleanupPeriodDays: mergedConfig.cleanupPeriodDays,
+    models:
+      mergedConfig.models && Object.keys(mergedConfig.models).length > 0
+        ? mergedConfig.models
+        : undefined,
+  };
+}
+
+/**
+ * Parse a hookName of the form `Event:Matcher` (e.g. `PreToolUse:Write`)
+ * into its event and matcher parts. Hooks without a matcher use the event
+ * name alone (e.g. `SessionStart`).
+ */
+export function parseHookName(hookName: string): {
+  event: HookEvent;
+  matcher: string;
+} {
+  const separator = hookName.indexOf(":");
+  if (separator === -1) {
+    return { event: hookName as HookEvent, matcher: "" };
+  }
+  return {
+    event: hookName.slice(0, separator) as HookEvent,
+    matcher: hookName.slice(separator + 1),
+  };
+}

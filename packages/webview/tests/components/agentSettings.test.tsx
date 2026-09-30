@@ -25,11 +25,11 @@ function renderAgent(api: MuseApiClient) {
 function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
   return {
     getSettingsRaw: vi.fn().mockResolvedValue({
-      path: "/tmp/.wave/settings.json",
+      path: "/tmp/.muse-work/settings.json",
       content: "{}\n",
     }),
     putSettingsRaw: vi.fn().mockResolvedValue({
-      path: "/tmp/.wave/settings.json",
+      path: "/tmp/.muse-work/settings.json",
       content: "{}\n",
     }),
     getAgents: vi.fn().mockResolvedValue({ version: 1, agents: [] }),
@@ -76,11 +76,11 @@ describe("AgentSettings", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads ~/.wave settings text and blocks save on invalid JSON", async () => {
+  it("loads ~/.muse-work settings text and blocks save on invalid JSON", async () => {
     const api = {
       ...baseApi(),
       getSettingsRaw: vi.fn().mockResolvedValue({
-        path: "/tmp/.wave/settings.json",
+        path: "/tmp/.muse-work/settings.json",
         content: '{\n  "env": {}\n}\n',
       }),
     } as unknown as MuseApiClient;
@@ -91,7 +91,7 @@ describe("AgentSettings", () => {
         '{\n  "env": {}\n}\n',
       );
     });
-    expect(screen.getByText(/\/tmp\/\.wave\/settings\.json/)).toBeInTheDocument();
+    expect(screen.getByText(/\/tmp\/\.muse-work\/settings\.json/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId("agent-settings-editor"), {
       target: { value: "{" },
@@ -104,7 +104,7 @@ describe("AgentSettings", () => {
     const api = {
       ...baseApi(),
       putSettingsRaw: vi.fn().mockResolvedValue({
-        path: "/tmp/.wave/settings.json",
+        path: "/tmp/.muse-work/settings.json",
         content: '{\n  "env": {\n    "A": "1"\n  }\n}\n',
       }),
     } as unknown as MuseApiClient;

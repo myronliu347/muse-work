@@ -185,31 +185,6 @@ describe("Message Queuing", () => {
     expect(screen.queryByTestId("queued-item-q1")).not.toBeInTheDocument();
   });
 
-  it("should display bang commands with ! prefix in the queue", () => {
-    renderChatApp();
-
-    sendCommand("startStreaming");
-    sendCommand("updateQueue", {
-      messages: [
-        { id: "q1", type: "bang", content: "ls -la" },
-        { id: "q2", type: "message", content: "normal message" },
-      ],
-    });
-
-    expect(screen.getByTestId("queued-message-list")).toBeInTheDocument();
-
-    // Expand to render all items
-    fireEvent.click(
-      screen
-        .getByTestId("queued-message-list")
-        .querySelector(".queued-message-list-header") as HTMLElement,
-    );
-
-    // Bang command displays with ! prefix; normal message without
-    expect(itemText("q1")).toBe("!ls -la");
-    expect(itemText("q2")).toBe("normal message");
-  });
-
   it("should wrap each item in a Tooltip showing the full text", () => {
     renderChatApp();
 

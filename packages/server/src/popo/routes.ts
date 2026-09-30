@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { loadSessionFromJsonl } from "wave-agent-sdk";
-import type { SessionData } from "wave-agent-sdk";
+import { loadSessionFromJsonl } from "@muse-work/agent";
+import type { SessionData } from "@muse-work/agent";
 import type { PopoRuntime } from "./setup.js";
 
 export type PopoRoutesOptions = {
@@ -58,9 +58,9 @@ export function createPopoRoutes(runtime: PopoRuntime, options?: PopoRoutesOptio
         role: m.role,
         blocks: m.blocks ?? [],
       }));
-    } else if (chat.waveSessionId && runtime.workdir) {
+    } else if (chat.museSessionId && runtime.workdir) {
       try {
-        const loaded = await loadSession(chat.waveSessionId, runtime.workdir);
+        const loaded = await loadSession(chat.museSessionId, runtime.workdir);
         const loadedMessages = loaded?.messages ?? [];
         if (loadedMessages.length > 0) {
           // 完整处理过程：来自 agent session 文件，含 reasoning/tool/text 全部块。

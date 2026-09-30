@@ -147,10 +147,6 @@ export function useChatSend({
           dispatch({ type: "SHOW_DIALOG", payload: { type: "workflows" } });
           return;
         }
-        if (name === "plugin") {
-          dispatch({ type: "SHOW_DIALOG", payload: { type: "plugin" } });
-          return;
-        }
         if (name === "agents") {
           dispatch({ type: "SHOW_DIALOG", payload: { type: "agents" } });
           return;

@@ -1,0 +1,416 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "fs";
+import * as path from "path";
+import {
+  parseSkillFile,
+  validateSkillMetadata,
+  isValidSkillName,
+  formatSkillError,
+} from "../../src/utils/skillParser.js";
+import type { SkillMetadata } from "../../src/types/index.js";
+
+// Mock fs module
+vi.mock("fs");
+
+const mockReadFileSync = vi.mocked(readFileSync);
+
+describe("skillParser", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("parseSkillFile", () => {
+    it("should parse valid SKILL.md file", () => {
+      const mockContent = `---
+name: test-skill
+description: A test skill for validation
+---
+
+# Test Skill
+
+This is a test skill content.`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.name).toBe("test-skill");
+      expect(result.skillMetadata.description).toBe(
+        "A test skill for validation",
+      );
+      expect(result.skillMetadata.type).toBe("personal");
+      expect(result.validationErrors).toHaveLength(0);
+    });
+
+    it("exposes skillPath as the skill directory, not the SKILL.md file (contract lock)", () => {
+      // SkillMetadata.skillPath is a directory-level contract: consumers
+      // inject it for ${MUSE_SKILL_DIR} and rm(recursive) it on delete. If
+      // this ever returns the file path, those consumers silently break.
+      mockReadFileSync.mockReturnValue(
+        "---\nname: dir-skill\ndescription: d\n---\nbody",
+      );
+
+      const filePath = path.join("/root", "skills", "dir-skill", "SKILL.md");
+      const result = parseSkillFile(filePath);
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.skillPath).toBe(path.dirname(filePath));
+      expect(result.skillMetadata.skillPath.endsWith("SKILL.md")).toBe(false);
+    });
+
+    it("should parse allowed-tools in frontmatter (string)", () => {
+      const mockContent = `---
+name: test-skill
+description: A test skill for validation
+allowed-tools: tool1, tool2
+---
+
+# Test Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.allowedTools).toEqual(["tool1", "tool2"]);
+    });
+
+    it("should parse context and agent in frontmatter", () => {
+      const mockContent = `---
+name: test-skill
+description: A test skill for validation
+context: fork
+agent: general-purpose
+---
+
+# Test Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.context).toBe("fork");
+      expect(result.skillMetadata.agent).toBe("general-purpose");
+    });
+
+    it("should parse allowed-tools in frontmatter (list)", () => {
+      const mockContent = `---
+name: test-skill
+description: A test skill for validation
+allowed-tools:
+  - tool1
+  - tool2
+---
+
+# Test Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.allowedTools).toEqual(["tool1", "tool2"]);
+    });
+
+    it("should fold a `>-` description and keep later keys separate", () => {
+      // 折叠标量（块标量）是常见写法：以前会被解析成字面量 ">-"，整段「何时该用
+      // 我」丢光，续行里的 URL 还会被当成一个新的 frontmatter 键
+      // （spec ecosystem/agent-skills 场景 2）。
+      const mockContent = `---
+name: test-skill
+description: >-
+  第一行描述
+  第二行描述
+
+  第三行描述
+allowed-tools:
+  - tool1
+---
+
+# Test Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.skillMetadata.description).toBe(
+        "第一行描述 第二行描述\n第三行描述",
+      );
+      expect(result.skillMetadata.allowedTools).toEqual(["tool1"]);
+      // 续行不得变成独立的 frontmatter 键
+      expect(Object.keys(result.frontmatter).sort()).toEqual([
+        "allowed-tools",
+        "description",
+        "name",
+      ]);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("should keep line breaks for a literal `|` block and other chomping forms", () => {
+      mockReadFileSync.mockReturnValue(`---
+name: test-skill
+description: |
+  第一行
+  第二行
+---
+
+# Test Skill`);
+
+      const literal = parseSkillFile("/path/to/test-skill/SKILL.md");
+      expect(literal.skillMetadata.description).toBe("第一行\n第二行");
+
+      mockReadFileSync.mockReturnValue(`---
+name: test-skill
+description: |-
+  第一行
+  第二行
+---
+
+# Test Skill`);
+
+      const stripped = parseSkillFile("/path/to/test-skill/SKILL.md");
+      expect(stripped.skillMetadata.description).toBe("第一行\n第二行");
+    });
+
+    it("should fold indented continuation lines of a plain scalar", () => {
+      mockReadFileSync.mockReturnValue(`---
+name: test-skill
+description:
+  第一行
+  第二行
+---
+
+# Test Skill`);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.skillMetadata.description).toBe("第一行 第二行");
+    });
+
+    it("should keep a colon inside a folded description from becoming a key", () => {
+      mockReadFileSync.mockReturnValue(`---
+name: test-skill
+description: >-
+  详情见 https://example.com/x?id=1
+  以及 https://example.com/y
+count: 3
+---
+
+# Test Skill`);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.skillMetadata.description).toBe(
+        "详情见 https://example.com/x?id=1 以及 https://example.com/y",
+      );
+      expect(result.frontmatter["https"]).toBeUndefined();
+      expect(result.frontmatter.count).toBe("3");
+    });
+
+    it("should handle missing YAML frontmatter", () => {
+      const mockContent = `# Test Skill
+
+This is a test skill without frontmatter.`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(false);
+      expect(result.validationErrors).toContain("Missing YAML frontmatter");
+    });
+
+    it("should handle missing required fields", () => {
+      const mockContent = `---
+name: test-skill
+---
+
+# Test Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/test-skill/SKILL.md");
+
+      expect(result.isValid).toBe(false);
+      expect(result.validationErrors).toContain(
+        "Missing required fields: name and description",
+      );
+    });
+
+    it("should detect project skills from .muse-work/skills path", () => {
+      const mockContent = `---
+name: project-skill
+description: A project skill
+---
+
+# Project Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile(
+        "/project/.muse-work/skills/project-skill/SKILL.md",
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.type).toBe("project");
+    });
+
+    it("should detect project skills from .claude/skills path (Claude Code compatibility)", () => {
+      const mockContent = `---
+name: claude-project-skill
+description: A Claude Code compatible project skill
+---
+
+# Claude Project Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile(
+        "/project/.claude/skills/claude-project-skill/SKILL.md",
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.type).toBe("project");
+    });
+
+    it("should load skills with description longer than 1024 characters", () => {
+      const mockContent = `---
+name: long-desc-skill
+description: ${"a".repeat(1050)}
+---
+
+# Long Description Skill`;
+
+      mockReadFileSync.mockReturnValue(mockContent);
+
+      const result = parseSkillFile("/path/to/long-desc-skill/SKILL.md");
+
+      expect(result.isValid).toBe(true);
+      expect(result.skillMetadata.description).toHaveLength(1050);
+      expect(result.validationErrors).toHaveLength(0);
+    });
+
+    it("should handle file read errors", () => {
+      mockReadFileSync.mockImplementation(() => {
+        throw new Error("File not found");
+      });
+
+      const result = parseSkillFile("/nonexistent/SKILL.md");
+
+      expect(result.isValid).toBe(false);
+      expect(result.validationErrors).toContain(
+        "Failed to read skill file: File not found",
+      );
+    });
+  });
+
+  describe("validateSkillMetadata", () => {
+    it("should validate correct metadata", () => {
+      const metadata: SkillMetadata = {
+        name: "valid-skill-name",
+        description: "A valid description",
+        type: "personal",
+        skillPath: "/path/to/skill",
+      };
+
+      const errors = validateSkillMetadata(metadata);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should reject invalid skill names", () => {
+      const metadata: SkillMetadata = {
+        name: "Invalid_Skill_Name",
+        description: "A valid description",
+        type: "personal",
+        skillPath: "/path/to/skill",
+      };
+
+      const errors = validateSkillMetadata(metadata);
+      expect(errors).toContain(
+        "Skill name must contain only lowercase letters, numbers, and hyphens",
+      );
+    });
+
+    it("should reject names that are too long", () => {
+      const metadata: SkillMetadata = {
+        name: "a".repeat(65), // 65 characters, exceeds limit of 64
+        description: "A valid description",
+        type: "personal",
+        skillPath: "/path/to/skill",
+      };
+
+      const errors = validateSkillMetadata(metadata);
+      expect(errors).toContain("Skill name must be 64 characters or less");
+    });
+
+    it("should reject empty descriptions", () => {
+      const metadata: SkillMetadata = {
+        name: "valid-skill",
+        description: "",
+        type: "personal",
+        skillPath: "/path/to/skill",
+      };
+
+      const errors = validateSkillMetadata(metadata);
+      expect(errors).toContain("Skill description is required");
+    });
+
+    it("should accept descriptions longer than 1024 characters (Claude Code alignment)", () => {
+      const metadata: SkillMetadata = {
+        name: "valid-skill",
+        description: "a".repeat(1050), // exceeds the old 1024 limit, no longer validated
+        type: "personal",
+        skillPath: "/path/to/skill",
+      };
+
+      const errors = validateSkillMetadata(metadata);
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  describe("isValidSkillName", () => {
+    it("should accept valid skill names", () => {
+      expect(isValidSkillName("valid-skill")).toBe(true);
+      expect(isValidSkillName("skill123")).toBe(true);
+      expect(isValidSkillName("my-awesome-skill-2")).toBe(true);
+    });
+
+    it("should reject invalid skill names", () => {
+      expect(isValidSkillName("Invalid_Name")).toBe(false);
+      expect(isValidSkillName("Skill With Spaces")).toBe(false);
+      expect(isValidSkillName("skill.with.dots")).toBe(false);
+      expect(isValidSkillName("")).toBe(false);
+      expect(isValidSkillName("a".repeat(65))).toBe(false);
+    });
+  });
+
+  describe("formatSkillError", () => {
+    it("should format error messages with suggestions", () => {
+      const skillPath = "/path/to/skill";
+      const errors = [
+        "Missing required field: name",
+        "Invalid description length",
+      ];
+
+      const result = formatSkillError(skillPath, errors);
+
+      expect(result).toContain("Skill validation failed for /path/to/skill:");
+      expect(result).toContain("• Missing required field: name");
+      expect(result).toContain("• Invalid description length");
+      expect(result).toContain("To fix this skill:");
+      expect(result).toContain("Ensure SKILL.md has valid YAML frontmatter");
+    });
+
+    it("should handle single error", () => {
+      const skillPath = "/path/to/skill";
+      const errors = ["Missing YAML frontmatter"];
+
+      const result = formatSkillError(skillPath, errors);
+
+      expect(result).toContain("• Missing YAML frontmatter");
+      expect(result).not.toContain("•\n•"); // Should not have empty bullet points
+    });
+  });
+});

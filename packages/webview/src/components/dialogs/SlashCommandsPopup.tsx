@@ -16,7 +16,6 @@ interface SlashCommandsPopupProps {
   position: { top: number; left: number };
 }
 
-const PLUGIN_COMMAND = "plugin";
 const SYSTEM_COMMANDS = [
   "config",
   "mcp",
@@ -41,14 +40,11 @@ interface CommandGroup {
 export const groupSlashCommands = (
   commands: SlashCommand[],
 ): CommandGroup[] => {
-  const pluginCommands: SlashCommand[] = [];
   const systemCommands: SlashCommand[] = [];
   const skillCommands: SlashCommand[] = [];
 
   commands.forEach((command) => {
-    if (command.name === PLUGIN_COMMAND) {
-      pluginCommands.push(command);
-    } else if (SYSTEM_COMMANDS.includes(command.name)) {
+    if (SYSTEM_COMMANDS.includes(command.name)) {
       systemCommands.push(command);
     } else {
       skillCommands.push(command);
@@ -56,7 +52,6 @@ export const groupSlashCommands = (
   });
 
   return [
-    { title: "插件管理", commands: pluginCommands },
     { title: "系统指令", commands: systemCommands },
     { title: "技能", commands: skillCommands },
   ];

@@ -4,7 +4,7 @@ import { MockDataGenerator } from "../fixtures/mockData.js";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 import { mockMuseSettingsApis } from "../utils/museApiMock.js";
 
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 const DIR_B = "/Users/dev/projects/shop-server";
 const DIR_C = "/Users/dev/projects/notes-app";
 

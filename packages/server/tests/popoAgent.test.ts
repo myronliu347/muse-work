@@ -244,23 +244,23 @@ describe("popoAgent", () => {
   });
 
   it("reports the agent sessionId after run so the detail route can load full messages", async () => {
-    const waveSessionIds: Array<{ chatKey: string; sessionId: string }> = [];
+    const museSessionIds: Array<{ chatKey: string; sessionId: string }> = [];
     const factory = createPopoAgentFactory({
       home: "/tmp",
       registry: registryStub,
       createAgent: async () => stubAgent("最终回复"),
-      onWaveSessionId: (chatKey, sessionId) => {
-        waveSessionIds.push({ chatKey, sessionId });
+      onMuseSessionId: (chatKey, sessionId) => {
+        museSessionIds.push({ chatKey, sessionId });
       },
     });
     const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
     await runner.run("hello");
-    expect(waveSessionIds).toEqual([{ chatKey: "p2p:x", sessionId: "wave-1" }]);
+    expect(museSessionIds).toEqual([{ chatKey: "p2p:x", sessionId: "wave-1" }]);
   });
 
   it("falls back to a new agent when restoreSessionId is missing on disk", async () => {
     const restoreIds: Array<string | undefined> = [];
-    const waveSessionIds: string[] = [];
+    const museSessionIds: string[] = [];
     const factory = createPopoAgentFactory({
       home: "/tmp",
       registry: registryStub,
@@ -273,21 +273,21 @@ describe("popoAgent", () => {
         }
         return { ...stubAgent("新会话回复"), sessionId: "wave-fresh" };
       },
-      onWaveSessionId: (_chatKey, sessionId) => {
-        waveSessionIds.push(sessionId);
+      onMuseSessionId: (_chatKey, sessionId) => {
+        museSessionIds.push(sessionId);
       },
     });
     const runner = await factory({
       chatKey: "p2p:x",
       type: "p2p",
-      waveSessionId: "2ad60df9-4710-4cf8-8d27-9a3e4829ed71",
+      museSessionId: "2ad60df9-4710-4cf8-8d27-9a3e4829ed71",
     });
     expect(await runner.run("hello")).toBe("新会话回复");
     expect(restoreIds).toEqual([
       "2ad60df9-4710-4cf8-8d27-9a3e4829ed71",
       undefined,
     ]);
-    expect(waveSessionIds).toContain("wave-fresh");
+    expect(museSessionIds).toContain("wave-fresh");
   });
 
   it("team run also falls back when the persisted session jsonl is gone", async () => {
@@ -306,7 +306,7 @@ describe("popoAgent", () => {
     const runner = await factory({
       chatKey: "team:1",
       type: "team",
-      waveSessionId: "missing-on-disk",
+      museSessionId: "missing-on-disk",
     });
     expect(await runner.run("hello")).toBe("群聊回复");
     expect(restoreIds).toEqual(["missing-on-disk", undefined]);

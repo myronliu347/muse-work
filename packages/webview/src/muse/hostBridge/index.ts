@@ -157,7 +157,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
         toolName: event.toolName,
         description: event.description,
         toolInput: event.toolInput,
-        planContent: event.planContent,
         suggestedPrefix: event.suggestedPrefix,
         hidePersistentOption: event.hidePersistentOption,
         permissionMode: event.permissionMode,

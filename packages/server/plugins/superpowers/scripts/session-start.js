@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root =
-  process.env.WAVE_PLUGIN_ROOT ||
+  process.env.MUSE_PLUGIN_ROOT ||
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 let skill = "";

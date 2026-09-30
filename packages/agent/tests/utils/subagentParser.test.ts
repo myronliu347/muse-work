@@ -1,0 +1,492 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import * as path from "path";
+import { loadSubagentConfigurations } from "../../src/utils/subagentParser.js";
+import * as configPaths from "../../src/utils/configPaths.js";
+
+// Mock the filesystem operations
+vi.mock("fs", () => ({
+  readFileSync: vi.fn(),
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
+}));
+
+// Mock the config paths
+vi.mock("../../src/utils/configPaths.js", () => ({
+  getBuiltinSubagentsDir: vi.fn(),
+}));
+
+// Mock the logger
+vi.mock("../../src/utils/globalLogger.js", () => ({
+  logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// User-level agent dirs are resolved via os.homedir() (the same portable
+// resolution every other user-path resolver in the SDK uses). Pin it so the
+// tests below are deterministic regardless of the machine running them.
+vi.mock("os", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("os")>();
+  return { ...actual, homedir: () => "/home/testuser" };
+});
+
+describe("SubagentParser with Built-ins", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.MUSE_VISION_MODEL;
+
+    // Setup default builtin subagents dir mock
+    vi.mocked(configPaths.getBuiltinSubagentsDir).mockReturnValue(
+      "/builtin/subagents",
+    );
+  });
+
+  describe("loadSubagentConfigurations", () => {
+    it("should include built-in subagents in results", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["explore.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (filePath === path.join("/builtin/subagents", "explore.md")) {
+          return `---
+description: Built-in codebase exploration agent
+tools: [Glob, Grep, Read, Bash]
+model: fastModel
+---
+You are a file search specialist...`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      expect(configs).toHaveLength(1);
+
+      const explore = configs.find((c) => c.name === "explore");
+      expect(explore).toBeDefined();
+      expect(explore?.scope).toBe("builtin");
+      expect(explore?.priority).toBe(3);
+      expect(explore?.model).toBe("fastModel");
+    });
+
+    it("should parse a folded description and a block tools list", async () => {
+      // 子代理 frontmatter 的块标量写法以前会解析成字面量 ">-"，描述整段丢光
+      // （spec multi-agent/subagent 场景 6）。
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === path.join("/test/workdir", ".muse-work", "agents")) {
+          return ["reviewer.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (
+          filePath ===
+          path.join("/test/workdir", ".muse-work", "agents", "reviewer.md")
+        ) {
+          return `---
+name: reviewer
+description: >-
+  审查一段 diff。
+  只报真正的问题。
+tools:
+  - Read
+  - Grep
+---
+
+You are a reviewer.`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      expect(configs).toHaveLength(1);
+      expect(configs[0].description).toBe("审查一段 diff。 只报真正的问题。");
+      expect(configs[0].tools).toEqual(["Read", "Grep"]);
+    });
+
+    it("should have built-in subagents with lowest priority", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["explore.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (filePath === path.join("/builtin/subagents", "explore.md")) {
+          return `---
+description: Built-in codebase exploration agent
+---
+test`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      const builtin = configs.find((c) => c.scope === "builtin");
+      expect(builtin?.priority).toBe(3);
+    });
+
+    it("should load built-in vision subagent only when MUSE_VISION_MODEL is set", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["vision.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (filePath === path.join("/builtin/subagents", "vision.md")) {
+          return `---
+description: Image recognition specialist
+tools: [Read]
+model: visionModel
+---
+You are an image recognition specialist...`;
+        }
+        return "";
+      });
+
+      // Without the env var, the vision subagent is filtered out
+      const configsWithoutEnv = await loadSubagentConfigurations(
+        "/test/workdir",
+        {},
+      );
+      expect(configsWithoutEnv).toHaveLength(0);
+
+      // With the env var (via the merged env param), it loads with model: visionModel
+      const configsWithEnv = await loadSubagentConfigurations("/test/workdir", {
+        MUSE_VISION_MODEL: "qwen-vl-max",
+      });
+      expect(configsWithEnv).toHaveLength(1);
+      const vision = configsWithEnv.find((c) => c.name === "vision");
+      expect(vision).toBeDefined();
+      expect(vision?.scope).toBe("builtin");
+      expect(vision?.tools).toEqual(["Read"]);
+      expect(vision?.model).toBe("visionModel");
+    });
+
+    it("should treat MUSE_VISION_MODEL from process.env as set", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["vision.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (filePath === path.join("/builtin/subagents", "vision.md")) {
+          return `---
+description: Image recognition specialist
+model: visionModel
+---
+You are an image recognition specialist...`;
+        }
+        return "";
+      });
+
+      process.env.MUSE_VISION_MODEL = "qwen-vl-max";
+      const configs = await loadSubagentConfigurations("/test/workdir");
+      expect(configs.find((c) => c.name === "vision")).toBeDefined();
+    });
+
+    it("should sort configurations by priority then name", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["z-explore.md", "a-explore.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation(() => {
+        return `---
+description: test agent
+---
+test`;
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      expect(configs).toHaveLength(2);
+      expect(configs[0].name).toBe("a-explore"); // Alphabetical order for same priority
+      expect(configs[1].name).toBe("z-explore");
+    });
+
+    it("should handle priority override correctly", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === "/builtin/subagents") {
+          return ["explore.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        if (dirPath === path.join("/home/testuser", ".muse-work", "agents")) {
+          return ["explore.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (filePath === path.join("/builtin/subagents", "explore.md")) {
+          return `---
+description: Built-in agent
+---
+builtin prompt`;
+        }
+        if (
+          filePath ===
+          path.join("/home/testuser", ".muse-work", "agents", "explore.md")
+        ) {
+          return `---
+name: explore
+description: Custom Explore agent
+---
+Custom system prompt for user override`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      // Should find the user config, not the built-in (higher priority)
+      const exploreConfig = configs.find((c) => c.name === "explore");
+      expect(exploreConfig?.scope).toBe("user"); // User config overrides built-in
+      expect(exploreConfig?.priority).toBe(2); // User priority
+      expect(exploreConfig?.systemPrompt).toBe(
+        "Custom system prompt for user override",
+      );
+    });
+
+    it("should load subagents from .claude/agents directories", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (dirPath === path.join("/home/testuser", ".claude", "agents")) {
+          return ["claude-agent.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        if (dirPath === path.join("/test/workdir", ".claude", "agents")) {
+          return ["project-claude-agent.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (
+          filePath ===
+          path.join("/home/testuser", ".claude", "agents", "claude-agent.md")
+        ) {
+          return `---
+description: User-level Claude agent
+---
+Claude agent system prompt`;
+        }
+        if (
+          filePath ===
+          path.join(
+            "/test/workdir",
+            ".claude",
+            "agents",
+            "project-claude-agent.md",
+          )
+        ) {
+          return `---
+description: Project-level Claude agent
+---
+Project Claude agent system prompt`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      const userClaudeAgent = configs.find((c) => c.name === "claude-agent");
+      expect(userClaudeAgent).toBeDefined();
+      expect(userClaudeAgent?.scope).toBe("user");
+      expect(userClaudeAgent?.description).toBe("User-level Claude agent");
+
+      const projectClaudeAgent = configs.find(
+        (c) => c.name === "project-claude-agent",
+      );
+      expect(projectClaudeAgent).toBeDefined();
+      expect(projectClaudeAgent?.scope).toBe("project");
+      expect(projectClaudeAgent?.description).toBe(
+        "Project-level Claude agent",
+      );
+    });
+
+    it("should let .muse-work/agents override .claude/agents for same-named agent", async () => {
+      const mockFs = await import("fs");
+
+      vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+        if (
+          dirPath === path.join("/home/testuser", ".claude", "agents") ||
+          dirPath === path.join("/home/testuser", ".muse-work", "agents")
+        ) {
+          return ["shared-agent.md"] as unknown as ReturnType<
+            typeof import("fs").readdirSync
+          >;
+        }
+        return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+      });
+
+      vi.mocked(mockFs.statSync).mockReturnValue({
+        isFile: () => true,
+      } as import("fs").Stats);
+
+      vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+        if (
+          filePath ===
+          path.join("/home/testuser", ".claude", "agents", "shared-agent.md")
+        ) {
+          return `---
+name: shared-agent
+description: Claude version
+---
+Claude version prompt`;
+        }
+        if (
+          filePath ===
+          path.join("/home/testuser", ".muse-work", "agents", "shared-agent.md")
+        ) {
+          return `---
+name: shared-agent
+description: Wave version
+---
+Wave version prompt`;
+        }
+        return "";
+      });
+
+      const configs = await loadSubagentConfigurations("/test/workdir");
+
+      const agent = configs.find((c) => c.name === "shared-agent");
+      expect(agent).toBeDefined();
+      expect(agent?.description).toBe("Wave version");
+      expect(agent?.systemPrompt).toBe("Wave version prompt");
+    });
+
+    it("should find user-level subagents when HOME is unset (Windows desktop)", async () => {
+      // Windows GUI-launched processes (Electron desktop app) have no HOME env
+      // var. Regression: user-level agents must resolve via os.homedir() (which
+      // falls back to USERPROFILE on Windows), NOT process.env.HOME — otherwise
+      // `~/.muse-work/agents` is treated as a literal relative path and a newly
+      // created subagent (written to the real home by the Write tool) is
+      // invisible to the Agent tool.
+      const originalHome = process.env.HOME;
+      delete process.env.HOME;
+      try {
+        const mockFs = await import("fs");
+
+        vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
+          if (dirPath === path.join("/home/testuser", ".muse-work", "agents")) {
+            return ["arch-explorer.md"] as unknown as ReturnType<
+              typeof import("fs").readdirSync
+            >;
+          }
+          return [] as unknown as ReturnType<typeof import("fs").readdirSync>;
+        });
+
+        vi.mocked(mockFs.statSync).mockReturnValue({
+          isFile: () => true,
+        } as import("fs").Stats);
+
+        vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
+          if (
+            filePath ===
+            path.join("/home/testuser", ".muse-work", "agents", "arch-explorer.md")
+          ) {
+            return `---
+name: arch-explorer
+description: Architecture exploration agent
+---
+Analyze the project architecture.`;
+          }
+          return "";
+        });
+
+        const configs = await loadSubagentConfigurations("/test/workdir");
+        const config = configs.find((c) => c.name === "arch-explorer");
+        expect(config).toBeDefined();
+        expect(config?.scope).toBe("user");
+      } finally {
+        if (originalHome === undefined) {
+          delete process.env.HOME;
+        } else {
+          process.env.HOME = originalHome;
+        }
+      }
+    });
+  });
+});

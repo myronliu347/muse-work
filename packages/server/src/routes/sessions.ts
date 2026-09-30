@@ -506,7 +506,6 @@ session.post("/permissions/:permissionId", async (c) => {
               | "default"
               | "bypassPermissions"
               | "acceptEdits"
-              | "plan"
               | "dontAsk")
           : undefined,
       newPermissionRule:

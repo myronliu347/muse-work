@@ -1,0 +1,339 @@
+/**
+ * Subagent Dynamic Configuration Tests
+ *
+ * Tests that subagents inherit dynamic configuration behavior from parent Agent.
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { Agent } from "../../src/agent.js";
+import { SubagentManager } from "../../src/managers/subagentManager.js";
+import type { SubagentConfiguration } from "../../src/utils/subagentParser.js";
+import { loadMergedMuseConfig } from "../../src/services/configurationService.js";
+import {
+  getUserConfigPaths,
+  getProjectConfigPaths,
+} from "../../src/utils/configPaths.js";
+
+// Mock configPaths to return empty arrays so we don't load actual settings.json
+vi.mock("../../src/utils/configPaths.js", async () => {
+  const actual = await vi.importActual("../../src/utils/configPaths.js");
+  return {
+    ...actual,
+    getUserConfigPaths: vi.fn(),
+    getProjectConfigPaths: vi.fn(),
+  };
+});
+
+// Mock loadMergedMuseConfig
+vi.mock("../../src/services/configurationService.js", async () => {
+  const actual = await vi.importActual(
+    "../../src/services/configurationService.js",
+  );
+  return {
+    ...actual,
+    loadMergedMuseConfig: vi.fn(),
+  };
+});
+
+// Define types for testing Agent internal methods
+interface TestableAgent {
+  subagentManager: SubagentManager;
+}
+
+describe("Subagent Dynamic Configuration Tests", () => {
+  let agent: Agent;
+  let subagentManager: SubagentManager;
+  const mockWorkdir = "/mock/workdir";
+
+  beforeEach(async () => {
+    // Clear environment variables that might interfere
+    delete process.env.MUSE_API_KEY;
+    delete process.env.MUSE_BASE_URL;
+    delete process.env.MUSE_MODEL;
+    delete process.env.MUSE_FAST_MODEL;
+    delete process.env.MUSE_VISION_MODEL;
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
+    // Reset and setup loadMergedMuseConfig mock
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
+    // Mock config paths to return empty arrays
+    vi.mocked(getUserConfigPaths).mockReturnValue([]);
+    vi.mocked(getProjectConfigPaths).mockReturnValue([]);
+  });
+
+  afterEach(async () => {
+    // Clean up agent and managers
+    if (agent) {
+      await agent.destroy();
+    }
+
+    // Clear all mocks
+    vi.clearAllMocks();
+  });
+
+  describe("Subagent Dynamic Configuration Inheritance", () => {
+    it("should create subagent with dynamic configuration from parent Agent", async () => {
+      // Set initial environment variables
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_FAST_MODEL = "parent-fast-model";
+      process.env.MUSE_MAX_INPUT_TOKENS = "40000";
+
+      // Create parent agent
+      agent = await Agent.create({
+        workdir: mockWorkdir,
+      });
+
+      // Get SubagentManager
+      subagentManager = (agent as unknown as TestableAgent).subagentManager;
+      await subagentManager.initialize();
+
+      // Create test subagent configuration
+      const mockConfiguration: SubagentConfiguration = {
+        name: "test-subagent",
+        description: "Test subagent for dynamic config",
+        systemPrompt: "You are a test subagent.",
+        model: "inherit",
+        tools: ["Read", "Write"],
+        filePath: "/mock/path/test-subagent.md",
+        scope: "project",
+        priority: 1,
+      };
+
+      // Create subagent instance
+      const subagentInstance = await subagentManager.createInstance(
+        mockConfiguration,
+        {
+          description: "Testing dynamic config",
+          prompt: "Test prompt",
+          subagent_type: "test-subagent",
+        },
+      );
+
+      // Verify subagent AIManager has access to parent's dynamic configuration
+      const subagentAIManager = subagentInstance.aiManager;
+
+      // Check initial configuration
+      expect(subagentAIManager.getGatewayConfig()).toMatchObject({
+        apiKey: "parent-token",
+        baseURL: "https://parent.url",
+      });
+
+      expect(subagentAIManager.getModelConfig().model).toBe("parent-model");
+      expect(subagentAIManager.getMaxInputTokens()).toBe(40000);
+
+      // Update parent environment variables
+      process.env.MUSE_API_KEY = "updated-parent-token";
+      process.env.MUSE_BASE_URL = "https://updated-parent.url";
+      process.env.MUSE_MODEL = "updated-parent-model";
+      process.env.MUSE_MAX_INPUT_TOKENS = "50000";
+
+      // Verify subagent AIManager gets updated values through parent's dynamic getters
+      expect(subagentAIManager.getGatewayConfig()).toMatchObject({
+        apiKey: "updated-parent-token",
+        baseURL: "https://updated-parent.url",
+      });
+
+      expect(subagentAIManager.getModelConfig().model).toBe(
+        "updated-parent-model",
+      );
+      expect(subagentAIManager.getMaxInputTokens()).toBe(50000);
+    });
+
+    it("should handle subagent-specific model override with dynamic configuration", async () => {
+      // Set parent environment variables
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_FAST_MODEL = "parent-fast-model";
+
+      // Create parent agent
+      agent = await Agent.create({
+        workdir: mockWorkdir,
+      });
+
+      // Get SubagentManager
+      subagentManager = (agent as unknown as TestableAgent).subagentManager;
+      await subagentManager.initialize();
+
+      // Create subagent configuration with specific model override
+      const mockConfiguration: SubagentConfiguration = {
+        name: "test-subagent-override",
+        description: "Test subagent with model override",
+        systemPrompt: "You are a test subagent with model override.",
+        model: "specific-subagent-model", // Override parent model
+        tools: ["Read"],
+        filePath: "/mock/path/test-subagent-override.md",
+        scope: "project",
+        priority: 1,
+      };
+
+      // Create subagent instance
+      const subagentInstance = await subagentManager.createInstance(
+        mockConfiguration,
+        {
+          description: "Testing model override",
+          prompt: "Test prompt",
+          subagent_type: "test-subagent-override",
+        },
+      );
+
+      // Verify subagent uses override model but inherits other dynamic config
+      const subagentAIManager = subagentInstance.aiManager;
+
+      // Should inherit dynamic gateway config from parent
+      expect(subagentAIManager.getGatewayConfig()).toMatchObject({
+        apiKey: "parent-token",
+        baseURL: "https://parent.url",
+      });
+
+      // Should use override model, but inherit fastModel from parent
+      const modelConfig = subagentAIManager.getModelConfig();
+      expect(modelConfig.model).toBe("specific-subagent-model");
+      expect(modelConfig.fastModel).toBe("parent-fast-model");
+
+      // Should inherit token limit from parent (using default since not specified)
+      expect(subagentAIManager.getMaxInputTokens()).toBe(200000); // Default value
+
+      // Update parent environment variables
+      process.env.MUSE_API_KEY = "updated-parent-token";
+      process.env.MUSE_FAST_MODEL = "updated-parent-fast-model";
+
+      // Verify subagent still uses override model but gets updated inherited values
+      const updatedModelConfig = subagentAIManager.getModelConfig();
+      expect(updatedModelConfig.model).toBe("specific-subagent-model"); // Still overridden
+      expect(updatedModelConfig.fastModel).toBe("updated-parent-fast-model"); // Inherited dynamically
+
+      expect(subagentAIManager.getGatewayConfig().apiKey).toBe(
+        "updated-parent-token",
+      );
+    });
+
+    it("should resolve visionModel special value from MUSE_VISION_MODEL", async () => {
+      // Set parent environment variables
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_VISION_MODEL = "qwen-vl-max";
+
+      // Create parent agent
+      agent = await Agent.create({
+        workdir: mockWorkdir,
+      });
+
+      // Get SubagentManager
+      subagentManager = (agent as unknown as TestableAgent).subagentManager;
+      await subagentManager.initialize();
+
+      // Create subagent configuration using the visionModel special value
+      const mockConfiguration: SubagentConfiguration = {
+        name: "vision",
+        description: "Image recognition specialist",
+        systemPrompt: "You are an image recognition specialist.",
+        model: "visionModel", // Special value resolved to MUSE_VISION_MODEL
+        tools: ["Read"],
+        filePath: "/mock/path/vision.md",
+        scope: "builtin",
+        priority: 3,
+      };
+
+      const subagentInstance = await subagentManager.createInstance(
+        mockConfiguration,
+        {
+          description: "Testing visionModel resolution",
+          prompt: "Describe this image",
+          subagent_type: "vision",
+        },
+      );
+
+      // The subagent's model should resolve to the MUSE_VISION_MODEL value
+      const subagentAIManager = subagentInstance.aiManager;
+      expect(subagentAIManager.getModelConfig().model).toBe("qwen-vl-max");
+      // Fast model should still be inherited from parent
+      expect(subagentAIManager.getModelConfig().fastModel).toBeUndefined();
+
+      // Update the env var — resolution should track it dynamically
+      process.env.MUSE_VISION_MODEL = "updated-vision-model";
+      expect(subagentAIManager.getModelConfig().model).toBe(
+        "updated-vision-model",
+      );
+    });
+
+    it("should handle multiple subagents with dynamic configuration", async () => {
+      // Set initial environment variables
+      process.env.MUSE_API_KEY = "multi-token";
+      process.env.MUSE_BASE_URL = "https://multi.url";
+      process.env.MUSE_MODEL = "multi-model";
+      process.env.MUSE_FAST_MODEL = "multi-fast-model";
+
+      // Create parent agent
+      agent = await Agent.create({
+        workdir: mockWorkdir,
+      });
+
+      // Get SubagentManager
+      subagentManager = (agent as unknown as TestableAgent).subagentManager;
+      await subagentManager.initialize();
+
+      // Create multiple subagent configurations
+      const config1: SubagentConfiguration = {
+        name: "subagent-1",
+        description: "First subagent",
+        systemPrompt: "You are subagent 1.",
+        model: "inherit",
+        tools: ["Read"],
+        filePath: "/mock/path/subagent-1.md",
+        scope: "project",
+        priority: 1,
+      };
+
+      const config2: SubagentConfiguration = {
+        name: "subagent-2",
+        description: "Second subagent",
+        systemPrompt: "You are subagent 2.",
+        model: "custom-model",
+        tools: ["Write"],
+        filePath: "/mock/path/subagent-2.md",
+        scope: "project",
+        priority: 2,
+      };
+
+      // Create subagent instances
+      const subagent1 = await subagentManager.createInstance(config1, {
+        description: "First instance",
+        prompt: "Test 1",
+        subagent_type: "subagent-1",
+      });
+
+      const subagent2 = await subagentManager.createInstance(config2, {
+        description: "Second instance",
+        prompt: "Test 2",
+        subagent_type: "subagent-2",
+      });
+
+      // Verify both subagents have access to parent's dynamic configuration
+      expect(subagent1.aiManager.getGatewayConfig().apiKey).toBe("multi-token");
+      expect(subagent2.aiManager.getGatewayConfig().apiKey).toBe("multi-token");
+
+      expect(subagent1.aiManager.getModelConfig().model).toBe("multi-model");
+      expect(subagent2.aiManager.getModelConfig().model).toBe("custom-model");
+
+      // Update environment
+      process.env.MUSE_API_KEY = "multi-updated-token";
+      process.env.MUSE_MODEL = "multi-updated-model";
+
+      // Verify both subagents get updated values
+      expect(subagent1.aiManager.getGatewayConfig().apiKey).toBe(
+        "multi-updated-token",
+      );
+      expect(subagent2.aiManager.getGatewayConfig().apiKey).toBe(
+        "multi-updated-token",
+      );
+
+      expect(subagent1.aiManager.getModelConfig().model).toBe(
+        "multi-updated-model",
+      );
+      expect(subagent2.aiManager.getModelConfig().model).toBe("custom-model"); // Still overridden
+    });
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Message } from "wave-agent-sdk";
+import type { Message } from "@muse-work/agent";
 import {
   estimateAssistantWorkMs,
   formatWorkedDuration,

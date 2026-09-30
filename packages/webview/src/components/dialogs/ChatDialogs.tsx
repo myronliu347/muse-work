@@ -1,5 +1,4 @@
 import ConfigDialog from "./ConfigDialog";
-import PluginDialog from "./PluginDialog";
 import McpDialog from "./McpDialog";
 import StatusDialog from "./StatusDialog";
 import WorkflowManager from "../settings/WorkflowManager";
@@ -26,9 +25,6 @@ export interface ChatDialogsProps {
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
-  onLoadProjectSettings: () => void;
-  onToggleBuiltinPlugin: (pluginId: string, enabled: boolean) => void;
   onConfigurationSave: (config: ConfigurationData) => void;
   onDialogClose: () => void;
   vscode: VsCodeApi;
@@ -64,9 +60,6 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   configurationData,
   configurationLoading,
   configurationError,
-  projectSettings,
-  onLoadProjectSettings,
-  onToggleBuiltinPlugin,
   onConfigurationSave,
   onDialogClose,
   vscode,
@@ -99,14 +92,8 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
           error={configurationError}
           onSave={onConfigurationSave}
           onCancel={onDialogClose}
-          projectSettings={projectSettings}
-          onLoadProjectSettings={onLoadProjectSettings}
-          onToggleBuiltinPlugin={onToggleBuiltinPlugin}
           vscode={vscode}
         />
-      )}
-      {activeDialog === "plugin" && (
-        <PluginDialog vscode={vscode} onClose={onDialogClose} />
       )}
       {activeDialog === "mcp" && (
         <McpDialog vscode={vscode} onClose={onDialogClose} />

@@ -1,0 +1,459 @@
+import { readFile, stat } from "fs/promises";
+import { extname } from "path";
+import { createHash } from "crypto";
+import { logger } from "../utils/globalLogger.js";
+import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
+import { resolvePath, getDisplayPath } from "../utils/path.js";
+import { formatLineNumberPrefix } from "../utils/stringUtils.js";
+import { estimateTokens } from "../utils/tokenEstimate.js";
+import {
+  isBinaryDocument,
+  getBinaryDocumentError,
+} from "../utils/fileFormat.js";
+import { convertImageToBase64 } from "../utils/messageOperations.js";
+import { isPathInside } from "../utils/pathSafety.js";
+import { memoryFreshnessNote } from "../utils/memoryAge.js";
+import { READ_TOOL_NAME } from "../constants/tools.js";
+
+/**
+ * Supported image file extensions
+ */
+const SUPPORTED_IMAGE_EXTENSIONS = [
+  "png",
+  "jpeg",
+  "jpg",
+  "gif",
+  "webp",
+] as const;
+
+/**
+ * Check if a file path represents an image file
+ * @param filePath - Path to the file
+ * @returns true if the file is a supported image format
+ */
+function isImageFile(filePath: string): boolean {
+  const ext = extname(filePath).toLowerCase().substring(1);
+  return (SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+/**
+ * Validate image file size
+ * @param filePath - Path to the image file
+ * @param maxSizeBytes - Maximum allowed file size in bytes (default: 20MB)
+ * @returns Promise<boolean> - true if file size is within limit
+ */
+async function validateImageFileSize(
+  filePath: string,
+  maxSizeBytes: number = 20 * 1024 * 1024,
+): Promise<boolean> {
+  try {
+    const stats = await stat(filePath);
+    return stats.size <= maxSizeBytes;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get MIME type for image file based on extension
+ * @param filePath - Path to the image file
+ * @returns MIME type string
+ */
+function getImageMimeType(filePath: string): string {
+  const ext = extname(filePath).toLowerCase().substring(1);
+  switch (ext) {
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    default:
+      return "image/png"; // Default fallback
+  }
+}
+
+/**
+ * Process an image file and return ToolResult with image data
+ * @param filePath - Path to the image file
+ * @param context - Tool execution context
+ * @returns Promise<ToolResult> with image data
+ */
+async function processImageFile(
+  filePath: string,
+  context: ToolContext,
+): Promise<ToolResult> {
+  try {
+    // Resolve path
+    const actualFilePath = filePath.startsWith("/")
+      ? filePath
+      : resolvePath(filePath, context.workdir);
+
+    // Validate file size
+    const isValidSize = await validateImageFileSize(actualFilePath);
+    if (!isValidSize) {
+      const stats = await stat(actualFilePath);
+      const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+      return {
+        success: false,
+        content: "",
+        error: `Image file exceeds 20MB limit (actual: ${sizeMB}MB)`,
+      };
+    }
+
+    // Convert image to base64
+    const imageDataUrl = convertImageToBase64(actualFilePath);
+    if (!imageDataUrl) {
+      // Unreadable, empty or unknown-format file: fail instead of handing the
+      // model an empty image payload.
+      return {
+        success: false,
+        content: "",
+        error: `Failed to process image: ${getDisplayPath(filePath, context.workdir)} is empty or not a readable image file`,
+      };
+    }
+    const mimeType = getImageMimeType(actualFilePath);
+
+    // Extract base64 data from data URL (remove data:image/type;base64, prefix)
+    const base64Data = imageDataUrl.split(",")[1] || "";
+
+    return {
+      success: true,
+      content: `Image file processed: ${getDisplayPath(filePath, context.workdir)}\nFormat: ${mimeType}\nSize: Available for AI processing`,
+      shortResult: `Image processed (${mimeType})`,
+      images: [
+        {
+          data: base64Data,
+          mediaType: mimeType,
+        },
+      ],
+      metadata: {
+        type: "image",
+        mimeType,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      content: "",
+      error: `Failed to process image: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Read Tool Plugin - Read file content
+ */
+export const readTool: ToolPlugin = {
+  name: READ_TOOL_NAME,
+  prompt:
+    () => `Reads a file from the local filesystem. You can access any file directly by using this tool.
+Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+
+Usage:
+- The file_path parameter must be an absolute path, not a relative path
+- By default, it reads up to 2000 lines starting from the beginning of the file
+- You can optionally specify a line offset and limit (especially handy for long files), but it's recommended to read the whole file by not providing these parameters
+- If the file content exceeds the token limit, use offset and limit parameters to read specific portions of the file, or use Bash with grep/jq to extract specific content
+- Results are returned using cat -n format, with line numbers starting at 1
+- This tool allows Agent to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually as Agent is a multimodal LLM.
+- You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
+- You will regularly be asked to read screenshots. If the user provides a path to a screenshot ALWAYS use this tool to view the file at the path. This tool will work with all temporary file paths like /var/folders/123/abc/T/TemporaryItems/NSIRD_screencaptureui_ZfB1tD/Screenshot.png
+- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
+- Binary document formats (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX) are not supported and will return an error.`,
+  config: {
+    type: "function",
+    function: {
+      name: READ_TOOL_NAME,
+      description: "Read a file from the local filesystem.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_path: {
+            type: "string",
+            description: "The absolute path to the file to read",
+          },
+          offset: {
+            type: "number",
+            description:
+              "The line number to start reading from. Only provide if the file is too large to read at once",
+          },
+          limit: {
+            type: "number",
+            description:
+              "The number of lines to read. Only provide if the file is too large to read at once.",
+          },
+        },
+        required: ["file_path"],
+      },
+    },
+  },
+  execute: async (
+    args: Record<string, unknown>,
+    context: ToolContext,
+  ): Promise<ToolResult> => {
+    const filePath = args.file_path as string;
+    const offset = args.offset as number;
+    const limit = args.limit as number;
+
+    if (!filePath || typeof filePath !== "string") {
+      return {
+        success: false,
+        content: "",
+        error: "file_path parameter is required and must be a string",
+      };
+    }
+
+    // Trigger conditional rule loading for this file
+    context.messageManager?.triggerFileRead(filePath);
+
+    // Check for binary document formats
+    if (isBinaryDocument(filePath)) {
+      const isPdf = filePath.toLowerCase().endsWith(".pdf");
+      return {
+        success: false,
+        content: "",
+        error: getBinaryDocumentError(filePath),
+        metadata: {
+          type: isPdf ? "pdf" : "binary",
+        },
+      };
+    }
+
+    // Check permissions
+    if (context.permissionManager) {
+      const permissionContext = context.permissionManager.createContext(
+        READ_TOOL_NAME,
+        context.permissionMode || "default",
+        context.canUseToolCallback,
+        args,
+      );
+      const decision =
+        await context.permissionManager.checkPermission(permissionContext);
+      if (decision.behavior === "deny") {
+        return {
+          success: false,
+          content: "",
+          error: decision.message || "Permission denied",
+        };
+      }
+    }
+
+    // Check if this is an image file
+    if (isImageFile(filePath)) {
+      return processImageFile(filePath, context);
+    }
+
+    try {
+      // Note: New Read tool requires absolute paths, so we don't use resolvePath
+      // But for compatibility, if it's not an absolute path, we still try to resolve
+      const actualFilePath = filePath.startsWith("/")
+        ? filePath
+        : resolvePath(filePath, context.workdir);
+
+      const stats = await stat(actualFilePath);
+
+      // Deduplication: only dedup if the exact same range was read before
+      // (aligned with Claude Code — full reads dedup too). Entries written by
+      // Edit/Write have source "edit"/"write" and never dedup, so a file that
+      // was written before its first Read is still returned in full.
+      if (context.readFileState) {
+        const state = context.readFileState.get(actualFilePath);
+        if (
+          state &&
+          state.source === "read" &&
+          state.mtime === stats.mtime.getTime()
+        ) {
+          const rangeMatch = state.offset === offset && state.limit === limit;
+          if (rangeMatch) {
+            return {
+              success: true,
+              content: `File ${filePath} has not changed since last read. The content from the earlier Read tool_result in this conversation is still current — refer to that instead of re-reading.`,
+              shortResult: "File unchanged",
+              metadata: {
+                type: "file_unchanged",
+              },
+            };
+          }
+        }
+      }
+
+      // Resource Limits — align with Claude Code: 256KB default, bypassed only
+      // when the caller provides an explicit line limit (not offset alone).
+      const maxSizeBytes =
+        context.fileReadingLimits?.maxSizeBytes ?? 0.25 * 1024 * 1024; // Default 256KB
+      if (stats.size > maxSizeBytes && typeof limit !== "number") {
+        return {
+          success: false,
+          content: "",
+          error: `File size (${(stats.size / 1024).toFixed(2)}KB) exceeds limit (${(maxSizeBytes / 1024).toFixed(2)}KB). Please use offset and limit to read a portion of the file.`,
+          metadata: {
+            type: "error_limit_exceeded",
+            size: stats.size,
+            limit: maxSizeBytes,
+          },
+        };
+      }
+
+      const fileContent = await readFile(actualFilePath, "utf-8");
+
+      // Update readFileState
+      if (context.readFileState) {
+        const hash = createHash("sha256").update(fileContent).digest("hex");
+        context.readFileState.set(actualFilePath, {
+          mtime: stats.mtime.getTime(),
+          hash,
+          source: "read",
+          offset, // undefined for full reads
+          limit, // undefined for full reads
+          // Retain the raw content only for full reads: it is the diff baseline
+          // for the external-change notification, and partial entries are
+          // excluded from that comparison anyway.
+          ...(offset === undefined && limit === undefined
+            ? { content: fileContent }
+            : {}),
+        });
+      }
+
+      // A successful read may pull in the memory files of its ancestor
+      // directories (see `collectNestedMemoryFiles`); only Read triggers this.
+      context.messageManager?.triggerNestedMemory(actualFilePath);
+
+      // Check if file is empty
+      if (fileContent.length === 0) {
+        logger.warn(`File ${filePath} exists but has empty contents`);
+        return {
+          success: true,
+          content: "System reminder: This file exists but has empty contents.",
+          shortResult: "Empty file",
+          metadata: {
+            type: "text",
+            isEmpty: true,
+          },
+        };
+      }
+
+      const allLines = fileContent.split("\n");
+      const totalLines = allLines.length;
+
+      // Handle offset and limit
+      let startLine = 1;
+      if (typeof offset === "number") {
+        startLine = Math.max(1, offset);
+      }
+
+      let endLine = Math.min(
+        totalLines,
+        startLine + (typeof limit === "number" ? limit : 2000) - 1,
+      );
+
+      // If no offset and limit specified, read entire file (maximum 2000 lines)
+      if (typeof offset !== "number" && typeof limit !== "number") {
+        startLine = 1;
+        endLine = Math.min(totalLines, 2000);
+      }
+
+      // Validate line number range
+      if (startLine > totalLines) {
+        return {
+          success: false,
+          content: "",
+          error: `Start line ${startLine} exceeds total lines ${totalLines}`,
+        };
+      }
+
+      // Extract specified line range
+      const selectedLines = allLines.slice(startLine - 1, endLine);
+
+      // Format output (cat -n format, with line numbers)
+      const formattedContent = selectedLines
+        .map((line, index) => {
+          const lineNumber = startLine + index;
+          return `${formatLineNumberPrefix(lineNumber)}${line}`;
+        })
+        .join("\n");
+
+      // Token-level validation: estimate tokens and reject if over limit
+      const maxTokens = context.fileReadingLimits?.maxTokens ?? 25000; // Default 25000 tokens
+      const ext = extname(actualFilePath).toLowerCase().slice(1);
+      const estimatedTokens = estimateTokens(formattedContent, ext);
+      if (estimatedTokens > maxTokens) {
+        return {
+          success: false,
+          content: "",
+          error: `File content (~${estimatedTokens.toLocaleString()} tokens) exceeds maximum allowed tokens (${maxTokens.toLocaleString()}). Use offset and limit parameters to read specific portions of the file, or use Bash with grep/jq to search within it for specific content.`,
+          metadata: {
+            type: "error_token_limit_exceeded",
+            estimatedTokens,
+            maxTokens,
+          },
+        };
+      }
+
+      // Add file information header. A file inside the auto-memory directory
+      // gets a staleness note in front of it: memory is a point-in-time
+      // observation, and a stale `file:line` citation reads as authoritative.
+      // `autoMemoryDir` is unset when auto-memory is off, so the note can never
+      // fire for a disabled feature.
+      const memoryNote =
+        context.autoMemoryDir &&
+        isPathInside(actualFilePath, context.autoMemoryDir)
+          ? memoryFreshnessNote(stats.mtime.getTime())
+          : "";
+      let content = `${memoryNote}File: ${filePath}\n`;
+      if (startLine > 1 || endLine < totalLines) {
+        content += `Lines ${startLine}-${endLine} of ${totalLines}\n`;
+      } else {
+        content += `Total lines: ${totalLines}\n`;
+      }
+      content += "─".repeat(50) + "\n";
+      content += formattedContent;
+
+      // If only showing partial content, add prompt
+      if (endLine < totalLines) {
+        content += `\n${"─".repeat(50)}\n`;
+        content += `... ${totalLines - endLine} more lines not shown`;
+      }
+
+      return {
+        success: true,
+        content,
+        shortResult: `Read ${selectedLines.length} lines${totalLines > 2000 ? " (truncated)" : ""}`,
+        metadata: {
+          type: "text",
+          totalLines,
+          startLine,
+          endLine,
+          truncated: endLine < totalLines,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        content: "",
+        error: `Failed to read file: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  },
+  formatCompactParams: (
+    params: Record<string, unknown>,
+    context: ToolContext,
+  ) => {
+    const filePath = params.file_path as string;
+    const offset = params.offset as number;
+    const limit = params.limit as number;
+
+    let displayPath = getDisplayPath(filePath || "", context.workdir);
+
+    if (typeof offset === "number" || typeof limit === "number") {
+      const offsetStr = typeof offset === "number" ? offset.toString() : "1";
+      const limitStr = typeof limit === "number" ? limit.toString() : "2000";
+      displayPath += ` ${offsetStr}:${limitStr}`;
+    }
+
+    return displayPath;
+  },
+};

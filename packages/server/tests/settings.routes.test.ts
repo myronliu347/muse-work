@@ -6,9 +6,9 @@ import { createApp } from "../src/app.js";
 import { closeTestApp, listenTestApp } from "./helpers.js";
 import { getSettingsPath } from "../src/services/museSettings.js";
 import {
-  DEFAULT_WAVE_USER_SETTINGS,
-  getWaveUserSettingsPath,
-} from "../src/services/waveAgentSettings.js";
+  DEFAULT_MUSE_USER_SETTINGS,
+  getMuseUserSettingsPath,
+} from "../src/services/museAgentSettings.js";
 
 describe("settings routes", () => {
   let server: Server | undefined;
@@ -34,7 +34,7 @@ describe("settings routes", () => {
     });
   });
 
-  it("GET/PUT /settings/raw edits ~/.wave/settings.json and invalidates identities", async () => {
+  it("GET/PUT /settings/raw edits ~/.muse-work/settings.json and invalidates identities", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -51,25 +51,25 @@ describe("settings routes", () => {
     const empty = await fetch(`${app.baseUrl}/settings/raw`);
     expect(empty.status).toBe(200);
     const emptyBody = (await empty.json()) as { path: string; content: string };
-    expect(emptyBody.path).toBe(getWaveUserSettingsPath(app.home));
-    expect(JSON.parse(emptyBody.content)).toEqual(DEFAULT_WAVE_USER_SETTINGS);
+    expect(emptyBody.path).toBe(getMuseUserSettingsPath(app.home));
+    expect(JSON.parse(emptyBody.content)).toEqual(DEFAULT_MUSE_USER_SETTINGS);
 
     const put = await fetch(`${app.baseUrl}/settings/raw`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        content: '{"env":{"WAVE_VISION_MODEL":"kimi-k3"}}',
+        content: '{"env":{"MUSE_VISION_MODEL":"kimi-k3"}}',
       }),
     });
     expect(put.status).toBe(200);
     expect(invalidated).toBe(true);
     const putBody = (await put.json()) as { path: string; content: string };
     expect(JSON.parse(putBody.content)).toEqual({
-      env: { WAVE_VISION_MODEL: "kimi-k3" },
+      env: { MUSE_VISION_MODEL: "kimi-k3" },
     });
     expect(
-      JSON.parse(fs.readFileSync(getWaveUserSettingsPath(app.home), "utf8")),
-    ).toEqual({ env: { WAVE_VISION_MODEL: "kimi-k3" } });
+      JSON.parse(fs.readFileSync(getMuseUserSettingsPath(app.home), "utf8")),
+    ).toEqual({ env: { MUSE_VISION_MODEL: "kimi-k3" } });
 
     const bad = await fetch(`${app.baseUrl}/settings/raw`, {
       method: "PUT",

@@ -1,6 +1,6 @@
 import { test } from "../utils/webviewTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
-import { ASK_USER_QUESTION_TOOL_NAME, Message } from "wave-agent-sdk";
+import { ASK_USER_QUESTION_TOOL_NAME, Message } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
 test.describe("AskUserQuestion Layout Demo", () => {

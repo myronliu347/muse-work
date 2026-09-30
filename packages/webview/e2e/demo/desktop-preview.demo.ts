@@ -15,7 +15,7 @@ import { screenshotWebp } from "../utils/screenshot.js";
  * however, flows through the real PreviewPane → MessageInput path so the
  * "comment lands in the chat input" shot shows the actual behavior.
  */
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const initialState = {
   messages: [],
@@ -139,7 +139,7 @@ test.describe("Desktop Preview Pane Screenshots", () => {
         channel: string;
         args: unknown[];
       };
-      ipc.channel = "wave-picker";
+      ipc.channel = "muse-picker";
       ipc.args = [{ type: "ready" }];
       wv.dispatchEvent(ipc);
     });
@@ -209,7 +209,7 @@ test.describe("Desktop Preview Pane Screenshots", () => {
         channel: string;
         args: unknown[];
       };
-      ipc.channel = "wave-picker";
+      ipc.channel = "muse-picker";
       ipc.args = [
         {
           type: "submit",

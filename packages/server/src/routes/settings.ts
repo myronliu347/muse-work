@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
 import { loadMuseSettings, patchMuseSettings } from "../services/museSettings.js";
 import {
-  readWaveUserSettingsText,
-  WaveSettingsJsonError,
-  writeWaveUserSettingsText,
-} from "../services/waveAgentSettings.js";
+  readMuseUserSettingsText,
+  MuseSettingsJsonError,
+  writeMuseUserSettingsText,
+} from "../services/museAgentSettings.js";
 
 export const settingsRoutes = new Hono<HonoEnv>();
 
@@ -14,11 +14,11 @@ settingsRoutes.get("/settings", (c) => {
   return c.json(loadMuseSettings(ctx.home));
 });
 
-/** Wave user-scope agent settings (`~/.wave/settings.json`) for the Agent tab. */
+/** User-scope agent settings (`~/.muse-work/settings.json`) for the Agent tab. */
 settingsRoutes.get("/settings/raw", (c) => {
   const ctx = c.get("ctx");
   try {
-    return c.json(readWaveUserSettingsText(ctx.home));
+    return c.json(readMuseUserSettingsText(ctx.home));
   } catch (err) {
     return c.json(
       { error: err instanceof Error ? err.message : String(err) },
@@ -39,13 +39,13 @@ settingsRoutes.put("/settings/raw", async (c) => {
     return c.json({ error: "content is required and must be a string" }, 400);
   }
   try {
-    const result = writeWaveUserSettingsText(body.content, ctx.home);
+    const result = writeMuseUserSettingsText(body.content, ctx.home);
     // Drop identity fingerprints so the *next idle* ensureAgent recreates
     // agents; in-flight turns keep their live agent (see sessionRunner).
     ctx.runner.invalidateAgentIdentities();
     return c.json(result);
   } catch (err) {
-    if (err instanceof WaveSettingsJsonError) {
+    if (err instanceof MuseSettingsJsonError) {
       return c.json({ error: err.message }, 400);
     }
     return c.json(

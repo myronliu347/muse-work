@@ -14,7 +14,7 @@ describe("ensureServerPlugins", () => {
   });
 
   function pluginTree(root: string): void {
-    const manifestDir = path.join(root, "superpowers", ".wave-plugin");
+    const manifestDir = path.join(root, "superpowers", ".muse-plugin");
     fs.mkdirSync(manifestDir, { recursive: true });
     fs.writeFileSync(
       path.join(manifestDir, "plugin.json"),
@@ -32,7 +32,7 @@ describe("ensureServerPlugins", () => {
     pluginTree(src);
     ensureServerPlugins(src, dest);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".wave-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 
@@ -45,7 +45,7 @@ describe("ensureServerPlugins", () => {
     ensureServerPlugins(src, dest);
     expect(fs.existsSync(path.join(dest, "stale.txt"))).toBe(false);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".wave-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("ensureServerPlugins", () => {
     const dest = path.join(parent, "muse-server", "plugins");
     ensureServerPlugins(src, dest);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".wave-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 

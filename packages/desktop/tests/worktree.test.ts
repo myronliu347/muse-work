@@ -3,7 +3,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createWorktree, removeWorktree } from "../src/main/worktree.js";
+import {
+  createWorktree,
+  getMuseWorktreesRoot,
+  removeWorktree,
+  resolveWorktreePath,
+} from "../src/main/worktree.js";
 
 function initRepo(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wt-"));
@@ -18,24 +23,31 @@ function initRepo(): string {
 
 describe("createWorktree / removeWorktree", () => {
   const repos: string[] = [];
+  const extraPaths: string[] = [];
   afterEach(() => {
+    for (const p of extraPaths.splice(0)) {
+      fs.rmSync(p, { recursive: true, force: true });
+    }
     for (const dir of repos.splice(0)) {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it("creates a worktree under .wave/worktrees and a worktree-* branch", async () => {
+  it("creates a worktree under ~/.muse-work/worktrees and a worktree-* branch", async () => {
     const repo = initRepo();
     repos.push(repo);
     const session = await createWorktree("gentle-pike-147", repo, {
       baseBranch: "main",
     });
+    extraPaths.push(session.path);
     expect(session.isNew).toBe(true);
-    expect(fs.realpathSync(session.path)).toBe(
-      fs.realpathSync(
-        path.join(repo, ".wave", "worktrees", "gentle-pike-147"),
-      ),
+    const expected = path.join(
+      os.homedir(),
+      ".muse-work",
+      "worktrees",
+      "gentle-pike-147",
     );
+    expect(fs.realpathSync(session.path)).toBe(fs.realpathSync(expected));
     expect(session.branch).toBe("worktree-gentle-pike-147");
     expect(fs.existsSync(session.path)).toBe(true);
     expect(
@@ -72,6 +84,7 @@ describe("createWorktree / removeWorktree", () => {
     const session = await createWorktree("from-main", repo, {
       baseBranch: "main",
     });
+    extraPaths.push(session.path);
     expect(session.baseBranch).toBe("main");
     const worktreeSha = execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: session.path,
@@ -94,5 +107,23 @@ describe("createWorktree / removeWorktree", () => {
     await expect(
       createWorktree("from-missing", repo, { baseBranch: "does-not-exist" }),
     ).rejects.toThrow(/does-not-exist|not a valid object|unknown revision/i);
+  });
+});
+
+describe("resolveWorktreePath", () => {
+  it("reuses leftover in-repo .wave/worktrees before minting a home path", () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wt-legacy-"));
+    const legacy = path.join(repo, ".wave", "worktrees", "old-slug");
+    fs.mkdirSync(legacy, { recursive: true });
+    expect(resolveWorktreePath("old-slug", repo)).toBe(legacy);
+    fs.rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("defaults new trees to ~/.muse-work/worktrees/<name>", () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wt-home-"));
+    expect(resolveWorktreePath("fresh-slug", repo)).toBe(
+      path.join(getMuseWorktreesRoot(), "fresh-slug"),
+    );
+    fs.rmSync(repo, { recursive: true, force: true });
   });
 });

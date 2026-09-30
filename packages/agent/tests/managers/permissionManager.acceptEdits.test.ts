@@ -1,0 +1,156 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { PermissionManager } from "../../src/managers/permissionManager.js";
+import type {
+  ToolPermissionContext,
+  PermissionCallback,
+} from "../../src/types/permissions.js";
+import { Container } from "../../src/utils/container.js";
+
+describe("PermissionManager - acceptEdits mode", () => {
+  let permissionManager: PermissionManager;
+  let container: Container;
+
+  beforeEach(() => {
+    container = new Container();
+
+    permissionManager = new PermissionManager(container);
+  });
+
+  describe("checkPermission with acceptEdits mode", () => {
+    it("should automatically allow 'Edit', 'Write' tools inside Safe Zone", async () => {
+      const autoAcceptedTools = ["Edit", "Write"];
+      const workdir = "/home/user/project";
+      const container = new Container();
+      container.register("Workdir", workdir);
+      const manager = new PermissionManager(container);
+
+      for (const toolName of autoAcceptedTools) {
+        const context: ToolPermissionContext = {
+          toolName,
+          permissionMode: "acceptEdits",
+          toolInput: { file_path: "/home/user/project/test.txt" },
+        };
+
+        const result = await manager.checkPermission(context);
+        expect(result).toEqual({ behavior: "allow" });
+      }
+    });
+
+    it("should still require permission for 'Bash' tool in acceptEdits mode", async () => {
+      const context: ToolPermissionContext = {
+        toolName: "Bash",
+        permissionMode: "acceptEdits",
+      };
+
+      // Without callback, it should deny
+      const result = await permissionManager.checkPermission(context);
+      expect(result.behavior).toBe("deny");
+      expect(result.message).toContain("requires permission approval");
+
+      // With callback, it should call the callback
+      const mockCallback: PermissionCallback = vi.fn().mockResolvedValue({
+        behavior: "allow",
+      });
+      const contextWithCallback: ToolPermissionContext = {
+        ...context,
+        canUseToolCallback: mockCallback,
+      };
+
+      const resultWithCallback =
+        await permissionManager.checkPermission(contextWithCallback);
+      expect(resultWithCallback).toEqual({ behavior: "allow" });
+      expect(mockCallback).toHaveBeenCalled();
+    });
+
+    it("should allow unrestricted tools in acceptEdits mode", async () => {
+      const context: ToolPermissionContext = {
+        toolName: "Read",
+        permissionMode: "acceptEdits",
+      };
+
+      const result = await permissionManager.checkPermission(context);
+      expect(result).toEqual({ behavior: "allow" });
+    });
+  });
+
+  describe("mode switching from bypassPermissions to acceptEdits", () => {
+    it("should use callback for Bash when mode changes from bypassPermissions to acceptEdits", async () => {
+      const mockCallback = vi.fn().mockResolvedValue({
+        behavior: "allow",
+      }) as unknown as PermissionCallback;
+
+      // In bypassPermissions mode, Bash is allowed regardless of callback
+      const bypassContext: ToolPermissionContext = {
+        toolName: "Bash",
+        permissionMode: "bypassPermissions",
+        canUseToolCallback: mockCallback,
+      };
+      const bypassResult =
+        await permissionManager.checkPermission(bypassContext);
+      expect(bypassResult).toEqual({ behavior: "allow" });
+      // Callback should NOT be called in bypassPermissions mode
+      expect(vi.mocked(mockCallback)).not.toHaveBeenCalled();
+
+      // After switching to acceptEdits mode, Bash is not auto-accepted,
+      // so the callback should be invoked
+      vi.mocked(mockCallback).mockClear();
+      const acceptEditsContext: ToolPermissionContext = {
+        toolName: "Bash",
+        permissionMode: "acceptEdits",
+        canUseToolCallback: mockCallback,
+      };
+      const acceptEditsResult =
+        await permissionManager.checkPermission(acceptEditsContext);
+      expect(acceptEditsResult).toEqual({ behavior: "allow" });
+      expect(vi.mocked(mockCallback)).toHaveBeenCalled();
+    });
+
+    it("should deny Bash in acceptEdits mode when callback is not provided", async () => {
+      // Without a callback, acceptEdits mode falls through to deny with a warning
+      const context: ToolPermissionContext = {
+        toolName: "Bash",
+        permissionMode: "acceptEdits",
+        // canUseToolCallback is undefined
+      };
+
+      const result = await permissionManager.checkPermission(context);
+      expect(result.behavior).toBe("deny");
+      expect(result.message).toContain("requires permission approval");
+    });
+  });
+
+  describe("resolveEffectivePermissionMode with acceptEdits", () => {
+    it("should correctly resolve effective mode when acceptEdits is set as configured default", () => {
+      const manager = new PermissionManager(container, {
+        configuredPermissionMode: "acceptEdits",
+      });
+
+      expect(manager.resolveEffectivePermissionMode()).toBe("acceptEdits");
+      expect(manager.getCurrentEffectiveMode()).toBe("acceptEdits");
+    });
+
+    it("should correctly resolve effective mode when acceptEdits is set as CLI override", () => {
+      const manager = new PermissionManager(container, {
+        configuredPermissionMode: "default",
+      });
+
+      expect(manager.resolveEffectivePermissionMode("acceptEdits")).toBe(
+        "acceptEdits",
+      );
+      expect(manager.getCurrentEffectiveMode("acceptEdits")).toBe(
+        "acceptEdits",
+      );
+    });
+
+    it("should prioritize CLI override over configured default acceptEdits", () => {
+      const manager = new PermissionManager(container, {
+        configuredPermissionMode: "acceptEdits",
+      });
+
+      expect(manager.resolveEffectivePermissionMode("bypassPermissions")).toBe(
+        "bypassPermissions",
+      );
+      expect(manager.resolveEffectivePermissionMode("default")).toBe("default");
+    });
+  });
+});
