@@ -92,38 +92,6 @@ function SessionStatusGlyph({
   );
 }
 
-const ISSUE_PRIORITY_LABEL: Record<string, string> = {
-  p0: "紧急",
-  p1: "普通",
-  p2: "较低",
-};
-
-function IssuePriorityFlag({ priority }: { priority: string }) {
-  const key = priority === "p0" || priority === "p2" ? priority : "p1";
-  const label = ISSUE_PRIORITY_LABEL[key] ?? "普通";
-  return (
-    <svg
-      className={`desktop-session-issue-icon desktop-session-issue-icon--${key}`}
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      data-testid="desktop-session-issue-icon"
-      data-priority={key}
-      aria-hidden="true"
-    >
-      <title>{`待办 · ${key.toUpperCase()} ${label}`}</title>
-      <path
-        className="desktop-session-issue-icon-pole"
-        d="M4.2 2.35 v11.3"
-      />
-      <path
-        className="desktop-session-issue-icon-cloth"
-        d="M4.2 3.15 C7.45 2.1 9.15 4.45 12.55 3.2 V8.15 C9.15 9.4 7.45 7.05 4.2 8.1 Z"
-      />
-    </svg>
-  );
-}
-
 /** 去掉会话标题末尾的「· 规划/执行」，避免和侧栏前缀叠两层。 */
 export function stripIssueSessionRoleSuffix(title: string): string {
   return title.replace(/\s*·\s*(规划|执行)\s*$/u, "").trim() || title;
@@ -768,6 +736,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 );
                 const boundUnread =
                   Boolean(boundSession?.unreadDone) && !boundCurrent;
+                const hasNestedIssueSessions =
+                  !boundSession && sessions.length > 0;
                 const boundStatusIcon = boundWaiting ? (
                   <SessionStatusGlyph kind="waiting" />
                 ) : boundRunning ? (
@@ -807,22 +777,38 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                             }
                             return;
                           }
-                          toggleIssueCollapsed(group.issueId);
+                          if (sessions.length === 0 && onOpenPlanning) {
+                            onOpenPlanning(group.issueId);
+                            return;
+                          }
+                          if (hasNestedIssueSessions) {
+                            toggleIssueCollapsed(group.issueId);
+                          }
                         }}
                         data-testid={`desktop-session-issue-row-${group.issueId}`}
+                        aria-label={
+                          sessions.length === 0 && onOpenPlanning
+                            ? `打开会话：${group.title}`
+                            : undefined
+                        }
                       >
                         <span
                           className="desktop-session-workdir-icon-slot"
                           aria-hidden="true"
                         >
-                          <span className="desktop-session-workdir-folder">
-                            {boundStatusIcon ?? (
-                              <IssuePriorityFlag priority={priority} />
-                            )}
-                          </span>
-                          {boundSession ? null : (
+                          {boundStatusIcon ? (
+                            <span className="desktop-session-workdir-folder">
+                              {boundStatusIcon}
+                            </span>
+                          ) : hasNestedIssueSessions ? (
                             <span
-                              className={`codicon codicon-chevron-down desktop-session-workdir-chevron${collapsed ? " desktop-session-workdir-chevron--collapsed" : ""}`}
+                              className={`codicon codicon-chevron-down desktop-session-issue-expand${collapsed ? " desktop-session-issue-expand--collapsed" : ""}`}
+                              data-testid="desktop-session-issue-expand"
+                            />
+                          ) : (
+                            <span
+                              className="desktop-session-issue-icon-spacer"
+                              data-testid="desktop-session-issue-icon-spacer"
                             />
                           )}
                         </span>
@@ -896,28 +882,8 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </span>
                       </div>
                     </Tooltip>
-                    {boundSession ? null : (
+                    {boundSession || sessions.length === 0 ? null : (
                     <CollapsibleBody open={open && !collapsed}>
-                      {sessions.length === 0 ? (
-                        <div className="desktop-session-empty issue-sidebar-empty">
-                          {onOpenPlanning ? (
-                            <button
-                              type="button"
-                              className="issue-sidebar-open-planning"
-                              data-testid={`desktop-session-issue-open-planning-${group.issueId}`}
-                              onClick={() => onOpenPlanning(group.issueId)}
-                            >
-                              <span
-                                className="codicon codicon-play"
-                                aria-hidden="true"
-                              />
-                              打开会话
-                            </button>
-                          ) : (
-                            "无会话"
-                          )}
-                        </div>
-                      ) : (
                         <ul className="desktop-session-items desktop-session-items--nested">
                           {sessions.map((session) => {
                             const role = issueSessionRole(
@@ -934,7 +900,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                             });
                           })}
                         </ul>
-                      )}
                     </CollapsibleBody>
                     )}
                   </div>

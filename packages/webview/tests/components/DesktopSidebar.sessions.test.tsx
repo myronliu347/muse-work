@@ -664,6 +664,8 @@ describe("DesktopSidebar pin/recent sessions", () => {
     const badge = section.querySelector(".issue-sidebar-priority-p0");
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
+    const expand = screen.getByTestId("desktop-session-issue-expand");
+    expect(expand).toHaveClass("codicon-chevron-down");
     expect(
       screen.getByTestId("desktop-session-issue-row-issue-1"),
     ).not.toHaveTextContent("写方案");
@@ -765,7 +767,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
       row.querySelector("[data-testid='desktop-session-status-running']"),
     ).toBeTruthy();
     expect(
-      row.querySelector("[data-testid='desktop-session-issue-icon']"),
+      row.querySelector("[data-testid='desktop-session-issue-expand']"),
     ).toBeNull();
     cleanup();
 
@@ -791,6 +793,18 @@ describe("DesktopSidebar pin/recent sessions", () => {
     });
     row = screen.getByTestId("desktop-session-issue-row-issue-1");
     expect(row.querySelector(".desktop-session-unread-dot")).toBeTruthy();
+    cleanup();
+
+    renderSidebar({
+      issueGroups: single({ sessionId: "plan-1" }),
+    });
+    row = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(
+      row.querySelector("[data-testid='desktop-session-issue-expand']"),
+    ).toBeNull();
+    expect(
+      row.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
+    ).toBeTruthy();
   });
 
   it("does not offer rename on nested issue role labels", () => {
@@ -896,10 +910,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
       screen.queryByTestId("desktop-session-delete-plan-1"),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByTestId("desktop-session-issue-open-planning-empty-1"),
-    );
+    fireEvent.click(screen.getByTestId("desktop-session-issue-row-empty-1"));
     expect(onOpenPlanning).toHaveBeenCalledWith("empty-1");
+    expect(
+      screen.queryByTestId("desktop-session-issue-open-planning-empty-1"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders leftover issue groups that omit priority without throwing", () => {
