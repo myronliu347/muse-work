@@ -30,14 +30,10 @@ export * from "./tools.js"; // Tool parameter types
 export * from "./fileSearch.js"; // File search types
 export * from "./lsp.js";
 export * from "./plugins.js";
-export * from "./marketplace.js";
 export * from "./memoryRule.js";
 export * from "./history.js";
 export * from "./tasks.js";
 export * from "./agent.js";
-export * from "./cron.js";
-export * from "./telemetry.js";
-export * from "./auth.js";
 export * from "./workflow.js";
 
 // Types UI consumers (vsce, desktop webview) import via the `wave-agent-sdk/types`

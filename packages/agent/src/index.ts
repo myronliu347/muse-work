@@ -1,14 +1,11 @@
 // Export all services
 export * from "./core/session.js";
-export * from "./services/authService.js";
-export * from "./services/worktreeHooks.js";
 
 // Export constants
 export * from "./constants/tools.js";
 
 // Export main agent
 export * from "./agent.js";
-export * from "./core/plugin.js";
 export * from "./managers/messageQueue.js";
 
 // Export all utilities
@@ -31,8 +28,6 @@ export * from "./utils/nameGenerator.js";
 export * from "./utils/pathEncoder.js";
 export { ensureRuntimeDeps } from "./utils/runtimeDeps.js";
 export type { RuntimeDepsResult } from "./utils/runtimeDeps.js";
-export * from "./utils/worktreeSession.js";
-export * from "./utils/worktreeUtils.js";
 export {
   loadMergedWaveConfig,
   loadUserConfigEnv,

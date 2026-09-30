@@ -922,7 +922,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
         const localCommands = [
           "config",
-          "plugin",
           "mcp",
           "status",
           "tasks",

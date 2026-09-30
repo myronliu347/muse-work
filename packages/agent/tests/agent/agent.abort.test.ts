@@ -829,7 +829,6 @@ describe("Agent - Abort Handling", () => {
       await expect(testAgent.sendMessage("hello")).rejects.toThrow(
         "Agent destroyed",
       );
-      await expect(testAgent.bang("ls")).rejects.toThrow("Agent destroyed");
       await expect(testAgent.askBtw("question")).rejects.toThrow(
         "Agent destroyed",
       );

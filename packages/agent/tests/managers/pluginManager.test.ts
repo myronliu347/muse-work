@@ -19,7 +19,6 @@ import { LspManager } from "../../src/managers/lspManager.js";
 import { McpManager } from "../../src/managers/mcpManager.js";
 import { SlashCommandManager } from "../../src/managers/slashCommandManager.js";
 import { PermissionManager } from "../../src/managers/permissionManager.js";
-import { MarketplaceService } from "../../src/services/MarketplaceService.js";
 import { logger } from "../../src/utils/globalLogger.js";
 
 vi.mock("../../src/utils/globalLogger.js", () => ({
@@ -32,7 +31,6 @@ vi.mock("../../src/utils/globalLogger.js", () => ({
 }));
 
 vi.mock("../../src/services/pluginLoader.js");
-vi.mock("../../src/services/MarketplaceService.js");
 vi.mock("../../src/utils/builtinEmbed.js", () => ({
   ensureBuiltinMaterialized: () => "/fake-builtin-root",
 }));
@@ -51,12 +49,6 @@ describe("PluginManager", () => {
   let mockMcpManager: McpManager;
   let mockSlashCommandManager: SlashCommandManager;
   let mockPermissionManager: PermissionManager;
-  /** 每个用例里 PluginManager 构造的 MarketplaceService 替身（守卫「加载插件不刷市场」）。 */
-  let createdMarketplaceServices: {
-    getInstalledPlugins: ReturnType<typeof vi.fn>;
-    listMarketplaces: ReturnType<typeof vi.fn>;
-    refreshMarketplaces: ReturnType<typeof vi.fn>;
-  }[];
   const workdir = "/test/workdir";
 
   beforeEach(() => {
@@ -93,16 +85,6 @@ describe("PluginManager", () => {
       mockConfigurationService as unknown as Record<string, unknown>,
     );
 
-    createdMarketplaceServices = [];
-    vi.mocked(MarketplaceService).mockImplementation(function () {
-      const instance = {
-        getInstalledPlugins: vi.fn().mockResolvedValue({ plugins: [] }),
-        listMarketplaces: vi.fn().mockResolvedValue([]),
-        refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-      };
-      createdMarketplaceServices.push(instance);
-      return instance as unknown as MarketplaceService;
-    });
 
     pluginManager = new PluginManager(container, {
       workdir,
@@ -318,216 +300,6 @@ describe("PluginManager", () => {
       );
     });
 
-    it("should only load explicitly enabled plugins from marketplace", async () => {
-      const installedPlugins = [
-        { name: "plugin1", marketplace: "m1", cachePath: "/path/1" },
-        { name: "plugin2", marketplace: "m1", cachePath: "/path/2" },
-        { name: "plugin3", marketplace: "m1", cachePath: "/path/3" },
-      ];
-
-      vi.mocked(MarketplaceService).mockImplementation(function () {
-        return {
-          getInstalledPlugins: vi
-            .fn()
-            .mockResolvedValue({ plugins: installedPlugins }),
-          listMarketplaces: vi.fn().mockResolvedValue([]),
-          refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-        } as unknown as MarketplaceService;
-      });
-
-      const enabledPlugins = {
-        "plugin1@m1": true,
-        "plugin2@m1": false,
-        // plugin3@m1 is not mentioned
-      };
-      (
-        pluginManager as unknown as {
-          mockConfigurationService: {
-            getMergedEnabledPlugins: ReturnType<typeof vi.fn>;
-          };
-        }
-      ).mockConfigurationService.getMergedEnabledPlugins.mockReturnValue(
-        enabledPlugins,
-      );
-
-      vi.mocked(PluginLoader.loadManifest).mockImplementation(
-        async function (p) {
-          return {
-            name:
-              p === "/path/1"
-                ? "plugin1"
-                : p === "/path/2"
-                  ? "plugin2"
-                  : "plugin3",
-            version: "1.0.0",
-            description: "desc",
-          } as PluginManifest;
-        },
-      );
-      vi.mocked(PluginLoader.loadCommands).mockReturnValue([]);
-      vi.mocked(PluginLoader.loadSkills).mockResolvedValue([]);
-
-      await pluginManager.loadPlugins([]);
-
-      expect(pluginManager.getPlugins()).toHaveLength(1);
-      expect(pluginManager.getPlugin("plugin1")).toBeDefined();
-      expect(pluginManager.getPlugin("plugin2")).toBeUndefined();
-      expect(pluginManager.getPlugin("plugin3")).toBeUndefined();
-      expect(logger.debug).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Plugin plugin2@m1 is not enabled via configuration",
-        ),
-      );
-      expect(logger.debug).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Plugin plugin3@m1 is not enabled via configuration",
-        ),
-      );
-    });
-
-    it("should prioritize local plugins over marketplace plugins", async () => {
-      const configs: PluginConfig[] = [
-        { type: "local", path: "plugins/test-plugin" },
-      ];
-      const localManifest = {
-        name: "test-plugin",
-        version: "2.0.0-local",
-        description: "Local version",
-      };
-      const marketplaceManifest = {
-        name: "test-plugin",
-        version: "1.0.0-marketplace",
-        description: "Marketplace version",
-      };
-
-      const installedPlugins = [
-        {
-          name: "test-plugin",
-          marketplace: "m1",
-          cachePath: "/marketplace/path",
-        },
-      ];
-
-      vi.mocked(MarketplaceService).mockImplementation(function () {
-        return {
-          getInstalledPlugins: vi
-            .fn()
-            .mockResolvedValue({ plugins: installedPlugins }),
-          listMarketplaces: vi.fn().mockResolvedValue([]),
-          refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-        } as unknown as MarketplaceService;
-      });
-
-      const enabledPlugins = {
-        "test-plugin@m1": true,
-      };
-      (
-        pluginManager as unknown as {
-          mockConfigurationService: {
-            getMergedEnabledPlugins: ReturnType<typeof vi.fn>;
-          };
-        }
-      ).mockConfigurationService.getMergedEnabledPlugins.mockReturnValue(
-        enabledPlugins,
-      );
-
-      const localPluginPath = path.resolve(workdir, configs[0].path);
-      vi.mocked(PluginLoader.loadManifest).mockImplementation(
-        async function (p) {
-          if (p === localPluginPath) {
-            return localManifest as PluginManifest;
-          }
-          return marketplaceManifest as PluginManifest;
-        },
-      );
-      vi.mocked(PluginLoader.loadCommands).mockReturnValue([]);
-      vi.mocked(PluginLoader.loadSkills).mockResolvedValue([]);
-
-      await pluginManager.loadPlugins(configs);
-
-      const plugins = pluginManager.getPlugins();
-      expect(plugins).toHaveLength(1);
-      expect(plugins[0].version).toBe("2.0.0-local");
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Plugin with name 'test-plugin' is already loaded",
-        ),
-      );
-    });
-
-    it("should not refresh marketplace checkouts while loading plugins", async () => {
-      // 清单刷新只由「打开插件市场界面」触发（spec 插件市场 A-013 场景 5）：
-      // 插件加载路径（宿主启动 / 新建会话 / 配置重建）不得发起任何市场拉取。
-      await pluginManager.loadPlugins([]);
-
-      expect(createdMarketplaceServices.length).toBeGreaterThan(0);
-      for (const service of createdMarketplaceServices) {
-        expect(service.refreshMarketplaces).not.toHaveBeenCalled();
-      }
-    });
-
-    it("should load a plugin once when several install records share the cache", async () => {
-      // spec plugin A-015：同一插件在 user 作用域与某项目各有一条安装记录，
-      // 记录指向同一份缓存 → 只按插件加载一次（否则会重复读 manifest 并误报
-      // 「already loaded」）。
-      const pluginId = "test-plugin@marketplace";
-      (
-        pluginManager as unknown as {
-          mockConfigurationService: {
-            getMergedEnabledPlugins: ReturnType<typeof vi.fn>;
-          };
-        }
-      ).mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({
-        [pluginId]: true,
-      });
-
-      vi.mocked(PluginLoader.loadManifest).mockResolvedValue({
-        name: "test-plugin",
-        version: "1.0.0",
-        description: "A test plugin",
-      } as PluginManifest);
-      vi.mocked(PluginLoader.loadCommands).mockReturnValue([]);
-      vi.mocked(PluginLoader.loadSkills).mockResolvedValue([]);
-
-      vi.mocked(MarketplaceService).mockImplementation(function () {
-        const instance = {
-          getInstalledPlugins: vi.fn().mockResolvedValue({
-            plugins: [
-              {
-                name: "test-plugin",
-                marketplace: "marketplace",
-                version: "1.0.0",
-                cachePath: "/cache/test-plugin/1.0.0",
-                scope: "user",
-              },
-              {
-                name: "test-plugin",
-                marketplace: "marketplace",
-                version: "1.0.0",
-                cachePath: "/cache/test-plugin/1.0.0",
-                scope: "project",
-                projectPath: "/repo/a",
-              },
-            ],
-          }),
-          listMarketplaces: vi.fn().mockResolvedValue([]),
-          refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-        };
-        createdMarketplaceServices.push(instance);
-        return instance as unknown as MarketplaceService;
-      });
-
-      await pluginManager.loadPlugins([]);
-
-      expect(pluginManager.getPlugins()).toHaveLength(1);
-      expect(PluginLoader.loadManifest).toHaveBeenCalledTimes(1);
-      expect(logger.warn).not.toHaveBeenCalledWith(
-        expect.stringContaining("already loaded"),
-      );
-    });
-  });
-
-  describe("getPlugins and getPlugin", () => {
     it("should return all loaded plugins", async () => {
       const configs: PluginConfig[] = [
         { type: "local", path: "plugins/p1" },
@@ -702,25 +474,6 @@ describe("PluginManager", () => {
 
       expect(logger.warn).not.toHaveBeenCalledWith(
         expect.stringContaining("marketplace builtin is unknown"),
-      );
-    });
-
-    it("should register spec-count allow rule when sdd@builtin is enabled and loaded", async () => {
-      enableBuiltins("sdd");
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readdirSync).mockReturnValue(dirEntries(["sdd"], ["sdd"]));
-      vi.mocked(PluginLoader.loadManifest).mockResolvedValue({
-        name: "sdd",
-        version: "1.0.0",
-        description: "Spec-first workflow",
-      } as PluginManifest);
-      vi.mocked(PluginLoader.loadCommands).mockReturnValue([]);
-      vi.mocked(PluginLoader.loadSkills).mockResolvedValue([]);
-
-      await pluginManager.loadPlugins([]);
-
-      expect(mockPermissionManager.addInstanceAllowedRule).toHaveBeenCalledWith(
-        "Bash(node *spec-count.js*)",
       );
     });
 

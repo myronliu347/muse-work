@@ -3,7 +3,7 @@ import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
 import {
   AGENT_TOOL_NAME,
-  ENTER_WORKTREE_TOOL_NAME,
+  BASH_TOOL_NAME,
   type Message,
 } from "@muse-work/agent";
 import { elementScreenshotWebp } from "../utils/screenshot.js";
@@ -99,7 +99,7 @@ test.describe("Product Specification Screenshots - Multi Agent Concurrency", () 
         blocks: [
           {
             type: "tool",
-            name: ENTER_WORKTREE_TOOL_NAME,
+            name: BASH_TOOL_NAME,
             stage: "end",
             compactParams: "pay-refactor",
             parameters: JSON.stringify({ name: "pay-refactor" }),

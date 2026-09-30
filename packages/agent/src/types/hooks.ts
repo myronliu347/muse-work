@@ -220,7 +220,6 @@ export interface HookJsonInput {
   compact_instructions?: string; // Present for PreCompact events
   compact_summary?: string; // Present for PostCompact events
   background_tasks?: BackgroundTaskInfo[]; // Present for Stop events: running background tasks snapshot
-  session_crons?: SessionCronInfo[]; // Present for Stop events: session-scoped cron jobs snapshot
   last_assistant_message?: string; // Present for Stop and SubagentStop events: text content of the last assistant message
 }
 
@@ -238,15 +237,6 @@ export interface BackgroundTaskInfo {
   command?: string; // Present only for shell tasks (≤1000 chars)
   agent_type?: string; // Present only for subagent tasks
   name?: string; // Present only for workflow tasks
-}
-
-// Describes one session-scoped cron job in the Stop hook input.
-// Aligned with Claude Code (v2.1.145+) session_crons array element schema.
-export interface SessionCronInfo {
-  id: string;
-  schedule: string; // Cron expression
-  recurring: boolean;
-  prompt: string;
 }
 
 // Extended context interface for passing additional data to hook executor
@@ -267,7 +257,6 @@ export interface ExtendedHookExecutionContext extends HookExecutionContext {
   compactInstructions?: string; // Custom instructions for PreCompact
   compactSummary?: string; // Summary text for PostCompact
   backgroundTasks?: BackgroundTaskInfo[]; // Running background tasks snapshot (Stop only)
-  sessionCrons?: SessionCronInfo[]; // Session-scoped cron jobs snapshot (Stop only)
   lastAssistantMessage?: string; // Text content of last assistant message (Stop and SubagentStop only)
 }
 

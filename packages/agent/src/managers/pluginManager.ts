@@ -15,7 +15,6 @@ import { LspManager } from "./lspManager.js";
 import { McpManager } from "./mcpManager.js";
 import { SlashCommandManager } from "./slashCommandManager.js";
 import { SubagentManager } from "./subagentManager.js";
-import { MarketplaceService } from "../services/MarketplaceService.js";
 import { ConfigurationService } from "../services/configurationService.js";
 import { Container } from "../utils/container.js";
 import { PermissionManager } from "./permissionManager.js";
@@ -35,9 +34,7 @@ export class PluginManager {
    * locations; each rule anchors on the script filename.
    */
   private static readonly BUILTIN_PLUGIN_ALLOW_RULES: Record<string, string[]> =
-    {
-      sdd: ["Bash(node *spec-count.js*)"],
-    };
+    {};
 
   private plugins = new Map<string, Plugin>();
   private workdir: string;
@@ -108,136 +105,6 @@ export class PluginManager {
    */
   updateEnabledPlugins(enabledPlugins: Record<string, boolean>): void {
     this.enabledPlugins = enabledPlugins;
-  }
-
-  /**
-   * Load plugins installed via marketplace
-   */
-  private async loadInstalledPlugins(): Promise<void> {
-    try {
-      // If configurationService is provided, use it to get the latest merged enabled plugins
-      if (this.configurationService) {
-        this.enabledPlugins = this.configurationService.getMergedEnabledPlugins(
-          this.workdir,
-        );
-      }
-
-      const marketplaceService = new MarketplaceService(
-        this.workdir,
-        this.configurationService,
-      );
-
-      let installedRegistry = await marketplaceService.getInstalledPlugins();
-      const knownMarketplaces = await marketplaceService.listMarketplaces();
-
-      // Identify missing enabled plugins and auto-install them if marketplace is known
-      for (const pluginId of Object.keys(this.enabledPlugins)) {
-        if (this.enabledPlugins[pluginId] !== true) continue;
-
-        const [name, marketplaceName] = pluginId.split("@");
-        if (!name || !marketplaceName) continue;
-        // `@builtin` entries are loaded by loadBuiltinPlugins, not the marketplace.
-        if (marketplaceName === "builtin") continue;
-
-        const isInstalled = installedRegistry.plugins.some(
-          (p) => p.name === name && p.marketplace === marketplaceName,
-        );
-
-        if (!isInstalled) {
-          const isMarketplaceKnown = knownMarketplaces.some(
-            (m) => m.name === marketplaceName,
-          );
-
-          if (isMarketplaceKnown) {
-            // Pre-check: verify the plugin still exists in the marketplace manifest
-            // before acquiring the lock in installPlugin (which can block ~8s during a marketplace refresh)
-            const marketplace = knownMarketplaces.find(
-              (m) => m.name === marketplaceName,
-            );
-            if (!marketplace) continue;
-            try {
-              const marketplacePath = marketplaceService.getMarketplacePath(
-                marketplace.source,
-              );
-              const manifest =
-                await marketplaceService.loadMarketplaceManifest(
-                  marketplacePath,
-                );
-              const pluginExists = manifest.plugins.some(
-                (p) => p.name === name,
-              );
-              if (!pluginExists) {
-                logger?.warn(
-                  `Plugin ${pluginId} is enabled but no longer exists in marketplace ${marketplaceName}. Removing from enabledPlugins.`,
-                );
-                await this.configurationService?.removeEnabledPlugin(
-                  this.workdir,
-                  "user",
-                  pluginId,
-                );
-                continue;
-              }
-            } catch {
-              // Manifest read failed — marketplace may not be cloned yet, try to clone/update it
-              try {
-                await marketplaceService.updateMarketplace(marketplaceName);
-              } catch (updateError) {
-                logger?.warn(
-                  `Failed to clone/update marketplace ${marketplaceName}: ${updateError instanceof Error ? updateError.message : String(updateError)}`,
-                );
-              }
-            }
-
-            logger?.info(`Auto-installing missing plugin: ${pluginId}`);
-            try {
-              await marketplaceService.installPlugin(pluginId);
-            } catch (installError) {
-              if (
-                installError instanceof Error &&
-                installError.message.includes("not found in marketplace")
-              ) {
-                logger?.warn(
-                  `Plugin ${pluginId} no longer found in marketplace. Removing from enabledPlugins.`,
-                );
-                await this.configurationService?.removeEnabledPlugin(
-                  this.workdir,
-                  "user",
-                  pluginId,
-                );
-              } else {
-                logger?.error(
-                  `Failed to auto-install plugin ${pluginId}:`,
-                  installError,
-                );
-              }
-            }
-          } else {
-            logger?.warn(
-              `Plugin ${pluginId} is enabled but marketplace ${marketplaceName} is unknown. Skipping auto-install.`,
-            );
-          }
-        }
-      }
-
-      // Refresh registry after potential auto-installs
-      installedRegistry = await marketplaceService.getInstalledPlugins();
-
-      // 同一插件在本机可能有多条安装记录（各作用域/各项目各一条，spec plugin
-      // A-015）；按插件去重，否则同一个 cachePath 会被加载多次。
-      const loaded = new Set<string>();
-      for (const p of installedRegistry.plugins) {
-        const pluginId = `${p.name}@${p.marketplace}`;
-        if (this.enabledPlugins[pluginId] !== true) {
-          logger?.debug(`Plugin ${pluginId} is not enabled via configuration`);
-          continue;
-        }
-        if (loaded.has(pluginId)) continue;
-        loaded.add(pluginId);
-        await this.loadSinglePlugin(p.cachePath);
-      }
-    } catch (error) {
-      logger?.error("Failed to load installed plugins:", error);
-    }
   }
 
   /**
@@ -360,8 +227,11 @@ export class PluginManager {
       await this.loadSinglePlugin(absolutePath);
     }
 
-    // Load installed plugins from marketplace
-    await this.loadInstalledPlugins();
+    if (this.configurationService) {
+      this.enabledPlugins = this.configurationService.getMergedEnabledPlugins(
+        this.workdir,
+      );
+    }
 
     // Load built-in plugins bundled with the SDK (lowest priority)
     await this.loadBuiltinPlugins();
@@ -407,7 +277,7 @@ export class PluginManager {
    *
    * Unloads everything currently loaded, re-reads `enabledPlugins` from the
    * configuration chain (so a settings edit is honored), then replays the
-   * original load order (explicit configs → installed → builtin). The session,
+   * original load order (explicit local configs → builtin). The session,
    * transcript and sessionId are untouched; only the capability registries are
    * swapped, which is what makes this an in-place reload instead of a rebuild.
    *
@@ -444,10 +314,9 @@ export class PluginManager {
   }
 
   /**
-   * Load built-in plugins bundled with the SDK (e.g. sdd).
-   * Opt-in via `enabledPlugins`, keyed `<name>@builtin` (default off, consistent
-   * with marketplace plugins). Lowest priority: explicit config and marketplace
-   * plugins win on name conflicts (loadSinglePlugin skips duplicates).
+   * Load built-in plugins bundled with the SDK.
+   * Opt-in via `enabledPlugins`, keyed `<name>@builtin` (default off).
+   * Lowest priority: explicit local plugin dirs win on name conflicts.
    */
   private async loadBuiltinPlugins(): Promise<void> {
     try {

@@ -8,12 +8,6 @@ import { enterPlanModeTool } from "../tools/enterPlanMode.js";
 import { askUserQuestionTool } from "../tools/askUserQuestion.js";
 import { webFetchTool } from "../tools/webFetchTool.js";
 import { workflowTool } from "../tools/workflowTool.js";
-import { execTool } from "../tools/execTool.js";
-import { isExecEnabled } from "../services/execAvailability.js";
-import { buildExecPool, renderCatalog } from "../exec/catalog.js";
-import type { ExecPoolEntry, RenderedCatalog } from "../exec/catalog.js";
-import { EXEC_DEFAULT_CATALOG_TOKENS } from "../exec/constants.js";
-import { EXEC_TOOL_NAME } from "../constants/tools.js";
 // New tools
 import { globTool } from "../tools/globTool.js";
 import { grepTool } from "../tools/grepTool.js";
@@ -47,7 +41,6 @@ import { logger } from "../utils/globalLogger.js";
 
 import type { SubagentConfiguration } from "../utils/subagentParser.js";
 import type { SkillMetadata } from "../types/skills.js";
-import { startToolSpan, endToolSpan } from "../telemetry/sessionTracing.js";
 
 export interface ToolManagerOptions {
   container: Container;
@@ -132,11 +125,6 @@ class ToolManager {
       workflowTool,
     ];
 
-    // Exec is off by default (flat MCP tools). Opt in with enableExec: true.
-    if (isExecEnabled(this.container.get<string>("Workdir"))) {
-      builtInTools.push(execTool);
-    }
-
     for (const tool of builtInTools) {
       if (this.shouldEnableTool(tool.name)) {
         this.toolsRegistry.set(tool.name, tool);
@@ -152,11 +140,9 @@ class ToolManager {
   }
 
   /**
-   * Re-evaluate feature-gated built-in tools after a live configuration
-   * reload. Gates the Exec tool on `enableExec`.
+   * Re-evaluate gated built-in tools after a live configuration reload.
    */
   public reloadFeatureGatedTools(): void {
-    this.toolsRegistry.delete(execTool.name);
     this.initializeBuiltInTools();
   }
 
@@ -287,8 +273,6 @@ class ToolManager {
       toolCallId: context.toolCallId,
     };
 
-    // OpenTelemetry: start tool span
-    startToolSpan(name, args);
     const toolStartTime = Date.now();
 
     logger?.debug("Executing tool with enhanced context", {
@@ -306,18 +290,8 @@ class ToolManager {
           args,
           enhancedContext,
         );
-        endToolSpan({
-          success: result.success,
-          durationMs: Date.now() - toolStartTime,
-          output: result.content,
-        });
         return result;
       } catch (error) {
-        endToolSpan({
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-          durationMs: Date.now() - toolStartTime,
-        });
         return {
           success: false,
           content: "",
@@ -331,21 +305,11 @@ class ToolManager {
     if (plugin) {
       try {
         const result = await plugin.execute(args, enhancedContext);
-        endToolSpan({
-          success: result.success,
-          durationMs: Date.now() - toolStartTime,
-          output: result.content,
-        });
         return result;
       } catch (error) {
         logger?.error("Tool execution failed", {
           toolName: name,
           error: error instanceof Error ? error.message : String(error),
-        });
-        endToolSpan({
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-          durationMs: Date.now() - toolStartTime,
         });
         return {
           success: false,
@@ -356,11 +320,6 @@ class ToolManager {
     }
 
     logger?.warn("Tool not found", { toolName: name });
-    endToolSpan({
-      success: false,
-      error: `Tool '${name}' not found`,
-      durationMs: Date.now() - toolStartTime,
-    });
     return {
       success: false,
       content: "",
@@ -380,38 +339,6 @@ class ToolManager {
     return [...builtInTools, ...mcpTools];
   }
 
-  /**
-   * Whether `Exec` is declared at all: registered and not denied. Exactly when the
-   * catalog channel is open — an undeclared `Exec` cannot be called, so a catalog
-   * for it would advertise a way in that does not exist.
-   */
-  private isExecDeclared(): boolean {
-    return (
-      this.toolsRegistry.has(EXEC_TOOL_NAME) &&
-      !this.getPermissionManager()?.isToolDenied(EXEC_TOOL_NAME)
-    );
-  }
-
-  /** The tools the sandbox may reach — the pool the flat declarations give up. */
-  private execPool(): ExecPoolEntry[] {
-    return buildExecPool(this.mcpManager, this.getPermissionManager());
-  }
-
-  /**
-   * The MCP catalog as the model is meant to see it, or `undefined` when the
-   * catalog channel is closed.
-   *
-   * A function of the pool alone, and computed per call: with the catalog out of
-   * `tools[]` the declaration no longer moves when a server comes or goes, and the
-   * announcement channel diffs this against the history. Caching the rendering would
-   * mean caching pool state, which is exactly the process-side bookkeeping the
-   * channel is built to avoid.
-   */
-  public getExecCatalog(): RenderedCatalog | undefined {
-    if (!this.isExecDeclared()) return undefined;
-    return renderCatalog(this.execPool(), EXEC_DEFAULT_CATALOG_TOKENS);
-  }
-
   getToolsConfig(options?: {
     availableSubagents?: SubagentConfiguration[];
     availableSkills?: SkillMetadata[];
@@ -420,25 +347,8 @@ class ToolManager {
   }): ChatCompletionFunctionTool[] {
     const permissionManager = this.getPermissionManager();
 
-    // Exec either replaces the flat MCP declarations or is absent: the two must
-    // never coexist, or the model would see the same tool twice while the
-    // catalog claimed to be the only way in. Both halves are derived from the
-    // same pool, and the pool is exactly what the agent could already call
-    // directly, so collapsing it cannot widen access.
-    const execPool = this.execPool();
-    // No minimum pool size: any catalogable tool collapses the pool, matching
-    // opencode. The switch (`enableExec`), not a count, decides whether Exec is
-    // used at all.
-    const collapseMcp = this.isExecDeclared() && execPool.length > 0;
-
     const builtInToolsConfig = Array.from(this.toolsRegistry.values())
       .filter((tool) => {
-        // With an empty pool there is nothing to collapse, so Exec stays
-        // registered but undeclared rather than declaring an empty catalog.
-        if (tool.name === EXEC_TOOL_NAME && !collapseMcp) {
-          return false;
-        }
-        // If tool is explicitly denied by name in permission rules, filter it out
         if (permissionManager?.isToolDenied(tool.name)) {
           return false;
         }
@@ -458,9 +368,7 @@ class ToolManager {
         }
         return config;
       });
-    const mcpToolsConfig = collapseMcp
-      ? []
-      : this.mcpManager.getMcpToolsConfig().filter((tool) => {
+    const mcpToolsConfig = this.mcpManager.getMcpToolsConfig().filter((tool) => {
           if (permissionManager?.isToolDenied(tool.function.name)) {
             return false;
           }

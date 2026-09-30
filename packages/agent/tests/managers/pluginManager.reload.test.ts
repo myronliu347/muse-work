@@ -10,7 +10,6 @@ import {
 } from "../../src/types/index.js";
 import * as path from "path";
 import { existsSync, readdirSync } from "fs";
-import { MarketplaceService } from "../../src/services/MarketplaceService.js";
 import { logger } from "../../src/utils/globalLogger.js";
 
 vi.mock("../../src/utils/globalLogger.js", () => ({
@@ -23,7 +22,6 @@ vi.mock("../../src/utils/globalLogger.js", () => ({
 }));
 
 vi.mock("../../src/services/pluginLoader.js");
-vi.mock("../../src/services/MarketplaceService.js");
 vi.mock("../../src/utils/builtinEmbed.js", () => ({
   ensureBuiltinMaterialized: () => "/fake-builtin-root",
 }));
@@ -149,14 +147,7 @@ describe("PluginManager in-place reload", () => {
     vi.mocked(existsSync).mockReturnValue(false);
     vi.mocked(readdirSync).mockReturnValue([]);
 
-    vi.mocked(MarketplaceService).mockImplementation(function () {
-      return {
-        getInstalledPlugins: vi.fn().mockResolvedValue({ plugins: [] }),
-        listMarketplaces: vi.fn().mockResolvedValue([]),
-        refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-      } as unknown as MarketplaceService;
-    });
-
+    
     vi.mocked(PluginLoader.loadManifest).mockResolvedValue({
       name: "p1",
       version: "1.0.0",
@@ -206,28 +197,6 @@ describe("PluginManager in-place reload", () => {
       expect(pluginManager.getPlugins()).toHaveLength(0);
     });
 
-    it("revokes the builtin helper-script grants the plugin added", async () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readdirSync).mockReturnValue([
-        { name: "sdd", isDirectory: () => true },
-      ] as unknown as Awaited<ReturnType<typeof readdirSync>>);
-      mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({
-        "sdd@builtin": true,
-      });
-      vi.mocked(PluginLoader.loadManifest).mockResolvedValue({
-        name: "sdd",
-        version: "1.0.0",
-        description: "d",
-      } as PluginManifest);
-      await pluginManager.loadPlugins([]);
-
-      await pluginManager.unloadPlugin("sdd");
-
-      expect(
-        mockPermissionManager.removeInstanceAllowedRule,
-      ).toHaveBeenCalledWith("Bash(node *spec-count.js*)");
-    });
-
     it("is a no-op for a plugin that is not loaded", async () => {
       const unloaded = await pluginManager.unloadPlugin("nope");
 
@@ -273,58 +242,6 @@ describe("PluginManager in-place reload", () => {
       expect(pluginManager.getPlugin("p1")?.commands).toEqual(updatedCommands);
     });
 
-    it("points the reloaded capabilities at the new cache directory after an update", async () => {
-      // 场景 12：更新会换用新的版本目录，重载后六类能力必须指向新目录。
-      const oldRoot = "/cache/p1/1.0.0";
-      const newRoot = "/cache/p1/2.0.0";
-      const installedAt = (cachePath: string) =>
-        vi.mocked(MarketplaceService).mockImplementation(function () {
-          return {
-            getInstalledPlugins: vi.fn().mockResolvedValue({
-              plugins: [{ name: "p1", marketplace: "m1", cachePath }],
-            }),
-            listMarketplaces: vi.fn().mockResolvedValue([]),
-            refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-          } as unknown as MarketplaceService;
-        });
-      mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({
-        "p1@m1": true,
-      });
-      installedAt(oldRoot);
-      stubPluginArtifacts({
-        name: "p1",
-        version: "1.0.0",
-        description: "d",
-      } as PluginManifest);
-      await pluginManager.loadPlugins([]);
-      expect(mockHookManager.registerPluginHooks).toHaveBeenCalledWith(
-        oldRoot,
-        expect.anything(),
-      );
-
-      installedAt(newRoot);
-      await pluginManager.reloadAllPlugins();
-
-      expect(mockHookManager.unregisterPluginHooks).toHaveBeenCalledWith(
-        oldRoot,
-      );
-      expect(mockHookManager.registerPluginHooks).toHaveBeenLastCalledWith(
-        newRoot,
-        expect.anything(),
-      );
-      expect(mockMcpManager.removeServersForPlugin).toHaveBeenCalledWith(
-        oldRoot,
-      );
-      expect(mockMcpManager.addServer).toHaveBeenLastCalledWith(
-        "srv",
-        expect.objectContaining({ pluginRoot: newRoot }),
-      );
-      expect(mockLspManager.registerServer).toHaveBeenLastCalledWith(
-        "go",
-        expect.objectContaining({ pluginRoot: newRoot }),
-      );
-    });
-
     it("is idempotent when nothing changed on disk", async () => {
       stubPluginArtifacts({
         name: "p1",
@@ -346,43 +263,6 @@ describe("PluginManager in-place reload", () => {
         expect.stringContaining("already loaded"),
       );
       expect(PluginLoader.loadManifest).toHaveBeenCalledTimes(3);
-    });
-
-    it("honors an edited enabledPlugins record instead of the startup snapshot", async () => {
-      // 场景 10：重载读的是磁盘当前的插件状态，不只是插件内容。
-      vi.mocked(MarketplaceService).mockImplementation(function () {
-        return {
-          getInstalledPlugins: vi.fn().mockResolvedValue({
-            plugins: [
-              { name: "p1", marketplace: "m1", cachePath: "/cache/p1" },
-            ],
-          }),
-          listMarketplaces: vi.fn().mockResolvedValue([]),
-          refreshMarketplaces: vi.fn().mockResolvedValue(undefined),
-        } as unknown as MarketplaceService;
-      });
-      mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({});
-      await pluginManager.loadPlugins([]);
-      expect(pluginManager.getPlugin("p1")).toBeUndefined();
-
-      mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({
-        "p1@m1": true,
-      });
-      const result = await pluginManager.reloadAllPlugins();
-
-      expect(result.plugins).toEqual(["p1"]);
-      expect(pluginManager.getPlugin("p1")).toBeDefined();
-
-      mockConfigurationService.getMergedEnabledPlugins.mockReturnValue({
-        "p1@m1": false,
-      });
-      const disabled = await pluginManager.reloadAllPlugins();
-
-      expect(disabled.plugins).toEqual([]);
-      expect(pluginManager.getPlugin("p1")).toBeUndefined();
-      expect(mockMcpManager.removeServersForPlugin).toHaveBeenCalledWith(
-        "/cache/p1",
-      );
     });
 
     it("reports a broken plugin without rolling back the healthy ones", async () => {

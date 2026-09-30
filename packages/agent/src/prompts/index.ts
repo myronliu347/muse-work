@@ -1,7 +1,6 @@
 import * as os from "node:os";
 import { ToolPlugin } from "../tools/types.js";
 import { isGitRepository } from "../utils/gitUtils.js";
-import type { WorktreeSession } from "../utils/worktreeSession.js";
 import { buildAutoMemoryPrompt } from "./autoMemory.js";
 import {
   EXPLORE_SUBAGENT_TYPE,
@@ -391,7 +390,6 @@ export function buildSystemPrompt(
     originalWorkdir?: string;
     language?: string;
     isSubagent?: boolean;
-    worktreeSession?: WorktreeSession | null;
     additionalWorkingDirectories?: string[];
     autoMemory?: {
       directory: string;
@@ -426,7 +424,6 @@ export function buildSystemPrompt(
     const shellInfo = getShellInfoLine();
     const osVersion = getUnameSR();
     const primaryWorkdir = options.originalWorkdir ?? options.workdir;
-    const worktreeSession = options.worktreeSession;
     const additionalWorkingDirectories =
       options.additionalWorkingDirectories || [];
 
@@ -457,9 +454,6 @@ OS Version: ${osVersion}
       // cutoff, and marketing lines, which Wave does not use).
       const envItems: Array<string | string[]> = [
         `Primary working directory: ${primaryWorkdir}`,
-        worktreeSession
-          ? `This is a git worktree — an isolated copy of the repository. Run all commands from this directory. Do NOT \`cd\` to the original repository root.`
-          : null,
         `Is a git repository: ${isGitRepo}`,
         additionalWorkingDirectories.length > 0
           ? `Additional working directories:`

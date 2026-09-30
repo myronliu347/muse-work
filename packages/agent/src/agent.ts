@@ -5,7 +5,6 @@ import { ToolManager } from "./managers/toolManager.js";
 import { SubagentManager } from "./managers/subagentManager.js";
 import { McpManager } from "./managers/mcpManager.js";
 import { LspManager } from "./managers/lspManager.js";
-import { BashModeManager } from "./managers/bashModeManager.js";
 import { BackgroundTaskManager } from "./managers/backgroundTaskManager.js";
 import { MessageQueue, type QueuedMessage } from "./managers/messageQueue.js";
 import { SlashCommandManager } from "./managers/slashCommandManager.js";
@@ -38,7 +37,6 @@ import { LiveConfigManager } from "./managers/liveConfigManager.js";
 import { configValidator } from "./utils/configValidator.js";
 import { SkillManager } from "./managers/skillManager.js";
 import { TaskManager } from "./services/taskManager.js";
-import type { WorktreeSession } from "./utils/worktreeSession.js";
 import path from "node:path";
 import { parseTaskNotificationXml } from "./utils/notificationXml.js";
 import { InitializationService } from "./services/initializationService.js";
@@ -50,18 +48,11 @@ import { ConfigurationService } from "./services/configurationService.js";
 import { setSessionCustomTitle } from "./services/session.js";
 import { Container } from "./utils/container.js";
 import { setupAgentContainer } from "./utils/containerSetup.js";
-import {
-  initializeTelemetry,
-  shutdownTelemetry,
-} from "./telemetry/instrumentation.js";
-import { logOTelEvent } from "./telemetry/events.js";
-import { remoteSettingsService } from "./services/remoteSettingsService.js";
 
 export class Agent {
   private messageManager: MessageManager;
   private aiManager: AIManager;
 
-  private bashModeManager: BashModeManager | null = null;
   private backgroundTaskManager: BackgroundTaskManager;
   private logger?: Logger; // Add optional logger property
   private toolManager: ToolManager; // Add tool registry instance
@@ -92,7 +83,6 @@ export class Agent {
   private workdir: string; // Working directory
   private systemPrompt?: string; // Custom system prompt
   private stream: boolean; // Streaming mode flag
-  private sessionStartTime: number = Date.now();
 
   // Configuration options storage for dynamic resolution
   private options: AgentOptions;
@@ -249,7 +239,6 @@ export class Agent {
     this.aiManager = this.container.get("AIManager")!;
     this.slashCommandManager = this.container.get("SlashCommandManager")!;
     this.pluginManager = this.container.get("PluginManager")!;
-    this.bashModeManager = this.container.get("BashModeManager")!;
     this.messageQueue = this.container.get("MessageQueue")!;
     this.asyncWorkRegistry = this.container.get("AsyncWorkRegistry")!;
 
@@ -271,10 +260,6 @@ export class Agent {
     };
 
     // Wire up bang manager callback for command running changes
-    this.bashModeManager.onCommandRunningChange = (running: boolean) => {
-      this.options.callbacks?.onCommandRunningChange?.(running);
-      if (!running) this.tryDispatch();
-    };
 
     // Set initial permission mode if provided
     if (options.permissionMode) {
@@ -323,15 +308,6 @@ export class Agent {
     this.workdir = newCwd;
     this.container.register("Workdir", newCwd);
     this.options.callbacks?.onWorkdirChange?.(newCwd);
-  }
-
-  /**
-   * Set this session's worktree session state (used by CLI -w startup to inject the
-   * session created before the agent existed). Delegates to AIManager so the state is
-   * stored in this agent's own DI container.
-   */
-  public setWorktreeSession(session: WorktreeSession | null): void {
-    this.aiManager.setWorktreeSession(session);
   }
 
   /** Get project memory content */
@@ -413,9 +389,9 @@ export class Agent {
     return this.aiManager.getIsCompacting();
   }
 
-  /** Get bash command execution status */
+  /** Residual flag for bang-mode; Muse does not run `!command`. */
   public get isCommandRunning(): boolean {
-    return this.bashModeManager?.isCommandRunning ?? false;
+    return false;
   }
 
   /** Get queued user-facing messages (excludes background notifications) */
@@ -508,7 +484,7 @@ export class Agent {
     if (this.dispatchAborted) return; // Aborted mid-dispatch: don't start a new dispatch (the user interrupted this turn)
     if (this.messageQueue.state !== "idle") return;
     if (!this.messageQueue.hasPending()) return;
-    if (this.aiManager.isLoading || this.isCommandRunning) return;
+    if (this.aiManager.isLoading) return;
 
     this.messageQueue.transitionTo("dispatching");
     this.dispatchPromise = this.asyncWorkRegistry.track(
@@ -538,10 +514,7 @@ export class Agent {
     this.messageQueue.transitionTo("running");
     this.options.callbacks?.onQueuedMessagesChange?.(this.queuedMessages);
 
-    if (next.type === "bang") {
-      await this.bashModeManager?.executeCommand(next.content);
-      await this.messageManager.saveSession();
-    } else if (next.type === "notification") {
+    if (next.type === "notification") {
       // Drain all pending notifications and batch them into a single AI turn
       const allNotifications = [
         next.content,
@@ -742,28 +715,6 @@ export class Agent {
     // when the session started.
     this.permissionManager.captureBypassAuthorization();
 
-    // Initialize OpenTelemetry (awaited to ensure ALS context is ready before
-    // startInteractionSpan is called, preventing trace context fragmentation)
-    const telemetryConfig = this.configurationService.resolveTelemetryConfig();
-    try {
-      await initializeTelemetry(telemetryConfig);
-    } catch (error) {
-      this.logger?.warn("Telemetry initialization failed:", error);
-    }
-
-    // Log session_start event
-    try {
-      const modelConfig = this.getModelConfig();
-      if (modelConfig.model) {
-        await logOTelEvent("session_start", {
-          sessionId: this.messageManager.getSessionId(),
-          model: modelConfig.model,
-          workdir: this.workdir,
-        }).catch(() => {}); // Non-blocking
-      }
-    } catch {
-      // Model not configured yet - will be available after SSO login
-    }
   }
 
   /**
@@ -841,21 +792,6 @@ export class Agent {
 
   public abortAIMessage(): void {
     this.aiManager.abortAIMessage();
-  }
-
-  /** Execute a bash-mode command (`!command`) */
-  public async bang(command: string): Promise<void> {
-    this.assertNotDestroyed();
-
-    // If the agent is busy, enqueue the bang command
-    if (this.aiManager.isLoading || this.isCommandRunning) {
-      this.messageQueue.enqueue({ type: "bang", content: command });
-      this.options.callbacks?.onQueuedMessagesChange?.(this.queuedMessages);
-      return;
-    }
-
-    await this.bashModeManager?.executeCommand(command);
-    await this.messageManager.saveSession();
   }
 
   public async clearMessages(): Promise<void> {
@@ -974,7 +910,6 @@ export class Agent {
 
   /** Interrupt bash command execution */
   public abortBashCommand(): void {
-    this.bashModeManager?.abortCommand();
   }
 
   /** Interrupt slash command execution */
@@ -1012,14 +947,6 @@ export class Agent {
     // dispatched fire-and-forget and outlive the agent. Never reset: destroy()
     // is terminal, no dispatch should ever start afterwards.
     this.isDestroyed = true;
-
-    // Log session_end event and shutdown telemetry
-    await logOTelEvent("session_end", {
-      duration: String(Math.round((Date.now() - this.sessionStartTime) / 1000)),
-      totalTokens: String(this.messageManager.getLatestTotalTokens()),
-      exitReason: "destroy",
-    }).catch(() => {});
-    await shutdownTelemetry();
 
     // Clear message queue callback first to prevent any late triggers from
     // starting async work during teardown
@@ -1088,8 +1015,6 @@ export class Agent {
         error,
       );
     }
-    // Cleanup remote settings polling
-    remoteSettingsService.shutdown();
     // Drain live async work (dispatch, background subagents, fork subagents):
     // abort steps above make them settle; wait for them so no async side
     // effect outlives the agent. Timeout fallback keeps destroy bounded.

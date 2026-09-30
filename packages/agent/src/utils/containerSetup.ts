@@ -14,7 +14,6 @@ import { HookManager } from "../managers/hookManager.js";
 import { SkillManager } from "../managers/skillManager.js";
 import { SlashCommandManager } from "../managers/slashCommandManager.js";
 import { PluginManager } from "../managers/pluginManager.js";
-import { BashModeManager } from "../managers/bashModeManager.js";
 import { WorkflowManager } from "../managers/workflowManager.js";
 import { MemoryRuleManager } from "../managers/MemoryRuleManager.js";
 import { ReversionManager } from "../managers/reversionManager.js";
@@ -42,8 +41,6 @@ import type {
 
 import { logger } from "./globalLogger.js";
 import { envGet, MUSE_ENV } from "./museEnv.js";
-import { authService } from "../services/authService.js";
-import { remoteSettingsService } from "../services/remoteSettingsService.js";
 
 export interface AgentContainerSetupOptions {
   options: AgentOptions;
@@ -107,10 +104,6 @@ export function setupAgentContainer(
     container.register("WorktreeName", options.worktreeName);
     container.register("MainRepoRoot", getGitMainRepoRoot(workdir));
   }
-
-  // Per-agent worktree session state (EnterWorktree/ExitWorktree). Stored in the
-  // container so it is isolated per session, not shared process-wide.
-  container.register("WorktreeSession", null);
 
   const messageQueue = new MessageQueue();
   container.register("MessageQueue", messageQueue);
@@ -177,9 +170,6 @@ export function setupAgentContainer(
   });
   container.register("BackgroundTaskManager", backgroundTaskManager);
 
-  if (options.serverUrl) {
-    authService.setServerUrl(options.serverUrl);
-  }
   const mcpManager = new McpManager(container, {
     callbacks,
     mcpServers: options.mcpServers as
@@ -187,17 +177,6 @@ export function setupAgentContainer(
       | undefined,
   });
   container.register("McpManager", mcpManager);
-
-  // Wire up auth change callback to refresh/clear remote settings
-  teardowns.push(
-    authService.onAuthChange(async (event) => {
-      if (event === "login") {
-        await remoteSettingsService.refresh();
-      } else if (event === "logout") {
-        remoteSettingsService.clear();
-      }
-    }),
-  );
 
   const lspManager = options.lspManager || new LspManager(container);
   container.register("LspManager", lspManager);
@@ -356,14 +335,7 @@ export function setupAgentContainer(
     onReload: async () => {
       const models = configurationService.getConfiguredModels();
       callbacks.onConfiguredModelsChange?.(models);
-      // Re-evaluate feature-gated tools (e.g. Artifact behind
-      // enableArtifact) so toggling the flag applies without a restart.
       toolManager.reloadFeatureGatedTools();
-      // Same gate for the builtin /artifact skill: refresh emits "refreshed"
-      // so slash-command registration follows enableArtifact. Awaited (via the
-      // awaited onReload) so skills are re-populated before Agent.create()
-      // returns — otherwise callers right after create() could observe a
-      // mid-refresh skill list.
       await skillManager.reloadFeatureGatedSkills().catch((error) => {
         logger.error("Failed to reload feature-gated skills:", error);
       });
@@ -377,42 +349,6 @@ export function setupAgentContainer(
   // instead of shifting values under the running one.
   configurationService.setTurnSnapshotSource(() =>
     liveConfigManager.getTurnSnapshot(),
-  );
-
-  // Wire up remote settings hot-update: when polling detects changed settings,
-  // reload configuration so admin changes propagate to the running agent.
-  // The callback strongly captures the per-agent LiveConfigManager, so it MUST
-  // be unsubscribed in destroy() via teardown — otherwise the module-level
-  // callback array pins the whole agent object graph.
-  // Managed plugin config (enabledPlugins / marketplaces) last applied to the
-  // plugin subsystem, keyed by a JSON signature: a synced change that touches
-  // neither field must not bounce every plugin's MCP servers.
-  const remoteAtSetup = remoteSettingsService.getRemoteSettingsSync();
-  let managedPluginSignature = JSON.stringify([
-    remoteAtSetup?.enabledPlugins ?? null,
-    remoteAtSetup?.marketplaces ?? null,
-  ]);
-
-  teardowns.push(
-    remoteSettingsService.onSettingsUpdate(async () => {
-      await liveConfigManager.reload();
-
-      // Managed settings also drive plugin installation and loading: a synced
-      // change to `enabledPlugins` / `marketplaces` must re-read the plugins in
-      // place, otherwise an admin push would only take effect after a restart
-      // (spec enterprise server-managed-config「托管配置下发插件市场与启用列表」
-      // 场景 1 与 3).
-      const remote = remoteSettingsService.getRemoteSettingsSync();
-      const signature = JSON.stringify([
-        remote?.enabledPlugins ?? null,
-        remote?.marketplaces ?? null,
-      ]);
-      if (signature === managedPluginSignature) {
-        return;
-      }
-      managedPluginSignature = signature;
-      await container.get<PluginManager>("PluginManager")?.reloadAllPlugins();
-    }),
   );
 
   const subagentManager = new SubagentManager(container, {
@@ -454,9 +390,6 @@ export function setupAgentContainer(
 
   const pluginManager = new PluginManager(container, { workdir });
   container.register("PluginManager", pluginManager);
-
-  const bashModeManager = new BashModeManager(container, { workdir });
-  container.register("BashModeManager", bashModeManager);
 
   const workflowManager = new WorkflowManager(container);
   container.register("WorkflowManager", workflowManager);

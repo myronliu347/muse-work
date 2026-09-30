@@ -50,7 +50,6 @@ import {
 } from "../constants/tools.js";
 import { Container } from "../utils/container.js";
 import { ConfigurationService } from "../services/configurationService.js";
-import type { WorktreeSession } from "../utils/worktreeSession.js";
 
 const DEFAULT_ALLOWED_RULES = [
   "Bash(git status*)",
@@ -592,16 +591,9 @@ export class PermissionManager {
 
     // Check worktree safety for Write and Edit tools — unconditional safety
     // check, applied regardless of permission mode (same as read-before-edit).
-    // Support both CLI -w sessions (container-registered) and EnterWorktree mid-session
-    // (per-agent WorktreeSession stored in this session's container)
-    const worktreeSession = this.container.get<WorktreeSession | null>(
-      "WorktreeSession",
-    );
-    const effectiveWorktreeName =
-      this.worktreeName || worktreeSession?.worktreeName;
-    const effectiveWorkdir = this.workdir || worktreeSession?.worktreePath;
-    const effectiveMainRepoRoot =
-      this.mainRepoRoot || worktreeSession?.repoRoot;
+    const effectiveWorktreeName = this.worktreeName;
+    const effectiveWorkdir = this.workdir;
+    const effectiveMainRepoRoot = this.mainRepoRoot;
 
     if (
       effectiveWorktreeName &&

@@ -28,7 +28,6 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { dirname } from "path";
 import { atomicWriteFile } from "./atomicWrite.js";
 import { getUserConfigPaths } from "./configPaths.js";
-import { getRemoteSettingsSync } from "../services/remoteSettingsService.js";
 import { envGet, MUSE_ENV, museEnvLegacy } from "./museEnv.js";
 import type {
   UserPreferenceKey,
@@ -223,7 +222,7 @@ export function readUserPreferenceSettings(
  * @param env - 机器环境变量（默认 `process.env`，便于测试注入）
  */
 export function readUserPreferenceView(
-  remote: WaveConfiguration | null = getRemoteSettingsSync(),
+  remote: WaveConfiguration | null = null,
   filePath: string = userSettingsFilePath(),
   env: Record<string, string | undefined> = process.env,
 ): UserPreferenceView {

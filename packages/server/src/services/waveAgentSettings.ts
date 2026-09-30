@@ -11,15 +11,6 @@ export function getWaveUserSettingsPath(home = os.homedir()): string {
 
 /** First-launch defaults when `~/.muse-work/settings.json` does not exist. */
 export const DEFAULT_WAVE_USER_SETTINGS = {
-  marketplaces: {
-    "wave-plugins-official": {
-      source: {
-        source: "github",
-        repo: "netease-lcap/wave-plugins-official",
-      },
-      autoUpdate: true,
-    },
-  },
   env: {
     MUSE_MAX_INPUT_TOKENS: "800000",
     MUSE_VISION_MODEL: "kimi-k3",

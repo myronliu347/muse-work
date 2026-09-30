@@ -846,13 +846,6 @@ export interface ConfigDialogProps {
 }
 
 /**
- * Props for the plugin management dialog component
- */
-export interface PluginDialogProps {
-  onClose: () => void;
-}
-
-/**
  * Props for the MCP server settings dialog component
  */
 export interface McpDialogProps {

@@ -116,11 +116,9 @@ async function buildHookJsonInput(
     }
   }
 
-  // Add background_tasks and session_crons for Stop events only (not SubagentStop).
-  // Fields are always present for Stop (empty arrays when nothing in flight).
+  // Add background_tasks for Stop events only (not SubagentStop).
   if (context.event === "Stop") {
     jsonInput.background_tasks = context.backgroundTasks ?? [];
-    jsonInput.session_crons = context.sessionCrons ?? [];
   }
 
   // Add last_assistant_message for Stop and SubagentStop events.

@@ -22,8 +22,6 @@ import type { MemoryRuleManager } from "../managers/MemoryRuleManager.js";
 import type { LiveConfigManager } from "../managers/liveConfigManager.js";
 import type { TaskManager } from "./taskManager.js";
 import type { PermissionManager } from "../managers/permissionManager.js";
-import { remoteSettingsService } from "./remoteSettingsService.js";
-
 export interface InitializationContext {
   skillManager: SkillManager;
   subagentManager: SubagentManager;
@@ -90,17 +88,6 @@ export class InitializationService {
     // per-session env snapshot (NOT process.env), except MUSE_SERVER_URL which is
     // mirrored to process.env so the network fetch (below) can read it via
     // authService.getServerUrl(); no race.
-    try {
-      const phaseStart = performance.now();
-      await remoteSettingsService.initialize();
-      logger?.debug(
-        `Initialization Phase [Remote Settings Cache] took ${(performance.now() - phaseStart).toFixed(2)}ms`,
-      );
-    } catch (error) {
-      logger?.error("Failed to initialize remote settings:", error);
-      // Don't throw error to prevent app startup failure - continue without remote settings
-    }
-
     // Initialize managers first
     try {
       const phaseStart = performance.now();
@@ -209,8 +196,6 @@ export class InitializationService {
     // loadMergedConfiguration → setEnvironmentVars, so the fetch reads it via
     // authService.getServerUrl(); fire-and-forget, failures fall back to the
     // cached/merged settings.
-    remoteSettingsService.startBackgroundFetch();
-
     // Execute SessionStart hooks
     try {
       const phaseStart = performance.now();

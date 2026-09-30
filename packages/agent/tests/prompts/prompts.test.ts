@@ -6,7 +6,6 @@ import {
 } from "../../src/prompts/index.js";
 import * as os from "node:os";
 import { isGitRepository } from "../../src/utils/gitUtils.js";
-import type { WorktreeSession } from "../../src/utils/worktreeSession.js";
 
 vi.mock("node:os");
 vi.mock("../../src/utils/gitUtils.js");
@@ -15,15 +14,6 @@ vi.mock("../../src/utils/gitUtils.js");
 function flattenBlocks(blocks: SystemPromptBlock[]): string {
   return blocks.map((b) => b.text).join("\n\n");
 }
-
-const worktreeSessionActive: WorktreeSession = {
-  originalCwd: "/original/repo",
-  worktreePath: "/original/repo/.muse-work/worktrees/test-feature",
-  worktreeBranch: "wave-test-feature",
-  worktreeName: "test-feature",
-  isNew: true,
-  repoRoot: "/original/repo",
-};
 
 describe("prompts", () => {
   afterEach(() => {
@@ -153,29 +143,7 @@ describe("prompts", () => {
       expect(result).not.toContain("## Memory Context");
     });
 
-    it("should include worktree warning when worktree session is active", () => {
-      const result = flattenBlocks(
-        buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {
-          workdir: "/original/repo/.muse-work/worktrees/test-feature",
-          worktreeSession: worktreeSessionActive,
-        }),
-      );
 
-      expect(result).toContain("This is a git worktree");
-      expect(result).toContain("Do NOT `cd` to the original repository root.");
-      expect(result).not.toContain("original repository root at");
-    });
-
-    it("should not include worktree warning when no worktree session", () => {
-      const result = flattenBlocks(
-        buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {
-          workdir: "/some/path",
-        }),
-      );
-
-      expect(result).not.toContain("This is a git worktree");
-      expect(result).not.toContain("original repository root");
-    });
 
     it("should use subagent env format (Notes + <env>) when isSubagent is true", () => {
       const originalShell = process.env.SHELL;
@@ -210,18 +178,6 @@ describe("prompts", () => {
       process.env.SHELL = originalShell;
     });
 
-    it("should not include worktree warning in subagent env format", () => {
-      const result = flattenBlocks(
-        buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {
-          workdir: "/original/repo/.muse-work/worktrees/test-feature",
-          worktreeSession: worktreeSessionActive,
-          isSubagent: true,
-        }),
-      );
-
-      expect(result).not.toContain("This is a git worktree");
-      expect(result).not.toContain("original repository root");
-    });
 
     it("should list additional working directories as bullets in main agent env", () => {
       const result = flattenBlocks(

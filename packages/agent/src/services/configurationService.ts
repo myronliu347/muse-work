@@ -17,7 +17,6 @@ import type {
   ConfigurationPaths,
   WaveConfiguration,
   Scope,
-  MarketplaceConfig,
 } from "../types/configuration.js";
 import {
   getAllConfigPaths,
@@ -46,11 +45,6 @@ import {
 } from "../utils/constants.js";
 import { ClientOptions } from "openai";
 import { parseCustomHeaders } from "../utils/stringUtils.js";
-import {
-  getRemoteSettingsSync,
-  mergeRemoteSettings,
-} from "./remoteSettingsService.js";
-import { createAuthAwareFetch } from "./authService.js";
 import { ensureWaveRuntimeFilesExcluded } from "../utils/gitUtils.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
 import { envGet, MUSE_ENV, museEnvLegacy, projectDirEnv } from "../utils/museEnv.js";
@@ -122,11 +116,6 @@ export function validateConfigurationObject(
           result.isValid = false;
           result.errors.push(
             `Value for plugin '${pluginId}' in enabledPlugins must be a boolean`,
-          );
-        }
-        if (!pluginId.includes("@")) {
-          result.warnings.push(
-            `Plugin ID '${pluginId}' in enabledPlugins should follow 'name@marketplace' format`,
           );
         }
       }
@@ -242,23 +231,6 @@ export function validateConfigurationObject(
           );
         }
       }
-    }
-  }
-
-  // Validate worktree if present
-  if (config.worktree !== undefined) {
-    if (typeof config.worktree !== "object" || config.worktree === null) {
-      result.isValid = false;
-      result.errors.push("worktree configuration must be an object");
-    } else if (
-      config.worktree.baseRef !== undefined &&
-      config.worktree.baseRef !== "fresh" &&
-      config.worktree.baseRef !== "head"
-    ) {
-      result.isValid = false;
-      result.errors.push(
-        `Invalid worktree.baseRef: "${config.worktree.baseRef}". Must be "fresh" or "head".`,
-      );
     }
   }
 
@@ -385,11 +357,7 @@ export class ConfigurationService {
         };
       }
 
-      // Merge remote settings (highest priority: Remote > Local > Project > User)
-      const remoteSettings = getRemoteSettingsSync();
-      const finalConfig = remoteSettings
-        ? mergeRemoteSettings(mergedConfig, remoteSettings)
-        : mergedConfig;
+      const finalConfig = mergedConfig;
 
       // Success case
       this.currentConfiguration = finalConfig;
@@ -503,24 +471,6 @@ export class ConfigurationService {
   // =============================================================================
 
   /**
-   * Read SSO token from ~/.muse-work/auth.json
-   */
-  private readSSOToken(): string | undefined {
-    const homeDir = os.homedir();
-    const authPath = path.join(homeDir, CONFIG_DIR_NAME, "auth.json");
-    if (!existsSync(authPath)) {
-      return undefined;
-    }
-    try {
-      const content = readFileSync(authPath, "utf-8");
-      const authConfig = JSON.parse(content) as { SSO_TOKEN?: string };
-      return authConfig.SSO_TOKEN;
-    } catch {
-      return undefined;
-    }
-  }
-
-  /**
    * Resolves gateway configuration from constructor args and environment
    * Resolution priority: SSO_TOKEN > options > env (from settings.json) > process.env > error
    * @param apiKey - API key override (optional)
@@ -538,30 +488,6 @@ export class ConfigurationService {
     fetchOptions?: ClientOptions["fetchOptions"],
     fetch?: ClientOptions["fetch"],
   ): GatewayConfig {
-    // Check for SSO token first - if present and server URL is available, use SSO mode.
-    // Server URL: options.serverUrl > MUSE_SERVER_URL (WAVE_ fallback) > default.
-    const ssoToken = this.readSSOToken();
-    const serverUrl =
-      this.options.serverUrl ||
-      envGet(MUSE_ENV.SERVER_URL, this.liveEnvSnapshot, process.env) ||
-      DEFAULT_SERVER_URL;
-    if (ssoToken && serverUrl) {
-      const baseFetch = fetch ?? this.options.fetch ?? globalThis.fetch;
-      const authAwareFetch = createAuthAwareFetch(
-        baseFetch as typeof globalThis.fetch,
-      ) as ClientOptions["fetch"];
-      return {
-        apiKey: ssoToken,
-        baseURL: `${serverUrl}/api/v1`,
-        defaultHeaders:
-          Object.keys(defaultHeaders || {}).length > 0
-            ? defaultHeaders
-            : undefined,
-        fetchOptions: fetchOptions ?? this.options.fetchOptions,
-        fetch: authAwareFetch,
-      };
-    }
-
     // Resolve API key: override > options > env (settings.json) > process.env
     // Note: Explicitly provided empty strings should be treated as invalid, not fall back to env
     let resolvedApiKey: string | undefined;
@@ -854,19 +780,6 @@ export class ConfigurationService {
   }
 
   /**
-   * Resolves worktree base ref with fallbacks
-   * Resolution priority: settings.json > default ("fresh")
-   * @returns Resolved worktree base ref
-   */
-  resolveWorktreeBaseRef(): "fresh" | "head" {
-    const baseRef = this.liveConfiguration?.worktree?.baseRef;
-    if (baseRef === "head") {
-      return "head";
-    }
-    return "fresh";
-  }
-
-  /**
    * Resolves auto-memory extraction frequency with fallbacks
    * Resolution priority: session options (程序化会话级覆盖) > settings.json > MUSE_AUTO_MEMORY_FREQUENCY > default (1)
    * @returns Resolved auto-memory extraction frequency (turns)
@@ -1001,15 +914,6 @@ export class ConfigurationService {
     }
 
     return Array.from(models);
-  }
-
-  /**
-   * Get the telemetry config from the loaded settings.
-   */
-  resolveTelemetryConfig():
-    | Partial<import("../types/telemetry.js").TelemetryConfig>
-    | undefined {
-    return this.liveConfiguration?.monitoring?.telemetry;
   }
 
   /**
@@ -1252,129 +1156,6 @@ export class ConfigurationService {
   }
 
   /**
-   * Get merged marketplaces from all scopes, with admin-managed (remote) entries
-   * taking precedence per key (spec enterprise server-managed-config「托管配置
-   * 下发插件市场与启用列表」场景 5).
-   */
-  getMergedMarketplaces(workdir: string): Record<string, MarketplaceConfig> {
-    const mergedConfig = loadMergedWaveConfig(workdir);
-    return {
-      ...(mergedConfig?.marketplaces || {}),
-      ...(this.getManagedMarketplaces() || {}),
-    };
-  }
-
-  /**
-   * Marketplaces declared by the remote (managed) settings. `null` means the
-   * managed layer declares none, leaving the local configuration chain in charge.
-   */
-  getManagedMarketplaces(): Record<string, MarketplaceConfig> | null {
-    return getRemoteSettingsSync()?.marketplaces ?? null;
-  }
-
-  /**
-   * Get marketplaces at a specific scope
-   */
-  getScopedMarketplaces(
-    workdir: string,
-    scope: Scope,
-  ): Record<string, MarketplaceConfig> {
-    let configPath: string;
-    if (scope === "user") {
-      configPath = getUserConfigPaths()[0];
-    } else if (scope === "project") {
-      configPath = getProjectConfigPaths(workdir)[1];
-    } else {
-      configPath = getProjectConfigPaths(workdir)[0];
-    }
-    const config = loadWaveConfigFromFile(configPath);
-    return config?.marketplaces || {};
-  }
-
-  /**
-   * Add a marketplace to the specified scope
-   */
-  async addMarketplaceToScope(
-    workdir: string,
-    scope: Scope,
-    name: string,
-    config: MarketplaceConfig,
-  ): Promise<void> {
-    if (scope !== "user" && !existsSync(workdir)) {
-      throw new Error(`Working directory does not exist: ${workdir}`);
-    }
-
-    let configPath: string;
-    if (scope === "user") {
-      configPath = getUserConfigPaths()[0];
-    } else if (scope === "project") {
-      configPath = getProjectConfigPaths(workdir)[1];
-    } else {
-      configPath = getProjectConfigPaths(workdir)[0];
-    }
-
-    const configDir = path.dirname(configPath);
-    if (!existsSync(configDir)) {
-      await fs.mkdir(configDir, { recursive: true });
-    }
-
-    let fileConfig: WaveConfiguration = {};
-    if (existsSync(configPath)) {
-      try {
-        const content = await fs.readFile(configPath, "utf-8");
-        fileConfig = JSON.parse(content);
-      } catch {
-        // Start with empty config if file is corrupted
-      }
-    }
-
-    if (!fileConfig.marketplaces) {
-      fileConfig.marketplaces = {};
-    }
-    fileConfig.marketplaces[name] = config;
-
-    await atomicWriteFile(configPath, JSON.stringify(fileConfig, null, 2));
-  }
-
-  /**
-   * Remove a marketplace from the specified scope
-   */
-  async removeMarketplaceFromScope(
-    workdir: string,
-    scope: Scope,
-    name: string,
-  ): Promise<void> {
-    if (scope !== "user" && !existsSync(workdir)) {
-      throw new Error(`Working directory does not exist: ${workdir}`);
-    }
-
-    let configPath: string;
-    if (scope === "user") {
-      configPath = getUserConfigPaths()[0];
-    } else if (scope === "project") {
-      configPath = getProjectConfigPaths(workdir)[1];
-    } else {
-      configPath = getProjectConfigPaths(workdir)[0];
-    }
-
-    if (!existsSync(configPath)) {
-      return;
-    }
-
-    try {
-      const content = await fs.readFile(configPath, "utf-8");
-      const fileConfig: WaveConfiguration = JSON.parse(content);
-
-      if (fileConfig.marketplaces && name in fileConfig.marketplaces) {
-        delete fileConfig.marketplaces[name];
-        await atomicWriteFile(configPath, JSON.stringify(fileConfig, null, 2));
-      }
-    } catch {
-      // Ignore errors for corrupted or non-existent files
-    }
-  }
-
-  /**
    * Remove a plugin from the enabled plugins in the specified scope
    */
   async removeEnabledPlugin(
@@ -1422,17 +1203,7 @@ export class ConfigurationService {
     const mergedConfig = loadMergedWaveConfig(workdir);
     return {
       ...(mergedConfig?.enabledPlugins || {}),
-      ...(this.getManagedEnabledPlugins() || {}),
     };
-  }
-
-  /**
-   * Enabled-plugin entries declared by the remote (managed) settings. `null`
-   * means the managed layer declares none. Doubles as the authoritative
-   * "is this plugin managed by the organization" lookup (spec plugin A-024).
-   */
-  getManagedEnabledPlugins(): Record<string, boolean> | null {
-    return getRemoteSettingsSync()?.enabledPlugins ?? null;
   }
 
   /**
@@ -1598,12 +1369,6 @@ export function loadWaveConfigFromFile(
           ? config.cleanupPeriodDays
           : undefined,
       models: config.models || undefined,
-      marketplaces: config.marketplaces || undefined,
-      worktree: config.worktree || undefined,
-      enableArtifact:
-        config.enableArtifact !== undefined ? config.enableArtifact : undefined,
-      enableExec:
-        config.enableExec !== undefined ? config.enableExec : undefined,
     };
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -1761,27 +1526,6 @@ export function loadMergedWaveConfig(
       mergedConfig.cleanupPeriodDays = config.cleanupPeriodDays;
     }
 
-    // Merge marketplaces (last one wins for same key)
-    if (config.marketplaces) {
-      if (!mergedConfig.marketplaces) mergedConfig.marketplaces = {};
-      Object.assign(mergedConfig.marketplaces, config.marketplaces);
-    }
-
-    // Merge worktree (last one wins)
-    if (config.worktree !== undefined) {
-      mergedConfig.worktree = config.worktree;
-    }
-
-    // Merge enableArtifact (last one wins)
-    if (config.enableArtifact !== undefined) {
-      mergedConfig.enableArtifact = config.enableArtifact;
-    }
-
-    // Merge enableExec (last one wins)
-    if (config.enableExec !== undefined) {
-      mergedConfig.enableExec = config.enableExec;
-    }
-
     // Merge models
     if (config.models) {
       if (!mergedConfig.models) mergedConfig.models = {};
@@ -1818,18 +1562,10 @@ export function loadMergedWaveConfig(
     autoMemoryEnabled: mergedConfig.autoMemoryEnabled,
     autoMemoryFrequency: mergedConfig.autoMemoryFrequency,
     cleanupPeriodDays: mergedConfig.cleanupPeriodDays,
-    marketplaces:
-      mergedConfig.marketplaces &&
-      Object.keys(mergedConfig.marketplaces).length > 0
-        ? mergedConfig.marketplaces
-        : undefined,
     models:
       mergedConfig.models && Object.keys(mergedConfig.models).length > 0
         ? mergedConfig.models
         : undefined,
-    worktree: mergedConfig.worktree,
-    enableArtifact: mergedConfig.enableArtifact,
-    enableExec: mergedConfig.enableExec,
   };
 }
 

@@ -16,10 +16,6 @@ import {
   buildMcpInstructionsAnnouncement,
   collectAnnouncedServers,
 } from "../utils/mcpInstructions.js";
-import {
-  buildExecCatalogAnnouncement,
-  collectExecCatalogState,
-} from "../exec/catalogAnnouncement.js";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
@@ -42,7 +38,7 @@ import {
 
 import type { HookManager } from "./hookManager.js";
 import type { ExtendedHookExecutionContext } from "../types/hooks.js";
-import type { BackgroundTaskInfo, SessionCronInfo } from "../types/hooks.js";
+import type { BackgroundTaskInfo } from "../types/hooks.js";
 import type { PermissionManager } from "./permissionManager.js";
 import type { McpManager } from "./mcpManager.js";
 import type { SubagentManager } from "./subagentManager.js";
@@ -61,19 +57,10 @@ import {
 } from "../prompts/planModeReminders.js";
 import { Container } from "../utils/container.js";
 import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
-import type { WorktreeSession } from "../utils/worktreeSession.js";
 import { recoverTruncatedJson } from "../utils/stringUtils.js";
 import { ConfigurationService } from "../services/configurationService.js";
 import type { MessageQueue } from "./messageQueue.js";
 import { logger } from "../utils/globalLogger.js";
-import {
-  startInteractionSpan,
-  endInteractionSpan,
-  startLLMRequestSpan,
-  endLLMRequestSpan,
-  resetTracingState,
-} from "../telemetry/sessionTracing.js";
-import { logOTelEvent } from "../telemetry/events.js";
 import type { BackgroundTask } from "../types/processes.js";
 
 /** Result of a fork-path agent loop (compaction or auto-memory extraction). */
@@ -345,10 +332,6 @@ export class AIManager {
     return this.configurationService.resolveAutoMemoryEnabled();
   }
 
-  public getWorktreeBaseRef(): "fresh" | "head" {
-    return this.configurationService.resolveWorktreeBaseRef();
-  }
-
   public getWorkdir(): string {
     const workdir = this.container.get<string>("Workdir") ?? process.cwd();
     if (existsSync(workdir)) {
@@ -368,17 +351,6 @@ export class AIManager {
     }
 
     this.pendingCwdRecovery = { from: workdir, to: this.originalWorkdir };
-
-    // If the removed directory was this session's worktree, drop the stale
-    // worktree session state so ExitWorktree no-ops and EnterWorktree can
-    // start a fresh session.
-    const worktreeSession = this.getWorktreeSession();
-    if (
-      worktreeSession &&
-      path.resolve(worktreeSession.worktreePath) === path.resolve(workdir)
-    ) {
-      this.setWorktreeSession(null);
-    }
 
     logger.warn(
       `Working directory ${workdir} no longer exists; recovered session workdir to ${this.originalWorkdir}`,
@@ -421,19 +393,6 @@ export class AIManager {
   /**
    * Get this session's worktree session state (null if not in a worktree).
    */
-  public getWorktreeSession(): WorktreeSession | null {
-    return (
-      this.container.get<WorktreeSession | null>("WorktreeSession") ?? null
-    );
-  }
-
-  /**
-   * Set this session's worktree session state.
-   */
-  public setWorktreeSession(session: WorktreeSession | null): void {
-    this.container.register("WorktreeSession", session);
-  }
-
   public setOnCwdChange(callback: (newCwd: string) => void): void {
     this._onCwdChange = callback;
   }
@@ -786,16 +745,6 @@ export class AIManager {
 
       this.consecutiveCompactionFailures = 0;
 
-      // Reset incremental tracing state after compaction
-      resetTracingState();
-
-      // 10. Log OTEL event
-      logOTelEvent("compaction", {
-        beforeTokens: String(messagesToCompact.length),
-        afterTokens: "1",
-        model: compactModel ?? "",
-      }).catch(() => {});
-
       // 11. Run SessionStart hooks (existing behavior)
       if (this.hookManager) {
         try {
@@ -883,7 +832,6 @@ export class AIManager {
       originalWorkdir: this.getOriginalWorkdir(),
       language: this.getLanguage(),
       isSubagent: !!this.subagentType,
-      worktreeSession: this.getWorktreeSession(),
       additionalWorkingDirectories:
         this.permissionManager?.getEffectiveAdditionalDirectories?.() ?? [],
       autoMemory: autoMemoryOptions,
@@ -921,33 +869,6 @@ export class AIManager {
         (name) => !availableNames.has(name),
       ),
     });
-    if (!text) return;
-
-    this.messageManager.addUserMessage({
-      content: wrapInSystemReminder(text),
-      isMeta: true,
-    });
-  }
-
-  /**
-   * Announce the MCP catalog in the conversation, whenever the pool renders
-   * differently from the last announcement. Keeping it out of `Exec`'s description
-   * is what makes that declaration a constant: a server connecting would otherwise
-   * rewrite `tools[]`, which sits in the cached prefix (see
-   * `exec/catalogAnnouncement.ts`).
-   */
-  private maybeAnnounceExecCatalog(): void {
-    const toolManager = this.toolManager;
-    // Optional for the same reason as `maybeAnnounceMcpInstructions` above, and it
-    // matters just as much here: reading an absent channel as "the catalog is gone"
-    // would tell the model to stop using every tool an earlier catalog listed.
-    if (!toolManager || typeof toolManager.getExecCatalog !== "function")
-      return;
-
-    const text = buildExecCatalogAnnouncement(
-      collectExecCatalogState(this.messageManager.getMessages()),
-      toolManager.getExecCatalog(),
-    );
     if (!text) return;
 
     this.messageManager.addUserMessage({
@@ -1593,24 +1514,6 @@ ${question}`;
     outer: while (true) {
       let shouldRestart = false;
 
-      // OpenTelemetry: start interaction span for this turn (initial call only)
-      let turnSequence = 0;
-      if (turnOffset === 0) {
-        const messages = this.messageManager.getMessages();
-        turnSequence = messages.filter((m) => m.role === "user").length;
-        const lastUserMessage = [...messages]
-          .reverse()
-          .find((m) => m.role === "user");
-        const userPromptText =
-          lastUserMessage?.blocks.find((b) => b.type === "text")?.content || "";
-        startInteractionSpan(userPromptText, turnSequence);
-
-        // Log user_prompt event
-        logOTelEvent("user_prompt", {
-          prompt_length: String(userPromptText.length),
-        }).catch(() => {}); // Non-blocking
-      }
-
       // Apply allowed rules for the initial call
       if (turnOffset === 0) {
         if (allowedRules && allowedRules.length > 0) {
@@ -1680,7 +1583,6 @@ ${question}`;
       let maxOutputTokensRecoveryCount = 0;
 
       inner: while (true) {
-        let llmSpan: ReturnType<typeof startLLMRequestSpan>;
         try {
           // Save session in each iteration to ensure message persistence
           await this.messageManager.saveSession();
@@ -1729,7 +1631,6 @@ ${question}`;
           // itself in the request that can already call it. After compaction, so
           // the announcement is not the content that just got summarized away.
           this.maybeAnnounceMcpInstructions();
-          this.maybeAnnounceExecCatalog();
 
           // Get recent message history
           const rawMessages = this.messageManager.getMessages();
@@ -1863,34 +1764,7 @@ ${question}`;
             };
           }
 
-          llmSpan = startLLMRequestSpan(
-            model || this.getModelConfig().model || "",
-            {
-              context: "interaction",
-              systemPrompt:
-                typeof callAgentOptions.systemPrompt === "string"
-                  ? callAgentOptions.systemPrompt
-                  : undefined,
-              inputMessages: callAgentOptions.messages,
-              toolsSchema: callAgentOptions.tools
-                ? JSON.stringify(callAgentOptions.tools)
-                : undefined,
-            },
-          );
-
           const result = await aiService.callAgent(callAgentOptions);
-
-          // End LLM span with usage data
-          endLLMRequestSpan(llmSpan, {
-            model: model || this.getModelConfig().model || "",
-            success: true,
-            hasToolCall: !!(result.tool_calls && result.tool_calls.length > 0),
-            inputTokens: result.usage?.prompt_tokens,
-            outputTokens: result.usage?.completion_tokens,
-            cacheReadTokens: result.usage?.cache_read_input_tokens,
-            cacheCreationTokens: result.usage?.cache_creation_input_tokens,
-            modelOutput: result.content,
-          });
 
           if (result.stream_fallback && assistantMessageCreated) {
             // The streamed attempt died mid-body and the request was re-issued
@@ -2200,20 +2074,6 @@ ${question}`;
           // No tool calls (or stop conditions) → inner loop done
           break inner;
         } catch (error) {
-          // End LLM span with error
-          endLLMRequestSpan(llmSpan, {
-            model: model || this.getModelConfig().model || "",
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          });
-
-          // Log error event
-          logOTelEvent("error", {
-            error_type:
-              error instanceof Error ? error.constructor.name : "Unknown",
-            message: error instanceof Error ? error.message : String(error),
-          }).catch(() => {}); // Non-blocking
-
           // Finalize any streaming text/reasoning blocks so the UI stops ticking
           // its in-progress timer (e.g. when the request is aborted mid-thought).
           this.messageManager.finalizeStreamingBlocks();
@@ -2237,7 +2097,6 @@ ${question}`;
       // Only execute cleanup and hooks for the initial call
       if (turnOffset === 0) {
         // OpenTelemetry: end interaction span
-        endInteractionSpan();
 
         // Save session in each iteration to ensure message persistence
         await this.messageManager.saveSession();
@@ -2367,9 +2226,6 @@ ${question}`;
               .map((t) => mapBackgroundTask(t, this.subagentManager))
           : undefined;
 
-      const sessionCrons: SessionCronInfo[] | undefined =
-        hookName === "Stop" ? [] : undefined;
-
       // Extract text content from the last assistant message so hooks can
       // inspect the final response without reading the transcript file.
       const allMessages = this.messageManager.getMessages();
@@ -2393,7 +2249,6 @@ ${question}`;
         cwd: this.getWorkdir(),
         subagentType: this.subagentType, // Include subagent type in hook context
         backgroundTasks, // Stop-only: running background tasks snapshot
-        sessionCrons, // Stop-only: session cron jobs snapshot
         lastAssistantMessage: lastAssistantText, // Stop/SubagentStop: last assistant message text
         // Stop hooks don't need toolName, toolInput, toolResponse, or userPrompt
         env: Object.fromEntries(
@@ -2770,13 +2625,6 @@ ${question}`;
         );
         shouldContinue = !processResult.shouldBlock;
       }
-
-      // Log tool_decision event
-      logOTelEvent("tool_decision", {
-        tool_name: toolName,
-        decision: shouldContinue ? "approved" : "blocked",
-        source: "hook",
-      }).catch(() => {}); // Non-blocking
 
       // Log hook execution results for debugging
       if (results.length > 0) {

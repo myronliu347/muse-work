@@ -1,5 +1,4 @@
 import ConfigDialog from "./ConfigDialog";
-import PluginDialog from "./PluginDialog";
 import McpDialog from "./McpDialog";
 import StatusDialog from "./StatusDialog";
 import WorkflowManager from "../settings/WorkflowManager";
@@ -104,9 +103,6 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
           onToggleBuiltinPlugin={onToggleBuiltinPlugin}
           vscode={vscode}
         />
-      )}
-      {activeDialog === "plugin" && (
-        <PluginDialog vscode={vscode} onClose={onDialogClose} />
       )}
       {activeDialog === "mcp" && (
         <McpDialog vscode={vscode} onClose={onDialogClose} />

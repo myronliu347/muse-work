@@ -9,14 +9,8 @@
 import type { HookEvent, HookEventConfig } from "./hooks.js";
 import type { PermissionMode } from "./permissions.js";
 import type { ModelConfig } from "./config.js";
-import type { MarketplaceSource } from "./marketplace.js";
-import type { TelemetryConfig } from "./telemetry.js";
 
 export type Scope = "user" | "project" | "local";
-
-export interface MarketplaceConfig {
-  source: MarketplaceSource;
-}
 
 /**
  * Root configuration structure for all Wave Agent settings including hooks and environment variables
@@ -52,21 +46,6 @@ export interface WaveConfiguration {
   model?: string;
   /** Model-specific configuration overrides */
   models?: Record<string, Partial<ModelConfig>>;
-  /** Scoped marketplace declarations */
-  marketplaces?: Record<string, MarketplaceConfig>;
-  /** OpenTelemetry monitoring configuration */
-  monitoring?: {
-    telemetry?: Partial<TelemetryConfig>;
-  };
-  /** Worktree configuration */
-  worktree?: {
-    /** Base ref for new worktrees: "fresh" (origin/<default-branch>, default) | "head" (local HEAD) */
-    baseRef?: "fresh" | "head";
-  };
-  /** Whether the Artifact tool is enabled. Unset follows the code default constant (ARTIFACT_DEFAULT_ENABLED). */
-  enableArtifact?: boolean;
-  /** Whether the Exec tool is enabled. Unset follows the code default constant (EXEC_DEFAULT_ENABLED). */
-  enableExec?: boolean;
   /**
    * Session transcript retention in days (aligned with Claude Code's
    * cleanupPeriodDays). Session jsonl files in ~/.muse-work/projects older than

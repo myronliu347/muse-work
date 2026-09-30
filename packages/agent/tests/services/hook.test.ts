@@ -918,8 +918,8 @@ describe("Hook Services", () => {
     });
   });
 
-  describe("Stop hook background_tasks and session_crons", () => {
-    it("should include background_tasks and session_crons for Stop event when provided", async () => {
+  describe("Stop hook background_tasks", () => {
+    it("should include background_tasks for Stop event when provided", async () => {
       const mockProcess = new MockChildProcess();
       const mockStdin = new MockStdin();
       let stdinData = "";
@@ -966,14 +966,6 @@ describe("Hook Services", () => {
             name: "audit",
           },
         ],
-        sessionCrons: [
-          {
-            id: "cron-001",
-            schedule: "0 9 * * 1-5",
-            recurring: true,
-            prompt: "check the build",
-          },
-        ],
       };
 
       const resultPromise = executeCommand("echo test", stopContext);
@@ -1010,17 +1002,9 @@ describe("Hook Services", () => {
           name: "audit",
         },
       ]);
-      expect(parsedInput.session_crons).toEqual([
-        {
-          id: "cron-001",
-          schedule: "0 9 * * 1-5",
-          recurring: true,
-          prompt: "check the build",
-        },
-      ]);
     });
 
-    it("should include empty background_tasks and session_crons arrays for Stop event when nothing in flight", async () => {
+    it("should include empty background_tasks arrays for Stop event when nothing in flight", async () => {
       const mockProcess = new MockChildProcess();
       const mockStdin = new MockStdin();
       let stdinData = "";
@@ -1045,7 +1029,6 @@ describe("Hook Services", () => {
         transcriptPath: "/path/to/transcript.json",
         cwd: "/test/project",
         backgroundTasks: [],
-        sessionCrons: [],
       };
 
       const resultPromise = executeCommand("echo test", stopContext);
@@ -1058,10 +1041,9 @@ describe("Hook Services", () => {
 
       const parsedInput = JSON.parse(stdinData);
       expect(parsedInput.background_tasks).toEqual([]);
-      expect(parsedInput.session_crons).toEqual([]);
     });
 
-    it("should NOT include background_tasks and session_crons for SubagentStop event", async () => {
+    it("should NOT include background_tasks for SubagentStop event", async () => {
       const mockProcess = new MockChildProcess();
       const mockStdin = new MockStdin();
       let stdinData = "";
@@ -1096,9 +1078,6 @@ describe("Hook Services", () => {
             agent_type: "general-purpose",
           },
         ],
-        sessionCrons: [
-          { id: "c1", schedule: "0 9 * * *", recurring: true, prompt: "p" },
-        ],
       };
 
       const resultPromise = executeCommand("echo test", subagentStopContext);
@@ -1112,10 +1091,9 @@ describe("Hook Services", () => {
       const parsedInput = JSON.parse(stdinData);
       expect(parsedInput.hook_event_name).toBe("SubagentStop");
       expect(parsedInput.background_tasks).toBeUndefined();
-      expect(parsedInput.session_crons).toBeUndefined();
     });
 
-    it("should NOT include background_tasks and session_crons for other hook events", async () => {
+    it("should NOT include background_tasks for other hook events", async () => {
       const mockProcess = new MockChildProcess();
       const mockStdin = new MockStdin();
       let stdinData = "";
@@ -1150,9 +1128,6 @@ describe("Hook Services", () => {
             command: "echo hi",
           },
         ],
-        sessionCrons: [
-          { id: "c1", schedule: "0 9 * * *", recurring: true, prompt: "p" },
-        ],
       };
 
       const resultPromise = executeCommand("echo test", postToolContext);
@@ -1166,7 +1141,6 @@ describe("Hook Services", () => {
       const parsedInput = JSON.parse(stdinData);
       expect(parsedInput.hook_event_name).toBe("PostToolUse");
       expect(parsedInput.background_tasks).toBeUndefined();
-      expect(parsedInput.session_crons).toBeUndefined();
     });
 
     it("should include last_assistant_message for Stop event when provided", async () => {
@@ -1194,7 +1168,6 @@ describe("Hook Services", () => {
         transcriptPath: "/path/to/transcript.json",
         cwd: "/test/project",
         backgroundTasks: [],
-        sessionCrons: [],
         lastAssistantMessage: "The task is complete.",
       };
 
@@ -1279,7 +1252,6 @@ describe("Hook Services", () => {
         transcriptPath: "/path/to/transcript.json",
         cwd: "/test/project",
         backgroundTasks: [],
-        sessionCrons: [],
         // lastAssistantMessage intentionally omitted
       };
 

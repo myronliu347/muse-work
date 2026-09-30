@@ -1190,50 +1190,6 @@ describe("ConfigurationService", () => {
     });
   });
 
-  describe("resolveWorktreeBaseRef", () => {
-    it("should return 'fresh' by default", () => {
-      expect(configService.resolveWorktreeBaseRef()).toBe("fresh");
-    });
-
-    it("should return 'head' when configured", async () => {
-      const config = { worktree: { baseRef: "head" as const } };
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify(config));
-
-      await configService.loadMergedConfiguration(tempDir);
-      expect(configService.resolveWorktreeBaseRef()).toBe("head");
-    });
-
-    it("should return 'fresh' when baseRef is 'fresh'", async () => {
-      const config = { worktree: { baseRef: "fresh" as const } };
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify(config));
-
-      await configService.loadMergedConfiguration(tempDir);
-      expect(configService.resolveWorktreeBaseRef()).toBe("fresh");
-    });
-
-    it("should return 'fresh' for invalid baseRef value", async () => {
-      const config = { worktree: { baseRef: "invalid" } };
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify(config));
-
-      // loadMergedConfiguration validates; invalid value fails validation
-      const result = await configService.loadMergedConfiguration(tempDir);
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject invalid baseRef in validation", () => {
-      const config = {
-        worktree: { baseRef: "invalid" },
-      } as unknown as WaveConfiguration;
-      const result = configService.validateConfiguration(config);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain("Invalid worktree.baseRef");
-    });
-  });
-
   describe("validateEnvironmentConfig", () => {
     it("should validate correct env", () => {
       const result = validateEnvironmentConfig({ KEY: "VAL" });
@@ -1489,54 +1445,6 @@ describe("ConfigurationService", () => {
     });
   });
 
-  describe("loadMergedWaveConfig — enableArtifact field", () => {
-    it("should propagate enableArtifact from project settings", async () => {
-      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
-
-      mockExistsSync.mockImplementation((p) => {
-        const pathStr = p.toString();
-        return [userSettingsPath, projectSettingsPath].some((expected) =>
-          pathStr.includes(expected),
-        );
-      });
-
-      mockReadFileSync.mockImplementation((p) => {
-        const pathStr = p.toString();
-        if (pathStr.includes(userSettingsPath))
-          return JSON.stringify({ enableArtifact: false });
-        if (pathStr.includes(projectSettingsPath))
-          return JSON.stringify({ enableArtifact: true });
-        return "";
-      });
-
-      const result = loadMergedWaveConfig(tempDir);
-      expect(result?.enableArtifact).toBe(true);
-    });
-
-    it("should propagate enableArtifact from user settings when project has none", async () => {
-      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
-
-      mockExistsSync.mockImplementation((p) => {
-        const pathStr = p.toString();
-        return [userSettingsPath, projectSettingsPath].some((expected) =>
-          pathStr.includes(expected),
-        );
-      });
-
-      mockReadFileSync.mockImplementation((p) => {
-        const pathStr = p.toString();
-        if (pathStr.includes(userSettingsPath))
-          return JSON.stringify({ enableArtifact: true });
-        if (pathStr.includes(projectSettingsPath)) return JSON.stringify({});
-        return "";
-      });
-
-      const result = loadMergedWaveConfig(tempDir);
-      expect(result?.enableArtifact).toBe(true);
-    });
-  });
 
   describe("loadWaveConfigFromFile — read tolerance", () => {
     it("should return null for empty file (not throw)", () => {
@@ -1625,36 +1533,6 @@ describe("ConfigurationService", () => {
   });
 
   describe("atomic settings write integration", () => {
-    it("addMarketplaceToScope should produce valid JSON immediately after write", async () => {
-      const projectConfigPath = path.join(tempDir, ".muse-work", "settings.json");
-      mockExistsSync.mockImplementation(
-        (p) => p.toString() === projectConfigPath || p.toString() === tempDir,
-      );
-
-      const marketConfig = {
-        source: { source: "git", url: "https://example.com/repo.git" },
-      } as unknown as import("../../src/types/configuration.js").MarketplaceConfig;
-
-      await configService.addMarketplaceToScope(
-        tempDir,
-        "project",
-        "test-market",
-        marketConfig,
-      );
-
-      // Read back the real file (not mocked) — it should be valid JSON
-      const content = await fs.readFile(projectConfigPath, "utf-8");
-      expect(() => JSON.parse(content)).not.toThrow();
-      const parsed = JSON.parse(content);
-      expect(parsed.marketplaces["test-market"]).toBeDefined();
-      expect(parsed.marketplaces["test-market"].source.source).toBe("git");
-
-      // Ensure no leftover temp files
-      const waveDir = path.join(tempDir, ".muse-work");
-      const dirEntries = await fs.readdir(waveDir);
-      const tmpFiles = dirEntries.filter((f) => f.includes(".tmp."));
-      expect(tmpFiles).toHaveLength(0);
-    });
 
     it("updateEnabledPlugin should produce valid JSON immediately after write", async () => {
       const projectConfigPath = path.join(tempDir, ".muse-work", "settings.json");

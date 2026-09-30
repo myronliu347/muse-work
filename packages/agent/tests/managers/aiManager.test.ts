@@ -1405,8 +1405,8 @@ describe("AIManager", () => {
     });
   });
 
-  describe("Stop hook background_tasks and session_crons (User Story 17)", () => {
-    it("should inject background_tasks from BackgroundTaskManager and empty session_crons into Stop hook context", async () => {
+  describe("Stop hook background_tasks (User Story 17)", () => {
+    it("should inject background_tasks from BackgroundTaskManager into Stop hook context", async () => {
       const taskManager = {
         on: vi.fn(),
         listTasks: vi.fn().mockResolvedValue([]),
@@ -1538,12 +1538,11 @@ describe("AIManager", () => {
               name: "audit",
             },
           ],
-          sessionCrons: [],
         }),
       );
     });
 
-    it("should inject empty background_tasks and session_crons when nothing in flight", async () => {
+    it("should inject empty background_tasks when nothing in flight", async () => {
       const taskManager = {
         on: vi.fn(),
         listTasks: vi.fn().mockResolvedValue([]),
@@ -1618,7 +1617,6 @@ describe("AIManager", () => {
         expect.objectContaining({
           event: "Stop",
           backgroundTasks: [],
-          sessionCrons: [],
         }),
       );
     });
