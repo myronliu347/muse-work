@@ -1,0 +1,63 @@
+docs/superpowers/prototypes/2026-09-30-issue-plan-exec-switch-demo.html
+  c8df0f85b58f7a52 1-396
+docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html
+  c8df0f85b58f7a52 1-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "fa417045a6770d51bc2b672ae35c796bdeec244d",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 572,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        },
+        "docs/superpowers/prototypes/2026-09-30-issue-plan-exec-switch-demo.html": {
+          "accepted_lines": 396
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
