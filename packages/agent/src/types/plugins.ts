@@ -5,7 +5,7 @@ import { McpConfig, McpServerConfig } from "./mcp.js";
 import { PartialHookConfiguration } from "./configuration.js";
 import { SubagentConfiguration } from "../utils/subagentParser.js";
 
-/** Primary plugin / marketplace manifest directory (Muse). */
+/** Primary plugin manifest directory (Muse). */
 export const PLUGIN_MANIFEST_DIR = ".muse-plugin";
 
 /**

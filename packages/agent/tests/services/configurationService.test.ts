@@ -222,7 +222,6 @@ describe("ConfigurationService", () => {
       );
 
       const userSettings = {
-        enabledPlugins: { "plugin1@market": true, "plugin2@market": true },
         hooks: { PreToolUse: [{ matcher: "user", hooks: [] }] },
         env: { VAR1: "user", VAR2: "user" },
         permissions: { allow: ["rule-user"], defaultMode: "default" },
@@ -233,7 +232,6 @@ describe("ConfigurationService", () => {
       };
 
       const projectSettings = {
-        enabledPlugins: { "plugin2@market": false, "plugin3@market": true },
         hooks: { PreToolUse: [{ matcher: "project", hooks: [] }] },
         env: { VAR2: "project", VAR3: "project" },
         permissions: { allow: ["rule-project"], defaultMode: "acceptEdits" },
@@ -244,7 +242,6 @@ describe("ConfigurationService", () => {
       };
 
       const localSettings = {
-        enabledPlugins: { "plugin3@market": false, "plugin4@market": true },
         hooks: { PreToolUse: [{ matcher: "local", hooks: [] }] },
         env: { VAR3: "local", VAR4: "local" },
         permissions: {
@@ -277,14 +274,6 @@ describe("ConfigurationService", () => {
       const result = loadMergedWaveConfig(tempDir);
 
       expect(result).not.toBeNull();
-
-      // Verify enabledPlugins (merged with precedence)
-      expect(result?.enabledPlugins).toEqual({
-        "plugin1@market": true,
-        "plugin2@market": false, // from projectSettings
-        "plugin3@market": false, // from localSettings
-        "plugin4@market": true, // from localSettings
-      });
 
       // Verify hooks (combined)
       expect(result?.hooks?.PreToolUse).toHaveLength(3);
@@ -424,28 +413,20 @@ describe("ConfigurationService", () => {
       expect(process.env.KEY).toBeUndefined();
     });
 
-    it("should mirror MUSE_SERVER_URL to process.env (process-singleton consumers)", () => {
+    it("keeps settings env in the session snapshot, including leftover MUSE_SERVER_URL", () => {
       const origMuse = process.env.MUSE_SERVER_URL;
-      const origWave = process.env.WAVE_SERVER_URL;
       delete process.env.MUSE_SERVER_URL;
-      delete process.env.WAVE_SERVER_URL;
       try {
         configService.setEnvironmentVars({
           MUSE_SERVER_URL: "https://test.example.com",
         });
-        // Mirrored to process.env so AuthService / remoteSettings (process
-        // singletons without a per-session snapshot) can read it; also stored
-        // in the session snapshot. Legacy WAVE_* is mirrored too.
         expect(configService.getEnvSnapshot().MUSE_SERVER_URL).toBe(
           "https://test.example.com",
         );
-        expect(process.env.MUSE_SERVER_URL).toBe("https://test.example.com");
-        expect(process.env.WAVE_SERVER_URL).toBe("https://test.example.com");
+        expect(process.env.MUSE_SERVER_URL).toBeUndefined();
       } finally {
         if (origMuse !== undefined) process.env.MUSE_SERVER_URL = origMuse;
         else delete process.env.MUSE_SERVER_URL;
-        if (origWave !== undefined) process.env.WAVE_SERVER_URL = origWave;
-        else delete process.env.WAVE_SERVER_URL;
       }
     });
   });
@@ -1529,28 +1510,6 @@ describe("ConfigurationService", () => {
       const dirEntries = await fs.readdir(tempDir);
       const tmpFiles = dirEntries.filter((f) => f.includes(".tmp."));
       expect(tmpFiles).toHaveLength(0);
-    });
-  });
-
-  describe("atomic settings write integration", () => {
-
-    it("updateEnabledPlugin should produce valid JSON immediately after write", async () => {
-      const projectConfigPath = path.join(tempDir, ".muse-work", "settings.json");
-      mockExistsSync.mockImplementation(
-        (p) => p.toString() === projectConfigPath || p.toString() === tempDir,
-      );
-
-      await configService.updateEnabledPlugin(
-        tempDir,
-        "project",
-        "plugin@market",
-        true,
-      );
-
-      const content = await fs.readFile(projectConfigPath, "utf-8");
-      expect(() => JSON.parse(content)).not.toThrow();
-      const parsed = JSON.parse(content);
-      expect(parsed.enabledPlugins["plugin@market"]).toBe(true);
     });
   });
 

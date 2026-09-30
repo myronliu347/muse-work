@@ -78,16 +78,6 @@ export class InitializationService {
     // Set global logger early so managers can use it during initialization
     setGlobalLogger(logger || null);
 
-    // Load the remote settings disk cache synchronously, before anything reads
-    // the configuration chain. Two consumers depend on it being this early:
-    // loadMergedConfiguration (below) merges the cached managed settings (env,
-    // model, disallowedTools), and plugin loading (also below) reads the managed
-    // enabledPlugins / marketplaces so an admin-pushed plugin is installed and
-    // enabled on this very startup (spec enterprise server-managed-config
-    // 「托管配置下发插件市场与启用列表」场景 1). Settings `env` is stored in the
-    // per-session env snapshot (NOT process.env), except MUSE_SERVER_URL which is
-    // mirrored to process.env so the network fetch (below) can read it via
-    // authService.getServerUrl(); no race.
     // Initialize managers first
     try {
       const phaseStart = performance.now();
@@ -149,13 +139,6 @@ export class InitializationService {
 
       hookManager.loadConfigurationFromWaveConfig(configResult.configuration);
 
-      // Update plugin manager with enabled plugins configuration
-      if (configResult.configuration?.enabledPlugins) {
-        pluginManager.updateEnabledPlugins(
-          configResult.configuration.enabledPlugins,
-        );
-      }
-
       // Initialize permission manager with loaded rules
       if (configResult.configuration?.permissions) {
         const permissionManager =
@@ -191,11 +174,6 @@ export class InitializationService {
       // Don't throw error to prevent app startup failure
     }
 
-    // Start remote settings network fetch + polling now that the config is
-    // merged. Settings `env` MUSE_SERVER_URL was mirrored to process.env by
-    // loadMergedConfiguration → setEnvironmentVars, so the fetch reads it via
-    // authService.getServerUrl(); fire-and-forget, failures fall back to the
-    // cached/merged settings.
     // Execute SessionStart hooks
     try {
       const phaseStart = performance.now();

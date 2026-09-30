@@ -25,9 +25,6 @@ export interface ChatDialogsProps {
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
-  onLoadProjectSettings: () => void;
-  onToggleBuiltinPlugin: (pluginId: string, enabled: boolean) => void;
   onConfigurationSave: (config: ConfigurationData) => void;
   onDialogClose: () => void;
   vscode: VsCodeApi;
@@ -63,9 +60,6 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   configurationData,
   configurationLoading,
   configurationError,
-  projectSettings,
-  onLoadProjectSettings,
-  onToggleBuiltinPlugin,
   onConfigurationSave,
   onDialogClose,
   vscode,
@@ -98,9 +92,6 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
           error={configurationError}
           onSave={onConfigurationSave}
           onCancel={onDialogClose}
-          projectSettings={projectSettings}
-          onLoadProjectSettings={onLoadProjectSettings}
-          onToggleBuiltinPlugin={onToggleBuiltinPlugin}
           vscode={vscode}
         />
       )}

@@ -337,16 +337,6 @@ export function createMessageHandler({
           payload: message.configurationData,
         });
         break;
-      case "projectSettings":
-        // Project settings (.wave/settings.json merged enabledPlugins) are
-        // per-workdir, so on Desktop each pane may hold a different value —
-        // must be pane-guarded (unlike the shared global configurationResponse).
-        if (!forThisPane(message)) break;
-        dispatch({
-          type: "SET_PROJECT_SETTINGS",
-          payload: { enabledPlugins: message.enabledPlugins },
-        });
-        break;
       case "setInitialState":
         if (!forThisPane(message)) break;
         dispatch({

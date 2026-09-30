@@ -739,9 +739,6 @@ export interface ChatState {
   configurationData?: ConfigurationData;
   configurationLoading: boolean;
   configurationError?: string;
-  // Project-scoped settings (read from .wave/settings.json merged config via
-  // stdio RPC). Holds the merged enabledPlugins map for the 项目设置 tab.
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
   // Permission mode state
   permissionMode?: PermissionMode;
   // Attached images state
@@ -798,8 +795,6 @@ export interface ConfigurationData {
   fastModel?: string;
   /** Preferred language for agent communication */
   language?: string;
-  /** CodeChat server URL (reported by SDK, used for update checks) */
-  serverUrl?: string;
 }
 
 // Plugin related types
@@ -810,13 +805,7 @@ export interface PluginInfo {
   version?: string;
   enabled?: boolean;
   installed?: boolean;
-  marketplace?: string;
   scope?: PluginScope;
-}
-
-export interface MarketplaceInfo {
-  name: string;
-  url: string;
 }
 
 export type PluginScope = "user" | "project" | "local";
@@ -840,9 +829,6 @@ export interface ConfigDialogProps {
   error?: string;
   onSave: (config: ConfigurationData) => void;
   onCancel: () => void;
-  projectSettings?: { enabledPlugins: Record<string, boolean> };
-  onLoadProjectSettings?: () => void;
-  onToggleBuiltinPlugin?: (pluginId: string, enabled: boolean) => void;
 }
 
 /**
@@ -914,10 +900,6 @@ export type ChatAction =
   | { type: "SET_CONFIGURATION_LOADING"; payload: boolean }
   | { type: "SET_CONFIGURATION_ERROR"; payload: string | undefined }
   | { type: "SET_CONFIGURATION_DATA"; payload: ConfigurationData }
-  | {
-      type: "SET_PROJECT_SETTINGS";
-      payload: { enabledPlugins: Record<string, boolean> };
-    }
   | { type: "UPDATE_SELECTION"; payload: SelectionInfo | undefined }
   | { type: "SET_PERMISSION_MODE"; payload: PermissionMode }
   | { type: "SET_COMMAND_RUNNING"; payload: boolean }

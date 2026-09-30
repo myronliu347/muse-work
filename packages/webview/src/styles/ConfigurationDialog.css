@@ -232,8 +232,7 @@
   min-height: 0;
 }
 
-.plugin-list,
-.marketplace-list {
+.plugin-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -266,20 +265,7 @@
   font-style: italic;
 }
 
-.add-marketplace {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-}
 
-.add-marketplace input {
-  flex: 1;
-  background-color: var(--gray-3);
-  color: var(--gray-12);
-  border: 1px solid var(--gray-6);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-1);
-}
 
 .add-btn {
   background-color: var(--accent-9);
@@ -291,8 +277,7 @@
 }
 
 /* Plugin and Marketplace Items */
-.plugin-item,
-.marketplace-item {
+.plugin-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -317,16 +302,14 @@
   margin-left: var(--space-2);
 }
 
-.plugin-info,
-.marketplace-info {
+.plugin-info {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   flex: 1;
 }
 
-.plugin-name,
-.marketplace-name {
+.plugin-name {
   font-weight: 600;
   font-size: var(--font-size-1);
 }
@@ -348,8 +331,7 @@
   margin-left: var(--space-1);
 }
 
-.plugin-desc,
-.marketplace-url {
+.plugin-desc {
   font-size: var(--font-size-1);
   color: var(--gray-11);
 }
@@ -360,8 +342,7 @@
   color: var(--gray-11);
 }
 
-.install-btn,
-.marketplace-actions button {
+.install-btn {
   background-color: transparent;
   color: var(--gray-11);
   border: 1px solid var(--gray-6);
@@ -371,15 +352,10 @@
   font-size: var(--font-size-1);
 }
 
-.install-btn:hover,
-.marketplace-actions button:hover {
+.install-btn:hover {
   background-color: var(--gray-4);
 }
 
-.marketplace-actions {
-  display: flex;
-  gap: var(--space-1);
-}
 
 .plugin-actions {
   display: flex;
@@ -743,11 +719,6 @@ input:checked + .slider:before {
   color: var(--gray-12);
 }
 
-.plugin-marketplace {
-  font-size: var(--font-size-1);
-  color: var(--gray-11);
-  font-style: italic;
-}
 
 .install-options {
   display: flex;

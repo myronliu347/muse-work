@@ -389,11 +389,6 @@ export class Agent {
     return this.aiManager.getIsCompacting();
   }
 
-  /** Residual flag for bang-mode; Muse does not run `!command`. */
-  public get isCommandRunning(): boolean {
-    return false;
-  }
-
   /** Get queued user-facing messages (excludes background notifications) */
   public get queuedMessages(): QueuedMessage[] {
     return this.messageQueue
@@ -892,7 +887,7 @@ export class Agent {
       if (this.dispatchPromise) {
         this.dispatchAborted = true;
       }
-      if (this.aiManager.isLoading || this.isCommandRunning) {
+      if (this.aiManager.isLoading) {
         // Clear user-facing queue items first to prevent processQueuedMessage
         // from dequeuing when abortAIMessage triggers onLoadingChange(false).
         // Notifications are preserved so background task results aren't lost.
@@ -1105,7 +1100,7 @@ export class Agent {
     // If the agent is busy, enqueue the message — unless it's an immediate
     // slash command (e.g., /clear, /compact) that should execute
     // right away even while AI is processing
-    if (this.aiManager.isLoading || this.isCommandRunning) {
+    if (this.aiManager.isLoading) {
       const trimmed = content.trim();
       const isImmediate =
         trimmed.startsWith("/") &&

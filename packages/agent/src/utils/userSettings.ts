@@ -2,26 +2,17 @@
  * 用户偏好设置（三端设置页读写的子集）的读写工具。
  *
  * 落点唯一 = 用户级 `~/.muse-work/settings.json`（`getUserConfigPaths()[0]`）：
- * 三端（VS Code 扩展 / JetBrains 插件 / 桌面端）设置页保存的 AI 回复语言、
- * 上下文长度、自动记忆开关/轮次、服务端地址都写这个文件，由 SDK 的实时重载
- * （LiveConfigManager）在各会话下一轮开始时生效——不经 `AgentOptions`
- * 覆盖层下发（覆盖层优先级高于 settings.json，会永久遮蔽实时配置，
- * 见 docs/specs/core/agent-config.md「设置实时重载」「分层职责」）。
+ * 设置页保存的 AI 回复语言、上下文长度、自动记忆开关/轮次都写这个文件，由 SDK
+ * 的实时重载（LiveConfigManager）在各会话下一轮开始时生效——不经 `AgentOptions`
+ * 覆盖层下发（覆盖层优先级高于 settings.json，会永久遮蔽实时配置）。
  *
  * 上下文长度的键 = `env.MUSE_MAX_INPUT_TOKENS`（全局默认，K×1000 落盘、
  * 回读按同一换算），UI 与线协议都传 K 值。仍兼容 `WAVE_MAX_INPUT_TOKENS`。
  *
- * 服务端地址的键 = `env.MUSE_SERVER_URL`（解析链
- * `options.serverUrl > env(MUSE_SERVER_URL|WAVE_SERVER_URL) > DEFAULT_SERVER_URL`；
- * settings `env` 的值经 `setEnvironmentVars` 特例镜像到 `process.env`，
- * 见 docs/specs/core/agent-config.md 边界说明「服务端地址的落点」）。
- *
  * 写入是「读-改-写」：只覆盖这些键，其余顶层键与 `env` 下其它键原样保留。
  *
  * `readUserPreferenceView` 额外回答**当前生效值来自哪一层**：用户级文件是用户
- * 偏好的**落点**，但企业下发的 remote-settings（或机器上的环境变量）可以盖过它，
- * 此时只读用户文件会得到「显示值 ≠ 生效值」（spec core/agent-config.md
- * 边界说明「用户偏好的层与来源」）。设置页据此对「由组织配置管理」的键置灰。
+ * 偏好的**落点**，机器上的环境变量可以盖过它。
  */
 
 import { existsSync, mkdirSync, readFileSync } from "fs";
@@ -48,12 +39,6 @@ export const MAX_INPUT_TOKENS_ENV_KEY = MUSE_ENV.MAX_INPUT_TOKENS;
  */
 export const DISABLE_AUTO_MEMORY_ENV_KEY = MUSE_ENV.DISABLE_AUTO_MEMORY;
 export const AUTO_MEMORY_FREQUENCY_ENV_KEY = MUSE_ENV.AUTO_MEMORY_FREQUENCY;
-
-/**
- * 服务端地址的 env 键（见文件头与
- * `ConfigurationService.setEnvironmentVars` 的镜像特例）。
- */
-export const SERVER_URL_ENV_KEY = MUSE_ENV.SERVER_URL;
 
 function envBlockGet(
   env: Record<string, unknown>,
@@ -102,11 +87,6 @@ function envDisableAutoMemory(raw: unknown): boolean | undefined {
 function envAutoMemoryFrequency(raw: unknown): number | undefined {
   const parsed = Number.parseInt(typeof raw === "string" ? raw : "", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-/** 服务端地址：非空字符串 / 未提供（空串视作未提供，不编造默认值）。 */
-function envNonEmptyString(raw: unknown): string | undefined {
-  return typeof raw === "string" && raw.trim() !== "" ? raw : undefined;
 }
 
 /** 按优先级取第一个提供了值的层。 */
@@ -172,10 +152,6 @@ function toSettings(data: Record<string, unknown>): UserPreferenceSettings {
   if (typeof data.autoMemoryFrequency === "number") {
     settings.autoMemoryFrequency = data.autoMemoryFrequency;
   }
-  const serverUrl = envNonEmptyString(
-    envBlockGet(env, SERVER_URL_ENV_KEY),
-  );
-  if (serverUrl !== undefined) settings.serverUrl = serverUrl;
   return settings;
 }
 
@@ -189,8 +165,7 @@ function readSettingsFileTolerant(filePath: string): Record<string, unknown> {
 }
 
 /**
- * 读取当前用户偏好。文件缺失或损坏时返回空对象（与
- * `loadWaveConfigFromFile` 的容错一致：损坏只影响展示，不阻塞设置页渲染）；
+ * 读取当前用户偏好。文件缺失或损坏时返回空对象；
  * 写入路径则会明确报错而不是覆盖用户文件。
  */
 export function readUserPreferenceSettings(
@@ -202,24 +177,7 @@ export function readUserPreferenceSettings(
 /**
  * 读取**生效**用户偏好及其来源层。
  *
- * 优先级与各 resolve 链一致（只按**进程级可达**的层归因）：Remote 组织下发
- * （顶层键，以及其 `env` 的 `MUSE_MAX_INPUT_TOKENS` / `MUSE_DISABLE_AUTO_MEMORY` /
- * `MUSE_AUTO_MEMORY_FREQUENCY`，兼容 `WAVE_*`）> 用户级文件（同样两种落点）> 机器环境变量
- * （`process.env`）> 默认。Remote 胜出与 `mergeRemoteSettings` 的「标量远程赢、
- * env 逐键远程赢」一致（remoteSettingsService.ts）。
- *
- * `values` 的语义**与只读用户文件时完全一致**：只有真的有提供者才会出现该键，
- * 没有任何层提供时键缺失（设置页据此显示「未设置」态、按 SDK 默认值展示）。
- * 新增信息只在 `sources`：每个键恒有来源（缺省 `default`）。
- *
- * 注意归因范围：`project`（`.muse-work/settings.json`）/ `local`（`.muse-work/settings.local.json`）
- * 需要 workdir，而本 RPC 是刻意的无会话全局请求；`override` / `options` 是会话级
- * 语义。三者都不在本视图的归因范围内——被它们覆盖时这里仍按进程级各层给出
- * 「本层值」，见 spec core/agent-config.md 边界说明「用户偏好的层与来源」。
- *
- * @param remote - Remote 组织下发配置（默认取进程内缓存）
- * @param filePath - 用户级 settings.json 路径
- * @param env - 机器环境变量（默认 `process.env`，便于测试注入）
+ * 优先级：Remote 组织下发（若仍传入）> 用户级文件 > 机器环境变量 > 默认。
  */
 export function readUserPreferenceView(
   remote: WaveConfiguration | null = null,
@@ -237,10 +195,8 @@ export function readUserPreferenceView(
     contextLength: "default",
     autoMemoryEnabled: "default",
     autoMemoryFrequency: "default",
-    serverUrl: "default",
   };
 
-  // language 没有 env 落点（`resolveLanguage` 只读合并后的顶层键）。
   const language = selectPreference<string>([
     ["remote", remote?.language],
     ["user", user.language],
@@ -250,9 +206,6 @@ export function readUserPreferenceView(
     sources.language = language.source;
   }
 
-  // 上下文长度的归因层 = `env.MUSE_MAX_INPUT_TOKENS`（兼容 WAVE_）所在的层
-  // （不是「模型配置」那层：模型自带上限时以模型配置为准是 SDK 既有行为，
-  // 设置页那一行可见说明已交代）。
   const contextLength = selectPreference<number>([
     [
       "remote",
@@ -266,10 +219,6 @@ export function readUserPreferenceView(
     sources.contextLength = contextLength.source;
   }
 
-  // 自动记忆开关每层有两条路径：顶层标量，以及 `env.MUSE_DISABLE_AUTO_MEMORY`。
-  // 顶层标量整层优先于 env（`resolveAutoMemoryEnabledFrom` 先看 config 再看 env）。
-  // 没有任何层提供时**不编造**值（与其余三个键一致：键缺失 = 无提供者），
-  // 设置页按 SDK 默认显示为「开」，与生效值一致。
   const autoMemoryEnabled = selectPreference<boolean>([
     ["remote", remote?.autoMemoryEnabled],
     ["user", user.autoMemoryEnabled],
@@ -316,18 +265,6 @@ export function readUserPreferenceView(
     sources.autoMemoryFrequency = autoMemoryFrequency.source;
   }
 
-  // 服务端地址的落点 = `env.MUSE_SERVER_URL`（兼容 WAVE_），来源只可能是 user / env / default——
-  // 不归因 remote（远端托管配置本身取自该地址，不存在「组织下发服务端地址」的闭环，
-  // 见 spec core/agent-config.md 边界说明「服务端地址的落点」）。
-  const serverUrl = selectPreference<string>([
-    ["user", user.serverUrl],
-    ["env", envNonEmptyString(envGet(SERVER_URL_ENV_KEY, env))],
-  ]);
-  if (serverUrl) {
-    values.serverUrl = serverUrl.value;
-    sources.serverUrl = serverUrl.source;
-  }
-
   return { values, sources };
 }
 
@@ -345,17 +282,7 @@ export async function updateUserPreferenceSettings(
   const hasContextLength = patch.contextLength !== undefined;
   const hasEnabled = patch.autoMemoryEnabled !== undefined;
   const hasFrequency = patch.autoMemoryFrequency !== undefined;
-  // 空串视作未提供（与回读侧 `envNonEmptyString` 同一判据）：写进去会在
-  // `process.env` 镜像里遮蔽 OS 环境变量（解析链用 `||` 回落到默认值），而回读侧
-  // 又按「未设置」展示 ⇒ 显示值与生效值分叉。省略键 = 不改该键。
-  const serverUrl = envNonEmptyString(patch.serverUrl);
-  if (
-    !hasLanguage &&
-    !hasContextLength &&
-    !hasEnabled &&
-    !hasFrequency &&
-    serverUrl === undefined
-  ) {
+  if (!hasLanguage && !hasContextLength && !hasEnabled && !hasFrequency) {
     return toSettings(data);
   }
 
@@ -382,16 +309,6 @@ export async function updateUserPreferenceSettings(
     data.autoMemoryFrequency = patch.autoMemoryFrequency;
   }
 
-  // 服务端地址落 `env.MUSE_SERVER_URL`（写入时去掉遗留 WAVE_ 键）：原样写入，不做归一/清理
-  // （格式校验在设置页，见 spec 边界说明「服务端地址的落点」）。
-  if (serverUrl !== undefined) {
-    const env = asEnvBlock(data.env);
-    writeEnvKey(env, SERVER_URL_ENV_KEY, serverUrl);
-    data.env = env;
-  }
-
-  // 首次保存时 `~/.muse-work` 可能尚不存在（会话启动时文件不存在，场景 7），
-  // 原子写需要同目录可写，先确保目录存在。
   mkdirSync(dirname(filePath), { recursive: true });
   await atomicWriteFile(filePath, `${JSON.stringify(data, null, 2)}\n`);
   return toSettings(data);

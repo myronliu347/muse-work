@@ -378,13 +378,6 @@ export class SkillManager extends EventEmitter {
             type: collection.type,
           };
 
-          // Feature-gated builtin skills (e.g. artifact behind
-          // enableArtifact) are skipped while the gate is off, mirroring
-          // ToolManager's registration gate for the Artifact tool.
-          if (this.isSkillGatedOff(skillMetadata)) {
-            continue;
-          }
-
           // Create full skill object with content
           const skill: Skill = {
             ...skillMetadata,
@@ -444,19 +437,8 @@ export class SkillManager extends EventEmitter {
   }
 
   /**
-   * Whether a discovered skill is a feature-gated builtin skill whose gate
-   * is currently off. Mirrors ToolManager's gate for the Artifact tool so
-   * the /artifact skill command stays in sync with enableArtifact.
-   */
-  private isSkillGatedOff(_metadata: SkillMetadata): boolean {
-    return false;
-  }
-
-  /**
-   * Re-evaluate feature-gated builtin skills after a live configuration
-   * reload (same hook as ToolManager.reloadFeatureGatedTools). Re-scans
-   * skill directories and emits "refreshed" so slash-command registration
-   * follows the gate.
+   * Re-scan skill directories after a live configuration reload so slash
+   * commands stay in sync with files on disk.
    */
   async reloadFeatureGatedSkills(): Promise<void> {
     await this.refreshSkills();

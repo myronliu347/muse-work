@@ -641,16 +641,6 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     configurationData: state.configurationData,
     configurationLoading: state.configurationLoading,
     configurationError: state.configurationError,
-    projectSettings: state.projectSettings,
-    onLoadProjectSettings: () =>
-      postToHost({ command: "getProjectSettings" }),
-    onToggleBuiltinPlugin: (pluginId, enabled) =>
-      postToHost({
-        command: "setBuiltinPluginEnabled",
-        pluginId,
-        enabled,
-        scope: "project",
-      }),
     onConfigurationSave: handleConfigurationSave,
     onDialogClose: handleDialogClose,
     vscode,

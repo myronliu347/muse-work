@@ -39,7 +39,6 @@ import {
 import {
   DEFAULT_WAVE_MAX_INPUT_TOKENS,
   DEFAULT_WAVE_MAX_OUTPUT_TOKENS,
-  DEFAULT_SERVER_URL,
   DEFAULT_LANGUAGE,
   CONFIG_DIR_NAME,
 } from "../utils/constants.js";
@@ -47,7 +46,7 @@ import { ClientOptions } from "openai";
 import { parseCustomHeaders } from "../utils/stringUtils.js";
 import { ensureWaveRuntimeFilesExcluded } from "../utils/gitUtils.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
-import { envGet, MUSE_ENV, museEnvLegacy, projectDirEnv } from "../utils/museEnv.js";
+import { envGet, MUSE_ENV, projectDirEnv } from "../utils/museEnv.js";
 
 /**
  * Validate a configuration object's structure and values. Module-level so it
@@ -97,26 +96,6 @@ export function validateConfigurationObject(
               `Hook configuration ${i} for event '${event}' must be an object`,
             );
           }
-        }
-      }
-    }
-  }
-
-  // Validate enabledPlugins if present
-  if (config.enabledPlugins !== undefined) {
-    if (
-      typeof config.enabledPlugins !== "object" ||
-      config.enabledPlugins === null
-    ) {
-      result.isValid = false;
-      result.errors.push("enabledPlugins configuration must be an object");
-    } else {
-      for (const [pluginId, enabled] of Object.entries(config.enabledPlugins)) {
-        if (typeof enabled !== "boolean") {
-          result.isValid = false;
-          result.errors.push(
-            `Value for plugin '${pluginId}' in enabledPlugins must be a boolean`,
-          );
         }
       }
     }
@@ -441,12 +420,7 @@ export class ConfigurationService {
   /**
    * Store environment variables from configuration into the per-session
    * snapshot (NOT process.env). Settings `env` shadows OS env for this session
-   * only — multiple sessions in one stdio process stay isolated.
-   *
-   * Exception: `MUSE_SERVER_URL` / legacy `WAVE_SERVER_URL` is also mirrored
-   * to `process.env` because the process-level singletons (AuthService,
-   * remoteSettingsService background fetch) need to read it and don't hold a
-   * per-session snapshot. Same value across sessions ⇒ no cross-pollution.
+   * only — multiple sessions in one process stay isolated.
    */
   setEnvironmentVars(env: Record<string, string>): void {
     for (const [key, value] of Object.entries(env)) {
@@ -459,10 +433,6 @@ export class ConfigurationService {
       }
       this.envSnapshot[key] = value;
       this._configuredEnvKeys.add(key);
-      if (key === MUSE_ENV.SERVER_URL || key === museEnvLegacy(MUSE_ENV.SERVER_URL)) {
-        process.env[MUSE_ENV.SERVER_URL] = value;
-        process.env[museEnvLegacy(MUSE_ENV.SERVER_URL)] = value;
-      }
     }
   }
 
@@ -1009,53 +979,6 @@ export class ConfigurationService {
   }
 
   /**
-   * Update the enabled state of a plugin in the specified scope
-   */
-  async updateEnabledPlugin(
-    workdir: string,
-    scope: Scope,
-    pluginId: string,
-    enabled: boolean,
-  ): Promise<void> {
-    if (scope !== "user" && !existsSync(workdir)) {
-      throw new Error(`Working directory does not exist: ${workdir}`);
-    }
-
-    let configPath: string;
-    if (scope === "user") {
-      configPath = getUserConfigPaths()[0]; // settings.json
-    } else if (scope === "project") {
-      configPath = getProjectConfigPaths(workdir)[1]; // settings.json
-    } else {
-      configPath = getProjectConfigPaths(workdir)[0]; // local settings.local.json
-    }
-
-    // Ensure directory exists
-    const configDir = path.dirname(configPath);
-    if (!existsSync(configDir)) {
-      await fs.mkdir(configDir, { recursive: true });
-    }
-
-    let config: WaveConfiguration = {};
-    if (existsSync(configPath)) {
-      try {
-        const content = await fs.readFile(configPath, "utf-8");
-        config = JSON.parse(content);
-      } catch {
-        // Start with empty config if file is corrupted
-      }
-    }
-
-    if (!config.enabledPlugins) {
-      config.enabledPlugins = {};
-    }
-
-    config.enabledPlugins[pluginId] = enabled;
-
-    await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
-  }
-
-  /**
    * Resolve the settings.json path for a hook scope.
    * user → ~/.muse-work/settings.json; project → <workdir>/.muse-work/settings.json
    */
@@ -1153,57 +1076,6 @@ export class ConfigurationService {
       config.hooks = hooks;
       await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
     }
-  }
-
-  /**
-   * Remove a plugin from the enabled plugins in the specified scope
-   */
-  async removeEnabledPlugin(
-    workdir: string,
-    scope: Scope,
-    pluginId: string,
-  ): Promise<void> {
-    if (scope !== "user" && !existsSync(workdir)) {
-      throw new Error(`Working directory does not exist: ${workdir}`);
-    }
-
-    let configPath: string;
-    if (scope === "user") {
-      configPath = getUserConfigPaths()[0]; // settings.json
-    } else if (scope === "project") {
-      configPath = getProjectConfigPaths(workdir)[1]; // settings.json
-    } else {
-      configPath = getProjectConfigPaths(workdir)[0]; // local settings.local.json
-    }
-
-    if (!existsSync(configPath)) {
-      return; // Nothing to remove
-    }
-
-    try {
-      const content = await fs.readFile(configPath, "utf-8");
-      const config: WaveConfiguration = JSON.parse(content);
-
-      if (config.enabledPlugins && pluginId in config.enabledPlugins) {
-        delete config.enabledPlugins[pluginId];
-        await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
-      }
-    } catch {
-      // Ignore errors for corrupted or non-existent files
-    }
-  }
-
-  /**
-   * Get merged enabled plugins from all scopes, with admin-managed (remote)
-   * entries taking precedence per key (spec enterprise server-managed-config
-   * 「托管配置下发插件市场与启用列表」场景 5). A managed `false` therefore
-   * force-disables a plugin no matter what the local files say.
-   */
-  getMergedEnabledPlugins(workdir: string): Record<string, boolean> {
-    const mergedConfig = loadMergedWaveConfig(workdir);
-    return {
-      ...(mergedConfig?.enabledPlugins || {}),
-    };
   }
 
   /**
@@ -1353,7 +1225,6 @@ export function loadWaveConfigFromFile(
       hooks: config.hooks || undefined,
       env: config.env || undefined,
       permissions: config.permissions || undefined,
-      enabledPlugins: config.enabledPlugins || undefined,
       language: config.language || undefined,
       model: config.model || undefined,
       autoMemoryEnabled:
@@ -1386,9 +1257,7 @@ export function loadWaveConfigFromFile(
 
 /**
  * Load the user-level (~/.muse-work/settings.json) `env` block only — no workdir
- * dependency. Used at daemon startup to apply MUSE_SERVER_URL before any agent
- * initializes: auth queries (getAuthStatus) can run before the first agent,
- * and AuthService falls back to the default URL otherwise.
+ * dependency.
  */
 export function loadUserConfigEnv(): Record<string, string> {
   const config = loadWaveConfigFromFile(getUserConfigPaths()[0]);
@@ -1495,12 +1364,6 @@ export function loadMergedWaveConfig(
       }
     }
 
-    // Merge enabledPlugins
-    if (config.enabledPlugins) {
-      if (!mergedConfig.enabledPlugins) mergedConfig.enabledPlugins = {};
-      Object.assign(mergedConfig.enabledPlugins, config.enabledPlugins);
-    }
-
     // Merge language (last one wins)
     if (config.language !== undefined) {
       mergedConfig.language = config.language;
@@ -1551,11 +1414,6 @@ export function loadMergedWaveConfig(
       mergedConfig.permissions &&
       Object.keys(mergedConfig.permissions).length > 0
         ? mergedConfig.permissions
-        : undefined,
-    enabledPlugins:
-      mergedConfig.enabledPlugins &&
-      Object.keys(mergedConfig.enabledPlugins).length > 0
-        ? mergedConfig.enabledPlugins
         : undefined,
     language: mergedConfig.language,
     model: mergedConfig.model,

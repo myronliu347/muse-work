@@ -6,7 +6,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 
 - 进程内 Agent、消息 / session jsonl、权限、Plan、Skill、MCP、LSP
 - **本地插件**：`PluginLoader` + `PluginManager.loadPlugins([{ type: "local", path }])`
-- Workflow（工具 / manager / UI；POPO 与 automation 仍禁用）
+- Workflow（工具 / manager / UI；POPO 与定时自动化会话不挂这个工具）
 - AskUserQuestion、auto-memory、WebFetch、任务列表、subagent
 
 ## 已移除（第一轮）
@@ -32,6 +32,17 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | 死名字 | Cron / Artifact / Worktree / Exec 工具常量、`types/cron|telemetry|auth|marketplace` |
 | Bash `!` | `BashModeManager`、`Agent.bang`（历史 transcript 里的 bang block 仍可渲染） |
 | settings skill | 去掉 CLI / stdio / 市场 / Artifact 百科，改成 Muse 本地配置说明 |
+| deep-research | 依赖 Workflow 的内置 skill；Workflow 暂留，skill 先去掉 |
+| serverUrl | `AgentOptions.serverUrl`、`DEFAULT_SERVER_URL`、用户偏好里的服务端地址 |
+| enabledPlugins / @builtin | SDK 内置插件目录与 settings 启用表；Muse 只走本地 `path` |
+| webview 市场残件 | `projectSettings.enabledPlugins`、`MarketplaceInfo`、marketplace CSS |
+
+## 第三轮
+
+- 去掉 Wave SSO `serverUrl` 默认值与 settings 镜像
+- 去掉 `<name>@builtin` 加载与 `enabledPlugins` 合并/写入
+- 收掉 `isCommandRunning` getter 与 skill Artifact 空门控
+- webview 不再传死掉的项目插件开关
 
 ## 刻意未动
 

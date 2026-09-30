@@ -34,8 +34,6 @@ export interface WaveConfiguration {
      */
     additionalDirectories?: string[];
   };
-  /** New field for scoped plugin management */
-  enabledPlugins?: Record<string, boolean>;
   /** Preferred language for agent communication */
   language?: string;
   /** Whether auto-memory is enabled */
@@ -70,8 +68,6 @@ export interface UserPreferenceSettings {
   autoMemoryEnabled?: boolean;
   /** 自动记忆提取的轮次频率（1–100）。 */
   autoMemoryFrequency?: number;
-  /** Wave 服务端地址（settings.json 的 `env.MUSE_SERVER_URL`，如 https://…）。 */
-  serverUrl?: string;
 }
 
 /** 用户偏好键（设置页控件）。 */

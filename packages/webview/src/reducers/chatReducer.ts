@@ -251,7 +251,6 @@ export const initialState: ChatState = {
   configurationData: undefined,
   configurationLoading: false,
   configurationError: undefined,
-  projectSettings: undefined,
   // Permission mode state
   permissionMode: "acceptEdits",
   // Attached images state
@@ -473,11 +472,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         configurationData: action.payload,
         configurationLoading: false,
-      };
-    case "SET_PROJECT_SETTINGS":
-      return {
-        ...state,
-        projectSettings: action.payload,
       };
     case "SET_INITIAL_STATE":
       return {

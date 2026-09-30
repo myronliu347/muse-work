@@ -27,8 +27,6 @@ export interface AgentOptions {
   // Optional configuration with environment fallbacks
   apiKey?: string;
   baseURL?: string;
-  /** Wave server URL for SSO authentication (fallback to MUSE_SERVER_URL env var) */
-  serverUrl?: string;
   defaultHeaders?: Record<string, string>;
   /** Per-subagent-type headers, merged into defaultHeaders for matching subagents */
   subagentHeaders?: Record<string, Record<string, string>>;

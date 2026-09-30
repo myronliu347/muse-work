@@ -53,7 +53,6 @@ describe("InitializationService", () => {
       } as unknown as InitializationContext["toolManager"],
       pluginManager: {
         loadPlugins: vi.fn(),
-        updateEnabledPlugins: vi.fn(),
       } as unknown as InitializationContext["pluginManager"],
       options: { plugins: [] } as unknown as InitializationContext["options"],
       slashCommandManager: {

@@ -345,7 +345,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             })),
           }
         : {}),
-      // Intentionally omit serverUrl to avoid Wave SSO.
       callbacks: {
         onSessionIdChange: (id) => {
           rememberWaveSessionId(sessionId, id);
