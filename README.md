@@ -135,5 +135,5 @@ pnpm test
 
 ## 相关文档
 
-- 产品设计：[`docs/superpowers/specs/2026-08-12-muse-work-design.md`](docs/superpowers/specs/2026-08-12-muse-work-design.md)
-- 更多设计规格与截图：`docs/superpowers/specs/`、`docs/public/screenshots/`
+- 截图与说明：`docs/public/screenshots/`
+- 集成说明：[`docs/popo-robot-integration.md`](docs/popo-robot-integration.md)
