@@ -1,0 +1,51 @@
+packages/agent/tests/managers/permissionManager.test.ts
+  98ab170ac30fbe53 1242,1259,1276,1302
+packages/agent/src/constants/images.ts
+  98ab170ac30fbe53 16
+packages/agent/src/types/index.ts
+  98ab170ac30fbe53 5-6,34-35
+packages/agent/src/constants/index.ts
+  98ab170ac30fbe53 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a83a8328f68a804f6c008d329b1429468dcb33e2",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 16,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/types/index.ts": {
+          "additions": 4,
+          "deletions": 10,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/constants/index.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/managers/permissionManager.test.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/constants/images.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
