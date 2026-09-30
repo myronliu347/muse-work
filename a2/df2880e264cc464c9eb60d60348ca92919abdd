@@ -1,0 +1,120 @@
+packages/agent/src/types/plugins.ts
+  98ab170ac30fbe53 8
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 9,35-38,40-45
+packages/agent/src/managers/pluginManager.ts
+  98ab170ac30fbe53 31-32,193-194
+packages/agent/src/managers/skillManager.ts
+  98ab170ac30fbe53 440-441
+packages/agent/src/services/configurationService.ts
+  98ab170ac30fbe53 49,423,1260
+packages/agent/src/utils/userSettings.ts
+  98ab170ac30fbe53 5-7,15,168,180,285
+packages/agent/src/agent.ts
+  98ab170ac30fbe53 890,1103
+packages/agent/tests/services/configurationService.test.ts
+  98ab170ac30fbe53 416,426
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a2df2880e264cc464c9eb60d60348ca92919abdd",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 35,
+      "total_deletions": 522,
+      "accepted_lines": 34,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/managers/pluginManager.ts": {
+          "additions": 4,
+          "deletions": 123,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/types/index.ts": {
+          "deletions": 18
+        },
+        "packages/agent/src/types/plugins.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/builtin/index.ts": {
+          "deletions": 2
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "deletions": 9
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 10
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "deletions": 6
+        },
+        "packages/agent/src/services/initializationService.ts": {
+          "deletions": 22
+        },
+        "packages/agent/src/utils/constants.ts": {
+          "deletions": 6
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 2,
+          "deletions": 43,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 3,
+          "deletions": 145,
+          "accepted_lines": 3
+        },
+        "packages/agent/tests/managers/pluginManager.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/userSettings.ts": {
+          "additions": 7,
+          "deletions": 90,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/agent.ts": {
+          "additions": 2,
+          "deletions": 7,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 2,
+          "deletions": 20,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "deletions": 10
+        },
+        "packages/agent/tests/services/initializationService.test.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/types/agent.ts": {
+          "deletions": 2
+        },
+        "packages/agent/src/types/configuration.ts": {
+          "deletions": 4
+        }
+      }
+    }
+  }
+}
