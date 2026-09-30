@@ -15,7 +15,7 @@ import {
 import { createSessionStore, type SessionStore } from "./sessionStore.js";
 import { createWsHub, type WsHub } from "./wsHub.js";
 import { ensureDefaultConfigs } from "./agentConfig.js";
-import { ensureDefaultWaveUserSettings } from "./waveAgentSettings.js";
+import { ensureDefaultMuseUserSettings } from "./museAgentSettings.js";
 import { createIssueDispatcher } from "./issueDispatch.js";
 import { createIssueStore, type IssueStore } from "./issueStore.js";
 import {
@@ -88,7 +88,7 @@ export function createAppContext(
   const home = resolveHome(options?.home);
   // 启动自动生成 agent 配置文件（agents.json / agent-scenarios.json），无则写默认内置
   ensureDefaultConfigs(home);
-  ensureDefaultWaveUserSettings(home);
+  ensureDefaultMuseUserSettings(home);
 
   const getConfig = () => loadProvidersConfig(home);
 

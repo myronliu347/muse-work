@@ -14,6 +14,7 @@ export type Scope = "user" | "project" | "local";
 
 /**
  * Root configuration structure for Muse Agent settings including hooks and environment variables.
+ * 类型名 `WaveConfiguration` 刻意保留：全仓引用面大，暂不改名。
  */
 export interface WaveConfiguration {
   hooks?: Partial<Record<HookEvent, HookEventConfig[]>>;

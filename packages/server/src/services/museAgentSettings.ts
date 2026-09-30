@@ -5,12 +5,12 @@ import { getMuseHomeDir } from "@muse-work/provider";
 import { getLogger } from "../utils/logger.js";
 
 /** User-scope agent settings: `<muse-home>/settings.json` (default `~/.muse-work`). */
-export function getWaveUserSettingsPath(home = os.homedir()): string {
+export function getMuseUserSettingsPath(home = os.homedir()): string {
   return path.join(getMuseHomeDir(home), "settings.json");
 }
 
 /** First-launch defaults when `~/.muse-work/settings.json` does not exist. */
-export const DEFAULT_WAVE_USER_SETTINGS = {
+export const DEFAULT_MUSE_USER_SETTINGS = {
   env: {
     MUSE_MAX_INPUT_TOKENS: "800000",
     MUSE_VISION_MODEL: "kimi-k3",
@@ -53,12 +53,12 @@ export const DEFAULT_WAVE_USER_SETTINGS = {
 const EMPTY_SETTINGS = "{}\n";
 
 /** 启动时若无 `~/.muse-work/settings.json` 则写入内置默认，已有文件不覆盖。 */
-export function ensureDefaultWaveUserSettings(home = os.homedir()): void {
-  const file = getWaveUserSettingsPath(home);
+export function ensureDefaultMuseUserSettings(home = os.homedir()): void {
+  const file = getMuseUserSettingsPath(home);
   if (fs.existsSync(file)) return;
   try {
-    writeWaveUserSettingsText(
-      JSON.stringify(DEFAULT_WAVE_USER_SETTINGS),
+    writeMuseUserSettingsText(
+      JSON.stringify(DEFAULT_MUSE_USER_SETTINGS),
       home,
     );
   } catch (err) {
@@ -69,19 +69,19 @@ export function ensureDefaultWaveUserSettings(home = os.homedir()): void {
   }
 }
 
-export class WaveSettingsJsonError extends Error {
+export class MuseSettingsJsonError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "WaveSettingsJsonError";
+    this.name = "MuseSettingsJsonError";
   }
 }
 
 /** Pretty-printed `~/.muse-work/settings.json` text for the Agent settings editor. */
-export function readWaveUserSettingsText(home = os.homedir()): {
+export function readMuseUserSettingsText(home = os.homedir()): {
   path: string;
   content: string;
 } {
-  const file = getWaveUserSettingsPath(home);
+  const file = getMuseUserSettingsPath(home);
   try {
     const content = fs.readFileSync(file, "utf8");
     try {
@@ -104,7 +104,7 @@ export function readWaveUserSettingsText(home = os.homedir()): {
  * Parse + validate editor JSON, write `~/.muse-work/settings.json`.
  * Root must be a non-array object (settings schema is otherwise freeform).
  */
-export function writeWaveUserSettingsText(
+export function writeMuseUserSettingsText(
   content: string,
   home = os.homedir(),
 ): { path: string; content: string } {
@@ -112,13 +112,13 @@ export function writeWaveUserSettingsText(
   try {
     parsed = JSON.parse(content);
   } catch {
-    throw new WaveSettingsJsonError("JSON 格式无效");
+    throw new MuseSettingsJsonError("JSON 格式无效");
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new WaveSettingsJsonError("根节点必须是 JSON 对象");
+    throw new MuseSettingsJsonError("根节点必须是 JSON 对象");
   }
 
-  const file = getWaveUserSettingsPath(home);
+  const file = getMuseUserSettingsPath(home);
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
   const next = `${JSON.stringify(parsed, null, 2)}\n`;
   fs.writeFileSync(file, next, {

@@ -4,7 +4,7 @@ import { MockDataGenerator } from "../fixtures/mockData.js";
 import { READ_TOOL_NAME } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const initialState = {
   messages: [],

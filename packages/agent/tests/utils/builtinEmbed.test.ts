@@ -35,7 +35,7 @@ async function freshMaterializer(): Promise<
 }
 
 describe("builtinEmbed", () => {
-  const expectedDir = join("/tmp", "wave-builtin", getBuiltinCacheKey());
+  const expectedDir = join("/tmp", "muse-builtin", getBuiltinCacheKey());
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +46,7 @@ describe("builtinEmbed", () => {
     expect(getBuiltinCacheKey()).toBe(getBuiltinCacheKey());
   });
 
-  it("materializes builtin content under tmpdir/wave-builtin/<hash>", async () => {
+  it("materializes builtin content under tmpdir/muse-builtin/<hash>", async () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const { ensureBuiltinMaterialized } = await freshMaterializer();
 
@@ -78,7 +78,7 @@ describe("builtinEmbed", () => {
 
     const markerIndex = vi.mocked(fs.writeFileSync).mock.calls.length - 1;
     expect(vi.mocked(fs.writeFileSync).mock.calls[markerIndex][0]).toBe(
-      join(expectedDir, ".wave-builtin-complete"),
+      join(expectedDir, ".muse-builtin-complete"),
     );
   });
 
@@ -96,7 +96,7 @@ describe("builtinEmbed", () => {
 
   it("skips writing when the marker already exists", async () => {
     vi.mocked(fs.existsSync).mockImplementation((p) => {
-      return p === join(expectedDir, ".wave-builtin-complete");
+      return p === join(expectedDir, ".muse-builtin-complete");
     });
     const { ensureBuiltinMaterialized } = await freshMaterializer();
 

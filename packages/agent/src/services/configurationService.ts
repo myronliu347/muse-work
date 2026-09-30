@@ -37,14 +37,14 @@ import {
   AgentOptions,
 } from "../types/index.js";
 import {
-  DEFAULT_WAVE_MAX_INPUT_TOKENS,
-  DEFAULT_WAVE_MAX_OUTPUT_TOKENS,
+  DEFAULT_MUSE_MAX_INPUT_TOKENS,
+  DEFAULT_MUSE_MAX_OUTPUT_TOKENS,
   DEFAULT_LANGUAGE,
   CONFIG_DIR_NAME,
 } from "../utils/constants.js";
 import { ClientOptions } from "openai";
 import { parseCustomHeaders } from "../utils/stringUtils.js";
-import { ensureWaveRuntimeFilesExcluded } from "../utils/gitUtils.js";
+import { ensureMuseRuntimeFilesExcluded } from "../utils/gitUtils.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
 import { envGet, MUSE_ENV, projectDirEnv } from "../utils/museEnv.js";
 
@@ -660,7 +660,7 @@ export class ConfigurationService {
     }
 
     // Use default
-    return DEFAULT_WAVE_MAX_INPUT_TOKENS;
+    return DEFAULT_MUSE_MAX_INPUT_TOKENS;
   }
 
   /**
@@ -816,7 +816,7 @@ export class ConfigurationService {
     }
 
     // Use default
-    return DEFAULT_WAVE_MAX_OUTPUT_TOKENS;
+    return DEFAULT_MUSE_MAX_OUTPUT_TOKENS;
   }
 
   /**
@@ -909,7 +909,7 @@ export class ConfigurationService {
 
     // Ensure .muse-work directory exists
     const waveDir = path.join(workdir, CONFIG_DIR_NAME);
-    ensureWaveRuntimeFilesExcluded(workdir);
+    ensureMuseRuntimeFilesExcluded(workdir);
     if (!existsSync(waveDir)) {
       await fs.mkdir(waveDir, { recursive: true });
     }
@@ -949,7 +949,7 @@ export class ConfigurationService {
 
     // Ensure .muse-work directory exists
     const waveDir = path.join(workdir, CONFIG_DIR_NAME);
-    ensureWaveRuntimeFilesExcluded(workdir);
+    ensureMuseRuntimeFilesExcluded(workdir);
     if (!existsSync(waveDir)) {
       await fs.mkdir(waveDir, { recursive: true });
     }
@@ -1198,7 +1198,8 @@ export function mergeEnvironmentConfig(
 
 /**
  * Load Muse settings from a JSON file
- * Supports both hooks and environment variables with proper validation
+ * Supports both hooks and environment variables with proper validation.
+ * 函数名 `loadWaveConfigFromFile` 刻意保留，暂不改名。
  */
 export function loadWaveConfigFromFile(
   filePath: string,
@@ -1266,7 +1267,8 @@ export function loadUserConfigEnv(): Record<string, string> {
 /**
  * Load and merge Muse settings from both user and project sources
  * Project configuration takes precedence over user configuration
- * Checks .local.json files first, then falls back to .json files
+ * Checks .local.json files first, then falls back to .json files.
+ * 函数名 `loadMergedWaveConfig` 刻意保留，暂不改名。
  */
 export function loadMergedWaveConfig(
   workdir: string,

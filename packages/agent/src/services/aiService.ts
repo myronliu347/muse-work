@@ -18,7 +18,7 @@ import {
   type ClaudeChatCompletionContentPartText,
 } from "../utils/cacheControlUtils.js";
 import { supportsPromptCaching } from "../utils/modelCapabilities.js";
-import { DEFAULT_WAVE_MAX_OUTPUT_TOKENS } from "../utils/constants.js";
+import { DEFAULT_MUSE_MAX_OUTPUT_TOKENS } from "../utils/constants.js";
 
 import * as os from "os";
 import * as fs from "fs";
@@ -297,7 +297,7 @@ export async function callAgent(
     // after this default below); callers pass the resolved global value
     // (AgentOptions.maxTokens / MUSE_MAX_OUTPUT_TOKENS) via options.maxTokens.
     const resolvedMaxTokens =
-      options.maxTokens ?? DEFAULT_WAVE_MAX_OUTPUT_TOKENS;
+      options.maxTokens ?? DEFAULT_MUSE_MAX_OUTPUT_TOKENS;
 
     // Build system message content
     let systemMessage: ChatCompletionMessageParam;

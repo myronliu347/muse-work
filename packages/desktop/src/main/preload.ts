@@ -20,7 +20,7 @@ const serverBaseUrl = readMuseServerUrl();
 contextBridge.exposeInMainWorld("museServerBaseUrl", serverBaseUrl);
 contextBridge.exposeInMainWorld("museServerUrl", serverBaseUrl);
 contextBridge.exposeInMainWorld("__MUSE_SERVER_URL__", serverBaseUrl);
-contextBridge.exposeInMainWorld("waveHostType", "desktop");
+contextBridge.exposeInMainWorld("museHostType", "desktop");
 contextBridge.exposeInMainWorld("museWorkdir", process.cwd());
 /** Electron 32+: resolve File → absolute path (replaces removed File.path). */
 contextBridge.exposeInMainWorld("museGetPathForFile", (file: File) => {
@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld("museGetPathForFile", (file: File) => {
  * app — the same layout desktopPaths() relies on for preload.cjs.
  */
 contextBridge.exposeInMainWorld(
-  "wavePickerPreloadPath",
+  "musePickerPreloadPath",
   pathToFileURL(path.join(__dirname, "pickerPreload.cjs")).href,
 );
 

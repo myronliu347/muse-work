@@ -523,8 +523,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           <webview
             ref={webviewRef}
             className="preview-pane-webview"
-            {...(window.wavePickerPreloadPath
-              ? { preload: window.wavePickerPreloadPath }
+            {...(window.musePickerPreloadPath
+              ? { preload: window.musePickerPreloadPath }
               : {})}
             webpreferences="sandbox=yes, contextIsolation=yes"
           />

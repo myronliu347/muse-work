@@ -14,8 +14,8 @@ import { tmpdir } from "os";
 import { dirname, join } from "path";
 import { BUILTIN_CONTENT } from "../builtin/index.js";
 
-const BUILTIN_CACHE_ROOT = "wave-builtin";
-const BUILTIN_CACHE_COMPLETE = ".wave-builtin-complete";
+const BUILTIN_CACHE_ROOT = "muse-builtin";
+const BUILTIN_CACHE_COMPLETE = ".muse-builtin-complete";
 
 /**
  * Content-hash key: sha256 of the sorted `rel\0content` entries, truncated.
@@ -34,9 +34,9 @@ export function getBuiltinCacheKey(): string {
 let _builtinDir: string | undefined;
 
 /**
- * Materialize builtin content to `{tmpdir}/wave-builtin/{contentHash}/` and
+ * Materialize builtin content to `{tmpdir}/muse-builtin/{contentHash}/` and
  * return the directory. Memoized per process; idempotent across processes via
- * the `.wave-builtin-complete` marker written last (a torn write leaves no
+ * the `.muse-builtin-complete` marker written last (a torn write leaves no
  * marker, so the next run rewrites).
  */
 export function ensureBuiltinMaterialized(): string {

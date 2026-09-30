@@ -22,7 +22,7 @@ declare global {
     museServerUrl?: string;
     museServerBaseUrl?: string;
     museWorkdir?: string;
-    waveHostType?: string;
+    museHostType?: string;
     __MUSE_THEME_PREFERENCE__?: ThemePreference;
     __MUSE_THEME_SCALING__?: ThemeScaling;
     __MUSE_THEME_ACCENT__?: ThemeAccentColor;

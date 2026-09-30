@@ -3,6 +3,7 @@
  *
  * New keys are `MUSE_*`. Reads also accept legacy `WAVE_*` so existing
  * `settings.json` / OS env / plugin templates keep working.
+ * `WAVE_*` 名刻意保留（双读契约），暂不删、不改名。
  */
 
 export const MUSE_ENV = {
@@ -31,6 +32,7 @@ export const MUSE_ENV = {
 export type MuseEnvKey = (typeof MUSE_ENV)[keyof typeof MUSE_ENV];
 
 export function museEnvLegacy(museKey: string): string {
+  // 刻意保留 WAVE_* 别名；旧 settings / 插件模板仍走这条。
   return museKey.replace(/^MUSE_/, "WAVE_");
 }
 

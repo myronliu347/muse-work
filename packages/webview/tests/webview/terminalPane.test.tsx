@@ -142,19 +142,19 @@ const postsOf = (
 
 beforeEach(() => {
   mockTerminals.length = 0;
-  window.WaveTerminal = {
+  window.MuseTerminal = {
     Terminal: MockTerminal,
     FitAddon: class {
       fit = vi.fn();
     },
     WebLinksAddon: MockWebLinksAddon as unknown as NonNullable<
-      Window["WaveTerminal"]
+      Window["MuseTerminal"]
     >["WebLinksAddon"],
-  } as unknown as NonNullable<Window["WaveTerminal"]>;
+  } as unknown as NonNullable<Window["MuseTerminal"]>;
 });
 
 afterEach(() => {
-  delete window.WaveTerminal;
+  delete window.MuseTerminal;
 });
 
 describe("TerminalPane", () => {
@@ -449,7 +449,7 @@ describe("TerminalPane", () => {
   });
 
   it("shows an actionable error when the terminal chunk fails to load, and retry rebuilds", async () => {
-    delete window.WaveTerminal;
+    delete window.MuseTerminal;
     const vscode = createMockVscode();
     render(
       <TerminalPane
@@ -470,15 +470,15 @@ describe("TerminalPane", () => {
     });
     expect(screen.getByText("terminal.js 加载失败")).toBeInTheDocument();
 
-    window.WaveTerminal = {
+    window.MuseTerminal = {
       Terminal: MockTerminal,
       FitAddon: class {
         fit = vi.fn();
       },
       WebLinksAddon: MockWebLinksAddon as unknown as NonNullable<
-        Window["WaveTerminal"]
+        Window["MuseTerminal"]
       >["WebLinksAddon"],
-    } as unknown as NonNullable<Window["WaveTerminal"]>;
+    } as unknown as NonNullable<Window["MuseTerminal"]>;
     fireEvent.click(screen.getByTestId("terminal-retry"));
     await act(async () => {});
     expect(mockTerminals).toHaveLength(1);

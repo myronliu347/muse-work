@@ -128,10 +128,10 @@ declare global {
   interface Window {
     /** Provided by the Electron preload (and the VS Code webview runtime). */
     acquireVsCodeApi(): VsCodeApi;
-    /** Set by the Electron preload (packages/desktop). */
-    waveHostType?: string;
-    /** file:// URL of the element-picker preload, exposed by the Electron preload. */
-    wavePickerPreloadPath?: string;
+    /** Set by the Electron preload (`packages/desktop`). */
+    museHostType?: string;
+    /** file:// URL of the element-picker preload. */
+    musePickerPreloadPath?: string;
     /**
      * Desktop Electron 32+: map a clipboard/drop File to an absolute path
      * (replaces removed File.path). Undefined on non-desktop hosts.

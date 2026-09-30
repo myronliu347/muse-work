@@ -17,6 +17,7 @@ export interface PopoChat {
   chatKey: string;
   type: PopoChatType;
   title: string;
+  /** SDK 会话 id。字段名刻意保留（已落盘 POPO 会话），暂不改名。 */
   waveSessionId?: string;
   /** agent 正在处理该会话的消息时为 true（详情页展示"处理中"） */
   processing?: boolean;

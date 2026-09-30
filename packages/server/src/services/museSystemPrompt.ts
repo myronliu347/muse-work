@@ -2,6 +2,7 @@
  * Replace Wave/NetEase identity wording with Muse after the SDK builds
  * its system prompt (MODEL_IDENTITY_PROMPT is always appended and cannot be
  * disabled via AgentOptions).
+ * 提示里「不要自称 Wave」是纠身份指令，不是漏改的品牌名，请保留。
  */
 
 import {

@@ -60,8 +60,8 @@ desktopTest.describe(
         await webviewPage.setViewportSize({ width: 960, height: 640 });
 
         await injector.simulateExtensionMessage("desktopWorkdirState", {
-          workdir: "/Users/dev/projects/wave-agent",
-          recentWorkdirs: ["/Users/dev/projects/wave-agent"],
+          workdir: "/Users/dev/projects/muse-work",
+          recentWorkdirs: ["/Users/dev/projects/muse-work"],
         });
         await injector.waitForChatAppReady();
         await injector.simulateExtensionMessage("setInitialState", {
@@ -87,14 +87,14 @@ desktopTest.describe(
                   sessionId: "sess-a1",
                   title: "帮我修复登录页的样式问题",
                   lastActiveAt: new Date("2026-07-27T10:12:00Z").getTime(),
-                  workdir: "/Users/dev/projects/wave-agent",
+                  workdir: "/Users/dev/projects/muse-work",
                   hasWorktree: true,
                 },
                 {
                   sessionId: "sess-a2",
                   title: "给 bashTool 增加超时参数",
                   lastActiveAt: new Date("2026-07-26T09:40:00Z").getTime(),
-                  workdir: "/Users/dev/projects/wave-agent",
+                  workdir: "/Users/dev/projects/muse-work",
                   hasWorktree: false,
                 },
               ],

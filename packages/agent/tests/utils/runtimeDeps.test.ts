@@ -458,7 +458,7 @@ describe("ensureRuntimeDeps", () => {
     expect(
       JSON.parse(
         fs.readFileSync(
-          path.join(installDir, ".wave-runtime-deps.json"),
+          path.join(installDir, ".muse-runtime-deps.json"),
           "utf8",
         ),
       ),
@@ -467,7 +467,7 @@ describe("ensureRuntimeDeps", () => {
     expect(probe.reset).toHaveBeenCalledTimes(1);
     // No temp dir left behind.
     expect(
-      fs.readdirSync(cliHome).filter((n) => n.startsWith(".wave-runtime-tmp-")),
+      fs.readdirSync(cliHome).filter((n) => n.startsWith(".muse-runtime-tmp-")),
     ).toEqual([]);
     expect(registry.urls).toContain(
       `${RUNTIME_DEPS_REGISTRY}/@img/sharp-${PLATFORM_KEY_MUSL}`,
@@ -539,7 +539,7 @@ describe("ensureRuntimeDeps", () => {
     expect(
       JSON.parse(
         fs.readFileSync(
-          path.join(installDir, ".wave-runtime-deps.json"),
+          path.join(installDir, ".muse-runtime-deps.json"),
           "utf8",
         ),
       ),
@@ -624,7 +624,7 @@ describe("ensureRuntimeDeps", () => {
     expect(result.available).toBe(false);
     expect(result.reason).toContain("sha512");
     expect(
-      fs.existsSync(path.join(installDir, ".wave-runtime-deps.json")),
+      fs.existsSync(path.join(installDir, ".muse-runtime-deps.json")),
     ).toBe(false);
   });
 
@@ -639,7 +639,7 @@ describe("ensureRuntimeDeps", () => {
 
     expect(result.available).toBe(false);
     expect(
-      fs.existsSync(path.join(installDir, ".wave-runtime-deps.json")),
+      fs.existsSync(path.join(installDir, ".muse-runtime-deps.json")),
     ).toBe(false);
   });
 
@@ -652,6 +652,31 @@ describe("ensureRuntimeDeps", () => {
     });
 
     // A later launch in a process that still cannot load the codec.
+    __resetRuntimeDepsForTesting();
+    probe.processor = undefined;
+    const second = fakeRegistry();
+    const result = await ensureRuntimeDeps({
+      moduleUrl: moduleUrl,
+      cliHome: cliHome,
+      fetchImpl: second.fetchImpl,
+    });
+
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain("已安装但无法加载");
+    expect(second.urls).toEqual([]);
+  });
+
+  it("still honors a leftover .wave-runtime-deps.json marker", async () => {
+    const first = registryWithSharp();
+    await ensureRuntimeDeps({
+      moduleUrl: moduleUrl,
+      cliHome: cliHome,
+      fetchImpl: first.fetchImpl,
+    });
+    const nextMarker = path.join(installDir, ".muse-runtime-deps.json");
+    const legacyMarker = path.join(installDir, ".wave-runtime-deps.json");
+    fs.renameSync(nextMarker, legacyMarker);
+
     __resetRuntimeDepsForTesting();
     probe.processor = undefined;
     const second = fakeRegistry();
@@ -717,7 +742,7 @@ describe("ensureRuntimeDeps", () => {
     expect(result.available).toBe(false);
     expect(result.reason).toContain("安装后仍无法加载");
     expect(
-      fs.existsSync(path.join(installDir, ".wave-runtime-deps.json")),
+      fs.existsSync(path.join(installDir, ".muse-runtime-deps.json")),
     ).toBe(false);
   });
 

@@ -15,7 +15,7 @@ import { screenshotWebp } from "../utils/screenshot.js";
  * however, flows through the real PreviewPane → MessageInput path so the
  * "comment lands in the chat input" shot shows the actual behavior.
  */
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const initialState = {
   messages: [],

@@ -12,6 +12,7 @@ export function normalizePermissionMode(value: unknown): MusePermissionMode {
 
 export interface Session {
   id: string;
+  /** SDK 会话 id。字段名 `waveSessionId` 刻意保留（已落盘会话索引），暂不改名。 */
   waveSessionId?: string;
   title: string;
   workdir: string;

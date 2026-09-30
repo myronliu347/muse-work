@@ -93,6 +93,7 @@ function isSkippedDir(name: string): boolean {
  * Worktree dirs minted by the sidebar live at `~/.muse-work/worktrees/<name>`.
  * Legacy copies may still sit under the repo; hide those too so they do not
  * surface in the file panel (same rule as isTransientWorkdir).
+ * `.wave/worktrees` 是旧树兼容路径，刻意保留隐藏规则。
  */
 function isTransientDirRel(rel: string): boolean {
   const posix = rel.replace(/\\/g, "/");

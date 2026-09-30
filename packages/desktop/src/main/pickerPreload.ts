@@ -438,17 +438,17 @@ export function createPickerHost(deps: DomPickerDeps): PickerHost {
     if (!styleEl) {
       styleEl = doc.createElement("style");
       styleEl.textContent = [
-        ".wave-picker-mode,",
-        ".wave-picker-mode *",
+        ".muse-picker-mode,",
+        ".muse-picker-mode *",
         "{ cursor: crosshair !important; }",
       ].join("");
       doc.head?.appendChild(styleEl);
     }
-    doc.documentElement.classList.add("wave-picker-mode");
+    doc.documentElement.classList.add("muse-picker-mode");
   };
 
   const disableMode = () => {
-    doc.documentElement.classList.remove("wave-picker-mode");
+    doc.documentElement.classList.remove("muse-picker-mode");
     styleEl?.remove();
     styleEl = null;
     hideCard();

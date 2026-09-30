@@ -2,7 +2,7 @@ import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { screenshotWebp } from "../utils/screenshot.js";
 
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 const TASK_DIR = "/Users/dev/.muse-work/projects/task-payment-refactor";
 
 const initialState = {

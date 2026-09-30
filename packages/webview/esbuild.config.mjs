@@ -26,12 +26,12 @@ const frontendConfig = {
   },
 };
 
-// Desktop-only terminal chunk (xterm.js). Exposes `window.WaveTerminal` and is
+// Desktop-only terminal chunk (xterm.js). Exposes `window.MuseTerminal` and is
 // lazy-injected by TerminalPane, so xterm stays out of the main webview bundle.
 const terminalConfig = {
   ...frontendConfig,
   entryPoints: ["src/terminal-entry.ts"],
-  globalName: "WaveTerminal",
+  globalName: "MuseTerminal",
   outfile: "dist/terminal.js",
 };
 

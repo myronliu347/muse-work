@@ -34,10 +34,10 @@ export const ERROR_LOG_DIRECTORY = path.join(DATA_DIRECTORY, "error-logs");
 export const USER_MEMORY_FILE = path.join(DATA_DIRECTORY, "AGENTS.md");
 
 /**
- * AI related constants
+ * AI related constants.
  */
-export const DEFAULT_WAVE_MAX_INPUT_TOKENS = 200000; // Default token limit
-export const DEFAULT_WAVE_MAX_OUTPUT_TOKENS = 32000; // Default output token limit (aligned with Claude Code)
+export const DEFAULT_MUSE_MAX_INPUT_TOKENS = 200000; // Default token limit
+export const DEFAULT_MUSE_MAX_OUTPUT_TOKENS = 32000; // Default output token limit (aligned with Claude Code)
 
 /**
  * AI 回复语言的默认值（未设置 `language` 时生效）。

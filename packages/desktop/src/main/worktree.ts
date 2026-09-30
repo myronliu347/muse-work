@@ -2,6 +2,7 @@
  * Git worktree helpers. New trees live under `~/.muse-work/worktrees/<name>`
  * (or `$HOME/$MUSE_HOME_DIR/worktrees`). Existing trees under
  * `<repo>/.wave/worktrees` or `<repo>/.muse-work/worktrees` are reused.
+ * `.wave/worktrees` 是旧树兼容路径，刻意保留读取，暂不删。
  */
 
 import { execFile, execFileSync } from "node:child_process";
@@ -33,6 +34,7 @@ export function getMuseWorktreesRoot(home = os.homedir()): string {
 export function resolveWorktreePath(name: string, repoRoot: string): string {
   const next = path.join(getMuseWorktreesRoot(), name);
   const inRepoMuse = path.join(repoRoot, ".muse-work", "worktrees", name);
+  // 旧 Wave 落点；已有树继续复用，新树不再写这里。
   const legacyWave = path.join(repoRoot, ".wave", "worktrees", name);
   if (fs.existsSync(next)) return next;
   if (fs.existsSync(inRepoMuse)) return inRepoMuse;

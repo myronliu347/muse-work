@@ -32,7 +32,7 @@ import {
 } from "../../src/services/configurationService.js";
 import { atomicWriteFile } from "../../src/utils/atomicWrite.js";
 import {
-  DEFAULT_WAVE_MAX_INPUT_TOKENS,
+  DEFAULT_MUSE_MAX_INPUT_TOKENS,
   DEFAULT_LANGUAGE,
 } from "../../src/utils/constants.js";
 import type { WaveConfiguration } from "../../src/types/configuration.js";
@@ -875,7 +875,7 @@ describe("ConfigurationService", () => {
 
     it("should return default", () => {
       expect(configService.resolveMaxInputTokens()).toBe(
-        DEFAULT_WAVE_MAX_INPUT_TOKENS,
+        DEFAULT_MUSE_MAX_INPUT_TOKENS,
       );
     });
 

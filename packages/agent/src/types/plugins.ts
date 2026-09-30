@@ -11,6 +11,7 @@ export const PLUGIN_MANIFEST_DIR = ".muse-plugin";
 /**
  * Manifest directory lookup order: Muse first, then legacy Wave, then Claude.
  * Install / materialize always writes under `PLUGIN_MANIFEST_DIR`.
+ * `.wave-plugin` 刻意保留为双读 fallback，暂不改名、不删。
  */
 export const PLUGIN_MANIFEST_DIRS = [
   PLUGIN_MANIFEST_DIR,

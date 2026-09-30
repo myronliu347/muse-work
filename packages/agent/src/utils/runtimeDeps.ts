@@ -18,8 +18,8 @@
  *                                    rpath `$ORIGIN/../../sharp-libvips-<key>/lib`
  *   @vscode/ripgrep/                 the wrapper (ESM, no dependencies of its own)
  *   @vscode/ripgrep-<platform>-<arch>/  holds bin/rg, published with the exec bit
- *   .wave-runtime-deps.json          <- marker, written last: present means this
- *                                       batch completed
+ *   .muse-runtime-deps.json          <- marker, written last: present means this
+ *                                       batch completed（读时仍认遗留 `.wave-runtime-deps.json`）
  * ```
  *
  * Node resolves the modules from `~/.muse-work/cli/<end>/dist/bundle/` by
@@ -59,7 +59,9 @@ import { getRgPath, resetRipgrep, resolveRipgrep } from "./ripgrep.js";
 /** npm registry mirror for China users (same choice as the ripgrep download). */
 export const RUNTIME_DEPS_REGISTRY = "https://registry.npmmirror.com";
 
-const MARKER_FILE = ".wave-runtime-deps.json";
+/** 磁盘完成标记。新写入用 Muse 名；读时仍认遗留 `.wave-runtime-deps.json`。 */
+const MARKER_FILE = ".muse-runtime-deps.json";
+const LEGACY_MARKER_FILE = ".wave-runtime-deps.json";
 
 export interface RuntimeDepsResult {
   available: boolean;
@@ -372,7 +374,7 @@ async function installDependency(
   fs.mkdirSync(installDir, { recursive: true });
   const tempDir = path.join(
     cliHome,
-    `.wave-runtime-tmp-${process.pid}-${Math.random().toString(36).slice(2)}`,
+    `.muse-runtime-tmp-${process.pid}-${Math.random().toString(36).slice(2)}`,
   );
   const tempModules = path.join(tempDir, "node_modules");
   fs.mkdirSync(tempModules, { recursive: true });
@@ -416,14 +418,35 @@ async function installDependency(
   }
 }
 
+function markerReadPath(installDir: string): string {
+  const next = path.join(installDir, MARKER_FILE);
+  const legacy = path.join(installDir, LEGACY_MARKER_FILE);
+  if (fs.existsSync(next)) return next;
+  if (fs.existsSync(legacy)) return legacy;
+  return next;
+}
+
+function removeMarker(installDir: string): void {
+  fs.rmSync(path.join(installDir, MARKER_FILE), { force: true });
+  fs.rmSync(path.join(installDir, LEGACY_MARKER_FILE), { force: true });
+}
+
 function readMarker(installDir: string): Record<string, string> {
   try {
     return JSON.parse(
-      fs.readFileSync(path.join(installDir, MARKER_FILE), "utf-8"),
+      fs.readFileSync(markerReadPath(installDir), "utf-8"),
     ) as Record<string, string>;
   } catch {
     return {};
   }
+}
+
+function writeMarker(installDir: string, data: Record<string, string>): void {
+  fs.writeFileSync(
+    path.join(installDir, MARKER_FILE),
+    `${JSON.stringify(data, null, 2)}\n`,
+  );
+  fs.rmSync(path.join(installDir, LEGACY_MARKER_FILE), { force: true });
 }
 
 let inFlight: Promise<RuntimeDepsResult> | undefined;
@@ -528,7 +551,7 @@ async function runInstall(options?: {
       // Verify through the cli home itself: the only require base that proves
       // the layout works for the bundle that will load it.
       if (!dependency.loadsFrom(cliHome)) {
-        fs.rmSync(path.join(installDir, MARKER_FILE), { force: true });
+        removeMarker(installDir);
         fail(
           failures,
           `${dependency.name} 安装后仍无法加载（平台 ${platformKey}）`,
@@ -536,14 +559,10 @@ async function runInstall(options?: {
         continue;
       }
       dependency.onInstalled();
-      fs.writeFileSync(
-        path.join(installDir, MARKER_FILE),
-        `${JSON.stringify(
-          { ...readMarker(installDir), [dependency.name]: entry.range },
-          null,
-          2,
-        )}\n`,
-      );
+      writeMarker(installDir, {
+        ...readMarker(installDir),
+        [dependency.name]: entry.range,
+      });
       logger.info(
         `[Muse] 已安装 ${dependency.name} ${meta.version}（平台 ${platformKey}）到 ${installDir}`,
       );

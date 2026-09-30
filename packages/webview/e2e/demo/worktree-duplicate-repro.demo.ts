@@ -2,7 +2,7 @@ import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
 
-const DIR_A = "/Users/dev/projects/wave-agent";
+const DIR_A = "/Users/dev/projects/muse-work";
 
 const initialState = {
   messages: [],

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DEFAULT_SYSTEM_PROMPT, buildSystemPrompt } from "@/prompts/index.js";
 import type { CallAgentOptions } from "@/services/aiService.js";
 import type { GatewayConfig, ModelConfig } from "@/types/index.js";
-import { DEFAULT_WAVE_MAX_OUTPUT_TOKENS } from "@/utils/constants.js";
+import { DEFAULT_MUSE_MAX_OUTPUT_TOKENS } from "@/utils/constants.js";
 
 // Test configuration constants
 const TEST_GATEWAY_CONFIG: GatewayConfig = {
@@ -248,7 +248,7 @@ describe("AI Service - Basic CallAgent", () => {
       });
 
       const callArgs = mockCreate.mock.calls[0][0];
-      expect(callArgs.max_tokens).toBe(DEFAULT_WAVE_MAX_OUTPUT_TOKENS);
+      expect(callArgs.max_tokens).toBe(DEFAULT_MUSE_MAX_OUTPUT_TOKENS);
     });
 
     it("should prioritize maxTokens from callAgent options over the default", async () => {

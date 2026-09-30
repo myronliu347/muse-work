@@ -234,12 +234,13 @@ const excludedGitDirs = new Set<string>();
  * and are outside the repo; these patterns only cover leftover in-repo
  * `.muse-work/worktrees` / `.wave/worktrees` plus local settings/locks.
  *
- * Idempotent: if the marker `# wave-runtime` is already present, skip.
+ * Idempotent: skip if `# muse-runtime` or leftover `# wave-runtime` is present.
+ * New writes use `# muse-runtime`.
  * A module-level Set provides additional per-process dedup.
  *
  * @param cwd Working directory to start searching from
  */
-export function ensureWaveRuntimeFilesExcluded(cwd: string): void {
+export function ensureMuseRuntimeFilesExcluded(cwd: string): void {
   try {
     const gitDir = resolveGitDir(cwd);
     if (!gitDir) return;
@@ -254,8 +255,9 @@ export function ensureWaveRuntimeFilesExcluded(cwd: string): void {
       // File doesn't exist yet
     }
 
-    const marker = "# wave-runtime";
-    if (content.includes(marker)) {
+    const marker = "# muse-runtime";
+    const legacyMarker = "# wave-runtime";
+    if (content.includes(marker) || content.includes(legacyMarker)) {
       excludedGitDirs.add(gitDir);
       return;
     }

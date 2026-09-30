@@ -9,7 +9,7 @@ import {
   resolveGitDir,
   hasUncommittedChanges,
   hasNewCommits,
-  ensureWaveRuntimeFilesExcluded,
+  ensureMuseRuntimeFilesExcluded,
 } from "../../src/utils/gitUtils.js";
 
 vi.mock("node:child_process", () => ({
@@ -289,7 +289,7 @@ describe("gitUtils", () => {
     });
   });
 
-  describe("ensureWaveRuntimeFilesExcluded", () => {
+  describe("ensureMuseRuntimeFilesExcluded", () => {
     beforeEach(() => {
       vi.clearAllMocks();
     });
@@ -306,14 +306,14 @@ describe("gitUtils", () => {
         throw new Error("ENOENT");
       });
 
-      ensureWaveRuntimeFilesExcluded("/repo/write-test");
+      ensureMuseRuntimeFilesExcluded("/repo/write-test");
 
       expect(fsSync.mkdirSync).toHaveBeenCalledWith(path.join(gitDir, "info"), {
         recursive: true,
       });
       expect(fsSync.appendFileSync).toHaveBeenCalledWith(
         excludePath,
-        expect.stringContaining("# wave-runtime"),
+        expect.stringContaining("# muse-runtime"),
       );
       expect(fsSync.appendFileSync).toHaveBeenCalledWith(
         excludePath,
@@ -329,7 +329,7 @@ describe("gitUtils", () => {
       );
     });
 
-    it("should skip when marker already present (idempotent)", () => {
+    it("should skip when a leftover # wave-runtime marker is present", () => {
       vi.mocked(fsSync.existsSync).mockImplementation(
         (p) => p === path.join(path.resolve("/repo/idempotent-test"), ".git"),
       );
@@ -340,7 +340,23 @@ describe("gitUtils", () => {
         "# wave-runtime\n**/.muse-work/settings.local.json\n",
       );
 
-      ensureWaveRuntimeFilesExcluded("/repo/idempotent-test");
+      ensureMuseRuntimeFilesExcluded("/repo/idempotent-test");
+
+      expect(fsSync.appendFileSync).not.toHaveBeenCalled();
+    });
+
+    it("should skip when # muse-runtime marker is already present", () => {
+      vi.mocked(fsSync.existsSync).mockImplementation(
+        (p) => p === path.join(path.resolve("/repo/muse-marker-test"), ".git"),
+      );
+      vi.mocked(fsSync.statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as unknown as fsSync.Stats);
+      vi.mocked(fsSync.readFileSync).mockReturnValue(
+        "# muse-runtime\n**/.muse-work/settings.local.json\n",
+      );
+
+      ensureMuseRuntimeFilesExcluded("/repo/muse-marker-test");
 
       expect(fsSync.appendFileSync).not.toHaveBeenCalled();
     });
@@ -348,7 +364,7 @@ describe("gitUtils", () => {
     it("should be a no-op when not a git repo (resolveGitDir returns null)", () => {
       vi.mocked(fsSync.existsSync).mockReturnValue(false);
 
-      ensureWaveRuntimeFilesExcluded("/some/non-repo/path");
+      ensureMuseRuntimeFilesExcluded("/some/non-repo/path");
 
       expect(fsSync.readFileSync).not.toHaveBeenCalled();
       expect(fsSync.appendFileSync).not.toHaveBeenCalled();
