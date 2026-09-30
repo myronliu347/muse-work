@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Composer 结构确认 · sender + footer</title>
+  <style>
+    :root {
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+      --text: #ececec;
+      --muted: #9aa0a8;
+      --sender: #2c2f36;
+      --footer: #2c2f36;
+      --accent: #e5484d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 32px 24px 80px;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 50% 20%, #3a4658 0%, transparent 55%),
+        linear-gradient(180deg, #1b2430 0%, #12151c 100%);
+    }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    .lead { max-width: 760px; color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 28px; }
+    .wrap { width: min(760px, 100%); }
+    .diagram {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 12px;
+      white-space: pre;
+      color: #c8ccd2;
+      background: rgb(0 0 0 / 0.28);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 0 0 24px;
+    }
+
+    .stack { display: flex; flex-direction: column; gap: 0; }
+
+    .sender {
+      position: relative;
+      z-index: 2;
+      border-radius: 16px;
+      background: #3a3d44;
+      border: 1px solid rgb(255 255 255 / 0.08);
+      box-shadow: 0 3px 8px rgb(0 0 0 / 0.18);
+      padding: 12px 14px 10px;
+    }
+    .ph { color: rgb(255 255 255 / 0.38); font-size: 13px; min-height: 42px; padding: 2px 2px 10px; }
+    .tools { display: flex; align-items: center; gap: 8px; }
+    .spacer { flex: 1; }
+    .ghost {
+      display: inline-flex; align-items: center; gap: 5px;
+      height: 24px; padding: 0 2px; border: 0; background: none;
+      color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+    }
+    .ghost:hover { color: var(--text); }
+    .plus, .send {
+      width: 28px; height: 28px; border: 0; border-radius: 50%;
+      display: grid; place-items: center; cursor: pointer;
+    }
+    .plus { background: transparent; color: var(--muted); font-size: 18px; }
+    .send { background: #6b6f76; color: #fff; }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 40px;
+      width: 100%;
+      margin-top: -16px;
+      padding: 20px 14px 8px;
+      border-radius: 0 0 16px 16px;
+      background: #33363d;
+      border: 1px solid rgb(255 255 255 / 0.07);
+      border-top: 0;
+      box-shadow: none;
+    }
+
+    .panel {
+      position: absolute;
+      left: 148px;
+      bottom: calc(100% + 8px);
+      width: 280px;
+      padding: 12px 14px;
+      background: #2f3238;
+      border: 1px solid rgb(255 255 255 / 0.1);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px; color: var(--text); font-size: 13px;
+    }
+    .sw {
+      width: 36px; height: 20px; border-radius: 999px; background: #5a5e66; position: relative;
+    }
+    .sw i {
+      position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+      border-radius: 50%; background: #fff;
+    }
+
+    .note { margin-top: 20px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>结构确认</h1>
+  <p class="lead">sender 四角圆角保留，阴影更重。footer 自己圆角，贴在 sender 下面，背景只比 sender 深一点。</p>
+  <pre class="diagram">╭─ sender 四角圆角 · 浅 · 阴影 ──────╮
+│  @提及文件，粘贴图片，Enter发送...    │
+│  +  Muse                    模型 ↑  │
+╰────────────────────────────────────╯
+╭─ footer 圆角 · 略深 · 贴住 ────────╮
+│  📁 选择工作目录…    🛡 默认权限     │
+╰────────────────────────────────────╯</pre>
+
+  <div class="wrap">
+    <div class="stack">
+      <div class="sender">
+        <div class="ph">@提及文件，粘贴图片，Enter发送...</div>
+        <div class="tools">
+          <button class="plus">+</button>
+          <button class="ghost">👤 Muse ▾</button>
+          <span class="spacer"></span>
+          <button class="ghost">Deepseek Flash ▾</button>
+          <button class="send">↑</button>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="ghost">📁 选择工作目录… ▾</button>
+        <button class="ghost" id="permBtn">🛡 默认权限 ▾</button>
+        <div class="panel" id="panel" hidden>
+          当前为默认权限，所有操作都会在安全沙箱约束内进行，超出范围会请求你的允许。
+          <div class="toggle">允许完全访问 <span class="sw"><i></i></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">点「默认权限」可看展开。这版对就回「对」，我再改正式代码。</p>
+  <script>
+    document.getElementById("permBtn").addEventListener("click", () => {
+      const p = document.getElementById("panel");
+      p.hidden = !p.hidden;
+    });
+  </script>
+</body>
+</html>

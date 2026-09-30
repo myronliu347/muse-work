@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Issue 规划/执行切换 · UI Demo</title>
+  <style>
+    :root {
+      --bg: #111111;
+      --panel: #191919;
+      --sidebar: #1a1a1a;
+      --border: #3a3a3a;
+      --text: #eee;
+      --muted: #9b9b9b;
+      --muted2: #6e6e6e;
+      --accent: #5b5bd6;
+      --accent-text: #fff;
+      --radius: 8px;
+      --titlebar: 38px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text);
+      background: #0a0a0a;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+    .intro {
+      color: var(--muted);
+      max-width: 720px;
+      margin-bottom: 28px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-label {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .card-label strong { color: var(--text); font-weight: 600; }
+    .card-note {
+      padding: 8px 14px 12px;
+      font-size: 11px;
+      color: var(--muted2);
+      border-top: 1px solid var(--border);
+    }
+    /* Mini desktop shell */
+    .shell {
+      display: flex;
+      height: 220px;
+      background: var(--bg);
+    }
+    .sidebar {
+      width: 52px;
+      flex-shrink: 0;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      opacity: 0.6;
+    }
+    .main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      min-height: var(--titlebar);
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg);
+    }
+    .topbar-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .topbar-trailing {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: default;
+    }
+    /* Current: pipe tabs */
+    .tabs-pipe {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .tabs-pipe button {
+      border: none;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      padding: 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .tabs-pipe button.active { color: var(--text); font-weight: 600; }
+    .tabs-pipe button:disabled { opacity: 0.4; cursor: default; }
+    .tabs-pipe .sep { color: var(--muted2); user-select: none; }
+    /* A: Segmented */
+    .segmented {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 6px;
+      background: #252525;
+      border: 1px solid var(--border);
+    }
+    .segmented button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .segmented button.active {
+      background: #333;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    .segmented button:disabled { opacity: 0.35; cursor: default; }
+    /* B: Select */
+    .view-select {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .view-select select {
+      appearance: none;
+      background: #252525;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      padding: 4px 24px 4px 8px;
+      border-radius: 6px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%239b9b9b'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      cursor: pointer;
+    }
+    /* Messages */
+    .messages {
+      flex: 1;
+      padding: 12px 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bubble {
+      align-self: flex-start;
+      max-width: 85%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #252525;
+      color: #ccc;
+      font-size: 12px;
+    }
+    .bubble.sys {
+      background: transparent;
+      border: 1px dashed #333;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    /* C: Composer hint */
+    .composer-hint {
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      background: #161616;
+      border-top: 1px solid #2a2a2a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .composer-hint a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .composer {
+      padding: 8px 12px 10px;
+      border-top: 1px solid var(--border);
+    }
+    .composer-box {
+      height: 36px;
+      border-radius: 12px;
+      background: #1e1e1e;
+      border: 1px solid var(--border);
+    }
+    .combo .topbar { border-bottom: none; }
+    .tag-rec {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(91, 91, 214, 0.2);
+      color: #a8a8ff;
+      font-size: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Issue 规划 / 执行 · 切换方式对比</h1>
+  <p class="intro">
+    同一顶栏结构：左标题、右工具。点击各方案内的控件可切换高亮（仅 Demo 交互）。
+    单 Agent Issue 四种方案均可整段隐藏切换控件。
+  </p>
+
+  <div class="grid">
+    <!-- 现状 -->
+    <div class="card">
+      <div class="card-label"><strong>现状</strong> · 文字 Tab + 竖线</div>
+      <div class="shell" data-demo="pipe">
+        <div class="sidebar"></div>
+        <div class="main">
+          <div class="topbar">
+            <div class="topbar-title">test ui</div>
+            <div class="topbar-trailing">
+              <div class="tabs-pipe">
+                <button type="button" class="active" data-tab="plan">规划</button>
+                <span class="sep">|</span>
+                <button type="button" data-tab="exec">执行</button>
+              </div>
+              <button type="button" class="icon-btn" aria-label="菜单">⋯</button>
+              <button type="button" class="icon-btn" aria-label="面板">▥</button>
+            </div>
+          </div>
+          <div class="messages">
+            <div class="bubble">随便派发一个分析任务</div>
+            <div class="bubble sys">来源：执行会话 · 清单项回报…</div>
+          </div>
+          <div class="composer"><div class="composer-box"></div></div>
+        </div>
+      </div>
+      <div class="card-note">轻量，但不像控件，和标题抢视觉。</div>
+    </div>
+
+    <!-- A -->
+    <div class="card">
+      <div class="card-label"><strong>A</strong> · 分段控件（推荐）<span class="tag-rec">推荐</span></div>
+      <div class="shell" data-demo="seg">
+        <div class="sidebar"></div>
+        <div class="main">
+          <div class="topbar">
+            <div class="topbar-title">test ui</div>
+            <div class="topbar-trailing">
+              <div class="segmented" role="tablist">
+                <button type="button" class="active" data-tab="plan">规划</button>
+                <button type="button" data-tab="exec">执行</button>
+              </div>
+              <button type="button" class="icon-btn">⋯</button>
+              <button type="button" class="icon-btn">▥</button>
+            </div>
+          </div>
+          <div class="messages">
+            <div class="bubble">随便派发一个分析任务</div>
+            <div class="bubble sys">来源：执行会话 · 清单项回报…</div>
+          </div>
+          <div class="composer"><div class="composer-box"></div></div>
+        </div>
+      </div>
+      <div class="card-note">macOS / VS Code 熟悉感，右对齐不占标题行。</div>
+    </div>
+
+    <!-- B -->
+    <div class="card">
+      <div class="card-label"><strong>B</strong> · 下拉「查看」</div>
+      <div class="shell" data-demo="select">
+        <div class="sidebar"></div>
+        <div class="main">
+          <div class="topbar">
+            <div class="topbar-title">修复登录校验测试测试测试长标题</div>
+            <div class="topbar-trailing">
+              <label class="view-select">
+                查看
+                <select aria-label="查看会话">
+                  <option selected>规划</option>
+                  <option>执行</option>
+                </select>
+              </label>
+              <button type="button" class="icon-btn">⋯</button>
+              <button type="button" class="icon-btn">▥</button>
+            </div>
+          </div>
+          <div class="messages">
+            <div class="bubble">继续派发一个清单执行</div>
+          </div>
+          <div class="composer"><div class="composer-box"></div></div>
+        </div>
+      </div>
+      <div class="card-note">最省宽；切换少一步可见性。</div>
+    </div>
+
+    <!-- A+C -->
+    <div class="card">
+      <div class="card-label"><strong>A + C</strong> · 分段 + 输入框提示</div>
+      <div class="shell combo" data-demo="combo">
+        <div class="sidebar"></div>
+        <div class="main">
+          <div class="topbar">
+            <div class="topbar-title">test ui</div>
+            <div class="topbar-trailing">
+              <div class="segmented">
+                <button type="button" data-tab="plan">规划</button>
+                <button type="button" class="active" data-tab="exec">执行</button>
+              </div>
+              <button type="button" class="icon-btn">⋯</button>
+              <button type="button" class="icon-btn">▥</button>
+            </div>
+          </div>
+          <div class="messages">
+            <div class="bubble sys">来源：执行会话 · 本回合结束…</div>
+          </div>
+          <div class="composer-hint" id="hint">
+            <span>正在查看<strong>执行</strong>记录；发送内容进入<strong>规划</strong>会话</span>
+            <a href="#">切到规划</a>
+          </div>
+          <div class="composer"><div class="composer-box"></div></div>
+        </div>
+      </div>
+      <div class="card-note">强调「看执行、发规划」规则，适合 split 新手。</div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll("[data-demo]").forEach((shell) => {
+      shell.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const group = btn.closest(".tabs-pipe, .segmented");
+          if (!group) return;
+          group.querySelectorAll("[data-tab]").forEach((b) => {
+            b.classList.toggle("active", b === btn);
+          });
+          const hint = shell.querySelector(".composer-hint span");
+          if (hint) {
+            const exec = btn.dataset.tab === "exec";
+            hint.innerHTML = exec
+              ? "正在查看<strong>执行</strong>记录；发送内容进入<strong>规划</strong>会话"
+              : "正在查看<strong>规划</strong>会话；在此与 AI 确认方案";
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
