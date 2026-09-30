@@ -101,7 +101,7 @@ describe("buildSidebarModel", () => {
         ...baseSession,
         id: "wt1",
         title: "WT",
-        workdir: "/repo/.wave/worktrees/a",
+        workdir: "/Users/me/.muse-work/worktrees/a",
         worktreeName: "a",
         worktreeBranch: "worktree-a",
         worktreeRepoRoot: "/repo",
@@ -340,7 +340,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     const wtSession: MuseSession = {
       ...baseSession,
       id: "sess-plan",
-      workdir: "/repo/.wave/worktrees/login-fix",
+      workdir: "/Users/me/.muse-work/worktrees/login-fix",
       title: "登录",
       worktreeName: "login-fix",
       worktreeBranch: "worktree-login-fix",
@@ -391,7 +391,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
 
     expect(outer.postMessage).toHaveBeenCalledWith({
       command: "desktopRemoveWorktree",
-      path: "/repo/.wave/worktrees/login-fix",
+      path: "/Users/me/.muse-work/worktrees/login-fix",
       branch: "worktree-login-fix",
       repoRoot: "/repo",
     });
@@ -1212,13 +1212,13 @@ describe("createHostBridge desktop workdir bootstrap", () => {
 
     bridge.postMessage({
       command: "newSession",
-      workdir: "/repo/.wave/worktrees/feat-x",
+      workdir: "/Users/me/.muse-work/worktrees/feat-x",
     });
     await flush();
 
     expect(messages).toContainEqual({
       command: "desktopWorkdirState",
-      workdir: "/repo/.wave/worktrees/feat-x",
+      workdir: "/Users/me/.muse-work/worktrees/feat-x",
       recentWorkdirs: [],
       host: "local",
     });
@@ -1309,7 +1309,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       ...baseSession,
       id: "sess-wt",
       title: "新对话",
-      workdir: "/tmp/.wave/worktrees/gentle-pike-147",
+      workdir: "/tmp/.muse-work/worktrees/gentle-pike-147",
       worktreeName: "gentle-pike-147",
       worktreeBranch: "worktree-gentle-pike-147",
       baseBranch: "main",
@@ -1335,7 +1335,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
                   command: "desktopWorktreeCreated",
                   requestId: msg.requestId,
                   name: "gentle-pike-147",
-                  path: "/tmp/.wave/worktrees/gentle-pike-147",
+                  path: "/tmp/.muse-work/worktrees/gentle-pike-147",
                   branch: "worktree-gentle-pike-147",
                   baseBranch: "main",
                   repoRoot: "/tmp",
@@ -1387,7 +1387,7 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(createCalls).toHaveLength(1);
     expect(createCalls[0]?.[0]?.requestId).toBeTruthy();
     expect(api.createSession).toHaveBeenCalledWith(
-      "/tmp/.wave/worktrees/gentle-pike-147",
+      "/tmp/.muse-work/worktrees/gentle-pike-147",
       expect.objectContaining({
         worktreeName: "gentle-pike-147",
         worktreeBranch: "worktree-gentle-pike-147",

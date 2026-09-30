@@ -30,7 +30,7 @@ describe("ChatHeader gitContext", () => {
         gitContext={{
           branch: "worktree-a",
           worktreeName: "a",
-          workdir: "/repo/.wave/worktrees/a",
+          workdir: "/Users/me/.muse-work/worktrees/a",
         }}
       />,
     );
@@ -40,7 +40,7 @@ describe("ChatHeader gitContext", () => {
     expect(card.closest(".tooltip-box")).toHaveClass("visible");
     expect(card.textContent).toContain("worktree-a");
     expect(card.textContent).toContain("a");
-    expect(card.textContent).toContain("/repo/.wave/worktrees/a");
+    expect(card.textContent).toContain("/Users/me/.muse-work/worktrees/a");
     expect(card.textContent).toContain("Worktree");
   });
 

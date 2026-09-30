@@ -15,7 +15,7 @@ import "../../styles/AgentSettings.css";
 
 export interface AgentSettingsHandle {
   isDirty: () => boolean;
-  /** 保存数字人 agent + 场景映射 + ~/.wave/settings.json。Returns true on success. */
+  /** 保存数字人 agent + 场景映射 + ~/.muse-work/settings.json。Returns true on success. */
   save: () => Promise<boolean>;
 }
 
@@ -127,14 +127,14 @@ export const AgentSettings = forwardRef<
       {/* 数字人 agent 管理 + 场景映射（新） */}
       <AgentManager api={client} ref={managerRef} />
 
-      {/* 原 ~/.wave/settings.json 原始 JSON 编辑器（保留现状） */}
+      {/* ~/.muse-work/settings.json 原始 JSON 编辑器 */}
       <div className="agent-settings-raw">
         <Field
-          label="Wave 用户配置（原始 JSON）"
+          label="Muse 用户配置（原始 JSON）"
           hint={
             path
               ? `编辑 ${path}。保存后空闲会话会在下次对话重建 Agent；正在进行的对话不受影响。`
-              : "读取 ~/.wave/settings.json"
+              : "读取 ~/.muse-work/settings.json"
           }
           error={error}
         >

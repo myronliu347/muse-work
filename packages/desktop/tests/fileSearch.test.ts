@@ -127,6 +127,29 @@ describe("listWorkspaceDir", () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
+  it("hides the .muse-work/worktrees dir even when not gitignored", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-mwt-"));
+    fs.mkdirSync(path.join(root, ".muse-work", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".muse-work", "worktrees", "feature-x", "dup.ts"),
+      "",
+    );
+    fs.writeFileSync(path.join(root, ".muse-work", "settings.local.json"), "{}");
+    fs.writeFileSync(path.join(root, "ok.ts"), "");
+
+    const rootHits = listWorkspaceDir(root, "", { respectGitignore: true });
+    expect(rootHits.map((h) => h.name)).toContain(".muse-work");
+    expect(rootHits.map((h) => h.name)).toContain("ok.ts");
+
+    const museHits = listWorkspaceDir(root, ".muse-work", {
+      respectGitignore: true,
+    });
+    expect(museHits.map((h) => h.name)).toEqual(["settings.local.json"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
   it("hides linked worktree roots anywhere, keeps main repos and submodules", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ls-arb-"));
     // Linked worktree anywhere (not under .wave): `.git` is a file pointing
@@ -273,6 +296,21 @@ describe("searchContentInWorkspace", () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
+  it("does not scan files under .muse-work/worktrees", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-mwt-"));
+    fs.mkdirSync(path.join(root, ".muse-work", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".muse-work", "worktrees", "feature-x", "dup.ts"),
+      "needle\n",
+    );
+    fs.writeFileSync(path.join(root, "dup.ts"), "needle\n");
+    const out = searchContentInWorkspace(root, { query: "needle" });
+    expect(out.results.map((r) => r.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
   it("does not scan files under a worktree living outside .wave", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cs-arb-"));
     const wt = path.join(root, "wt", "feature-x");
@@ -311,6 +349,25 @@ describe("searchWorkspaceFiles gitignore + filesOnly", () => {
     });
     fs.writeFileSync(
       path.join(root, ".wave", "worktrees", "feature-x", "dup.ts"),
+      "",
+    );
+    fs.writeFileSync(path.join(root, "dup.ts"), "");
+
+    const hits = searchWorkspaceFiles(root, {
+      query: "dup",
+      respectGitignore: true,
+    });
+    expect(hits.map((h) => h.relativePath)).toEqual(["dup.ts"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not return hits under .muse-work/worktrees", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sf-mwt-"));
+    fs.mkdirSync(path.join(root, ".muse-work", "worktrees", "feature-x"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, ".muse-work", "worktrees", "feature-x", "dup.ts"),
       "",
     );
     fs.writeFileSync(path.join(root, "dup.ts"), "");

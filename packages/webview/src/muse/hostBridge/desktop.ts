@@ -18,7 +18,7 @@ export interface DesktopModule {
 }
 
 export function createDesktopModule(ctx: BridgeCtx): DesktopModule {
-  /** Skip auto-minted `~/.muse-work` / `~/.dev-muse-work` scratch dirs and `.wave/worktrees/…`. */
+  /** Skip auto-minted `~/.muse-work` scratch dirs, `~/.muse-work/worktrees/…`, and leftover `.wave/worktrees/…`. */
   const isTransientWorkdir = (dir: string): boolean => {
     const segments = dir.split(/[\\/]/).filter(Boolean);
     return segments.some(

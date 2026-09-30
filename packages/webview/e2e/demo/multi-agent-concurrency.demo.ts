@@ -104,7 +104,7 @@ test.describe("Product Specification Screenshots - Multi Agent Concurrency", () 
             compactParams: "pay-refactor",
             parameters: JSON.stringify({ name: "pay-refactor" }),
             result:
-              "Created worktree at /home/dev/projects/nebula-platform/.wave/worktrees/pay-refactor on branch worktree-pay-refactor. The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted.",
+              "Created worktree at /home/dev/.muse-work/worktrees/pay-refactor on branch worktree-pay-refactor. The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted.",
           },
         ],
       },

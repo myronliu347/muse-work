@@ -20,7 +20,7 @@ export interface Session {
   pinned: boolean;
   createdAt: number;
   lastActiveAt: number;
-  /** Git worktree slug under `.muse-work/worktrees/<name>` when session is isolated. */
+  /** Git worktree slug under `~/.muse-work/worktrees/<name>` when session is isolated. */
   worktreeName?: string;
   /** Branch created for the worktree (typically `worktree-<name>`). */
   worktreeBranch?: string;

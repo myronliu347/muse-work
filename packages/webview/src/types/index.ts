@@ -292,7 +292,7 @@ export interface DesktopSessionEntry {
   workdir?: string;
   /** True when this session lives in a worktree (delete also cleans up branch+dir). */
   hasWorktree: boolean;
-  /** Worktree slug under `.wave/worktrees/<name>` when isolated. */
+  /** Worktree slug under `~/.muse-work/worktrees/<name>` when isolated. */
   worktreeName?: string;
   /** Branch created for the worktree (e.g. `worktree-<name>`). */
   worktreeBranch?: string;
