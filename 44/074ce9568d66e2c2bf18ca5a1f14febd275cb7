@@ -1,0 +1,92 @@
+packages/webview/src/styles/FileSuggestionDropdown.css
+  c8df0f85b58f7a52 86
+packages/webview/src/styles/FilePane.css
+  c8df0f85b58f7a52 729
+packages/webview/tests/muse/filePathDisplay.test.ts
+  c8df0f85b58f7a52 38-46
+packages/webview/src/components/panels/QuickOpenPalette.tsx
+  c8df0f85b58f7a52 3,172-175
+packages/webview/src/components/shared/MiddleEllipsisText.tsx
+  c8df0f85b58f7a52 1-78
+packages/webview/src/components/shared/FileSuggestionDropdown.tsx
+  c8df0f85b58f7a52 5,114-117
+packages/webview/tests/components/middleEllipsisText.test.tsx
+  c8df0f85b58f7a52 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "44074ce9568d66e2c2bf18ca5a1f14febd275cb7",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 133,
+      "total_deletions": 9,
+      "accepted_lines": 142,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/shared/FileSuggestionDropdown.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/middleEllipsisText.test.tsx": {
+          "additions": 32,
+          "deletions": 3,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/muse/filePathDisplay.test.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/shared/MiddleEllipsisText.tsx": {
+          "additions": 80,
+          "deletions": 2,
+          "accepted_lines": 78
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/QuickOpenPalette.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
