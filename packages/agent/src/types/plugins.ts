@@ -5,8 +5,21 @@ import { McpConfig, McpServerConfig } from "./mcp.js";
 import { PartialHookConfiguration } from "./configuration.js";
 import { SubagentConfiguration } from "../utils/subagentParser.js";
 
+/** Primary plugin / marketplace manifest directory (Muse). */
+export const PLUGIN_MANIFEST_DIR = ".muse-plugin";
+
 /**
- * Plugin manifest structure (.wave-plugin/plugin.json)
+ * Manifest directory lookup order: Muse first, then legacy Wave, then Claude.
+ * Install / materialize always writes under `PLUGIN_MANIFEST_DIR`.
+ */
+export const PLUGIN_MANIFEST_DIRS = [
+  PLUGIN_MANIFEST_DIR,
+  ".wave-plugin",
+  ".claude-plugin",
+] as const;
+
+/**
+ * Plugin manifest structure (`.muse-plugin/plugin.json`)
  */
 export interface PluginManifest {
   name: string;

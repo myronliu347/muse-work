@@ -35,8 +35,8 @@ describe("MemoryRuleManager", () => {
 
   describe("discoverRules", () => {
     it("should correctly scan directories and discover rules", async () => {
-      const projectRulesDir = path.join(workdir, ".wave", "rules");
-      const userRulesDir = path.join(homedir, ".wave", "rules");
+      const projectRulesDir = path.join(workdir, ".muse-work", "rules");
+      const userRulesDir = path.join(homedir, ".muse-work", "rules");
 
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
         if (dir === userRulesDir) {
@@ -98,7 +98,7 @@ describe("MemoryRuleManager", () => {
 
   describe("getActiveRules", () => {
     it("should filter rules based on files in context", async () => {
-      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      const projectRulesDir = path.join(workdir, ".muse-work", "rules");
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
         if (dir === projectRulesDir) {
           return [
@@ -128,7 +128,7 @@ describe("MemoryRuleManager", () => {
 
   describe("getActiveRulesSplit", () => {
     it("should split rules into unconditional and conditional", async () => {
-      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      const projectRulesDir = path.join(workdir, ".muse-work", "rules");
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
         if (dir === projectRulesDir) {
           return [
@@ -187,8 +187,8 @@ describe("MemoryRuleManager", () => {
 
   describe("Prioritization and Overriding", () => {
     it("should allow project rules to override user rules with the same ID", async () => {
-      const projectRulesDir = path.join(workdir, ".wave", "rules");
-      const userRulesDir = path.join(homedir, ".wave", "rules");
+      const projectRulesDir = path.join(workdir, ".muse-work", "rules");
+      const userRulesDir = path.join(homedir, ".muse-work", "rules");
 
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
         if (dir === userRulesDir || dir === projectRulesDir) {
@@ -277,9 +277,9 @@ describe("MemoryRuleManager", () => {
       expect(projectRule?.content).toBe("Project claude rule content");
     });
 
-    it("should let .wave/rules override .claude/rules for same-named rule", async () => {
+    it("should let .muse-work/rules override .claude/rules for same-named rule", async () => {
       const projectClaudeRulesDir = path.join(workdir, ".claude", "rules");
-      const projectWaveRulesDir = path.join(workdir, ".wave", "rules");
+      const projectWaveRulesDir = path.join(workdir, ".muse-work", "rules");
 
       vi.mocked(fs.readdir).mockImplementation(async (dir) => {
         if (dir === projectClaudeRulesDir || dir === projectWaveRulesDir) {

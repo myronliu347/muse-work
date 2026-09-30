@@ -8,7 +8,7 @@ import {
 
 vi.mock("node:fs/promises");
 
-const MEMORY_DIR = "/home/user/.wave/projects/repo-hash/memory";
+const MEMORY_DIR = "/home/user/.muse-work/projects/repo-hash/memory";
 
 function header(overrides: Partial<MemoryHeader> = {}): MemoryHeader {
   return {

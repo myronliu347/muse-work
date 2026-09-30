@@ -74,10 +74,10 @@ describe("LiveConfigManager - Configuration Management", () => {
       setOptions: vi.fn(),
       getConfigurationPaths: vi.fn().mockReturnValue({
         userPaths: ["/mock/user/settings.json"],
-        projectPaths: ["/mock/project/.wave/settings.json"],
+        projectPaths: ["/mock/project/.muse-work/settings.json"],
         allPaths: [
           "/mock/user/settings.json",
-          "/mock/project/.wave/settings.json",
+          "/mock/project/.muse-work/settings.json",
         ],
         existingPaths: [],
       }),
@@ -94,7 +94,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       "/mock/user/settings.json",
     ]);
     vi.mocked(configPaths.getProjectConfigPaths).mockReturnValue([
-      "/mock/project/.wave/settings.json",
+      "/mock/project/.muse-work/settings.json",
     ]);
 
     // Mock constructors
@@ -131,7 +131,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const mockResult: ConfigurationLoadResult = {
         success: true,
         configuration: mockConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -154,7 +154,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const mockResult: ConfigurationLoadResult = {
         success: false,
         error: "Configuration file not found",
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         configuration: null,
         warnings: [],
       };
@@ -187,14 +187,14 @@ describe("LiveConfigManager - Configuration Management", () => {
       const initialResult: ConfigurationLoadResult = {
         success: true,
         configuration: initialConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
       const newResult: ConfigurationLoadResult = {
         success: true,
         configuration: newConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -224,7 +224,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const mockResult: ConfigurationLoadResult = {
         success: true,
         configuration: mockConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -275,7 +275,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const mockResult: ConfigurationLoadResult = {
         success: true,
         configuration: mockConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -299,7 +299,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const mockResult: ConfigurationLoadResult = {
         success: true,
         configuration: mockConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -321,14 +321,14 @@ describe("LiveConfigManager - Configuration Management", () => {
       const validResult: ConfigurationLoadResult = {
         success: true,
         configuration: validConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
       const errorResult: ConfigurationLoadResult = {
         success: false,
         error: "Failed to read configuration",
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         configuration: null,
         warnings: [],
       };
@@ -349,7 +349,7 @@ describe("LiveConfigManager - Configuration Management", () => {
       const validResult: ConfigurationLoadResult = {
         success: true,
         configuration: validConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
@@ -385,14 +385,14 @@ describe("LiveConfigManager - Configuration Management", () => {
       const initialResult: ConfigurationLoadResult = {
         success: true,
         configuration: initialConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 
       const emptyResult: ConfigurationLoadResult = {
         success: true,
         configuration: emptyConfig,
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 

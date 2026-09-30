@@ -3,6 +3,7 @@ import { FileSnapshot } from "../types/reversion.js";
 import { ReversionService } from "../services/reversionService.js";
 import { Container } from "../utils/container.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 export class ReversionManager {
   private buffer: Map<string, FileSnapshot> = new Map();
 
@@ -150,8 +151,8 @@ export class ReversionManager {
         }
 
         // Check if this is a task file and track the task list ID
-        if (snapshot.filePath.includes("/.wave/tasks/")) {
-          const parts = snapshot.filePath.split("/.wave/tasks/");
+        if (snapshot.filePath.includes(`/${CONFIG_DIR_NAME}/tasks/`)) {
+          const parts = snapshot.filePath.split(`/${CONFIG_DIR_NAME}/tasks/`);
           if (parts.length > 1) {
             const taskListId = parts[1].split("/")[0];
             if (taskListId) {

@@ -12,7 +12,8 @@ import type { WaveConfiguration } from "../types/configuration.js";
 import type { HookEvent, HookEventConfig } from "../types/hooks.js";
 import { logger } from "../utils/globalLogger.js";
 
-const CACHE_FILE = path.join(homedir(), ".wave", "remote-settings.json");
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
+const CACHE_FILE = path.join(homedir(), CONFIG_DIR_NAME, "remote-settings.json");
 const POLLING_INTERVAL_MS = 60 * 60 * 1000; // 60 minutes
 const FETCH_TIMEOUT_MS = 10_000;
 

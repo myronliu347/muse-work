@@ -175,7 +175,7 @@ describe("worktreeUtils", () => {
       expect(result.name).toBe("my-feat");
       expect(result.branch).toBe("worktree-my-feat");
       expect(result.path).toBe(
-        path.join("/test/repo", ".wave", "worktrees", "my-feat"),
+        path.join("/test/repo", ".muse-work", "worktrees", "my-feat"),
       );
       expect(result.repoRoot).toBe("/test/repo");
       expect(result.isNew).toBe(true);
@@ -409,7 +409,7 @@ describe("worktreeUtils", () => {
 
       worktreeUtils.removeWorktree({
         name: "feat",
-        path: "/test/repo/.wave/worktrees/feat",
+        path: "/test/repo/.muse-work/worktrees/feat",
         branch: "worktree-feat",
         repoRoot: "/test/repo",
         isNew: true,
@@ -437,7 +437,7 @@ describe("worktreeUtils", () => {
 
       worktreeUtils.removeWorktree({
         name: "feat",
-        path: "/test/repo/.wave/worktrees/feat",
+        path: "/test/repo/.muse-work/worktrees/feat",
         branch: "worktree-feat",
         repoRoot: "/test/repo",
         isNew: true,
@@ -469,7 +469,7 @@ describe("worktreeUtils", () => {
       expect(() =>
         worktreeUtils.removeWorktree({
           name: "feat",
-          path: "/test/repo/.wave/worktrees/feat",
+          path: "/test/repo/.muse-work/worktrees/feat",
           branch: "worktree-feat",
           repoRoot: "/test/repo",
           isNew: true,
@@ -481,7 +481,7 @@ describe("worktreeUtils", () => {
         // Extended-length path bypasses the Windows MAX_PATH limit
         expect(String(rmPath)).toMatch(/^\\\\\?\\/);
       } else {
-        expect(rmPath).toBe("/test/repo/.wave/worktrees/feat");
+        expect(rmPath).toBe("/test/repo/.muse-work/worktrees/feat");
       }
       expect(fs.rmSync).toHaveBeenCalledWith(
         expect.any(String),
@@ -521,7 +521,7 @@ describe("worktreeUtils", () => {
       expect(() =>
         worktreeUtils.removeWorktree({
           name: "feat",
-          path: "/test/repo/.wave/worktrees/feat",
+          path: "/test/repo/.muse-work/worktrees/feat",
           branch: "worktree-feat",
           repoRoot: "/test/repo",
           isNew: true,
@@ -546,7 +546,7 @@ describe("worktreeUtils", () => {
 
       worktreeUtils.removeWorktree({
         name: "feat",
-        path: "/test/repo/.wave/worktrees/feat",
+        path: "/test/repo/.muse-work/worktrees/feat",
         branch: "worktree-feat",
         repoRoot: "/test/repo",
         isNew: true,
@@ -566,7 +566,7 @@ describe("worktreeUtils", () => {
   });
 
   describe("validateWorktreeRemovalPath", () => {
-    const worktreePath = "/test/repo/.wave/worktrees/feat";
+    const worktreePath = "/test/repo/.muse-work/worktrees/feat";
 
     it("accepts an existing path inside the repo root", () => {
       vi.mocked(fs.lstatSync).mockReturnValue({
@@ -705,19 +705,19 @@ describe("worktreeUtils", () => {
   describe("performPostCreationSetup", () => {
     it("should copy settings.local.json into the worktree when present", async () => {
       mockReadFile({
-        [path.join("/repo/root", ".wave", "settings.local.json")]:
+        [path.join("/repo/root", ".muse-work", "settings.local.json")]:
           '{"model":"claude"}',
       });
 
       await worktreeUtils.performPostCreationSetup(
-        "/repo/root/.wave/worktrees/my-feat",
+        "/repo/root/.muse-work/worktrees/my-feat",
         "/repo/root",
       );
 
       expect(vi.mocked(fs.promises.writeFile)).toHaveBeenCalledWith(
         path.join(
-          "/repo/root/.wave/worktrees/my-feat",
-          ".wave",
+          "/repo/root/.muse-work/worktrees/my-feat",
+          ".muse-work",
           "settings.local.json",
         ),
         '{"model":"claude"}',
@@ -726,7 +726,7 @@ describe("worktreeUtils", () => {
 
     it("should not copy settings.local.json when the main repo lacks it", async () => {
       await worktreeUtils.performPostCreationSetup(
-        "/repo/root/.wave/worktrees/my-feat",
+        "/repo/root/.muse-work/worktrees/my-feat",
         "/repo/root",
       );
 
@@ -751,20 +751,20 @@ describe("worktreeUtils", () => {
       };
 
       await worktreeUtils.performPostCreationSetup(
-        "/repo/root/.wave/worktrees/my-feat",
+        "/repo/root/.muse-work/worktrees/my-feat",
         "/repo/root",
       );
 
       // dist/ matches the dir-only pattern -> copied wholesale
       expect(vi.mocked(fs.promises.cp)).toHaveBeenCalledWith(
         path.join("/repo/root", "dist"),
-        path.join("/repo/root/.wave/worktrees/my-feat", "dist"),
+        path.join("/repo/root/.muse-work/worktrees/my-feat", "dist"),
         { recursive: true },
       );
       // .env matches *.env at any level
       expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
         path.join("/repo/root", ".env"),
-        path.join("/repo/root/.wave/worktrees/my-feat", ".env"),
+        path.join("/repo/root/.muse-work/worktrees/my-feat", ".env"),
       );
       // prod.env excluded by the later !prod.env negation
       expect(vi.mocked(fs.promises.copyFile)).not.toHaveBeenCalledWith(
@@ -774,7 +774,7 @@ describe("worktreeUtils", () => {
       // config/secret.key matches its literal pattern
       expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
         path.join("/repo/root", "config", "secret.key"),
-        path.join("/repo/root/.wave/worktrees/my-feat", "config", "secret.key"),
+        path.join("/repo/root/.muse-work/worktrees/my-feat", "config", "secret.key"),
       );
       // config/other.key does not match any pattern
       expect(vi.mocked(fs.promises.copyFile)).not.toHaveBeenCalledWith(
@@ -806,7 +806,7 @@ describe("worktreeUtils", () => {
       };
 
       await worktreeUtils.performPostCreationSetup(
-        "/repo/root/.wave/worktrees/my-feat",
+        "/repo/root/.muse-work/worktrees/my-feat",
         "/repo/root",
       );
 
@@ -816,7 +816,7 @@ describe("worktreeUtils", () => {
       expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
         path.join("/repo/root", "config", "secrets", "api.key"),
         path.join(
-          "/repo/root/.wave/worktrees/my-feat",
+          "/repo/root/.muse-work/worktrees/my-feat",
           "config",
           "secrets",
           "api.key",
@@ -840,7 +840,7 @@ describe("worktreeUtils", () => {
       };
 
       await worktreeUtils.performPostCreationSetup(
-        "/repo/root/.wave/worktrees/my-feat",
+        "/repo/root/.muse-work/worktrees/my-feat",
         "/repo/root",
       );
 

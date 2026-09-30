@@ -27,8 +27,8 @@ vi.mock("../../src/utils/configPaths.js");
 // fs 由每个用例按需给 existsSync 装实现（监视目标解析依赖它）。
 vi.mock("fs", () => ({ existsSync: vi.fn() }));
 
-const USER_PATH = "/mock/home/.wave/settings.json";
-const PROJECT_PATH = "/mock/project/.wave/settings.json";
+const USER_PATH = "/mock/home/.muse-work/settings.json";
+const PROJECT_PATH = "/mock/project/.muse-work/settings.json";
 
 describe("LiveConfigManager 热重载边界", () => {
   let liveConfigManager: LiveConfigManager;
@@ -121,7 +121,7 @@ describe("LiveConfigManager 热重载边界", () => {
 
   describe("场景 7：settings.json 启动时不存在也要接住首次保存", () => {
     it("文件不存在但父目录存在时，直接监视该文件路径", async () => {
-      existingPaths(["/mock/home/.wave", "/mock/project/.wave"]);
+      existingPaths(["/mock/home/.muse-work", "/mock/project/.muse-work"]);
 
       await liveConfigManager.initialize();
 
@@ -134,13 +134,13 @@ describe("LiveConfigManager 热重载边界", () => {
       await liveConfigManager.initialize();
 
       expect(watchTargets()).toEqual([
-        "/mock/home/.wave",
-        "/mock/project/.wave",
+        "/mock/home/.muse-work",
+        "/mock/project/.muse-work",
       ]);
     });
 
     it("文件已存在时监视文件本身", async () => {
-      existingPaths([USER_PATH, PROJECT_PATH, "/mock/home/.wave"]);
+      existingPaths([USER_PATH, PROJECT_PATH, "/mock/home/.muse-work"]);
 
       await liveConfigManager.initialize();
 

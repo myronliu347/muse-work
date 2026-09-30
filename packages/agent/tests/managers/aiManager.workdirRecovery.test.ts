@@ -22,7 +22,7 @@ const existsSyncMock = vi.mocked(fs.existsSync);
  */
 const worktreeSession: WorktreeSession = {
   originalCwd: "/repo",
-  worktreePath: "/repo/.wave/worktrees/feat-a",
+  worktreePath: "/repo/.muse-work/worktrees/feat-a",
   worktreeBranch: "wave-feat-a",
   worktreeName: "feat-a",
   isNew: true,
@@ -49,19 +49,19 @@ describe("AIManager workdir auto-recovery (manual worktree removal)", () => {
   });
 
   it("recovers to the original workdir when the stored workdir is gone and the original exists", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
     existsSyncMock.mockImplementation((p) => p === "/repo");
 
     expect(manager.getWorkdir()).toBe("/repo");
   });
 
   it("consumeCwdRecovery returns the notice exactly once", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
     existsSyncMock.mockImplementation((p) => p === "/repo");
 
     manager.getWorkdir();
     expect(manager.consumeCwdRecovery()).toEqual({
-      from: "/repo/.wave/worktrees/feat-a",
+      from: "/repo/.muse-work/worktrees/feat-a",
       to: "/repo",
     });
     expect(manager.consumeCwdRecovery()).toBeNull();
@@ -69,7 +69,7 @@ describe("AIManager workdir auto-recovery (manual worktree removal)", () => {
 
   it("clears the stale worktree session when the removed dir is the session's worktree", () => {
     const container = new Container();
-    container.register("Workdir", "/repo/.wave/worktrees/feat-a");
+    container.register("Workdir", "/repo/.muse-work/worktrees/feat-a");
     container.register("WorktreeSession", worktreeSession);
     const manager = new AIManager(container, { workdir: "/repo" });
     existsSyncMock.mockImplementation((p) => p === "/repo");
@@ -81,7 +81,7 @@ describe("AIManager workdir auto-recovery (manual worktree removal)", () => {
 
   it("keeps the worktree session when the missing dir is not the session's worktree", () => {
     const container = new Container();
-    container.register("Workdir", "/repo/.wave/worktrees/other");
+    container.register("Workdir", "/repo/.muse-work/worktrees/other");
     container.register("WorktreeSession", worktreeSession);
     const manager = new AIManager(container, { workdir: "/repo" });
     existsSyncMock.mockImplementation((p) => p === "/repo");
@@ -91,22 +91,22 @@ describe("AIManager workdir auto-recovery (manual worktree removal)", () => {
   });
 
   it("keeps the stale value when the original workdir is also missing", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
 
-    expect(manager.getWorkdir()).toBe("/repo/.wave/worktrees/feat-a");
+    expect(manager.getWorkdir()).toBe("/repo/.muse-work/worktrees/feat-a");
     expect(manager.consumeCwdRecovery()).toBeNull();
   });
 
   it("does not recover when the stored workdir still exists", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
     existsSyncMock.mockReturnValue(true);
 
-    expect(manager.getWorkdir()).toBe("/repo/.wave/worktrees/feat-a");
+    expect(manager.getWorkdir()).toBe("/repo/.muse-work/worktrees/feat-a");
     expect(manager.consumeCwdRecovery()).toBeNull();
   });
 
   it("notifies the host via onCwdChange exactly once and stays stable on subsequent calls", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
     existsSyncMock.mockImplementation((p) => p === "/repo");
     const calls: string[] = [];
     manager.setOnCwdChange((cwd) => calls.push(cwd));
@@ -119,7 +119,7 @@ describe("AIManager workdir auto-recovery (manual worktree removal)", () => {
   });
 
   it("is safe without a registered onCwdChange callback", () => {
-    const manager = createManager("/repo/.wave/worktrees/feat-a");
+    const manager = createManager("/repo/.muse-work/worktrees/feat-a");
     existsSyncMock.mockImplementation((p) => p === "/repo");
 
     expect(() => manager.getWorkdir()).not.toThrow();

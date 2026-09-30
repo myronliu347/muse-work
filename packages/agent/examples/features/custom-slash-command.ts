@@ -16,11 +16,11 @@ const tempDir = join(tmpdir(), `custom-command-demo-${Date.now()}`);
 console.log("🚀 Custom Slash Command Example");
 
 // Setup temp project with custom command
-await mkdir(join(tempDir, ".wave", "commands"), { recursive: true });
+await mkdir(join(tempDir, ".muse-work", "commands"), { recursive: true });
 
 // Create a simple custom command
 await writeFile(
-  join(tempDir, ".wave", "commands", "project-info.md"),
+  join(tempDir, ".muse-work", "commands", "project-info.md"),
   `---
 name: project-info  
 description: Show project info quickly

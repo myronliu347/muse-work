@@ -14,7 +14,7 @@
  * 7. 同一会话重新发布（版本升级，自动允许不弹确认）
  *
  * 前置条件：
- * - 已登录（~/.wave/auth.json 存在有效 SSO token）
+ * - 已登录（~/.muse-work/auth.json 存在有效 SSO token）
  * - 已配置服务端地址：WAVE_SERVER_URL 环境变量（或 settings.json env），
  *   例如 https://codechat.codewave-test.163yun.com
  * - 服务端 frame 后端已上线（POST /api/frame/deploy/direct 可用）
@@ -192,9 +192,9 @@ async function setupTest() {
   console.log(`📁 Created temporary directory: ${tempDir}`);
 
   // 项目级 settings.json 开启 Artifact（未设置时跟随代码默认值，当前默认禁用）
-  await fs.mkdir(path.join(tempDir, ".wave"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, ".muse-work"), { recursive: true });
   await fs.writeFile(
-    path.join(tempDir, ".wave", "settings.json"),
+    path.join(tempDir, ".muse-work", "settings.json"),
     JSON.stringify({ enableArtifact: true }, null, 2),
   );
 
@@ -224,7 +224,7 @@ const published = await artifactTool.execute(...);
 
   if (!authService.getSSOToken()) {
     throw new Error(
-      "Not authenticated — run /login first, or ensure ~/.wave/auth.json has a valid token.",
+      "Not authenticated — run /login first, or ensure ~/.muse-work/auth.json has a valid token.",
     );
   }
   console.log(`🔑 Authenticated. Server: ${authService.getServerUrl()}`);
@@ -257,7 +257,7 @@ const published = await artifactTool.execute(...);
   if (!available.includes(ARTIFACT_TOOL_NAME)) {
     throw new Error(
       `Artifact tool is NOT registered. Available tools: ${available.join(", ")}.\n` +
-        "Check that the project .wave/settings.json contains enableArtifact: true.",
+        "Check that the project .muse-work/settings.json contains enableArtifact: true.",
     );
   }
   console.log(`🧩 Artifact tool registered (${available.length} tools total)`);

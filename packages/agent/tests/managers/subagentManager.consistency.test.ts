@@ -49,7 +49,7 @@ describe("SubagentManager Consistency", () => {
     systemPrompt: "User system prompt",
     tools: ["Read", "Write"],
     model: "inherit",
-    filePath: "/home/user/.wave/agents/useragent.md",
+    filePath: "/home/user/.muse-work/agents/useragent.md",
     scope: "user",
     priority: 2,
   };

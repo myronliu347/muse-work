@@ -7,7 +7,7 @@ import { mkdir, writeFile, rm } from "fs/promises";
 
 async function main() {
   const tempDir = join(tmpdir(), `skill-demo-${Date.now()}`);
-  const skillsDir = join(tempDir, ".wave", "skills");
+  const skillsDir = join(tempDir, ".muse-work", "skills");
 
   try {
     // Setup temp skills with additional resource file
@@ -30,7 +30,7 @@ This demonstrates Wave Skills - user-defined automation templates that the AI ag
 See the \`template.txt\` file in this skill directory for the greeting template.
 
 ## Features
-- Automatic discovery from .wave/skills directories  
+- Automatic discovery from .muse-work/skills directories  
 - Support for additional resource files in skill directory
 - Frontmatter validation and caching
 `,

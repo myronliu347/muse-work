@@ -42,9 +42,9 @@ Environment variables can be set in different scopes. Wave merges scopes from lo
 
 Precedence (highest to lowest):
 
-1.  **Local Scope**: \`.wave/settings.local.json\` (Local overrides, ignored by git)
-2.  **Project Scope**: \`.wave/settings.json\` (Project-specific settings, shared via git)
-3.  **User Scope**: \`~/.wave/settings.json\` (Global settings for all projects)
+1.  **Local Scope**: \`.muse-work/settings.local.json\` (Local overrides, ignored by git)
+2.  **Project Scope**: \`.muse-work/settings.json\` (Project-specific settings, shared via git)
+3.  **User Scope**: \`~/.muse-work/settings.json\` (Global settings for all projects)
 4.  **System Environment**: Variables set in your shell (e.g., \`export WAVE_API_KEY=...\`). Used as a fallback when a key is absent from the settings snapshot.
 
 > Settings \`env\` shadows (does not mutate) OS env: a key set in both settings.json \`env\` and the OS environment resolves to the settings value for that session, while the OS value remains untouched and visible to unrelated processes.
@@ -264,7 +264,7 @@ WorktreeCreate hooks receive \`name\` (the worktree name) in the JSON input, alo
       {
         "hooks": [
           {
-            "command": "worktree_path=\\"$WAVE_PROJECT_DIR/.wave/worktrees/$(jq -r '.name')\\" && mkdir -p \\"$worktree_path\\" && git worktree add \\"$worktree_path\\" 2>/dev/null; echo \\"$worktree_path\\"",
+            "command": "worktree_path=\\"$WAVE_PROJECT_DIR/.muse-work/worktrees/$(jq -r '.name')\\" && mkdir -p \\"$worktree_path\\" && git worktree add \\"$worktree_path\\" 2>/dev/null; echo \\"$worktree_path\\"",
             "description": "Create the worktree and print its path"
           }
         ]
@@ -333,7 +333,7 @@ The shell also receives \`WAVE_PLUGIN_ROOT\` as an env var, so \`$WAVE_PLUGIN_RO
 - **Keep hooks fast**: Long-running hooks can slow down your workflow unless they are \`async\`.
 - **Use descriptive names**: Help yourself and others understand what each hook does.
 - **Test your hooks**: Run the commands manually first to ensure they work as expected.
-- **Use local overrides**: For machine-specific hooks, use \`.wave/settings.local.json\`.
+- **Use local overrides**: For machine-specific hooks, use \`.muse-work/settings.local.json\`.
 `,
   "skills/settings/MCP.md": `# Model Context Protocol (MCP) Configuration
 
@@ -481,15 +481,15 @@ Wave provides multiple memory layers to give the agent context-specific instruct
 
 Wave looks for memory in the following locations, loaded in order of increasing priority:
 
-1. **User Memory**: \`~/.wave/AGENTS.md\` — Global instructions across all projects
+1. **User Memory**: \`~/.muse-work/AGENTS.md\` — Global instructions across all projects
 2. **Project Memory**: \`AGENTS.md\` in the project root — Project-specific instructions
-3. **Memory Rules**: \`.wave/rules/*.md\` and \`~/.wave/rules/*.md\` — Modular, path-scoped rules (see below)
+3. **Memory Rules**: \`.muse-work/rules/*.md\` and \`~/.muse-work/rules/*.md\` — Modular, path-scoped rules (see below)
 
 > \`CLAUDE.md\` is also supported as a fallback for both user and project memory, for compatibility with existing repositories.
 
 ## User Memory
 
-Stored at \`~/.wave/AGENTS.md\`. Use it for cross-project preferences and global instructions, e.g. "always write tests for new features", "prefer functional style".
+Stored at \`~/.muse-work/AGENTS.md\`. Use it for cross-project preferences and global instructions, e.g. "always write tests for new features", "prefer functional style".
 
 ## Project Memory
 
@@ -505,8 +505,8 @@ The \`AGENTS.md\` file in the project root is the primary project-level memory. 
 
 Memory rules are modular Markdown files that provide path-scoped instructions. They are discovered in:
 
-- **Project scope**: \`.wave/rules/*.md\` (checked into the repo)
-- **User scope**: \`~/.wave/rules/*.md\` (personal, not shared)
+- **Project scope**: \`.muse-work/rules/*.md\` (checked into the repo)
+- **User scope**: \`~/.muse-work/rules/*.md\` (personal, not shared)
 
 Each file can optionally include YAML frontmatter to scope rules to specific file paths:
 
@@ -530,7 +530,7 @@ paths:
 
 #### How Memory Rules are Loaded
 
-- Wave recursively discovers all \`.md\` files in \`.wave/rules/\` and \`~/.wave/rules/\`.
+- Wave recursively discovers all \`.md\` files in \`.muse-work/rules/\` and \`~/.muse-work/rules/\`.
 - **Path-specific activation**: If a rule has a \`paths\` field, it is only included in the agent's context when a file being read or modified matches the glob patterns.
 - **Unconditional rules**: Rules without a \`paths\` field are always active.
 - **Priority**: Project-level rules take priority over user-level rules if there is a conflict.
@@ -539,11 +539,11 @@ paths:
 
 - **Keep rules focused**: Create separate files for different topics (e.g. \`testing.md\`, \`ui-components.md\`).
 - **Leverage path scoping**: Use the \`paths\` field to keep the agent's context window clean and relevant.
-- **Share with your team**: Commit \`.wave/rules/\` to your git repository.
+- **Share with your team**: Commit \`.muse-work/rules/\` to your git repository.
 
 ## Auto-Memory
 
-In addition to manual memory files, Wave has an **auto-memory** feature that automatically extracts and remembers important information across sessions. This is stored in \`~/.wave/projects/<project-id>/memory/MEMORY.md\`.
+In addition to manual memory files, Wave has an **auto-memory** feature that automatically extracts and remembers important information across sessions. This is stored in \`~/.muse-work/projects/<project-id>/memory/MEMORY.md\`.
 
 You can control auto-memory in \`settings.json\`:
 
@@ -695,7 +695,7 @@ The Safe Zone is a set of directories where Wave is allowed to perform potential
 
 By default, the Safe Zone includes:
 - The current project directory.
-- The Wave configuration directories (\`~/.wave/\` and \`.wave/\`).
+- The Wave configuration directories (\`~/.muse-work/\` and \`.muse-work/\`).
 - The system temporary directory.
 
 You can extend the Safe Zone by adding \`additionalDirectories\` to your \`permissions\` configuration in \`settings.json\`.
@@ -784,7 +784,7 @@ Plugins bundle skills, hooks, MCP servers, LSP servers, and slash commands into 
 
 ### Creating a Plugin
 
-A plugin is any directory containing a \`.wave-plugin/plugin.json\` manifest:
+A plugin is any directory containing a \`.muse-plugin/plugin.json\` manifest:
 
 \`\`\`json
 {
@@ -809,7 +809,7 @@ Place resources in standard directories within the plugin:
 | \`.lsp.json\` | LSP server configuration |
 | \`.mcp.json\` | MCP server configuration |
 
-Only \`plugin.json\` should exist in \`.wave-plugin/\` — any other files there will cause a validation error.
+Only \`plugin.json\` should exist in \`.muse-plugin/\` — any other files there will cause a validation error.
 
 ### Installing a Plugin Locally
 
@@ -851,7 +851,7 @@ Example hook command:
 
 ## Plugin Marketplaces
 
-A plugin marketplace is a git repository containing a \`.wave-plugin/marketplace.json\` that lists available plugins.
+A plugin marketplace is a git repository containing a \`.muse-plugin/marketplace.json\` that lists available plugins.
 
 ### Marketplace Manifest
 
@@ -877,7 +877,7 @@ A plugin marketplace is a git repository containing a \`.wave-plugin/marketplace
 \`\`\`
 
 - \`source\` can be a **relative path** (resolved from the marketplace repo root) or a **git URL** (\`https://\`, \`git@\`, \`ssh://\`) for remote repos.
-- Each plugin at its source path must have its own \`.wave-plugin/plugin.json\` manifest.
+- Each plugin at its source path must have its own \`.muse-plugin/plugin.json\` manifest.
 
 ### Registering a Marketplace
 
@@ -917,8 +917,8 @@ Wave clones the marketplace repo, reads the manifest, and copies the plugin to i
 ### Creating a Plugin Marketplace
 
 1. Create a git repository
-2. Add \`.wave-plugin/marketplace.json\` at the root
-3. Add plugin directories with their own \`.wave-plugin/plugin.json\`
+2. Add \`.muse-plugin/marketplace.json\` at the root
+3. Add plugin directories with their own \`.muse-plugin/plugin.json\`
 4. Register the marketplace in your \`settings.json\` using a github, git, or directory source
 5. Plugins are cloned to the cache directory on install
 
@@ -929,9 +929,9 @@ Every registered marketplace is refreshed when you open a plugin marketplace sur
 ### Marketplace Scopes
 
 Marketplace declarations can be scoped:
-- **User scope**: \`~/.wave/settings.json\` — available in all projects
-- **Project scope**: \`.wave/settings.json\` — available in this project only
-- **Local scope**: \`.wave/settings.local.json\` — not committed to git
+- **User scope**: \`~/.muse-work/settings.json\` — available in all projects
+- **Project scope**: \`.muse-work/settings.json\` — available in this project only
+- **Local scope**: \`.muse-work/settings.local.json\` — not committed to git
 
 Later scopes override earlier ones (local > project > user).
 `,
@@ -953,9 +953,9 @@ This skill helps you manage your Wave configuration and provides guidance on how
 Changes to \`settings.json\` take effect immediately without restarting Wave. When you modify any setting, the new configuration is applied to subsequent operations automatically.
 
 Wave looks for \`settings.json\` in three scopes:
-1.  **User Scope**: Global settings for all projects. Located at \`~/.wave/settings.json\`.
-2.  **Project Scope**: Settings specific to the current project. Located at \`.wave/settings.json\` in your project root.
-3.  **Local Scope**: Local overrides for the current project (not committed to git). Located at \`.wave/settings.local.json\`.
+1.  **User Scope**: Global settings for all projects. Located at \`~/.muse-work/settings.json\`.
+2.  **Project Scope**: Settings specific to the current project. Located at \`.muse-work/settings.json\` in your project root.
+3.  **Local Scope**: Local overrides for the current project (not committed to git). Located at \`.muse-work/settings.local.json\`.
 
 ## Common Settings
 
@@ -1119,12 +1119,12 @@ By default, new skills only include \`name\` and \`description\`. Only add \`con
 
 Wave looks for skills in multiple locations, with later sources overriding earlier ones for same-named skills:
 
-1.  **User Skills**: \`~/.agents/skills/\` → \`~/.claude/skills/\` → \`~/.wave/skills/\` (Available in all projects)
-2.  **Project Skills**: \`.agents/skills/\` → \`.claude/skills/\` → \`.wave/skills/\` (Specific to the current project)
+1.  **User Skills**: \`~/.agents/skills/\` → \`~/.claude/skills/\` → \`~/.muse-work/skills/\` (Available in all projects)
+2.  **Project Skills**: \`.agents/skills/\` → \`.claude/skills/\` → \`.muse-work/skills/\` (Specific to the current project)
 
 The \`.agents/skills\` directory is the cross-tool standard adopted by Codex, Cursor, Cline, Gemini CLI, GitHub Copilot, and OpenCode, so a single skill directory can be shared across all your AI tools.
 
-Project skills take precedence over user skills with the same name. Within each level, \`.wave\` overrides \`.claude\`, which overrides \`.agents\`.
+Project skills take precedence over user skills with the same name. Within each level, \`.muse-work\` overrides \`.claude\`, which overrides \`.agents\`.
 
 ## Invoking Skills
 
@@ -1184,7 +1184,7 @@ Subagents are specialized AI personalities that Wave can delegate tasks to. They
 A subagent is defined by a Markdown file with YAML frontmatter.
 
 \`\`\`text
-.wave/agents/
+.muse-work/agents/
 └── my-subagent.md    # Subagent definition
 \`\`\`
 
@@ -1218,8 +1218,8 @@ You are a specialized subagent for a specific task. Your goal is to:
 
 Wave looks for subagents in three locations:
 
-1.  **User Subagents**: \`~/.wave/agents/\` (Available in all projects)
-2.  **Project Subagents**: \`.wave/agents/\` (Specific to the current project)
+1.  **User Subagents**: \`~/.muse-work/agents/\` (Available in all projects)
+2.  **Project Subagents**: \`.muse-work/agents/\` (Specific to the current project)
 3.  **Plugin Agents**: \`agents/\` within an installed plugin directory (Scoped to the plugin)
 
 Project subagents take precedence over user subagents with the same name. Plugin agents are namespaced with the plugin name (e.g., \`pluginName:agentName\`) to avoid collisions.

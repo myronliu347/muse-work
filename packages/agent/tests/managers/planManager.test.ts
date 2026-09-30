@@ -22,7 +22,7 @@ describe("PlanManager", () => {
       await planManager.getOrGeneratePlanFilePath();
 
     // Use path.join to be cross-platform in tests
-    const expectedDir = path.join("/home/user", ".wave", "plans");
+    const expectedDir = path.join("/home/user", ".muse-work", "plans");
 
     expect(filePath).toContain(expectedDir);
     expect(filePath).toMatch(/\.md$/);
@@ -32,7 +32,7 @@ describe("PlanManager", () => {
 
   it("should return the correct plan directory", () => {
     const planManager = new PlanManager(container);
-    const expectedDir = path.join("/home/user", ".wave", "plans");
+    const expectedDir = path.join("/home/user", ".muse-work", "plans");
     expect(planManager.getPlanDir()).toBe(expectedDir);
   });
 
@@ -130,7 +130,7 @@ describe("PlanManager awaitPlanFilePath", () => {
 
     const planFilePath = await planManager.awaitPlanFilePath();
     expect(planFilePath).toBeDefined();
-    expect(planFilePath).toContain(path.join("/home/user", ".wave", "plans"));
+    expect(planFilePath).toContain(path.join("/home/user", ".muse-work", "plans"));
     expect(planFilePath).toMatch(/\.md$/);
     expect(setPlanFilePath).toHaveBeenCalledWith(planFilePath);
   });

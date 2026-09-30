@@ -74,7 +74,7 @@ import { generateMessageId } from "@/utils/messageOperations.js";
 describe("Subagent Session Tests", () => {
   let tempDir: string;
   let testWorkdir: string;
-  const SESSION_DIR = join(homedir(), ".wave", "projects");
+  const SESSION_DIR = join(homedir(), ".muse-work", "projects");
   let mockJsonlHandler: {
     read: Mock<(filePath: string) => Promise<Message[]>>;
     append: Mock<(filePath: string, messages: Message[]) => Promise<void>>;

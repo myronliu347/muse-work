@@ -6,18 +6,19 @@ import { parseMarkdownFile } from "./markdownParser.js";
 import { generateCommandId } from "./commandPathResolver.js";
 import { logger } from "./globalLogger.js";
 
+import { CONFIG_DIR_NAME } from "./constants.js";
 /**
  * Get the project-specific commands directory
  */
 export function getProjectCommandsDir(workdir: string): string {
-  return join(workdir, ".wave", "commands");
+  return join(workdir, CONFIG_DIR_NAME, "commands");
 }
 
 /**
  * Get the user-specific commands directory
  */
 export function getUserCommandsDir(): string {
-  return join(homedir(), ".wave", "commands");
+  return join(homedir(), CONFIG_DIR_NAME, "commands");
 }
 
 /**

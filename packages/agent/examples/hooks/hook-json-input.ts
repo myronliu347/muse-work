@@ -24,8 +24,8 @@ async function setupTestHooks(): Promise<{
   const hookDir = join(tmpdir(), `wave-hook-test-${randomUUID()}`);
   await fs.mkdir(hookDir, { recursive: true });
 
-  // Create .wave subdirectory
-  const waveDir = join(hookDir, ".wave");
+  // Create .muse-work subdirectory
+  const waveDir = join(hookDir, ".muse-work");
   await fs.mkdir(waveDir, { recursive: true });
 
   // Create hook configuration

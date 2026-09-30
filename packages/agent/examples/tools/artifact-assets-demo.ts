@@ -19,7 +19,7 @@
  * 9. 清理：删除本次上传的全部资源，结束时两个 artifact 的 `files` 回到 0
  *
  * 前置条件：
- * - 已登录（~/.wave/auth.json 存在有效 SSO token）
+ * - 已登录（~/.muse-work/auth.json 存在有效 SSO token）
  * - 服务端地址已配置：WAVE_SERVER_URL 环境变量（或走默认值）
  *
  * 运行：

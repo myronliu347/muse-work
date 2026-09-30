@@ -12,6 +12,10 @@ import {
   MarketplaceSource,
   PluginInstallLocation,
 } from "../types/marketplace.js";
+import {
+  PLUGIN_MANIFEST_DIR,
+  PLUGIN_MANIFEST_DIRS,
+} from "../types/plugins.js";
 import { GitService } from "./GitService.js";
 import {
   parsePluginSource,
@@ -95,7 +99,7 @@ export class MarketplaceService {
   }
 
   /**
-   * Ensures the required directory structure exists in ~/.wave/plugins
+   * Ensures the required directory structure exists in ~/.muse-work/plugins
    */
   private ensureDirectoryStructure() {
     [this.pluginsDir, this.tmpDir, this.cacheDir, this.marketplacesDir].forEach(
@@ -449,21 +453,18 @@ export class MarketplaceService {
   async loadMarketplaceManifest(
     marketplacePath: string,
   ): Promise<MarketplaceManifest> {
-    let manifestPath = path.join(
-      marketplacePath,
-      ".wave-plugin",
-      "marketplace.json",
-    );
-    if (!existsSync(manifestPath)) {
-      // Fallback to .claude-plugin/marketplace.json
-      manifestPath = path.join(
-        marketplacePath,
-        ".claude-plugin",
-        "marketplace.json",
-      );
-      if (!existsSync(manifestPath)) {
-        throw new Error(`Marketplace manifest not found at ${manifestPath}`);
+    let manifestPath: string | undefined;
+    for (const dir of PLUGIN_MANIFEST_DIRS) {
+      const candidate = path.join(marketplacePath, dir, "marketplace.json");
+      if (existsSync(candidate)) {
+        manifestPath = candidate;
+        break;
       }
+    }
+    if (!manifestPath) {
+      throw new Error(
+        `Marketplace manifest not found under ${PLUGIN_MANIFEST_DIRS.map((d) => `${d}/marketplace.json`).join(" or ")} in ${marketplacePath}`,
+      );
     }
     const content = await fs.readFile(manifestPath, "utf-8");
     const manifest = JSON.parse(content);
@@ -1104,23 +1105,18 @@ export class MarketplaceService {
           pluginSrcPath = path.resolve(marketplacePath, parsedSource.path);
         }
 
-        let pluginManifestPath = path.join(
-          pluginSrcPath,
-          ".wave-plugin",
-          "plugin.json",
-        );
-        if (!existsSync(pluginManifestPath)) {
-          // Fallback to .claude-plugin/plugin.json
-          pluginManifestPath = path.join(
-            pluginSrcPath,
-            ".claude-plugin",
-            "plugin.json",
-          );
-          if (!existsSync(pluginManifestPath)) {
-            throw new Error(
-              `Plugin manifest not found at ${pluginManifestPath}`,
-            );
+        let pluginManifestPath: string | undefined;
+        for (const dir of PLUGIN_MANIFEST_DIRS) {
+          const candidate = path.join(pluginSrcPath, dir, "plugin.json");
+          if (existsSync(candidate)) {
+            pluginManifestPath = candidate;
+            break;
           }
+        }
+        if (!pluginManifestPath) {
+          throw new Error(
+            `Plugin manifest not found under ${PLUGIN_MANIFEST_DIRS.map((d) => `${d}/plugin.json`).join(" or ")} in ${pluginSrcPath}`,
+          );
         }
 
         const pluginManifestContent = await fs.readFile(

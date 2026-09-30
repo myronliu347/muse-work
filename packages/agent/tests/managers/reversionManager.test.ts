@@ -160,7 +160,7 @@ describe("ReversionManager", () => {
   });
 
   it("should handle absolute paths for task files and track affected task list IDs", async () => {
-    const taskFilePath = "/home/user/.wave/tasks/session123/1.json";
+    const taskFilePath = "/home/user/.muse-work/tasks/session123/1.json";
     const snapshots = [
       {
         messageId: "msg1",

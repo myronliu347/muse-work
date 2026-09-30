@@ -66,7 +66,7 @@ async function main() {
       path.basename(commonDir) === ".git" ? path.dirname(commonDir) : commonDir;
     const memoryDir = path.join(
       os.homedir(),
-      ".wave",
+      ".muse-work",
       "projects",
       pathEncoder.encodeSync(projectRoot),
       "memory",

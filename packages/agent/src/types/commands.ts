@@ -4,7 +4,7 @@
  */
 
 /** UI-facing source of a skill-derived slash command. "user" covers personal
- *  (~/.wave、~/.claude、~/.agents) skills; plugin skills carry pluginName. */
+ *  (~/.muse-work、~/.claude、~/.agents) skills; plugin skills carry pluginName. */
 export type SkillSource = "builtin" | "user" | "project" | "plugin";
 
 export interface SlashCommand {

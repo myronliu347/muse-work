@@ -205,7 +205,7 @@ async function main() {
       JSON.stringify(agent.getAdditionalDirectories()),
     );
     const persisted = await readFile(
-      join(workdir, ".wave", "settings.local.json"),
+      join(workdir, ".muse-work", "settings.local.json"),
       "utf-8",
     ).catch(() => "");
     check(

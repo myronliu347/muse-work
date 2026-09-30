@@ -15,7 +15,7 @@ import { mkdir, writeFile, rm } from "fs/promises";
  */
 async function main() {
   const tempDir = join(tmpdir(), `skill-watcher-demo-${Date.now()}`);
-  const skillsDir = join(tempDir, ".wave", "skills");
+  const skillsDir = join(tempDir, ".muse-work", "skills");
 
   try {
     // Setup temp skills directory
@@ -150,7 +150,7 @@ Updated content`,
 
     console.log("Agent initialized with skill watching enabled.");
     console.log(
-      "Any changes to .wave/skills will be automatically picked up by the agent.",
+      "Any changes to .muse-work/skills will be automatically picked up by the agent.",
     );
 
     await agent.destroy();

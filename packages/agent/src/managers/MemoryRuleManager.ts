@@ -7,6 +7,7 @@ import { logger } from "../utils/globalLogger.js";
 
 import { Container } from "../utils/container.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 export interface MemoryRuleRegistryState {
   /** All discovered rules, indexed by ID */
   rules: Record<string, MemoryRule>;
@@ -49,12 +50,12 @@ export class MemoryRuleManager {
   }
 
   /**
-   * Scans .wave/rules and ~/.wave/rules for memory rule files.
+   * Scans .muse-work/rules and ~/.muse-work/rules for memory rule files.
    */
   async discoverRules(): Promise<void> {
-    const projectWaveRulesDir = path.join(this.workdir, ".wave", "rules");
+    const projectWaveRulesDir = path.join(this.workdir, CONFIG_DIR_NAME, "rules");
     const projectClaudeRulesDir = path.join(this.workdir, ".claude", "rules");
-    const userWaveRulesDir = path.join(os.homedir(), ".wave", "rules");
+    const userWaveRulesDir = path.join(os.homedir(), CONFIG_DIR_NAME, "rules");
     const userClaudeRulesDir = path.join(os.homedir(), ".claude", "rules");
 
     logger.debug(`Scanning for modular memory rules...`);
@@ -64,7 +65,7 @@ export class MemoryRuleManager {
     const newRules: Record<string, MemoryRule> = {};
 
     // Scan order: userClaude → userWave → projectClaude → projectWave
-    // Later writes override, so .wave takes priority over .claude
+    // Later writes override, so .muse-work takes priority over .claude
     await this.scanDirectory(userClaudeRulesDir, "user", newRules);
     await this.scanDirectory(userWaveRulesDir, "user", newRules);
     await this.scanDirectory(projectClaudeRulesDir, "project", newRules);
@@ -147,13 +148,13 @@ export class MemoryRuleManager {
         if (filePath.includes(path.join(".claude", "rules"))) {
           rulesRoot = path.join(this.workdir, ".claude", "rules");
         } else {
-          rulesRoot = path.join(this.workdir, ".wave", "rules");
+          rulesRoot = path.join(this.workdir, CONFIG_DIR_NAME, "rules");
         }
       } else {
         if (filePath.includes(path.join(".claude", "rules"))) {
           rulesRoot = path.join(os.homedir(), ".claude", "rules");
         } else {
-          rulesRoot = path.join(os.homedir(), ".wave", "rules");
+          rulesRoot = path.join(os.homedir(), CONFIG_DIR_NAME, "rules");
         }
       }
 

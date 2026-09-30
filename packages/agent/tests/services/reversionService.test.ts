@@ -8,7 +8,7 @@ vi.mock("fs/promises");
 
 describe("ReversionService", () => {
   const sessionId = "test-session";
-  const historyBaseDir = join(homedir(), ".wave", "file-history", sessionId);
+  const historyBaseDir = join(homedir(), ".muse-work", "file-history", sessionId);
   let service: ReversionService;
 
   beforeEach(() => {

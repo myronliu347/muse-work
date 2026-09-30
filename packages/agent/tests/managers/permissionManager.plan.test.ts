@@ -5,7 +5,7 @@ import { Container } from "../../src/utils/container.js";
 describe("PermissionManager Plan Mode", () => {
   let permissionManager: PermissionManager;
   let container: Container;
-  const planFilePath = "/home/user/.wave/plans/gentle-breeze.md";
+  const planFilePath = "/home/user/.muse-work/plans/gentle-breeze.md";
 
   beforeEach(() => {
     container = new Container();

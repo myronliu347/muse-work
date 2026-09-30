@@ -4,10 +4,10 @@
  * Modular Rules Feature Demo
  *
  * This example demonstrates the modular rules feature which allows organizing
- * memory rules into multiple files within `.wave/rules/` directory.
+ * memory rules into multiple files within `.muse-work/rules/` directory.
  *
  * Features demonstrated:
- * 1. Project-level modular rules in `.wave/rules/`
+ * 1. Project-level modular rules in `.muse-work/rules/`
  * 2. Path-specific rules with YAML frontmatter
  * 3. Global rules without path restrictions
  * 4. Subdirectory organization
@@ -23,7 +23,7 @@ import { tmpdir } from "os";
 // Test workspace setup
 async function setupTestWorkspace(): Promise<string> {
   const testDir = join(tmpdir(), `modular-rules-demo-${Date.now()}`);
-  const waveRulesDir = join(testDir, ".wave", "rules");
+  const waveRulesDir = join(testDir, ".muse-work", "rules");
   const srcApiDir = join(testDir, "src", "api");
   const srcUiDir = join(testDir, "src", "ui");
   const testsDir = join(testDir, "tests");

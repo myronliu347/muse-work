@@ -10,6 +10,7 @@ import {
 } from "./frontmatterYaml.js";
 import { getBuiltinSubagentsDir } from "./configPaths.js";
 
+import { CONFIG_DIR_NAME } from "./constants.js";
 export interface SubagentConfiguration {
   name: string;
   description: string;
@@ -240,15 +241,15 @@ export async function loadSubagentConfigurations(
   workdir: string,
   env: Record<string, string> = process.env as Record<string, string>,
 ): Promise<SubagentConfiguration[]> {
-  const projectWaveDir = join(workdir, ".wave", "agents");
+  const projectWaveDir = join(workdir, CONFIG_DIR_NAME, "agents");
   const projectClaudeDir = join(workdir, ".claude", "agents");
   // Resolve user-level dirs via os.homedir() (NOT process.env.HOME): every
   // other user-path resolver in the SDK (settings, skills, MCP, rules, ~/
   // expansion in the Write tool) uses os.homedir(), which on Windows falls
   // back to USERPROFILE. Windows GUI-launched processes (Electron desktop)
   // typically have no HOME set, so process.env.HOME made user-level subagents
-  // silently invisible there (`~/.wave/agents` resolved as a relative path).
-  const userWaveDir = join(homedir(), ".wave", "agents");
+  // silently invisible there (`~/.muse-work/agents` resolved as a relative path).
+  const userWaveDir = join(homedir(), CONFIG_DIR_NAME, "agents");
   const userClaudeDir = join(homedir(), ".claude", "agents");
   const builtinDir = getBuiltinSubagentsDir();
 
@@ -271,11 +272,11 @@ export async function loadSubagentConfigurations(
   );
   const projectWaveConfigs = scanSubagentDirectory(projectWaveDir, "project");
 
-  // Merge configurations, with .wave taking priority over .claude
+  // Merge configurations, with .muse-work taking priority over .claude
   const configMap = new Map<string, SubagentConfiguration>();
 
   // Merge order: builtin → userClaude → userWave → projectClaude → projectWave
-  // Later writes override earlier ones, so .wave takes priority over .claude
+  // Later writes override earlier ones, so .muse-work takes priority over .claude
   for (const config of [
     ...builtinConfigs,
     ...userClaudeConfigs,

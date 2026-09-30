@@ -10,7 +10,7 @@ describe("mattpocock builtin plugin", () => {
   it("has Wave manifest, LICENSE, SOURCE.txt, and flat skills", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(pluginDir, ".wave-plugin", "plugin.json"),
+        path.join(pluginDir, ".muse-plugin", "plugin.json"),
         "utf8",
       ),
     ) as { name: string; version: string };

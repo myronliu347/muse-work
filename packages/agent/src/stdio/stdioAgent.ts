@@ -68,7 +68,7 @@ export interface InitializeResult {
 
 /**
  * Session-level overrides only. 用户偏好（语言 / 上下文长度 / 自动记忆开关与频率）
- * **不得**经本层下发——它们写用户级 `~/.wave/settings.json` 并由实时重载生效；
+ * **不得**经本层下发——它们写用户级 `~/.muse-work/settings.json` 并由实时重载生效；
  * 覆盖层优先级高于 settings.json，会把实时值永久遮蔽（docs/specs/core/agent-config.md
  * 「分层职责」）。
  */

@@ -36,7 +36,7 @@ Only use minute 0 or 30 when the user names that exact time and clearly means it
 ## Session-only vs durable
 
 By default, jobs live only in this Wave session — nothing is written to disk, and the job is gone when Wave exits.
-Set \`durable: true\` to persist the job to \`.wave/scheduled_tasks.json\` so it survives Wave restarts (requires the session to hold the scheduler lock).
+Set \`durable: true\` to persist the job to \`.muse-work/scheduled_tasks.json\` so it survives Wave restarts (requires the session to hold the scheduler lock).
 
 ## Runtime behavior
 
@@ -73,7 +73,7 @@ export const cronCreateTool: ToolPlugin = {
           durable: {
             type: "boolean",
             description:
-              "true = persist job to .wave/scheduled_tasks.json so it survives Wave restarts. false (default) = session-only, removed when Wave exits.",
+              "true = persist job to .muse-work/scheduled_tasks.json so it survives Wave restarts. false (default) = session-only, removed when Wave exits.",
             default: false,
           },
         },
@@ -135,7 +135,7 @@ export const cronCreateTool: ToolPlugin = {
 
       const humanSchedule = cronToHuman(cron);
       const where = durable
-        ? "Persisted to .wave/scheduled_tasks.json"
+        ? "Persisted to .muse-work/scheduled_tasks.json"
         : "Session-only (not written to disk, dies when Wave exits)";
       const resultMessage = recurring
         ? `Scheduled recurring job ${job.id} (${humanSchedule}). ${where}. Auto-expires after ${DEFAULT_MAX_AGE_DAYS} days. Use CronDelete to cancel sooner.`

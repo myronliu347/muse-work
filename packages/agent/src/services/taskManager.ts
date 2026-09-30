@@ -8,6 +8,7 @@ import { Container } from "../utils/container.js";
 import type { MessageManager } from "../managers/messageManager.js";
 import type { ConfigurationService } from "./configurationService.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 function byIdAsc(a: Task, b: Task) {
   const aNum = parseInt(a.id, 10);
   const bNum = parseInt(b.id, 10);
@@ -25,7 +26,7 @@ export class TaskManager extends EventEmitter {
   ) {
     super();
     this.taskListId = taskListId;
-    this.baseDir = join(homedir(), ".wave", "tasks");
+    this.baseDir = join(homedir(), CONFIG_DIR_NAME, "tasks");
   }
 
   public getTaskListId(): string {

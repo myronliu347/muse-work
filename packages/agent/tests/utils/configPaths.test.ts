@@ -40,30 +40,30 @@ describe("configPaths", () => {
   });
 
   it("getUserConfigPath returns correct path", () => {
-    expect(getUserConfigPath()).toBe(join(home, ".wave", "settings.json"));
+    expect(getUserConfigPath()).toBe(join(home, ".muse-work", "settings.json"));
   });
 
   it("getProjectConfigPath returns correct path", () => {
     expect(getProjectConfigPath(workdir)).toBe(
-      join(workdir, ".wave", "settings.json"),
+      join(workdir, ".muse-work", "settings.json"),
     );
   });
 
   it("getUserConfigPaths returns priority paths", () => {
     const paths = getUserConfigPaths();
-    expect(paths).toEqual([join(home, ".wave", "settings.json")]);
+    expect(paths).toEqual([join(home, ".muse-work", "settings.json")]);
   });
 
   it("getProjectConfigPaths returns priority paths", () => {
     const paths = getProjectConfigPaths(workdir);
     expect(paths).toEqual([
-      join(workdir, ".wave", "settings.local.json"),
-      join(workdir, ".wave", "settings.json"),
+      join(workdir, ".muse-work", "settings.local.json"),
+      join(workdir, ".muse-work", "settings.json"),
     ]);
   });
 
   it("getPluginsDir returns correct path", () => {
-    expect(getPluginsDir()).toBe(join(home, ".wave", "plugins"));
+    expect(getPluginsDir()).toBe(join(home, ".muse-work", "plugins"));
   });
 
   it("builtin dir getters point into the materialized cache", () => {
@@ -83,8 +83,8 @@ describe("configPaths", () => {
   });
 
   it("getExistingConfigPaths filters existing paths", () => {
-    const userJson = join(home, ".wave", "settings.json");
-    const projectJson = join(workdir, ".wave", "settings.json");
+    const userJson = join(home, ".muse-work", "settings.json");
+    const projectJson = join(workdir, ".muse-work", "settings.json");
 
     vi.mocked(fs.existsSync).mockImplementation((path) => {
       return path === userJson || path === projectJson;
@@ -107,8 +107,8 @@ describe("configPaths", () => {
   });
 
   it("getEffectiveConfigPaths handles precedence", () => {
-    const userJson = join(home, ".wave", "settings.json");
-    const localConfigPath = join(workdir, ".wave", "settings.local.json");
+    const userJson = join(home, ".muse-work", "settings.json");
+    const localConfigPath = join(workdir, ".muse-work", "settings.local.json");
 
     // Both exist
     vi.mocked(fs.existsSync).mockImplementation((path) => {

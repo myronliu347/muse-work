@@ -13,8 +13,8 @@ import * as path from "node:path";
  * `utils/runtimeDeps.ts` — it probes availability, downloads, then verifies
  * through the same `require` — and on Node 24 it made ripgrep unusable for the
  * whole run: the sharp step installed first and created
- * `~/.wave/cli/node_modules`, the rg probe then looked for
- * `~/.wave/cli/node_modules/@vscode/ripgrep/package.json` while that was still
+ * `~/.muse-work/cli/node_modules`, the rg probe then looked for
+ * `~/.muse-work/cli/node_modules/@vscode/ripgrep/package.json` while that was still
  * missing, the install that followed succeeded, and the post-install verify
  * *still* reported "not found" — so the marker was cleared, `resetRipgrep` was
  * never called, and every Grep in that process answered "ripgrep is not

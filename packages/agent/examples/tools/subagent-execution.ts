@@ -30,8 +30,8 @@ async function setupTest() {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "wave-subagent-test-"));
   console.log(`📁 Created temporary directory: ${tempDir}`);
 
-  // Create the correct directory structure (.wave/agents)
-  const agentsDir = path.join(tempDir, ".wave", "agents");
+  // Create the correct directory structure (.muse-work/agents)
+  const agentsDir = path.join(tempDir, ".muse-work", "agents");
   await fs.mkdir(agentsDir, { recursive: true });
 
   // Create a simple subagent configuration in markdown format with WAVE_FAST_MODEL

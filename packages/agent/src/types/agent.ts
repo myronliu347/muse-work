@@ -50,7 +50,7 @@ export interface AgentOptions {
    * Per-session override for auto-memory extraction (程序化会话级覆盖).
    * Takes precedence over settings.json merged config and
    * WAVE_DISABLE_AUTO_MEMORY env; undefined defers to them. 三端设置页的开关
-   * **不**经这一层下发——它落用户级 `~/.wave/settings.json`，由实时重载在下一轮
+   * **不**经这一层下发——它落用户级 `~/.muse-work/settings.json`，由实时重载在下一轮
    * 生效（spec core/agent-config.md「设置实时重载」）。
    */
   autoMemoryEnabled?: boolean;

@@ -54,7 +54,7 @@ let initialized = false;
 let currentConfig: TelemetryConfig | undefined;
 
 /** Default telemetry file path */
-const DEFAULT_TELEMETRY_FILE = "~/.wave/telemetry.jsonl";
+const DEFAULT_TELEMETRY_FILE = "~/.muse-work/telemetry.jsonl";
 
 /**
  * Resolve the telemetry file path, expanding ~ to home directory.
@@ -525,7 +525,7 @@ export { JsonlSpanExporter, JsonlLogExporter };
  *
  * Priority:
  * 1. SSO authenticated → server-provided user.id + user.email
- * 2. Not authenticated → persistent anonymous ID from ~/.wave/config.json
+ * 2. Not authenticated → persistent anonymous ID from ~/.muse-work/config.json
  */
 export function getTelemetryAttributes(): Record<string, string> {
   try {

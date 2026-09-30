@@ -89,7 +89,7 @@ You are a file search specialist...`;
       const mockFs = await import("fs");
 
       vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
-        if (dirPath === path.join("/test/workdir", ".wave", "agents")) {
+        if (dirPath === path.join("/test/workdir", ".muse-work", "agents")) {
           return ["reviewer.md"] as unknown as ReturnType<
             typeof import("fs").readdirSync
           >;
@@ -104,7 +104,7 @@ You are a file search specialist...`;
       vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
         if (
           filePath ===
-          path.join("/test/workdir", ".wave", "agents", "reviewer.md")
+          path.join("/test/workdir", ".muse-work", "agents", "reviewer.md")
         ) {
           return `---
 name: reviewer
@@ -278,7 +278,7 @@ test`;
             typeof import("fs").readdirSync
           >;
         }
-        if (dirPath === path.join("/home/testuser", ".wave", "agents")) {
+        if (dirPath === path.join("/home/testuser", ".muse-work", "agents")) {
           return ["explore.md"] as unknown as ReturnType<
             typeof import("fs").readdirSync
           >;
@@ -299,7 +299,7 @@ builtin prompt`;
         }
         if (
           filePath ===
-          path.join("/home/testuser", ".wave", "agents", "explore.md")
+          path.join("/home/testuser", ".muse-work", "agents", "explore.md")
         ) {
           return `---
 name: explore
@@ -386,13 +386,13 @@ Project Claude agent system prompt`;
       );
     });
 
-    it("should let .wave/agents override .claude/agents for same-named agent", async () => {
+    it("should let .muse-work/agents override .claude/agents for same-named agent", async () => {
       const mockFs = await import("fs");
 
       vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
         if (
           dirPath === path.join("/home/testuser", ".claude", "agents") ||
-          dirPath === path.join("/home/testuser", ".wave", "agents")
+          dirPath === path.join("/home/testuser", ".muse-work", "agents")
         ) {
           return ["shared-agent.md"] as unknown as ReturnType<
             typeof import("fs").readdirSync
@@ -418,7 +418,7 @@ Claude version prompt`;
         }
         if (
           filePath ===
-          path.join("/home/testuser", ".wave", "agents", "shared-agent.md")
+          path.join("/home/testuser", ".muse-work", "agents", "shared-agent.md")
         ) {
           return `---
 name: shared-agent
@@ -441,7 +441,7 @@ Wave version prompt`;
       // Windows GUI-launched processes (Electron desktop app) have no HOME env
       // var. Regression: user-level agents must resolve via os.homedir() (which
       // falls back to USERPROFILE on Windows), NOT process.env.HOME — otherwise
-      // `~/.wave/agents` is treated as a literal relative path and a newly
+      // `~/.muse-work/agents` is treated as a literal relative path and a newly
       // created subagent (written to the real home by the Write tool) is
       // invisible to the Agent tool.
       const originalHome = process.env.HOME;
@@ -450,7 +450,7 @@ Wave version prompt`;
         const mockFs = await import("fs");
 
         vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
-          if (dirPath === path.join("/home/testuser", ".wave", "agents")) {
+          if (dirPath === path.join("/home/testuser", ".muse-work", "agents")) {
             return ["arch-explorer.md"] as unknown as ReturnType<
               typeof import("fs").readdirSync
             >;
@@ -465,7 +465,7 @@ Wave version prompt`;
         vi.mocked(mockFs.readFileSync).mockImplementation((filePath) => {
           if (
             filePath ===
-            path.join("/home/testuser", ".wave", "agents", "arch-explorer.md")
+            path.join("/home/testuser", ".muse-work", "agents", "arch-explorer.md")
           ) {
             return `---
 name: arch-explorer

@@ -34,7 +34,7 @@ export interface MarketplacePluginStatus extends MarketplacePluginEntry {
   version?: string;
   /**
    * 市场内该插件当前可安装的最新版本，取自市场检出目录内插件的
-   * `.wave-plugin/plugin.json`（兼容 `.claude-plugin/plugin.json`）。
+   * `.muse-plugin/plugin.json`（兼容 `.wave-plugin` / `.claude-plugin`）。
    * 插件来源是独立 Git 仓库等无法就地读取清单的情况为 undefined
    * （spec plugin A-010：此时不展示最新版本）。
    */

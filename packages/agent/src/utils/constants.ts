@@ -3,13 +3,20 @@
  */
 
 import path from "path";
-import os from "os";
+import { homedir } from "os";
+
+/**
+ * State / config directory name under the home (or project) root.
+ * Matches Muse's `MUSE_HOME_DIR` so agent + desktop share one tree
+ * (default `~/.muse-work`).
+ */
+export const CONFIG_DIR_NAME = process.env.MUSE_HOME_DIR ?? ".muse-work";
 
 /**
  * Application data storage directory
  * Used to store debug logs, command history and other data
  */
-export const DATA_DIRECTORY = path.join(os.homedir(), ".wave");
+export const DATA_DIRECTORY = path.join(homedir(), CONFIG_DIR_NAME);
 
 /**
  * Prompt history file path

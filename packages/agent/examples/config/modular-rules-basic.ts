@@ -4,7 +4,7 @@
  * Basic Modular Rules Example
  *
  * This is a simple example showing how to set up and use modular rules.
- * It creates a temporary workspace with `.wave/rules/` directory and
+ * It creates a temporary workspace with `.muse-work/rules/` directory and
  * demonstrates how rules are automatically loaded and applied.
  */
 
@@ -20,7 +20,7 @@ async function basicModularRulesExample(): Promise<void> {
 
   try {
     // Step 1: Create workspace structure
-    const waveRulesDir = join(testDir, ".wave", "rules");
+    const waveRulesDir = join(testDir, ".muse-work", "rules");
     const srcDir = join(testDir, "src");
     await mkdir(waveRulesDir, { recursive: true });
     await mkdir(srcDir, { recursive: true });
@@ -96,7 +96,7 @@ paths:
 
     console.log("\n\n✅ Example completed!");
     console.log("\n💡 What happened:");
-    console.log("   1. Created .wave/rules/ directory in workspace");
+    console.log("   1. Created .muse-work/rules/ directory in workspace");
     console.log("   2. Added general.md (applies to all files)");
     console.log("   3. Added typescript.md (only for src/**/*.ts files)");
     console.log("   4. Agent automatically loaded both rules");

@@ -7,7 +7,7 @@ import * as os from "os";
  * This example demonstrates how to use the `permissions.deny` configuration in `settings.json`
  * to explicitly block specific tools.
  *
- * The Wave system loads configuration from `.wave/settings.json` and `.wave/settings.local.json`
+ * The Wave system loads configuration from `.muse-work/settings.json` and `.muse-work/settings.local.json`
  * in the project directory. Rules in `permissions.deny` take precedence over any `allow` rules.
  */
 async function main() {
@@ -17,7 +17,7 @@ async function main() {
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), "wave-deny-example-"),
   );
-  const waveDir = path.join(tempDir, ".wave");
+  const waveDir = path.join(tempDir, ".muse-work");
   await fs.mkdir(waveDir);
 
   // 2. Create a settings.json file that denies the 'Bash' tool

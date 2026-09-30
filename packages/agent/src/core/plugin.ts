@@ -13,6 +13,7 @@ import {
   MarketplacePluginEntry,
   InstalledPluginsRegistry,
   MarketplacePluginStatus,
+  PLUGIN_MANIFEST_DIRS,
 } from "../types/index.js";
 import { remoteSettingsService } from "../services/remoteSettingsService.js";
 import { parsePluginSource } from "../utils/pluginSource.js";
@@ -37,7 +38,7 @@ export class PluginCore {
     // 托管层（spec plugin A-024）读的是远端设置的磁盘缓存，而 `wave plugin
     // uninstall` 这类独立命令不经过 Agent 初始化，没人调过 initialize() ⇒
     // 缓存为空、托管限制在这些入口上形同虚设。这里补上：initialize() 只是
-    // 同步读一次 `~/.wave/remote-settings.json`（幂等），已加载过的进程不受影响。
+    // 同步读一次 `~/.muse-work/remote-settings.json`（幂等），已加载过的进程不受影响。
     remoteSettingsService.initialize();
     this.container = new Container();
     this.configurationService = new ConfigurationService();
@@ -263,7 +264,7 @@ export class PluginCore {
     if (!parsed || parsed.kind !== "local") return undefined;
 
     const pluginPath = path.resolve(marketplacePath, parsed.path);
-    for (const dir of [".wave-plugin", ".claude-plugin"]) {
+    for (const dir of PLUGIN_MANIFEST_DIRS) {
       try {
         const raw = await fs.readFile(
           path.join(pluginPath, dir, "plugin.json"),

@@ -39,7 +39,9 @@ export function findServerPackageRoot(fromDir: string): string | undefined {
 }
 
 function hasPluginManifest(dir: string): boolean {
-  return fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json"));
+  return [".muse-plugin", ".wave-plugin", ".claude-plugin"].some((name) =>
+    fs.existsSync(path.join(dir, name, "plugin.json")),
+  );
 }
 
 export function resolvePluginDirFrom(

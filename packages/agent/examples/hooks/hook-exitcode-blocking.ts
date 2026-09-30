@@ -31,8 +31,8 @@ async function setupBlockingErrorHooks(): Promise<{
   const hookDir = join(tmpdir(), `wave-hook-blocking-${randomUUID()}`);
   await fs.mkdir(hookDir, { recursive: true });
 
-  // Create .wave subdirectory
-  const waveDir = join(hookDir, ".wave");
+  // Create .muse-work subdirectory
+  const waveDir = join(hookDir, ".muse-work");
   await fs.mkdir(waveDir, { recursive: true });
 
   // Create hook configuration with blocking error hooks

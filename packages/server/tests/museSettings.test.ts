@@ -132,9 +132,9 @@ describe("museSettings", () => {
       "plugins",
       "superpowers",
     );
-    fs.mkdirSync(path.join(pluginDir, ".wave-plugin"), { recursive: true });
+    fs.mkdirSync(path.join(pluginDir, ".muse-plugin"), { recursive: true });
     fs.writeFileSync(
-      path.join(pluginDir, ".wave-plugin", "plugin.json"),
+      path.join(pluginDir, ".muse-plugin", "plugin.json"),
       JSON.stringify({ name: "superpowers" }),
     );
     expect(resolvePluginDirFrom(fromDir, "superpowers")).toBe(pluginDir);
@@ -148,7 +148,7 @@ describe("museSettings", () => {
       const dir = resolvePluginDir(name);
       expect(dir).toBe(path.join(root as string, "plugins", name));
       expect(
-        fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json")),
+        fs.existsSync(path.join(dir, ".muse-plugin", "plugin.json")),
       ).toBe(true);
       expect(pluginDirIfPresent(name)).toBe(dir);
     }

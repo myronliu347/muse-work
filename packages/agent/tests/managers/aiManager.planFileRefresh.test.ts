@@ -39,7 +39,7 @@ vi.mock("../../src/services/memory.js", () => ({
  * fresh file content; everything else must stay silent.
  */
 describe("AIManager plan file refresh", () => {
-  const PLAN_PATH = "/home/user/.wave/plans/bold-low-stream.md";
+  const PLAN_PATH = "/home/user/.muse-work/plans/bold-low-stream.md";
 
   let aiManager: AIManager;
   let onPlanFileUpdated: Mock<(content: string) => void>;

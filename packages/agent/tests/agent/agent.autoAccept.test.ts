@@ -101,7 +101,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
     );
 
     // Check if rule was persisted to settings.local.json
-    const configPath = path.join(tempDir, ".wave", "settings.local.json");
+    const configPath = path.join(tempDir, ".muse-work", "settings.local.json");
     const configContent = await fs.readFile(configPath, "utf-8");
     const config = JSON.parse(configContent);
 
@@ -156,7 +156,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
 
     expect(agent.getAdditionalDirectories()).toContain(outsideDir);
     const persisted = await fs
-      .readFile(path.join(tempDir, ".wave", "settings.local.json"), "utf-8")
+      .readFile(path.join(tempDir, ".muse-work", "settings.local.json"), "utf-8")
       .catch(() => "");
     expect(persisted).not.toContain(outsideDir);
 
@@ -192,7 +192,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
 
   it("should load persistent rules on startup", async () => {
     // 1. Create a settings.local.json file
-    const waveDir = path.join(tempDir, ".wave");
+    const waveDir = path.join(tempDir, ".muse-work");
     await fs.mkdir(waveDir, { recursive: true });
     const config = {
       permissions: {
@@ -247,7 +247,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
     );
     vi.mocked(os.homedir).mockReturnValue(userHome);
 
-    const userWaveDir = path.join(userHome, ".wave");
+    const userWaveDir = path.join(userHome, ".muse-work");
     await fs.mkdir(userWaveDir, { recursive: true });
     await fs.writeFile(
       path.join(userWaveDir, "settings.json"),
@@ -255,7 +255,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
     );
 
     // 2. Setup local config
-    const projectWaveDir = path.join(tempDir, ".wave");
+    const projectWaveDir = path.join(tempDir, ".muse-work");
     await fs.mkdir(projectWaveDir, { recursive: true });
     await fs.writeFile(
       path.join(projectWaveDir, "settings.json"),
@@ -324,7 +324,7 @@ describe("Agent Auto-Accept Permissions Integration", () => {
     );
 
     // 2. Check if rules were split and filtered in settings.local.json
-    const configPath = path.join(tempDir, ".wave", "settings.local.json");
+    const configPath = path.join(tempDir, ".muse-work", "settings.local.json");
     const configContent = await fs.readFile(configPath, "utf-8");
     const config = JSON.parse(configContent);
 

@@ -64,7 +64,7 @@ describe("worktreeUtils with real git", () => {
       // on Windows — compare only the parts that don't depend on the user
       // directory form: the temp dir basename and the worktree path shape.
       expect(path.basename(info.repoRoot)).toBe(path.basename(repoRoot));
-      expect(info.path).toContain(path.join(".wave", "worktrees"));
+      expect(info.path).toContain(path.join(".muse-work", "worktrees"));
       expect(path.basename(info.path)).toBe("real-git-test");
       expect(fs.existsSync(info.path)).toBe(true);
 

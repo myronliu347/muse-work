@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { homedir } from "node:os";
-import { USER_MEMORY_FILE, DATA_DIRECTORY } from "../utils/constants.js";
+import { USER_MEMORY_FILE, DATA_DIRECTORY, CONFIG_DIR_NAME } from "../utils/constants.js";
 import { logger } from "../utils/globalLogger.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
 import { Container } from "../utils/container.js";
@@ -44,7 +44,7 @@ export class MemoryService {
     const projectRoot =
       path.basename(commonDir) === ".git" ? path.dirname(commonDir) : commonDir;
     const encodedName = pathEncoder.encodeSync(projectRoot);
-    return path.join(homedir(), ".wave", "projects", encodedName, "memory");
+    return path.join(homedir(), CONFIG_DIR_NAME, "projects", encodedName, "memory");
   }
 
   /**
@@ -237,7 +237,7 @@ export class MemoryService {
   }
 
   /**
-   * Persist the user-level memory file (~/.wave/AGENTS.md), creating it if
+   * Persist the user-level memory file (~/.muse-work/AGENTS.md), creating it if
    * missing. Clears the user-memory cache so subsequent reads see the new
    * content (the default-template fallback to ~/.claude/AGENTS.md is also
    * bypassed once the user writes real content).

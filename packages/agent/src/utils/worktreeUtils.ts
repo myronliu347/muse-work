@@ -2,6 +2,7 @@
  * Git worktree creation and removal utilities for the SDK.
  * Used by EnterWorktree and ExitWorktree tools.
  */
+import { CONFIG_DIR_NAME } from "./constants.js";
 
 import { execFile, execFileSync } from "node:child_process";
 import { promisify } from "node:util";
@@ -119,7 +120,7 @@ export function createWorktree(
   // Capture HEAD commit before creating worktree (for dirty-check on exit)
   const originalHeadCommit = getHeadCommit(cwd);
 
-  const worktreePath = path.join(repoRoot, ".wave", "worktrees", name);
+  const worktreePath = path.join(repoRoot, CONFIG_DIR_NAME, "worktrees", name);
   const branchName = `worktree-${name}`;
   const useHead = options?.baseRef === "head";
   const baseBranch = useHead ? "HEAD" : getDefaultRemoteBranch(cwd);
@@ -439,7 +440,7 @@ function needsExpansion(
 // --- Post-creation setup -----------------------------------------------------
 
 /**
- * Copy <repoRoot>/.wave/settings.local.json into the worktree so local
+ * Copy <repoRoot>/.muse-work/settings.local.json into the worktree so local
  * configuration (permissions, env, ...) carries over. Missing files are
  * skipped silently; other failures only log a warning.
  */
@@ -447,7 +448,7 @@ async function copyLocalSettingsToWorktree(
   repoRoot: string,
   worktreePath: string,
 ): Promise<void> {
-  const relativePath = path.join(".wave", "settings.local.json");
+  const relativePath = path.join(CONFIG_DIR_NAME, "settings.local.json");
   const sourcePath = path.join(repoRoot, relativePath);
   const destPath = path.join(worktreePath, relativePath);
   let content: string;
@@ -492,7 +493,7 @@ async function copyWorktreeIncludeFiles(
     .relative(repoRoot, worktreePath)
     .split(path.sep)
     .join("/");
-  // The worktree lives under .wave/worktrees/, which is gitignored — never
+  // The worktree lives under .muse-work/worktrees/, which is gitignored — never
   // copy the worktree (or anything inside it) into itself.
   const isSelf = (entry: string) =>
     entry === worktreeRelPath || entry.startsWith(worktreeRelPath + "/");

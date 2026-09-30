@@ -8,6 +8,7 @@ import { MessageManager } from "./messageManager.js";
 import { PermissionManager } from "./permissionManager.js";
 import type { PermissionMode } from "../types/permissions.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 /**
  * Manages plan files for plan mode
  */
@@ -22,7 +23,7 @@ export class PlanManager {
   private planFilePathPromise: Promise<string | undefined> | null = null;
 
   constructor(private container: Container) {
-    this.planDir = path.join(os.homedir(), ".wave", "plans");
+    this.planDir = path.join(os.homedir(), CONFIG_DIR_NAME, "plans");
   }
 
   /**

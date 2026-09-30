@@ -32,7 +32,7 @@ packages/server/tests/settings.routes.test.ts
 packages/server/src/app.ts
   # GET/PATCH /settings
 packages/server/plugins/superpowers/
-  # .wave-plugin / skills / hooks / scripts / LICENSE / SOURCE.txt
+  # .muse-plugin / skills / hooks / scripts / LICENSE / SOURCE.txt
 packages/server/package.json
   # files: ["dist", "plugins"]
 packages/desktop/scripts/prepareServer.mjs
@@ -137,7 +137,7 @@ describe("museSettings", () => {
       true,
     );
     const present = superpowersPluginDirIfPresent();
-    if (fs.existsSync(path.join(dir, ".wave-plugin", "plugin.json"))) {
+    if (fs.existsSync(path.join(dir, ".muse-plugin", "plugin.json"))) {
       expect(present).toBe(dir);
     } else {
       expect(present).toBeUndefined();
@@ -251,7 +251,7 @@ export function resolveSuperpowersPluginDir(): string {
 
 export function superpowersPluginDirIfPresent(): string | undefined {
   const dir = resolveSuperpowersPluginDir();
-  const manifest = path.join(dir, ".wave-plugin", "plugin.json");
+  const manifest = path.join(dir, ".muse-plugin", "plugin.json");
   if (!fs.existsSync(manifest)) {
     getLogger().error("superpowers plugin directory missing", { dir });
     return undefined;
@@ -481,7 +481,7 @@ EOF
 ### Task 3: Vendor Superpowers v6.3.0 为 Wave 插件
 
 **Files:**
-- Create: `packages/server/plugins/superpowers/.wave-plugin/plugin.json`
+- Create: `packages/server/plugins/superpowers/.muse-plugin/plugin.json`
 - Create: `packages/server/plugins/superpowers/hooks/hooks.json`
 - Create: `packages/server/plugins/superpowers/scripts/session-start.js`
 - Create: `packages/server/plugins/superpowers/SOURCE.txt`
@@ -513,7 +513,7 @@ describe("superpowers builtin plugin", () => {
   it("has Wave manifest, LICENSE, and using-superpowers skill", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(pluginDir, ".wave-plugin", "plugin.json"),
+        path.join(pluginDir, ".muse-plugin", "plugin.json"),
         "utf8",
       ),
     ) as { name: string; version: string };
@@ -567,7 +567,7 @@ printf '%s\n' 'obra/superpowers v6.3.0' 'https://github.com/obra/superpowers/rel
 rm -rf "$TMP"
 ```
 
-创建 `packages/server/plugins/superpowers/.wave-plugin/plugin.json`：
+创建 `packages/server/plugins/superpowers/.muse-plugin/plugin.json`：
 
 ```json
 {

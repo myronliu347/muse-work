@@ -27,12 +27,12 @@ describe("PluginScopeManager", () => {
       getMergedEnabledPlugins: vi.fn(),
       getConfigurationPaths: vi.fn().mockReturnValue({
         projectPaths: [
-          "/test/workdir/.wave/settings.local.json",
-          "/test/workdir/.wave/settings.json",
+          "/test/workdir/.muse-work/settings.local.json",
+          "/test/workdir/.muse-work/settings.json",
         ],
         userPaths: [
-          "/test/userhome/.wave/settings.local.json",
-          "/test/userhome/.wave/settings.json",
+          "/test/userhome/.muse-work/settings.local.json",
+          "/test/userhome/.muse-work/settings.json",
         ],
       }),
       loadWaveConfigFromFile: vi.fn(),
@@ -54,7 +54,7 @@ describe("PluginScopeManager", () => {
     it("should return 'local' if plugin is found in project settings.local.json", () => {
       mockConfigService.loadWaveConfigFromFile.mockImplementation(
         (filePath: string) => {
-          if (filePath === "/test/workdir/.wave/settings.local.json") {
+          if (filePath === "/test/workdir/.muse-work/settings.local.json") {
             return { enabledPlugins: { "test-plugin": true } };
           }
           return null;
@@ -68,7 +68,7 @@ describe("PluginScopeManager", () => {
     it("should return 'project' if plugin is found in project settings.json", () => {
       mockConfigService.loadWaveConfigFromFile.mockImplementation(
         (filePath: string) => {
-          if (filePath === "/test/workdir/.wave/settings.json") {
+          if (filePath === "/test/workdir/.muse-work/settings.json") {
             return { enabledPlugins: { "test-plugin": true } };
           }
           return null;
@@ -82,7 +82,7 @@ describe("PluginScopeManager", () => {
     it("should return 'user' if plugin is found in user settings.json", () => {
       mockConfigService.loadWaveConfigFromFile.mockImplementation(
         (filePath: string) => {
-          if (filePath === "/test/userhome/.wave/settings.json") {
+          if (filePath === "/test/userhome/.muse-work/settings.json") {
             return { enabledPlugins: { "test-plugin": true } };
           }
           return null;
@@ -102,18 +102,18 @@ describe("PluginScopeManager", () => {
 
     it("should return 'user' when workdir is the home dir and paths overlap", () => {
       // When the workdir is the home directory, projectPaths[1] and userPaths[0]
-      // point at the same ~/.wave/settings.json file — it must be treated as user
+      // point at the same ~/.muse-work/settings.json file — it must be treated as user
       // scope, not project scope.
       mockConfigService.getConfigurationPaths.mockReturnValue({
         projectPaths: [
-          "/test/userhome/.wave/settings.local.json",
-          "/test/userhome/.wave/settings.json",
+          "/test/userhome/.muse-work/settings.local.json",
+          "/test/userhome/.muse-work/settings.json",
         ],
-        userPaths: ["/test/userhome/.wave/settings.json"],
+        userPaths: ["/test/userhome/.muse-work/settings.json"],
       });
       mockConfigService.loadWaveConfigFromFile.mockImplementation(
         (filePath: string) => {
-          if (filePath === "/test/userhome/.wave/settings.json") {
+          if (filePath === "/test/userhome/.muse-work/settings.json") {
             return { enabledPlugins: { "test-plugin": true } };
           }
           return null;
@@ -127,10 +127,10 @@ describe("PluginScopeManager", () => {
     it("should tolerate undefined user paths", () => {
       mockConfigService.getConfigurationPaths.mockReturnValue({
         projectPaths: [
-          "/test/workdir/.wave/settings.local.json",
-          "/test/workdir/.wave/settings.json",
+          "/test/workdir/.muse-work/settings.local.json",
+          "/test/workdir/.muse-work/settings.json",
         ],
-        userPaths: ["/test/userhome/.wave/settings.json"],
+        userPaths: ["/test/userhome/.muse-work/settings.json"],
       });
       mockConfigService.loadWaveConfigFromFile.mockReturnValue(null);
 

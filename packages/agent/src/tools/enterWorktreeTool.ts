@@ -37,7 +37,7 @@ export const ENTER_WORKTREE_TOOL_PROMPT = `Use this tool ONLY when the user expl
 
 ## Behavior
 
-- Creates a new git worktree inside \`.wave/worktrees/\` with a new branch based on HEAD
+- Creates a new git worktree inside \`.muse-work/worktrees/\` with a new branch based on HEAD
 - When a WorktreeCreate hook is configured, the hook creates the worktree instead (its stdout provides the worktree path) and no git command runs
 - Switches the session's working directory to the new worktree
 - Use ExitWorktree to leave the worktree mid-session (keep or remove). On session exit, if still in the worktree, the user will be prompted to keep or remove it
@@ -160,7 +160,7 @@ export const enterWorktreeTool: ToolPlugin = {
     const baseRef = context.aiManager?.getWorktreeBaseRef?.();
     const worktreeInfo = createWorktree(name, mainRepoRoot, { baseRef });
 
-    // Copy local settings (.wave/settings.local.json) and gitignored project
+    // Copy local settings (.muse-work/settings.local.json) and gitignored project
     // files (.worktreeinclude, e.g. .env/.mcp.json) into a new worktree —
     // mirrors the CLI createWorktree path. Best-effort, never fails the tool.
     if (worktreeInfo.isNew) {

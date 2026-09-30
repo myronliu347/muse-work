@@ -17,7 +17,7 @@
  * 6. 收尾：打印服务端留下的 artifact（工具没有删除动作，这是真实限制）
  *
  * 前置条件：
- * - 已登录（~/.wave/auth.json 存在有效 SSO token）
+ * - 已登录（~/.muse-work/auth.json 存在有效 SSO token）
  * - 服务端地址已配置：WAVE_SERVER_URL 环境变量（或走默认值）
  *
  * 运行：

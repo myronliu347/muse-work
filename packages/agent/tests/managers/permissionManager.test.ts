@@ -178,7 +178,7 @@ describe("PermissionManager", () => {
     describe("Safe Zone and Auto-Memory", () => {
       it("should allow file operations in auto-memory directory (Safe Zone)", async () => {
         const workdir = "/home/user/project";
-        const autoMemoryDir = "/home/user/.wave/projects/encoded/memory";
+        const autoMemoryDir = "/home/user/.muse-work/projects/encoded/memory";
         const container = createContainer(workdir);
         const manager = new PermissionManager(container, {
           additionalDirectories: [autoMemoryDir],
@@ -837,7 +837,7 @@ describe("PermissionManager", () => {
 
       it("should allow mkdir in acceptEdits mode inside autoMemoryDir", async () => {
         const workdir = "/home/user/project";
-        const autoMemoryDir = "/home/user/.wave/projects/encoded/memory";
+        const autoMemoryDir = "/home/user/.muse-work/projects/encoded/memory";
         const container = createContainer(workdir);
         const manager = new PermissionManager(container, {
           additionalDirectories: [autoMemoryDir],

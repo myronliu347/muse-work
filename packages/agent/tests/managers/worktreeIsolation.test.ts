@@ -22,7 +22,7 @@ function createManager(workdir: string): AIManager {
 
 const sessionA: WorktreeSession = {
   originalCwd: "/repo",
-  worktreePath: "/repo/.wave/worktrees/feat-a",
+  worktreePath: "/repo/.muse-work/worktrees/feat-a",
   worktreeBranch: "wave-feat-a",
   worktreeName: "feat-a",
   isNew: true,
@@ -31,7 +31,7 @@ const sessionA: WorktreeSession = {
 
 const sessionB: WorktreeSession = {
   originalCwd: "/repo",
-  worktreePath: "/repo/.wave/worktrees/feat-b",
+  worktreePath: "/repo/.muse-work/worktrees/feat-b",
   worktreeBranch: "wave-feat-b",
   worktreeName: "feat-b",
   isNew: true,
@@ -124,9 +124,9 @@ describe("worktree multi-session isolation (User Story 8)", () => {
     const before = process.cwd();
     const a = createManager("/repo");
 
-    a.setWorkdir("/repo/.wave/worktrees/feat-a");
+    a.setWorkdir("/repo/.muse-work/worktrees/feat-a");
 
-    expect(a.getWorkdir()).toBe("/repo/.wave/worktrees/feat-a");
+    expect(a.getWorkdir()).toBe("/repo/.muse-work/worktrees/feat-a");
     expect(process.cwd()).toBe(before);
   });
 
@@ -135,20 +135,20 @@ describe("worktree multi-session isolation (User Story 8)", () => {
     const calls: string[] = [];
     a.setOnCwdChange((cwd) => calls.push(cwd));
 
-    a.setWorkdir("/repo/.wave/worktrees/feat-a");
+    a.setWorkdir("/repo/.muse-work/worktrees/feat-a");
 
     // Agent wires AIManager._onCwdChange → onWorkdirChange; without this
     // trigger the webview never learns that EnterWorktree/ExitWorktree moved
     // the working directory, so tool header paths stay stale.
-    expect(calls).toEqual(["/repo/.wave/worktrees/feat-a"]);
+    expect(calls).toEqual(["/repo/.muse-work/worktrees/feat-a"]);
     // Still no process.cwd() mutation.
-    expect(process.cwd()).not.toBe("/repo/.wave/worktrees/feat-a");
+    expect(process.cwd()).not.toBe("/repo/.muse-work/worktrees/feat-a");
   });
 
   it("FR-042: setWorkdir is safe without a registered onCwdChange callback", () => {
     const a = createManager("/repo");
     // No setOnCwdChange — _onCwdChange is undefined; must not throw.
-    expect(() => a.setWorkdir("/repo/.wave/worktrees/feat-a")).not.toThrow();
-    expect(a.getWorkdir()).toBe("/repo/.wave/worktrees/feat-a");
+    expect(() => a.setWorkdir("/repo/.muse-work/worktrees/feat-a")).not.toThrow();
+    expect(a.getWorkdir()).toBe("/repo/.muse-work/worktrees/feat-a");
   });
 });

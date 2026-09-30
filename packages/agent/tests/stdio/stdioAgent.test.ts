@@ -1052,12 +1052,12 @@ describe("StdioAgent", () => {
     const { agent } = createAgent({ onWorkdirChange });
 
     agent.handleNotification("workdirChange", {
-      workdir: "/repo/.wave/worktrees/feat-a",
+      workdir: "/repo/.muse-work/worktrees/feat-a",
     });
 
-    expect(agent.workingDirectory).toBe("/repo/.wave/worktrees/feat-a");
+    expect(agent.workingDirectory).toBe("/repo/.muse-work/worktrees/feat-a");
     expect(onWorkdirChange).toHaveBeenCalledWith(
-      "/repo/.wave/worktrees/feat-a",
+      "/repo/.muse-work/worktrees/feat-a",
     );
   });
 

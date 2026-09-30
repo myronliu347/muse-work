@@ -74,8 +74,8 @@ function buildZip(entries: Record<string, string>): Buffer {
 /** Builds a valid official-marketplace snapshot zip. */
 function buildMarketZip(extra?: Record<string, string>): Buffer {
   return buildZip({
-    ".wave-plugin/marketplace.json": MARKETPLACE_MANIFEST,
-    "plugins/demo-plugin/.wave-plugin/plugin.json": PLUGIN_JSON,
+    ".muse-plugin/marketplace.json": MARKETPLACE_MANIFEST,
+    "plugins/demo-plugin/.muse-plugin/plugin.json": PLUGIN_JSON,
     ...(extra ?? {}),
   });
 }
@@ -291,7 +291,7 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
       ).toBe("sha-aaaa");
       expect(
         existsSync(
-          path.join(installLocation, ".wave-plugin", "marketplace.json"),
+          path.join(installLocation, ".muse-plugin", "marketplace.json"),
         ),
       ).toBe(true);
 
@@ -372,7 +372,7 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
     it("rejects zips with path traversal entries", async () => {
       const evil = buildZip({
         "../escaped.txt": "oops",
-        ".wave-plugin/marketplace.json": MARKETPLACE_MANIFEST,
+        ".muse-plugin/marketplace.json": MARKETPLACE_MANIFEST,
       });
       latestBody = "sha-evil";
       zipBySha.set("sha-evil", evil);
@@ -392,7 +392,7 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
     it("rejects zips with absolute-path entries", async () => {
       const evil = buildZip({
         "/tmp/wave-escaped.txt": "oops",
-        ".wave-plugin/marketplace.json": MARKETPLACE_MANIFEST,
+        ".muse-plugin/marketplace.json": MARKETPLACE_MANIFEST,
       });
       latestBody = "sha-abs";
       zipBySha.set("sha-abs", evil);
@@ -408,7 +408,7 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
     it("restores executable bits from zip external attrs (hooks/scripts)", async () => {
       const zip = withUnixModes(
         buildZip({
-          ".wave-plugin/marketplace.json": MARKETPLACE_MANIFEST,
+          ".muse-plugin/marketplace.json": MARKETPLACE_MANIFEST,
           "plugins/demo-plugin/hooks/run.sh": "#!/bin/sh\necho ok\n",
         }),
         { "plugins/demo-plugin/hooks/run.sh": 0o755 },
@@ -435,7 +435,7 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
       );
       const stat = await fs.stat(scriptPath);
       const jsonStat = await fs.stat(
-        path.join(installLocation, ".wave-plugin", "marketplace.json"),
+        path.join(installLocation, ".muse-plugin", "marketplace.json"),
       );
       // Filesystem layer — POSIX-only. Exec bits are a POSIX file-system
       // concept: NTFS has no mode bits, so `stat().mode & 0o111` is always 0
@@ -469,11 +469,11 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
   describe("MarketplaceService.updateMarketplace mirror routing", () => {
     it("falls back to git when the mirror 404s (e.g. mirror unavailable)", async () => {
       process.env[OFFICIAL_MARKET_MIRROR_BASE_URL_ENV] = mirrorBaseUrl();
-      await fs.mkdir(path.join(installLocation, ".wave-plugin"), {
+      await fs.mkdir(path.join(installLocation, ".muse-plugin"), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(installLocation, ".wave-plugin", "marketplace.json"),
+        path.join(installLocation, ".muse-plugin", "marketplace.json"),
         MARKETPLACE_MANIFEST,
       );
 
@@ -490,11 +490,11 @@ describe("officialMarketplaceMirror (zip snapshot)", () => {
 
     it("falls back to git pull when the mirror zip is corrupt", async () => {
       process.env[OFFICIAL_MARKET_MIRROR_BASE_URL_ENV] = mirrorBaseUrl();
-      await fs.mkdir(path.join(installLocation, ".wave-plugin"), {
+      await fs.mkdir(path.join(installLocation, ".muse-plugin"), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(installLocation, ".wave-plugin", "marketplace.json"),
+        path.join(installLocation, ".muse-plugin", "marketplace.json"),
         MARKETPLACE_MANIFEST,
       );
       latestBody = "sha-corrupt";

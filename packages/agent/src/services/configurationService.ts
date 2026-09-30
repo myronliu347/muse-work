@@ -42,6 +42,7 @@ import {
   DEFAULT_WAVE_MAX_OUTPUT_TOKENS,
   DEFAULT_SERVER_URL,
   DEFAULT_LANGUAGE,
+  CONFIG_DIR_NAME,
 } from "../utils/constants.js";
 import { ClientOptions } from "openai";
 import { parseCustomHeaders } from "../utils/stringUtils.js";
@@ -504,11 +505,11 @@ export class ConfigurationService {
   // =============================================================================
 
   /**
-   * Read SSO token from ~/.wave/auth.json
+   * Read SSO token from ~/.muse-work/auth.json
    */
   private readSSOToken(): string | undefined {
     const homeDir = os.homedir();
-    const authPath = path.join(homeDir, ".wave", "auth.json");
+    const authPath = path.join(homeDir, CONFIG_DIR_NAME, "auth.json");
     if (!existsSync(authPath)) {
       return undefined;
     }
@@ -924,7 +925,7 @@ export class ConfigurationService {
   /**
    * Set the active model in the session.
    *
-   * Persisting to `~/.wave/settings.json` is best-effort: the in-memory model
+   * Persisting to `~/.muse-work/settings.json` is best-effort: the in-memory model
    * applies immediately, and a failed write (e.g. a locked file / rename EPERM
    * on Windows) is logged instead of escaping as an unhandled rejection.
    */
@@ -938,7 +939,7 @@ export class ConfigurationService {
   }
 
   private async persistModelToSettings(model: string): Promise<void> {
-    const configPath = getUserConfigPaths()[0]; // ~/.wave/settings.json
+    const configPath = getUserConfigPaths()[0]; // ~/.muse-work/settings.json
     const configDir = path.dirname(configPath);
     if (!existsSync(configDir)) {
       await fs.mkdir(configDir, { recursive: true });
@@ -1016,10 +1017,10 @@ export class ConfigurationService {
    * Add a permission rule to the local settings.local.json
    */
   async addAllowedRule(workdir: string, rule: string): Promise<void> {
-    const localConfigPath = path.join(workdir, ".wave", "settings.local.json");
+    const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
 
-    // Ensure .wave directory exists
-    const waveDir = path.join(workdir, ".wave");
+    // Ensure .muse-work directory exists
+    const waveDir = path.join(workdir, CONFIG_DIR_NAME);
     ensureWaveRuntimeFilesExcluded(workdir);
     if (!existsSync(waveDir)) {
       await fs.mkdir(waveDir, { recursive: true });
@@ -1056,10 +1057,10 @@ export class ConfigurationService {
     workdir: string,
     directory: string,
   ): Promise<void> {
-    const localConfigPath = path.join(workdir, ".wave", "settings.local.json");
+    const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
 
-    // Ensure .wave directory exists
-    const waveDir = path.join(workdir, ".wave");
+    // Ensure .muse-work directory exists
+    const waveDir = path.join(workdir, CONFIG_DIR_NAME);
     ensureWaveRuntimeFilesExcluded(workdir);
     if (!existsSync(waveDir)) {
       await fs.mkdir(waveDir, { recursive: true });
@@ -1137,7 +1138,7 @@ export class ConfigurationService {
 
   /**
    * Resolve the settings.json path for a hook scope.
-   * user → ~/.wave/settings.json; project → <workdir>/.wave/settings.json
+   * user → ~/.muse-work/settings.json; project → <workdir>/.muse-work/settings.json
    */
   private resolveHookConfigPath(
     workdir: string,
@@ -1152,7 +1153,7 @@ export class ConfigurationService {
 
   /**
    * Absolute path of the settings.json that holds hooks for `scope`
-   * (user → ~/.wave/settings.json, project → <workdir>/.wave/settings.json).
+   * (user → ~/.muse-work/settings.json, project → <workdir>/.muse-work/settings.json).
    * Hosts surface it to the GUI so editors / file panels can open the file —
    * they cannot expand a `~` prefix, so the path must already be absolute.
    */
@@ -1604,7 +1605,7 @@ export function loadWaveConfigFromFile(
 }
 
 /**
- * Load the user-level (~/.wave/settings.json) `env` block only — no workdir
+ * Load the user-level (~/.muse-work/settings.json) `env` block only — no workdir
  * dependency. Used at daemon startup to apply WAVE_SERVER_URL before any agent
  * initializes: auth queries (getAuthStatus) can run before the first agent,
  * and AuthService falls back to the default URL otherwise.

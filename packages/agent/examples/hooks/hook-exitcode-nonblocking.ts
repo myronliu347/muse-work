@@ -30,8 +30,8 @@ async function setupNonBlockingErrorHooks(): Promise<{
   const hookDir = join(tmpdir(), `wave-hook-nonblocking-${randomUUID()}`);
   await fs.mkdir(hookDir, { recursive: true });
 
-  // Create .wave subdirectory
-  const waveDir = join(hookDir, ".wave");
+  // Create .muse-work subdirectory
+  const waveDir = join(hookDir, ".muse-work");
   await fs.mkdir(waveDir, { recursive: true });
 
   // Create hook configuration with non-blocking error hooks

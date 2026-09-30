@@ -62,7 +62,7 @@ describe("ConfigurationService - Plugins", () => {
 
   describe("updateEnabledPlugin", () => {
     it("should update enabledPlugins in user scope", async () => {
-      const userConfigPath = path.join(userHome, ".wave", "settings.json");
+      const userConfigPath = path.join(userHome, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === userConfigPath || p === workdir || p === userHome,
       );
@@ -99,7 +99,7 @@ describe("ConfigurationService - Plugins", () => {
     });
 
     it("should update enabledPlugins in project scope", async () => {
-      const projectConfigPath = path.join(workdir, ".wave", "settings.json");
+      const projectConfigPath = path.join(workdir, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === projectConfigPath || p === workdir,
       );
@@ -129,7 +129,7 @@ describe("ConfigurationService - Plugins", () => {
     it("should update enabledPlugins in local scope", async () => {
       const localConfigPath = path.join(
         workdir,
-        ".wave",
+        ".muse-work",
         "settings.local.json",
       );
       vi.mocked(existsSync).mockImplementation(
@@ -161,7 +161,7 @@ describe("ConfigurationService - Plugins", () => {
     it("should handle missing config file by creating a new one", async () => {
       const localConfigPath = path.join(
         workdir,
-        ".wave",
+        ".muse-work",
         "settings.local.json",
       );
       vi.mocked(existsSync).mockImplementation((p) => p === workdir);
@@ -187,7 +187,7 @@ describe("ConfigurationService - Plugins", () => {
 
   describe("removeEnabledPlugin", () => {
     it("should remove plugin from user scope", async () => {
-      const userConfigPath = path.join(userHome, ".wave", "settings.json");
+      const userConfigPath = path.join(userHome, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === userConfigPath || p === workdir || p === userHome,
       );
@@ -218,7 +218,7 @@ describe("ConfigurationService - Plugins", () => {
     });
 
     it("should remove plugin from project scope", async () => {
-      const projectConfigPath = path.join(workdir, ".wave", "settings.json");
+      const projectConfigPath = path.join(workdir, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === projectConfigPath || p === workdir,
       );
@@ -262,7 +262,7 @@ describe("ConfigurationService - Plugins", () => {
     });
 
     it("should not fail if plugin is not in config", async () => {
-      const userConfigPath = path.join(userHome, ".wave", "settings.json");
+      const userConfigPath = path.join(userHome, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === userConfigPath || p === workdir || p === userHome,
       );
@@ -282,7 +282,7 @@ describe("ConfigurationService - Plugins", () => {
     });
 
     it("should handle corrupted config file gracefully", async () => {
-      const userConfigPath = path.join(userHome, ".wave", "settings.json");
+      const userConfigPath = path.join(userHome, ".muse-work", "settings.json");
       vi.mocked(existsSync).mockImplementation(
         (p) => p === userConfigPath || p === workdir || p === userHome,
       );
@@ -296,11 +296,11 @@ describe("ConfigurationService - Plugins", () => {
 
   describe("getMergedEnabledPlugins", () => {
     it("should merge enabledPlugins with correct priority (local > project > user)", () => {
-      const userJsonPath = path.join(userHome, ".wave", "settings.json");
-      const projectJsonPath = path.join(workdir, ".wave", "settings.json");
+      const userJsonPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectJsonPath = path.join(workdir, ".muse-work", "settings.json");
       const localConfigPath = path.join(
         workdir,
-        ".wave",
+        ".muse-work",
         "settings.local.json",
       );
 
@@ -383,7 +383,7 @@ describe("ConfigurationService - Plugins", () => {
   /* 托管层（远端托管设置）与三个本机 settings.json 的合并（spec enterprise
      server-managed-config「托管配置下发插件市场与启用列表」场景 2/4/5）。 */
   describe("managed layer", () => {
-    const userConfigPath = path.join(userHome, ".wave", "settings.json");
+    const userConfigPath = path.join(userHome, ".muse-work", "settings.json");
 
     beforeEach(() => {
       vi.mocked(getRemoteSettingsSync).mockReturnValue(null);

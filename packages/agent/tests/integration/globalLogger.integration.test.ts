@@ -1366,7 +1366,7 @@ describe("Agent - Global Logger Integration", () => {
         globalLogger.error("Failed to create session directory", {
           service: "SessionService",
           operation: "ensureSessionDir",
-          directory: "/home/.wave/sessions",
+          directory: "/home/.muse-work/sessions",
           error: permissionError.message,
           errorCode: "EACCES",
         });
@@ -1395,7 +1395,7 @@ describe("Agent - Global Logger Integration", () => {
         expect(errorCalls[1][1]).toEqual(
           expect.objectContaining({
             service: "SessionService",
-            directory: "/home/.wave/sessions",
+            directory: "/home/.muse-work/sessions",
             error: permissionError.message,
             errorCode: "EACCES",
           }),

@@ -24,7 +24,7 @@ describe("exitWorktreeTool", () => {
   let mockSetWorktreeSession: ReturnType<typeof vi.fn>;
   const mockSession: WorktreeSession = {
     originalCwd: "/original/dir",
-    worktreePath: "/repo/.wave/worktrees/test",
+    worktreePath: "/repo/.muse-work/worktrees/test",
     worktreeBranch: "worktree-test",
     worktreeName: "test",
     isNew: true,
@@ -40,11 +40,11 @@ describe("exitWorktreeTool", () => {
     mockSetWorktreeSession = vi.fn();
 
     mockContext = {
-      workdir: "/repo/.wave/worktrees/test",
+      workdir: "/repo/.muse-work/worktrees/test",
       taskManager: new TaskManager(new Container(), "test-session"),
       aiManager: {
         setWorkdir: mockSetWorkdir,
-        getWorkdir: () => "/repo/.wave/worktrees/test",
+        getWorkdir: () => "/repo/.muse-work/worktrees/test",
         getWorktreeSession: mockGetWorktreeSession,
         setWorktreeSession: mockSetWorktreeSession,
       } as never,
@@ -221,7 +221,7 @@ describe("exitWorktreeTool", () => {
         expect(result.content).toContain("Exited and removed worktree");
         expect(result.content).toContain("WorktreeRemove hooks were executed");
         expect(worktreeHooks.executeWorktreeRemoveHook).toHaveBeenCalledWith(
-          "/repo/.wave/worktrees/test",
+          "/repo/.muse-work/worktrees/test",
           expect.objectContaining({
             WorktreeRemove: expect.any(Array),
           }),

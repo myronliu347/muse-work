@@ -317,11 +317,11 @@ describe("gitUtils", () => {
       );
       expect(fsSync.appendFileSync).toHaveBeenCalledWith(
         excludePath,
-        expect.stringContaining("**/.wave/scheduled_tasks.lock"),
+        expect.stringContaining("**/.muse-work/scheduled_tasks.lock"),
       );
       expect(fsSync.appendFileSync).toHaveBeenCalledWith(
         excludePath,
-        expect.stringContaining("**/.wave/settings.local.json"),
+        expect.stringContaining("**/.muse-work/settings.local.json"),
       );
     });
 
@@ -333,7 +333,7 @@ describe("gitUtils", () => {
         isDirectory: () => true,
       } as unknown as fsSync.Stats);
       vi.mocked(fsSync.readFileSync).mockReturnValue(
-        "# wave-runtime\n**/.wave/settings.local.json\n",
+        "# wave-runtime\n**/.muse-work/settings.local.json\n",
       );
 
       ensureWaveRuntimeFilesExcluded("/repo/idempotent-test");

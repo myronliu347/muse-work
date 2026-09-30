@@ -80,7 +80,7 @@ describe("PermissionManager Worktree Safety", () => {
   });
 
   it("should allow Write to the plan file outside the main repo in plan mode", async () => {
-    const planFilePath = "/home/user/.wave/plans/plan.md";
+    const planFilePath = "/home/user/.muse-work/plans/plan.md";
     const container = createWorktreeContainer();
     const manager = new PermissionManager(container, { planFilePath });
     const context: ToolPermissionContext = {
@@ -200,7 +200,7 @@ describe("PermissionManager Worktree Safety", () => {
   });
 
   it("should allow Write to the plan file in bypassPermissions mode", async () => {
-    const planFilePath = "/home/user/.wave/plans/plan.md";
+    const planFilePath = "/home/user/.muse-work/plans/plan.md";
     const container = createWorktreeContainer();
     const manager = new PermissionManager(container, { planFilePath });
     const context: ToolPermissionContext = {

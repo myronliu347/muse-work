@@ -317,7 +317,7 @@ describe("PathEncoder", () => {
     it("should fall back to absolute path when the workdir no longer exists", async () => {
       // Reproduces the deleted-worktree scenario: the working directory has been
       // removed (ENOENT) so every realpath call fails. Session files live under
-      // ~/.wave/projects/<encoded>/ — independent of the workdir's existence —
+      // ~/.muse-work/projects/<encoded>/ — independent of the workdir's existence —
       // so getProjectDirectory must not throw and must keep a stable encoding.
       vi.mocked(realpath).mockRejectedValue(
         Object.assign(new Error("ENOENT: no such file or directory"), {
@@ -326,7 +326,7 @@ describe("PathEncoder", () => {
       );
 
       const workdir =
-        "/Users/liuyiqi/github/wave-agent/.wave/worktrees/smart-brave-hawk";
+        "/Users/liuyiqi/github/wave-agent/.muse-work/worktrees/smart-brave-hawk";
 
       const result = await pathEncoder.getProjectDirectory(
         workdir,

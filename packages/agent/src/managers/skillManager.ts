@@ -25,6 +25,7 @@ import { isArtifactEnabled } from "../services/artifactAvailability.js";
 import { Container } from "../utils/container.js";
 import { logger } from "../utils/globalLogger.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 /**
  * Manages skill discovery and loading
  */
@@ -54,7 +55,7 @@ export class SkillManager extends EventEmitter {
   ) {
     super();
     this.personalSkillsPath =
-      options.personalSkillsPath || join(homedir(), ".wave", "skills");
+      options.personalSkillsPath || join(homedir(), CONFIG_DIR_NAME, "skills");
     this.personalClaudeSkillsPath =
       options.personalClaudeSkillsPath || join(homedir(), ".claude", "skills");
     this.personalAgentsSkillsPath =
@@ -171,7 +172,7 @@ export class SkillManager extends EventEmitter {
       this.personalSkillsPath,
       this.personalClaudeSkillsPath,
       this.personalAgentsSkillsPath,
-      join(this.workdir, ".wave", "skills"),
+      join(this.workdir, CONFIG_DIR_NAME, "skills"),
       join(this.workdir, ".claude", "skills"),
       join(this.workdir, ".agents", "skills"),
     ];
@@ -291,7 +292,7 @@ export class SkillManager extends EventEmitter {
       personalSkills: new Map([
         ...personalAgentsCollection.skills, // lowest priority
         ...personalClaudeCollection.skills, // overrides .agents
-        ...personalCollection.skills, // .wave overrides .claude
+        ...personalCollection.skills, // .muse-work overrides .claude
       ]),
       projectSkills: projectCollection.skills,
       errors: [
@@ -319,10 +320,10 @@ export class SkillManager extends EventEmitter {
     };
 
     if (type === "project") {
-      // Scan .agents/skills first, then .claude/skills, then .wave/skills (wave overrides)
+      // Scan .agents/skills first, then .claude/skills, then .muse-work/skills (wave overrides)
       const agentsPath = join(basePath, ".agents", "skills");
       const claudePath = join(basePath, ".claude", "skills");
-      const wavePath = join(basePath, ".wave", "skills");
+      const wavePath = join(basePath, CONFIG_DIR_NAME, "skills");
       await this.scanSkillPath(agentsPath, collection);
       await this.scanSkillPath(claudePath, collection);
       await this.scanSkillPath(wavePath, collection);
@@ -693,8 +694,8 @@ export class SkillManager extends EventEmitter {
   /**
    * Directory roots that may hold deletable copies of a skill in the given
    * discovery scope. Personal skills are scanned from three user-level dirs
-   * (~/.wave|~/.claude|~/.agents/skills) and project skills from the current
-   * project's three project dirs (.wave|.claude|.agents/skills). The discovery
+   * (~/.muse-work|~/.claude|~/.agents/skills) and project skills from the current
+   * project's three project dirs (.muse-work|.claude|.agents/skills). The discovery
    * map merges same-named copies from these roots into a single name-keyed
    * entry, so deleteSkill must sweep the whole set to remove a skill fully.
    */
@@ -708,7 +709,7 @@ export class SkillManager extends EventEmitter {
     }
     if (type === "project") {
       return [
-        join(this.workdir, ".wave", "skills"),
+        join(this.workdir, CONFIG_DIR_NAME, "skills"),
         join(this.workdir, ".claude", "skills"),
         join(this.workdir, ".agents", "skills"),
       ];
@@ -722,8 +723,8 @@ export class SkillManager extends EventEmitter {
    * cannot be deleted.
    *
    * A same-named skill may physically live in several same-scope directories
-   * (~/.wave/skills + ~/.claude/skills + ~/.agents/skills for user skills,
-   * .wave/.claude/.agents/skills under the project for project skills) while
+   * (~/.muse-work/skills + ~/.claude/skills + ~/.agents/skills for user skills,
+   * .muse-work/.claude/.agents/skills under the project for project skills) while
    * only the highest-priority copy is listed; every copy is removed so one
    * delete removes the skill completely instead of re-surfacing the next
    * copy on the next scan. Caches are then re-converged with disk before

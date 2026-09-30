@@ -199,7 +199,7 @@ export function isValidHookEventConfig(
 export interface HookJsonInput {
   // Required fields for all events
   session_id: string; // Format: "wave_session_{uuid}_{shortId}"
-  transcript_path: string; // Format: "~/.wave/sessions/session_{shortId}.json"
+  transcript_path: string; // Format: "~/.muse-work/sessions/session_{shortId}.json"
   cwd: string; // Absolute path to current working directory
   hook_event_name: HookEvent; // "PreToolUse" | "PostToolUse" | "UserPromptSubmit" | "Stop" | "SubagentStop" | "PermissionRequest" | "WorktreeCreate" | "CwdChanged" | "SessionStart"
 

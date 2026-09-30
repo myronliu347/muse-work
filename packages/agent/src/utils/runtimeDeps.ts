@@ -12,7 +12,7 @@
  * | how the CLI was installed | where the dependencies come from | what this does |
  * | --- | --- | --- |
  * | `npm i -g wave-code`, project install | plain npm dependencies (npm picks the matching platform package; sharp's libvips arrives through the platform package's own optionalDependencies) | step 1 short-circuits, nothing is downloaded |
- * | desktop / VS Code / JetBrains (the host copies the CLI into `~/.wave/cli/<end>/`) | nothing ships them — the copy is three files (entry, package.json, bundle) | downloads into the shared `~/.wave/cli/node_modules` |
+ * | desktop / VS Code / JetBrains (the host copies the CLI into `~/.muse-work/cli/<end>/`) | nothing ships them — the copy is three files (entry, package.json, bundle) | downloads into the shared `~/.muse-work/cli/node_modules` |
  * | in-repo dev (`pnpm run wave`) | the repo's node_modules | step 1 short-circuits |
  *
  * It is deliberately CLI-side rather than per-host: the platform key is computed
@@ -25,7 +25,7 @@
  * ## Layout
  *
  * ```
- * ~/.wave/cli/node_modules/          <- shared by all three hosts, survives CLI upgrades
+ * ~/.muse-work/cli/node_modules/          <- shared by all three hosts, survives CLI upgrades
  *   sharp/  semver/  detect-libc/  @img/colour/
  *   @img/sharp-<key>/                key = linux-x64 | linuxmusl-x64 | darwin-arm64 | win32-x64
  *   @img/sharp-libvips-<key>/        must stay a sibling of the above: its .node has
@@ -36,7 +36,7 @@
  *                                       batch completed
  * ```
  *
- * Node resolves the modules from `~/.wave/cli/<end>/dist/bundle/wave.mjs` by
+ * Node resolves the modules from `~/.muse-work/cli/<end>/dist/bundle/wave.mjs` by
  * walking up, which lands on this `node_modules`.
  *
  * ## Why detect-libc decides the platform key
@@ -53,6 +53,7 @@
  * `@vscode/ripgrep` publishes only `@vscode/ripgrep-linux-x64`, so a musl key
  * would match nothing.
  */
+import { CONFIG_DIR_NAME } from "./constants.js";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -183,16 +184,16 @@ const RUNTIME_DEPENDENCIES: RuntimeDependency[] = [
   ripgrepDependency,
 ];
 
-/** `<home>/.wave/cli` — where hosts copy the CLI into and share downloads. */
+/** `<home>/.muse-work/cli` — where hosts copy the CLI into and share downloads. */
 function defaultCliHome(): string {
-  return path.join(os.homedir(), ".wave", "cli");
+  return path.join(os.homedir(), CONFIG_DIR_NAME, "cli");
 }
 
 /**
  * Whether this code runs from a CLI copy under the shared cli home.
  *
  * An npm-installed CLI (bundle under `<prefix>/lib/node_modules/wave-code/...`)
- * must not self-install: Node would never look in `~/.wave/cli/node_modules`
+ * must not self-install: Node would never look in `~/.muse-work/cli/node_modules`
  * from there, and writing into a global npm prefix may lack permissions and
  * gets pruned by the next `npm install`. Such a setup either already has the
  * dependencies (the normal case) or degrades with an actionable warning.
@@ -491,7 +492,7 @@ async function runInstall(options?: {
 
   if (!isManagedCliInstall(moduleUrl, cliHome)) {
     const reason =
-      "当前 wave CLI 不是 ~/.wave/cli 下的副本，无法自动安装运行时依赖" +
+      "当前 wave CLI 不是 ~/.muse-work/cli 下的副本，无法自动安装运行时依赖" +
       "（sharp / ripgrep）；请重装 wave-code（不要使用 --omit=optional）";
     logWarn(`[Wave] ${reason}`);
     return { available: false, reason };

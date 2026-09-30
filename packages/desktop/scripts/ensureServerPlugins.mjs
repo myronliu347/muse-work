@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export function superpowersManifestPath(pluginsDir) {
-  return path.join(pluginsDir, "superpowers", ".wave-plugin", "plugin.json");
+  return path.join(pluginsDir, "superpowers", ".muse-plugin", "plugin.json");
 }
 
 /**

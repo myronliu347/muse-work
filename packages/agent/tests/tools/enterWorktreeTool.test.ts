@@ -74,7 +74,7 @@ describe("enterWorktreeTool", () => {
   it("should reject when already in a worktree session", async () => {
     mockGetWorktreeSession.mockReturnValue({
       originalCwd: "/original",
-      worktreePath: "/repo/.wave/worktrees/other",
+      worktreePath: "/repo/.muse-work/worktrees/other",
       worktreeBranch: "worktree-other",
       worktreeName: "other",
       isNew: true,
@@ -105,7 +105,7 @@ describe("enterWorktreeTool", () => {
     );
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "auto-name-123",
-      path: "/test/repo/.wave/worktrees/auto-name-123",
+      path: "/test/repo/.muse-work/worktrees/auto-name-123",
       branch: "worktree-auto-name-123",
       repoRoot: "/test/repo",
       isNew: true,
@@ -117,14 +117,14 @@ describe("enterWorktreeTool", () => {
     expect(result.success).toBe(true);
     expect(result.content).toContain("Created worktree");
     expect(result.content).toContain(
-      "/test/repo/.wave/worktrees/auto-name-123",
+      "/test/repo/.muse-work/worktrees/auto-name-123",
     );
     expect(mockSetWorkdir).toHaveBeenCalledWith(
-      "/test/repo/.wave/worktrees/auto-name-123",
+      "/test/repo/.muse-work/worktrees/auto-name-123",
     );
     expect(mockSetWorktreeSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        worktreePath: "/test/repo/.wave/worktrees/auto-name-123",
+        worktreePath: "/test/repo/.muse-work/worktrees/auto-name-123",
         worktreeName: "auto-name-123",
         worktreeBranch: "worktree-auto-name-123",
       }),
@@ -134,7 +134,7 @@ describe("enterWorktreeTool", () => {
   it("should create worktree with user-provided name", async () => {
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "my-feature",
-      path: "/test/repo/.wave/worktrees/my-feature",
+      path: "/test/repo/.muse-work/worktrees/my-feature",
       branch: "worktree-my-feature",
       repoRoot: "/test/repo",
       isNew: true,
@@ -149,7 +149,7 @@ describe("enterWorktreeTool", () => {
     expect(result.success).toBe(true);
     expect(result.content).toContain("my-feature");
     expect(mockSetWorkdir).toHaveBeenCalledWith(
-      "/test/repo/.wave/worktrees/my-feature",
+      "/test/repo/.muse-work/worktrees/my-feature",
     );
   });
 
@@ -166,7 +166,7 @@ describe("enterWorktreeTool", () => {
   it("should reuse existing worktree if directory exists", async () => {
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "existing",
-      path: "/test/repo/.wave/worktrees/existing",
+      path: "/test/repo/.muse-work/worktrees/existing",
       branch: "worktree-existing",
       repoRoot: "/test/repo",
       isNew: false,
@@ -288,7 +288,7 @@ describe("enterWorktreeTool", () => {
       vi.mocked(worktreeHooks.hasWorktreeCreateHook).mockReturnValue(false);
       vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
         name: "git-based",
-        path: "/test/repo/.wave/worktrees/git-based",
+        path: "/test/repo/.muse-work/worktrees/git-based",
         branch: "worktree-git-based",
         repoRoot: "/test/repo",
         isNew: true,
@@ -311,7 +311,7 @@ describe("enterWorktreeTool", () => {
       const setSessionCall = mockSetWorktreeSession.mock
         .calls[0][0] as WorktreeSession | null;
       expect(setSessionCall).toMatchObject({
-        worktreePath: "/test/repo/.wave/worktrees/git-based",
+        worktreePath: "/test/repo/.muse-work/worktrees/git-based",
         isNew: true,
       });
       // Git-based sessions are never marked hook-based
@@ -333,7 +333,7 @@ describe("enterWorktreeTool", () => {
     mockGetWorktreeBaseRef.mockReturnValue("head");
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "head-test",
-      path: "/test/repo/.wave/worktrees/head-test",
+      path: "/test/repo/.muse-work/worktrees/head-test",
       branch: "worktree-head-test",
       repoRoot: "/test/repo",
       isNew: true,
@@ -357,7 +357,7 @@ describe("enterWorktreeTool", () => {
     mockGetWorktreeBaseRef.mockReturnValue("fresh");
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "fresh-test",
-      path: "/test/repo/.wave/worktrees/fresh-test",
+      path: "/test/repo/.muse-work/worktrees/fresh-test",
       branch: "worktree-fresh-test",
       repoRoot: "/test/repo",
       isNew: true,
@@ -381,7 +381,7 @@ describe("enterWorktreeTool", () => {
     // Simulate an aiManager without getWorktreeBaseRef (e.g. older SDK consumer)
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "no-ref",
-      path: "/test/repo/.wave/worktrees/no-ref",
+      path: "/test/repo/.muse-work/worktrees/no-ref",
       branch: "worktree-no-ref",
       repoRoot: "/test/repo",
       isNew: true,
@@ -417,7 +417,7 @@ describe("enterWorktreeTool", () => {
     );
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "fresh",
-      path: "/test/repo/.wave/worktrees/fresh",
+      path: "/test/repo/.muse-work/worktrees/fresh",
       branch: "worktree-fresh",
       repoRoot: "/test/repo",
       isNew: true,
@@ -428,7 +428,7 @@ describe("enterWorktreeTool", () => {
 
     expect(result.success).toBe(true);
     expect(worktreeUtils.performPostCreationSetup).toHaveBeenCalledWith(
-      "/test/repo/.wave/worktrees/fresh",
+      "/test/repo/.muse-work/worktrees/fresh",
       "/test/repo",
     );
   });
@@ -436,7 +436,7 @@ describe("enterWorktreeTool", () => {
   it("should NOT run post-creation setup when an existing worktree is reused", async () => {
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "existing",
-      path: "/test/repo/.wave/worktrees/existing",
+      path: "/test/repo/.muse-work/worktrees/existing",
       branch: "worktree-existing",
       repoRoot: "/test/repo",
       isNew: false,
@@ -458,7 +458,7 @@ describe("enterWorktreeTool", () => {
     );
     vi.mocked(worktreeUtils.createWorktree).mockReturnValue({
       name: "setup-error",
-      path: "/test/repo/.wave/worktrees/setup-error",
+      path: "/test/repo/.muse-work/worktrees/setup-error",
       branch: "worktree-setup-error",
       repoRoot: "/test/repo",
       isNew: true,

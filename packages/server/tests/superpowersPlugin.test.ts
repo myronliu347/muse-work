@@ -11,7 +11,7 @@ describe("superpowers builtin plugin", () => {
   it("has Wave manifest, LICENSE, and using-superpowers skill", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(pluginDir, ".wave-plugin", "plugin.json"),
+        path.join(pluginDir, ".muse-plugin", "plugin.json"),
         "utf8",
       ),
     ) as { name: string; version: string };

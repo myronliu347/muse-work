@@ -21,6 +21,7 @@ import type { WorkflowRun } from "../workflow/types.js";
 import { RunStateStore } from "../workflow/runState.js";
 import { logger } from "../utils/globalLogger.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 const DEFAULT_CONCURRENCY = () =>
   Math.max(1, Math.min(16, os.cpus().length - 2));
 
@@ -68,7 +69,7 @@ export class WorkflowManager {
       );
     return (
       messageManager?.getSessionDir() ||
-      path.join(os.homedir(), ".wave", "sessions")
+      path.join(os.homedir(), CONFIG_DIR_NAME, "sessions")
     );
   }
 

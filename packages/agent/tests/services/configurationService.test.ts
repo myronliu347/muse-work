@@ -58,7 +58,7 @@ describe("ConfigurationService", () => {
 
   afterEach(async () => {
     // setModel() fires off an async persistModelToSettings() write to
-    // ~/.wave/settings.json without awaiting. On Windows the write can still
+    // ~/.muse-work/settings.json without awaiting. On Windows the write can still
     // be in-flight (or file handles linger) when rm runs, causing ENOTEMPTY.
     // Retry a few times to let the write settle and locks release.
     const rmRetry = async (target: string, attempts = 5) => {
@@ -97,8 +97,8 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockImplementation((p) => {
         const pathStr = p.toString();
         return (
-          pathStr.includes(path.join(userHome, ".wave", "settings.json")) ||
-          pathStr.includes(path.join(tempDir, ".wave", "settings.json"))
+          pathStr.includes(path.join(userHome, ".muse-work", "settings.json")) ||
+          pathStr.includes(path.join(tempDir, ".muse-work", "settings.json"))
         );
       });
 
@@ -141,8 +141,8 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockImplementation((p) => {
         const pathStr = p.toString();
         return (
-          pathStr.includes(path.join(userHome, ".wave", "settings.json")) ||
-          pathStr.includes(path.join(tempDir, ".wave", "settings.json"))
+          pathStr.includes(path.join(userHome, ".muse-work", "settings.json")) ||
+          pathStr.includes(path.join(tempDir, ".muse-work", "settings.json"))
         );
       });
 
@@ -212,11 +212,11 @@ describe("ConfigurationService", () => {
 
   describe("loadMergedWaveConfig", () => {
     it("should correctly merge all 3 configuration files in priority order", async () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
       const localConfigPath = path.join(
         tempDir,
-        ".wave",
+        ".muse-work",
         "settings.local.json",
       );
 
@@ -1424,8 +1424,8 @@ describe("ConfigurationService", () => {
 
   describe("loadMergedWaveConfig — model field", () => {
     it("should merge model field with last-write-wins", async () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
 
       const userSettings = { model: "user-model" };
       const projectSettings = { model: "project-model" };
@@ -1451,8 +1451,8 @@ describe("ConfigurationService", () => {
     });
 
     it("should use user model when project has no model", async () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
 
       const userSettings = { model: "user-model" };
       const projectSettings = {};
@@ -1480,8 +1480,8 @@ describe("ConfigurationService", () => {
 
   describe("loadMergedWaveConfig — enableArtifact field", () => {
     it("should propagate enableArtifact from project settings", async () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
 
       mockExistsSync.mockImplementation((p) => {
         const pathStr = p.toString();
@@ -1504,8 +1504,8 @@ describe("ConfigurationService", () => {
     });
 
     it("should propagate enableArtifact from user settings when project has none", async () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
-      const projectSettingsPath = path.join(tempDir, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
 
       mockExistsSync.mockImplementation((p) => {
         const pathStr = p.toString();
@@ -1615,7 +1615,7 @@ describe("ConfigurationService", () => {
 
   describe("atomic settings write integration", () => {
     it("addMarketplaceToScope should produce valid JSON immediately after write", async () => {
-      const projectConfigPath = path.join(tempDir, ".wave", "settings.json");
+      const projectConfigPath = path.join(tempDir, ".muse-work", "settings.json");
       mockExistsSync.mockImplementation(
         (p) => p.toString() === projectConfigPath || p.toString() === tempDir,
       );
@@ -1639,14 +1639,14 @@ describe("ConfigurationService", () => {
       expect(parsed.marketplaces["test-market"].source.source).toBe("git");
 
       // Ensure no leftover temp files
-      const waveDir = path.join(tempDir, ".wave");
+      const waveDir = path.join(tempDir, ".muse-work");
       const dirEntries = await fs.readdir(waveDir);
       const tmpFiles = dirEntries.filter((f) => f.includes(".tmp."));
       expect(tmpFiles).toHaveLength(0);
     });
 
     it("updateEnabledPlugin should produce valid JSON immediately after write", async () => {
-      const projectConfigPath = path.join(tempDir, ".wave", "settings.json");
+      const projectConfigPath = path.join(tempDir, ".muse-work", "settings.json");
       mockExistsSync.mockImplementation(
         (p) => p.toString() === projectConfigPath || p.toString() === tempDir,
       );
@@ -1667,7 +1667,7 @@ describe("ConfigurationService", () => {
 
   describe("loadUserConfigEnv", () => {
     it("returns the user-level settings.json env block", () => {
-      const userSettingsPath = path.join(userHome, ".wave", "settings.json");
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
       mockExistsSync.mockImplementation(
         (p) => p.toString() === userSettingsPath,
       );
@@ -1697,7 +1697,7 @@ describe("ConfigurationService", () => {
 
   describe("Hook CRUD", () => {
     const userSettingsPath = () =>
-      path.join(userHome, ".wave", "settings.json");
+      path.join(userHome, ".muse-work", "settings.json");
 
     beforeEach(() => {
       // existsSync is mocked at module level; report existence for paths
@@ -1751,7 +1751,7 @@ describe("ConfigurationService", () => {
         userSettingsPath(),
       );
       expect(configService.getHookConfigPath(tempDir, "project")).toBe(
-        path.join(tempDir, ".wave", "settings.json"),
+        path.join(tempDir, ".muse-work", "settings.json"),
       );
       // 只拒绝「未展开的前导 ~」：不能断言整条路径不含 `~`，因为 Windows
       // 8.3 短路径（C:\Users\RUNNER~1\...）里的 `~` 是合法路径字符。

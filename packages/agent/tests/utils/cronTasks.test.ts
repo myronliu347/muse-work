@@ -35,7 +35,7 @@ vi.mock("crypto", () => ({
 }));
 
 const MOCK_DIR = "/mock/project";
-const WAVE_DIR = join(MOCK_DIR, ".wave");
+const WAVE_DIR = join(MOCK_DIR, ".muse-work");
 const TASKS_FILE = join(WAVE_DIR, "scheduled_tasks.json");
 
 const createMockJob = (overrides = {}): CronJob => ({
@@ -62,13 +62,13 @@ describe("cronTasks", () => {
   describe("getCronTasksFilePath", () => {
     it("returns correct path for given directory", () => {
       const result = getCronTasksFilePath("/my/project");
-      expect(result).toBe(join("/my/project", ".wave", "scheduled_tasks.json"));
+      expect(result).toBe(join("/my/project", ".muse-work", "scheduled_tasks.json"));
     });
 
     it("uses process.cwd() as default", () => {
       const cwd = process.cwd();
       const result = getCronTasksFilePath();
-      expect(result).toBe(join(cwd, ".wave", "scheduled_tasks.json"));
+      expect(result).toBe(join(cwd, ".muse-work", "scheduled_tasks.json"));
     });
   });
 

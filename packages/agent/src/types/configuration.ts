@@ -69,7 +69,7 @@ export interface WaveConfiguration {
   enableExec?: boolean;
   /**
    * Session transcript retention in days (aligned with Claude Code's
-   * cleanupPeriodDays). Session jsonl files in ~/.wave/projects older than
+   * cleanupPeriodDays). Session jsonl files in ~/.muse-work/projects older than
    * this many days are cleaned up in the background at startup.
    * Default: 30. 0 disables cleanup entirely.
    */
@@ -77,7 +77,7 @@ export interface WaveConfiguration {
 }
 
 /**
- * 设置页读写的用户偏好子集（落点 = 用户级 `~/.wave/settings.json`；读写实现见
+ * 设置页读写的用户偏好子集（落点 = 用户级 `~/.muse-work/settings.json`；读写实现见
  * `utils/userSettings.ts`）。三端（VSCE / JetBrains / desktop）设置页与 CLI 的
  * `getUserSettings` / `updateUserSettings` RPC 共用这一形状；`contextLength` 单位
  * 为 K（落盘换算为 `env.WAVE_MAX_INPUT_TOKENS`）。

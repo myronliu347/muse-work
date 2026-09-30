@@ -2,7 +2,7 @@
  * Session retention cleanup — aligned with Claude Code's cleanupOldSessionFiles()
  * (~/.claude-code/src/utils/cleanup.ts).
  *
- * Scans ~/.wave/projects for session .jsonl files (main `<uuid>.jsonl` and
+ * Scans ~/.muse-work/projects for session .jsonl files (main `<uuid>.jsonl` and
  * `subagent-<uuid>.jsonl`) whose mtime is older than the retention cutoff and
  * deletes them, then removes project directories left empty. Auto-memory
  * (`memory/` subdirectories) is never touched.
@@ -84,7 +84,7 @@ export function resolveCleanupPeriodDays(workdir: string): number | null {
 }
 
 /**
- * Delete session .jsonl files in ~/.wave/projects older than periodDays,
+ * Delete session .jsonl files in ~/.muse-work/projects older than periodDays,
  * then remove project directories left empty. Directories that still contain
  * anything (e.g. `memory/` auto-memory) are preserved. Never throws; errors
  * are counted and skipped, and a missing/unreadable projects dir is a silent

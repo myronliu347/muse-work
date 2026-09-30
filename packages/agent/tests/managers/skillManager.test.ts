@@ -118,7 +118,7 @@ describe("SkillManager", () => {
             { name: "builtin1", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
         }
-        if (p.includes(".wave/skills")) {
+        if (p.includes(".muse-work/skills")) {
           return [
             { name: "skill1", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -161,7 +161,7 @@ describe("SkillManager", () => {
 
     it("should return skill metadata by name", async () => {
       vi.mocked(readdir).mockImplementation(async (path) => {
-        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+        if (path.toString().replace(/\\/g, "/").includes(".muse-work/skills")) {
           return [
             { name: "skill1", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -199,7 +199,7 @@ describe("SkillManager", () => {
     it("should handle discovery errors and log warnings", async () => {
       vi.mocked(readdir).mockImplementation(async (path) => {
         const p = path.toString().replace(/\\/g, "/");
-        if (p.includes(".wave/skills") || p.includes("builtin-skills")) {
+        if (p.includes(".muse-work/skills") || p.includes("builtin-skills")) {
           return [
             { name: "invalid-skill", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -292,7 +292,7 @@ describe("SkillManager", () => {
     it("should handle invalid skill files", async () => {
       vi.mocked(readdir).mockImplementation(async (path) => {
         const p = path.toString().replace(/\\/g, "/");
-        if (p.includes(".wave/skills") || p.includes("builtin-skills")) {
+        if (p.includes(".muse-work/skills") || p.includes("builtin-skills")) {
           return [
             { name: "bad-skill", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -495,11 +495,11 @@ describe("SkillManager", () => {
     }
 
     it("should delete every same-named user-level copy in a single delete", async () => {
-      const wave = "/home/u/.wave/skills";
+      const wave = "/home/u/.muse-work/skills";
       const claude = "/home/u/.claude/skills";
       const agents = "/home/u/.agents/skills";
       // 'dup' physically exists in all three user dirs, but discovery merges
-      // same-named copies into one name-keyed entry (the .wave copy wins).
+      // same-named copies into one name-keyed entry (the .muse-work copy wins).
       mockDisk({
         [wave]: ["dup", "keep"],
         [claude]: ["dup"],
@@ -548,7 +548,7 @@ describe("SkillManager", () => {
     });
 
     it("should delete all same-named project copies without touching user dirs", async () => {
-      const waveProj = "/test/workdir/.wave/skills";
+      const waveProj = "/test/workdir/.muse-work/skills";
       const claudeProj = "/test/workdir/.claude/skills";
       const agentsProj = "/test/workdir/.agents/skills";
       mockDisk({
@@ -617,7 +617,7 @@ describe("SkillManager", () => {
   describe("loadSkill", () => {
     it("should load skill from skillContent map", async () => {
       vi.mocked(readdir).mockImplementation(async (path) => {
-        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+        if (path.toString().replace(/\\/g, "/").includes(".muse-work/skills")) {
           return [
             { name: "skill1", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -1034,11 +1034,11 @@ describe("SkillManager", () => {
 
       expect(FileWatcherService).toHaveBeenCalled();
       expect(mockFileWatcher.watchFile).toHaveBeenCalledWith(
-        expect.stringMatching(/[/\\]\.wave[/\\]skills$/),
+        expect.stringMatching(/[/\\]\.muse-work[/\\]skills$/),
         expect.any(Function),
       );
       expect(mockFileWatcher.watchFile).toHaveBeenCalledWith(
-        expect.stringContaining(path.join("/test/workdir", ".wave", "skills")),
+        expect.stringContaining(path.join("/test/workdir", ".muse-work", "skills")),
         expect.any(Function),
       );
     });
@@ -1075,7 +1075,7 @@ describe("SkillManager", () => {
 
       // Mock readdir to return a new skill after refresh
       vi.mocked(readdir).mockImplementation(async (path) => {
-        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+        if (path.toString().replace(/\\/g, "/").includes(".muse-work/skills")) {
           return [
             { name: "new-skill", isDirectory: () => true },
           ] as unknown as Awaited<ReturnType<typeof readdir>>;
@@ -1101,7 +1101,7 @@ describe("SkillManager", () => {
       // Trigger the callback
       await onEventCallback({
         type: "change",
-        path: "/test/workdir/.wave/skills/new-skill/SKILL.md",
+        path: "/test/workdir/.muse-work/skills/new-skill/SKILL.md",
         timestamp: Date.now(),
       });
 
@@ -1179,7 +1179,7 @@ describe("SkillManager", () => {
       // Trigger refreshSkills via file watcher (simulating a SKILL.md change)
       await onEventCallback({
         type: "change",
-        path: "/test/workdir/.wave/skills/some-skill/SKILL.md",
+        path: "/test/workdir/.muse-work/skills/some-skill/SKILL.md",
         timestamp: Date.now(),
       });
 
@@ -1236,7 +1236,7 @@ describe("SkillManager", () => {
       const onEventCallback = mockFileWatcher.watchFile.mock.calls[0][1];
       await onEventCallback({
         type: "change",
-        path: "/test/workdir/.wave/skills/some-skill/SKILL.md",
+        path: "/test/workdir/.muse-work/skills/some-skill/SKILL.md",
         timestamp: Date.now(),
       });
 
@@ -1334,7 +1334,7 @@ describe("SkillManager", () => {
       await manager.destroy();
     });
 
-    it("should let .wave/skills override .claude/skills for same-named skill at project level", async () => {
+    it("should let .muse-work/skills override .claude/skills for same-named skill at project level", async () => {
       const manager = new SkillManager(container, {
         workdir: "/test/workdir",
       });
@@ -1343,7 +1343,7 @@ describe("SkillManager", () => {
         const p = path.toString().replace(/\\/g, "/");
         if (
           p === "/test/workdir/.claude/skills" ||
-          p === "/test/workdir/.wave/skills"
+          p === "/test/workdir/.muse-work/skills"
         ) {
           return [
             { name: "override-skill", isDirectory: () => true },
@@ -1501,7 +1501,7 @@ describe("SkillManager", () => {
       await manager.destroy();
     });
 
-    it("should let .wave/skills override .agents/skills for same-named skill at project level", async () => {
+    it("should let .muse-work/skills override .agents/skills for same-named skill at project level", async () => {
       const manager = new SkillManager(container, {
         workdir: "/test/workdir",
       });
@@ -1510,7 +1510,7 @@ describe("SkillManager", () => {
         const p = path.toString().replace(/\\/g, "/");
         if (
           p === "/test/workdir/.agents/skills" ||
-          p === "/test/workdir/.wave/skills"
+          p === "/test/workdir/.muse-work/skills"
         ) {
           return [
             { name: "override-skill", isDirectory: () => true },
@@ -1625,10 +1625,10 @@ describe("SkillManager", () => {
       await manager.destroy();
     });
 
-    it("should let ~/.wave/skills override ~/.agents/skills for same-named skill at personal level", async () => {
+    it("should let ~/.muse-work/skills override ~/.agents/skills for same-named skill at personal level", async () => {
       const manager = new SkillManager(container, {
         workdir: "/test/workdir",
-        personalSkillsPath: "/home/user/.wave/skills",
+        personalSkillsPath: "/home/user/.muse-work/skills",
         personalAgentsSkillsPath: "/home/user/.agents/skills",
       });
 
@@ -1636,7 +1636,7 @@ describe("SkillManager", () => {
         const p = path.toString();
         if (
           p === "/home/user/.agents/skills" ||
-          p === "/home/user/.wave/skills"
+          p === "/home/user/.muse-work/skills"
         ) {
           return [
             { name: "override-skill", isDirectory: () => true },

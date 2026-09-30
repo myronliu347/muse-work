@@ -158,9 +158,9 @@ Project claude command content`;
       ).toBeDefined();
     });
 
-    it("should let .wave/commands override .claude/commands for same-named command", () => {
+    it("should let .muse-work/commands override .claude/commands for same-named command", () => {
       const claudeProjectDir = path.join(mockTestDir, ".claude", "commands");
-      const waveProjectDir = path.join(mockTestDir, ".wave", "commands");
+      const waveProjectDir = path.join(mockTestDir, ".muse-work", "commands");
 
       vi.mocked(fs.existsSync).mockImplementation((p) => {
         const path = p.toString();
@@ -189,7 +189,7 @@ description: Claude version
 Claude content`;
         }
         if (
-          p.match(/[/\\]\.wave[/\\]commands/) &&
+          p.match(/[/\\]\.muse-work[/\\]commands/) &&
           p.includes("shared-cmd.md")
         ) {
           return `---

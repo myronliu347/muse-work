@@ -108,8 +108,8 @@ describe("Agent Modular Memory Rules Integration", () => {
   });
 
   it("should discover rules from project and user directories during Agent.create()", async () => {
-    const projectRulesDir = path.join(mockTempDir, ".wave", "rules");
-    const userRulesDir = path.join(mockHomeDir, ".wave", "rules");
+    const projectRulesDir = path.join(mockTempDir, ".muse-work", "rules");
+    const userRulesDir = path.join(mockHomeDir, ".muse-work", "rules");
 
     const projectRulePath = path.join(projectRulesDir, "project-rule.md");
     const userRulePath = path.join(userRulesDir, "user-rule.md");
@@ -169,7 +169,7 @@ describe("Agent Modular Memory Rules Integration", () => {
   });
 
   it("should include active modular rules via processTriggeredRules based on triggered file reads", async () => {
-    const projectRulesDir = path.join(mockTempDir, ".wave", "rules");
+    const projectRulesDir = path.join(mockTempDir, ".muse-work", "rules");
     const projectRulePath = path.join(projectRulesDir, "test-rule.md");
     const projectRuleContent =
       "---\npaths:\n  - src/important.ts\n---\nImportant rule content";
@@ -223,8 +223,8 @@ describe("Agent Modular Memory Rules Integration", () => {
   });
 
   it("should prioritize project rules over user rules if they have the same relative path", async () => {
-    const projectRulesDir = path.join(mockTempDir, ".wave", "rules");
-    const userRulesDir = path.join(mockHomeDir, ".wave", "rules");
+    const projectRulesDir = path.join(mockTempDir, ".muse-work", "rules");
+    const userRulesDir = path.join(mockHomeDir, ".muse-work", "rules");
 
     const relativePath = "common-rule.md";
     const projectRulePath = path.join(projectRulesDir, relativePath);

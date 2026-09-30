@@ -18,7 +18,7 @@ function flattenBlocks(blocks: SystemPromptBlock[]): string {
 
 const worktreeSessionActive: WorktreeSession = {
   originalCwd: "/original/repo",
-  worktreePath: "/original/repo/.wave/worktrees/test-feature",
+  worktreePath: "/original/repo/.muse-work/worktrees/test-feature",
   worktreeBranch: "wave-test-feature",
   worktreeName: "test-feature",
   isNew: true,
@@ -156,7 +156,7 @@ describe("prompts", () => {
     it("should include worktree warning when worktree session is active", () => {
       const result = flattenBlocks(
         buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {
-          workdir: "/original/repo/.wave/worktrees/test-feature",
+          workdir: "/original/repo/.muse-work/worktrees/test-feature",
           worktreeSession: worktreeSessionActive,
         }),
       );
@@ -213,7 +213,7 @@ describe("prompts", () => {
     it("should not include worktree warning in subagent env format", () => {
       const result = flattenBlocks(
         buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {
-          workdir: "/original/repo/.wave/worktrees/test-feature",
+          workdir: "/original/repo/.muse-work/worktrees/test-feature",
           worktreeSession: worktreeSessionActive,
           isSubagent: true,
         }),

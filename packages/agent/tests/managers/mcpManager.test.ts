@@ -155,7 +155,7 @@ describe("McpManager", () => {
       expect(Object.keys(config!.mcpServers)).toHaveLength(2);
     });
 
-    it("should load user-level servers from ~/.wave/mcp.json when project has none", async () => {
+    it("should load user-level servers from ~/.muse-work/mcp.json when project has none", async () => {
       const { promises: fs } = await import("fs");
 
       const userConfig = {
@@ -163,7 +163,7 @@ describe("McpManager", () => {
           "user-server": { command: "user-mcp" },
         },
       };
-      // 项目 .mcp.json 不存在（ENOENT），仅用户级 ~/.wave/mcp.json 存在
+      // 项目 .mcp.json 不存在（ENOENT），仅用户级 ~/.muse-work/mcp.json 存在
       vi.mocked(fs.readFile).mockImplementation(async (path) => {
         if (String(path).includes(".mcp.json")) {
           const err = new Error("not found") as NodeJS.ErrnoException;
@@ -177,9 +177,9 @@ describe("McpManager", () => {
       const config = mcpManager.getConfig();
 
       expect(config?.mcpServers).toHaveProperty("user-server");
-      // 用户级路径为 ~/.wave/mcp.json
+      // 用户级路径为 ~/.muse-work/mcp.json
       expect(fs.readFile).toHaveBeenCalledWith(
-        expect.stringContaining(".wave"),
+        expect.stringContaining(".muse-work"),
         "utf-8",
       );
     });
@@ -199,7 +199,7 @@ describe("McpManager", () => {
         },
       };
       vi.mocked(fs.readFile).mockImplementation(async (path) => {
-        // 用户级 = ~/.wave/mcp.json；项目级 = <workdir>/.mcp.json
+        // 用户级 = ~/.muse-work/mcp.json；项目级 = <workdir>/.mcp.json
         if (String(path).includes(".mcp.json")) {
           return JSON.stringify(projectConfig);
         }
@@ -578,9 +578,9 @@ describe("McpManager", () => {
     });
   });
 
-  describe("user-level config (~/.wave/mcp.json)", () => {
+  describe("user-level config (~/.muse-work/mcp.json)", () => {
     // Project config path ends with ".mcp.json"; user config path ends with
-    // ".wave/mcp.json". readFile mock distinguishes by the leading dot.
+    // ".muse-work/mcp.json". readFile mock distinguishes by the leading dot.
     const isProjectPath = (p: string) => p.endsWith(".mcp.json");
 
     it("should merge user-level config with project-level, project taking precedence", async () => {
@@ -652,7 +652,7 @@ describe("McpManager", () => {
     });
 
     it("should expose user and project config paths", async () => {
-      expect(mcpManager.getUserConfigPath()).toContain(".wave");
+      expect(mcpManager.getUserConfigPath()).toContain(".muse-work");
       expect(mcpManager.getUserConfigPath()).toContain("mcp.json");
       expect(mcpManager.getProjectConfigPath()).toContain(".mcp.json");
     });

@@ -26,7 +26,7 @@ vi.mock("../../src/services/aiService.js");
 describe("Plan Mode Integration", () => {
   const workdir = "/test/workdir";
   const homedir = "/home/user";
-  const planDir = path.join(homedir, ".wave", "plans");
+  const planDir = path.join(homedir, ".muse-work", "plans");
   let activeAgent: Agent | undefined;
 
   beforeEach(() => {

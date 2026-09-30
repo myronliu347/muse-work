@@ -99,11 +99,11 @@ describe("AuthService", () => {
   afterEach(() => {});
 
   describe("getAuthPath", () => {
-    it("returns ~/.wave/auth.json", () => {
+    it("returns ~/.muse-work/auth.json", () => {
       vi.mocked(os.homedir).mockReturnValue("/home/user");
       const service = AuthService.getInstance();
       expect(service.getAuthPath()).toBe(
-        path.join("/home/user", ".wave", "auth.json"),
+        path.join("/home/user", ".muse-work", "auth.json"),
       );
     });
   });
@@ -138,16 +138,16 @@ describe("AuthService", () => {
       const service = AuthService.getInstance();
       service.saveAuth({ SSO_TOKEN: "new-token" });
 
-      expect(mockedMkdir).toHaveBeenCalledWith(path.join("/tmp", ".wave"), {
+      expect(mockedMkdir).toHaveBeenCalledWith(path.join("/tmp", ".muse-work"), {
         recursive: true,
       });
       expect(mockedWriteFile).toHaveBeenCalledWith(
-        path.join("/tmp", ".wave", "auth.json"),
+        path.join("/tmp", ".muse-work", "auth.json"),
         JSON.stringify({ SSO_TOKEN: "new-token" }, null, 2),
         "utf-8",
       );
       expect(mockedChmod).toHaveBeenCalledWith(
-        path.join("/tmp", ".wave", "auth.json"),
+        path.join("/tmp", ".muse-work", "auth.json"),
         0o600,
       );
     });
@@ -175,7 +175,7 @@ describe("AuthService", () => {
       await service.clearAuth();
 
       expect(mockedRm).toHaveBeenCalledWith(
-        path.join("/tmp", ".wave", "auth.json"),
+        path.join("/tmp", ".muse-work", "auth.json"),
       );
     });
 
@@ -193,7 +193,7 @@ describe("AuthService", () => {
       await service.clearAuth();
 
       expect(mockedWriteFile).toHaveBeenCalledWith(
-        path.join("/tmp", ".wave", "auth.json"),
+        path.join("/tmp", ".muse-work", "auth.json"),
         JSON.stringify({ OTHER_KEY: "value" }, null, 2),
         "utf-8",
       );
@@ -209,7 +209,7 @@ describe("AuthService", () => {
       await service.clearAuth();
 
       expect(mockedWriteFile).toHaveBeenCalledWith(
-        path.join("/tmp", ".wave", "auth.json"),
+        path.join("/tmp", ".muse-work", "auth.json"),
         JSON.stringify({ OTHER_KEY: "value" }, null, 2),
         "utf-8",
       );
@@ -810,7 +810,7 @@ describe("AuthService", () => {
 
       expect(id).toHaveLength(64); // 32 bytes hex = 64 chars
       expect(mockedMkdir).toHaveBeenCalledWith(
-        expect.stringContaining(".wave"),
+        expect.stringContaining(".muse-work"),
         { recursive: true },
       );
       expect(mockedWriteFile).toHaveBeenCalledWith(

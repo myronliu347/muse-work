@@ -14,6 +14,7 @@
  * - Performance-optimized session listing
  * - Full backward compatibility maintained
  */
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -84,7 +85,7 @@ export function generateSubagentFilename(sessionId: string): string {
 }
 
 // Constants
-export const SESSION_DIR = join(homedir(), ".wave", "projects");
+export const SESSION_DIR = join(homedir(), CONFIG_DIR_NAME, "projects");
 
 /**
  * Ensure session directory exists

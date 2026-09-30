@@ -12,7 +12,7 @@ import {
   MAX_MEMORY_ENTRYPOINT_LINES,
 } from "../../src/constants/memory.js";
 
-const MEMORY_DIR = "/home/user/.wave/projects/abc/memory";
+const MEMORY_DIR = "/home/user/.muse-work/projects/abc/memory";
 
 /**
  * The main prompt and the extraction fork prompt end up in the *same* request

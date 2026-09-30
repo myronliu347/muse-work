@@ -26,7 +26,7 @@ vi.mock("@/services/memory", () => ({
 }));
 
 // Isolate the test home under the OS temp dir so Agent.create's user config
-// reads (e.g. ~/.wave/settings.json) stay hermetic.
+// reads (e.g. ~/.muse-work/settings.json) stay hermetic.
 vi.mock(import("os"), async (importOriginal) => {
   const actual = await importOriginal();
   return {

@@ -55,7 +55,7 @@ export interface McpServerStatus {
   config: McpServerConfig;
   /** Pre-resolution URL with template variables preserved for safe display */
   originalUrl?: string;
-  /** Config source: user (~/.wave/mcp.json), project (<workdir>/.mcp.json),
+  /** Config source: user (~/.muse-work/mcp.json), project (<workdir>/.mcp.json),
    *  or plugin (registered from a plugin manifest) */
   scope?: "user" | "project" | "plugin";
   status:

@@ -135,7 +135,7 @@ describe("grepTool", () => {
   });
 
   it("should search hidden directories and exclude VCS dirs by default", async () => {
-    const stdout = ".wave/rules/testing.md\n";
+    const stdout = ".muse-work/rules/testing.md\n";
     mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
 
     const result = await grepTool.execute(
@@ -148,7 +148,7 @@ describe("grepTool", () => {
 
     expect(result.success).toBe(true);
 
-    // --hidden must always be present so hidden dirs like .wave/ are searched.
+    // --hidden must always be present so hidden dirs like .muse-work/ are searched.
     expect(mockSpawn).toHaveBeenCalledWith(
       "/mock/rg",
       expect.arrayContaining(["--hidden"]),
@@ -224,7 +224,7 @@ src/utils.ts:1:export const logger = {};
       ...testContext,
       aiManager: {
         consumeCwdRecovery: vi.fn().mockReturnValue({
-          from: "/repo/.wave/worktrees/feat-a",
+          from: "/repo/.muse-work/worktrees/feat-a",
           to: "/repo",
         }),
       } as unknown as ToolContext["aiManager"],
@@ -234,7 +234,7 @@ src/utils.ts:1:export const logger = {};
 
     expect(result.success).toBe(true);
     expect(result.content).toBe(
-      "Note: working directory /repo/.wave/worktrees/feat-a no longer exists; session working directory recovered to /repo.\nsrc/index.ts:1:export const app = 'main';",
+      "Note: working directory /repo/.muse-work/worktrees/feat-a no longer exists; session working directory recovered to /repo.\nsrc/index.ts:1:export const app = 'main';",
     );
   });
 

@@ -22,7 +22,7 @@ describe("ConfigurationService - addAdditionalDirectory", () => {
   let configService: ConfigurationService;
   const workdir = "/test/workdir";
   const userHome = "/test/userhome";
-  const localConfigPath = path.join(workdir, ".wave", "settings.local.json");
+  const localConfigPath = path.join(workdir, ".muse-work", "settings.local.json");
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +37,7 @@ describe("ConfigurationService - addAdditionalDirectory", () => {
   it("should create settings.local.json with the additional directory when it does not exist", async () => {
     await configService.addAdditionalDirectory(workdir, "/shared/code");
 
-    expect(fs.mkdir).toHaveBeenCalledWith(path.join(workdir, ".wave"), {
+    expect(fs.mkdir).toHaveBeenCalledWith(path.join(workdir, ".muse-work"), {
       recursive: true,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(

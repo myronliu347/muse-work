@@ -162,7 +162,7 @@ describe("bashTool", () => {
       // Session workdir was deleted behind wave's back (manual git worktree remove)
       context.aiManager = {
         consumeCwdRecovery: vi.fn().mockReturnValue({
-          from: "/repo/.wave/worktrees/feat-a",
+          from: "/repo/.muse-work/worktrees/feat-a",
           to: "/repo",
         }),
       } as unknown as ToolContext["aiManager"];
@@ -171,7 +171,7 @@ describe("bashTool", () => {
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(
-        "Note: working directory /repo/.wave/worktrees/feat-a no longer exists; session working directory recovered to /repo.\ntest output",
+        "Note: working directory /repo/.muse-work/worktrees/feat-a no longer exists; session working directory recovered to /repo.\ntest output",
       );
     });
 
@@ -248,7 +248,7 @@ describe("bashTool", () => {
       });
       const worktreeContext: ToolContext = {
         backgroundTaskManager: staleBtm,
-        workdir: "/base/repo/root/.wave/worktrees/feat-x",
+        workdir: "/base/repo/root/.muse-work/worktrees/feat-x",
         taskManager: createMockTaskManager(),
       };
 
@@ -272,7 +272,7 @@ describe("bashTool", () => {
       // Background shell must inherit the session current workdir (worktree),
       // NOT fall back to the BTM construction-time workdir (base repo root).
       expect(spawnCallArgs[1]).toMatchObject({
-        cwd: "/base/repo/root/.wave/worktrees/feat-x",
+        cwd: "/base/repo/root/.muse-work/worktrees/feat-x",
       });
 
       staleBtm.cleanup();

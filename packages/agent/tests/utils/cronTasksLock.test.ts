@@ -58,7 +58,7 @@ describe("cronTasksLock", () => {
       });
 
       expect(result).toBe(true);
-      expect(mkdirSync).toHaveBeenCalledWith(path.join(MOCK_DIR, ".wave"), {
+      expect(mkdirSync).toHaveBeenCalledWith(path.join(MOCK_DIR, ".muse-work"), {
         recursive: true,
       });
       expect(writeFileSync).toHaveBeenCalled();

@@ -42,7 +42,7 @@ Muse server 内置 [obra/superpowers](https://github.com/obra/superpowers) 插�
 
 ```text
 packages/server/plugins/superpowers/
-  .wave-plugin/plugin.json
+  .muse-plugin/plugin.json
   LICENSE                          # Superpowers MIT
   skills/<name>/SKILL.md           # 从 obra/superpowers@6.3.0 原样拷贝
   hooks/hooks.json

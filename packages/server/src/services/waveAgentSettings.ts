@@ -1,14 +1,15 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getMuseHomeDir } from "@muse-work/provider";
 import { getLogger } from "../utils/logger.js";
 
-/** User-scope Wave agent settings: `~/.wave/settings.json`. */
+/** User-scope agent settings: `<muse-home>/settings.json` (default `~/.muse-work`). */
 export function getWaveUserSettingsPath(home = os.homedir()): string {
-  return path.join(home, ".wave", "settings.json");
+  return path.join(getMuseHomeDir(home), "settings.json");
 }
 
-/** First-launch defaults when `~/.wave/settings.json` does not exist. */
+/** First-launch defaults when `~/.muse-work/settings.json` does not exist. */
 export const DEFAULT_WAVE_USER_SETTINGS = {
   marketplaces: {
     "wave-plugins-official": {
@@ -60,7 +61,7 @@ export const DEFAULT_WAVE_USER_SETTINGS = {
 
 const EMPTY_SETTINGS = "{}\n";
 
-/** 启动时若无 `~/.wave/settings.json` 则写入内置默认，已有文件不覆盖。 */
+/** 启动时若无 `~/.muse-work/settings.json` 则写入内置默认，已有文件不覆盖。 */
 export function ensureDefaultWaveUserSettings(home = os.homedir()): void {
   const file = getWaveUserSettingsPath(home);
   if (fs.existsSync(file)) return;
@@ -84,7 +85,7 @@ export class WaveSettingsJsonError extends Error {
   }
 }
 
-/** Pretty-printed `~/.wave/settings.json` text for the Agent settings editor. */
+/** Pretty-printed `~/.muse-work/settings.json` text for the Agent settings editor. */
 export function readWaveUserSettingsText(home = os.homedir()): {
   path: string;
   content: string;
@@ -109,7 +110,7 @@ export function readWaveUserSettingsText(home = os.homedir()): {
 }
 
 /**
- * Parse + validate editor JSON, write `~/.wave/settings.json`.
+ * Parse + validate editor JSON, write `~/.muse-work/settings.json`.
  * Root must be a non-array object (Wave settings schema is otherwise freeform).
  */
 export function writeWaveUserSettingsText(

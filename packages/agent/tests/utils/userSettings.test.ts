@@ -1,6 +1,6 @@
 /**
  * 用户偏好读写（三端设置页保存路径的唯一实现）：
- * - 落点 = 用户级 `~/.wave/settings.json`，K↔`env.WAVE_MAX_INPUT_TOKENS` 换算只在此处
+ * - 落点 = 用户级 `~/.muse-work/settings.json`，K↔`env.WAVE_MAX_INPUT_TOKENS` 换算只在此处
  * - 写入是读-改-写：只覆盖偏好键，其余顶层键与 `env` 其它键原样保留
  * - 文件缺失/损坏只影响回读（返回空对象），但**绝不覆盖**用户文件（写入报错）
  *
@@ -21,7 +21,7 @@ vi.mock("../../src/utils/atomicWrite.js", () => ({
 }));
 
 vi.mock("../../src/utils/configPaths.js", () => ({
-  getUserConfigPaths: vi.fn(() => ["/mock/home/.wave/settings.json"]),
+  getUserConfigPaths: vi.fn(() => ["/mock/home/.muse-work/settings.json"]),
 }));
 
 import { existsSync, mkdirSync, readFileSync } from "fs";
@@ -37,7 +37,7 @@ import {
   userSettingsFilePath,
 } from "../../src/utils/userSettings.js";
 
-const FILE = "/mock/home/.wave/settings.json";
+const FILE = "/mock/home/.muse-work/settings.json";
 const mockExists = vi.mocked(existsSync);
 const mockRead = vi.mocked(readFileSync);
 const mockMkdir = vi.mocked(mkdirSync);
@@ -602,12 +602,12 @@ describe("userSettings", () => {
       expect(mockWrite).not.toHaveBeenCalled();
     });
 
-    it("首次保存会建父目录（~/.wave 可能尚不存在）", async () => {
+    it("首次保存会建父目录（~/.muse-work 可能尚不存在）", async () => {
       mockExists.mockReturnValue(false);
 
       await updateUserPreferenceSettings({ language: "English" }, FILE);
 
-      expect(mockMkdir).toHaveBeenCalledWith("/mock/home/.wave", {
+      expect(mockMkdir).toHaveBeenCalledWith("/mock/home/.muse-work", {
         recursive: true,
       });
       expect(writtenJson()).toEqual({ language: "English" });

@@ -340,7 +340,7 @@ cron/once/manual 前缀 `触发：定时 {ISO}` / `触发：单次` / `触发：
 ### Task 7: 内置 plugin `automation`
 
 **Files:**
-- Create: `packages/server/plugins/automation/.wave-plugin/plugin.json`（name `automation`）
+- Create: `packages/server/plugins/automation/.muse-plugin/plugin.json`（name `automation`）
 - Create: `packages/server/plugins/automation/skills/automation-management/SKILL.md`
 - Create: `packages/server/plugins/automation/skills/automation-management/scripts/automation.mjs`（抄 `issue.mjs` 的 Base URL 解析：`MUSE_SERVER_URL` / `MUSE_HOME`/`server-url` / 默认 8787）
 - Modify: `sessionRunner/agent.ts` `enabledPluginDirs`：非 issue-exec 且 `origin !== "automation"` 时 push automation plugin dir（`pluginDirIfPresent("automation")`）；issue-exec 与 automation origin 都不挂

@@ -71,7 +71,7 @@ describe("MemoryService Auto-Memory", () => {
       expect(result).toBe(
         path.join(
           "/home/user",
-          ".wave",
+          ".muse-work",
           "projects",
           "repo-root-hash",
           "memory",
@@ -92,7 +92,7 @@ describe("MemoryService Auto-Memory", () => {
 
       const expectedDir = path.join(
         "/home/user",
-        ".wave",
+        ".muse-work",
         "projects",
         "repo-root-hash",
         "memory",

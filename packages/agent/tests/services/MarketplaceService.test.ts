@@ -1018,7 +1018,7 @@ describe("MarketplaceService - Coverage Targets", () => {
   // Line 339: loadMarketplaceManifest invalid manifest
   it("should throw when manifest is missing required fields", async () => {
     const tempDir = path.join(mockPluginsDir, "bad-manifest");
-    const manifestDir = path.join(tempDir, ".wave-plugin");
+    const manifestDir = path.join(tempDir, ".muse-plugin");
     await fs.mkdir(manifestDir, { recursive: true });
     await fs.writeFile(
       path.join(manifestDir, "marketplace.json"),
@@ -1540,7 +1540,7 @@ describe("MarketplaceService - Coverage Targets", () => {
   });
 
   // Claude Code ecosystem compatibility: .claude-plugin fallback for plugin.json
-  it("should fallback to .claude-plugin/plugin.json when .wave-plugin/plugin.json does not exist", async () => {
+  it("should fallback to .claude-plugin/plugin.json when .muse-plugin/plugin.json does not exist", async () => {
     vi.spyOn(
       service["configurationService"],
       "getMergedMarketplaces",
@@ -1550,7 +1550,7 @@ describe("MarketplaceService - Coverage Targets", () => {
       },
     });
 
-    // Create plugin manifest ONLY in .claude-plugin (not .wave-plugin)
+    // Create plugin manifest ONLY in .claude-plugin (not .muse-plugin)
     const claudePluginDir = path.join(mockPluginsDir, ".claude-plugin");
     await fs.mkdir(claudePluginDir, { recursive: true });
     await fs.writeFile(
@@ -1592,7 +1592,7 @@ describe("MarketplaceService - Coverage Targets", () => {
     });
 
     // Plugin manifest in the mock plugins dir
-    const pluginDir = path.join(mockPluginsDir, ".wave-plugin");
+    const pluginDir = path.join(mockPluginsDir, ".muse-plugin");
     await fs.mkdir(pluginDir, { recursive: true });
     await fs.writeFile(
       path.join(pluginDir, "plugin.json"),
@@ -1650,7 +1650,7 @@ describe("MarketplaceService - Coverage Targets", () => {
     });
 
     // Plugin manifest in the mock plugins dir
-    const pluginDir = path.join(mockPluginsDir, ".wave-plugin");
+    const pluginDir = path.join(mockPluginsDir, ".muse-plugin");
     await fs.mkdir(pluginDir, { recursive: true });
     await fs.writeFile(
       path.join(pluginDir, "plugin.json"),
@@ -1679,7 +1679,7 @@ describe("MarketplaceService - Coverage Targets", () => {
     // Mock existsSync to return true for the plugin manifest
     vi.mocked(existsSync).mockImplementation((p: import("fs").PathLike) => {
       const str = String(p);
-      if (str.includes(".wave-plugin/plugin.json")) return true;
+      if (str.includes(".muse-plugin/plugin.json")) return true;
       if (str.startsWith(mockPluginsDir)) return true;
       return false;
     });

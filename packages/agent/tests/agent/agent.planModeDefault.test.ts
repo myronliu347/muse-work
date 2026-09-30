@@ -100,9 +100,9 @@ describe("Agent Plan Mode Default", () => {
 
     expect(agent.getPermissionMode()).toBe("plan");
     expect(planFilePath).toBeDefined();
-    expect(planFilePath).toContain(path.join(os.homedir(), ".wave", "plans"));
+    expect(planFilePath).toContain(path.join(os.homedir(), ".muse-work", "plans"));
     expect(fs.mkdir).toHaveBeenCalledWith(
-      path.join(os.homedir(), ".wave", "plans"),
+      path.join(os.homedir(), ".muse-work", "plans"),
       { recursive: true },
     );
   });

@@ -527,7 +527,7 @@ describe("SubagentManager.deleteSubagent()", () => {
         systemPrompt: "Prompt",
         tools: [],
         model: "test-model",
-        filePath: "/home/user/.wave/agents/user-agent.md",
+        filePath: "/home/user/.muse-work/agents/user-agent.md",
         scope: "user",
         priority: 2,
       },
@@ -549,7 +549,7 @@ describe("SubagentManager.deleteSubagent()", () => {
 
     expect(deleted).toBe(true);
     expect(unlink).toHaveBeenCalledWith(
-      "/home/user/.wave/agents/user-agent.md",
+      "/home/user/.muse-work/agents/user-agent.md",
     );
     const remaining = subagentManager.getConfigurations().map((c) => c.name);
     expect(remaining).toContain("builtin-agent");

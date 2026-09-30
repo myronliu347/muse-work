@@ -49,7 +49,7 @@ const removeConfig = (commands: string[]) => ({
 const baseContext = {
   projectDir: "/repo",
   sessionId: "session-1",
-  transcriptPath: "/repo/.wave/sessions/session-1.jsonl",
+  transcriptPath: "/repo/.muse-work/sessions/session-1.jsonl",
   env: { FOO: "bar" },
 };
 
@@ -94,7 +94,7 @@ describe("worktreeHooks", () => {
       vi.mocked(executeCommand)
         .mockResolvedValueOnce(result({ success: false, stderr: "boom" }))
         .mockResolvedValueOnce(
-          result({ stdout: "  /repo/.wave/worktrees/feature\n" }),
+          result({ stdout: "  /repo/.muse-work/worktrees/feature\n" }),
         );
 
       const { worktreePath } = await executeWorktreeCreateHook(
@@ -103,7 +103,7 @@ describe("worktreeHooks", () => {
         baseContext,
       );
 
-      expect(worktreePath).toBe("/repo/.wave/worktrees/feature");
+      expect(worktreePath).toBe("/repo/.muse-work/worktrees/feature");
       // Both hooks ran, in order
       expect(executeCommand).toHaveBeenNthCalledWith(
         1,
@@ -147,7 +147,7 @@ describe("worktreeHooks", () => {
 
     it("passes name, sessionId and projectDir through to the hook context", async () => {
       vi.mocked(executeCommand).mockResolvedValue(
-        result({ stdout: "/repo/.wave/worktrees/feature" }),
+        result({ stdout: "/repo/.muse-work/worktrees/feature" }),
       );
 
       await executeWorktreeCreateHook(
@@ -161,7 +161,7 @@ describe("worktreeHooks", () => {
         event: "WorktreeCreate",
         projectDir: "/repo",
         sessionId: "session-1",
-        transcriptPath: "/repo/.wave/sessions/session-1.jsonl",
+        transcriptPath: "/repo/.muse-work/sessions/session-1.jsonl",
         cwd: "/repo",
         env: { FOO: "bar" },
         name: "feature",
@@ -170,7 +170,7 @@ describe("worktreeHooks", () => {
 
     it("substitutes plugin root and injects plugin env for plugin hooks", async () => {
       vi.mocked(executeCommand).mockResolvedValue(
-        result({ stdout: "/repo/.wave/worktrees/feature" }),
+        result({ stdout: "/repo/.muse-work/worktrees/feature" }),
       );
 
       await executeWorktreeCreateHook(
@@ -204,7 +204,7 @@ describe("worktreeHooks", () => {
 
     it("applies the per-command timeout in seconds", async () => {
       vi.mocked(executeCommand).mockResolvedValue(
-        result({ stdout: "/repo/.wave/worktrees/feature" }),
+        result({ stdout: "/repo/.muse-work/worktrees/feature" }),
       );
 
       await executeWorktreeCreateHook(
@@ -228,7 +228,7 @@ describe("worktreeHooks", () => {
 
     it("skips async hooks for path resolution (fire-and-forget)", async () => {
       vi.mocked(executeCommand).mockResolvedValue(
-        result({ stdout: "/repo/.wave/worktrees/feature" }),
+        result({ stdout: "/repo/.muse-work/worktrees/feature" }),
       );
 
       const { worktreePath } = await executeWorktreeCreateHook(
@@ -254,7 +254,7 @@ describe("worktreeHooks", () => {
         expect.any(Object),
         undefined,
       );
-      expect(worktreePath).toBe("/repo/.wave/worktrees/feature");
+      expect(worktreePath).toBe("/repo/.muse-work/worktrees/feature");
     });
 
     it("blocks creation when only async hooks are configured (no path)", async () => {
@@ -290,7 +290,7 @@ describe("worktreeHooks", () => {
   describe("executeWorktreeRemoveHook", () => {
     it("returns false when no WorktreeRemove hook is configured", async () => {
       const hookRan = await executeWorktreeRemoveHook(
-        "/repo/.wave/worktrees/feature",
+        "/repo/.muse-work/worktrees/feature",
         undefined,
         baseContext,
       );
@@ -303,7 +303,7 @@ describe("worktreeHooks", () => {
       vi.mocked(executeCommand).mockResolvedValue(result({}));
 
       const hookRan = await executeWorktreeRemoveHook(
-        "/repo/.wave/worktrees/feature",
+        "/repo/.muse-work/worktrees/feature",
         removeConfig(["cleanup-a"]),
         baseContext,
       );
@@ -313,7 +313,7 @@ describe("worktreeHooks", () => {
       expect(command).toBe("cleanup-a");
       expect(context).toMatchObject({
         event: "WorktreeRemove",
-        worktreePath: "/repo/.wave/worktrees/feature",
+        worktreePath: "/repo/.muse-work/worktrees/feature",
         projectDir: "/repo",
       });
     });
@@ -324,7 +324,7 @@ describe("worktreeHooks", () => {
       );
 
       const hookRan = await executeWorktreeRemoveHook(
-        "/repo/.wave/worktrees/feature",
+        "/repo/.muse-work/worktrees/feature",
         removeConfig(["cleanup-a"]),
         baseContext,
       );
@@ -351,7 +351,7 @@ describe("worktreeHooks", () => {
       );
 
       await executeWorktreeRemoveHook(
-        "/repo/.wave/worktrees/feature",
+        "/repo/.muse-work/worktrees/feature",
         removeConfig(["cleanup-a"]),
         baseContext,
       );
@@ -360,7 +360,7 @@ describe("worktreeHooks", () => {
       // from several worktrees; without exit/timeout it is unclear whether the
       // hook failed on its own or was killed by the hook timeout.
       const message = String(errorSpy.mock.calls[0][0]);
-      expect(message).toContain("/repo/.wave/worktrees/feature");
+      expect(message).toContain("/repo/.muse-work/worktrees/feature");
       expect(message).toContain("exit=137");
       expect(message).toContain("timedOut=true");
       expect(message).toContain("Filename too long");

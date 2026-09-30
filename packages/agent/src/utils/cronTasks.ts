@@ -9,7 +9,8 @@ import { join } from "path";
 import { randomUUID } from "crypto";
 import { CronJob } from "../types/cron.js";
 
-const WAVE_DIR = ".wave";
+import { CONFIG_DIR_NAME } from "./constants.js";
+const WAVE_DIR = CONFIG_DIR_NAME;
 const TASKS_FILE = "scheduled_tasks.json";
 
 /**

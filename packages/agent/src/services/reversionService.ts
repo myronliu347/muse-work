@@ -4,6 +4,7 @@ import { homedir } from "os";
 import { createHash } from "crypto";
 import { FileSnapshot } from "../types/reversion.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 export class ReversionService {
   private historyBaseDir: string;
   private rootSessionId: string;
@@ -12,7 +13,7 @@ export class ReversionService {
     this.rootSessionId = rootSessionId || "default";
     this.historyBaseDir = join(
       homedir(),
-      ".wave",
+      CONFIG_DIR_NAME,
       "file-history",
       this.rootSessionId,
     );

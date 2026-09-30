@@ -2,6 +2,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import {
   PluginManifest,
+  PLUGIN_MANIFEST_DIR,
+  PLUGIN_MANIFEST_DIRS,
   CustomSlashCommand,
   Skill,
   LspConfig,
@@ -23,33 +25,34 @@ export class PluginLoader {
    * @param pluginPath Absolute path to the plugin directory
    */
   static async loadManifest(pluginPath: string): Promise<PluginManifest> {
-    const dotWavePluginPath = path.join(pluginPath, ".wave-plugin");
+    const tried: string[] = [];
 
-    // Check if .wave-plugin/ directory exists
-    let wavePluginDirExists = false;
-    try {
-      const entries = await fs.readdir(dotWavePluginPath);
-      wavePluginDirExists = true;
-      // T018: Ensure plugin.json is the only file in .wave-plugin/
+    for (const dirName of PLUGIN_MANIFEST_DIRS) {
+      const manifestDir = path.join(pluginPath, dirName);
+      tried.push(manifestDir);
+
+      let entries: string[];
+      try {
+        entries = await fs.readdir(manifestDir);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error as { code?: string }).code === "ENOENT"
+        ) {
+          continue;
+        }
+        throw error;
+      }
+
+      // Only plugin.json should live in the manifest directory
       const misplaced = entries.filter((e) => e !== "plugin.json");
       if (misplaced.length > 0) {
         throw new Error(
-          `Misplaced files/directories in .wave-plugin/: ${misplaced.join(", ")}. Only plugin.json should be in this directory.`,
+          `Misplaced files/directories in ${dirName}/: ${misplaced.join(", ")}. Only plugin.json should be in this directory.`,
         );
       }
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error as { code?: string }).code === "ENOENT"
-      ) {
-        // .wave-plugin/ doesn't exist, will try .claude-plugin/ fallback below
-      } else {
-        throw error;
-      }
-    }
 
-    if (wavePluginDirExists) {
-      const manifestPath = path.join(dotWavePluginPath, "plugin.json");
+      const manifestPath = path.join(manifestDir, "plugin.json");
       try {
         const content = await fs.readFile(manifestPath, "utf-8");
         const manifest = JSON.parse(content) as PluginManifest;
@@ -70,29 +73,9 @@ export class PluginLoader {
       }
     }
 
-    // Fallback to .claude-plugin/
-    const dotClaudePluginPath = path.join(pluginPath, ".claude-plugin");
-    const claudeManifestPath = path.join(dotClaudePluginPath, "plugin.json");
-    try {
-      const content = await fs.readFile(claudeManifestPath, "utf-8");
-      const manifest = JSON.parse(content) as PluginManifest;
-      this.validateManifest(manifest);
-      return manifest;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error as { code?: string }).code === "ENOENT"
-      ) {
-        throw new Error(
-          `Plugin manifest not found at ${dotWavePluginPath} or ${dotClaudePluginPath}`,
-        );
-      }
-      throw new Error(
-        `Failed to load plugin manifest at ${claudeManifestPath}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
+    throw new Error(
+      `Plugin manifest not found at ${tried.join(" or ")} (expected ${PLUGIN_MANIFEST_DIR}/plugin.json)`,
+    );
   }
 
   /**

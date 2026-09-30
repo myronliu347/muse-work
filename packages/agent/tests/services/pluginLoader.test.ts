@@ -15,7 +15,7 @@ vi.mock("../../src/utils/subagentParser.js");
 
 describe("PluginLoader", () => {
   const mockPluginPath = "/mock/plugin/path";
-  const mockManifestPath = "/mock/plugin/path/.wave-plugin/plugin.json";
+  const mockManifestPath = "/mock/plugin/path/.muse-plugin/plugin.json";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,14 +51,21 @@ describe("PluginLoader", () => {
       vi.mocked(fs.readFile).mockRejectedValue(error);
 
       await expect(PluginLoader.loadManifest(mockPluginPath)).rejects.toThrow(
-        `Plugin manifest not found at /mock/plugin/path/.wave-plugin or /mock/plugin/path/.claude-plugin`,
+        `Plugin manifest not found at /mock/plugin/path/.muse-plugin or /mock/plugin/path/.wave-plugin or /mock/plugin/path/.claude-plugin (expected .muse-plugin/plugin.json)`,
       );
     });
 
-    it("should fallback to .claude-plugin/ when .wave-plugin/ does not exist", async () => {
-      const error = new Error("Directory not found");
-      (error as Error & { code?: string }).code = "ENOENT";
-      vi.mocked(fs.readdir).mockRejectedValue(error);
+    it("should fallback to .claude-plugin/ when .muse-plugin/ does not exist", async () => {
+      const missing = new Error("Directory not found");
+      (missing as Error & { code?: string }).code = "ENOENT";
+      vi.mocked(fs.readdir).mockImplementation(async (p) => {
+        if (String(p).includes(".claude-plugin")) {
+          return ["plugin.json"] as unknown as Awaited<
+            ReturnType<typeof fs.readdir>
+          >;
+        }
+        throw missing;
+      });
 
       const mockManifest = {
         name: "test-plugin",
@@ -76,14 +83,42 @@ describe("PluginLoader", () => {
       );
     });
 
-    it("should throw error if .wave-plugin/ contains misplaced files", async () => {
+    it("should fallback to legacy .wave-plugin/ when .muse-plugin/ does not exist", async () => {
+      const missing = new Error("Directory not found");
+      (missing as Error & { code?: string }).code = "ENOENT";
+      vi.mocked(fs.readdir).mockImplementation(async (p) => {
+        if (String(p).includes(".wave-plugin")) {
+          return ["plugin.json"] as unknown as Awaited<
+            ReturnType<typeof fs.readdir>
+          >;
+        }
+        throw missing;
+      });
+
+      const mockManifest = {
+        name: "legacy-plugin",
+        description: "A legacy wave plugin",
+        version: "1.0.0",
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockManifest));
+
+      const result = await PluginLoader.loadManifest(mockPluginPath);
+
+      expect(result).toEqual(mockManifest);
+      expect(fs.readFile).toHaveBeenCalledWith(
+        "/mock/plugin/path/.wave-plugin/plugin.json",
+        "utf-8",
+      );
+    });
+
+    it("should throw error if .muse-plugin/ contains misplaced files", async () => {
       vi.mocked(fs.readdir).mockResolvedValue([
         "plugin.json",
         "misplaced.txt",
       ] as unknown as Awaited<ReturnType<typeof fs.readdir>>);
 
       await expect(PluginLoader.loadManifest(mockPluginPath)).rejects.toThrow(
-        "Misplaced files/directories in .wave-plugin/: misplaced.txt. Only plugin.json should be in this directory.",
+        "Misplaced files/directories in .muse-plugin/: misplaced.txt. Only plugin.json should be in this directory.",
       );
     });
 

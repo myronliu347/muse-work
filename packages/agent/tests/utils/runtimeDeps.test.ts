@@ -59,7 +59,7 @@ import {
 
 /**
  * Installer tests. Everything is hermetic: a private cli home under the OS temp
- * dir (never the real `~/.wave`), an injected `fetch` that serves in-memory
+ * dir (never the real `~/.muse-work`), an injected `fetch` that serves in-memory
  * tarballs, and no network. The cli home is injected rather than derived from
  * `HOME` because `os.homedir()` ignores `HOME` on Windows — stubbing it would
  * aim these writes at the developer's real profile.

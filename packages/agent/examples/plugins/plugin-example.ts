@@ -9,11 +9,11 @@ async function main() {
     path.join(os.tmpdir(), "wave-plugin-example-"),
   );
   const pluginDir = path.join(tempDir, "my-plugin");
-  const wavePluginDir = path.join(pluginDir, ".wave-plugin");
+  const musePluginDir = path.join(pluginDir, ".muse-plugin");
   const commandsDir = path.join(pluginDir, "commands");
 
   await fs.mkdir(pluginDir, { recursive: true });
-  await fs.mkdir(wavePluginDir, { recursive: true });
+  await fs.mkdir(musePluginDir, { recursive: true });
   await fs.mkdir(commandsDir, { recursive: true });
 
   // 2. Create the plugin manifest
@@ -26,7 +26,7 @@ async function main() {
     },
   };
   await fs.writeFile(
-    path.join(wavePluginDir, "plugin.json"),
+    path.join(musePluginDir, "plugin.json"),
     JSON.stringify(manifest, null, 2),
   );
 

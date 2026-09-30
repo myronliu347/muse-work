@@ -2,6 +2,7 @@
  * Skill system types and constants
  * Dependencies: Core (Logger)
  */
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 
 export interface SkillMetadata {
   name: string;
@@ -121,8 +122,8 @@ export interface InvokedSkillRecord {
 }
 
 export const SKILL_DEFAULTS = {
-  PERSONAL_SKILLS_DIR: ".wave/skills",
-  PROJECT_SKILLS_DIR: ".wave/skills",
+  PERSONAL_SKILLS_DIR: `${CONFIG_DIR_NAME}/skills`,
+  PROJECT_SKILLS_DIR: `${CONFIG_DIR_NAME}/skills`,
   SKILL_FILE_NAME: "SKILL.md",
   MAX_NAME_LENGTH: 64,
   MIN_DESCRIPTION_LENGTH: 1,

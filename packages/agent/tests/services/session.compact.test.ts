@@ -68,7 +68,7 @@ vi.mock("@/utils/pathEncoder.js", () => ({
       getProjectDirectory: vi.fn().mockResolvedValue({
         originalPath: "/test/workdir",
         encodedName: "encoded-test",
-        encodedPath: join(homedir(), ".wave", "projects", "encoded-test"),
+        encodedPath: join(homedir(), ".muse-work", "projects", "encoded-test"),
         pathHash: undefined,
         isSymbolicLink: false,
       }),

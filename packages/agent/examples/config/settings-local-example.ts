@@ -37,7 +37,7 @@ const testConfig = {
 
 async function testConfigurationPriority(): Promise<void> {
   const testDir = join(process.cwd(), "test-settings-local-temp");
-  const waveDir = join(testDir, ".wave");
+  const waveDir = join(testDir, ".muse-work");
 
   try {
     // Setup test directory

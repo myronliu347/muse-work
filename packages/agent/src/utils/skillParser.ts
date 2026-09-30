@@ -8,6 +8,7 @@ import type {
   SkillMetadata,
 } from "../types/index.js";
 
+import { CONFIG_DIR_NAME } from "./constants.js";
 /**
  * Parse a SKILL.md file and validate its contents
  */
@@ -54,8 +55,8 @@ export function parseSkillFile(
     // Determine skill type and path
     const skillPath = basePath || dirname(filePath);
     const skillType =
-      skillPath.includes("/.wave/skills") ||
-      skillPath.includes("\\.wave\\skills") ||
+      skillPath.includes(`/${CONFIG_DIR_NAME}/skills`) ||
+      skillPath.includes(`\\${CONFIG_DIR_NAME}\\skills`) ||
       skillPath.includes("/.claude/skills") ||
       skillPath.includes("\\.claude\\skills") ||
       skillPath.includes("/.agents/skills") ||

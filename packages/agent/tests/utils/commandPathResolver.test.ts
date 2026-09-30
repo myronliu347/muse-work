@@ -17,13 +17,13 @@ describe("Command Path Resolver Utilities", () => {
 
   describe("generateCommandId", () => {
     it("should generate command ID for root level commands", () => {
-      // Test flat command: .wave/commands/help.md -> 'help'
+      // Test flat command: .muse-work/commands/help.md -> 'help'
       const commandId = generateCommandId("help.md", "");
       expect(commandId).toBe("help");
     });
 
     it("should reject nested commands", () => {
-      // Test nested command: .wave/commands/openspec/apply.md -> should be rejected
+      // Test nested command: .muse-work/commands/openspec/apply.md -> should be rejected
       const filePath = "/root/commands/openspec/apply.md";
       const rootDir = "/root/commands";
       const relativePath = path.relative(rootDir, filePath);

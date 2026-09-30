@@ -37,7 +37,7 @@ import {
 import type { Message } from "../../src/types/index.js";
 import { generateMessageId } from "../../src/utils/messageOperations.js";
 
-const SESSION_DIR = join(homedir(), ".wave", "projects");
+const SESSION_DIR = join(homedir(), ".muse-work", "projects");
 
 /** ENOENT error shaped like a Node fs error (code + message). */
 const enoent = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });

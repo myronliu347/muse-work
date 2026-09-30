@@ -727,7 +727,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         await core.maybeEvictLiveAgents(sessionId);
         return existing;
       }
-      // Stale identity (provider / ~/.wave/settings.json change). Recreate only
+      // Stale identity (provider / ~/.muse-work/settings.json change). Recreate only
       // when the agent is not mid-turn — an in-flight turn keeps its live agent.
       // Note: not `canIdleDestroy` (its status=running check would always veto
       // during runTurn, where status is set to "running" before ensureAgent).

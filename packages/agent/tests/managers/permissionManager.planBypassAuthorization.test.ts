@@ -8,7 +8,7 @@ import type { PermissionMode } from "../../src/types/permissions.js";
 import { Container } from "../../src/utils/container.js";
 
 const workdir = "/home/user/project";
-const planFilePath = "/home/user/.wave/plans/gentle-breeze.md";
+const planFilePath = "/home/user/.muse-work/plans/gentle-breeze.md";
 
 vi.mock("../../src/utils/globalLogger.js", () => ({
   logger: {

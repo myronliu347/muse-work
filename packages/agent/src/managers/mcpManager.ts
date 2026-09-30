@@ -25,6 +25,7 @@ import type {
   McpServerStatus,
 } from "../types/index.js";
 
+import { CONFIG_DIR_NAME } from "../utils/constants.js";
 interface McpConnection {
   client: Client;
   transport: Transport;
@@ -173,7 +174,7 @@ export class McpManager {
     autoConnect: boolean = false,
   ): Promise<void> {
     this.configPath = join(workdir, ".mcp.json");
-    this.userConfigPath = join(homedir(), ".wave", "mcp.json");
+    this.userConfigPath = join(homedir(), CONFIG_DIR_NAME, "mcp.json");
     this.workdir = workdir;
 
     // Register constructor-provided servers before loading .mcp.json
@@ -234,7 +235,7 @@ export class McpManager {
     }
 
     try {
-      // Load user-level (~/.wave/mcp.json) and project-level (<workdir>/.mcp.json)
+      // Load user-level (~/.muse-work/mcp.json) and project-level (<workdir>/.mcp.json)
       // configs, then merge with project taking precedence over user-level.
       const userConfig = await this.readConfigFile(this.userConfigPath);
       const projectConfig = await this.readConfigFile(this.configPath);
@@ -283,7 +284,7 @@ export class McpManager {
           const existingServer = this.servers.get(name);
 
           // Determine scope: plugin servers registered with pluginRoot keep
-          // their plugin scope; user-level names come from ~/.wave/mcp.json.
+          // their plugin scope; user-level names come from ~/.muse-work/mcp.json.
           let scope: McpServerStatus["scope"] = existingServer?.scope;
           if (!scope) {
             if (config.pluginRoot) {
@@ -343,7 +344,7 @@ export class McpManager {
   }
 
   /**
-   * The user-level MCP config path (~/.wave/mcp.json).
+   * The user-level MCP config path (~/.muse-work/mcp.json).
    */
   getUserConfigPath(): string {
     return this.userConfigPath;
@@ -528,7 +529,7 @@ export class McpManager {
   /**
    * Remove a server from a persisted config file (user or project scope),
    * then disconnect and drop it from the in-memory registry.
-   * @param scope - "user" removes from ~/.wave/mcp.json; "project" removes from <workdir>/.mcp.json
+   * @param scope - "user" removes from ~/.muse-work/mcp.json; "project" removes from <workdir>/.mcp.json
    * @param name - The server name
    * @returns true if the server was found and removed
    */

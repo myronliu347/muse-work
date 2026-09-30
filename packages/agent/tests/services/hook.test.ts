@@ -810,7 +810,7 @@ describe("Hook Services", () => {
         sessionId: "test-session-123",
         transcriptPath: "/path/to/transcript.json",
         cwd: "/test/main-repo",
-        worktreePath: "/test/main-repo/.wave/worktrees/my-feature",
+        worktreePath: "/test/main-repo/.muse-work/worktrees/my-feature",
       };
 
       const resultPromise = executeCommand("echo test", worktreeRemoveContext);
@@ -825,7 +825,7 @@ describe("Hook Services", () => {
       const parsedInput = JSON.parse(stdinData);
       expect(parsedInput.hook_event_name).toBe("WorktreeRemove");
       expect(parsedInput.worktree_path).toBe(
-        "/test/main-repo/.wave/worktrees/my-feature",
+        "/test/main-repo/.muse-work/worktrees/my-feature",
       );
     });
   });

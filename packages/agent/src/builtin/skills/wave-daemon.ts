@@ -16,10 +16,10 @@ The authoritative command reference is the Wave documentation, CLI → *Daemon c
 ## 0. Mental model
 
 - \`wave --daemon <socket>\` starts the daemon (server side). \`wave daemon <subcommand>\` is the client that talks to it. The two never interfere.
-- Every client subcommand connects to the fixed socket \`~/.wave/daemon.sock\` (\`$HOME/.wave/daemon.sock\`); there is no \`--socket\` override, so you are always talking to this machine's daemon for the current user.
+- Every client subcommand connects to the fixed socket \`~/.muse-work/daemon.sock\` (\`$HOME/.muse-work/daemon.sock\`); there is no \`--socket\` override, so you are always talking to this machine's daemon for the current user.
 - The daemon is **resident**: once started it does not exit when idle. It goes away only when stopped (\`wave daemon stop\`), killed, restarted after a CLI upgrade, or the machine restarts. It is not supervised by pm2/systemd, so it does not come back by itself.
 - Every subcommand except \`stop\` starts a daemon on demand when the socket is absent, then retries. "No daemon is running" is therefore never a problem to work around — just run the command.
-- Sessions are persisted as transcripts under \`~/.wave/projects/<project>/<sessionId>.jsonl\`, so a session can be re-hosted from disk after the daemon restarts.
+- Sessions are persisted as transcripts under \`~/.muse-work/projects/<project>/<sessionId>.jsonl\`, so a session can be re-hosted from disk after the daemon restarts.
 - All subcommands are non-interactive: results on stdout, diagnostics on stderr.
 
 ## 1. Daemon lifecycle
@@ -122,7 +122,7 @@ done
 
 That loop is a pattern to re-create per session with whatever background-execution mechanism your host offers (on Windows, PowerShell's \`Start-Sleep\` in place of \`sleep\`), and one poller per session so they do not interfere. Prefer \`wait\`: one process, no poll latency, and an exit code that tells idle (0) apart from waiting-for-approval (3) and from error (1, a destroyed session included). \`waiting for approval\` is an action signal (go answer it, §6); \`idle\` means the turn settled and is worth a look.
 
-Do not hand-parse the transcript jsonl (\`~/.wave/projects/<project>/<sessionId>.jsonl\`) to recover a report — \`status <id>\` / \`wait <id>\` are the supported paths. If you ever do read the raw file: each line is one message (\`{"timestamp":…,"role":…,"blocks":[…]}\`) and text lives in \`blocks[].content\` on the \`{"type":"text"}\` block. There is no \`blocks[].text\` field, so a lookup by \`text\` silently returns nothing and looks like "the session never reported".
+Do not hand-parse the transcript jsonl (\`~/.muse-work/projects/<project>/<sessionId>.jsonl\`) to recover a report — \`status <id>\` / \`wait <id>\` are the supported paths. If you ever do read the raw file: each line is one message (\`{"timestamp":…,"role":…,"blocks":[…]}\`) and text lives in \`blocks[].content\` on the \`{"type":"text"}\` block. There is no \`blocks[].text\` field, so a lookup by \`text\` silently returns nothing and looks like "the session never reported".
 
 An \`idle\` reading can also be a transient pause between turns (waiting on a verification run, a CI job, or a pending approval). Re-check \`status\` before concluding the task is finished, and if the session goes back to \`generating\`, block on it again (or \`wait --from-busy\` if the busy phase has not started yet).
 
@@ -175,7 +175,7 @@ wave daemon destroy <sessionId> --remove-worktree
 
 - \`destroy\` is idempotent, and does not require the session to be live in the registry.
 - \`--remove-worktree\` is **two steps**: it resolves the session's worktree from its working directory and removes it (path + branch, through the worktree-removal protocol, which also fires the WorktreeRemove hook) and then destroys the session. It refuses to remove the main working tree, so a session that was not created in a linked worktree just fails that step.
-- Because it is two steps, an interrupted \`destroy --remove-worktree\` can be **half-done**: the worktree directory, its branch and uncommitted changes are already gone while the session is still alive. After such an interruption verify all three: \`wave daemon list\` / \`status\` (is the session still there?), \`git worktree list\` and the repo's worktree directory (folder + branch), and \`~/.wave/projects/\` (transcript). A session that was killed but whose transcript survives is still recoverable from the jsonl.
+- Because it is two steps, an interrupted \`destroy --remove-worktree\` can be **half-done**: the worktree directory, its branch and uncommitted changes are already gone while the session is still alive. After such an interruption verify all three: \`wave daemon list\` / \`status\` (is the session still there?), \`git worktree list\` and the repo's worktree directory (folder + branch), and \`~/.muse-work/projects/\` (transcript). A session that was killed but whose transcript survives is still recoverable from the jsonl.
 - Destroy is destructive and irreversible: confirm with the user before running it.
 
 Whose session is it? Only tear down sessions you created with \`wave daemon create\`. Never destroy a session created by the desktop app — the user may still be using it — or one you do not recognize. If you cannot tell who created it, ask.

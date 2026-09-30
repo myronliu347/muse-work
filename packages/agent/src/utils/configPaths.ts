@@ -5,10 +5,11 @@
  * Supports both regular settings.json and local settings.local.json with proper priority.
  *
  * Priority system:
- * - User configs: ~/.wave/settings.json
- * - Local configs: {workdir}/.wave/settings.local.json > {workdir}/.wave/settings.json
+ * - User configs: ~/.muse-work/settings.json
+ * - Local configs: {workdir}/.muse-work/settings.local.json > {workdir}/.muse-work/settings.json
  * - Project configs override user configs (existing behavior)
  */
+import { CONFIG_DIR_NAME } from "./constants.js";
 
 import { join } from "path";
 import { homedir } from "os";
@@ -41,7 +42,7 @@ export function getBuiltinPluginsDir(): string {
  * @deprecated Use getUserConfigPaths() for better priority support
  */
 export function getUserConfigPath(): string {
-  return join(homedir(), ".wave", "settings.json");
+  return join(homedir(), CONFIG_DIR_NAME, "settings.json");
 }
 
 /**
@@ -49,7 +50,7 @@ export function getUserConfigPath(): string {
  * @deprecated Use getProjectConfigPaths() for better priority support
  */
 export function getProjectConfigPath(workdir: string): string {
-  return join(workdir, ".wave", "settings.json");
+  return join(workdir, CONFIG_DIR_NAME, "settings.json");
 }
 
 /**
@@ -57,7 +58,7 @@ export function getProjectConfigPath(workdir: string): string {
  * Returns array with .json only
  */
 export function getUserConfigPaths(): string[] {
-  const baseDir = join(homedir(), ".wave");
+  const baseDir = join(homedir(), CONFIG_DIR_NAME);
   return [join(baseDir, "settings.json")];
 }
 
@@ -65,7 +66,7 @@ export function getUserConfigPaths(): string[] {
  * Get the plugins directory path
  */
 export function getPluginsDir(): string {
-  return join(homedir(), ".wave", "plugins");
+  return join(homedir(), CONFIG_DIR_NAME, "plugins");
 }
 
 /**
@@ -73,7 +74,7 @@ export function getPluginsDir(): string {
  * Returns array with .local.json first, then .json
  */
 export function getProjectConfigPaths(workdir: string): string[] {
-  const baseDir = join(workdir, ".wave");
+  const baseDir = join(workdir, CONFIG_DIR_NAME);
   return [join(baseDir, "settings.local.json"), join(baseDir, "settings.json")];
 }
 

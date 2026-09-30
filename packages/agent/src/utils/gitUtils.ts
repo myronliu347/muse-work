@@ -261,10 +261,10 @@ export function ensureWaveRuntimeFilesExcluded(cwd: string): void {
 
     const block = [
       marker,
-      "**/.wave/scheduled_tasks.lock",
-      "**/.wave/scheduled_tasks.json",
-      "**/.wave/worktrees/",
-      "**/.wave/settings.local.json",
+      "**/.muse-work/scheduled_tasks.lock",
+      "**/.muse-work/scheduled_tasks.json",
+      "**/.muse-work/worktrees/",
+      "**/.muse-work/settings.local.json",
       "",
     ].join("\n");
 

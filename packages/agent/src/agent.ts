@@ -361,7 +361,7 @@ export class Agent {
   }
 
   /**
-   * Read the user-level memory file (~/.wave/AGENTS.md). Unlike the cached
+   * Read the user-level memory file (~/.muse-work/AGENTS.md). Unlike the cached
    * `userMemory` getter this always reads fresh content (the settings UI edits
    * the file while the agent may already hold a cache).
    */
@@ -385,7 +385,7 @@ export class Agent {
     return (await memoryService?.readMemoryFile(workdir)) ?? "";
   }
 
-  /** Persist the user-level memory file (~/.wave/AGENTS.md). */
+  /** Persist the user-level memory file (~/.muse-work/AGENTS.md). */
   public async writeUserMemoryContent(content: string): Promise<void> {
     const memoryService =
       this.container.get<import("./services/memory.js").MemoryService>(
@@ -1216,7 +1216,7 @@ export class Agent {
    *
    * The directory immediately becomes part of the Safe Zone (permission
    * checks and the system prompt), and with `remember: true` it is also
-   * persisted to `.wave/settings.local.json` `permissions.additionalDirectories`
+   * persisted to `.muse-work/settings.local.json` `permissions.additionalDirectories`
    * so future sessions pick it up automatically.
    *
    * @param directory Path of the directory to add (relative paths resolve against the workdir).
@@ -1264,7 +1264,7 @@ export class Agent {
   }
 
   /**
-   * Remove an MCP server from a persisted config file (user ~/.wave/mcp.json
+   * Remove an MCP server from a persisted config file (user ~/.muse-work/mcp.json
    * or project <workdir>/.mcp.json), then disconnect and drop it from memory.
    */
   public async removeMcpServer(
@@ -1274,7 +1274,7 @@ export class Agent {
     return await this.mcpManager.removeServerFromConfig(scope, serverName);
   }
 
-  /** The user-level MCP config path (~/.wave/mcp.json) */
+  /** The user-level MCP config path (~/.muse-work/mcp.json) */
   public getUserMcpConfigPath(): string {
     return this.mcpManager.getUserConfigPath();
   }
@@ -1488,7 +1488,7 @@ export class Agent {
 
   /**
    * Absolute path of the settings.json holding hooks at `scope` — user
-   * `~/.wave/settings.json` or project `<workdir>/.wave/settings.json`. Hosts
+   * `~/.muse-work/settings.json` or project `<workdir>/.muse-work/settings.json`. Hosts
    * pass it to the GUI so editors / file panels can open the file (they cannot
    * expand `~`).
    */

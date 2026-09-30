@@ -1702,7 +1702,7 @@ ${question}`;
           const triggeredRules = this.messageManager.processTriggeredRules();
           for (const rule of triggeredRules) {
             this.messageManager.addUserMessage({
-              content: `<!-- rule: ${rule.id} -->\n<system-reminder>\nThe following rules from .wave/rules apply to your work. Be sure to adhere to these instructions.\n\n${rule.content}\n</system-reminder>`,
+              content: `<!-- rule: ${rule.id} -->\n<system-reminder>\nThe following rules from .muse-work/rules apply to your work. Be sure to adhere to these instructions.\n\n${rule.content}\n</system-reminder>`,
               isMeta: true,
             });
           }

@@ -114,7 +114,7 @@ describe("MarketplaceService - General Git Support", () => {
 
       mockExistsSync.mockImplementation((p) => {
         const s = p.toString().replace(/\\/g, "/");
-        if (s.includes(".wave-plugin/marketplace.json")) {
+        if (s.includes(".muse-plugin/marketplace.json")) {
           return true;
         }
         // Mock that the target path doesn't exist yet
@@ -156,7 +156,7 @@ describe("MarketplaceService - General Git Support", () => {
 
       mockExistsSync.mockImplementation((p) => {
         const s = p.toString().replace(/\\/g, "/");
-        if (s.includes(".wave-plugin/marketplace.json")) {
+        if (s.includes(".muse-plugin/marketplace.json")) {
           return true;
         }
         if (s.includes("marketplaces/")) {
@@ -197,7 +197,7 @@ describe("MarketplaceService - General Git Support", () => {
 
       mockExistsSync.mockImplementation((p) => {
         const s = p.toString().replace(/\\/g, "/");
-        if (s.includes(".wave-plugin/marketplace.json")) {
+        if (s.includes(".muse-plugin/marketplace.json")) {
           return true;
         }
         if (s.includes("marketplaces/")) {

@@ -16,11 +16,11 @@ const tempDir = join(tmpdir(), `allowed-tools-demo-${Date.now()}`);
 console.log("🚀 Allowed Tools Slash Command Example");
 
 // Setup temp project with custom command
-await mkdir(join(tempDir, ".wave", "commands"), { recursive: true });
+await mkdir(join(tempDir, ".muse-work", "commands"), { recursive: true });
 
 // Create a custom command with allowed-tools
 await writeFile(
-  join(tempDir, ".wave", "commands", "test-allowed.md"),
+  join(tempDir, ".muse-work", "commands", "test-allowed.md"),
   `---
 name: test-allowed
 allowed-tools:
@@ -33,7 +33,7 @@ Write "hello" to a file named "hello.txt".
 
 // Create another custom command WITHOUT allowed-tools
 await writeFile(
-  join(tempDir, ".wave", "commands", "test-restricted.md"),
+  join(tempDir, ".muse-work", "commands", "test-restricted.md"),
   `---
 name: test-restricted
 ---

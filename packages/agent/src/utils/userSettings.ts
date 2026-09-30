@@ -1,7 +1,7 @@
 /**
  * 用户偏好设置（三端设置页读写的子集）的读写工具。
  *
- * 落点唯一 = 用户级 `~/.wave/settings.json`（`getUserConfigPaths()[0]`）：
+ * 落点唯一 = 用户级 `~/.muse-work/settings.json`（`getUserConfigPaths()[0]`）：
  * 三端（VS Code 扩展 / JetBrains 插件 / 桌面端）设置页保存的 AI 回复语言、
  * 上下文长度、自动记忆开关/轮次、服务端地址都写这个文件，由 SDK 的实时重载
  * （LiveConfigManager）在各会话下一轮开始时生效——不经 `AgentOptions`
@@ -116,7 +116,7 @@ export function maxInputTokensToContextLength(
   return Math.round(parsed / 1000);
 }
 
-/** 用户级 settings.json 路径（`~/.wave/settings.json`）。 */
+/** 用户级 settings.json 路径（`~/.muse-work/settings.json`）。 */
 export function userSettingsFilePath(): string {
   return getUserConfigPaths()[0];
 }
@@ -192,7 +192,7 @@ export function readUserPreferenceSettings(
  * 没有任何层提供时键缺失（设置页据此显示「未设置」态、按 SDK 默认值展示）。
  * 新增信息只在 `sources`：每个键恒有来源（缺省 `default`）。
  *
- * 注意归因范围：`project`（`.wave/settings.json`）/ `local`（`.wave/settings.local.json`）
+ * 注意归因范围：`project`（`.muse-work/settings.json`）/ `local`（`.muse-work/settings.local.json`）
  * 需要 workdir，而本 RPC 是刻意的无会话全局请求；`override` / `options` 是会话级
  * 语义。三者都不在本视图的归因范围内——被它们覆盖时这里仍按进程级各层给出
  * 「本层值」，见 spec core/agent-config.md 边界说明「用户偏好的层与来源」。
@@ -346,7 +346,7 @@ export async function updateUserPreferenceSettings(
     data.env = env;
   }
 
-  // 首次保存时 `~/.wave` 可能尚不存在（会话启动时文件不存在，场景 7），
+  // 首次保存时 `~/.muse-work` 可能尚不存在（会话启动时文件不存在，场景 7），
   // 原子写需要同目录可写，先确保目录存在。
   mkdirSync(dirname(filePath), { recursive: true });
   await atomicWriteFile(filePath, `${JSON.stringify(data, null, 2)}\n`);

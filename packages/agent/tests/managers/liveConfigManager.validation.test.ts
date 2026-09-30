@@ -49,10 +49,10 @@ describe("LiveConfigManager - Validation", () => {
       setOptions: vi.fn(),
       getConfigurationPaths: vi.fn().mockReturnValue({
         userPaths: ["/mock/user/settings.json"],
-        projectPaths: ["/mock/project/.wave/settings.json"],
+        projectPaths: ["/mock/project/.muse-work/settings.json"],
         allPaths: [
           "/mock/user/settings.json",
-          "/mock/project/.wave/settings.json",
+          "/mock/project/.muse-work/settings.json",
         ],
         existingPaths: [],
       }),
@@ -67,7 +67,7 @@ describe("LiveConfigManager - Validation", () => {
       "/mock/user/settings.json",
     ]);
     vi.mocked(configPaths.getProjectConfigPaths).mockReturnValue([
-      "/mock/project/.wave/settings.json",
+      "/mock/project/.muse-work/settings.json",
     ]);
 
     // Mock constructors
@@ -110,7 +110,7 @@ describe("LiveConfigManager - Validation", () => {
         error: expectedValid
           ? undefined
           : "Configuration validation failed: Invalid permissionMode",
-        sourcePath: "/mock/project/.wave/settings.json",
+        sourcePath: "/mock/project/.muse-work/settings.json",
         warnings: [],
       };
 

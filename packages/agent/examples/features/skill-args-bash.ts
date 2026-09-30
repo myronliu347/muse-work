@@ -7,7 +7,7 @@ import { mkdir, writeFile, rm } from "fs/promises";
 
 async function main() {
   const tempDir = join(tmpdir(), `skill-args-bash-demo-${Date.now()}`);
-  const skillsDir = join(tempDir, ".wave", "skills");
+  const skillsDir = join(tempDir, ".muse-work", "skills");
   const skillName = "test-skill";
   const skillPath = join(skillsDir, skillName);
 

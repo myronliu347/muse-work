@@ -26,7 +26,7 @@ import type { Logger } from "../types/index.js";
  * chokidar. `fs.realpathSync()` alone is not enough: only the `.native()`
  * variant expands short names.
  *
- * Paths that don't exist yet (`~/.wave/settings.json` on a fresh install) are
+ * Paths that don't exist yet (`~/.muse-work/settings.json` on a fresh install) are
  * handled by expanding the nearest existing ancestor and appending the
  * remaining segments back; if nothing can be resolved the input is returned
  * unchanged.

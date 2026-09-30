@@ -84,12 +84,12 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
     service = new FileWatcherService();
 
     await service.watchFile(
-      path.join(SHORT_ROOT, ".wave", "settings.json"),
+      path.join(SHORT_ROOT, ".muse-work", "settings.json"),
       () => {},
     );
 
     expect(mockWatcher().add).toHaveBeenCalledWith(
-      path.join(LONG_ROOT, ".wave", "settings.json"),
+      path.join(LONG_ROOT, ".muse-work", "settings.json"),
     );
   });
 
@@ -101,7 +101,7 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
       throw error;
     });
     service = new FileWatcherService();
-    const shortPath = path.join(SHORT_ROOT, ".wave", "settings.json");
+    const shortPath = path.join(SHORT_ROOT, ".muse-work", "settings.json");
 
     await service.watchFile(shortPath, () => {});
 
@@ -123,7 +123,7 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
     mockPlatform("linux");
     const nativeRealpath = vi.spyOn(fs.realpathSync, "native");
     service = new FileWatcherService();
-    const filePath = path.join(SHORT_ROOT, ".wave", "settings.json");
+    const filePath = path.join(SHORT_ROOT, ".muse-work", "settings.json");
 
     await service.watchFile(filePath, () => {});
 
@@ -135,11 +135,11 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
     mockPlatform("win32");
     mockShortFormRoot();
     service = new FileWatcherService();
-    const shortPath = path.join(SHORT_ROOT, ".wave", "settings.json");
+    const shortPath = path.join(SHORT_ROOT, ".muse-work", "settings.json");
     const events: FileWatchEvent[] = [];
 
     await service.watchFile(shortPath, (event) => events.push(event));
-    eventHandler("change")(path.join(LONG_ROOT, ".wave", "settings.json"));
+    eventHandler("change")(path.join(LONG_ROOT, ".muse-work", "settings.json"));
 
     expect(events).toHaveLength(1);
     expect(events[0].type).toBe("change");
@@ -149,7 +149,7 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
     mockPlatform("win32");
     mockShortFormRoot();
     service = new FileWatcherService();
-    const shortPath = path.join(SHORT_ROOT, ".wave", "settings.json");
+    const shortPath = path.join(SHORT_ROOT, ".muse-work", "settings.json");
     const events: FileWatchEvent[] = [];
 
     await service.watchFile(shortPath, (event) => events.push(event));
@@ -162,13 +162,13 @@ describe("FileWatcherService on Windows 8.3 short paths", () => {
     mockPlatform("win32");
     mockShortFormRoot();
     service = new FileWatcherService();
-    const shortPath = path.join(SHORT_ROOT, ".wave", "settings.json");
+    const shortPath = path.join(SHORT_ROOT, ".muse-work", "settings.json");
 
     await service.watchFile(shortPath, () => {});
     await service.unwatchFile(shortPath);
 
     expect(mockWatcher().unwatch).toHaveBeenCalledWith(
-      path.join(LONG_ROOT, ".wave", "settings.json"),
+      path.join(LONG_ROOT, ".muse-work", "settings.json"),
     );
   });
 });

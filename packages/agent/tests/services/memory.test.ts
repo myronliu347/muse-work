@@ -34,6 +34,7 @@ vi.mock("@/utils/globalLogger.js", () => ({
 vi.mock("@/utils/constants", () => ({
   USER_MEMORY_FILE: "/mock/user/AGENTS.md",
   DATA_DIRECTORY: "/mock/data",
+  CONFIG_DIR_NAME: ".muse-work",
 }));
 
 // Mock gitUtils
@@ -82,7 +83,7 @@ describe("MemoryService", () => {
       const encoded = Buffer.from(workdir).toString("base64");
       const expected = path.join(
         homedir(),
-        ".wave",
+        ".muse-work",
         "projects",
         encoded,
         "memory",
@@ -98,7 +99,7 @@ describe("MemoryService", () => {
       const encoded = Buffer.from(expectedProjectRoot).toString("base64");
       const expected = path.join(
         homedir(),
-        ".wave",
+        ".muse-work",
         "projects",
         encoded,
         "memory",
@@ -204,14 +205,14 @@ describe("MemoryService", () => {
       expect(result).toBe("User memory content");
     });
 
-    it("should use ~/.claude/AGENTS.md content when ~/.wave/AGENTS.md is the default empty template", async () => {
+    it("should use ~/.claude/AGENTS.md content when ~/.muse-work/AGENTS.md is the default empty template", async () => {
       const defaultTemplate =
         "# User Memory\n\nThis is the user-level memory file, recording important information and context across projects.\n\n";
       const claudeContent = "# Claude User Memory\n\nCustom claude memory data";
 
       vi.mocked(fsPromises.mkdir).mockResolvedValue(undefined);
       vi.mocked(fsPromises.access).mockResolvedValue(undefined);
-      // USER_MEMORY_FILE (~/.wave/AGENTS.md) returns the default template
+      // USER_MEMORY_FILE (~/.muse-work/AGENTS.md) returns the default template
       const readImpl = async (filePath: unknown): Promise<string> => {
         const p = String(filePath);
         if (p.includes(".claude")) return claudeContent;

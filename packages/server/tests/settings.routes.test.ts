@@ -34,7 +34,7 @@ describe("settings routes", () => {
     });
   });
 
-  it("GET/PUT /settings/raw edits ~/.wave/settings.json and invalidates identities", async () => {
+  it("GET/PUT /settings/raw edits ~/.muse-work/settings.json and invalidates identities", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;

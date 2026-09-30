@@ -213,7 +213,7 @@ describe("SubagentManager - permissionModeOverride", () => {
 
   describe("T03: Tool execution with permissionModeOverride respects allowedTools", () => {
     it("should deny writes to workdir when tool is not in allowedTools with dontAsk", async () => {
-      const memoryDir = "/tmp/test/.wave/memory";
+      const memoryDir = "/tmp/test/.muse-work/memory";
 
       const mockConfig: SubagentConfiguration = {
         name: "test-subagent",
@@ -271,7 +271,7 @@ describe("SubagentManager - permissionModeOverride", () => {
 
   describe("T04: Tool execution with permissionModeOverride allows matching allowedTools", () => {
     it("should allow writes to memory directory when tool matches allowedTools with dontAsk", async () => {
-      const memoryDir = "/tmp/test/.wave/memory";
+      const memoryDir = "/tmp/test/.muse-work/memory";
 
       const mockConfig: SubagentConfiguration = {
         name: "test-subagent",

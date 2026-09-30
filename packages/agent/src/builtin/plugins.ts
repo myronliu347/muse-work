@@ -1,5 +1,5 @@
 export const sddPlugin: Record<string, string> = {
-  "plugins/sdd/.wave-plugin/plugin.json": `{
+  "plugins/sdd/.muse-plugin/plugin.json": `{
   "name": "sdd",
   "description": "Spec-first workflow: specify skill, SessionStart guidance, and spec-count validation.",
   "version": "1.0.0",

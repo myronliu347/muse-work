@@ -2,7 +2,7 @@
  * AuthService
  *
  * Handles SSO authentication via the admin server.
- * Manages auth token storage in ~/.wave/auth.json.
+ * Manages auth token storage in ~/.muse-work/auth.json.
  */
 
 import {
@@ -21,7 +21,7 @@ import { createServer, Server } from "http";
 import { URL } from "url";
 import type { AuthConfig, AuthUser, TokenResponse } from "../types/auth.js";
 import { logger } from "../utils/globalLogger.js";
-import { DEFAULT_SERVER_URL } from "../utils/constants.js";
+import { DEFAULT_SERVER_URL, CONFIG_DIR_NAME } from "../utils/constants.js";
 
 /** Persistent anonymous ID for telemetry fallback when SSO is not authenticated. */
 let _anonymousId: string | undefined;
@@ -78,7 +78,7 @@ export class AuthService {
 
   getAuthPath(): string {
     const homeDir = os.homedir();
-    return path.join(homeDir, ".wave", "auth.json");
+    return path.join(homeDir, CONFIG_DIR_NAME, "auth.json");
   }
 
   loadAuth(): AuthConfig {
@@ -514,7 +514,7 @@ export function createAuthAwareFetch(innerFetch: typeof fetch): typeof fetch {
 /**
  * Get or create a persistent anonymous ID for telemetry.
  *
- * Stored in ~/.wave/config.json as { anonymousId: "..." }.
+ * Stored in ~/.muse-work/config.json as { anonymousId: "..." }.
  * Generated once on first run (32-byte random hex) and reused thereafter.
  * Falls back to an in-memory ID if file I/O fails.
  */
@@ -522,7 +522,7 @@ export function getOrCreateAnonymousId(): string {
   if (_anonymousId) return _anonymousId;
 
   try {
-    const configPath = path.join(os.homedir(), ".wave", "config.json");
+    const configPath = path.join(os.homedir(), CONFIG_DIR_NAME, "config.json");
     if (existsSync(configPath)) {
       const content = readFileSync(configPath, "utf-8");
       const config = JSON.parse(content) as { anonymousId?: string };

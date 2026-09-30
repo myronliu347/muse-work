@@ -239,7 +239,7 @@ name: test-skill
       );
     });
 
-    it("should detect project skills from .wave/skills path", () => {
+    it("should detect project skills from .muse-work/skills path", () => {
       const mockContent = `---
 name: project-skill
 description: A project skill
@@ -250,7 +250,7 @@ description: A project skill
       mockReadFileSync.mockReturnValue(mockContent);
 
       const result = parseSkillFile(
-        "/project/.wave/skills/project-skill/SKILL.md",
+        "/project/.muse-work/skills/project-skill/SKILL.md",
       );
 
       expect(result.isValid).toBe(true);
