@@ -664,8 +664,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
     const badge = section.querySelector(".issue-sidebar-priority-p0");
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
-    const expand = screen.getByTestId("desktop-session-issue-expand");
-    expect(expand).toHaveClass("codicon-chevron-down");
+    expect(
+      screen.getByTestId("desktop-session-issue-icon-spacer"),
+    ).toBeTruthy();
     expect(
       screen.getByTestId("desktop-session-issue-row-issue-1"),
     ).not.toHaveTextContent("写方案");
@@ -688,31 +689,21 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(issuesIdx).toBeLessThan(tasksIdx);
   });
 
-  it("labels nested issue sessions as 规划 / 执行 without repeating the issue title", () => {
+  it("does not list planning/execution sessions under the issue row", () => {
     renderSidebar({ issueGroups: [issueGroup({ agentMode: "split" })] });
-    expect(screen.getByTestId("desktop-session-item-plan-1")).toHaveTextContent(
-      "规划",
-    );
-    expect(screen.getByTestId("desktop-session-item-exec-1")).toHaveTextContent(
-      "执行",
-    );
     expect(
-      screen.getByTestId("desktop-session-item-plan-1"),
-    ).not.toHaveTextContent("【规划】");
+      screen.queryByTestId("desktop-session-item-plan-1"),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByTestId("desktop-session-item-plan-1"),
-    ).not.toHaveTextContent("设计评审");
-    expect(
-      screen.getByTestId("desktop-session-item-plan-1"),
-    ).not.toHaveTextContent("· 规划");
+      screen.queryByTestId("desktop-session-item-exec-1"),
+    ).not.toBeInTheDocument();
   });
 
-  it("single-agent issue uses the issue row as the session, not a nested 规划 row", () => {
-    const onSelectSession = vi.fn();
+  it("single-agent issue row opens issue detail without nested session rows", () => {
+    const onSelectIssue = vi.fn();
     renderSidebar({
-      onSelectSession,
+      onSelectIssue,
       currentSessionId: "plan-1",
-      onRenameSession: vi.fn(),
       issueGroups: [
         issueGroup({
           agentMode: "single",
@@ -735,15 +726,23 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).not.toBeInTheDocument();
     const row = screen.getByTestId("desktop-session-issue-row-issue-1");
     expect(row).toHaveTextContent("高码 SDD");
-    expect(row.querySelector(".desktop-session-title")).toBeNull();
     expect(row).toHaveClass("issue-sidebar-row--current");
-    expect(row.querySelector('[title="双击修改标题"]')).toBeNull();
     expect(
       screen.getByTestId("desktop-session-worktree-badge-plan-1"),
     ).toBeTruthy();
 
     fireEvent.click(row);
-    expect(onSelectSession).toHaveBeenCalledWith("/work/demo", "plan-1");
+    expect(onSelectIssue).toHaveBeenCalledWith("issue-1");
+  });
+
+  it("split issue row calls onSelectIssue instead of expanding nested sessions", () => {
+    const onSelectIssue = vi.fn();
+    renderSidebar({
+      onSelectIssue,
+      issueGroups: [issueGroup({ agentMode: "split" })],
+    });
+    fireEvent.click(screen.getByTestId("desktop-session-issue-row-issue-1"));
+    expect(onSelectIssue).toHaveBeenCalledWith("issue-1");
   });
 
   it("single-agent issue row shows running/waiting/unread status instead of priority flag", () => {
@@ -807,17 +806,6 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
-  it("does not offer rename on nested issue role labels", () => {
-    renderSidebar({
-      issueGroups: [issueGroup({ agentMode: "split" })],
-      onRenameSession: vi.fn(),
-    });
-    const title = screen
-      .getByTestId("desktop-session-item-plan-1")
-      .querySelector(".desktop-session-title");
-    expect(title).not.toHaveAttribute("title", "双击修改标题");
-  });
-
   it("counts 待办事项 by Issue group, not nested sessions", () => {
     renderSidebar({
       issueGroups: [
@@ -856,6 +844,9 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
     expect(css).toMatch(
       /\.issue-sidebar-status\s*\{[^}]*display:\s*none/s,
+    );
+    expect(css).toMatch(
+      /\.issue-sidebar-row:hover \.issue-sidebar-priority/s,
     );
   });
 

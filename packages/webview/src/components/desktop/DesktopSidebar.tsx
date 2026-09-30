@@ -91,6 +91,8 @@ export interface DesktopSidebarProps {
   onNewIssue?: () => void;
   /** 无会话 Issue 空态 → 打开会话。 */
   onOpenPlanning?: (issueId: string) => void;
+  /** 进入 Issue 详情（主区 Tab 切换规划/执行）。 */
+  onSelectIssue?: (issueId: string) => void;
   /** 分组行更多菜单 → 完成 Issue。 */
   onCompleteIssue?: (issueId: string) => void;
   /** 分组行更多菜单 → 取消 Issue。 */
@@ -135,6 +137,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onRevealInFinder,
   onNewIssue,
   onOpenPlanning,
+  onSelectIssue,
   onCompleteIssue,
   onCancelIssue,
   popoEnabled,
@@ -238,6 +241,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onRevealInFinder={onRevealInFinder}
         onNewIssue={onNewIssue}
         onOpenPlanning={onOpenPlanning}
+        onSelectIssue={onSelectIssue}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
         popoEnabled={popoEnabled}

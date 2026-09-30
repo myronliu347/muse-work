@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useReducer,
   useMemo,
@@ -17,6 +18,16 @@ import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
 import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
+import {
+  IssueSessionHeader,
+  type IssueViewTab,
+} from "./issue/IssueSessionHeader";
+import {
+  findIssueGroupForSession,
+  isSplitIssueGroup,
+  issueGroupSessionWorkdir,
+  resolveIssuePlanningSessionId,
+} from "../utils/issueGroups";
 import { PopoUiProvider, usePopoUi } from "./popo/popoUi";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
 import { useAgentsStore } from "../stores/agentsStore";
@@ -590,6 +601,86 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
 
   const showNewSessionPage = isDraftSession && state.initialized;
 
+  const activeIssueGroup = useMemo(
+    () =>
+      host?.type === "desktop"
+        ? findIssueGroupForSession(host.issueGroups, state.currentSession?.id)
+        : undefined,
+    [host, state.currentSession?.id],
+  );
+  const issueViewTab: IssueViewTab = paneUi.issueViewTab ?? "planning";
+
+  useEffect(() => {
+    if (!activeIssueGroup) return;
+    const sid = state.currentSession?.id;
+    if (sid === activeIssueGroup.executionSessionId) {
+      patchPane({ issueViewTab: "execution" });
+    } else if (sid === activeIssueGroup.planningSessionId) {
+      patchPane({ issueViewTab: "planning" });
+    }
+  }, [
+    activeIssueGroup?.issueId,
+    activeIssueGroup?.executionSessionId,
+    activeIssueGroup?.planningSessionId,
+    state.currentSession?.id,
+    patchPane,
+  ]);
+
+  const handleIssueTabChange = useCallback(
+    (tab: IssueViewTab) => {
+      if (!activeIssueGroup || host?.type !== "desktop") return;
+      const sessionId =
+        tab === "execution"
+          ? activeIssueGroup.executionSessionId
+          : resolveIssuePlanningSessionId(activeIssueGroup);
+      if (!sessionId) return;
+      patchPane({ issueViewTab: tab });
+      host.onSelectSession(
+        issueGroupSessionWorkdir(
+          activeIssueGroup,
+          sessionId,
+          effectiveWorkdir ?? host.workdir,
+        ),
+        sessionId,
+      );
+    },
+    [activeIssueGroup, host, patchPane, effectiveWorkdir],
+  );
+
+  const handleSelectIssue = useCallback(
+    (issueId: string) => {
+      if (host?.type !== "desktop") return;
+      const group = host.issueGroups?.find((g) => g.issueId === issueId);
+      if (!group) return;
+      const sessionId = resolveIssuePlanningSessionId(group);
+      if (!sessionId) return;
+      patchPane({ issueViewTab: "planning" });
+      host.onSelectSession(
+        issueGroupSessionWorkdir(
+          group,
+          sessionId,
+          effectiveWorkdir ?? host.workdir,
+        ),
+        sessionId,
+      );
+    },
+    [host, patchPane, effectiveWorkdir],
+  );
+
+  const showIssueChrome = Boolean(activeIssueGroup);
+  const issueSessionHeader =
+    showIssueChrome && activeIssueGroup ? (
+      <IssueSessionHeader
+        title={activeIssueGroup.title}
+        activeTab={issueViewTab}
+        onTabChange={handleIssueTabChange}
+        showTabs={Boolean(
+          activeIssueGroup && isSplitIssueGroup(activeIssueGroup),
+        )}
+        executionEnabled={Boolean(activeIssueGroup.executionSessionId)}
+      />
+    ) : undefined;
+
   const composer = (
     <ChatComposer
       ref={messageInputRef}
@@ -795,6 +886,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       onConfirm={handleConfirmation}
       onReject={handleRejection}
       composer={composer}
+      issueSessionHeader={issueSessionHeader}
+      hideChatTitle={showIssueChrome}
     />
   );
 
@@ -804,6 +897,11 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     const issueSidebarProps = {
       issueGroups: host.issueGroups,
       onNewIssue: () => setShowNewIssue(true),
+      onSelectIssue: (issueId: string) => {
+        popoUi.selectChat(null);
+        setView("chat");
+        handleSelectIssue(issueId);
+      },
       onOpenPlanning: (issueId: string) => setPlanningIssueId(issueId),
       onCompleteIssue: (issueId: string) => {
         void popoApi

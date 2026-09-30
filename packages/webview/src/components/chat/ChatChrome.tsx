@@ -1,5 +1,8 @@
-import { forwardRef, type Dispatch } from "react";
+import React, { forwardRef, type Dispatch } from "react";
 import { ChatHeader } from "./ChatHeader";
+import { Tooltip } from "../shared/Tooltip";
+import { CommandsMenu } from "../shared/CommandsMenu";
+import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { ChatBody, type ChatBodyProps } from "./ChatBody";
 import type {
   ChatAction,
@@ -10,7 +13,6 @@ import type {
 } from "../../types";
 import type { PaneGitBranches } from "../../stores";
 import type { ChatAppCore } from "../../hooks/useChatAppCore";
-
 export interface ChatChromeProps extends ChatBodyProps {
   onNewSession: () => void;
   onAbortMessage: () => void;
@@ -29,6 +31,9 @@ export interface ChatChromeProps extends ChatBodyProps {
   checkedPanels: DesktopPanelKind[];
   onToggleDock: () => void;
   vscode: VsCodeApi;
+  /** Issue 详情：标题 + 规划/执行 Tab，渲染在顶栏与会话正文之间。 */
+  issueSessionHeader?: React.ReactNode;
+  hideChatTitle?: boolean;
 }
 
 /**
@@ -58,6 +63,8 @@ export const ChatChrome = forwardRef<
     checkedPanels,
     onToggleDock,
     vscode,
+    issueSessionHeader,
+    hideChatTitle = false,
     ...bodyProps
   },
   ref,
@@ -75,22 +82,7 @@ export const ChatChrome = forwardRef<
         }
       : undefined;
 
-  return (
-    <>
-      <ChatHeader
-        onNewSession={onNewSession}
-        newSessionDisabled={false}
-        onAbortMessage={onAbortMessage}
-        messages={messages}
-        currentSession={currentSession}
-        onOpenSettings={onOpenSettings}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        isAuthenticated={isAuthenticated}
-        hideSessionButtons
-        hideMoreButton
-        gitContext={headerGitContext}
-        commandMenuItems={[
+  const commandMenuItems = [
           {
             id: "compact",
             label: "压缩会话",
@@ -139,24 +131,76 @@ export const ChatChrome = forwardRef<
                 payload: { type: "workflows" },
               }),
           },
-        ]}
-        panelToggle={
-          checkedPanels.length === 0
-            ? {
-                onToggleDock,
-              }
-            : undefined
+        ];
+  const panelToggle =
+    checkedPanels.length === 0
+      ? {
+          onToggleDock,
         }
-      />
-      <ChatBody
-        ref={ref}
-        vscode={vscode}
-        messages={messages}
-        currentSession={currentSession}
-        isAuthenticated={isAuthenticated}
-        onLogin={onLogin}
-        {...bodyProps}
-      />
+      : undefined;
+  const issueHeaderToolbar = (
+    <div className="header-buttons">
+      {commandMenuItems.length > 0 ? (
+        <Tooltip text="会话指令" position="bottom">
+          <CommandsMenu
+            items={commandMenuItems}
+            trigger={
+              <button
+                className="header-button header-command-menu-btn"
+                data-testid="header-command-menu-btn"
+                aria-label="会话指令"
+              >
+                <i className="codicon codicon-ellipsis" />
+              </button>
+            }
+          />
+        </Tooltip>
+      ) : null}
+      {panelToggle ? <PanelToggleControl {...panelToggle} /> : null}
+    </div>
+  );
+
+  const issueHeaderWithToolbar =
+    issueSessionHeader && hideChatTitle
+      ? React.isValidElement(issueSessionHeader)
+        ? React.cloneElement(issueSessionHeader, {
+            actions: issueHeaderToolbar,
+          })
+        : issueSessionHeader
+      : issueSessionHeader;
+
+  return (
+    <>
+      {!hideChatTitle ? (
+        <ChatHeader
+          onNewSession={onNewSession}
+          newSessionDisabled={false}
+          onAbortMessage={onAbortMessage}
+          messages={messages}
+          currentSession={currentSession}
+          onOpenSettings={onOpenSettings}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          isAuthenticated={isAuthenticated}
+          hideSessionButtons
+          hideMoreButton
+          gitContext={headerGitContext}
+          commandMenuItems={commandMenuItems}
+          panelToggle={panelToggle}
+        />
+      ) : null}
+      <div className="chat-conversation-stack">
+        {issueHeaderWithToolbar}
+        <ChatBody
+          ref={ref}
+          vscode={vscode}
+          messages={messages}
+          currentSession={currentSession}
+          isAuthenticated={isAuthenticated}
+          onLogin={onLogin}
+          {...bodyProps}
+        />
+      </div>
     </>
   );
 });

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type { Message, UpdateToast } from "../types";
 import type { RewindCheckpoint } from "../components/dialogs/RewindPopup";
+import type { IssueViewTab } from "../components/issue/IssueSessionHeader";
 import { paneStoreKey } from "./paneKey";
 
 export interface AgentTranscriptState {
@@ -32,6 +33,8 @@ export interface PaneUiSlice {
   worktreeBranch: string;
   worktreeChecked: boolean;
   paneGitBranches: PaneGitBranches | null;
+  /** Issue 详情内「规划 / 执行」Tab，仅 split Issue 使用。 */
+  issueViewTab: IssueViewTab;
 }
 
 export function emptyPaneUi(): PaneUiSlice {
@@ -50,6 +53,7 @@ export function emptyPaneUi(): PaneUiSlice {
     worktreeBranch: "",
     worktreeChecked: false,
     paneGitBranches: null,
+    issueViewTab: "planning",
   };
 }
 

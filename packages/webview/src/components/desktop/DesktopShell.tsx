@@ -44,6 +44,7 @@ interface DesktopShellProps {
   issueGroups?: DesktopHostProps["issueGroups"];
   onNewIssue?: () => void;
   onOpenPlanning?: (issueId: string) => void;
+  onSelectIssue?: (issueId: string) => void;
   onCompleteIssue?: (issueId: string) => void;
   onCancelIssue?: (issueId: string) => void;
   api: MuseApiClient;
@@ -78,6 +79,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   issueGroups,
   onNewIssue,
   onOpenPlanning,
+  onSelectIssue,
   onCompleteIssue,
   onCancelIssue,
   api,
@@ -675,6 +677,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         issueGroups={issueGroups ?? host.issueGroups}
         onNewIssue={onNewIssue}
         onOpenPlanning={onOpenPlanning}
+        onSelectIssue={onSelectIssue}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
         currentSessionId={

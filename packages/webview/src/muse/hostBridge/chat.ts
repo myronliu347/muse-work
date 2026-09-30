@@ -358,6 +358,7 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
   async function handleSendMessage(msg: {
     text?: string;
     images?: unknown;
+    sessionId?: string;
   }): Promise<void> {
     const text = (msg.text ?? "").trim();
     const images = ctx.normalizeOutboundImages(msg.images);
@@ -393,7 +394,17 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
     }
 
     try {
-      const sid = await ensureSession();
+      let sid = ctx.sessionId;
+      const targetId =
+        typeof msg.sessionId === "string" && msg.sessionId.trim()
+          ? msg.sessionId.trim()
+          : undefined;
+      if (targetId && targetId !== ctx.sessionId) {
+        await ctx.activateSession(targetId);
+        sid = ctx.sessionId;
+      } else {
+        sid = await ensureSession();
+      }
       ctx.streamingMessageId = null;
       ctx.knownAssistantIds.clear();
       ctx.aborted = false;

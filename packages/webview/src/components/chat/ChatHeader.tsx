@@ -20,6 +20,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isAuthenticated,
   hideSessionButtons = false,
   hideMoreButton = false,
+  hideTitle = false,
   panelToggle,
   gitContext,
   commandMenuItems,
@@ -35,26 +36,28 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div className="chat-header" data-testid="chat-header">
-      <div className="header-title-group">
-        {hasWorktreeMeta ? (
-          <Tooltip
-            text=""
-            content={
-              <WorktreeInfoCard
-                branch={gitContext.branch}
-                worktreeName={gitContext.worktreeName}
-                workdir={gitContext.workdir}
-              />
-            }
-            position="bottom-right"
-            className="chat-header-title-tooltip"
-          >
+      {!hideTitle ? (
+        <div className="header-title-group">
+          {hasWorktreeMeta ? (
+            <Tooltip
+              text=""
+              content={
+                <WorktreeInfoCard
+                  branch={gitContext.branch}
+                  worktreeName={gitContext.worktreeName}
+                  workdir={gitContext.workdir}
+                />
+              }
+              position="bottom-right"
+              className="chat-header-title-tooltip"
+            >
+              <div className="header-title">{title}</div>
+            </Tooltip>
+          ) : (
             <div className="header-title">{title}</div>
-          </Tooltip>
-        ) : (
-          <div className="header-title">{title}</div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : null}
       <div className="header-buttons">
         {commandMenuItems && commandMenuItems.length > 0 && (
           <Tooltip text="会话指令" position="bottom">

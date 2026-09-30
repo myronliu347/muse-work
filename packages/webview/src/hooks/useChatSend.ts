@@ -14,6 +14,10 @@ import type {
 } from "../types";
 import type { PaneGitBranches } from "../stores";
 import type { ChatAppCore } from "./useChatAppCore";
+import {
+  findIssueGroupForSession,
+  isSplitIssueGroup,
+} from "../utils/issueGroups";
 
 interface UseChatSendParams {
   postToHost: ChatAppCore["postToHost"];
@@ -195,12 +199,23 @@ export function useChatSend({
         return;
       }
 
-      // Send to extension
+      const currentId = stateRef.current.currentSession?.id;
+      const issueGroup =
+        host?.type === "desktop"
+          ? findIssueGroupForSession(host.issueGroups, currentId)
+          : undefined;
+      const planningSessionId =
+        issueGroup && isSplitIssueGroup(issueGroup)
+          ? issueGroup.planningSessionId
+          : undefined;
+
+      // Send to extension（split Issue：无论当前 Tab，消息只进规划会话）
       postToHost({
         command: "sendMessage",
         text: trimmedText,
         images: images,
         force: force,
+        ...(planningSessionId ? { sessionId: planningSessionId } : {}),
       });
     },
     [

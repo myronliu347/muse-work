@@ -652,6 +652,8 @@ export interface ChatHeaderProps {
   hideMoreButton?: boolean;
   // Desktop host: conversation-level panel toggle (preview/diff/terminal).
   panelToggle?: PanelToggleProps;
+  /** Issue 详情：标题与 Tab 已在 IssueSessionHeader 展示，隐藏会话标题。 */
+  hideTitle?: boolean;
   /** Desktop: read-only branch / worktree badge in the title bar. */
   gitContext?: { branch?: string; worktreeName?: string; workdir?: string };
   /** 会话标题后的指令下拉菜单项（压缩/清空/回滚/MCP/状态/工作流）。 */

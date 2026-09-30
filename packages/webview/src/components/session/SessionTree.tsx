@@ -247,6 +247,8 @@ export interface SessionTreeProps {
   onNewIssue?: () => void;
   /** 无会话的 Issue 空态：「打开会话」。 */
   onOpenPlanning?: (issueId: string) => void;
+  /** 进入 Issue 详情（规划/执行 Tab 在主区，侧栏不再展开子会话）。 */
+  onSelectIssue?: (issueId: string) => void;
   /** 分组行更多菜单「完成」。 */
   onCompleteIssue?: (issueId: string) => void;
   /** 分组行更多菜单「取消」。 */
@@ -298,6 +300,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   onRevealInFinder,
   onNewIssue,
   onOpenPlanning,
+  onSelectIssue,
   onCompleteIssue,
   onCancelIssue,
   popoEnabled,
@@ -321,9 +324,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     kind: "complete" | "cancel";
   } | null>(null);
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [collapsedIssues, setCollapsedIssues] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
@@ -401,15 +401,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
       const next = new Set(prev);
       if (next.has(sectionId)) next.delete(sectionId);
       else next.add(sectionId);
-      return next;
-    });
-  };
-
-  const toggleIssueCollapsed = (issueId: string) => {
-    setCollapsedIssues((prev) => {
-      const next = new Set(prev);
-      if (next.has(issueId)) next.delete(issueId);
-      else next.add(issueId);
       return next;
     });
   };
@@ -710,41 +701,47 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           ) : (
             <>
               {groups.map((group) => {
-                const collapsed = collapsedIssues.has(group.issueId);
                 const priority = group.priority || "p1";
                 const sessions = group.sessions ?? [];
                 const statusLabel =
                   ISSUE_STATUS_LABEL[group.status] ?? group.status;
-                const boundSession = isSingleAgentIssue(group)
-                  ? sessions[0]
-                  : undefined;
-                const boundCurrent =
-                  Boolean(boundSession) &&
-                  boundSession!.sessionId === currentSessionId;
-                const boundVisible =
-                  Boolean(boundSession) &&
-                  !boundCurrent &&
-                  (visibleSessionIds?.includes(boundSession!.sessionId) ??
-                    false);
-                const boundRunning =
-                  Boolean(boundSession) &&
-                  (boundSession!.running ||
-                    (boundSession!.sessionId === currentSessionId &&
-                      isStreaming));
-                const boundWaiting = Boolean(
-                  boundSession?.waitingConfirmation,
+                const issueCurrent = Boolean(
+                  currentSessionId &&
+                    sessions.some((s) => s.sessionId === currentSessionId),
                 );
-                const boundUnread =
-                  Boolean(boundSession?.unreadDone) && !boundCurrent;
-                const hasNestedIssueSessions =
-                  !boundSession && sessions.length > 0;
-                const boundStatusIcon = boundWaiting ? (
+                const issueVisible =
+                  !issueCurrent &&
+                  Boolean(
+                    visibleSessionIds?.some((id) =>
+                      sessions.some((s) => s.sessionId === id),
+                    ),
+                  );
+                const statusSession =
+                  sessions.find(
+                    (s) =>
+                      s.waitingConfirmation ||
+                      s.running ||
+                      s.unreadDone,
+                  ) ?? sessions[0];
+                const statusCurrent =
+                  statusSession?.sessionId === currentSessionId;
+                const statusRunning =
+                  Boolean(statusSession?.running) ||
+                  (statusCurrent && isStreaming);
+                const statusWaiting = Boolean(statusSession?.waitingConfirmation);
+                const statusUnread =
+                  Boolean(statusSession?.unreadDone) && !statusCurrent;
+                const statusIcon = statusWaiting ? (
                   <SessionStatusGlyph kind="waiting" />
-                ) : boundRunning ? (
+                ) : statusRunning ? (
                   <SessionStatusGlyph kind="running" />
-                ) : boundUnread ? (
+                ) : statusUnread ? (
                   <span className="desktop-session-unread-dot" />
                 ) : null;
+                const worktreeSession = sessions.find((s) => s.hasWorktree);
+                const activeSession =
+                  sessions.find((s) => s.sessionId === currentSessionId) ??
+                  statusSession;
                 return (
                   <div
                     key={group.issueId}
@@ -766,23 +763,25 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       wrap={false}
                     >
                       <div
-                        className={`issue-sidebar-row${boundCurrent ? " issue-sidebar-row--current" : ""}${boundVisible ? " issue-sidebar-row--visible" : ""}`}
+                        className={`issue-sidebar-row${issueCurrent ? " issue-sidebar-row--current" : ""}${issueVisible ? " issue-sidebar-row--visible" : ""}`}
                         onClick={(e) => {
-                          if (boundSession) {
-                            const workdir = boundSession.workdir ?? "";
-                            if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
-                              onOpenPane(workdir, boundSession.sessionId);
-                            } else {
-                              onSelectSession(workdir, boundSession.sessionId);
-                            }
-                            return;
-                          }
                           if (sessions.length === 0 && onOpenPlanning) {
                             onOpenPlanning(group.issueId);
                             return;
                           }
-                          if (hasNestedIssueSessions) {
-                            toggleIssueCollapsed(group.issueId);
+                          if (onSelectIssue) {
+                            if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
+                              const sid =
+                                group.planningSessionId ??
+                                sessions[0]?.sessionId;
+                              const wd =
+                                sessions.find((s) => s.sessionId === sid)
+                                  ?.workdir ?? "";
+                              if (sid) onOpenPane(wd, sid);
+                            } else {
+                              onSelectIssue(group.issueId);
+                            }
+                            return;
                           }
                         }}
                         data-testid={`desktop-session-issue-row-${group.issueId}`}
@@ -796,15 +795,10 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           className="desktop-session-workdir-icon-slot"
                           aria-hidden="true"
                         >
-                          {boundStatusIcon ? (
+                          {statusIcon ? (
                             <span className="desktop-session-workdir-folder">
-                              {boundStatusIcon}
+                              {statusIcon}
                             </span>
-                          ) : hasNestedIssueSessions ? (
-                            <span
-                              className={`codicon codicon-chevron-down desktop-session-issue-expand${collapsed ? " desktop-session-issue-expand--collapsed" : ""}`}
-                              data-testid="desktop-session-issue-expand"
-                            />
                           ) : (
                             <span
                               className="desktop-session-issue-icon-spacer"
@@ -826,13 +820,13 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                               {statusLabel}
                             </span>
                           ) : null}
-                          {boundSession?.hasWorktree ? (
+                          {worktreeSession ? (
                             <span
                               className="desktop-session-worktree-badge"
-                              data-testid={`desktop-session-worktree-badge-${boundSession.sessionId}`}
+                              data-testid={`desktop-session-worktree-badge-${worktreeSession.sessionId}`}
                               title={
-                                boundSession.worktreeName
-                                  ? `worktree ${boundSession.worktreeName}`
+                                worktreeSession.worktreeName
+                                  ? `worktree ${worktreeSession.worktreeName}`
                                   : undefined
                               }
                             >
@@ -842,15 +836,15 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                               />
                             </span>
                           ) : null}
-                          {boundSession?.lastActiveAt ? (
+                          {activeSession?.lastActiveAt ? (
                             <span
                               className="desktop-session-active-at"
-                              data-testid={`desktop-session-active-at-${boundSession.sessionId}`}
+                              data-testid={`desktop-session-active-at-${activeSession.sessionId}`}
                               title={new Date(
-                                boundSession.lastActiveAt,
+                                activeSession.lastActiveAt,
                               ).toLocaleString()}
                             >
-                              {formatRelativeActiveAt(boundSession.lastActiveAt)}
+                              {formatRelativeActiveAt(activeSession.lastActiveAt)}
                             </span>
                           ) : null}
                           <span
@@ -882,26 +876,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         </span>
                       </div>
                     </Tooltip>
-                    {boundSession || sessions.length === 0 ? null : (
-                    <CollapsibleBody open={open && !collapsed}>
-                        <ul className="desktop-session-items desktop-session-items--nested">
-                          {sessions.map((session) => {
-                            const role = issueSessionRole(
-                              session.sessionId,
-                              group,
-                            );
-                            return renderSession(session, {
-                              hideWorkdir: true,
-                              // 待办事项（Issue 规划/执行）会话不允许置顶/删除
-                              hideActions: true,
-                              displayTitle: role
-                                ? formatIssueSessionTitle(role)
-                                : undefined,
-                            });
-                          })}
-                        </ul>
-                    </CollapsibleBody>
-                    )}
                   </div>
                 );
               })}

@@ -656,6 +656,18 @@
   display: block;
 }
 
+.issue-sidebar-row:hover .issue-sidebar-priority,
+.issue-sidebar-row:hover .desktop-session-active-at,
+.issue-sidebar-row:hover .desktop-session-worktree-badge {
+  display: none;
+}
+
+.issue-sidebar-row:hover .issue-sidebar-title,
+.issue-sidebar-row--current:hover .issue-sidebar-title,
+.issue-sidebar-row--visible:hover .issue-sidebar-title {
+  padding-right: 56px;
+}
+
 .issue-sidebar-status-executing {
   color: var(--accent-11);
 }
@@ -1816,7 +1828,29 @@ body.is-panel-resizing * {
 .desktop-pane-row > .desktop-pane:first-child .welcome-view-shell,
 .desktop-layout > .chat-container .popo-chat-detail-view,
 .desktop-pane-row > .desktop-pane:first-child .popo-chat-detail-view {
+  box-sizing: border-box;
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+  padding-right: var(--space-4);
+  padding-bottom: var(--space-5);
+  padding-top: calc(var(--desktop-shell-titlebar-height) + var(--space-5));
+}
+
+.desktop-layout > .chat-container .issue-session-header,
+.desktop-pane-row > .desktop-pane:first-child .issue-session-header {
+  box-sizing: border-box;
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+}
+
+.desktop-layout .issue-session-header-title {
+  -webkit-app-region: drag;
+}
+
+.desktop-layout .issue-session-segmented,
+.desktop-layout .issue-session-header-actions,
+.desktop-layout .issue-session-header-actions button,
+.desktop-layout .issue-session-header-actions [role="button"],
+.desktop-layout .issue-session-segment {
+  -webkit-app-region: no-drag;
 }
 
 .desktop-layout > .chat-container .queue-edit-warning-banner,
