@@ -1,0 +1,93 @@
+packages/agent/src/managers/skillManager.ts
+  98ab170ac30fbe53 323-324,327,330
+packages/webview/tests/webview/richInputFeatures.test.tsx
+  98ab170ac30fbe53 175
+packages/agent/tests/types/hooks.test.ts
+  98ab170ac30fbe53 197,223-224
+packages/agent/src/managers/aiManager.ts
+  98ab170ac30fbe53 324
+packages/agent/tests/tools/bashTool.test.ts
+  98ab170ac30fbe53 162
+packages/webview/tests/webview/selectionFeature.test.tsx
+  98ab170ac30fbe53 36
+packages/agent/src/managers/MemoryRuleManager.ts
+  98ab170ac30fbe53 67
+packages/agent/src/types/hooks.ts
+  98ab170ac30fbe53 192
+packages/agent/src/types/plugins.ts
+  98ab170ac30fbe53 45
+packages/agent/src/managers/hookManager.ts
+  98ab170ac30fbe53 130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "68834b5b58b4e8b6c2908d63cccaa4c28b20e235",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 15,
+      "total_deletions": 14,
+      "accepted_lines": 15,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/tests/types/hooks.test.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/managers/MemoryRuleManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/types/plugins.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/richInputFeatures.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/selectionFeature.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/tools/bashTool.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/types/hooks.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
