@@ -1,7 +1,7 @@
 /**
  * Configuration Service
  *
- * Centralized service for loading, validating, and managing Wave configuration files.
+ * Centralized service for loading, validating, and managing Muse settings.json.
  * Replaces distributed configuration logic previously embedded in hook.ts.
  */
 
@@ -1078,7 +1078,7 @@ export class ConfigurationService {
   }
 
   /**
-   * Load Wave configuration from a JSON file
+   * Load Muse settings from a JSON file
    * Supports both hooks and environment variables with proper validation
    */
   loadWaveConfigFromFile(filePath: string): WaveConfiguration | null {
@@ -1197,7 +1197,7 @@ export function mergeEnvironmentConfig(
 }
 
 /**
- * Load Wave configuration from a JSON file
+ * Load Muse settings from a JSON file
  * Supports both hooks and environment variables with proper validation
  */
 export function loadWaveConfigFromFile(
@@ -1264,7 +1264,7 @@ export function loadUserConfigEnv(): Record<string, string> {
 }
 
 /**
- * Load and merge Wave configuration from both user and project sources
+ * Load and merge Muse settings from both user and project sources
  * Project configuration takes precedence over user configuration
  * Checks .local.json files first, then falls back to .json files
  */

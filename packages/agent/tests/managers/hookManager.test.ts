@@ -453,7 +453,7 @@ describe("HookManager", () => {
   });
 
   describe("Plugin Hooks Preservation", () => {
-    it("should preserve plugin hooks when Wave config has no hooks", () => {
+    it("should preserve plugin hooks when settings have no hooks", () => {
       const pluginHooks = {
         SessionStart: [
           {
@@ -467,14 +467,14 @@ describe("HookManager", () => {
       manager.registerPluginHooks("/plugin/root", pluginHooks);
       expect(manager.hasHooks("SessionStart")).toBe(true);
 
-      // Wave config with no hooks key (like settings.local.json with only permissions/enabledPlugins)
+      // Settings with no hooks key (e.g. settings.local.json with only permissions)
       manager.loadConfigurationFromWaveConfig({});
 
       // Plugin hooks should still be present (regression: was being wiped out)
       expect(manager.hasHooks("SessionStart")).toBe(true);
     });
 
-    it("should preserve plugin hooks when Wave config is null", () => {
+    it("should preserve plugin hooks when settings are null", () => {
       const pluginHooks = {
         SessionStart: [
           {
@@ -491,7 +491,7 @@ describe("HookManager", () => {
       expect(manager.hasHooks("SessionStart")).toBe(true);
     });
 
-    it("should merge Wave config hooks with existing plugin hooks", () => {
+    it("should merge settings hooks with existing plugin hooks", () => {
       const pluginHooks = {
         SessionStart: [
           {
@@ -513,12 +513,12 @@ describe("HookManager", () => {
       };
       manager.loadConfigurationFromWaveConfig(waveConfig);
 
-      // Both plugin and Wave hooks should be present
+      // Both plugin and settings hooks should be present
       expect(manager.hasHooks("SessionStart")).toBe(true);
       expect(manager.hasHooks("PostToolUse", "Edit")).toBe(true);
     });
 
-    it("should allow Wave config hooks to override plugin hooks for same event", () => {
+    it("should allow settings hooks to override plugin hooks for same event", () => {
       const pluginHooks = {
         PostToolUse: [
           {
@@ -541,7 +541,7 @@ describe("HookManager", () => {
       };
       manager.loadConfigurationFromWaveConfig(waveConfig);
 
-      // Wave config concatenates with plugin hooks for same event
+      // Settings concatenate with plugin hooks for the same event
       const config = manager.getConfiguration();
       expect(config?.PostToolUse).toHaveLength(2);
       expect(config?.PostToolUse?.[0].hooks[0].command).toBe(

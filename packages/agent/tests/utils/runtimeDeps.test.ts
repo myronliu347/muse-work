@@ -395,7 +395,7 @@ function writeCliPackageJson(dependencies: Record<string, string>): void {
   fs.mkdirSync(path.join(endDir, "dist", "bundle"), { recursive: true });
   fs.writeFileSync(
     path.join(endDir, "package.json"),
-    JSON.stringify({ name: "wave-code", dependencies }),
+    JSON.stringify({ name: "muse-cli", dependencies }),
   );
   moduleUrl = pathToFileURL(
     path.join(endDir, "dist", "bundle", "wave.mjs"),
@@ -587,7 +587,7 @@ describe("ensureRuntimeDeps", () => {
       path.join(
         os.tmpdir(),
         "npm-prefix",
-        "wave-code",
+        "foreign-pkg",
         "dist",
         "bundle",
         "wave.mjs",

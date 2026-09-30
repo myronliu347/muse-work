@@ -2,7 +2,7 @@
  * Hook Execution Services
  *
  * Provides hook command execution functionality and hook-specific configuration loading.
- * This module focuses on hook execution while delegating general Wave configuration
+ * This module focuses on hook execution while delegating settings.json
  * management to ConfigurationService.
  */
 

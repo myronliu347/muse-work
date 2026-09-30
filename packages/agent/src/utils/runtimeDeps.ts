@@ -1,31 +1,17 @@
 /**
- * Runtime dependencies the CLI installs on demand.
+ * Runtime dependencies Muse installs on demand (`sharp`, `@vscode/ripgrep`).
  *
- * ## Why this exists
- *
- * Two dependencies live here: `sharp` (the image codec behind outbound image
- * resizing, ~19MB unpacked) and `@vscode/ripgrep` (the search binary behind the
- * Grep tool, ~5MB with its platform package). Both are too big to ship in every
- * host bundle and useless to users who never send an image or run a search. Two
- * of the three ways of getting the CLI can simply use npm:
- *
- * | how the CLI was installed | where the dependencies come from | what this does |
- * | --- | --- | --- |
- * | `npm i -g wave-code`, project install | plain npm dependencies (npm picks the matching platform package; sharp's libvips arrives through the platform package's own optionalDependencies) | step 1 short-circuits, nothing is downloaded |
- * | desktop / VS Code / JetBrains (the host copies the CLI into `~/.muse-work/cli/<end>/`) | nothing ships them — the copy is three files (entry, package.json, bundle) | downloads into the shared `~/.muse-work/cli/node_modules` |
- * | in-repo dev (`pnpm run wave`) | the repo's node_modules | step 1 short-circuits |
- *
- * It is deliberately CLI-side rather than per-host: the platform key is computed
- * by the *same* runtime that later loads the module (a JVM-side arch guess
- * cannot be), and one implementation covers the TUI, stdio (all three hosts),
- * remote and daemon paths. ripgrep used to be the counter-example — each of the
- * three hosts downloaded it before spawning the CLI, and the remote path shelled
- * out to `npm install --prefix` — so the table replaced four implementations.
+ * Both are too big to ship in every host bundle. If they are already on
+ * Node's module path (repo `node_modules`, or a full install), this no-ops.
+ * Otherwise, when running from a copy under `~/.muse-work/cli/`, they are
+ * downloaded into that shared `node_modules`. An install that is *not* under
+ * that directory must not write there — Node would never resolve it, and a
+ * global prefix may lack permissions.
  *
  * ## Layout
  *
  * ```
- * ~/.muse-work/cli/node_modules/          <- shared by all three hosts, survives CLI upgrades
+ * ~/.muse-work/cli/node_modules/          <- shared downloads, survives upgrades
  *   sharp/  semver/  detect-libc/  @img/colour/
  *   @img/sharp-<key>/                key = linux-x64 | linuxmusl-x64 | darwin-arm64 | win32-x64
  *   @img/sharp-libvips-<key>/        must stay a sibling of the above: its .node has
@@ -36,7 +22,7 @@
  *                                       batch completed
  * ```
  *
- * Node resolves the modules from `~/.muse-work/cli/<end>/dist/bundle/wave.mjs` by
+ * Node resolves the modules from `~/.muse-work/cli/<end>/dist/bundle/` by
  * walking up, which lands on this `node_modules`.
  *
  * ## Why detect-libc decides the platform key
@@ -190,13 +176,13 @@ function defaultCliHome(): string {
 }
 
 /**
- * Whether this code runs from a CLI copy under the shared cli home.
+ * Whether this code runs from a copy under the shared `~/.muse-work/cli` home.
  *
- * An npm-installed CLI (bundle under `<prefix>/lib/node_modules/wave-code/...`)
- * must not self-install: Node would never look in `~/.muse-work/cli/node_modules`
- * from there, and writing into a global npm prefix may lack permissions and
- * gets pruned by the next `npm install`. Such a setup either already has the
- * dependencies (the normal case) or degrades with an actionable warning.
+ * An npm-layout install (bundle under some `node_modules/.../dist/...`) must
+ * not self-install into `~/.muse-work/cli/node_modules`: Node would never look
+ * there from the foreign prefix, and writing into a global prefix may lack
+ * permissions. Such a setup either already has the dependencies or degrades
+ * with a warning.
  */
 export function isManagedCliInstall(
   moduleUrl: string,

@@ -451,7 +451,7 @@ export class HookManager {
   }
 
   /**
-   * Validate Wave configuration structure and content
+   * Validate settings.json structure and content
    */
   validateConfiguration(config: WaveConfiguration): HookValidationResult {
     const errors: string[] = [];

@@ -1,7 +1,7 @@
 /**
  * Configuration Path Utilities
  *
- * Centralized utilities for resolving Wave configuration file paths.
+ * Centralized utilities for resolving Muse settings.json paths.
  * Supports both regular settings.json and local settings.local.json with proper priority.
  *
  * Priority system:
