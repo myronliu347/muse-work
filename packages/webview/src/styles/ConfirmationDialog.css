@@ -449,7 +449,7 @@
 
 .confirmation-btn-apply {
   background-color: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
 }
 
 .confirmation-btn-apply:hover:not(:disabled) {

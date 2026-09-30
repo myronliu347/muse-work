@@ -3,9 +3,9 @@
   margin-top: 10px;
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--muse-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--gray-6);
   border-radius: 8px;
-  background: var(--muse-surface, #1a1a1a);
+  background: var(--color-panel);
   overflow: hidden;
 }
 
@@ -14,13 +14,13 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--muse-border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--gray-6);
   font-size: 13px;
 }
 
 .file-history-card-title {
   font-weight: 600;
-  color: var(--muse-text, #e8e8e8);
+  color: var(--gray-12);
 }
 
 .file-history-card-stats {
@@ -29,11 +29,11 @@
 }
 
 .file-history-card-stats--add {
-  color: #3fb950;
+  color: var(--green-11);
 }
 
 .file-history-card-stats--del {
-  color: #f85149;
+  color: var(--red-11);
 }
 
 .file-history-card-revert {
@@ -43,7 +43,7 @@
   gap: 4px;
   border: none;
   background: none;
-  color: var(--muse-text-secondary, #9e9e9e);
+  color: var(--gray-11);
   font-size: 12px;
   cursor: pointer;
   padding: 2px 6px;
@@ -51,8 +51,8 @@
 }
 
 .file-history-card-revert:hover {
-  background: var(--muse-hover, rgba(255, 255, 255, 0.08));
-  color: var(--muse-text, #e8e8e8);
+  background: var(--gray-4);
+  color: var(--gray-12);
 }
 
 .file-history-card-revert:disabled {
@@ -76,7 +76,7 @@
 }
 
 .file-history-card-row:hover {
-  background: var(--muse-hover, rgba(255, 255, 255, 0.06));
+  background: var(--gray-3);
 }
 
 .file-history-card-file-icon {
@@ -86,7 +86,7 @@
 }
 
 .file-history-card-file-name {
-  color: var(--muse-text, #e8e8e8);
+  color: var(--gray-12);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;

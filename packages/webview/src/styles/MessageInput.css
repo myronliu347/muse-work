@@ -38,7 +38,7 @@
 }
 
 :root[data-theme="light"] .input-content {
-  background-color: #fff;
+  background-color: var(--color-panel);
 }
 
 .input-content:focus-within {
@@ -214,8 +214,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  background: var(--color-background);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--gray-1) 28%, transparent);
   transition: transform 0.15s ease;
 }
 
@@ -306,13 +306,12 @@
   background-color: transparent;
 }
 
-/* 28×28 circular action buttons with white glyphs. */
+/* 28×28 circular action buttons. */
 .ai-send-btn,
 .ai-abort-btn {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -324,10 +323,12 @@
 
 .ai-send-btn {
   background: var(--accent-9);
+  color: var(--accent-contrast);
 }
 
 .ai-abort-btn {
   background: var(--gray-8);
+  color: var(--gray-12);
 }
 
 .ai-send-btn:hover:not(:disabled) {
@@ -363,7 +364,7 @@
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  background: #fff;
+  background: currentColor;
 }
 
 /* Toolbar row: workdir/git on the left, model select + send on the right. */

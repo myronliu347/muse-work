@@ -15,7 +15,7 @@ describe("uiPrefs", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-ui-"));
     expect(loadUiPrefs(home).themePreference).toBe("system");
     expect(loadUiPrefs(home).themeScaling).toBe("100%");
-    expect(loadUiPrefs(home).themeAccentColor).toBe("red");
+    expect(loadUiPrefs(home).themeAccentColor).toBe("indigo");
     expect(loadUiPrefs(home).themeRadius).toBe("large");
     expect(loadUiPrefs(home).themeGrayColor).toBe("gray");
     fs.mkdirSync(path.dirname(getUiPrefsPath(home)), { recursive: true });

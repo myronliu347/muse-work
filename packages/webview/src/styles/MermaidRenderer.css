@@ -337,7 +337,7 @@
 
 .close-btn {
   background: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
   border: none;
   border-radius: var(--radius-2);
   padding: var(--space-2) var(--space-3);

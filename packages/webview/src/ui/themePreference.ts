@@ -178,7 +178,7 @@ export function subscribeThemeScaling(listener: () => void): () => void {
 }
 
 const accentColorListeners = new Set<() => void>();
-let currentAccentColor: ThemeAccentColor = "red";
+let currentAccentColor: ThemeAccentColor = "indigo";
 let accentColorInitialized = false;
 
 export function readInitialAccentColor(): ThemeAccentColor {

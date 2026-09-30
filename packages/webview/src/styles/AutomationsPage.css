@@ -182,7 +182,7 @@
 .automations-btn-primary {
   background: var(--accent-9);
   border-color: var(--accent-9);
-  color: #fff;
+  color: var(--accent-contrast);
 }
 
 .automations-btn-ghost {

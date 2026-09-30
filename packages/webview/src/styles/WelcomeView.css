@@ -69,14 +69,14 @@
   background:
     radial-gradient(
       ellipse 70% 55% at 50% 38%,
-      rgb(255 255 255 / 0.38) 0%,
-      rgb(248 246 242 / 0.68) 100%
+      color-mix(in srgb, var(--color-panel) 38%, transparent) 0%,
+      color-mix(in srgb, var(--color-panel) 68%, transparent) 100%
     ),
     linear-gradient(
       180deg,
-      rgb(255 255 255 / 0.4) 0%,
-      rgb(255 255 255 / 0.28) 42%,
-      rgb(255 255 255 / 0.5) 100%
+      color-mix(in srgb, var(--color-panel) 40%, transparent) 0%,
+      color-mix(in srgb, var(--color-panel) 28%, transparent) 42%,
+      color-mix(in srgb, var(--color-panel) 50%, transparent) 100%
     );
 }
 
@@ -105,15 +105,15 @@
   color: var(--gray-12);
   text-align: center;
   text-shadow:
-    0 1px 2px rgb(0 0 0 / 0.55),
-    0 8px 28px rgb(0 0 0 / 0.45);
+    0 1px 2px color-mix(in srgb, var(--gray-1) 55%, transparent),
+    0 8px 28px color-mix(in srgb, var(--gray-1) 45%, transparent);
 }
 
 :root[data-theme="light"] .welcome-headline {
   color: var(--gray-12);
   text-shadow:
-    0 1px 0 rgb(255 255 255 / 0.8),
-    0 8px 24px rgb(255 255 255 / 0.65);
+    0 1px 0 color-mix(in srgb, var(--color-panel) 80%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-panel) 65%, transparent);
 }
 
 .welcome-headline-logo {
@@ -121,7 +121,7 @@
   height: 64px;
   flex-shrink: 0;
   display: block;
-  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.35));
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--gray-1) 35%, transparent));
 }
 
 .welcome-cards {
@@ -145,7 +145,7 @@
   background: color-mix(in srgb, var(--gray-2) 78%, transparent);
   backdrop-filter: blur(22px) saturate(1.15);
   -webkit-backdrop-filter: blur(22px) saturate(1.15);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 0.28);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 36%, transparent);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -163,13 +163,13 @@
 }
 
 :root[data-theme="light"] .welcome-card {
-  border-color: rgb(0 0 0 / 0.08);
-  background: rgb(255 255 255 / 0.86);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  border-color: color-mix(in srgb, var(--gray-12) 8%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 86%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--gray-1) 12%, transparent);
 }
 
 :root[data-theme="light"] .welcome-card:hover {
-  background: rgb(255 255 255 / 0.94);
+  background: color-mix(in srgb, var(--color-panel) 94%, transparent);
 }
 
 .welcome-card-icon {
@@ -223,7 +223,7 @@
   background: color-mix(in srgb, var(--gray-2) 78%, transparent);
   backdrop-filter: blur(22px) saturate(1.15);
   -webkit-backdrop-filter: blur(22px) saturate(1.15);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 0.28);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--gray-1) 36%, transparent);
 }
 
 .welcome-cards + .welcome-login {
@@ -240,9 +240,9 @@
 }
 
 :root[data-theme="light"] .welcome-login {
-  border-color: rgb(0 0 0 / 0.08);
-  background: rgb(255 255 255 / 0.86);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  border-color: color-mix(in srgb, var(--gray-12) 8%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 86%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--gray-1) 12%, transparent);
 }
 
 :root[data-theme="light"] .welcome-login-hint {
@@ -261,7 +261,7 @@
   border: none;
   border-radius: var(--radius-3);
   background: var(--accent-9);
-  color: #fff;
+  color: var(--accent-contrast);
   font-size: 13px;
   font-weight: 600;
   line-height: 32px;

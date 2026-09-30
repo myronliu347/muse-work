@@ -13,8 +13,8 @@
   flex-shrink: 0;
   border-radius: var(--radius-4);
   overflow: hidden;
-  background: var(--gray-4, #2a2a2a);
-  border: 1px solid var(--gray-6, #3a3a3a);
+  background: var(--gray-4);
+  border: 1px solid var(--gray-6);
 }
 
 .image-thumb {
@@ -34,8 +34,8 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
+  background: color-mix(in srgb, var(--gray-12) 72%, transparent);
+  color: var(--color-background);
   font-size: var(--font-size-2);
   line-height: 1;
   cursor: pointer;

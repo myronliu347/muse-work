@@ -795,7 +795,7 @@
   background: var(--color-panel, var(--gray-3));
   border: 1px solid var(--gray-6, var(--gray-6));
   border-radius: var(--radius-3, var(--radius-4));
-  box-shadow: 0 var(--space-1) var(--space-2) rgba(0, 0, 0, 0.36);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--gray-1) 36%, transparent);
 }
 
 .desktop-context-menu-item {
@@ -1566,7 +1566,7 @@ body.is-panel-resizing * {
 .preview-pane-error .preview-pane-button {
   padding: var(--space-1) var(--space-3);
   background: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
 }
 
 .preview-pane-error .preview-pane-button:hover {

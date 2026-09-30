@@ -544,10 +544,10 @@
   width: 72px;
   height: 72px;
   padding: 0;
-  border: 1px solid var(--gray-6, #3a3a3a);
+  border: 1px solid var(--gray-6);
   border-radius: var(--radius-4);
   overflow: hidden;
-  background: var(--gray-3, #2a2a2a);
+  background: var(--gray-3);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -561,7 +561,7 @@
 }
 
 .user-image-thumb:hover {
-  border-color: var(--accent-9, #c0392b);
+  border-color: var(--accent-9);
 }
 
 .image-block {

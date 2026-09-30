@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   THEME_PREFERENCE_STORAGE_KEY,
   isThemePreference,
+  readStoredAccentColor,
   readStoredPreference,
   resolveEffectiveTheme,
   writeStoredPreference,
@@ -45,6 +46,10 @@ describe("themeStorage", () => {
     expect(readStoredPreference()).toBe("system");
     store.setItem(THEME_PREFERENCE_STORAGE_KEY, "nope");
     expect(readStoredPreference()).toBe("system");
+  });
+
+  it("defaults accent to indigo so primary actions are not danger red", () => {
+    expect(readStoredAccentColor()).toBe("indigo");
   });
 
   it("round-trips a valid preference", () => {

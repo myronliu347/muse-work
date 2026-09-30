@@ -6,7 +6,7 @@ import type {
 } from "../types";
 
 export const DEFAULT_THEME_SCALING: ThemeScaling = "100%";
-export const DEFAULT_THEME_ACCENT_COLOR: ThemeAccentColor = "red";
+export const DEFAULT_THEME_ACCENT_COLOR: ThemeAccentColor = "indigo";
 export const DEFAULT_THEME_RADIUS: ThemeRadius = "large";
 export const DEFAULT_THEME_GRAY_COLOR: ThemeGrayColor = "gray";
 

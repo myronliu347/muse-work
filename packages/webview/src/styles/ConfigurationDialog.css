@@ -283,7 +283,7 @@
 
 .add-btn {
   background-color: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
   border: none;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-1);
@@ -684,7 +684,7 @@ input:checked + .slider:before {
 
 .configuration-save-btn {
   background-color: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
 }
 
 .configuration-save-btn:hover {
@@ -856,7 +856,7 @@ input:checked + .slider:before {
 
 .sso-login-btn {
   background-color: var(--accent-9);
-  color: #ffffff;
+  color: var(--accent-contrast);
   border: none;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-1);
