@@ -35,7 +35,7 @@ describe("Compaction hint", () => {
     vi.clearAllMocks();
   });
 
-  it("shows the hint after the blinking cursor while compacting and hides it on completion", () => {
+  it("shows the compaction status hint while compacting and hides it on completion", () => {
     renderChatApp();
     addUserMessage();
 
@@ -45,6 +45,7 @@ describe("Compaction hint", () => {
 
     const hint = screen.getByTestId("compaction-hint");
     expect(hint).toHaveTextContent("正在压缩对话…");
+    expect(hint.querySelector(".message-list-status-dot")).toBeTruthy();
     expect(screen.getByTestId("messages-container").className).toContain(
       "compacting",
     );

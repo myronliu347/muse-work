@@ -229,20 +229,48 @@
   content: none;
 }
 
-.compaction-hint {
+/* List tail status: thinking / compaction (aligns with reasoning timeline dot). */
+.message-list-status-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   align-self: flex-start;
-  padding-left: 0;
-  line-height: var(--line-height-1);
+  padding: var(--space-1) 0 0;
   font-size: var(--font-size-1);
-  color: var(--gray-11);
+  line-height: var(--line-height-1);
 }
 
-.thinking-hint {
-  align-self: flex-start;
-  font-size: var(--font-size-1);
+.message-list-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-9);
+  flex-shrink: 0;
+  animation: message-list-status-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.message-list-status-label {
   font-weight: 500;
-  line-height: var(--line-height-1);
-  padding: var(--space-1) 0 0;
+  color: var(--gray-12);
+}
+
+@keyframes message-list-status-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-list-status-dot {
+    animation: none;
+    opacity: 0.85;
+  }
 }
 
 .tool-name {
@@ -281,12 +309,6 @@
   outline: 2px solid var(--accent-9);
   outline-offset: var(--space-1);
   border-radius: var(--radius-1);
-}
-
-.compaction-hint-cursor {
-  animation: blink 1s ease-in-out infinite;
-  color: var(--gray-12);
-  margin-right: var(--space-1);
 }
 
 /* Content Container for Mixed HTML/Mermaid Content */

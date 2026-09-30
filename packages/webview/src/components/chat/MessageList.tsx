@@ -43,6 +43,21 @@ function findFinalTextBlock(
 // (i.e. that carry a timeline dot): non-empty text/compact, tool, and reasoning blocks.
 // Mirrors the `wrap` logic in Message.renderBlock so the group can decide whether it has
 // a single lone dot (no connecting line) or multiple dots (draw the line).
+/** True when the latest assistant turn already shows an in-progress reasoning block. */
+function hasInProgressReasoning(messages: MessageType[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role !== "assistant") continue;
+    for (const block of message.blocks ?? []) {
+      if (block.type === "reasoning" && block.stage !== "end") {
+        return true;
+      }
+    }
+    return false;
+  }
+  return false;
+}
+
 function countTimelineBlocks(message: MessageType): number {
   if (!message.blocks) return 0;
   let count = 0;
@@ -391,6 +406,11 @@ export const MessageList = forwardRef<
     }
   }, [stickyMessage, doScrollToBottom]);
 
+  const showThinkingHint =
+    isStreaming &&
+    !isCompacting &&
+    !hasInProgressReasoning(messages);
+
   return (
     <div className="messages-shell">
       <div
@@ -593,21 +613,17 @@ export const MessageList = forwardRef<
         onOpenFileHistoryFile,
       ])}
 
-      {isStreaming && !isCompacting && (
-        <div
-          className="thinking-hint text-shimmer"
-          data-testid="thinking-hint"
-        >
-          思考中...
+      {showThinkingHint && (
+        <div className="message-list-status-hint" data-testid="thinking-hint">
+          <span className="message-list-status-dot" aria-hidden="true" />
+          <span className="message-list-status-label text-shimmer">正在处理…</span>
         </div>
       )}
 
-      {/* Compaction hint: blinking cursor + label pinned to the end of the
-          message list, independent of isStreaming (auto-compaction runs between
-          turns, after the streaming cursor is gone). */}
       {isCompacting && (
-        <div className="compaction-hint" data-testid="compaction-hint">
-          <span className="compaction-hint-cursor">▋</span>正在压缩对话…
+        <div className="message-list-status-hint" data-testid="compaction-hint">
+          <span className="message-list-status-dot" aria-hidden="true" />
+          <span className="message-list-status-label">正在压缩对话…</span>
         </div>
       )}
 
