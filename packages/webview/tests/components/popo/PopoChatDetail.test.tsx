@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PopoChatDetail } from "../../../src/components/popo/PopoChatDetail";
 import type { MuseApiClient } from "../../../src/muse/apiClient";
@@ -46,7 +46,13 @@ function makeApiMocks() {
           id: "m2",
           role: "assistant",
           blocks: [
-            { type: "reasoning", content: "让我想想" },
+            {
+              type: "reasoning",
+              content: "让我想想",
+              stage: "end",
+              startTime: 0,
+              endTime: 1000,
+            },
             { type: "text", content: "答案在这" },
           ],
         },
@@ -64,7 +70,7 @@ afterEach(() => {
 });
 
 describe("PopoChatDetail", () => {
-  it("renders the full assistant process and no composer", async () => {
+  it("aggregates finished assistant turns and omits the composer", async () => {
     const api = makeApiMocks() as unknown as MuseApiClient;
     render(
       <PopoChatDetail api={api} vscode={vscode} chatKey="team:1696900" />,
@@ -72,7 +78,13 @@ describe("PopoChatDetail", () => {
     await waitFor(() => {
       expect(screen.getByText("答案在这")).toBeInTheDocument();
     });
-    expect(screen.getByText("让我想想")).toBeInTheDocument();
+    expect(screen.getByTestId("assistant-work-summary")).toBeInTheDocument();
+    expect(screen.queryByText("让我想想")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByTestId("assistant-work-summary").querySelector('[role="button"]')!,
+    );
+    expect(screen.getByText("思考 (用时 1s)")).toBeInTheDocument();
+    expect(screen.getByTestId("popo-detail-header")).toBeInTheDocument();
     expect(screen.getByTestId("popo-chat-detail")).toBeInTheDocument();
     expect(screen.queryByTestId("message-input")).toBeNull();
     expect(screen.queryByTestId("popo-config-card")).toBeNull();

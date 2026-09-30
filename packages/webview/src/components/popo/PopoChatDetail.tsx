@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Flex, ScrollArea, Spinner, Text } from "@radix-ui/themes";
+import { useCallback, useEffect, useState } from "react";
+import { Flex, Spinner, Text } from "@radix-ui/themes";
 import type { Message as SdkMessage } from "@muse-work/agent";
 import type { VsCodeApi } from "../../types";
 import type {
   MuseApiClient,
   PopoChatDetailResponse,
 } from "../../muse/apiClient";
-import { Message } from "../message/Message";
+import { MessageList } from "../chat/MessageList";
 import "../../styles/PopoRobotView.css";
 
 const POLL_INTERVAL_MS = 2000;
@@ -27,7 +27,6 @@ export const PopoChatDetail: React.FC<{
 }> = ({ api, vscode, chatKey }) => {
   const [detail, setDetail] = useState<PopoChatDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const detailScrollRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -63,44 +62,41 @@ export const PopoChatDetail: React.FC<{
     return () => clearInterval(timer);
   }, [processing, load]);
 
-  useEffect(() => {
-    const el = detailScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [detail, processing]);
-
   return (
     <Flex
       direction="column"
-      gap="2"
       className="popo-chat-detail-view"
       data-testid="popo-chat-detail"
     >
+      {detail ? (
+        <Flex
+          align="center"
+          justify="between"
+          gap="2"
+          className="popo-detail-header"
+          data-testid="popo-detail-header"
+        >
+          <Text size="2" weight="bold" className="popo-detail-title">
+            {detail.chat.title}
+          </Text>
+          {processing && <ProcessingIndicator />}
+        </Flex>
+      ) : null}
       {error && (
-        <Text size="1" color="red">
+        <Text size="1" color="red" className="popo-detail-error">
           {error}
         </Text>
       )}
       {detail === null && !error ? (
-        <Text size="1" color="gray">
+        <Text size="1" color="gray" className="popo-detail-loading">
           加载中…
         </Text>
       ) : detail ? (
-        <Flex direction="column" gap="2" className="popo-detail-body">
-          <Flex align="center" justify="between" gap="2">
-            <Text size="2" weight="bold">
-              {detail.chat.title}
-            </Text>
-            {processing && <ProcessingIndicator />}
-          </Flex>
-          <ScrollArea ref={detailScrollRef} type="auto" className="popo-detail-scroll">
-            <Flex direction="column" gap="2">
-              {detail.messages.map((msg, i) => (
-                <Message key={msg.id ?? i} message={msg as SdkMessage} vscode={vscode} />
-              ))}
-              {processing && <ProcessingIndicator />}
-            </Flex>
-          </ScrollArea>
-        </Flex>
+        <MessageList
+          messages={detail.messages as SdkMessage[]}
+          isStreaming={processing}
+          vscode={vscode}
+        />
       ) : null}
     </Flex>
   );

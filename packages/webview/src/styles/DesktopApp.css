@@ -917,11 +917,11 @@
     .welcome-view-shell,
   .desktop-layout:not(:has(.desktop-sidebar-resize--active))
     > .chat-container
-    .popo-chat-detail-view,
+    .popo-detail-header,
   .desktop-layout:not(:has(.desktop-sidebar-resize--active))
     .desktop-pane-row
     > .desktop-pane:first-child
-    .popo-chat-detail-view,
+    .popo-detail-header,
   .desktop-layout:not(:has(.desktop-sidebar-resize--active))
     > .chat-container
     .queue-edit-warning-banner,
@@ -1890,7 +1890,12 @@ body.is-panel-resizing * {
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
-  .issue-session-header {
+  .issue-session-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .popo-detail-header,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .popo-detail-header {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
 }
 
@@ -1914,14 +1919,19 @@ body.is-panel-resizing * {
 .desktop-layout > .chat-container .new-session-page,
 .desktop-pane-row > .desktop-pane:first-child .new-session-page,
 .desktop-layout > .chat-container .welcome-view-shell,
-.desktop-pane-row > .desktop-pane:first-child .welcome-view-shell,
-.desktop-layout > .chat-container .popo-chat-detail-view,
-.desktop-pane-row > .desktop-pane:first-child .popo-chat-detail-view {
+.desktop-pane-row > .desktop-pane:first-child .welcome-view-shell {
   box-sizing: border-box;
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
   padding-right: var(--space-4);
   padding-bottom: var(--space-5);
   padding-top: calc(var(--desktop-shell-titlebar-height) + var(--space-5));
+}
+
+.desktop-layout > .chat-container .popo-detail-header,
+.desktop-pane-row > .desktop-pane:first-child .popo-detail-header {
+  box-sizing: border-box;
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+  padding-right: var(--space-4);
 }
 
 .desktop-layout > .chat-container .issue-session-header,
@@ -1980,11 +1990,11 @@ body.is-panel-resizing * {
   .welcome-view-shell,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   > .chat-container
-  .popo-chat-detail-view,
+  .popo-detail-header,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   .desktop-pane-row
   > .desktop-pane:first-child
-  .popo-chat-detail-view,
+  .popo-detail-header,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   > .chat-container
   .queue-edit-warning-banner,

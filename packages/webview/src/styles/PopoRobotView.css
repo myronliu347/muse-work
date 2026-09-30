@@ -51,19 +51,27 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: var(--space-4);
   box-sizing: border-box;
 }
 
-.popo-chat-detail-view .popo-detail-body {
-  height: 100%;
-  width: 100%;
-  min-height: 0;
+.popo-detail-header {
+  flex-shrink: 0;
+  height: var(--desktop-shell-titlebar-height);
+  box-sizing: border-box;
+  min-width: 0;
 }
 
-.popo-chat-detail-view .popo-detail-scroll {
-  flex: 1 1 0;
-  min-height: 0;
+.popo-detail-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popo-detail-error,
+.popo-detail-loading {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-4);
 }
 
 .popo-processing {
