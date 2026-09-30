@@ -34,7 +34,6 @@ describe("Background tasks inline list above the sender", () => {
     const list = screen.getByTestId("background-task-list");
     expect(list).toHaveTextContent("sleep 300");
     expect(list).toHaveTextContent("后台任务 (1)");
-    expect(list).toHaveTextContent("进行中 1");
   });
 
   it("shows background tasks pushed incrementally via updateBackgroundTasks (baseline)", () => {

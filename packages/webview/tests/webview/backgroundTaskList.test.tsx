@@ -66,30 +66,31 @@ describe("BackgroundTaskList inline interactions", () => {
     });
   });
 
-  it("keeps failed/killed tasks visible and hides when all tasks complete", () => {
-    vi.useFakeTimers();
-    try {
-      renderChatApp();
-      act(() => {
-        sendCommand("updateBackgroundTasks", {
-          tasks: [{ ...runningTask, status: "failed" }],
-        });
+  it("hides when there are no running tasks (completed/failed only)", () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("updateBackgroundTasks", {
+        tasks: [{ ...runningTask, status: "failed" }],
       });
-      expect(screen.getByTestId("background-task-list")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("background-task-list")).not.toBeInTheDocument();
 
-      // 全部完成：5 秒宽限后自动隐藏（与任务列表一致）
-      act(() => {
-        sendCommand("updateBackgroundTasks", { tasks: [completedTask] });
+    act(() => {
+      sendCommand("updateBackgroundTasks", { tasks: [completedTask] });
+    });
+    expect(screen.queryByTestId("background-task-list")).not.toBeInTheDocument();
+  });
+
+  it("shows only running tasks when the payload mixes statuses", () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("updateBackgroundTasks", {
+        tasks: [runningTask, completedTask],
       });
-      expect(screen.getByTestId("background-task-list")).toBeInTheDocument();
-      act(() => {
-        vi.advanceTimersByTime(5001);
-      });
-      expect(
-        screen.queryByTestId("background-task-list"),
-      ).not.toBeInTheDocument();
-    } finally {
-      vi.useRealTimers();
-    }
+    });
+    const list = screen.getByTestId("background-task-list");
+    expect(list).toHaveTextContent("后台任务 (1)");
+    expect(list).toHaveTextContent("npm run build");
+    expect(list).not.toHaveTextContent("探索代码结构");
   });
 });
