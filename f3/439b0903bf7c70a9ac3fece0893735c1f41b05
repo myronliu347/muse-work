@@ -1,0 +1,36 @@
+packages/agent/src/managers/hookManager.ts
+  98ab170ac30fbe53 99,101,104-105,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f3439b0903bf7c70a9ac3fece0893735c1f41b05",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 8,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/types/configuration.ts": {
+          "deletions": 1
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "deletions": 2
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
