@@ -2,6 +2,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
+import {
+  finalizeLegacyClosedIndexMigration,
+  loadClosedIssues,
+  saveClosedIssues,
+} from "./issueClosedStorage.js";
 
 export type IssueAgentMode = "single" | "split";
 export type IssuePriority = "p0" | "p1" | "p2";
@@ -127,14 +132,6 @@ function getIssuesIndexPath(home: string): string {
   return path.join(getMuseHomeDir(home), "db", "issues.json");
 }
 
-function getClosedIssuesIndexPath(home: string): string {
-  return path.join(getMuseHomeDir(home), "db", "issues-closed.json");
-}
-
-function getIssueDetailPath(home: string, id: string): string {
-  return path.join(getMuseHomeDir(home), "db", "issues", id, "issue.json");
-}
-
 function defaultIssuesFile(): IssuesFile {
   return { version: 1, issues: [] };
 }
@@ -154,18 +151,8 @@ function writeAtomically(filePath: string, content: string): void {
   fs.renameSync(tmpPath, filePath);
 }
 
-function saveIssueDetail(issue: Issue, home: string): void {
-  writeAtomically(
-    getIssueDetailPath(home, issue.id),
-    JSON.stringify(issue, null, 2) + "\n",
-  );
-}
-
-function saveIssuesFile(file: IssuesFile, filePath: string, home: string): void {
+function saveIssuesFile(file: IssuesFile, filePath: string): void {
   writeAtomically(filePath, JSON.stringify(file, null, 2) + "\n");
-  for (const issue of file.issues) {
-    saveIssueDetail(issue, home);
-  }
 }
 
 function isTerminal(status: IssueStatus): boolean {
@@ -221,7 +208,7 @@ export function createIssueStore(
 ): IssueStore {
   const home = options.home ?? process.env.MUSE_HOME ?? os.homedir();
   const activeFile = loadIssuesFile(getIssuesIndexPath(home));
-  const closedFile = loadIssuesFile(getClosedIssuesIndexPath(home));
+  const closedRecords = loadClosedIssues(home, hydrateIssue, isTerminal);
   const issues = new Map<string, Issue>();
   const closed = new Map<string, Issue>();
   const listeners = new Set<
@@ -241,7 +228,10 @@ export function createIssueStore(
     }
   }
 
-  for (const record of [...closedFile.issues, ...activeFile.issues]) {
+  for (const issue of closedRecords) {
+    closed.set(issue.id, issue);
+  }
+  for (const record of activeFile.issues) {
     if (!record?.id || !record.title) continue;
     const issue = hydrateIssue(record);
     if (isTerminal(issue.status)) {
@@ -251,20 +241,25 @@ export function createIssueStore(
     }
   }
 
+  function persistClosed(): void {
+    saveClosedIssues(home, [...closed.values()]);
+    finalizeLegacyClosedIndexMigration(home);
+  }
+
   function persist(): void {
     saveIssuesFile(
       { version: 1, issues: [...issues.values()] },
       getIssuesIndexPath(home),
-      home,
     );
-    saveIssuesFile(
-      { version: 1, issues: [...closed.values()] },
-      getClosedIssuesIndexPath(home),
-      home,
-    );
+    persistClosed();
   }
 
-  if (activeFile.issues.some((record) => isTerminal(record.status))) {
+  const needsPersist =
+    activeFile.issues.some((record) => isTerminal(record.status)) ||
+    fs.existsSync(
+      path.join(getMuseHomeDir(home), "db", "issues-closed.json"),
+    );
+  if (needsPersist) {
     persist();
   }
 

@@ -58,7 +58,7 @@ Issue 字段：
 | `items` | `{ id, content, status: pending\|running\|done }[]` |
 | `createdAt` / `updatedAt` | 毫秒时间戳 |
 
-存储：`~/.muse-work/db/issues.json` 索引 + `~/.muse-work/db/issues/<id>/issue.json` 明细（含清单）。内存 Map + JSON 原子写，对齐 sessionStore。不用 SQLite。
+存储：进行中 `~/.muse-work/db/issues.json`；已关闭 `db/issues-closed/YYYY-MM.jsonl`。内存 Map + 原子写。不用 SQLite。
 
 对话创建的 Issue：`status=pending`，**不**沿用当前会话 workdir；打开会话时再选目录。`POST /issues` 可同时带 `items` 落下清单，不必先开会话。规划会话（split）里禁止再 `create`，只往当前 Issue 追加清单。
 

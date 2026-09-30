@@ -48,7 +48,7 @@ _Avoid_: 审核失败、打回规划中、单 agent 进待审核
 
 `single`：打开后保持规划中，直到完成或取消；不因清单或 dispatch 进入执行中/待审核。
 
-已完成、已取消写入独立索引 `issues-closed.json`，不出现在侧栏。
+已完成、已取消写入 `db/issues-closed/YYYY-MM.jsonl`（按月 JSONL），不出现在侧栏。
 
 # Muse Work — 自动化
 

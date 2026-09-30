@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { createIssueStore } from "../src/services/issueStore.js";
+import { getClosedIssuesDir } from "../src/services/issueClosedStorage.js";
 
 describe("issueStore", () => {
   it("persists create and reloads tags/priority", () => {
@@ -179,7 +180,7 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("complete and cancel persist in issues-closed.json, not issues.json", () => {
+  it("complete and cancel persist in monthly issues-closed JSONL, not issues.json", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });
     const done = store.create({ title: "已完成" });
@@ -192,15 +193,22 @@ describe("issueStore", () => {
     const activeFile = JSON.parse(
       fs.readFileSync(path.join(db, "issues.json"), "utf-8"),
     ) as { issues: Array<{ title: string }> };
-    const closedFile = JSON.parse(
-      fs.readFileSync(path.join(db, "issues-closed.json"), "utf-8"),
-    ) as { issues: Array<{ title: string; status: string }> };
+    const closedDir = getClosedIssuesDir(home);
+    const closedTitles: string[] = [];
+    for (const name of fs.readdirSync(closedDir)) {
+      if (!name.endsWith(".jsonl")) continue;
+      for (const line of fs
+        .readFileSync(path.join(closedDir, name), "utf-8")
+        .split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        closedTitles.push((JSON.parse(trimmed) as { title: string }).title);
+      }
+    }
 
     expect(activeFile.issues.map((issue) => issue.title)).toEqual(["进行中"]);
-    expect(closedFile.issues.map((issue) => issue.title).sort()).toEqual([
-      "已取消",
-      "已完成",
-    ]);
+    expect(closedTitles.sort()).toEqual(["已取消", "已完成"]);
+    expect(fs.existsSync(path.join(db, "issues-closed.json"))).toBe(false);
     expect(store.listActive().map((issue) => issue.title)).toEqual(["进行中"]);
     expect(store.listClosed().map((issue) => issue.status).sort()).toEqual([
       "cancelled",
@@ -255,11 +263,21 @@ describe("issueStore", () => {
     const activeFile = JSON.parse(
       fs.readFileSync(path.join(dbDir, "issues.json"), "utf-8"),
     ) as { issues: Array<{ id: string }> };
-    const closedFile = JSON.parse(
-      fs.readFileSync(path.join(dbDir, "issues-closed.json"), "utf-8"),
-    ) as { issues: Array<{ id: string }> };
+    const closedDir = getClosedIssuesDir(home);
+    const closedIds: string[] = [];
+    for (const name of fs.readdirSync(closedDir)) {
+      if (!name.endsWith(".jsonl")) continue;
+      for (const line of fs
+        .readFileSync(path.join(closedDir, name), "utf-8")
+        .split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        closedIds.push((JSON.parse(trimmed) as { id: string }).id);
+      }
+    }
     expect(activeFile.issues.map((issue) => issue.id)).toEqual(["live-1"]);
-    expect(closedFile.issues.map((issue) => issue.id)).toEqual(["old-done"]);
+    expect(closedIds).toEqual(["old-done"]);
+    expect(fs.existsSync(path.join(dbDir, "issues-closed.json"))).toBe(false);
     fs.rmSync(home, { recursive: true, force: true });
   });
 

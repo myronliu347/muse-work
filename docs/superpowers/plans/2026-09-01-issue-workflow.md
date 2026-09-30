@@ -136,7 +136,7 @@ export interface IssueStore {
 }
 ```
 
-存储路径：`path.join(getMuseHomeDir(home), "db", "issues.json")` 索引 `{ version: 1, issues: Issue[] }`（全量字段可写索引，明细目录可与索引同内容——**本期索引即全量数组，目录 `db/issues/<id>/issue.json` 同步写一份**，方便以后拆明细）。原子写：`writeFileSync(tmp)` + `renameSync`。
+存储路径：`db/issues.json`（进行中全量数组）与 `db/issues-closed/YYYY-MM.jsonl`（已关闭按月 JSONL）。原子写：`writeFileSync(tmp)` + `renameSync`。
 
 - [ ] **Step 1: 写失败测试**
 
