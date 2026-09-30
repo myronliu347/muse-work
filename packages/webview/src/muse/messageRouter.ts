@@ -266,10 +266,6 @@ export function createMessageHandler({
           queueEditWarning: "编辑的队列消息已不存在！",
         });
         break;
-      case "updateCommandRunning":
-        if (!forThisPane(message)) break;
-        dispatch({ type: "SET_COMMAND_RUNNING", payload: message.running });
-        break;
       case "rewindCheckpoints":
         if (!forThisPane(message)) break;
         patchPaneUi(myPane, {
@@ -314,7 +310,6 @@ export function createMessageHandler({
             toolName: message.toolName,
             confirmationType: message.confirmationType,
             toolInput: message.toolInput,
-            planContent: message.planContent,
             suggestedPrefix: message.suggestedPrefix,
             hidePersistentOption: message.hidePersistentOption,
             permissionMode: message.permissionMode,
@@ -345,7 +340,6 @@ export function createMessageHandler({
             messages: message.messages,
             tasks: message.tasks,
             isStreaming: message.isStreaming,
-            isCommandRunning: message.isCommandRunning,
             isTaskListCollapsed: message.isTaskListCollapsed,
             isRestoring: message.isRestoring,
             sessions: message.sessions,

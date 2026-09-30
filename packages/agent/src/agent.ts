@@ -64,7 +64,7 @@ export class Agent {
   private skillManager: SkillManager; // Add skill manager instance
   private hookManager: HookManager; // Add hooks manager instance
   private reversionManager: ReversionManager;
-  private messageQueue: MessageQueue; // Unified queue for messages, bang commands, and notifications
+  private messageQueue: MessageQueue; // Unified queue for messages and notifications
   private dispatchPromise: Promise<void> | null = null; // Track current dispatch for teardown
   private isAborting = false; // Transient guard: prevents tryDispatch from firing during abortMessage (reset when the abort completes)
   private isDestroyed = false; // Terminal guard: set in destroy(), never reset — no dispatch may ever start after destroy
@@ -253,8 +253,6 @@ export class Agent {
       if (!loading) this.tryDispatch();
     };
 
-    // Wire up bang manager callback for command running changes
-
     // Set initial permission mode if provided
     if (options.permissionMode) {
       this.setPermissionMode(options.permissionMode);
@@ -439,7 +437,7 @@ export class Agent {
     patch: {
       content?: string;
       images?: Array<{ path: string; mimeType: string }>;
-      type?: "message" | "bang";
+      type?: "message";
     },
   ): boolean {
     const updated = this.messageQueue.updateById(id, patch);
@@ -463,9 +461,9 @@ export class Agent {
 
   /**
    * Unified dispatch trigger — checks state machine before processing.
-   * Handles user messages, bang commands, and background task notifications
-   * through a single serialized path. Called from onMessageEnqueued,
-   * onLoadingChange(false), and onCommandRunningChange(false).
+   * Handles user messages and background task notifications through a
+   * single serialized path. Called from onMessageEnqueued and
+   * onLoadingChange(false).
    */
   private tryDispatch(): void {
     if (this.isDestroyed) return; // Terminal: agent destroyed, never dispatch again
@@ -494,7 +492,7 @@ export class Agent {
 
   /**
    * Process the next queued item when the agent becomes idle.
-   * Handles three item types: user messages, bang commands, and notifications.
+   * Handles user messages and notifications.
    */
   private async processQueuedMessage(): Promise<void> {
     const next = this.messageQueue.dequeue();
@@ -1425,7 +1423,7 @@ export class Agent {
   }
 
   /**
-   * Check if there are pending items (messages, bang commands, or background
+   * Check if there are pending items (messages or background
    * task notifications) in the message queue. Background task completion
    * notifications are enqueued before the main agent's dispatch consumes them,
    * so callers waiting for the agent to fully settle must also wait on this.

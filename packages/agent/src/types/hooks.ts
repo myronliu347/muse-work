@@ -20,8 +20,6 @@ export type HookEvent =
   | "Stop"
   | "SubagentStop"
   | "PermissionRequest"
-  | "WorktreeCreate"
-  | "WorktreeRemove"
   | "CwdChanged"
   | "SessionStart"
   | "SessionEnd"
@@ -40,8 +38,6 @@ export const HOOK_EVENT_SUMMARIES: Record<HookEvent, string> = {
   SubagentStop:
     "Right before a subagent (Agent tool call) concludes its response",
   PermissionRequest: "When a permission dialog is displayed",
-  WorktreeCreate: "Create an isolated worktree for VCS-agnostic isolation",
-  WorktreeRemove: "Remove a previously created worktree",
   CwdChanged: "After the working directory changes",
   SessionStart: "When a new session is started",
   SessionEnd: "When a session is ending",
@@ -70,9 +66,6 @@ export interface HookExecutionContext {
   toolName?: string; // Present for PreToolUse/PostToolUse events
   projectDir: string; // Absolute path for $MUSE_PROJECT_DIR
   timestamp: Date;
-  name?: string; // Worktree name (WorktreeCreate only, stdin JSON field `name`)
-  worktreePath?: string; // Present for WorktreeRemove
-  planFilePath?: string; // Present when in plan mode
 }
 
 // Result of hook execution
@@ -138,8 +131,6 @@ export function isValidHookEvent(event: string): event is HookEvent {
     "Stop",
     "SubagentStop",
     "PermissionRequest",
-    "WorktreeCreate",
-    "WorktreeRemove",
     "CwdChanged",
     "SessionStart",
     "SessionEnd",
@@ -201,17 +192,14 @@ export interface HookJsonInput {
   session_id: string; // Format: "wave_session_{uuid}_{shortId}"
   transcript_path: string; // Format: "~/.muse-work/sessions/session_{shortId}.json"
   cwd: string; // Absolute path to current working directory
-  hook_event_name: HookEvent; // "PreToolUse" | "PostToolUse" | "UserPromptSubmit" | "Stop" | "SubagentStop" | "PermissionRequest" | "WorktreeCreate" | "CwdChanged" | "SessionStart"
+  hook_event_name: HookEvent;
 
   // Optional fields based on event type
   tool_name?: string; // Present for PreToolUse, PostToolUse, PermissionRequest
   tool_input?: unknown; // Present for PreToolUse, PostToolUse, PermissionRequest
   tool_response?: unknown; // Present for PostToolUse only
-  plan_file_path?: string; // Present when in plan mode
   user_prompt?: string; // Present for UserPromptSubmit only
   subagent_type?: string; // Present when hook is executed by a subagent
-  name?: string; // Present for WorktreeCreate events
-  worktree_path?: string; // Present for WorktreeRemove events
   old_cwd?: string; // Present for CwdChanged events
   new_cwd?: string; // Present for CwdChanged events
   source?: SessionStartSource; // Present for SessionStart events

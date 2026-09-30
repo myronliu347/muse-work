@@ -75,28 +75,9 @@ async function buildHookJsonInput(
     jsonInput.user_prompt = context.userPrompt;
   }
 
-  // Add plan_file_path if present
-  if (context.planFilePath !== undefined) {
-    jsonInput.plan_file_path = context.planFilePath;
-  }
-
   // Add subagent_type if present
   if (context.subagentType !== undefined) {
     jsonInput.subagent_type = context.subagentType;
-  }
-
-  // Add name field for WorktreeCreate events (aligned with Claude Code)
-  if (context.event === "WorktreeCreate") {
-    if (context.name !== undefined) {
-      jsonInput.name = context.name;
-    }
-  }
-
-  // Add worktree_path field for WorktreeRemove events
-  if (context.event === "WorktreeRemove") {
-    if (context.worktreePath !== undefined) {
-      jsonInput.worktree_path = context.worktreePath;
-    }
   }
 
   // Add SessionStart-specific fields

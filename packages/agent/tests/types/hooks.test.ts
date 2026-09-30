@@ -28,8 +28,6 @@ describe("Hook Types", () => {
         "Stop",
         "SubagentStop",
         "PermissionRequest",
-        "WorktreeCreate",
-        "WorktreeRemove",
         "CwdChanged",
         "SessionStart",
         "SessionEnd",

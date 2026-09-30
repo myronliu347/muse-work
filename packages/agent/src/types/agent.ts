@@ -139,7 +139,6 @@ export interface AgentCallbacks
   onModelChange?: (model: string) => void;
   onConfiguredModelsChange?: (models: string[]) => void;
   onLoadingChange?: (loading: boolean) => void;
-  onCommandRunningChange?: (running: boolean) => void;
   onWorkdirChange?: (newCwd: string) => void;
   onQueuedMessagesChange?: (messages: QueuedMessage[]) => void;
   /** Streaming content from the compaction fork (accumulated). Reasoning

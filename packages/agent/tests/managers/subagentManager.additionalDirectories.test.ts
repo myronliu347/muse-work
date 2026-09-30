@@ -60,7 +60,6 @@ describe("SubagentManager - instance additional directories inheritance", () => 
       getAdditionalDirectories: vi.fn().mockReturnValue([]),
       getInstanceAdditionalDirectories: vi.fn().mockReturnValue(instanceDirs),
       getSystemAdditionalDirectories: vi.fn().mockReturnValue([]),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
     } as unknown as Record<string, unknown>);
     container.register("TaskManager", {} as unknown as Record<string, unknown>);
     container.register(

@@ -478,13 +478,6 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     });
   }, [vscode]);
 
-  // Re-focus input when command finishes running (e.g., after bang execution)
-  useEffect(() => {
-    if (!state.isCommandRunning && messageInputRef.current) {
-      messageInputRef.current.focus();
-    }
-  }, [state.isCommandRunning]);
-
   useEffect(() => {
     patchPane({ agentTranscript: null });
   }, [state.currentSession?.id, patchPane]);

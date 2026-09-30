@@ -81,11 +81,6 @@ describe("aiManager: running-stage tool block updates carry compactParams", () =
     container.register("PermissionManager", {
       getCurrentEffectiveMode: vi.fn().mockReturnValue("normal"),
       clearTemporaryRules: vi.fn(),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
-      setHasExitedPlanMode: vi.fn(),
-      hasExitedPlanModeInSession: vi.fn(() => false),
-      setNeedsPlanModeExitAttachment: vi.fn(),
-      getNeedsPlanModeExitAttachment: vi.fn(() => false),
       isToolDenied: vi.fn().mockReturnValue(false),
     });
     container.register("SubagentManager", {

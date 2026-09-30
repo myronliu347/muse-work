@@ -33,7 +33,6 @@ export function createConfirmModule(ctx: BridgeCtx): ConfirmModule {
       toolName: pending.toolName,
       confirmationType: confirmationTypeForTool(pending.toolName),
       toolInput: resolveToolInput(pending),
-      planContent: pending.planContent,
       suggestedPrefix: pending.suggestedPrefix,
       hidePersistentOption: pending.hidePersistentOption,
       permissionMode: pending.permissionMode,

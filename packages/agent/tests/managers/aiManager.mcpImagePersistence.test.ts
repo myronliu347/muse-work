@@ -144,11 +144,6 @@ function createAIManager(modelConfig: ModelConfig) {
   container.register("PermissionManager", {
     getCurrentEffectiveMode: vi.fn().mockReturnValue("normal"),
     clearTemporaryRules: vi.fn(),
-    getPlanFilePath: vi.fn().mockReturnValue(undefined),
-    setHasExitedPlanMode: vi.fn(),
-    hasExitedPlanModeInSession: vi.fn(() => false),
-    setNeedsPlanModeExitAttachment: vi.fn(),
-    getNeedsPlanModeExitAttachment: vi.fn(() => false),
   } as unknown as Record<string, unknown>);
   container.register("SubagentManager", {
     getConfigurations: vi.fn().mockReturnValue([]),

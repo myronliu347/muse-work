@@ -147,7 +147,6 @@ describe("AIManager - runBtwFork", () => {
 
     const mockPermissionManager = {
       getCurrentEffectiveMode: vi.fn().mockReturnValue("default"),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
     } as unknown as PermissionManager;
 
     container.register("MessageManager", mockMessageManager);

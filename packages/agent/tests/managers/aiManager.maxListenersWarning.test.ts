@@ -101,10 +101,6 @@ describe("AIManager - tool fan-out MaxListenersExceededWarning", () => {
     container.register("PermissionManager", {
       getCurrentEffectiveMode: vi.fn().mockReturnValue("normal"),
       clearTemporaryRules: vi.fn(),
-      setHasExitedPlanMode: vi.fn(),
-      hasExitedPlanModeInSession: vi.fn(() => false),
-      setNeedsPlanModeExitAttachment: vi.fn(),
-      getNeedsPlanModeExitAttachment: vi.fn(() => false),
     });
 
     aiManager = new AIManager(container, {

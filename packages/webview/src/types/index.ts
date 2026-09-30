@@ -667,7 +667,7 @@ export interface ChatHeaderProps {
 // Matches @muse-work/agent's QueuedMessage type
 export interface QueuedMessage {
   id?: string;
-  type?: "message" | "bang";
+  type?: "message";
   content: string;
   images?: Array<{ path: string; mimeType: string }>;
   longTextMap?: Record<string, string>;
@@ -703,7 +703,6 @@ export interface ChatState {
   // the target session and shows the sweep loading animation over the message
   // + input area while the host connects and replays the transcript.
   isRestoring: boolean;
-  isCommandRunning: boolean;
   shouldClearInput: boolean;
   sessions: SessionMetadata[];
   currentSession?: SessionMetadata;
@@ -901,7 +900,6 @@ export type ChatAction =
   | { type: "SET_CONFIGURATION_DATA"; payload: ConfigurationData }
   | { type: "UPDATE_SELECTION"; payload: SelectionInfo | undefined }
   | { type: "SET_PERMISSION_MODE"; payload: PermissionMode }
-  | { type: "SET_COMMAND_RUNNING"; payload: boolean }
   | { type: "SET_WORKDIR"; payload: string }
   | { type: "SET_QUEUED_MESSAGES"; payload: QueuedMessage[] }
   | { type: "SET_EDITING_QUEUED_ID"; payload: string | null }
@@ -911,7 +909,6 @@ export type ChatAction =
         messages: Message[];
         tasks?: Task[];
         isStreaming: boolean;
-        isCommandRunning?: boolean;
         isCompacting?: boolean;
         isRestoring?: boolean;
         isTaskListCollapsed?: boolean;

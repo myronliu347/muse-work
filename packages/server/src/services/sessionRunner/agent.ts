@@ -681,7 +681,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           toolName: context.toolName,
           description,
           toolInput,
-          planContent: context.planContent,
           suggestedPrefix: context.suggestedPrefix,
           hidePersistentOption: context.hidePersistentOption,
           permissionMode: context.permissionMode,

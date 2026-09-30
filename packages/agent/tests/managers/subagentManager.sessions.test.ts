@@ -89,7 +89,6 @@ describe("SubagentManager - Session Functionality", () => {
       getDeniedRules: vi.fn().mockReturnValue([]),
       getAdditionalDirectories: vi.fn().mockReturnValue([]),
       getSystemAdditionalDirectories: vi.fn().mockReturnValue([]),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
     } as unknown as Record<string, unknown>);
     container.register("TaskManager", {} as unknown as Record<string, unknown>);
     container.register(

@@ -114,7 +114,6 @@ export type PendingPermission = {
   toolName: string;
   description: string;
   toolInput?: Record<string, unknown>;
-  planContent?: string;
   suggestedPrefix?: string;
   hidePersistentOption?: boolean;
   permissionMode?: string;

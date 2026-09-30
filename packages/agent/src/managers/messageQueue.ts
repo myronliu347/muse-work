@@ -2,7 +2,7 @@ export type QueueState = "idle" | "dispatching" | "running";
 
 export interface QueuedMessage {
   id?: string;
-  type?: "message" | "bang" | "notification";
+  type?: "message" | "notification";
   content: string;
   images?: Array<{ path: string; mimeType: string }>;
   longTextMap?: Record<string, string>;
@@ -45,7 +45,7 @@ export class MessageQueue {
   }
 
   /**
-   * Clear user-facing items (messages, bang commands) but preserve pending
+   * Clear user-facing items (messages) but preserve pending
    * notifications so background task results are not lost on abort.
    */
   clear(): void {
@@ -83,7 +83,7 @@ export class MessageQueue {
     patch: {
       content?: string;
       images?: Array<{ path: string; mimeType: string }>;
-      type?: "message" | "bang";
+      type?: "message";
     },
   ): boolean {
     const m = this.queue.find((x) => x.id === id);
@@ -139,7 +139,7 @@ export class MessageQueue {
 
   /**
    * Drain all notification items, returning their XML content. Non-notification
-   * items (messages, bang commands) are preserved in the queue.
+   * items (messages) are preserved in the queue.
    */
   drainNotifications(): string[] {
     const notifications: string[] = [];

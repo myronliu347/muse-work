@@ -59,7 +59,6 @@ describe("SubagentManager - permissionModeOverride", () => {
       getInstanceDeniedRules: vi.fn().mockReturnValue([]),
       getAdditionalDirectories: vi.fn().mockReturnValue([]),
       getSystemAdditionalDirectories: vi.fn().mockReturnValue([]),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
       getBypassAuthorization: vi.fn().mockReturnValue(false),
     } as unknown as Record<string, unknown>);
     container.register("TaskManager", {} as unknown as Record<string, unknown>);

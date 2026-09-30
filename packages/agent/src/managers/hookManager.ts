@@ -400,16 +400,6 @@ export class HookManager {
         });
         return { shouldBlock: true, errorMessage };
 
-      case "WorktreeCreate":
-        // Non-blocking for now, just show error in error block
-        messageManager.addErrorBlock(errorMessage);
-        return { shouldBlock: false };
-
-      case "WorktreeRemove":
-        // Non-blocking for cleanup, log error but don't block
-        messageManager.addErrorBlock(errorMessage);
-        return { shouldBlock: false };
-
       case "SessionStart":
         // Non-blocking for startup, show error in error block
         messageManager.addErrorBlock(errorMessage);
@@ -633,8 +623,6 @@ export class HookManager {
       (event === "UserPromptSubmit" ||
         event === "Stop" ||
         event === "SubagentStop" ||
-        event === "WorktreeCreate" ||
-        event === "WorktreeRemove" ||
         event === "SessionStart" ||
         event === "SessionEnd" ||
         event === "PreCompact" ||
@@ -717,8 +705,6 @@ export class HookManager {
       event === "UserPromptSubmit" ||
       event === "Stop" ||
       event === "SubagentStop" ||
-      event === "WorktreeCreate" ||
-      event === "WorktreeRemove" ||
       event === "CwdChanged" ||
       event === "SessionStart" ||
       event === "SessionEnd" ||
@@ -783,8 +769,6 @@ export class HookManager {
       (event === "UserPromptSubmit" ||
         event === "Stop" ||
         event === "SubagentStop" ||
-        event === "WorktreeCreate" ||
-        event === "WorktreeRemove" ||
         event === "SessionStart" ||
         event === "SessionEnd" ||
         event === "PreCompact" ||
@@ -827,8 +811,6 @@ export class HookManager {
           Stop: 0,
           SubagentStop: 0,
           PermissionRequest: 0,
-          WorktreeCreate: 0,
-          WorktreeRemove: 0,
           CwdChanged: 0,
           SessionStart: 0,
           SessionEnd: 0,
@@ -845,8 +827,6 @@ export class HookManager {
       Stop: 0,
       SubagentStop: 0,
       PermissionRequest: 0,
-      WorktreeCreate: 0,
-      WorktreeRemove: 0,
       CwdChanged: 0,
       SessionStart: 0,
       SessionEnd: 0,

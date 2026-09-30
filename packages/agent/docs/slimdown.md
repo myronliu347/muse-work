@@ -38,6 +38,8 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | enabledPlugins / @builtin | SDK 内置插件目录与 settings 启用表；Muse 只走本地 `path` |
 | webview 市场残件 | `projectSettings.enabledPlugins`、`MarketplaceInfo`、marketplace CSS |
 | Plan mode | `EnterPlanMode` / `ExitPlanMode` / `PlanManager`；Issue 规划助手与 Plan subagent 仍在 |
+| Plan / worktree hook 残件 | `planFilePath`、`planContent`、`WorktreeCreate`/`WorktreeRemove` hook |
+| Bang 运行态 | `onCommandRunningChange`、`isCommandRunning`、队列 `type: "bang"`（历史 bang 消息块仍渲染） |
 
 ## 第三轮
 

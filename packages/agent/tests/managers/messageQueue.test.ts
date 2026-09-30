@@ -387,16 +387,6 @@ describe("MessageQueue", () => {
       expect(queue.getQueue()[0].images).toEqual(newImages);
     });
 
-    it("should update type when patch contains type", () => {
-      const queue = new MessageQueue();
-      queue.enqueue({ content: "ls", id: "x1", type: "message" });
-
-      const result = queue.updateById("x1", { type: "bang" });
-
-      expect(result).toBe(true);
-      expect(queue.getQueue()[0].type).toBe("bang");
-    });
-
     it("should call onMessageEnqueued after a successful update", () => {
       const queue = new MessageQueue();
       queue.enqueue({ content: "a", id: "x1" });

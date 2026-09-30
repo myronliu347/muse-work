@@ -1891,7 +1891,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       toolName: "Bash",
       confirmationType: "Bash 命令执行确认",
       toolInput: { command: "ls -la" },
-      planContent: undefined,
       suggestedPrefix: undefined,
       hidePersistentOption: undefined,
       permissionMode: undefined,

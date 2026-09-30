@@ -61,7 +61,6 @@ describe("AIManager - invoked skills re-injection", () => {
     container.register("ToolManager", { list: vi.fn().mockReturnValue([]) });
     container.register("PermissionManager", {
       getCurrentEffectiveMode: vi.fn().mockReturnValue("default"),
-      getPlanFilePath: vi.fn().mockReturnValue(undefined),
     } as unknown as PermissionManager);
     container.register("HookManager", {});
     container.register("BackgroundTaskManager", {

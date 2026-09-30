@@ -239,7 +239,6 @@ export const initialState: ChatState = {
   isStreaming: false,
   isCompacting: false,
   isRestoring: false,
-  isCommandRunning: false,
   shouldClearInput: false,
   sessions: [],
   currentSession: undefined,
@@ -486,10 +485,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           action.payload.isStreaming !== undefined
             ? action.payload.isStreaming
             : state.isStreaming,
-        isCommandRunning:
-          action.payload.isCommandRunning !== undefined
-            ? action.payload.isCommandRunning
-            : state.isCommandRunning,
         // A session switch must not inherit the previous session's compaction
         // hint; the host pushes the activated session's own state (or omits
         // it, meaning "not compacting").
@@ -550,11 +545,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         editingQueuedId: action.payload,
-      };
-    case "SET_COMMAND_RUNNING":
-      return {
-        ...state,
-        isCommandRunning: action.payload,
       };
     case "SET_PERMISSION_MODE":
       return {

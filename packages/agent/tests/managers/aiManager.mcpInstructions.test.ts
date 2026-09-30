@@ -127,11 +127,6 @@ function createHarness(mcpManager: unknown) {
     getCurrentEffectiveMode: vi.fn().mockReturnValue("default"),
     isToolDenied: vi.fn().mockReturnValue(false),
     clearTemporaryRules: vi.fn(),
-    getPlanFilePath: vi.fn().mockReturnValue(undefined),
-    setHasExitedPlanMode: vi.fn(),
-    hasExitedPlanModeInSession: vi.fn(() => false),
-    setNeedsPlanModeExitAttachment: vi.fn(),
-    getNeedsPlanModeExitAttachment: vi.fn(() => false),
   });
   container.register("SubagentManager", {
     getConfigurations: vi.fn().mockReturnValue([]),

@@ -46,7 +46,6 @@ export type WsEvent =
       description: string;
       /** Structured tool args for ConfirmationDialog (questions, command, etc.). */
       toolInput?: Record<string, unknown>;
-      planContent?: string;
       suggestedPrefix?: string;
       hidePersistentOption?: boolean;
       permissionMode?: string;

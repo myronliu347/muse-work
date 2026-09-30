@@ -111,15 +111,10 @@ function makeContainer(
   c.register("PermissionManager", {
     getCurrentEffectiveMode: vi.fn().mockReturnValue("normal"),
     clearTemporaryRules: vi.fn(),
-    getPlanFilePath: vi.fn().mockReturnValue(undefined),
     getAllowedRules: vi.fn().mockReturnValue([]),
     getDeniedRules: vi.fn().mockReturnValue([]),
     getAdditionalDirectories: vi.fn().mockReturnValue([]),
     getSystemAdditionalDirectories: vi.fn().mockReturnValue([]),
-    setHasExitedPlanMode: vi.fn(),
-    hasExitedPlanModeInSession: vi.fn(() => false),
-    setNeedsPlanModeExitAttachment: vi.fn(),
-    getNeedsPlanModeExitAttachment: vi.fn(() => false),
   });
   c.register("SubagentManager", {
     getConfigurations: vi.fn().mockReturnValue([]),
