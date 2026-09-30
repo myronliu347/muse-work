@@ -26,9 +26,9 @@ export interface ModelCapabilities {
 export interface ModelConfig {
   model?: string;
   fastModel?: string;
-  /** Vision-capable model for image recognition subagents (resolved from WAVE_VISION_MODEL env var). */
+  /** Vision-capable model for image recognition subagents (resolved from MUSE_VISION_MODEL env var). */
   visionModel?: string;
-  /** Per-model input context window in tokens. Overrides the global `WAVE_MAX_INPUT_TOKENS` for this model. */
+  /** Per-model input context window in tokens. Overrides the global `MUSE_MAX_INPUT_TOKENS` for this model. */
   maxInputTokens?: number;
   permissionMode?: PermissionMode;
   capabilities?: ModelCapabilities;

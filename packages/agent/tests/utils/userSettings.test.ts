@@ -1,6 +1,6 @@
 /**
  * 用户偏好读写（三端设置页保存路径的唯一实现）：
- * - 落点 = 用户级 `~/.muse-work/settings.json`，K↔`env.WAVE_MAX_INPUT_TOKENS` 换算只在此处
+ * - 落点 = 用户级 `~/.muse-work/settings.json`，K↔`env.MUSE_MAX_INPUT_TOKENS` 换算只在此处
  * - 写入是读-改-写：只覆盖偏好键，其余顶层键与 `env` 其它键原样保留
  * - 文件缺失/损坏只影响回读（返回空对象），但**绝不覆盖**用户文件（写入报错）
  *
@@ -69,7 +69,7 @@ describe("userSettings", () => {
       expect(userSettingsFilePath()).toBe(FILE);
     });
 
-    it("K 值 ↔ env.WAVE_MAX_INPUT_TOKENS 是同一套换算（K×1000）", () => {
+    it("K 值 ↔ env.MUSE_MAX_INPUT_TOKENS 是同一套换算（K×1000）", () => {
       expect(contextLengthToMaxInputTokens(200)).toBe(200000);
       expect(contextLengthToMaxInputTokens(16.4)).toBe(16400);
       expect(maxInputTokensToContextLength("200000")).toBe(200);
@@ -92,15 +92,15 @@ describe("userSettings", () => {
       expect(mockRead).not.toHaveBeenCalled();
     });
 
-    it("读回偏好键，上下文长度按 K 展示、服务端地址取自 env.WAVE_SERVER_URL", () => {
+    it("读回偏好键，上下文长度按 K 展示、服务端地址取自 env.MUSE_SERVER_URL", () => {
       seedFile({
         model: "m1",
         language: "English",
         autoMemoryEnabled: false,
         autoMemoryFrequency: 7,
         env: {
-          WAVE_MAX_INPUT_TOKENS: "128000",
-          WAVE_SERVER_URL: "https://example.test",
+          MUSE_MAX_INPUT_TOKENS: "128000",
+          MUSE_SERVER_URL: "https://example.test",
           OTHER: "keep",
         },
       });
@@ -114,14 +114,28 @@ describe("userSettings", () => {
       });
     });
 
-    it("env.WAVE_SERVER_URL 缺失/空串/非字符串都按未设置处理", () => {
-      seedFile({ env: { WAVE_MAX_INPUT_TOKENS: "128000" } });
+    it("仍可读遗留 env.WAVE_MAX_INPUT_TOKENS / WAVE_SERVER_URL", () => {
+      seedFile({
+        env: {
+          WAVE_MAX_INPUT_TOKENS: "128000",
+          WAVE_SERVER_URL: "https://legacy.test",
+        },
+      });
+
+      expect(readUserPreferenceSettings(FILE)).toEqual({
+        contextLength: 128,
+        serverUrl: "https://legacy.test",
+      });
+    });
+
+    it("env.MUSE_SERVER_URL 缺失/空串/非字符串都按未设置处理", () => {
+      seedFile({ env: { MUSE_MAX_INPUT_TOKENS: "128000" } });
       expect(readUserPreferenceSettings(FILE)).toEqual({ contextLength: 128 });
 
-      seedFile({ env: { WAVE_SERVER_URL: "" } });
+      seedFile({ env: { MUSE_SERVER_URL: "" } });
       expect(readUserPreferenceSettings(FILE)).toEqual({});
 
-      seedFile({ env: { WAVE_SERVER_URL: 42 } });
+      seedFile({ env: { MUSE_SERVER_URL: 42 } });
       expect(readUserPreferenceSettings(FILE)).toEqual({});
     });
 
@@ -184,7 +198,7 @@ describe("userSettings", () => {
         language: "Chinese",
         autoMemoryEnabled: false,
         autoMemoryFrequency: 3,
-        env: { WAVE_MAX_INPUT_TOKENS: "128000" },
+        env: { MUSE_MAX_INPUT_TOKENS: "128000" },
       });
       expect(readUserPreferenceView(null, FILE, {})).toEqual({
         values: {
@@ -203,9 +217,9 @@ describe("userSettings", () => {
       });
     });
 
-    it("上下文长度的归因层 = env.WAVE_MAX_INPUT_TOKENS 所在的层（remote > user > 机器 env）", () => {
-      seedFile({ env: { WAVE_MAX_INPUT_TOKENS: "128000" } });
-      const remoteEnv = { env: { WAVE_MAX_INPUT_TOKENS: "256000" } };
+    it("上下文长度的归因层 = env.MUSE_MAX_INPUT_TOKENS 所在的层（remote > user > 机器 env）", () => {
+      seedFile({ env: { MUSE_MAX_INPUT_TOKENS: "128000" } });
+      const remoteEnv = { env: { MUSE_MAX_INPUT_TOKENS: "256000" } };
       expect(readUserPreferenceView(remoteEnv, FILE, {})).toEqual({
         values: { contextLength: 256 },
         sources: {
@@ -217,7 +231,7 @@ describe("userSettings", () => {
         },
       });
       expect(
-        readUserPreferenceView(null, FILE, { WAVE_MAX_INPUT_TOKENS: "64000" }),
+        readUserPreferenceView(null, FILE, { MUSE_MAX_INPUT_TOKENS: "64000" }),
       ).toEqual({
         values: { contextLength: 128 },
         sources: {
@@ -230,7 +244,7 @@ describe("userSettings", () => {
       });
       mockExists.mockReturnValue(false);
       expect(
-        readUserPreferenceView(null, FILE, { WAVE_MAX_INPUT_TOKENS: "64000" }),
+        readUserPreferenceView(null, FILE, { MUSE_MAX_INPUT_TOKENS: "64000" }),
       ).toEqual({
         values: { contextLength: 64 },
         sources: {
@@ -243,7 +257,7 @@ describe("userSettings", () => {
       });
     });
 
-    it("自动记忆开关的两条 Remote 路径都归因 remote（顶层标量 + env.WAVE_DISABLE_AUTO_MEMORY）", () => {
+    it("自动记忆开关的两条 Remote 路径都归因 remote（顶层标量 + env.MUSE_DISABLE_AUTO_MEMORY）", () => {
       seedFile({ autoMemoryEnabled: true });
       expect(
         readUserPreferenceView({ autoMemoryEnabled: false }, FILE, {}),
@@ -262,7 +276,7 @@ describe("userSettings", () => {
       seedFile({});
       expect(
         readUserPreferenceView(
-          { env: { WAVE_DISABLE_AUTO_MEMORY: "1" } },
+          { env: { MUSE_DISABLE_AUTO_MEMORY: "1" } },
           FILE,
           {},
         ),
@@ -284,8 +298,8 @@ describe("userSettings", () => {
         readUserPreferenceView(
           {
             env: {
-              WAVE_DISABLE_AUTO_MEMORY: "1",
-              WAVE_AUTO_MEMORY_FREQUENCY: "9",
+              MUSE_DISABLE_AUTO_MEMORY: "1",
+              MUSE_AUTO_MEMORY_FREQUENCY: "9",
             },
           },
           FILE,
@@ -304,10 +318,10 @@ describe("userSettings", () => {
     });
 
     it("开关的机器 env 层与用户文件 env 层各自归因（user > env）", () => {
-      seedFile({ env: { WAVE_DISABLE_AUTO_MEMORY: "true" } });
+      seedFile({ env: { MUSE_DISABLE_AUTO_MEMORY: "true" } });
       expect(
         readUserPreferenceView(null, FILE, {
-          WAVE_DISABLE_AUTO_MEMORY: "true",
+          MUSE_DISABLE_AUTO_MEMORY: "true",
         }),
       ).toEqual({
         values: { autoMemoryEnabled: false },
@@ -322,7 +336,7 @@ describe("userSettings", () => {
       mockExists.mockReturnValue(false);
       expect(
         readUserPreferenceView(null, FILE, {
-          WAVE_DISABLE_AUTO_MEMORY: "true",
+          MUSE_DISABLE_AUTO_MEMORY: "true",
         }),
       ).toEqual({
         values: { autoMemoryEnabled: false },
@@ -335,7 +349,7 @@ describe("userSettings", () => {
         },
       });
       expect(
-        readUserPreferenceView(null, FILE, { WAVE_DISABLE_AUTO_MEMORY: "no" }),
+        readUserPreferenceView(null, FILE, { MUSE_DISABLE_AUTO_MEMORY: "no" }),
       ).toEqual({
         values: {},
         sources: {
@@ -366,9 +380,9 @@ describe("userSettings", () => {
       seedFile({});
       expect(
         readUserPreferenceView(
-          { env: { WAVE_AUTO_MEMORY_FREQUENCY: "12" } },
+          { env: { MUSE_AUTO_MEMORY_FREQUENCY: "12" } },
           FILE,
-          { WAVE_AUTO_MEMORY_FREQUENCY: "0" },
+          { MUSE_AUTO_MEMORY_FREQUENCY: "0" },
         ),
       ).toEqual({
         values: { autoMemoryFrequency: 12 },
@@ -381,7 +395,7 @@ describe("userSettings", () => {
         },
       });
       expect(
-        readUserPreferenceView(null, FILE, { WAVE_AUTO_MEMORY_FREQUENCY: "4" }),
+        readUserPreferenceView(null, FILE, { MUSE_AUTO_MEMORY_FREQUENCY: "4" }),
       ).toEqual({
         values: { autoMemoryFrequency: 4 },
         sources: {
@@ -398,7 +412,7 @@ describe("userSettings", () => {
       seedFile("{ broken");
       expect(
         readUserPreferenceView({ language: "English" }, FILE, {
-          WAVE_MAX_INPUT_TOKENS: "64000",
+          MUSE_MAX_INPUT_TOKENS: "64000",
         }),
       ).toEqual({
         values: {
@@ -417,10 +431,10 @@ describe("userSettings", () => {
 
     it("服务端地址的来源只有 user / env / default（Remote 不参与归因）", () => {
       // 用户文件 env 键有值 → user（机器环境变量被盖过）
-      seedFile({ env: { WAVE_SERVER_URL: "https://from-file.test" } });
+      seedFile({ env: { MUSE_SERVER_URL: "https://from-file.test" } });
       expect(
         readUserPreferenceView(null, FILE, {
-          WAVE_SERVER_URL: "https://from-os-env.test",
+          MUSE_SERVER_URL: "https://from-os-env.test",
         }),
       ).toEqual({
         values: { serverUrl: "https://from-file.test" },
@@ -437,7 +451,7 @@ describe("userSettings", () => {
       mockExists.mockReturnValue(false);
       expect(
         readUserPreferenceView(null, FILE, {
-          WAVE_SERVER_URL: "https://from-os-env.test",
+          MUSE_SERVER_URL: "https://from-os-env.test",
         }),
       ).toEqual({
         values: { serverUrl: "https://from-os-env.test" },
@@ -454,7 +468,7 @@ describe("userSettings", () => {
       seedFile({});
       expect(
         readUserPreferenceView(
-          { env: { WAVE_SERVER_URL: "https://from-remote.test" } },
+          { env: { MUSE_SERVER_URL: "https://from-remote.test" } },
           FILE,
           {},
         ),
@@ -510,7 +524,7 @@ describe("userSettings", () => {
       });
     });
 
-    it("服务端地址落 env.WAVE_SERVER_URL（原样写入，env 其它键原样保留）", async () => {
+    it("服务端地址落 env.MUSE_SERVER_URL（原样写入，env 其它键原样保留）", async () => {
       seedFile({ env: { KEEP: "1" }, language: "Chinese" });
 
       const result = await updateUserPreferenceSettings(
@@ -532,7 +546,7 @@ describe("userSettings", () => {
     });
 
     it("空串/空白服务端地址视作未提供：不落盘、不遮蔽 OS 环境变量", async () => {
-      seedFile({ env: { WAVE_SERVER_URL: "https://kept.test" } });
+      seedFile({ env: { MUSE_SERVER_URL: "https://kept.test" } });
 
       const result = await updateUserPreferenceSettings(
         { serverUrl: "" },

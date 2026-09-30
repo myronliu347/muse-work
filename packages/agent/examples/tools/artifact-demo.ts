@@ -15,7 +15,7 @@
  *
  * 前置条件：
  * - 已登录（~/.muse-work/auth.json 存在有效 SSO token）
- * - 已配置服务端地址：WAVE_SERVER_URL 环境变量（或 settings.json env），
+ * - 已配置服务端地址：MUSE_SERVER_URL 环境变量（或 settings.json env），
  *   例如 https://codechat.codewave-test.163yun.com
  * - 服务端 frame 后端已上线（POST /api/frame/deploy/direct 可用）
  *
@@ -34,8 +34,8 @@ import {
 import type { Message, ToolBlock } from "../../src/types/messaging.js";
 import { ARTIFACT_TOOL_NAME } from "../../src/constants/tools.js";
 
-// Use WAVE_FAST_MODEL for cheaper and faster testing
-process.env.WAVE_MODEL = process.env.WAVE_FAST_MODEL;
+// Use MUSE_FAST_MODEL for cheaper and faster testing
+process.env.MUSE_MODEL = process.env.MUSE_FAST_MODEL;
 
 let tempDir: string;
 let agent: Agent;
@@ -232,7 +232,7 @@ const published = await artifactTool.execute(...);
   // 创建 Agent
   agent = await Agent.create({
     workdir: tempDir,
-    model: process.env.WAVE_FAST_MODEL,
+    model: process.env.MUSE_FAST_MODEL,
     permissionMode: "bypassPermissions", // 示例自动运行，跳过确认弹窗
     callbacks: {
       onAssistantContentUpdated: (params: { chunk: string }) => {

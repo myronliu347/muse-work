@@ -25,8 +25,8 @@ describe("ExitPlanMode Integration", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    process.env.WAVE_API_KEY = "test-api-key";
-    process.env.WAVE_BASE_URL = "https://test-gateway.com/api";
+    process.env.MUSE_API_KEY = "test-api-key";
+    process.env.MUSE_BASE_URL = "https://test-gateway.com/api";
 
     originalStdoutWrite = process.stdout.write;
     originalStderrWrite = process.stderr.write;

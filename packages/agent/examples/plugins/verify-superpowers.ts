@@ -8,7 +8,7 @@ async function main() {
 
   const agent = await Agent.create({
     plugins: [{ type: "local", path: SUPERPOWERS_PATH }],
-    model: process.env.WAVE_FAST_MODEL,
+    model: process.env.MUSE_FAST_MODEL,
     systemPromptOverride: "You are a helpful assistant. Keep responses brief.",
   });
 

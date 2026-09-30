@@ -18,7 +18,7 @@ async function main() {
   }
 
   const agent = await Agent.create({
-    model: process.env.WAVE_FAST_MODEL,
+    model: process.env.MUSE_FAST_MODEL,
     workdir: projectDir,
     // We'll manually trigger the hook by simulating an Edit tool use
   });

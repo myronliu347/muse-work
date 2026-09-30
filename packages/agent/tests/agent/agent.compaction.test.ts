@@ -15,10 +15,10 @@ describe("Agent Message Compaction Tests", () => {
 
   beforeEach(async () => {
     // Disable auto-memory to prevent extra callAgent calls from background tasks
-    vi.stubEnv("WAVE_DISABLE_AUTO_MEMORY", "1");
+    vi.stubEnv("MUSE_DISABLE_AUTO_MEMORY", "1");
 
-    // Clear WAVE_MAX_INPUT_TOKENS to use default 128000 for compaction threshold
-    delete process.env.WAVE_MAX_INPUT_TOKENS;
+    // Clear MUSE_MAX_INPUT_TOKENS to use default 128000 for compaction threshold
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
 
     // Create Agent instance with required parameters
     agent = await Agent.create({

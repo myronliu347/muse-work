@@ -52,6 +52,6 @@ export const DEFAULT_LANGUAGE = "zh-CN";
 
 /**
  * Default server URL for SSO authentication.
- * Overridden by WAVE_SERVER_URL env var or programmatic AgentOptions.serverUrl.
+ * Overridden by MUSE_SERVER_URL env var (WAVE_SERVER_URL still works) or programmatic AgentOptions.serverUrl.
  */
 export const DEFAULT_SERVER_URL = "https://codechat.codewave.163.com";

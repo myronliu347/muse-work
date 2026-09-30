@@ -11,6 +11,7 @@ import { logger } from "../utils/globalLogger.js";
 import { addOnceAbortListener } from "../utils/abortUtils.js";
 import type { GatewayConfig, ModelConfig, Usage } from "../types/index.js";
 import { ConfigurationError, CONFIG_ERRORS } from "../types/index.js";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
 import {
   transformMessagesForExplicitCache,
   extendUsageWithCacheMetrics,
@@ -229,7 +230,7 @@ function validateModelConfig(
   if (!modelConfig.model) {
     throw new ConfigurationError(CONFIG_ERRORS.MISSING_MODEL, "model", {
       constructor: undefined,
-      environment: process.env.WAVE_MODEL,
+      environment: envGet(MUSE_ENV.MODEL, process.env),
     });
   }
   if (!modelConfig.fastModel) {
@@ -238,7 +239,7 @@ function validateModelConfig(
       "fastModel",
       {
         constructor: undefined,
-        environment: process.env.WAVE_FAST_MODEL,
+        environment: envGet(MUSE_ENV.FAST_MODEL, process.env),
       },
     );
   }
@@ -294,7 +295,7 @@ export async function callAgent(
     // Determine model early (needed for system prompt construction).
     // Per-model overrides come from modelConfig.options.max_tokens (spread
     // after this default below); callers pass the resolved global value
-    // (AgentOptions.maxTokens / WAVE_MAX_OUTPUT_TOKENS) via options.maxTokens.
+    // (AgentOptions.maxTokens / MUSE_MAX_OUTPUT_TOKENS) via options.maxTokens.
     const resolvedMaxTokens =
       options.maxTokens ?? DEFAULT_WAVE_MAX_OUTPUT_TOKENS;
 

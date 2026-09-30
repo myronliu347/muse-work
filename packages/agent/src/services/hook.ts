@@ -17,6 +17,7 @@ import {
 import { generateSessionFilePath } from "./session.js";
 import { resolveShellPath } from "../utils/shellResolver.js";
 import { toPosixCommand } from "../utils/windowsPaths.js";
+import { projectDirEnv } from "../utils/museEnv.js";
 
 // =============================================================================
 // Hook Execution Functions
@@ -198,7 +199,7 @@ export async function executeCommand(
       shellFlag = "-c";
       finalCommand = toPosixCommand(command);
       // Windows .sh scripts aren't directly executable — run them via bash
-      // when the command itself is a .sh file (e.g. `${WAVE_PLUGIN_ROOT}/x.sh`).
+      // when the command itself is a .sh file (e.g. `${MUSE_PLUGIN_ROOT}/x.sh`).
       const trimmed = finalCommand.trim();
       const firstToken = trimmed.match(/^("([^"]*)"|'([^']*)'|\S+)/)?.[0] ?? "";
       if (firstToken.endsWith(".sh") && !trimmed.startsWith("bash ")) {
@@ -222,7 +223,7 @@ export async function executeCommand(
         ...("env" in context ? context.env || {} : {}), // Additional environment variables from configuration (if ExtendedHookExecutionContext)
         HOOK_EVENT: context.event,
         HOOK_TOOL_NAME: context.toolName || "",
-        WAVE_PROJECT_DIR: context.projectDir,
+        ...projectDirEnv(context.projectDir),
       },
     });
 

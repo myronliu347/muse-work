@@ -70,7 +70,7 @@ packages/server/plugins/superpowers/
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${WAVE_PLUGIN_ROOT}/scripts/session-start.js\""
+            "command": "node \"${MUSE_PLUGIN_ROOT}/scripts/session-start.js\""
           }
         ]
       }

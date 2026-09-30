@@ -1,5 +1,5 @@
 /**
- * Verifies that plugin agents are loaded correctly and ${WAVE_PLUGIN_ROOT}
+ * Verifies that plugin agents are loaded correctly and ${MUSE_PLUGIN_ROOT}
  * is substituted in agent system prompts.
  */
 import { PluginManager } from "../../src/managers/pluginManager.js";
@@ -101,10 +101,10 @@ async function verify() {
   console.log(`- Agent scope: ${researcher.scope}`);
   console.log(`- Agent pluginRoot: ${researcher.pluginRoot}`);
 
-  // Verify ${WAVE_PLUGIN_ROOT} was substituted at parse time
-  if (researcher.systemPrompt.includes("${WAVE_PLUGIN_ROOT}")) {
+  // Verify ${MUSE_PLUGIN_ROOT} was substituted at parse time
+  if (researcher.systemPrompt.includes("${MUSE_PLUGIN_ROOT}")) {
     throw new Error(
-      "WAVE_PLUGIN_ROOT was not substituted in agent systemPrompt",
+      "MUSE_PLUGIN_ROOT was not substituted in agent systemPrompt",
     );
   }
   const expectedPath = plugin.path + "/data";
@@ -127,11 +127,11 @@ async function verify() {
     `✅ SubagentManager has namespaced agent: ${namespacedAgent.name}`,
   );
 
-  // Verify WAVE_PLUGIN_ROOT substitution safety net in SubagentManager
-  if (namespacedAgent.systemPrompt.includes("${WAVE_PLUGIN_ROOT}")) {
-    throw new Error("WAVE_PLUGIN_ROOT not substituted in SubagentManager");
+  // Verify MUSE_PLUGIN_ROOT substitution safety net in SubagentManager
+  if (namespacedAgent.systemPrompt.includes("${MUSE_PLUGIN_ROOT}")) {
+    throw new Error("MUSE_PLUGIN_ROOT not substituted in SubagentManager");
   }
-  console.log(`✅ WAVE_PLUGIN_ROOT correctly substituted in SubagentManager`);
+  console.log(`✅ MUSE_PLUGIN_ROOT correctly substituted in SubagentManager`);
 
   // Verify findSubagent can find the plugin agent
   const found = await subagentManager.findSubagent(

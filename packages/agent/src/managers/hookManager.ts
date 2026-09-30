@@ -28,6 +28,7 @@ import { MessageSource } from "../types/index.js";
 import type { MessageManager } from "./messageManager.js";
 import { Container } from "../utils/container.js";
 import type { ConfigurationService } from "../services/configurationService.js";
+import { pluginRootEnv, substitutePluginRoot } from "../utils/museEnv.js";
 
 import { logger } from "../utils/globalLogger.js";
 
@@ -198,29 +199,20 @@ export class HookManager {
             ? { timeout: hookCommand.timeout * 1000 }
             : undefined;
 
-          // Build execution context with WAVE_PLUGIN_ROOT if this is a plugin hook
+          // Build execution context with MUSE_PLUGIN_ROOT if this is a plugin hook
           let command = hookCommand.command;
           const execContext: typeof context = hookCommand.pluginRoot
             ? {
                 ...context,
                 env: {
                   ...("env" in context ? (context.env ?? {}) : {}),
-                  WAVE_PLUGIN_ROOT: hookCommand.pluginRoot,
-                  CLAUDE_PLUGIN_ROOT: hookCommand.pluginRoot,
+                  ...pluginRootEnv(hookCommand.pluginRoot),
                 },
               }
             : context;
 
-          // Substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT} in the command string
           if (hookCommand.pluginRoot) {
-            command = command.replace(
-              /\$\{WAVE_PLUGIN_ROOT\}/g,
-              hookCommand.pluginRoot,
-            );
-            command = command.replace(
-              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-              hookCommand.pluginRoot,
-            );
+            command = substitutePluginRoot(command, hookCommand.pluginRoot);
           }
 
           if (hookCommand.async) {

@@ -45,7 +45,7 @@ This is a test skill content.`;
 
     it("exposes skillPath as the skill directory, not the SKILL.md file (contract lock)", () => {
       // SkillMetadata.skillPath is a directory-level contract: consumers
-      // inject it for ${WAVE_SKILL_DIR} and rm(recursive) it on delete. If
+      // inject it for ${MUSE_SKILL_DIR} and rm(recursive) it on delete. If
       // this ever returns the file path, those consumers silently break.
       mockReadFileSync.mockReturnValue(
         "---\nname: dir-skill\ndescription: d\n---\nbody",

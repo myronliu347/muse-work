@@ -22,6 +22,7 @@ import { URL } from "url";
 import type { AuthConfig, AuthUser, TokenResponse } from "../types/auth.js";
 import { logger } from "../utils/globalLogger.js";
 import { DEFAULT_SERVER_URL, CONFIG_DIR_NAME } from "../utils/constants.js";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
 
 /** Persistent anonymous ID for telemetry fallback when SSO is not authenticated. */
 let _anonymousId: string | undefined;
@@ -45,7 +46,7 @@ export class AuthService {
 
   /**
    * Set server URL programmatically (e.g. from AgentOptions.serverUrl).
-   * Takes priority over WAVE_SERVER_URL environment variable.
+   * Takes priority over MUSE_SERVER_URL / WAVE_SERVER_URL environment variable.
    */
   setServerUrl(url: string): void {
     this._serverUrl = url;
@@ -138,7 +139,11 @@ export class AuthService {
   }
 
   getServerUrl(): string {
-    return this._serverUrl || process.env.WAVE_SERVER_URL || DEFAULT_SERVER_URL;
+    return (
+      this._serverUrl ||
+      envGet(MUSE_ENV.SERVER_URL, process.env) ||
+      DEFAULT_SERVER_URL
+    );
   }
 
   async login(options?: {
@@ -146,7 +151,7 @@ export class AuthService {
     onAuthUrl?: (url: string) => void;
     /** Read authorization code manually (e.g. from stdin). Resolves with code or rejects on cancel. */
     readToken?: () => Promise<string>;
-    /** Server URL override. Falls back to setServerUrl() or WAVE_SERVER_URL env var. */
+    /** Server URL override. Falls back to setServerUrl() or MUSE_SERVER_URL / WAVE_SERVER_URL env var. */
     serverUrl?: string;
   }): Promise<string> {
     const serverUrl = options?.serverUrl || this.getServerUrl();

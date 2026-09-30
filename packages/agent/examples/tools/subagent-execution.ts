@@ -34,11 +34,11 @@ async function setupTest() {
   const agentsDir = path.join(tempDir, ".muse-work", "agents");
   await fs.mkdir(agentsDir, { recursive: true });
 
-  // Create a simple subagent configuration in markdown format with WAVE_FAST_MODEL
+  // Create a simple subagent configuration in markdown format with MUSE_FAST_MODEL
   const subagentContent = `---
 name: file-analyzer
 description: Analyzes files and provides summaries
-model: ${process.env.WAVE_FAST_MODEL}
+model: ${process.env.MUSE_FAST_MODEL}
 tools: [Read, Glob]
 ---
 

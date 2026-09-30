@@ -27,7 +27,7 @@ export interface AgentOptions {
   // Optional configuration with environment fallbacks
   apiKey?: string;
   baseURL?: string;
-  /** Wave server URL for SSO authentication (fallback to WAVE_SERVER_URL env var) */
+  /** Wave server URL for SSO authentication (fallback to MUSE_SERVER_URL env var) */
   serverUrl?: string;
   defaultHeaders?: Record<string, string>;
   /** Per-subagent-type headers, merged into defaultHeaders for matching subagents */
@@ -36,7 +36,7 @@ export interface AgentOptions {
   fetch?: ClientOptions["fetch"];
   model?: string;
   fastModel?: string;
-  /** Vision-capable model used by the builtin vision subagent (resolved from WAVE_VISION_MODEL env var). */
+  /** Vision-capable model used by the builtin vision subagent (resolved from MUSE_VISION_MODEL env var). */
   visionModel?: string;
   maxInputTokens?: number;
   maxTokens?: number;
@@ -49,7 +49,7 @@ export interface AgentOptions {
   /**
    * Per-session override for auto-memory extraction (程序化会话级覆盖).
    * Takes precedence over settings.json merged config and
-   * WAVE_DISABLE_AUTO_MEMORY env; undefined defers to them. 三端设置页的开关
+   * MUSE_DISABLE_AUTO_MEMORY env; undefined defers to them. 三端设置页的开关
    * **不**经这一层下发——它落用户级 `~/.muse-work/settings.json`，由实时重载在下一轮
    * 生效（spec core/agent-config.md「设置实时重载」）。
    */

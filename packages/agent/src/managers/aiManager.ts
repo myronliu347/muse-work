@@ -1449,7 +1449,7 @@ ${question}`;
           // Re-inject what the model actually saw (already substituted, with the
           // base-directory header). Re-render from the file only when that
           // record is missing — never hand the model a raw SKILL.md, whose
-          // `${WAVE_SKILL_DIR}` would be a literal placeholder
+          // `${MUSE_SKILL_DIR}` would be a literal placeholder
           // (spec core/message-compact 场景 4).
           let skillContent =
             invoked.content?.trim() ??

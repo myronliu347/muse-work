@@ -53,6 +53,7 @@ import {
 import { createAuthAwareFetch } from "./authService.js";
 import { ensureWaveRuntimeFilesExcluded } from "../utils/gitUtils.js";
 import { atomicWriteFile } from "../utils/atomicWrite.js";
+import { envGet, MUSE_ENV, museEnvLegacy, projectDirEnv } from "../utils/museEnv.js";
 
 /**
  * Validate a configuration object's structure and values. Module-level so it
@@ -360,7 +361,7 @@ export class ConfigurationService {
 
       if (!mergedConfig) {
         // Still set system environment variables even if no config is found
-        const env = { WAVE_PROJECT_DIR: workdir };
+        const env = projectDirEnv(workdir);
         this.setEnvironmentVars(env);
 
         return {
@@ -396,7 +397,7 @@ export class ConfigurationService {
       // Set environment variables from merged config and inject system variables
       const env = {
         ...(finalConfig.env || {}),
-        WAVE_PROJECT_DIR: workdir,
+        ...projectDirEnv(workdir),
       };
       this.setEnvironmentVars(env);
       finalConfig.env = env;
@@ -474,10 +475,10 @@ export class ConfigurationService {
    * snapshot (NOT process.env). Settings `env` shadows OS env for this session
    * only — multiple sessions in one stdio process stay isolated.
    *
-   * Exception: `WAVE_SERVER_URL` is also mirrored to `process.env` because the
-   * process-level singletons (AuthService, remoteSettingsService background
-   * fetch) need to read it and don't hold a per-session snapshot. Same value
-   * across sessions ⇒ no cross-pollution. See docs/specs/core/agent-config.md.
+   * Exception: `MUSE_SERVER_URL` / legacy `WAVE_SERVER_URL` is also mirrored
+   * to `process.env` because the process-level singletons (AuthService,
+   * remoteSettingsService background fetch) need to read it and don't hold a
+   * per-session snapshot. Same value across sessions ⇒ no cross-pollution.
    */
   setEnvironmentVars(env: Record<string, string>): void {
     for (const [key, value] of Object.entries(env)) {
@@ -490,12 +491,9 @@ export class ConfigurationService {
       }
       this.envSnapshot[key] = value;
       this._configuredEnvKeys.add(key);
-      // WAVE_SERVER_URL is consumed by process-level singletons (AuthService,
-      // remoteSettingsService) that can't see the per-session snapshot — mirror
-      // it to process.env so they read the settings value. Same value across
-      // sessions ⇒ no last-session-wins cross-pollution.
-      if (key === "WAVE_SERVER_URL") {
-        process.env[key] = value;
+      if (key === MUSE_ENV.SERVER_URL || key === museEnvLegacy(MUSE_ENV.SERVER_URL)) {
+        process.env[MUSE_ENV.SERVER_URL] = value;
+        process.env[museEnvLegacy(MUSE_ENV.SERVER_URL)] = value;
       }
     }
   }
@@ -541,14 +539,11 @@ export class ConfigurationService {
     fetch?: ClientOptions["fetch"],
   ): GatewayConfig {
     // Check for SSO token first - if present and server URL is available, use SSO mode.
-    // Server URL resolution: options.serverUrl > process.env.WAVE_SERVER_URL > default.
-    // settings.json `env` WAVE_SERVER_URL is mirrored to process.env by
-    // setEnvironmentVars (so process-level singletons AuthService / remoteSettings
-    // can read it), then read here. See docs/specs/core/agent-config.md.
+    // Server URL: options.serverUrl > MUSE_SERVER_URL (WAVE_ fallback) > default.
     const ssoToken = this.readSSOToken();
     const serverUrl =
       this.options.serverUrl ||
-      process.env.WAVE_SERVER_URL ||
+      envGet(MUSE_ENV.SERVER_URL, this.liveEnvSnapshot, process.env) ||
       DEFAULT_SERVER_URL;
     if (ssoToken && serverUrl) {
       const baseFetch = fetch ?? this.options.fetch ?? globalThis.fetch;
@@ -575,8 +570,11 @@ export class ConfigurationService {
     } else if (this.options.apiKey !== undefined) {
       resolvedApiKey = this.options.apiKey;
     } else {
-      resolvedApiKey =
-        this.liveEnvSnapshot.WAVE_API_KEY ?? process.env.WAVE_API_KEY;
+      resolvedApiKey = envGet(
+        MUSE_ENV.API_KEY,
+        this.liveEnvSnapshot,
+        process.env,
+      );
     }
 
     // Resolve base URL: override > options > env (settings.json) > process.env
@@ -587,18 +585,27 @@ export class ConfigurationService {
     } else if (this.options.baseURL !== undefined) {
       resolvedBaseURL = this.options.baseURL;
     } else {
-      resolvedBaseURL =
-        this.liveEnvSnapshot.WAVE_BASE_URL ?? process.env.WAVE_BASE_URL;
+      resolvedBaseURL = envGet(
+        MUSE_ENV.BASE_URL,
+        this.liveEnvSnapshot,
+        process.env,
+      );
     }
 
     // Fallback to process.env if still not resolved (for dynamic updates in tests)
     if (resolvedApiKey === undefined) {
-      resolvedApiKey =
-        this.liveEnvSnapshot.WAVE_API_KEY ?? process.env.WAVE_API_KEY;
+      resolvedApiKey = envGet(
+        MUSE_ENV.API_KEY,
+        this.liveEnvSnapshot,
+        process.env,
+      );
     }
     if (!resolvedBaseURL) {
-      resolvedBaseURL =
-        this.liveEnvSnapshot.WAVE_BASE_URL ?? process.env.WAVE_BASE_URL;
+      resolvedBaseURL = envGet(
+        MUSE_ENV.BASE_URL,
+        this.liveEnvSnapshot,
+        process.env,
+      );
     }
 
     // Treat empty string as not provided
@@ -608,9 +615,11 @@ export class ConfigurationService {
 
     // Resolve custom headers from environment: env (settings.json) > process.env
     const envCustomHeaders =
-      this.liveEnvSnapshot.WAVE_CUSTOM_HEADERS ??
-      process.env.WAVE_CUSTOM_HEADERS ??
-      "";
+      envGet(
+        MUSE_ENV.CUSTOM_HEADERS,
+        this.liveEnvSnapshot,
+        process.env,
+      ) ?? "";
     const parsedEnvHeaders = parseCustomHeaders(envCustomHeaders);
 
     // Merge headers: env headers < options < override
@@ -646,25 +655,25 @@ export class ConfigurationService {
     visionModel?: string,
   ): ModelConfig {
     // Resolve agent model: override > options > currentConfiguration (settings.json model, possibly remote-merged) > process.env
-    // Priority: user's explicit model field > admin's env.WAVE_MODEL default.
+    // Priority: user's explicit model field > admin's env.MUSE_MODEL default.
     // If admin wants hard enforcement, they set the `model` scalar field (overwrites local in mergeRemoteSettings).
     const resolvedAgentModel =
       model ||
       this.options.model ||
       this.liveConfiguration?.model ||
-      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
 
     // Resolve fast model: override > options > process.env (includes settings.json env)
     const resolvedFastModel =
       fastModel ||
       this.options.fastModel ||
-      (this.liveEnvSnapshot.WAVE_FAST_MODEL ?? process.env.WAVE_FAST_MODEL);
+      envGet(MUSE_ENV.FAST_MODEL, this.liveEnvSnapshot, process.env);
 
     // Resolve vision model: override > options > process.env (includes settings.json env)
     const resolvedVisionModel =
       visionModel ||
       this.options.visionModel ||
-      (this.liveEnvSnapshot.WAVE_VISION_MODEL ?? process.env.WAVE_VISION_MODEL);
+      envGet(MUSE_ENV.VISION_MODEL, this.liveEnvSnapshot, process.env);
 
     const baseConfig: ModelConfig = {
       model: resolvedAgentModel,
@@ -735,7 +744,7 @@ export class ConfigurationService {
       model ||
       this.options.model ||
       this.liveConfiguration?.model ||
-      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
     const modelConfig =
       resolvedModel && this.liveConfiguration?.models?.[resolvedModel];
     if (modelConfig && modelConfig.maxInputTokens !== undefined) {
@@ -743,9 +752,11 @@ export class ConfigurationService {
     }
 
     // Try env (settings.json snapshot) first, then process.env
-    const envMaxInputTokens =
-      this.liveEnvSnapshot.WAVE_MAX_INPUT_TOKENS ??
-      process.env.WAVE_MAX_INPUT_TOKENS;
+    const envMaxInputTokens = envGet(
+      MUSE_ENV.MAX_INPUT_TOKENS,
+      this.liveEnvSnapshot,
+      process.env,
+    );
     if (envMaxInputTokens) {
       const parsed = parseInt(envMaxInputTokens, 10);
       if (!isNaN(parsed)) {
@@ -790,7 +801,7 @@ export class ConfigurationService {
 
   /**
    * Resolves auto-memory enabled state with fallbacks
-   * Resolution priority: session options (session-level override) > settings.json > WAVE_DISABLE_AUTO_MEMORY > default (true)
+   * Resolution priority: session options (session-level override) > settings.json > MUSE_DISABLE_AUTO_MEMORY > default (true)
    * @returns Resolved auto-memory enabled state
    */
   resolveAutoMemoryEnabled(): boolean {
@@ -828,9 +839,12 @@ export class ConfigurationService {
       return config.autoMemoryEnabled;
     }
 
-    // 3. WAVE_DISABLE_AUTO_MEMORY environment variable (settings snapshot > OS env)
-    const disableAutoMemory =
-      env.WAVE_DISABLE_AUTO_MEMORY ?? process.env.WAVE_DISABLE_AUTO_MEMORY;
+    // 3. MUSE_DISABLE_AUTO_MEMORY environment variable (settings snapshot > OS env)
+    const disableAutoMemory = envGet(
+      MUSE_ENV.DISABLE_AUTO_MEMORY,
+      env,
+      process.env,
+    );
     if (disableAutoMemory === "1" || disableAutoMemory === "true") {
       return false;
     }
@@ -854,7 +868,7 @@ export class ConfigurationService {
 
   /**
    * Resolves auto-memory extraction frequency with fallbacks
-   * Resolution priority: session options (程序化会话级覆盖) > settings.json > WAVE_AUTO_MEMORY_FREQUENCY > default (1)
+   * Resolution priority: session options (程序化会话级覆盖) > settings.json > MUSE_AUTO_MEMORY_FREQUENCY > default (1)
    * @returns Resolved auto-memory extraction frequency (turns)
    */
   resolveAutoMemoryFrequency(): number {
@@ -875,10 +889,12 @@ export class ConfigurationService {
       return this.liveConfiguration.autoMemoryFrequency;
     }
 
-    // 3. WAVE_AUTO_MEMORY_FREQUENCY environment variable (settings snapshot > OS env)
-    const envFrequency =
-      this.liveEnvSnapshot.WAVE_AUTO_MEMORY_FREQUENCY ??
-      process.env.WAVE_AUTO_MEMORY_FREQUENCY;
+    // 3. MUSE_AUTO_MEMORY_FREQUENCY environment variable (settings snapshot > OS env)
+    const envFrequency = envGet(
+      MUSE_ENV.AUTO_MEMORY_FREQUENCY,
+      this.liveEnvSnapshot,
+      process.env,
+    );
     if (envFrequency) {
       const parsed = parseInt(envFrequency, 10);
       if (!isNaN(parsed) && parsed > 0) {
@@ -909,8 +925,7 @@ export class ConfigurationService {
 
     // Try env (settings.json snapshot) first, then process.env
     const envMaxOutputTokens =
-      this.liveEnvSnapshot.WAVE_MAX_OUTPUT_TOKENS ??
-      process.env.WAVE_MAX_OUTPUT_TOKENS;
+      envGet(MUSE_ENV.MAX_OUTPUT_TOKENS, this.liveEnvSnapshot, process.env);
     if (envMaxOutputTokens) {
       const parsed = parseInt(envMaxOutputTokens, 10);
       if (!isNaN(parsed) && parsed > 0) {
@@ -968,7 +983,7 @@ export class ConfigurationService {
     // Add current model from options or environment (settings snapshot > OS env)
     const currentModel =
       this.options.model ||
-      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+      envGet(MUSE_ENV.MODEL, this.liveEnvSnapshot, process.env);
     if (currentModel) {
       models.add(currentModel);
     }
@@ -1606,7 +1621,7 @@ export function loadWaveConfigFromFile(
 
 /**
  * Load the user-level (~/.muse-work/settings.json) `env` block only — no workdir
- * dependency. Used at daemon startup to apply WAVE_SERVER_URL before any agent
+ * dependency. Used at daemon startup to apply MUSE_SERVER_URL before any agent
  * initializes: auth queries (getAuthStatus) can run before the first agent,
  * and AuthService falls back to the default URL otherwise.
  */

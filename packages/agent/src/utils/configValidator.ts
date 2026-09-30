@@ -66,7 +66,7 @@ export class ConfigValidator {
   static validateMaxInputTokens(maxInputTokens: number): void {
     if (typeof maxInputTokens !== "number") {
       throw new ConfigurationError(
-        CONFIG_ERRORS.INVALID_WAVE_MAX_INPUT_TOKENS,
+        CONFIG_ERRORS.INVALID_MUSE_MAX_INPUT_TOKENS,
         "maxInputTokens",
         maxInputTokens,
       );
@@ -74,7 +74,7 @@ export class ConfigValidator {
 
     if (!Number.isInteger(maxInputTokens)) {
       throw new ConfigurationError(
-        CONFIG_ERRORS.INVALID_WAVE_MAX_INPUT_TOKENS,
+        CONFIG_ERRORS.INVALID_MUSE_MAX_INPUT_TOKENS,
         "maxInputTokens",
         maxInputTokens,
       );
@@ -82,7 +82,7 @@ export class ConfigValidator {
 
     if (maxInputTokens <= 0) {
       throw new ConfigurationError(
-        CONFIG_ERRORS.INVALID_WAVE_MAX_INPUT_TOKENS,
+        CONFIG_ERRORS.INVALID_MUSE_MAX_INPUT_TOKENS,
         "maxInputTokens",
         maxInputTokens,
       );

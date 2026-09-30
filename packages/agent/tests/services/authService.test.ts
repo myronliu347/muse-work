@@ -90,7 +90,7 @@ describe("AuthService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     resetServiceInstance();
-    delete process.env.WAVE_SERVER_URL;
+    delete process.env.MUSE_SERVER_URL;
     httpMockState.fireCallback = true;
     httpMockState.code = "fake-auth-code";
     httpMockState.handlers = [];
@@ -323,33 +323,33 @@ describe("AuthService", () => {
   });
 
   describe("getServerUrl", () => {
-    it("returns WAVE_SERVER_URL when set", () => {
-      process.env.WAVE_SERVER_URL = "https://server.example.com";
+    it("returns MUSE_SERVER_URL when set", () => {
+      process.env.MUSE_SERVER_URL = "https://server.example.com";
       const service = AuthService.getInstance();
       expect(service.getServerUrl()).toBe("https://server.example.com");
     });
 
-    it("returns default when WAVE_SERVER_URL is not set", () => {
+    it("returns default when MUSE_SERVER_URL is not set", () => {
       const service = AuthService.getInstance();
       expect(service.getServerUrl()).toBe("https://codechat.codewave.163.com");
     });
 
     it("returns _serverUrl when set via setServerUrl", () => {
-      process.env.WAVE_SERVER_URL = "https://env.example.com";
+      process.env.MUSE_SERVER_URL = "https://env.example.com";
       const service = AuthService.getInstance();
       service.setServerUrl("https://programmatic.example.com");
       expect(service.getServerUrl()).toBe("https://programmatic.example.com");
     });
 
-    it("_serverUrl takes priority over WAVE_SERVER_URL env var", () => {
-      process.env.WAVE_SERVER_URL = "https://env.example.com";
+    it("_serverUrl takes priority over MUSE_SERVER_URL env var", () => {
+      process.env.MUSE_SERVER_URL = "https://env.example.com";
       const service = AuthService.getInstance();
       service.setServerUrl("https://options.example.com");
       expect(service.getServerUrl()).toBe("https://options.example.com");
     });
 
     it("falls back to env var when _serverUrl is not set", () => {
-      process.env.WAVE_SERVER_URL = "https://fallback.example.com";
+      process.env.MUSE_SERVER_URL = "https://fallback.example.com";
       const service = AuthService.getInstance();
       expect(service.getServerUrl()).toBe("https://fallback.example.com");
     });
@@ -413,7 +413,7 @@ describe("AuthService", () => {
     });
 
     it("serverUrl option takes priority over env var", async () => {
-      process.env.WAVE_SERVER_URL = "https://env.example.com";
+      process.env.MUSE_SERVER_URL = "https://env.example.com";
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -453,7 +453,7 @@ describe("AuthService", () => {
     });
 
     it("succeeds with setServerUrl even without env var", async () => {
-      // No WAVE_SERVER_URL set
+      // No MUSE_SERVER_URL set
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -489,7 +489,7 @@ describe("AuthService", () => {
     });
 
     it("receives callback code via onAuthUrl, exchanges for JWT, and saves it", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       // exchange code for JWT
       mockFetch.mockResolvedValueOnce({
@@ -525,7 +525,7 @@ describe("AuthService", () => {
     });
 
     it("throws when code exchange fails", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -540,7 +540,7 @@ describe("AuthService", () => {
     });
 
     it("preserves existing keys when saving token", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(true);
       mockedReadFile.mockReturnValue(JSON.stringify({ OTHER_KEY: "value" }));
       mockFetch.mockResolvedValueOnce({
@@ -574,7 +574,7 @@ describe("AuthService", () => {
     });
 
     it("accepts manually provided code via readToken and exchanges for JWT", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       // exchange code for JWT
       mockFetch.mockResolvedValueOnce({
@@ -611,7 +611,7 @@ describe("AuthService", () => {
       httpMockState.fireCallback = true;
       httpMockState.code = "callback-wins-code";
 
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       // exchange code for JWT
       mockFetch.mockResolvedValueOnce({
@@ -648,7 +648,7 @@ describe("AuthService", () => {
     });
 
     it("login() awaits async onAuthChange callbacks before returning", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -691,7 +691,7 @@ describe("AuthService", () => {
     });
 
     it("onAuthChange callback errors do not block other callbacks", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -734,7 +734,7 @@ describe("AuthService", () => {
     });
 
     it("rejects after 5 minutes if no token received", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
 
       const service = AuthService.getInstance();
@@ -754,7 +754,7 @@ describe("AuthService", () => {
       httpMockState.fireCallback = true;
       httpMockState.code = "early-code";
 
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -950,7 +950,7 @@ describe("AuthService", () => {
     });
 
     it("triggers refresh when token is within buffer", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(true);
       mockedReadFile.mockReturnValue(
         JSON.stringify({
@@ -982,7 +982,7 @@ describe("AuthService", () => {
           }),
         }),
       );
-      delete process.env.WAVE_SERVER_URL;
+      delete process.env.MUSE_SERVER_URL;
     });
 
     it("returns false when no refresh token available", async () => {
@@ -1000,7 +1000,7 @@ describe("AuthService", () => {
     });
 
     it("deduplicates concurrent calls", async () => {
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockedExists.mockReturnValue(true);
       mockedReadFile.mockReturnValue(
         JSON.stringify({
@@ -1042,7 +1042,7 @@ describe("AuthService", () => {
       const [r1, r2] = await Promise.all([p1, p2]);
       expect(r1).toBe(true);
       expect(r2).toBe(true);
-      delete process.env.WAVE_SERVER_URL;
+      delete process.env.MUSE_SERVER_URL;
     });
   });
 
@@ -1051,12 +1051,12 @@ describe("AuthService", () => {
 
     beforeEach(() => {
       vi.stubGlobal("fetch", mockFetch);
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
     });
 
     afterEach(() => {
       vi.unstubAllGlobals();
-      delete process.env.WAVE_SERVER_URL;
+      delete process.env.MUSE_SERVER_URL;
     });
 
     it("saves new token fields on success", async () => {
@@ -1242,7 +1242,7 @@ describe("AuthService", () => {
         }),
       );
       // After refresh, loadAuth returns new token
-      process.env.WAVE_SERVER_URL = "https://ai.example.com";
+      process.env.MUSE_SERVER_URL = "https://ai.example.com";
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -1265,7 +1265,7 @@ describe("AuthService", () => {
 
       const callHeaders = mockInnerFetch.mock.calls[0][1].headers as Headers;
       expect(callHeaders.get("Authorization")).toBe("Bearer refreshed-token");
-      delete process.env.WAVE_SERVER_URL;
+      delete process.env.MUSE_SERVER_URL;
     });
   });
 });

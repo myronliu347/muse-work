@@ -390,13 +390,13 @@ describe("SlashCommandManager", () => {
       });
     });
 
-    it("should NOT substitute ${WAVE_SKILL_DIR} in regular slash commands", async () => {
+    it("should NOT substitute ${MUSE_SKILL_DIR} in regular slash commands", async () => {
       const pluginName = "test-plugin";
       const commands = [
         {
           id: "path-test",
           name: "path-test",
-          content: "Path is ${WAVE_SKILL_DIR}",
+          content: "Path is ${MUSE_SKILL_DIR}",
         },
       ];
 
@@ -411,7 +411,7 @@ describe("SlashCommandManager", () => {
       const messages = messageManager.getMessages();
       const lastMessage = messages[messages.length - 1];
       const textBlock = lastMessage.blocks[0] as TextBlock;
-      expect(textBlock.customCommandContent).toBe("Path is ${WAVE_SKILL_DIR}");
+      expect(textBlock.customCommandContent).toBe("Path is ${MUSE_SKILL_DIR}");
     });
   });
 

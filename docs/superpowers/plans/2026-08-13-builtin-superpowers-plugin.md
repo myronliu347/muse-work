@@ -493,7 +493,7 @@ EOF
 
 **Interfaces:**
 - Consumes: 无
-- Produces: 磁盘上可用的 Wave 插件；`node scripts/session-start.js` 在 `WAVE_PLUGIN_ROOT` 下打印 `{ hookSpecificOutput: { additionalContext } }`；`package.json` `files` 含 `dist` 与 `plugins`
+- Produces: 磁盘上可用的 Wave 插件；`node scripts/session-start.js` 在 `MUSE_PLUGIN_ROOT` 下打印 `{ hookSpecificOutput: { additionalContext } }`；`package.json` `files` 含 `dist` 与 `plugins`
 
 - [ ] **Step 1: 写失败测试**
 
@@ -531,7 +531,7 @@ describe("superpowers builtin plugin", () => {
     const script = path.join(pluginDir, "scripts", "session-start.js");
     const result = spawnSync(process.execPath, [script], {
       encoding: "utf8",
-      env: { ...process.env, WAVE_PLUGIN_ROOT: pluginDir },
+      env: { ...process.env, MUSE_PLUGIN_ROOT: pluginDir },
     });
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout) as {
@@ -590,7 +590,7 @@ rm -rf "$TMP"
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${WAVE_PLUGIN_ROOT}/scripts/session-start.js\""
+            "command": "node \"${MUSE_PLUGIN_ROOT}/scripts/session-start.js\""
           }
         ]
       }
@@ -607,7 +607,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root =
-  process.env.WAVE_PLUGIN_ROOT ||
+  process.env.MUSE_PLUGIN_ROOT ||
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 let skill = "";

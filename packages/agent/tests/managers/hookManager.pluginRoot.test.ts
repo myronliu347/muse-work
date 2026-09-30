@@ -72,7 +72,7 @@ describe("HookManager pluginRoot handling and plugin hook registration", () => {
       expect(hook?.pluginRoot).toBe("/my/plugin/root");
     });
 
-    it("should pass WAVE_PLUGIN_ROOT in env to executeCommand for plugin hooks", async () => {
+    it("should pass MUSE_PLUGIN_ROOT in env to executeCommand for plugin hooks", async () => {
       manager.registerPluginHooks("/my/plugin/root", {
         UserPromptSubmit: [
           {
@@ -93,21 +93,23 @@ describe("HookManager pluginRoot handling and plugin hook registration", () => {
         "echo plugin",
         expect.objectContaining({
           env: expect.objectContaining({
+            MUSE_PLUGIN_ROOT: "/my/plugin/root",
             WAVE_PLUGIN_ROOT: "/my/plugin/root",
+            CLAUDE_PLUGIN_ROOT: "/my/plugin/root",
           }),
         }),
         undefined,
       );
     });
 
-    it("should substitute ${WAVE_PLUGIN_ROOT} in plugin hook command string", async () => {
+    it("should substitute ${MUSE_PLUGIN_ROOT} in plugin hook command string", async () => {
       manager.registerPluginHooks("/my/plugin/root", {
         UserPromptSubmit: [
           {
             hooks: [
               {
                 type: "command" as const,
-                command: "${WAVE_PLUGIN_ROOT}/scripts/hook.sh",
+                command: "${MUSE_PLUGIN_ROOT}/scripts/hook.sh",
               },
             ],
           },
@@ -126,21 +128,23 @@ describe("HookManager pluginRoot handling and plugin hook registration", () => {
         "/my/plugin/root/scripts/hook.sh",
         expect.objectContaining({
           env: expect.objectContaining({
+            MUSE_PLUGIN_ROOT: "/my/plugin/root",
             WAVE_PLUGIN_ROOT: "/my/plugin/root",
+            CLAUDE_PLUGIN_ROOT: "/my/plugin/root",
           }),
         }),
         undefined,
       );
     });
 
-    it("should not substitute ${WAVE_PLUGIN_ROOT} for non-plugin hooks", async () => {
+    it("should not substitute ${MUSE_PLUGIN_ROOT} for non-plugin hooks", async () => {
       manager.loadConfiguration({
         UserPromptSubmit: [
           {
             hooks: [
               {
                 type: "command" as const,
-                command: "${WAVE_PLUGIN_ROOT}/scripts/hook.sh",
+                command: "${MUSE_PLUGIN_ROOT}/scripts/hook.sh",
               },
             ],
           },
@@ -156,7 +160,7 @@ describe("HookManager pluginRoot handling and plugin hook registration", () => {
       await manager.executeHooks("UserPromptSubmit", context);
 
       expect(mockExecuteCommand).toHaveBeenCalledWith(
-        "${WAVE_PLUGIN_ROOT}/scripts/hook.sh",
+        "${MUSE_PLUGIN_ROOT}/scripts/hook.sh",
         expect.any(Object),
         undefined,
       );

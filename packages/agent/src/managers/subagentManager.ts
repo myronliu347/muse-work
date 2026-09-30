@@ -31,6 +31,7 @@ import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
 import type { PermissionManager } from "./permissionManager.js";
 import type { PermissionMode } from "../types/permissions.js";
 import { ConfigurationService } from "../services/configurationService.js";
+import { substitutePluginRoot } from "../utils/museEnv.js";
 
 export interface SubagentManagerCallbacks {
   // Granular subagent message callbacks (009-subagent)
@@ -199,7 +200,7 @@ export class SubagentManager {
   /**
    * Rebuild the cached subagent configurations. Called after settings.json
    * env becomes available (post loadMergedConfiguration) so conditional
-   * builtin subagents (e.g. `model: visionModel` requiring WAVE_VISION_MODEL)
+   * builtin subagents (e.g. `model: visionModel` requiring MUSE_VISION_MODEL)
    * register correctly. Plugin agents are preserved across the rebuild.
    */
   async refreshConfigurations(): Promise<SubagentConfiguration[]> {
@@ -222,7 +223,7 @@ export class SubagentManager {
 
   /**
    * Get the merged environment (OS env overlaid with settings.json env) used
-   * for conditional subagent registration (e.g. WAVE_VISION_MODEL).
+   * for conditional subagent registration (e.g. MUSE_VISION_MODEL).
    */
   private getMergedEnv(): Record<string, string> {
     return (
@@ -312,9 +313,9 @@ export class SubagentManager {
       const namespacedAgent: SubagentConfiguration = {
         ...agent,
         name: namespacedName,
-        // Safety net: substitute any remaining ${WAVE_PLUGIN_ROOT} placeholders
-        systemPrompt: agent.systemPrompt.replace(
-          /\$\{WAVE_PLUGIN_ROOT\}/g,
+        // Safety net: substitute any remaining ${MUSE_PLUGIN_ROOT} placeholders
+        systemPrompt: substitutePluginRoot(
+          agent.systemPrompt,
           agent.pluginRoot ?? "",
         ),
       };

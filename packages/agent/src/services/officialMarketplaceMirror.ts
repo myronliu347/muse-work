@@ -32,6 +32,7 @@ import {
 import { dirname, join, resolve, sep } from "node:path";
 import { unzipSync } from "fflate";
 import { logWarn } from "../utils/globalLogger.js";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
 
 /** Sentinel file name stored at the market root holding the last fetched sha. */
 export const OFFICIAL_MARKET_SENTINEL_FILE = ".wave-market-sha";
@@ -46,7 +47,8 @@ const STAGING_SUFFIX = ".staging";
  * - PROD: `https://codechat.codewave.163.com/wave-plugins-official/`
  * - TEST（验证用）: `https://codechat.codewave-test.163yun.com/wave-plugins-official/`
  *
- * Override with env var `WAVE_OFFICIAL_MARKET_MIRROR_BASE_URL` (highest
+ * Override with env var `MUSE_OFFICIAL_MARKET_MIRROR_BASE_URL` (legacy
+ * `MUSE_OFFICIAL_MARKET_MIRROR_BASE_URL` still works; highest
  * precedence). 两套环境的镜像通道均已上线且有内容（2026-09-23 实测：prod 与 test 的
  * `/latest` 均返回 sha、`{sha}.zip` 均可下载）。镜像请求若失败（网络/超时/404/内容异常），
  * 仍按既有设计回退 git 兜底（ALLOW_OFFICIAL_MARKET_GIT_FALLBACK），语义不变。
@@ -56,7 +58,7 @@ const DEFAULT_OFFICIAL_MARKET_MIRROR_BASE_URL =
 
 /** Env var override for the mirror base URL (highest precedence). */
 export const OFFICIAL_MARKET_MIRROR_BASE_URL_ENV =
-  "WAVE_OFFICIAL_MARKET_MIRROR_BASE_URL";
+  MUSE_ENV.OFFICIAL_MARKET_MIRROR_BASE_URL;
 
 /**
  * Kill switch for the git fallback after a mirror failure (default: allowed).
@@ -84,7 +86,7 @@ const ZIP_LIMITS = {
  * Returns null when neither is configured (mirror channel disabled).
  */
 export function resolveOfficialMarketplaceMirrorBaseUrl(): string | null {
-  const envUrl = process.env[OFFICIAL_MARKET_MIRROR_BASE_URL_ENV];
+  const envUrl = envGet(MUSE_ENV.OFFICIAL_MARKET_MIRROR_BASE_URL, process.env);
   const candidate =
     (envUrl && envUrl.trim()) || DEFAULT_OFFICIAL_MARKET_MIRROR_BASE_URL;
   if (!candidate) return null;

@@ -11,6 +11,7 @@ import {
 import { getBuiltinSubagentsDir } from "./configPaths.js";
 
 import { CONFIG_DIR_NAME } from "./constants.js";
+import { envGet, MUSE_ENV, substitutePluginRoot } from "./museEnv.js";
 export interface SubagentConfiguration {
   name: string;
   description: string;
@@ -158,12 +159,9 @@ function parseSubagentFile(
 
     let systemPrompt = body;
 
-    // Substitute ${WAVE_PLUGIN_ROOT} for plugin scope at parse time
+    // Substitute ${MUSE_PLUGIN_ROOT} / ${MUSE_PLUGIN_ROOT} / ${CLAUDE_PLUGIN_ROOT}
     if (scope === "plugin" && pluginRoot) {
-      systemPrompt = systemPrompt.replace(
-        /\$\{WAVE_PLUGIN_ROOT\}/g,
-        pluginRoot,
-      );
+      systemPrompt = substitutePluginRoot(systemPrompt, pluginRoot);
     }
 
     return {
@@ -235,7 +233,7 @@ function scanSubagentDirectory(
  * Load all subagent configurations from project and user directories, plus built-in subagents
  * @param workdir - Working directory to scan for project-level subagents
  * @param env - Merged environment (settings.json env over OS env). Defaults to process.env.
- *              Used for conditional registration of builtin subagents (e.g. WAVE_VISION_MODEL).
+ *              Used for conditional registration of builtin subagents (e.g. MUSE_VISION_MODEL).
  */
 export async function loadSubagentConfigurations(
   workdir: string,
@@ -256,10 +254,10 @@ export async function loadSubagentConfigurations(
   // Load configurations from all sources
   let builtinConfigs = scanSubagentDirectory(builtinDir, "builtin");
   // Conditional registration: builtin subagents whose frontmatter requires the
-  // WAVE_VISION_MODEL env var (`model: visionModel`) are only loaded when it is
+  // MUSE_VISION_MODEL env var (`model: visionModel`) are only loaded when it is
   // set — otherwise the main model would delegate image recognition to a
   // subagent that resolves to a non-vision model.
-  if (!env.WAVE_VISION_MODEL) {
+  if (!envGet(MUSE_ENV.VISION_MODEL, env)) {
     builtinConfigs = builtinConfigs.filter(
       (config) => config.model !== "visionModel",
     );

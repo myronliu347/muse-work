@@ -45,15 +45,15 @@ describe("waveAgentSettings", () => {
   it("writes valid JSON and re-reads it", () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "wave-settings-"));
     const written = writeWaveUserSettingsText(
-      '{"env":{"WAVE_VISION_MODEL":"kimi-k3"}}',
+      '{"env":{"MUSE_VISION_MODEL":"kimi-k3"}}',
       home,
     );
     expect(fs.existsSync(written.path)).toBe(true);
     expect(JSON.parse(written.content)).toEqual({
-      env: { WAVE_VISION_MODEL: "kimi-k3" },
+      env: { MUSE_VISION_MODEL: "kimi-k3" },
     });
     expect(JSON.parse(readWaveUserSettingsText(home).content)).toEqual({
-      env: { WAVE_VISION_MODEL: "kimi-k3" },
+      env: { MUSE_VISION_MODEL: "kimi-k3" },
     });
   });
 

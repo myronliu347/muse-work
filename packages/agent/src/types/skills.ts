@@ -12,7 +12,7 @@ export interface SkillMetadata {
    * Path to the skill **directory** (the folder containing SKILL.md), never
    * to SKILL.md itself. Directory-level contract — all consumers rely on it:
    * - `SkillManager.prepareSkillContent` injects this value for
-   *   `${WAVE_SKILL_DIR}` / `${CLAUDE_SKILL_DIR}` substitutions and reports it
+   *   `${MUSE_SKILL_DIR}` / `${CLAUDE_SKILL_DIR}` substitutions and reports it
    *   as the "Base directory for this skill";
    * - `SkillManager.deleteSkill` removes this path with `rm(recursive)`.
    * Callers that need the file itself must `join(skillPath, "SKILL.md")`
@@ -116,7 +116,7 @@ export interface InvokedSkillRecord {
    * The content the model actually saw when the skill was invoked — directory
    * placeholders already substituted, prefixed with
    * `Base directory for this skill: <path>`. Re-injecting the raw SKILL.md
-   * instead would hand the model a literal `${WAVE_SKILL_DIR}`.
+   * instead would hand the model a literal `${MUSE_SKILL_DIR}`.
    */
   content?: string;
 }

@@ -66,10 +66,10 @@ Hello! I am a command from the example plugin. How can I help you today?
     // 6. Execute the plugin command
     console.log("\nExecuting /example-plugin:hello...");
     // Note: This will attempt to send a message to AI.
-    // If you don't have WAVE_API_KEY set, it might fail here.
+    // If you don't have MUSE_API_KEY set, it might fail here.
     // But the registration is what we're demonstrating.
 
-    if (process.env.WAVE_API_KEY) {
+    if (process.env.MUSE_API_KEY) {
       await agent.sendMessage("/example-plugin:hello");
       const messages = agent.messages;
       const lastMessage = messages[messages.length - 1];
@@ -79,7 +79,7 @@ Hello! I am a command from the example plugin. How can I help you today?
         textBlock?.type === "text" ? textBlock.content : "No text response",
       );
     } else {
-      console.log("\nSkipping execution because WAVE_API_KEY is not set.");
+      console.log("\nSkipping execution because MUSE_API_KEY is not set.");
       console.log(
         "You can run this example with a valid API key to see the full flow.",
       );

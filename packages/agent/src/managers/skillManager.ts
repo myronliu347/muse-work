@@ -21,6 +21,7 @@ import {
 } from "../utils/markdownParser.js";
 import { getBuiltinSkillsDir } from "../utils/configPaths.js";
 import { isArtifactEnabled } from "../services/artifactAvailability.js";
+import { substitutePluginRoot, substituteSkillDir } from "../utils/museEnv.js";
 
 import { Container } from "../utils/container.js";
 import { logger } from "../utils/globalLogger.js";
@@ -545,8 +546,8 @@ export class SkillManager extends EventEmitter {
 
   /**
    * Render a skill's body the way the model must see it: frontmatter stripped,
-   * parameters substituted, `${WAVE_SKILL_DIR}` / `${CLAUDE_SKILL_DIR}` /
-   * `${WAVE_PLUGIN_ROOT}` replaced with real paths, and the
+   * parameters substituted, `${MUSE_SKILL_DIR}` / `${CLAUDE_SKILL_DIR}` /
+   * `${MUSE_PLUGIN_ROOT}` replaced with real paths, and the
    * `Base directory for this skill: <path>` header prepended.
    *
    * Public because the post-compaction re-injection has to render the same
@@ -572,23 +573,9 @@ export class SkillManager extends EventEmitter {
     // 1. Substitute parameters ($1, $ARGUMENTS, etc.)
     mainContent = substituteCommandParameters(mainContent, argsString);
 
-    // 2. Substitute ${WAVE_SKILL_DIR} and ${CLAUDE_SKILL_DIR}
-    mainContent = mainContent.replace(/\$\{WAVE_SKILL_DIR\}/g, skill.skillPath);
-    mainContent = mainContent.replace(
-      /\$\{CLAUDE_SKILL_DIR\}/g,
-      skill.skillPath,
-    );
-
-    // 3. Substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
+    mainContent = substituteSkillDir(mainContent, skill.skillPath);
     if (skill.pluginRoot) {
-      mainContent = mainContent.replace(
-        /\$\{WAVE_PLUGIN_ROOT\}/g,
-        skill.pluginRoot,
-      );
-      mainContent = mainContent.replace(
-        /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-        skill.pluginRoot,
-      );
+      mainContent = substitutePluginRoot(mainContent, skill.pluginRoot);
     }
 
     return skillPath + mainContent;

@@ -35,8 +35,8 @@ describe("Plan Mode Integration", () => {
     vi.mocked(fs.readFile).mockResolvedValue("");
     vi.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
 
-    process.env.WAVE_API_KEY = "test-key";
-    process.env.WAVE_BASE_URL = "https://test.api";
+    process.env.MUSE_API_KEY = "test-key";
+    process.env.MUSE_BASE_URL = "https://test.api";
   });
 
   afterEach(async () => {

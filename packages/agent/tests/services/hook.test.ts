@@ -313,7 +313,7 @@ describe("Hook Services", () => {
       });
 
       const resultPromise = executeCommand(
-        "echo $WAVE_PROJECT_DIR",
+        "echo $MUSE_PROJECT_DIR",
         mockContext,
       );
 
@@ -326,7 +326,7 @@ describe("Hook Services", () => {
       expect(spawnEnv).toBeDefined();
       expect(spawnEnv!.HOOK_EVENT).toBe("PostToolUse");
       expect(spawnEnv!.HOOK_TOOL_NAME).toBe("Edit");
-      expect(spawnEnv!.WAVE_PROJECT_DIR).toBe("/test/project");
+      expect(spawnEnv!.MUSE_PROJECT_DIR).toBe("/test/project");
     });
 
     it("should handle context without tool name", async () => {
@@ -740,7 +740,7 @@ describe("Hook Services", () => {
       expect(spawnEnv!.HOOK_EVENT).toBe("WorktreeCreate");
       expect(spawnEnv!.HOOK_WORKTREE_NAME).toBeUndefined();
       expect(spawnEnv!.HOOK_WORKTREE_PATH).toBeUndefined();
-      expect(spawnEnv!.WAVE_PROJECT_DIR).toBe("/test/worktree-path");
+      expect(spawnEnv!.MUSE_PROJECT_DIR).toBe("/test/worktree-path");
     });
 
     it("should include 'name' field in JSON input and NOT include 'worktree_name' or 'worktree_path'", async () => {

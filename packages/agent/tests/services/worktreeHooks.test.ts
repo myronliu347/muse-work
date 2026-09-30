@@ -182,7 +182,7 @@ describe("worktreeHooks", () => {
                 {
                   type: "command",
                   command:
-                    "${WAVE_PLUGIN_ROOT}/create.sh ${CLAUDE_PLUGIN_ROOT}",
+                    "${MUSE_PLUGIN_ROOT}/create.sh ${CLAUDE_PLUGIN_ROOT}",
                   pluginRoot: "/plugins/my-plugin",
                 },
               ],
@@ -196,7 +196,7 @@ describe("worktreeHooks", () => {
       expect(command).toBe("/plugins/my-plugin/create.sh /plugins/my-plugin");
       expect(context).toMatchObject({
         env: {
-          WAVE_PLUGIN_ROOT: "/plugins/my-plugin",
+          MUSE_PLUGIN_ROOT: "/plugins/my-plugin",
           CLAUDE_PLUGIN_ROOT: "/plugins/my-plugin",
         },
       });

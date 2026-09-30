@@ -15,7 +15,7 @@ export const sddPlugin: Record<string, string> = {
         "hooks": [
           {
             "type": "command",
-            "command": "node \\"\${WAVE_PLUGIN_ROOT}/scripts/session-start.js\\""
+            "command": "node \\"\${MUSE_PLUGIN_ROOT}/scripts/session-start.js\\""
           }
         ]
       }
@@ -27,10 +27,11 @@ export const sddPlugin: Record<string, string> = {
 // SessionStart hook for the sdd built-in plugin.
 // Emits the spec-first workflow guidance as additionalContext (JSON form),
 // resolving the absolute path to the plugin's spec-count validator so the
-// agent can run it from its bash tool (which does not carry WAVE_PLUGIN_ROOT).
+// agent can run it from its bash tool (which does not carry MUSE_PLUGIN_ROOT).
 import path from "node:path";
 
 const root =
+  process.env.MUSE_PLUGIN_ROOT ||
   process.env.WAVE_PLUGIN_ROOT ||
   path.dirname(new URL("..", import.meta.url).pathname);
 const specCount = \`node \${JSON.stringify(path.join(root, "scripts", "spec-count.js"))}\`;
@@ -155,7 +156,7 @@ $ARGUMENTS
    - 根据功能描述生成 2-4 个词的 slug（小写、连字符、保留缩写词），与组内已有文件名不冲突
    - 规格文件路径：\`<规格根目录>/<分组>/<slug>.md\`（无分组时为 \`<规格根目录>/<slug>.md\`）
 
-2. **加载模板** \`\${WAVE_SKILL_DIR}/templates/spec-template.md\`，了解必需章节。
+2. **加载模板** \`\${MUSE_SKILL_DIR}/templates/spec-template.md\`，了解必需章节。
 
 3. **编写规格说明**：
    - 解析用户描述，提取关键概念：角色、操作、数据、约束

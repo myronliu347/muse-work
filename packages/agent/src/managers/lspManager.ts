@@ -121,20 +121,20 @@ export class LspManager implements ILspManager {
     try {
       const env = { ...process.env, ...config.env };
 
-      // For plugin servers, substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
+      // For plugin servers, substitute ${MUSE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
       let command = config.command;
       let args = config.args || [];
       if (config.pluginRoot) {
-        env.WAVE_PLUGIN_ROOT = config.pluginRoot;
+        env.MUSE_PLUGIN_ROOT = config.pluginRoot;
         env.CLAUDE_PLUGIN_ROOT = config.pluginRoot;
-        command = command.replace(/\$\{WAVE_PLUGIN_ROOT\}/g, config.pluginRoot);
+        command = command.replace(/\$\{MUSE_PLUGIN_ROOT\}/g, config.pluginRoot);
         command = command.replace(
           /\$\{CLAUDE_PLUGIN_ROOT\}/g,
           config.pluginRoot,
         );
         args = args.map((arg) => {
           let result = arg.replace(
-            /\$\{WAVE_PLUGIN_ROOT\}/g,
+            /\$\{MUSE_PLUGIN_ROOT\}/g,
             config.pluginRoot!,
           );
           result = result.replace(
@@ -147,7 +147,7 @@ export class LspManager implements ILspManager {
         if (config.env) {
           for (const [key, value] of Object.entries(config.env)) {
             let expanded = value.replace(
-              /\$\{WAVE_PLUGIN_ROOT\}/g,
+              /\$\{MUSE_PLUGIN_ROOT\}/g,
               config.pluginRoot!,
             );
             expanded = expanded.replace(

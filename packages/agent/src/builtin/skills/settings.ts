@@ -10,31 +10,31 @@ Environment variables are configured in the \`env\` field of \`settings.json\`. 
 \`\`\`json
 {
   "env": {
-    "WAVE_MODEL": "gemini-3-flash",
+    "MUSE_MODEL": "gemini-3-flash",
     "MY_CUSTOM_VAR": "some-value"
   }
 }
 \`\`\`
 
-## Supported \`WAVE_*\` Environment Variables
+## Supported \`MUSE_*\` Environment Variables
 
-Wave uses several environment variables to control its core functionality. Variables marked **OS env only** are read from the OS environment (or constructor / stdio \`initialize\` params) and are **NOT** read from settings.json \`env\` — set them in your shell, not in the \`env\` field.
+Wave uses several environment variables to control its core functionality. \`WAVE_*\` aliases are still read. Variables marked **OS env only** are read from the OS environment (or constructor / stdio \`initialize\` params) and are **NOT** read from settings.json \`env\` — set them in your shell, not in the \`env\` field.
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| \`WAVE_API_KEY\` | API key for the AI gateway. | - |
-| \`WAVE_BASE_URL\` | Base URL for the AI gateway. | - |
-| \`WAVE_SERVER_URL\` | Server URL for SSO authentication. Resolution order: \`options.serverUrl\` → \`process.env.WAVE_SERVER_URL\` → default. Unlike other \`WAVE_*\` vars, a settings.json \`env\` value is also mirrored to \`process.env\` so process-level singletons (AuthService) see it without a per-session snapshot. | \`https://codechat.codewave.163.com\` |
-| \`WAVE_CUSTOM_HEADERS\` | Custom HTTP headers for the AI gateway. Newline-separated \`Key: Value\` pairs (e.g., \`"X-Foo: bar\\nAuthorization: Bearer xxx"\`). | - |
-| \`WAVE_MODEL\` | The primary AI model to use for the agent. | \`gemini-3-flash\` |
-| \`WAVE_FAST_MODEL\` | The fast AI model to use for quick tasks. | \`gemini-2.5-flash\` |
-| \`WAVE_VISION_MODEL\` | Vision-capable model used by the built-in \`vision\` subagent for image recognition. When set, the built-in \`vision\` subagent is registered (its frontmatter \`model: visionModel\` resolves to this value); when unset, the subagent is not loaded. Useful when the main model is fast but non-vision (e.g. DeepSeek). | - (not registered) |
-| \`WAVE_MAX_INPUT_TOKENS\` | Maximum number of input tokens allowed. Overridden per-model by \`models[<model>].maxInputTokens\`. | \`200000\` |
-| \`WAVE_MAX_OUTPUT_TOKENS\` | Maximum number of output tokens allowed. | \`32000\` |
-| \`WAVE_DISABLE_AUTO_MEMORY\` | Set to \`1\` or \`true\` to disable the auto-memory feature. | \`false\` |
-| \`WAVE_AUTO_MEMORY_FREQUENCY\` | Auto memory update frequency. \`1\` = every turn, \`2\` = every 2 turns, etc. | \`1\` |
-| \`WAVE_TASK_LIST_ID\` | Explicitly set the task list ID for the session. | (Session ID) |
-| \`WAVE_PLUGIN_GIT_TIMEOUT_MS\` | Timeout in milliseconds for git operations when installing plugins. **OS env only** (infrastructure). | \`300000\` |
+| \`MUSE_API_KEY\` | API key for the AI gateway. | - |
+| \`MUSE_BASE_URL\` | Base URL for the AI gateway. | - |
+| \`MUSE_SERVER_URL\` | Server URL for SSO authentication. Resolution order: \`options.serverUrl\` → \`process.env.MUSE_SERVER_URL\` → default. Unlike other \`WAVE_*\` vars, a settings.json \`env\` value is also mirrored to \`process.env\` so process-level singletons (AuthService) see it without a per-session snapshot. | \`https://codechat.codewave.163.com\` |
+| \`MUSE_CUSTOM_HEADERS\` | Custom HTTP headers for the AI gateway. Newline-separated \`Key: Value\` pairs (e.g., \`"X-Foo: bar\\nAuthorization: Bearer xxx"\`). | - |
+| \`MUSE_MODEL\` | The primary AI model to use for the agent. | \`gemini-3-flash\` |
+| \`MUSE_FAST_MODEL\` | The fast AI model to use for quick tasks. | \`gemini-2.5-flash\` |
+| \`MUSE_VISION_MODEL\` | Vision-capable model used by the built-in \`vision\` subagent for image recognition. When set, the built-in \`vision\` subagent is registered (its frontmatter \`model: visionModel\` resolves to this value); when unset, the subagent is not loaded. Useful when the main model is fast but non-vision (e.g. DeepSeek). | - (not registered) |
+| \`MUSE_MAX_INPUT_TOKENS\` | Maximum number of input tokens allowed. Overridden per-model by \`models[<model>].maxInputTokens\`. | \`200000\` |
+| \`MUSE_MAX_OUTPUT_TOKENS\` | Maximum number of output tokens allowed. | \`32000\` |
+| \`MUSE_DISABLE_AUTO_MEMORY\` | Set to \`1\` or \`true\` to disable the auto-memory feature. | \`false\` |
+| \`MUSE_AUTO_MEMORY_FREQUENCY\` | Auto memory update frequency. \`1\` = every turn, \`2\` = every 2 turns, etc. | \`1\` |
+| \`MUSE_TASK_LIST_ID\` | Explicitly set the task list ID for the session. | (Session ID) |
+| \`MUSE_PLUGIN_GIT_TIMEOUT_MS\` | Timeout in milliseconds for git operations when installing plugins. **OS env only** (infrastructure). | \`300000\` |
 
 ## Configuration Scopes
 
@@ -45,7 +45,7 @@ Precedence (highest to lowest):
 1.  **Local Scope**: \`.muse-work/settings.local.json\` (Local overrides, ignored by git)
 2.  **Project Scope**: \`.muse-work/settings.json\` (Project-specific settings, shared via git)
 3.  **User Scope**: \`~/.muse-work/settings.json\` (Global settings for all projects)
-4.  **System Environment**: Variables set in your shell (e.g., \`export WAVE_API_KEY=...\`). Used as a fallback when a key is absent from the settings snapshot.
+4.  **System Environment**: Variables set in your shell (e.g., \`export MUSE_API_KEY=...\`). Used as a fallback when a key is absent from the settings snapshot.
 
 > Settings \`env\` shadows (does not mutate) OS env: a key set in both settings.json \`env\` and the OS environment resolves to the settings value for that session, while the OS value remains untouched and visible to unrelated processes.
 
@@ -74,7 +74,7 @@ Environment variables configured in \`settings.json\` support **live reload**. W
 
 ## Best Practices
 
-- **Use Local Overrides for Secrets**: Never commit sensitive information like \`WAVE_API_KEY\` to \`settings.json\`. Use \`settings.local.json\` instead.
+- **Use Local Overrides for Secrets**: Never commit sensitive information like \`MUSE_API_KEY\` to \`settings.json\`. Use \`settings.local.json\` instead.
 - **Standard Naming**: Use uppercase and underscores for environment variable names (e.g., \`MY_VARIABLE\`).
 - **Avoid Overriding System Variables**: Be careful not to override standard system variables like \`PATH\` or \`HOME\` unless you have a specific reason to do so.
 `,
@@ -238,7 +238,7 @@ SessionEnd hooks receive \`end_source\` in the JSON input indicating how the ses
       {
         "hooks": [
           {
-            "command": "echo '{\\"session_id\\": \\"$WAVE_SESSION_ID\\"}' >> /tmp/session-analytics.log",
+            "command": "echo '{\\"session_id\\": \\"$MUSE_SESSION_ID\\"}' >> /tmp/session-analytics.log",
             "description": "Log session end for analytics",
             "async": true
           }
@@ -264,7 +264,7 @@ WorktreeCreate hooks receive \`name\` (the worktree name) in the JSON input, alo
       {
         "hooks": [
           {
-            "command": "worktree_path=\\"$WAVE_PROJECT_DIR/.muse-work/worktrees/$(jq -r '.name')\\" && mkdir -p \\"$worktree_path\\" && git worktree add \\"$worktree_path\\" 2>/dev/null; echo \\"$worktree_path\\"",
+            "command": "worktree_path=\\"$MUSE_PROJECT_DIR/.muse-work/worktrees/$(jq -r '.name')\\" && mkdir -p \\"$worktree_path\\" && git worktree add \\"$worktree_path\\" 2>/dev/null; echo \\"$worktree_path\\"",
             "description": "Create the worktree and print its path"
           }
         ]
@@ -307,8 +307,8 @@ Hook configurations support **live reload**. When you modify hooks in \`settings
 
 When hooks are registered via a **plugin**, Wave automatically:
 
-1. Substitutes \`\${WAVE_PLUGIN_ROOT}\` with the plugin's directory path in the command string
-2. Injects \`WAVE_PLUGIN_ROOT\` as an environment variable into the hook process
+1. Substitutes \`\${MUSE_PLUGIN_ROOT}\` with the plugin's directory path in the command string
+2. Injects \`MUSE_PLUGIN_ROOT\` as an environment variable into the hook process
 
 \`\`\`json
 {
@@ -317,7 +317,7 @@ When hooks are registered via a **plugin**, Wave automatically:
       {
         "hooks": [
           {
-            "command": "\${WAVE_PLUGIN_ROOT}/scripts/setup-worktree.sh"
+            "command": "\${MUSE_PLUGIN_ROOT}/scripts/setup-worktree.sh"
           }
         ]
       }
@@ -326,7 +326,7 @@ When hooks are registered via a **plugin**, Wave automatically:
 }
 \`\`\`
 
-The shell also receives \`WAVE_PLUGIN_ROOT\` as an env var, so \`$WAVE_PLUGIN_ROOT\` works in the hook script itself. For \`WorktreeCreate\`, the script must print the created worktree's absolute path to stdout.
+The shell also receives \`MUSE_PLUGIN_ROOT\` as an env var, so \`$MUSE_PLUGIN_ROOT\` works in the hook script itself. For \`WorktreeCreate\`, the script must print the created worktree's absolute path to stdout.
 
 ## Best Practices
 
@@ -447,24 +447,25 @@ By default, MCP tools require user permission before execution. When you grant p
 
 ## Plugin MCP Servers
 
-When MCP servers are registered via a **plugin**, Wave automatically injects the \`WAVE_PLUGIN_ROOT\` environment variable into the server process. Additionally, \`\${WAVE_PLUGIN_ROOT}\` in the \`command\`, \`args\`, and \`env\` fields is substituted with the plugin's directory path before the server is spawned (matching Claude Code's \`\${CLAUDE_PLUGIN_ROOT}\` behavior).
+When MCP servers are registered via a **plugin**, Wave automatically injects the \`MUSE_PLUGIN_ROOT\` environment variable into the server process. Additionally, \`\${MUSE_PLUGIN_ROOT}\` in the \`command\`, \`args\`, and \`env\` fields is substituted with the plugin's directory path before the server is spawned (matching Claude Code's \`\${CLAUDE_PLUGIN_ROOT}\` behavior).
 
 \`\`\`json
 {
   "mcpServers": {
     "my-plugin-server": {
-      "command": "\${WAVE_PLUGIN_ROOT}/bin/mcp-server",
-      "args": ["--config", "\${WAVE_PLUGIN_ROOT}/config/server.json"]
+      "command": "\${MUSE_PLUGIN_ROOT}/bin/mcp-server",
+      "args": ["--config", "\${MUSE_PLUGIN_ROOT}/config/server.json"]
     }
   }
 }
 \`\`\`
 
-Your MCP server code can also read \`WAVE_PLUGIN_ROOT\` as an environment variable:
+Your MCP server code can also read \`MUSE_PLUGIN_ROOT\` as an environment variable:
 
 \`\`\`ts
 // Inside your MCP server (e.g., a Node.js script)
-const pluginRoot = process.env.WAVE_PLUGIN_ROOT;
+const pluginRoot =
+  process.env.MUSE_PLUGIN_ROOT || process.env.WAVE_PLUGIN_ROOT;
 \`\`\`
 
 ## Troubleshooting
@@ -597,7 +598,7 @@ Generation parameters are nested under the \`options\` field within each model's
 
 ## Per-Model Input Context Window
 
-Set \`maxInputTokens\` at the top level of a model entry (not inside \`options\`) to define that model's input context window. It overrides the global \`WAVE_MAX_INPUT_TOKENS\`, so compaction thresholds and usage display follow each model's own value:
+Set \`maxInputTokens\` at the top level of a model entry (not inside \`options\`) to define that model's input context window. It overrides the global \`MUSE_MAX_INPUT_TOKENS\`, so compaction thresholds and usage display follow each model's own value:
 
 \`\`\`json
 {
@@ -608,7 +609,7 @@ Set \`maxInputTokens\` at the top level of a model entry (not inside \`options\`
 }
 \`\`\`
 
-Resolution priority: constructor > \`options\` > \`models[<model>].maxInputTokens\` > \`WAVE_MAX_INPUT_TOKENS\` > default. Subagents (\`fastModel\`/\`visionModel\`) resolve against the model they actually use.
+Resolution priority: constructor > \`options\` > \`models[<model>].maxInputTokens\` > \`MUSE_MAX_INPUT_TOKENS\` > default. Subagents (\`fastModel\`/\`visionModel\`) resolve against the model they actually use.
 
 ## Model Capabilities
 
@@ -670,16 +671,16 @@ You can also set the default models Wave uses via environment variables in \`set
 \`\`\`json
 {
   "env": {
-    "WAVE_MODEL": "gemini-3-flash",
-    "WAVE_FAST_MODEL": "gemini-2.5-flash",
-    "WAVE_VISION_MODEL": "qwen-vl-max",
-    "WAVE_MAX_INPUT_TOKENS": "100000",
-    "WAVE_MAX_OUTPUT_TOKENS": "4096"
+    "MUSE_MODEL": "gemini-3-flash",
+    "MUSE_FAST_MODEL": "gemini-2.5-flash",
+    "MUSE_VISION_MODEL": "qwen-vl-max",
+    "MUSE_MAX_INPUT_TOKENS": "100000",
+    "MUSE_MAX_OUTPUT_TOKENS": "4096"
   }
 }
 \`\`\`
 
-\`WAVE_VISION_MODEL\` names a vision-capable model for the built-in \`vision\` subagent. Setting it registers the subagent, whose frontmatter \`model: visionModel\` resolves to this value — so a fast non-vision main model can delegate image recognition. Leave it unset to disable the built-in \`vision\` subagent.
+\`MUSE_VISION_MODEL\` names a vision-capable model for the built-in \`vision\` subagent. Setting it registers the subagent, whose frontmatter \`model: visionModel\` resolves to this value — so a fast non-vision main model can delegate image recognition. Leave it unset to disable the built-in \`vision\` subagent.
 
 ## Live Reload
 
@@ -826,9 +827,9 @@ Add a plugin directly in \`settings.json\`:
 }
 \`\`\`
 
-### \`\${WAVE_PLUGIN_ROOT}\` Placeholder
+### \`\${MUSE_PLUGIN_ROOT}\` Placeholder
 
-Plugin skills, hooks, MCP servers, and LSP servers can reference their parent plugin's directory using \`\${WAVE_PLUGIN_ROOT}\`. Wave substitutes this placeholder with the plugin's absolute directory path at load time, and also injects \`WAVE_PLUGIN_ROOT\` as an environment variable into spawned processes.
+Plugin skills, hooks, MCP servers, and LSP servers can reference their parent plugin's directory using \`\${MUSE_PLUGIN_ROOT}\`. Wave substitutes this placeholder with the plugin's absolute directory path at load time, and also injects \`MUSE_PLUGIN_ROOT\` as an environment variable into spawned processes.
 
 Example hook command:
 \`\`\`json
@@ -839,7 +840,7 @@ Example hook command:
         "hooks": [
           {
             "type": "command",
-            "command": "\\"\${WAVE_PLUGIN_ROOT}/hooks/session-start\\"",
+            "command": "\\"\${MUSE_PLUGIN_ROOT}/hooks/session-start\\"",
             "async": false
           }
         ]
@@ -961,15 +962,15 @@ Wave looks for \`settings.json\` in three scopes:
 
 ### 1. Hooks
 Hooks allow you to automate tasks when certain events occur (e.g., \`PreToolUse\`, \`PostToolUse\`, \`SessionStart\`, \`SessionEnd\`).
-For detailed hook configuration, see [HOOKS.md](\${WAVE_SKILL_DIR}/HOOKS.md).
+For detailed hook configuration, see [HOOKS.md](\${MUSE_SKILL_DIR}/HOOKS.md).
 
 ### 2. Environment Variables
-Set environment variables that will be available to all tools and hooks. Common \`WAVE_*\` variables include:
-- \`WAVE_MODEL\`, \`WAVE_FAST_MODEL\`: Model selection
-- \`WAVE_MAX_INPUT_TOKENS\`, \`WAVE_MAX_OUTPUT_TOKENS\`: Token limits
-- \`WAVE_API_KEY\`, \`WAVE_BASE_URL\`: API configuration
+Set environment variables that will be available to all tools and hooks. Common \`MUSE_*\` variables include:
+- \`MUSE_MODEL\`, \`MUSE_FAST_MODEL\`: Model selection
+- \`MUSE_MAX_INPUT_TOKENS\`, \`MUSE_MAX_OUTPUT_TOKENS\`: Token limits
+- \`MUSE_API_KEY\`, \`MUSE_BASE_URL\`: API configuration
 
-For detailed configuration, see [ENV.md](\${WAVE_SKILL_DIR}/ENV.md).
+For detailed configuration, see [ENV.md](\${MUSE_SKILL_DIR}/ENV.md).
 \`\`\`json
 {
   "env": {
@@ -981,7 +982,7 @@ For detailed configuration, see [ENV.md](\${WAVE_SKILL_DIR}/ENV.md).
 
 ### 3. Permissions
 Manage tool permissions and define the "Safe Zone". Changes to permissions take effect immediately with live reload.
-For detailed permission configuration and available permission modes, see [PERMISSIONS.md](\${WAVE_SKILL_DIR}/PERMISSIONS.md).
+For detailed permission configuration and available permission modes, see [PERMISSIONS.md](\${MUSE_SKILL_DIR}/PERMISSIONS.md).
 \`\`\`json
 {
   "permissions": {
@@ -995,7 +996,7 @@ For detailed permission configuration and available permission modes, see [PERMI
 
 ### 4. Model Configuration
 Define which AI models Wave should use and set model-specific parameters like \`temperature\`, \`reasoning_effort\`, and \`thinking\`. You can also configure model selection and token limits via environment variables in the \`env\` field.
-For detailed model configuration, see [MODELS.md](\${WAVE_SKILL_DIR}/MODELS.md).
+For detailed model configuration, see [MODELS.md](\${MUSE_SKILL_DIR}/MODELS.md).
 \`\`\`json
 {
   "models": {
@@ -1018,24 +1019,24 @@ For detailed model configuration, see [MODELS.md](\${WAVE_SKILL_DIR}/MODELS.md).
 
 ### 5. Model Context Protocol (MCP)
 Connect to external servers to provide additional tools and context.
-For detailed MCP configuration, see [MCP.md](\${WAVE_SKILL_DIR}/MCP.md).
+For detailed MCP configuration, see [MCP.md](\${MUSE_SKILL_DIR}/MCP.md).
 
 ### 6. Memory
 Provide context-specific instructions and knowledge to the agent through user memory, project memory, memory rules, and auto-memory.
-For detailed memory configuration, see [MEMORY.md](\${WAVE_SKILL_DIR}/MEMORY.md).
+For detailed memory configuration, see [MEMORY.md](\${MUSE_SKILL_DIR}/MEMORY.md).
 
 ### 7. Skills
 Extend Wave's functionality by creating custom skills.
-For detailed guidance on creating skills, see [SKILLS.md](\${WAVE_SKILL_DIR}/SKILLS.md).
+For detailed guidance on creating skills, see [SKILLS.md](\${MUSE_SKILL_DIR}/SKILLS.md).
 
 ### 8. Subagents
 Delegate tasks to specialized AI personalities.
-For detailed guidance on creating subagents, see [SUBAGENTS.md](\${WAVE_SKILL_DIR}/SUBAGENTS.md).
+For detailed guidance on creating subagents, see [SUBAGENTS.md](\${MUSE_SKILL_DIR}/SUBAGENTS.md).
 
 ### 9. Plugins
 
 Plugins bundle skills, hooks, MCP servers, LSP servers, commands, and subagents into a reusable package. You can install plugins locally or from a marketplace.
-For detailed guidance on creating plugins and marketplaces, see [PLUGINS.md](\${WAVE_SKILL_DIR}/PLUGINS.md).
+For detailed guidance on creating plugins and marketplaces, see [PLUGINS.md](\${MUSE_SKILL_DIR}/PLUGINS.md).
 
 ### 10. Other Settings
 - \`language\`: Preferred language for agent communication (e.g., \`"en"\`, \`"zh"\`).
@@ -1172,7 +1173,7 @@ Empty or whitespace-only commands are silently skipped.
 
 - **Clear Descriptions**: Write descriptions that help the AI understand exactly when the skill is relevant.
 - **Modular Design**: Keep skills focused on a single task or capability.
-- **Use \`\${WAVE_SKILL_DIR}\`**: Use this placeholder to reference files within the skill directory.
+- **Use \`\${MUSE_SKILL_DIR}\`**: Use this placeholder to reference files within the skill directory.
 - **Bash Commands**: Use \`!\`command\`\` for inline output or \` \`\`\`! \` blocks for multi-line commands. Keep outputs concise.
 `,
   "skills/settings/SUBAGENTS.md": `# Creating and Managing Wave Subagents
@@ -1212,7 +1213,7 @@ You are a specialized subagent for a specific task. Your goal is to:
 - \`name\`: (Required) Unique identifier.
 - \`description\`: (Required) Explains the subagent's expertise and when to use it.
 - \`tools\`: (Optional) List of tools the subagent can use.
-- \`model\`: (Optional) Overrides the default model for this subagent. The special values \`fastModel\` and \`visionModel\` resolve to the \`WAVE_FAST_MODEL\` / \`WAVE_VISION_MODEL\` env vars respectively. Built-in subagents declaring \`model: visionModel\` (e.g. the built-in \`vision\` agent) are only registered when \`WAVE_VISION_MODEL\` is set; for user-defined subagents the value simply resolves to the configured vision model.
+- \`model\`: (Optional) Overrides the default model for this subagent. The special values \`fastModel\` and \`visionModel\` resolve to the \`MUSE_FAST_MODEL\` / \`MUSE_VISION_MODEL\` env vars respectively. Built-in subagents declaring \`model: visionModel\` (e.g. the built-in \`vision\` agent) are only registered when \`MUSE_VISION_MODEL\` is set; for user-defined subagents the value simply resolves to the configured vision model.
 
 ## Subagent Locations
 
@@ -1226,7 +1227,7 @@ Project subagents take precedence over user subagents with the same name. Plugin
 
 ## Plugin Agents
 
-Plugins can define their own subagents in an \`agents/\` directory within the plugin. These agents can reference their parent plugin's directory using the \`\${WAVE_PLUGIN_ROOT}\` template variable, which is substituted at load time.
+Plugins can define their own subagents in an \`agents/\` directory within the plugin. These agents can reference their parent plugin's directory using the \`\${MUSE_PLUGIN_ROOT}\` template variable, which is substituted at load time.
 
 For example, a plugin at \`/path/to/my-plugin/\` with \`agents/researcher.md\`:
 
@@ -1237,10 +1238,10 @@ description: A research agent that uses the plugin's knowledge base
 tools: ["Read", "Glob"]
 ---
 
-You are a research assistant. Access plugin resources at \${WAVE_PLUGIN_ROOT}/data.
+You are a research assistant. Access plugin resources at \${MUSE_PLUGIN_ROOT}/data.
 \`\`\`
 
-After loading, \`\${WAVE_PLUGIN_ROOT}\` is replaced with \`/path/to/my-plugin/\`, and the agent is registered as \`my-plugin:researcher\`.
+After loading, \`\${MUSE_PLUGIN_ROOT}\` is replaced with \`/path/to/my-plugin/\`, and the agent is registered as \`my-plugin:researcher\`.
 
 ## Delegating to Subagents
 

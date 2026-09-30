@@ -17,10 +17,10 @@ export default defineConfig(() => {
         exclude: ["node_modules", "dist", "tests", "examples"],
       },
       env: {
-        WAVE_API_KEY: "test-token",
-        WAVE_BASE_URL: "http://localhost:8080",
-        WAVE_MODEL: "test-model",
-        WAVE_FAST_MODEL: "test-fast-model",
+        MUSE_API_KEY: "test-token",
+        MUSE_BASE_URL: "http://localhost:8080",
+        MUSE_MODEL: "test-model",
+        MUSE_FAST_MODEL: "test-fast-model",
       },
     },
     resolve: {

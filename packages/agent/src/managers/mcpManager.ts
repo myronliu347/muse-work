@@ -24,8 +24,13 @@ import type {
   McpToolCallResult,
   McpServerStatus,
 } from "../types/index.js";
-
 import { CONFIG_DIR_NAME } from "../utils/constants.js";
+import {
+  PLUGIN_ROOT_TEMPLATE_VARS,
+  pluginRootEnv,
+  substitutePluginRoot,
+} from "../utils/museEnv.js";
+
 interface McpConnection {
   client: Client;
   transport: Transport;
@@ -49,7 +54,7 @@ export interface McpManagerOptions {
  * Expand environment variables in a string value.
  * Supports ${VAR} and ${VAR:-default} patterns.
  */
-const WAVE_TEMPLATE_VARS = ["WAVE_PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"];
+const PLUGIN_ROOT_PLACEHOLDERS = PLUGIN_ROOT_TEMPLATE_VARS;
 
 /**
  * Expand environment variables in a string value.
@@ -70,7 +75,7 @@ export function expandEnvVars(
     const [varName, ...rest] = expr.split(":-");
     const defaultValue = rest.join(":-");
     // Skip Wave-specific template variables — they are handled at spawn time
-    if (WAVE_TEMPLATE_VARS.includes(varName)) {
+    if (PLUGIN_ROOT_PLACEHOLDERS.includes(varName)) {
       return _match; // return original ${...} string untouched
     }
     return env[varName] ?? process.env[varName] ?? defaultValue;
@@ -80,7 +85,7 @@ export function expandEnvVars(
 /**
  * Walk an MCP config and resolve environment variables in all string fields.
  * Expands ${VAR} against the session env snapshot (over OS env); falls back to
- * process.env. WAVE_PLUGIN_ROOT is skipped — handled at spawn time.
+ * process.env. MUSE_PLUGIN_ROOT / WAVE_PLUGIN_ROOT / CLAUDE_PLUGIN_ROOT are skipped — handled at spawn time.
  */
 export function resolveMcpConfig(
   config: McpConfig,
@@ -669,42 +674,17 @@ export class McpManager {
           ...(server.config.env || {}),
         };
 
-        // For plugin servers, substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
+        // For plugin servers, substitute ${MUSE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
         let command = server.config.command;
         let args = server.config.args || [];
         if (server.config.pluginRoot) {
-          env.WAVE_PLUGIN_ROOT = server.config.pluginRoot;
-          env.CLAUDE_PLUGIN_ROOT = server.config.pluginRoot;
-          command = command.replace(
-            /\$\{WAVE_PLUGIN_ROOT\}/g,
-            server.config.pluginRoot,
+          Object.assign(env, pluginRootEnv(server.config.pluginRoot));
+          command = substitutePluginRoot(command, server.config.pluginRoot);
+          args = args.map((arg) =>
+            substitutePluginRoot(arg, server.config.pluginRoot!),
           );
-          command = command.replace(
-            /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-            server.config.pluginRoot,
-          );
-          args = args.map((arg) => {
-            let result = arg.replace(
-              /\$\{WAVE_PLUGIN_ROOT\}/g,
-              server.config.pluginRoot!,
-            );
-            result = result.replace(
-              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-              server.config.pluginRoot!,
-            );
-            return result;
-          });
-          // Also expand plugin root in user-provided env values
           for (const [key, value] of Object.entries(server.config.env || {})) {
-            let expanded = value.replace(
-              /\$\{WAVE_PLUGIN_ROOT\}/g,
-              server.config.pluginRoot!,
-            );
-            expanded = expanded.replace(
-              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-              server.config.pluginRoot!,
-            );
-            env[key] = expanded;
+            env[key] = substitutePluginRoot(value, server.config.pluginRoot!);
           }
         }
         transport = new StdioClientTransport({

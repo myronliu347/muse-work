@@ -18,11 +18,11 @@ const baseConfig = (
 
 // Simulates the real conditional registration in subagentParser.ts: builtin
 // subagents with `model: visionModel` are only included when the merged env
-// carries WAVE_VISION_MODEL.
+// carries MUSE_VISION_MODEL.
 const mockLoadSubagentConfigurations = vi.fn(
   async (_workdir: string, env: Record<string, string>) => {
     const configs: SubagentConfiguration[] = [baseConfig("bash")];
-    if (env.WAVE_VISION_MODEL) {
+    if (env.MUSE_VISION_MODEL) {
       configs.push(
         baseConfig("vision", { tools: ["Read"], model: "visionModel" }),
       );
@@ -64,7 +64,7 @@ describe("SubagentManager.refreshConfigurations", () => {
   });
 
   it("registers vision subagent after settings env becomes available, preserving plugin agents", async () => {
-    // Session start: settings.json env not yet loaded → no WAVE_VISION_MODEL
+    // Session start: settings.json env not yet loaded → no MUSE_VISION_MODEL
     mockGetMergedEnv.mockReturnValue({});
     await subagentManager.loadConfigurations();
     expect(
@@ -79,8 +79,8 @@ describe("SubagentManager.refreshConfigurations", () => {
       "my-plugin:helper",
     );
 
-    // After loadMergedConfiguration, env snapshot carries WAVE_VISION_MODEL
-    mockGetMergedEnv.mockReturnValue({ WAVE_VISION_MODEL: "qwen-vl-max" });
+    // After loadMergedConfiguration, env snapshot carries MUSE_VISION_MODEL
+    mockGetMergedEnv.mockReturnValue({ MUSE_VISION_MODEL: "qwen-vl-max" });
     await subagentManager.refreshConfigurations();
 
     const names = subagentManager.getConfigurations().map((c) => c.name);
@@ -89,7 +89,7 @@ describe("SubagentManager.refreshConfigurations", () => {
     expect(names.filter((n) => n === "my-plugin:helper")).toHaveLength(1);
   });
 
-  it("keeps vision filtered out when env still lacks WAVE_VISION_MODEL", async () => {
+  it("keeps vision filtered out when env still lacks MUSE_VISION_MODEL", async () => {
     mockGetMergedEnv.mockReturnValue({});
     await subagentManager.loadConfigurations();
     await subagentManager.refreshConfigurations();

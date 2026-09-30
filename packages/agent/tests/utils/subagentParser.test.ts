@@ -35,7 +35,7 @@ vi.mock("os", async (importOriginal) => {
 describe("SubagentParser with Built-ins", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.WAVE_VISION_MODEL;
+    delete process.env.MUSE_VISION_MODEL;
 
     // Setup default builtin subagents dir mock
     vi.mocked(configPaths.getBuiltinSubagentsDir).mockReturnValue(
@@ -160,7 +160,7 @@ test`;
       expect(builtin?.priority).toBe(3);
     });
 
-    it("should load built-in vision subagent only when WAVE_VISION_MODEL is set", async () => {
+    it("should load built-in vision subagent only when MUSE_VISION_MODEL is set", async () => {
       const mockFs = await import("fs");
 
       vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
@@ -197,7 +197,7 @@ You are an image recognition specialist...`;
 
       // With the env var (via the merged env param), it loads with model: visionModel
       const configsWithEnv = await loadSubagentConfigurations("/test/workdir", {
-        WAVE_VISION_MODEL: "qwen-vl-max",
+        MUSE_VISION_MODEL: "qwen-vl-max",
       });
       expect(configsWithEnv).toHaveLength(1);
       const vision = configsWithEnv.find((c) => c.name === "vision");
@@ -207,7 +207,7 @@ You are an image recognition specialist...`;
       expect(vision?.model).toBe("visionModel");
     });
 
-    it("should treat WAVE_VISION_MODEL from process.env as set", async () => {
+    it("should treat MUSE_VISION_MODEL from process.env as set", async () => {
       const mockFs = await import("fs");
 
       vi.mocked(mockFs.readdirSync).mockImplementation((dirPath) => {
@@ -234,7 +234,7 @@ You are an image recognition specialist...`;
         return "";
       });
 
-      process.env.WAVE_VISION_MODEL = "qwen-vl-max";
+      process.env.MUSE_VISION_MODEL = "qwen-vl-max";
       const configs = await loadSubagentConfigurations("/test/workdir");
       expect(configs.find((c) => c.name === "vision")).toBeDefined();
     });

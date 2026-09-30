@@ -1323,7 +1323,7 @@ export class MessageManager {
             this.invokedSkills.set(skillName, {
               skillName,
               timestamp: Date.now(),
-              // 模型当时实际看到的那份正文（已替换 ${WAVE_SKILL_DIR} 等占位符、
+              // 模型当时实际看到的那份正文（已替换 ${MUSE_SKILL_DIR} 等占位符、
               // 首行带 `Base directory for this skill:`）——压缩后回灌直接复用它，
               // 不能重新读文件原文（spec core/message-compact 场景 4）。
               content: block.result,

@@ -8,7 +8,7 @@ import { mkdir, rm } from "fs/promises";
  * to schedule recurring tasks.
  *
  * To run this example:
- * 1. Ensure you have a valid WAVE_API_KEY environment variable set.
+ * 1. Ensure you have a valid MUSE_API_KEY environment variable set.
  * 2. Run: cd packages/agent-sdk && pnpm exec tsx examples/loop-command-demo.ts
  */
 async function main() {
@@ -18,7 +18,7 @@ async function main() {
   // 1. Create Agent instance
   const agent = await Agent.create({
     workdir: tempDir,
-    model: process.env.WAVE_FAST_MODEL, // Use a supported model
+    model: process.env.MUSE_FAST_MODEL, // Use a supported model
     callbacks: {
       onAssistantContentUpdated: (params) => {
         process.stdout.write(params.chunk);

@@ -80,7 +80,7 @@ export interface WaveConfiguration {
  * 设置页读写的用户偏好子集（落点 = 用户级 `~/.muse-work/settings.json`；读写实现见
  * `utils/userSettings.ts`）。三端（VSCE / JetBrains / desktop）设置页与 CLI 的
  * `getUserSettings` / `updateUserSettings` RPC 共用这一形状；`contextLength` 单位
- * 为 K（落盘换算为 `env.WAVE_MAX_INPUT_TOKENS`）。
+ * 为 K（落盘换算为 `env.MUSE_MAX_INPUT_TOKENS`）。
  */
 export interface UserPreferenceSettings {
   /** AI 回复语言（settings.json 顶层 `language`，如 zh-CN / en-US）。 */
@@ -91,7 +91,7 @@ export interface UserPreferenceSettings {
   autoMemoryEnabled?: boolean;
   /** 自动记忆提取的轮次频率（1–100）。 */
   autoMemoryFrequency?: number;
-  /** Wave 服务端地址（settings.json 的 `env.WAVE_SERVER_URL`，如 https://…）。 */
+  /** Wave 服务端地址（settings.json 的 `env.MUSE_SERVER_URL`，如 https://…）。 */
   serverUrl?: string;
 }
 

@@ -658,8 +658,8 @@ export class Agent {
    * to ensure proper async initialization of all components.
    *
    * @param options - Configuration options for the Agent instance
-   * @param options.apiKey - API key for the AI service (or set WAVE_API_KEY env var)
-   * @param options.baseURL - Base URL for the AI service (or set WAVE_BASE_URL env var)
+   * @param options.apiKey - API key for the AI service (or set MUSE_API_KEY env var)
+   * @param options.baseURL - Base URL for the AI service (or set MUSE_BASE_URL env var)
    * @param options.defaultHeaders - Optional HTTP headers to pass to the AI service
    * @param options.fetchOptions - Optional fetch options to pass to the AI service
    * @param options.fetch - Optional custom fetch implementation

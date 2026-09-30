@@ -153,7 +153,7 @@ REMEMBER: You can ONLY explore and plan. You CANNOT and MUST NOT write, edit, or
 `,
   "subagents/vision.md": `---
 name: vision
-description: 'Image recognition specialist that runs on the model specified by the WAVE_VISION_MODEL environment variable. Use this when the current model does not support image recognition but the user has shared an image (identify the image by its "[Image source: <path>]" metadata). Pass the image file path(s) in the prompt; this agent reads the image with the ${READ_TOOL_NAME} tool and returns a detailed text description of its contents.'
+description: 'Image recognition specialist that runs on the model specified by the MUSE_VISION_MODEL environment variable. Use this when the current model does not support image recognition but the user has shared an image (identify the image by its "[Image source: <path>]" metadata). Pass the image file path(s) in the prompt; this agent reads the image with the ${READ_TOOL_NAME} tool and returns a detailed text description of its contents.'
 tools: [${READ_TOOL_NAME}]
 model: visionModel
 ---

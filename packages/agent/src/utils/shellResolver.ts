@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
+import { envGet, MUSE_ENV } from "./museEnv.js";
 
 export const WINDOWS_GIT_BASH_PATHS = [
   "C:\\Program Files\\Git\\bin\\bash.exe",
@@ -95,7 +96,7 @@ function inferGitBashFromGit(): string | undefined {
  * Resolve a bash or zsh binary on macOS/Linux.
  *
  * Priority (aligned with Claude Code's findSuitableShell):
- *   1. WAVE_SHELL env var (only if it points to an executable bash/zsh)
+ *   1. MUSE_SHELL / MUSE_SHELL env var (only if it points to an executable bash/zsh)
  *   2. $SHELL (only if it is bash/zsh)
  *   3. `which bash` / `which zsh` discovered on $PATH
  *   4. Common fixed locations (/bin, /usr/bin, /usr/local/bin, /opt/homebrew/bin)
@@ -106,8 +107,8 @@ function inferGitBashFromGit(): string | undefined {
  * `<()`, causing `eval '<()...'` to fail at parse time.
  */
 function resolveUnixShell(): string | undefined {
-  // 1. WAVE_SHELL env override
-  const waveShell = process.env.WAVE_SHELL;
+  // 1. MUSE_SHELL / MUSE_SHELL env override
+  const waveShell = envGet(MUSE_ENV.SHELL, process.env);
   if (waveShell && isSupportedShell(waveShell) && isExecutable(waveShell)) {
     return waveShell;
   }
@@ -148,14 +149,15 @@ function resolveUnixShell(): string | undefined {
  * Resolve the Git Bash path on Windows.
  *
  * Priority (aligned with Claude Code's findGitBashPath):
- *   1. WAVE_GIT_BASH_PATH env var
+ *   1. MUSE_GIT_BASH_PATH / MUSE_GIT_BASH_PATH env var
  *   2. Infer from `git` executable location (<git dir>/../../bin/bash.exe)
  *   3. Common install paths (C:\Program Files\Git\bin\bash.exe, etc.)
  */
 function resolveWindowsShell(): string | undefined {
   // 1. Env var override
-  if (process.env.WAVE_GIT_BASH_PATH) {
-    return process.env.WAVE_GIT_BASH_PATH;
+  const gitBashPath = envGet(MUSE_ENV.GIT_BASH_PATH, process.env);
+  if (gitBashPath) {
+    return gitBashPath;
   }
 
   // 2. Infer from git executable location

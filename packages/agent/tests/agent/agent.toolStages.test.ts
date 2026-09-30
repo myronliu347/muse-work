@@ -46,7 +46,7 @@ describe("Agent Tool Stage Tests", () => {
 
   beforeEach(async () => {
     // Disable auto-memory to prevent background extraction interference
-    vi.stubEnv("WAVE_DISABLE_AUTO_MEMORY", "1");
+    vi.stubEnv("MUSE_DISABLE_AUTO_MEMORY", "1");
 
     // Create mock callbacks
     onToolBlockUpdated =

@@ -15,8 +15,8 @@ async function main() {
     console.log("Creating agent with custom headers...");
 
     const agent = await Agent.create({
-      apiKey: process.env.WAVE_API_KEY || "test-key",
-      baseURL: process.env.WAVE_BASE_URL || "https://api.openai.com/v1",
+      apiKey: process.env.MUSE_API_KEY || "test-key",
+      baseURL: process.env.MUSE_BASE_URL || "https://api.openai.com/v1",
       defaultHeaders: {
         "User-Agent": "WaveAgent/1.0.0",
         "X-Custom-Client": "wave-agent-sdk",
@@ -29,8 +29,8 @@ async function main() {
 
     // Example 2: Headers are optional
     const agentNoHeaders = await Agent.create({
-      apiKey: process.env.WAVE_API_KEY || "test-key",
-      baseURL: process.env.WAVE_BASE_URL || "https://api.openai.com/v1",
+      apiKey: process.env.MUSE_API_KEY || "test-key",
+      baseURL: process.env.MUSE_BASE_URL || "https://api.openai.com/v1",
       // No headers specified - this still works
     });
 
@@ -42,8 +42,8 @@ async function main() {
 
     // Example 3: Authentication headers
     const agentWithAuth = await Agent.create({
-      apiKey: process.env.WAVE_API_KEY || "test-key",
-      baseURL: process.env.WAVE_BASE_URL || "https://api.openai.com/v1",
+      apiKey: process.env.MUSE_API_KEY || "test-key",
+      baseURL: process.env.MUSE_BASE_URL || "https://api.openai.com/v1",
       defaultHeaders: {
         Authorization: "Bearer additional-token", // Additional auth if needed
         "X-Organization": "my-org-id",

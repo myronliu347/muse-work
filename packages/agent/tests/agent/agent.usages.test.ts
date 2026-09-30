@@ -26,10 +26,10 @@ describe("Agent Usage Tracking", () => {
     originalEnv = process.env;
     // Clear environment variables that might affect model selection
     process.env = { ...originalEnv };
-    process.env.WAVE_MODEL = "gemini-3-flash";
-    process.env.WAVE_FAST_MODEL = "gemini-2.5-flash";
-    process.env.WAVE_DISABLE_AUTO_MEMORY = "true";
-    delete process.env.WAVE_MAX_INPUT_TOKENS;
+    process.env.MUSE_MODEL = "gemini-3-flash";
+    process.env.MUSE_FAST_MODEL = "gemini-2.5-flash";
+    process.env.MUSE_DISABLE_AUTO_MEMORY = "true";
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
 
     // Create mock callbacks that track usage changes
     usagesHistory = [];
@@ -302,7 +302,7 @@ describe("Agent Usage Tracking", () => {
 
       // Lower the input token limit so the short message history exceeds it
       // and the pre-request estimate triggers compaction
-      process.env.WAVE_MAX_INPUT_TOKENS = "30";
+      process.env.MUSE_MAX_INPUT_TOKENS = "30";
 
       // Set up an agent instance with initial messages to have enough content for compaction
       const initialMessages = [

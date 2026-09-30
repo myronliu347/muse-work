@@ -68,7 +68,7 @@ export interface HookEventConfig {
 export interface HookExecutionContext {
   event: HookEvent;
   toolName?: string; // Present for PreToolUse/PostToolUse events
-  projectDir: string; // Absolute path for $WAVE_PROJECT_DIR
+  projectDir: string; // Absolute path for $MUSE_PROJECT_DIR
   timestamp: Date;
   name?: string; // Worktree name (WorktreeCreate only, stdin JSON field `name`)
   worktreePath?: string; // Present for WorktreeRemove
@@ -273,6 +273,7 @@ export interface ExtendedHookExecutionContext extends HookExecutionContext {
 
 // Environment variables injected into hook processes
 export interface HookEnvironment {
-  WAVE_PROJECT_DIR: string; // Absolute path to project root
-  [key: string]: string; // Inherit all parent process environment variables
+  MUSE_PROJECT_DIR: string;
+  WAVE_PROJECT_DIR: string;
+  [key: string]: string;
 }

@@ -12,7 +12,7 @@
  *      non-vision model).
  *   3. The main model recognizes it cannot see the image and delegates to the
  *      builtin `vision` subagent through the Agent tool.
- *   4. The vision subagent runs on the model configured by WAVE_VISION_MODEL
+ *   4. The vision subagent runs on the model configured by MUSE_VISION_MODEL
  *      (e.g. qwen3.8-max), reads the image file with the Read tool, and
  *      returns a detailed text description.
  *
@@ -21,9 +21,9 @@
  * screenshot needed.
  *
  * Requirements:
- *   - WAVE_VISION_MODEL must be set (settings.json env or environment) to a
+ *   - MUSE_VISION_MODEL must be set (settings.json env or environment) to a
  *     vision-capable model, otherwise the vision subagent is not registered.
- *   - The MAIN model (WAVE_MODEL / WAVE_FAST_MODEL) should NOT be
+ *   - The MAIN model (MUSE_MODEL / MUSE_FAST_MODEL) should NOT be
  *     vision-capable, so the delegation path is exercised. If it can see the
  *     image directly, the subagent is never invoked.
  *
@@ -176,9 +176,9 @@ async function main() {
 
     const agent = await Agent.create({
       // Main model: keep it NON-vision so the delegation path is exercised.
-      // WAVE_FAST_MODEL (e.g. deepseek-v4-flash) is vision-less, while the
-      // vision subagent runs on WAVE_VISION_MODEL (e.g. qwen3.8-max).
-      model: process.env.WAVE_FAST_MODEL,
+      // MUSE_FAST_MODEL (e.g. deepseek-v4-flash) is vision-less, while the
+      // vision subagent runs on MUSE_VISION_MODEL (e.g. qwen3.8-max).
+      model: process.env.MUSE_FAST_MODEL,
       callbacks: {
         onToolBlockUpdated: (params) => {
           if (params.stage === "running") {

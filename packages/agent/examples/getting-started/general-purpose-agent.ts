@@ -3,7 +3,7 @@ import { Agent } from "../../src/agent.js";
 async function main() {
   const agent = await Agent.create({
     workdir: process.cwd(),
-    model: process.env.WAVE_FAST_MODEL,
+    model: process.env.MUSE_FAST_MODEL,
     callbacks: {
       onSubagentAssistantMessageAdded: (subagentId) => {
         const instance = agent.getSubagentInstance(subagentId);

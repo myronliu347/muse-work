@@ -9,6 +9,7 @@ import type { MessageManager } from "../managers/messageManager.js";
 import type { ConfigurationService } from "./configurationService.js";
 
 import { CONFIG_DIR_NAME } from "../utils/constants.js";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
 function byIdAsc(a: Task, b: Task) {
   const aNum = parseInt(a.id, 10);
   const bNum = parseInt(b.id, 10);
@@ -52,8 +53,11 @@ export class TaskManager extends EventEmitter {
       this.container
         .get<ConfigurationService>("ConfigurationService")
         ?.getEnvSnapshot() ?? {};
-    const pinnedTaskListId =
-      envSnap.WAVE_TASK_LIST_ID ?? process.env.WAVE_TASK_LIST_ID;
+    const pinnedTaskListId = envGet(
+      MUSE_ENV.TASK_LIST_ID,
+      envSnap,
+      process.env,
+    );
     if (this.taskListId !== rootSessionId && !pinnedTaskListId) {
       this.setTaskListId(rootSessionId);
       await this.refreshTasks();

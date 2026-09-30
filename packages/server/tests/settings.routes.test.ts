@@ -58,18 +58,18 @@ describe("settings routes", () => {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        content: '{"env":{"WAVE_VISION_MODEL":"kimi-k3"}}',
+        content: '{"env":{"MUSE_VISION_MODEL":"kimi-k3"}}',
       }),
     });
     expect(put.status).toBe(200);
     expect(invalidated).toBe(true);
     const putBody = (await put.json()) as { path: string; content: string };
     expect(JSON.parse(putBody.content)).toEqual({
-      env: { WAVE_VISION_MODEL: "kimi-k3" },
+      env: { MUSE_VISION_MODEL: "kimi-k3" },
     });
     expect(
       JSON.parse(fs.readFileSync(getWaveUserSettingsPath(app.home), "utf8")),
-    ).toEqual({ env: { WAVE_VISION_MODEL: "kimi-k3" } });
+    ).toEqual({ env: { MUSE_VISION_MODEL: "kimi-k3" } });
 
     const bad = await fetch(`${app.baseUrl}/settings/raw`, {
       method: "PUT",

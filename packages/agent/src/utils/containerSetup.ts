@@ -42,6 +42,7 @@ import type {
 } from "../types/index.js";
 
 import { logger } from "./globalLogger.js";
+import { envGet, MUSE_ENV } from "./museEnv.js";
 import { authService } from "../services/authService.js";
 import { remoteSettingsService } from "../services/remoteSettingsService.js";
 
@@ -152,7 +153,8 @@ export function setupAgentContainer(
   container.register("MessageManager", messageManager);
 
   const resolvedTaskListId =
-    process.env.WAVE_TASK_LIST_ID || messageManager.getRootSessionId();
+    envGet(MUSE_ENV.TASK_LIST_ID, process.env) ||
+    messageManager.getRootSessionId();
 
   const taskManager = new TaskManager(container, resolvedTaskListId);
   container.register("TaskManager", taskManager);

@@ -26,8 +26,8 @@ describe("Agent Auto-Accept Permissions Integration", () => {
     );
     process.env = {
       ...originalEnv,
-      WAVE_API_KEY: "test-token",
-      WAVE_BASE_URL: "https://test.api",
+      MUSE_API_KEY: "test-token",
+      MUSE_BASE_URL: "https://test.api",
     };
     vi.mocked(os.homedir).mockReturnValue(longFormTempDir());
 

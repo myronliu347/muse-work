@@ -58,9 +58,9 @@ export class ConfigurationError extends Error {
 // Standard error messages
 export const CONFIG_ERRORS = {
   MISSING_MODEL:
-    "Agent configuration requires model. Provide via constructor or WAVE_MODEL environment variable.",
+    "Agent configuration requires model. Provide via constructor or MUSE_MODEL environment variable.",
   MISSING_FAST_MODEL:
-    "Agent configuration requires fastModel. Provide via constructor or WAVE_FAST_MODEL environment variable.",
-  INVALID_WAVE_MAX_INPUT_TOKENS: "Token limit must be a positive integer.",
+    "Agent configuration requires fastModel. Provide via constructor or MUSE_FAST_MODEL environment variable.",
+  INVALID_MUSE_MAX_INPUT_TOKENS: "Token limit must be a positive integer.",
   EMPTY_BASE_URL: "Base URL cannot be empty string.",
 } as const;

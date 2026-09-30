@@ -41,6 +41,7 @@ Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 
 - **CodeMaker**：优先复用本机 CodeMaker 登录态（`~/.muse-work/auth/codemaker.json` → 本机 CodeMaker `auth.json`），未登录时可在应用内发起 SSO。
 - **OpenAI 兼容**：编辑 `baseURL` / `apiKeyEnv`，通过环境变量注入 API Key（默认 `MUSE_OPENAI_API_KEY`）。
+- **Agent 运行时**：用户级 `~/.muse-work/settings.json`；环境变量用 `MUSE_*`（仍可读遗留 `WAVE_*`），详见 [`packages/agent/README.md`](packages/agent/README.md)。
 
 ## Issue
 

@@ -19,7 +19,7 @@ import { Agent } from "../../src/agent.js";
  *   - if/else conditional (branch based on structured agent output)
  *   - schema (force agent to return JSON for programmatic branching)
  *
- * Uses WAVE_FAST_MODEL for cheaper/faster testing if set.
+ * Uses MUSE_FAST_MODEL for cheaper/faster testing if set.
  */
 
 // Create a temp project with a buggy implementation
@@ -72,7 +72,7 @@ async function main() {
   await createProject(tempDir);
 
   const agent = await Agent.create({
-    model: process.env.WAVE_FAST_MODEL,
+    model: process.env.MUSE_FAST_MODEL,
     workdir: tempDir,
   });
 

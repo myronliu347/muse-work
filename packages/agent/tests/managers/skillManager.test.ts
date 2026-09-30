@@ -742,14 +742,14 @@ describe("SkillManager", () => {
       expect(result.content).toContain("# Just Content");
     });
 
-    it("should substitute ${WAVE_SKILL_DIR} with the skill's directory path", async () => {
+    it("should substitute ${MUSE_SKILL_DIR} with the skill's directory path", async () => {
       const mockSkill: Skill = {
         name: "path-skill",
         description: "A skill with path",
         type: "personal",
         skillPath: "/path/to/skill",
         content:
-          "---\nname: path-skill\ndescription: A skill with path\n---\n\nSkill is at ${WAVE_SKILL_DIR}",
+          "---\nname: path-skill\ndescription: A skill with path\n---\n\nSkill is at ${MUSE_SKILL_DIR}",
         frontmatter: { name: "path-skill", description: "A skill with path" },
         isValid: true,
         errors: [],
@@ -770,7 +770,7 @@ describe("SkillManager", () => {
       expect(result.content).not.toContain("SKILL.md");
     });
 
-    it("should substitute ${WAVE_PLUGIN_ROOT} with the skill's plugin root path", async () => {
+    it("should substitute ${MUSE_PLUGIN_ROOT} with the skill's plugin root path", async () => {
       const mockSkill: Skill = {
         name: "plugin-skill",
         description: "A plugin skill",
@@ -778,7 +778,7 @@ describe("SkillManager", () => {
         skillPath: "/plugin/root/skills/plugin-skill",
         pluginRoot: "/plugin/root",
         content:
-          "---\nname: plugin-skill\ndescription: A plugin skill\n---\n\nPlugin root is ${WAVE_PLUGIN_ROOT}",
+          "---\nname: plugin-skill\ndescription: A plugin skill\n---\n\nPlugin root is ${MUSE_PLUGIN_ROOT}",
         frontmatter: { name: "plugin-skill", description: "A plugin skill" },
         isValid: true,
         errors: [],

@@ -21,8 +21,8 @@ export const DEFAULT_WAVE_USER_SETTINGS = {
     },
   },
   env: {
-    WAVE_MAX_INPUT_TOKENS: "800000",
-    WAVE_VISION_MODEL: "kimi-k3",
+    MUSE_MAX_INPUT_TOKENS: "800000",
+    MUSE_VISION_MODEL: "kimi-k3",
   },
   models: {
     "glm-5.2": {

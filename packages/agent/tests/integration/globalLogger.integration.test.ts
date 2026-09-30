@@ -57,8 +57,8 @@ describe("Agent - Global Logger Integration", () => {
     // Set up environment for Agent creation
     vi.resetModules();
     process.env = { ...originalEnv };
-    process.env.WAVE_API_KEY = "test-api-key";
-    process.env.WAVE_BASE_URL = "https://test-gateway.com/api";
+    process.env.MUSE_API_KEY = "test-api-key";
+    process.env.MUSE_BASE_URL = "https://test-gateway.com/api";
 
     // Create fresh mock loggers for each test
     mockLogger1 = createMockLogger();

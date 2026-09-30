@@ -26,7 +26,7 @@ describe("Agent Tool Recursion Tests", () => {
     };
 
     // Disable auto-memory for tests to avoid extra AI calls
-    process.env.WAVE_DISABLE_AUTO_MEMORY = "true";
+    process.env.MUSE_DISABLE_AUTO_MEMORY = "true";
 
     // Create Agent instance with required parameters
     agent = await Agent.create({

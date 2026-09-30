@@ -260,12 +260,12 @@ describe("SubagentManager registerPluginAgents", () => {
     expect(pluginAgent!.name).toBe("my-plugin:test-agent");
   });
 
-  it("should substitute WAVE_PLUGIN_ROOT in systemPrompt as safety net", () => {
+  it("should substitute MUSE_PLUGIN_ROOT in systemPrompt as safety net", () => {
     subagentManager.registerPluginAgents("my-plugin", [
       {
         name: "test-agent",
         description: "Test Agent",
-        systemPrompt: "Read files from ${WAVE_PLUGIN_ROOT}/data",
+        systemPrompt: "Read files from ${MUSE_PLUGIN_ROOT}/data",
         filePath: "/plugin/agents/test-agent.md",
         scope: "plugin",
         priority: 2,
@@ -279,7 +279,7 @@ describe("SubagentManager registerPluginAgents", () => {
     expect(pluginAgent!.systemPrompt).toBe("Read files from /plugin/data");
   });
 
-  it("should handle agents without WAVE_PLUGIN_ROOT in systemPrompt", () => {
+  it("should handle agents without MUSE_PLUGIN_ROOT in systemPrompt", () => {
     subagentManager.registerPluginAgents("my-plugin", [
       {
         name: "test-agent",

@@ -40,20 +40,20 @@ describe("Agent subagent accessors", () => {
 
   beforeEach(async () => {
     // Clear environment variables that might interfere
-    delete process.env.WAVE_API_KEY;
-    delete process.env.WAVE_BASE_URL;
-    delete process.env.WAVE_MODEL;
-    delete process.env.WAVE_FAST_MODEL;
-    delete process.env.WAVE_MAX_INPUT_TOKENS;
+    delete process.env.MUSE_API_KEY;
+    delete process.env.MUSE_BASE_URL;
+    delete process.env.MUSE_MODEL;
+    delete process.env.MUSE_FAST_MODEL;
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
     // Reset and setup loadMergedWaveConfig mock
     vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
     // Mock config paths to return empty arrays
     vi.mocked(getUserConfigPaths).mockReturnValue([]);
     vi.mocked(getProjectConfigPaths).mockReturnValue([]);
 
-    process.env.WAVE_API_KEY = "test-token";
-    process.env.WAVE_BASE_URL = "https://test.url";
-    process.env.WAVE_MODEL = "test-model";
+    process.env.MUSE_API_KEY = "test-token";
+    process.env.MUSE_BASE_URL = "https://test.url";
+    process.env.MUSE_MODEL = "test-model";
 
     agent = await Agent.create({
       workdir: mockWorkdir,

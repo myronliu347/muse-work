@@ -188,7 +188,7 @@ interface GatewayResolution {
 
 从 fork 代码中移除：
 
-- Wave SSO（`~/.wave/auth.json`、`WAVE_SERVER_URL`、企业控制台入口）
+- Wave SSO（`~/.wave/auth.json`、`MUSE_SERVER_URL`、企业控制台入口）
 - 欢迎页/更多菜单中的 Wave 企业控制台
 - 绑定 Wave 服务端的更新通知 / telemetry
 

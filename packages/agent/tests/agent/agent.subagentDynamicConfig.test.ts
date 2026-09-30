@@ -47,12 +47,12 @@ describe("Subagent Dynamic Configuration Tests", () => {
 
   beforeEach(async () => {
     // Clear environment variables that might interfere
-    delete process.env.WAVE_API_KEY;
-    delete process.env.WAVE_BASE_URL;
-    delete process.env.WAVE_MODEL;
-    delete process.env.WAVE_FAST_MODEL;
-    delete process.env.WAVE_VISION_MODEL;
-    delete process.env.WAVE_MAX_INPUT_TOKENS;
+    delete process.env.MUSE_API_KEY;
+    delete process.env.MUSE_BASE_URL;
+    delete process.env.MUSE_MODEL;
+    delete process.env.MUSE_FAST_MODEL;
+    delete process.env.MUSE_VISION_MODEL;
+    delete process.env.MUSE_MAX_INPUT_TOKENS;
     // Reset and setup loadMergedWaveConfig mock
     vi.mocked(loadMergedWaveConfig).mockReturnValue(null);
     // Mock config paths to return empty arrays
@@ -73,11 +73,11 @@ describe("Subagent Dynamic Configuration Tests", () => {
   describe("Subagent Dynamic Configuration Inheritance", () => {
     it("should create subagent with dynamic configuration from parent Agent", async () => {
       // Set initial environment variables
-      process.env.WAVE_API_KEY = "parent-token";
-      process.env.WAVE_BASE_URL = "https://parent.url";
-      process.env.WAVE_MODEL = "parent-model";
-      process.env.WAVE_FAST_MODEL = "parent-fast-model";
-      process.env.WAVE_MAX_INPUT_TOKENS = "40000";
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_FAST_MODEL = "parent-fast-model";
+      process.env.MUSE_MAX_INPUT_TOKENS = "40000";
 
       // Create parent agent
       agent = await Agent.create({
@@ -123,10 +123,10 @@ describe("Subagent Dynamic Configuration Tests", () => {
       expect(subagentAIManager.getMaxInputTokens()).toBe(40000);
 
       // Update parent environment variables
-      process.env.WAVE_API_KEY = "updated-parent-token";
-      process.env.WAVE_BASE_URL = "https://updated-parent.url";
-      process.env.WAVE_MODEL = "updated-parent-model";
-      process.env.WAVE_MAX_INPUT_TOKENS = "50000";
+      process.env.MUSE_API_KEY = "updated-parent-token";
+      process.env.MUSE_BASE_URL = "https://updated-parent.url";
+      process.env.MUSE_MODEL = "updated-parent-model";
+      process.env.MUSE_MAX_INPUT_TOKENS = "50000";
 
       // Verify subagent AIManager gets updated values through parent's dynamic getters
       expect(subagentAIManager.getGatewayConfig()).toMatchObject({
@@ -142,10 +142,10 @@ describe("Subagent Dynamic Configuration Tests", () => {
 
     it("should handle subagent-specific model override with dynamic configuration", async () => {
       // Set parent environment variables
-      process.env.WAVE_API_KEY = "parent-token";
-      process.env.WAVE_BASE_URL = "https://parent.url";
-      process.env.WAVE_MODEL = "parent-model";
-      process.env.WAVE_FAST_MODEL = "parent-fast-model";
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_FAST_MODEL = "parent-fast-model";
 
       // Create parent agent
       agent = await Agent.create({
@@ -196,8 +196,8 @@ describe("Subagent Dynamic Configuration Tests", () => {
       expect(subagentAIManager.getMaxInputTokens()).toBe(200000); // Default value
 
       // Update parent environment variables
-      process.env.WAVE_API_KEY = "updated-parent-token";
-      process.env.WAVE_FAST_MODEL = "updated-parent-fast-model";
+      process.env.MUSE_API_KEY = "updated-parent-token";
+      process.env.MUSE_FAST_MODEL = "updated-parent-fast-model";
 
       // Verify subagent still uses override model but gets updated inherited values
       const updatedModelConfig = subagentAIManager.getModelConfig();
@@ -209,12 +209,12 @@ describe("Subagent Dynamic Configuration Tests", () => {
       );
     });
 
-    it("should resolve visionModel special value from WAVE_VISION_MODEL", async () => {
+    it("should resolve visionModel special value from MUSE_VISION_MODEL", async () => {
       // Set parent environment variables
-      process.env.WAVE_API_KEY = "parent-token";
-      process.env.WAVE_BASE_URL = "https://parent.url";
-      process.env.WAVE_MODEL = "parent-model";
-      process.env.WAVE_VISION_MODEL = "qwen-vl-max";
+      process.env.MUSE_API_KEY = "parent-token";
+      process.env.MUSE_BASE_URL = "https://parent.url";
+      process.env.MUSE_MODEL = "parent-model";
+      process.env.MUSE_VISION_MODEL = "qwen-vl-max";
 
       // Create parent agent
       agent = await Agent.create({
@@ -230,7 +230,7 @@ describe("Subagent Dynamic Configuration Tests", () => {
         name: "vision",
         description: "Image recognition specialist",
         systemPrompt: "You are an image recognition specialist.",
-        model: "visionModel", // Special value resolved to WAVE_VISION_MODEL
+        model: "visionModel", // Special value resolved to MUSE_VISION_MODEL
         tools: ["Read"],
         filePath: "/mock/path/vision.md",
         scope: "builtin",
@@ -246,14 +246,14 @@ describe("Subagent Dynamic Configuration Tests", () => {
         },
       );
 
-      // The subagent's model should resolve to the WAVE_VISION_MODEL value
+      // The subagent's model should resolve to the MUSE_VISION_MODEL value
       const subagentAIManager = subagentInstance.aiManager;
       expect(subagentAIManager.getModelConfig().model).toBe("qwen-vl-max");
       // Fast model should still be inherited from parent
       expect(subagentAIManager.getModelConfig().fastModel).toBeUndefined();
 
       // Update the env var — resolution should track it dynamically
-      process.env.WAVE_VISION_MODEL = "updated-vision-model";
+      process.env.MUSE_VISION_MODEL = "updated-vision-model";
       expect(subagentAIManager.getModelConfig().model).toBe(
         "updated-vision-model",
       );
@@ -261,10 +261,10 @@ describe("Subagent Dynamic Configuration Tests", () => {
 
     it("should handle multiple subagents with dynamic configuration", async () => {
       // Set initial environment variables
-      process.env.WAVE_API_KEY = "multi-token";
-      process.env.WAVE_BASE_URL = "https://multi.url";
-      process.env.WAVE_MODEL = "multi-model";
-      process.env.WAVE_FAST_MODEL = "multi-fast-model";
+      process.env.MUSE_API_KEY = "multi-token";
+      process.env.MUSE_BASE_URL = "https://multi.url";
+      process.env.MUSE_MODEL = "multi-model";
+      process.env.MUSE_FAST_MODEL = "multi-fast-model";
 
       // Create parent agent
       agent = await Agent.create({
@@ -319,8 +319,8 @@ describe("Subagent Dynamic Configuration Tests", () => {
       expect(subagent2.aiManager.getModelConfig().model).toBe("custom-model");
 
       // Update environment
-      process.env.WAVE_API_KEY = "multi-updated-token";
-      process.env.WAVE_MODEL = "multi-updated-model";
+      process.env.MUSE_API_KEY = "multi-updated-token";
+      process.env.MUSE_MODEL = "multi-updated-model";
 
       // Verify both subagents get updated values
       expect(subagent1.aiManager.getGatewayConfig().apiKey).toBe(

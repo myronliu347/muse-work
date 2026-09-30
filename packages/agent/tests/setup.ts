@@ -1,5 +1,13 @@
 import { vi, afterEach } from "vitest";
 import * as os from "os";
+import { MUSE_ENV, museEnvLegacy } from "../src/utils/museEnv.js";
+
+// Host shells often still export WAVE_* after the MUSE_* rename. Dual-read
+// would leak those into tests that only clear MUSE_*. Strip aliases here;
+// individual tests can set WAVE_* again when they assert legacy fallback.
+for (const museKey of Object.values(MUSE_ENV)) {
+  delete process.env[museEnvLegacy(museKey)];
+}
 
 // Safety net: hint V8 to reclaim memory between tests. Leaked Agent resources
 // (timers, watchers) from tests that forgot to call destroy() accumulate under

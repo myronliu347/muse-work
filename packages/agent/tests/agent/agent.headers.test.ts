@@ -12,8 +12,8 @@ describe("Agent Custom Headers", () => {
     process.env = { ...originalEnv };
 
     // Provide required gateway config
-    process.env.WAVE_API_KEY = "test-api-key";
-    process.env.WAVE_BASE_URL = "https://test-gateway.com/api";
+    process.env.MUSE_API_KEY = "test-api-key";
+    process.env.MUSE_BASE_URL = "https://test-gateway.com/api";
   });
 
   afterEach(async () => {
@@ -34,8 +34,8 @@ describe("Agent Custom Headers", () => {
     expect(gatewayConfig.sessionId).toBeTruthy();
   });
 
-  it("should include headers from WAVE_CUSTOM_HEADERS environment variable", async () => {
-    process.env.WAVE_CUSTOM_HEADERS = "X-Test-Header: value123";
+  it("should include headers from MUSE_CUSTOM_HEADERS environment variable", async () => {
+    process.env.MUSE_CUSTOM_HEADERS = "X-Test-Header: value123";
 
     const agent = await Agent.create({});
     activeAgent = agent;
@@ -45,8 +45,8 @@ describe("Agent Custom Headers", () => {
     expect(gatewayConfig.defaultHeaders?.["X-Test-Header"]).toBe("value123");
   });
 
-  it("should include multiple headers from WAVE_CUSTOM_HEADERS", async () => {
-    process.env.WAVE_CUSTOM_HEADERS = "X-Header-1: val1\nX-Header-2: val2";
+  it("should include multiple headers from MUSE_CUSTOM_HEADERS", async () => {
+    process.env.MUSE_CUSTOM_HEADERS = "X-Header-1: val1\nX-Header-2: val2";
 
     const agent = await Agent.create({});
     activeAgent = agent;
@@ -59,7 +59,7 @@ describe("Agent Custom Headers", () => {
   });
 
   it("should prioritize constructor headers over environment headers", async () => {
-    process.env.WAVE_CUSTOM_HEADERS = "X-Test-Header: env-value";
+    process.env.MUSE_CUSTOM_HEADERS = "X-Test-Header: env-value";
 
     const agent = await Agent.create({
       defaultHeaders: {
@@ -77,7 +77,7 @@ describe("Agent Custom Headers", () => {
   });
 
   it("should merge constructor headers and environment headers (constructor wins on conflict)", async () => {
-    process.env.WAVE_CUSTOM_HEADERS =
+    process.env.MUSE_CUSTOM_HEADERS =
       "X-Env: env-val\nX-Conflict: env-conflict";
 
     const agent = await Agent.create({
@@ -103,11 +103,11 @@ describe("Agent Custom Headers", () => {
       "loadMergedConfiguration",
     ).mockImplementation(async function (this: ConfigurationService) {
       this.setEnvironmentVars({
-        WAVE_CUSTOM_HEADERS: "X-Settings: settings-val",
+        MUSE_CUSTOM_HEADERS: "X-Settings: settings-val",
       });
       return {
         configuration: {
-          env: { WAVE_CUSTOM_HEADERS: "X-Settings: settings-val" },
+          env: { MUSE_CUSTOM_HEADERS: "X-Settings: settings-val" },
         },
         success: true,
         sourcePath: "mock",
@@ -123,18 +123,18 @@ describe("Agent Custom Headers", () => {
   });
 
   it("should prioritize settings.json headers over process.env headers", async () => {
-    process.env.WAVE_CUSTOM_HEADERS = "X-Header: process-env-val";
+    process.env.MUSE_CUSTOM_HEADERS = "X-Header: process-env-val";
 
     vi.spyOn(
       ConfigurationService.prototype,
       "loadMergedConfiguration",
     ).mockImplementation(async function (this: ConfigurationService) {
       this.setEnvironmentVars({
-        WAVE_CUSTOM_HEADERS: "X-Header: settings-val",
+        MUSE_CUSTOM_HEADERS: "X-Header: settings-val",
       });
       return {
         configuration: {
-          env: { WAVE_CUSTOM_HEADERS: "X-Header: settings-val" },
+          env: { MUSE_CUSTOM_HEADERS: "X-Header: settings-val" },
         },
         success: true,
         sourcePath: "mock",

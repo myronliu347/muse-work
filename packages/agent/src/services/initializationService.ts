@@ -87,7 +87,7 @@ export class InitializationService {
     // enabledPlugins / marketplaces so an admin-pushed plugin is installed and
     // enabled on this very startup (spec enterprise server-managed-config
     // 「托管配置下发插件市场与启用列表」场景 1). Settings `env` is stored in the
-    // per-session env snapshot (NOT process.env), except WAVE_SERVER_URL which is
+    // per-session env snapshot (NOT process.env), except MUSE_SERVER_URL which is
     // mirrored to process.env so the network fetch (below) can read it via
     // authService.getServerUrl(); no race.
     try {
@@ -156,7 +156,7 @@ export class InitializationService {
 
       // Rebuild subagent configurations now that settings.json env is loaded
       // into the snapshot: conditional builtin subagents (model: visionModel
-      // → WAVE_VISION_MODEL) can only register once the env is available.
+      // → MUSE_VISION_MODEL) can only register once the env is available.
       // Plugin agents are preserved by refreshConfigurations.
       await subagentManager.refreshConfigurations();
 
@@ -205,7 +205,7 @@ export class InitializationService {
     }
 
     // Start remote settings network fetch + polling now that the config is
-    // merged. Settings `env` WAVE_SERVER_URL was mirrored to process.env by
+    // merged. Settings `env` MUSE_SERVER_URL was mirrored to process.env by
     // loadMergedConfiguration → setEnvironmentVars, so the fetch reads it via
     // authService.getServerUrl(); fire-and-forget, failures fall back to the
     // cached/merged settings.

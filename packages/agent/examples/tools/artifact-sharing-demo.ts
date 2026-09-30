@@ -18,7 +18,7 @@
  *
  * 前置条件：
  * - 已登录（~/.muse-work/auth.json 存在有效 SSO token）
- * - 服务端地址已配置：WAVE_SERVER_URL 环境变量（或走默认值）
+ * - 服务端地址已配置：MUSE_SERVER_URL 环境变量（或走默认值）
  *
  * 运行：
  *   cd packages/agent-sdk && pnpm exec tsx examples/tools/artifact-sharing-demo.ts

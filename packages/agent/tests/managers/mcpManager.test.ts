@@ -1029,7 +1029,7 @@ describe("McpManager", () => {
       expect(result).toBe(false);
     });
 
-    it("should inject WAVE_PLUGIN_ROOT into env for plugin-owned stdio servers", async () => {
+    it("should inject MUSE_PLUGIN_ROOT into env for plugin-owned stdio servers", async () => {
       const pluginConfig = {
         mcpServers: {
           "plugin-server": {
@@ -1050,6 +1050,7 @@ describe("McpManager", () => {
         args: ["plugin-mcp"],
         env: {
           ...process.env,
+          MUSE_PLUGIN_ROOT: "/path/to/plugin",
           WAVE_PLUGIN_ROOT: "/path/to/plugin",
           CLAUDE_PLUGIN_ROOT: "/path/to/plugin",
         },
@@ -1058,10 +1059,10 @@ describe("McpManager", () => {
       });
     });
 
-    it("should substitute ${WAVE_PLUGIN_ROOT} in command for plugin-owned stdio servers", async () => {
+    it("should substitute ${MUSE_PLUGIN_ROOT} in command for plugin-owned stdio servers", async () => {
       const pluginConfig: McpServerConfig = {
-        command: "${WAVE_PLUGIN_ROOT}/bin/mcp-server",
-        args: ["--config", "${WAVE_PLUGIN_ROOT}/config.json"],
+        command: "${MUSE_PLUGIN_ROOT}/bin/mcp-server",
+        args: ["--config", "${MUSE_PLUGIN_ROOT}/config.json"],
         pluginRoot: "/path/to/plugin",
       };
       mcpManager.addServer("plugin-server", pluginConfig);
@@ -1073,6 +1074,7 @@ describe("McpManager", () => {
         args: ["--config", "/path/to/plugin/config.json"],
         env: {
           ...process.env,
+          MUSE_PLUGIN_ROOT: "/path/to/plugin",
           WAVE_PLUGIN_ROOT: "/path/to/plugin",
           CLAUDE_PLUGIN_ROOT: "/path/to/plugin",
         },
@@ -1081,12 +1083,12 @@ describe("McpManager", () => {
       });
     });
 
-    it("should substitute ${WAVE_PLUGIN_ROOT} in env values for plugin-owned stdio servers", async () => {
+    it("should substitute ${MUSE_PLUGIN_ROOT} in env values for plugin-owned stdio servers", async () => {
       const pluginConfig: McpServerConfig = {
         command: "npx",
         args: ["plugin-mcp"],
         env: {
-          CONFIG_PATH: "${WAVE_PLUGIN_ROOT}/config/server.json",
+          CONFIG_PATH: "${MUSE_PLUGIN_ROOT}/config/server.json",
           OTHER_VAR: "static-value",
         },
         pluginRoot: "/path/to/plugin",
@@ -1100,6 +1102,7 @@ describe("McpManager", () => {
         args: ["plugin-mcp"],
         env: {
           ...process.env,
+          MUSE_PLUGIN_ROOT: "/path/to/plugin",
           WAVE_PLUGIN_ROOT: "/path/to/plugin",
           CLAUDE_PLUGIN_ROOT: "/path/to/plugin",
           CONFIG_PATH: "/path/to/plugin/config/server.json",
@@ -1110,18 +1113,18 @@ describe("McpManager", () => {
       });
     });
 
-    it("should not substitute ${WAVE_PLUGIN_ROOT} for non-plugin stdio servers", async () => {
+    it("should not substitute ${MUSE_PLUGIN_ROOT} for non-plugin stdio servers", async () => {
       const nonPluginConfig: McpServerConfig = {
-        command: "${WAVE_PLUGIN_ROOT}/bin/mcp-server",
-        args: ["${WAVE_PLUGIN_ROOT}/arg"],
+        command: "${MUSE_PLUGIN_ROOT}/bin/mcp-server",
+        args: ["${MUSE_PLUGIN_ROOT}/arg"],
       };
       mcpManager.addServer("non-plugin-server", nonPluginConfig);
 
       await mcpManager.connectServer("non-plugin-server");
 
       expect(StdioClientTransport).toHaveBeenCalledWith({
-        command: "${WAVE_PLUGIN_ROOT}/bin/mcp-server",
-        args: ["${WAVE_PLUGIN_ROOT}/arg"],
+        command: "${MUSE_PLUGIN_ROOT}/bin/mcp-server",
+        args: ["${MUSE_PLUGIN_ROOT}/arg"],
         env: {
           ...process.env,
         },

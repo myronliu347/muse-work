@@ -27,7 +27,7 @@ export async function startDemo(options: {
   servers: DemoServer[];
   workdirPrefix: string;
   callbacks?: AgentCallbacks;
-  /** Pass `process.env.WAVE_FAST_MODEL` when the demo sends real turns. */
+  /** Pass `process.env.MUSE_FAST_MODEL` when the demo sends real turns. */
   model?: string;
 }): Promise<{ agent: Agent; workDir: string }> {
   const workDir = await fs.mkdtemp(

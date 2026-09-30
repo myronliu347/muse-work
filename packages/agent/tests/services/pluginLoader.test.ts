@@ -503,7 +503,7 @@ describe("PluginLoader", () => {
       vi.mocked(parseAgentFile).mockReturnValue({
         name: "test-agent",
         description: "Test Agent",
-        systemPrompt: "Use ${WAVE_PLUGIN_ROOT} for files",
+        systemPrompt: "Use ${MUSE_PLUGIN_ROOT} for files",
         filePath: "/my/plugin/agents/test-agent.md",
         scope: "plugin",
         priority: 2,

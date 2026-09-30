@@ -8,11 +8,11 @@
  * 覆盖层下发（覆盖层优先级高于 settings.json，会永久遮蔽实时配置，
  * 见 docs/specs/core/agent-config.md「设置实时重载」「分层职责」）。
  *
- * 上下文长度的键 = `env.WAVE_MAX_INPUT_TOKENS`（全局默认，K×1000 落盘、
- * 回读按同一换算），UI 与线协议都传 K 值。
+ * 上下文长度的键 = `env.MUSE_MAX_INPUT_TOKENS`（全局默认，K×1000 落盘、
+ * 回读按同一换算），UI 与线协议都传 K 值。仍兼容 `WAVE_MAX_INPUT_TOKENS`。
  *
- * 服务端地址的键 = `env.WAVE_SERVER_URL`（SDK 既有键，解析链
- * `options.serverUrl > process.env.WAVE_SERVER_URL > DEFAULT_SERVER_URL`；
+ * 服务端地址的键 = `env.MUSE_SERVER_URL`（解析链
+ * `options.serverUrl > env(MUSE_SERVER_URL|WAVE_SERVER_URL) > DEFAULT_SERVER_URL`；
  * settings `env` 的值经 `setEnvironmentVars` 特例镜像到 `process.env`，
  * 见 docs/specs/core/agent-config.md 边界说明「服务端地址的落点」）。
  *
@@ -29,6 +29,7 @@ import { dirname } from "path";
 import { atomicWriteFile } from "./atomicWrite.js";
 import { getUserConfigPaths } from "./configPaths.js";
 import { getRemoteSettingsSync } from "../services/remoteSettingsService.js";
+import { envGet, MUSE_ENV, museEnvLegacy } from "./museEnv.js";
 import type {
   UserPreferenceKey,
   UserPreferenceSettings,
@@ -39,21 +40,39 @@ import type {
 export type { UserPreferenceSettings };
 
 /** 上下文长度在 settings.json 中的落点（全局默认，spec 边界说明「上下文长度的落点」）。 */
-export const MAX_INPUT_TOKENS_ENV_KEY = "WAVE_MAX_INPUT_TOKENS";
+export const MAX_INPUT_TOKENS_ENV_KEY = MUSE_ENV.MAX_INPUT_TOKENS;
 
 /**
  * 自动记忆的 env 键，与 `ConfigurationService.resolveAutoMemoryEnabledFrom` /
  * `resolveAutoMemoryFrequency` 读取的键名一致（本视图只按同一优先级归因，
- * 不改变解析行为）。
+ * 不改变解析行为）。读时兼容 `WAVE_*`。
  */
-export const DISABLE_AUTO_MEMORY_ENV_KEY = "WAVE_DISABLE_AUTO_MEMORY";
-export const AUTO_MEMORY_FREQUENCY_ENV_KEY = "WAVE_AUTO_MEMORY_FREQUENCY";
+export const DISABLE_AUTO_MEMORY_ENV_KEY = MUSE_ENV.DISABLE_AUTO_MEMORY;
+export const AUTO_MEMORY_FREQUENCY_ENV_KEY = MUSE_ENV.AUTO_MEMORY_FREQUENCY;
 
 /**
- * 服务端地址的 env 键（SDK 既有键，见文件头与
+ * 服务端地址的 env 键（见文件头与
  * `ConfigurationService.setEnvironmentVars` 的镜像特例）。
  */
-export const SERVER_URL_ENV_KEY = "WAVE_SERVER_URL";
+export const SERVER_URL_ENV_KEY = MUSE_ENV.SERVER_URL;
+
+function envBlockGet(
+  env: Record<string, unknown>,
+  museKey: string,
+): unknown {
+  const value = env[museKey];
+  if (value !== undefined) return value;
+  return env[museEnvLegacy(museKey)];
+}
+
+function writeEnvKey(
+  env: Record<string, unknown>,
+  museKey: string,
+  value: string,
+): void {
+  env[museKey] = value;
+  delete env[museEnvLegacy(museKey)];
+}
 
 /** 用户偏好键（设置页控件）。 */
 export type { UserPreferenceKey, UserPreferenceSource };
@@ -75,12 +94,12 @@ function envContextLength(raw: unknown): number | undefined {
     : undefined;
 }
 
-/** `WAVE_DISABLE_AUTO_MEMORY` → 关闭(false) / 未提供(undefined)。 */
+/** `MUSE_DISABLE_AUTO_MEMORY`（兼容 `WAVE_*`）→ 关闭(false) / 未提供(undefined)。 */
 function envDisableAutoMemory(raw: unknown): boolean | undefined {
   return raw === "1" || raw === "true" ? false : undefined;
 }
 
-/** `WAVE_AUTO_MEMORY_FREQUENCY` → 正数轮次 / 未提供。 */
+/** `MUSE_AUTO_MEMORY_FREQUENCY`（兼容 `WAVE_*`）→ 正数轮次 / 未提供。 */
 function envAutoMemoryFrequency(raw: unknown): number | undefined {
   const parsed = Number.parseInt(typeof raw === "string" ? raw : "", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -141,7 +160,7 @@ function asEnvBlock(value: unknown): Record<string, unknown> {
 
 function toSettings(data: Record<string, unknown>): UserPreferenceSettings {
   const env = asEnvBlock(data.env);
-  const rawMax = env[MAX_INPUT_TOKENS_ENV_KEY];
+  const rawMax = envBlockGet(env, MAX_INPUT_TOKENS_ENV_KEY);
   const settings: UserPreferenceSettings = {};
   if (typeof data.language === "string") settings.language = data.language;
   const contextLength = maxInputTokensToContextLength(
@@ -154,7 +173,9 @@ function toSettings(data: Record<string, unknown>): UserPreferenceSettings {
   if (typeof data.autoMemoryFrequency === "number") {
     settings.autoMemoryFrequency = data.autoMemoryFrequency;
   }
-  const serverUrl = envNonEmptyString(env[SERVER_URL_ENV_KEY]);
+  const serverUrl = envNonEmptyString(
+    envBlockGet(env, SERVER_URL_ENV_KEY),
+  );
   if (serverUrl !== undefined) settings.serverUrl = serverUrl;
   return settings;
 }
@@ -183,8 +204,8 @@ export function readUserPreferenceSettings(
  * 读取**生效**用户偏好及其来源层。
  *
  * 优先级与各 resolve 链一致（只按**进程级可达**的层归因）：Remote 组织下发
- * （顶层键，以及其 `env` 的 `WAVE_MAX_INPUT_TOKENS` / `WAVE_DISABLE_AUTO_MEMORY` /
- * `WAVE_AUTO_MEMORY_FREQUENCY`）> 用户级文件（同样两种落点）> 机器环境变量
+ * （顶层键，以及其 `env` 的 `MUSE_MAX_INPUT_TOKENS` / `MUSE_DISABLE_AUTO_MEMORY` /
+ * `MUSE_AUTO_MEMORY_FREQUENCY`，兼容 `WAVE_*`）> 用户级文件（同样两种落点）> 机器环境变量
  * （`process.env`）> 默认。Remote 胜出与 `mergeRemoteSettings` 的「标量远程赢、
  * env 逐键远程赢」一致（remoteSettingsService.ts）。
  *
@@ -230,29 +251,41 @@ export function readUserPreferenceView(
     sources.language = language.source;
   }
 
-  // 上下文长度的归因层 = `env.WAVE_MAX_INPUT_TOKENS` 这个 env key 所在的层
+  // 上下文长度的归因层 = `env.MUSE_MAX_INPUT_TOKENS`（兼容 WAVE_）所在的层
   // （不是「模型配置」那层：模型自带上限时以模型配置为准是 SDK 既有行为，
   // 设置页那一行可见说明已交代）。
   const contextLength = selectPreference<number>([
-    ["remote", envContextLength(remoteEnv[MAX_INPUT_TOKENS_ENV_KEY])],
+    [
+      "remote",
+      envContextLength(envBlockGet(remoteEnv, MAX_INPUT_TOKENS_ENV_KEY)),
+    ],
     ["user", user.contextLength],
-    ["env", envContextLength(env[MAX_INPUT_TOKENS_ENV_KEY])],
+    ["env", envContextLength(envGet(MAX_INPUT_TOKENS_ENV_KEY, env))],
   ]);
   if (contextLength) {
     values.contextLength = contextLength.value;
     sources.contextLength = contextLength.source;
   }
 
-  // 自动记忆开关每层有两条路径：顶层标量，以及 `env.WAVE_DISABLE_AUTO_MEMORY`。
+  // 自动记忆开关每层有两条路径：顶层标量，以及 `env.MUSE_DISABLE_AUTO_MEMORY`。
   // 顶层标量整层优先于 env（`resolveAutoMemoryEnabledFrom` 先看 config 再看 env）。
   // 没有任何层提供时**不编造**值（与其余三个键一致：键缺失 = 无提供者），
   // 设置页按 SDK 默认显示为「开」，与生效值一致。
   const autoMemoryEnabled = selectPreference<boolean>([
     ["remote", remote?.autoMemoryEnabled],
     ["user", user.autoMemoryEnabled],
-    ["remote", envDisableAutoMemory(remoteEnv[DISABLE_AUTO_MEMORY_ENV_KEY])],
-    ["user", envDisableAutoMemory(userEnv[DISABLE_AUTO_MEMORY_ENV_KEY])],
-    ["env", envDisableAutoMemory(env[DISABLE_AUTO_MEMORY_ENV_KEY])],
+    [
+      "remote",
+      envDisableAutoMemory(envBlockGet(remoteEnv, DISABLE_AUTO_MEMORY_ENV_KEY)),
+    ],
+    [
+      "user",
+      envDisableAutoMemory(envBlockGet(userEnv, DISABLE_AUTO_MEMORY_ENV_KEY)),
+    ],
+    [
+      "env",
+      envDisableAutoMemory(envGet(DISABLE_AUTO_MEMORY_ENV_KEY, env)),
+    ],
   ]);
   if (autoMemoryEnabled) {
     values.autoMemoryEnabled = autoMemoryEnabled.value;
@@ -264,22 +297,32 @@ export function readUserPreferenceView(
     ["user", user.autoMemoryFrequency],
     [
       "remote",
-      envAutoMemoryFrequency(remoteEnv[AUTO_MEMORY_FREQUENCY_ENV_KEY]),
+      envAutoMemoryFrequency(
+        envBlockGet(remoteEnv, AUTO_MEMORY_FREQUENCY_ENV_KEY),
+      ),
     ],
-    ["user", envAutoMemoryFrequency(userEnv[AUTO_MEMORY_FREQUENCY_ENV_KEY])],
-    ["env", envAutoMemoryFrequency(env[AUTO_MEMORY_FREQUENCY_ENV_KEY])],
+    [
+      "user",
+      envAutoMemoryFrequency(
+        envBlockGet(userEnv, AUTO_MEMORY_FREQUENCY_ENV_KEY),
+      ),
+    ],
+    [
+      "env",
+      envAutoMemoryFrequency(envGet(AUTO_MEMORY_FREQUENCY_ENV_KEY, env)),
+    ],
   ]);
   if (autoMemoryFrequency) {
     values.autoMemoryFrequency = autoMemoryFrequency.value;
     sources.autoMemoryFrequency = autoMemoryFrequency.source;
   }
 
-  // 服务端地址的落点 = `env.WAVE_SERVER_URL`，来源只可能是 user / env / default——
+  // 服务端地址的落点 = `env.MUSE_SERVER_URL`（兼容 WAVE_），来源只可能是 user / env / default——
   // 不归因 remote（远端托管配置本身取自该地址，不存在「组织下发服务端地址」的闭环，
   // 见 spec core/agent-config.md 边界说明「服务端地址的落点」）。
   const serverUrl = selectPreference<string>([
     ["user", user.serverUrl],
-    ["env", envNonEmptyString(env[SERVER_URL_ENV_KEY])],
+    ["env", envNonEmptyString(envGet(SERVER_URL_ENV_KEY, env))],
   ]);
   if (serverUrl) {
     values.serverUrl = serverUrl.value;
@@ -324,8 +367,10 @@ export async function updateUserPreferenceSettings(
     Number.isFinite(patch.contextLength)
   ) {
     const env = asEnvBlock(data.env);
-    env[MAX_INPUT_TOKENS_ENV_KEY] = String(
-      contextLengthToMaxInputTokens(patch.contextLength),
+    writeEnvKey(
+      env,
+      MAX_INPUT_TOKENS_ENV_KEY,
+      String(contextLengthToMaxInputTokens(patch.contextLength)),
     );
     data.env = env;
   }
@@ -338,11 +383,11 @@ export async function updateUserPreferenceSettings(
     data.autoMemoryFrequency = patch.autoMemoryFrequency;
   }
 
-  // 服务端地址落 `env.WAVE_SERVER_URL`（既有键）：原样写入，不做归一/清理
+  // 服务端地址落 `env.MUSE_SERVER_URL`（写入时去掉遗留 WAVE_ 键）：原样写入，不做归一/清理
   // （格式校验在设置页，见 spec 边界说明「服务端地址的落点」）。
   if (serverUrl !== undefined) {
     const env = asEnvBlock(data.env);
-    env[SERVER_URL_ENV_KEY] = serverUrl;
+    writeEnvKey(env, SERVER_URL_ENV_KEY, serverUrl);
     data.env = env;
   }
 

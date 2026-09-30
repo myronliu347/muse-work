@@ -115,6 +115,7 @@ describe("ConfigurationService", () => {
       expect(result.configuration?.env).toEqual({
         USER_VAR: "user",
         PROJECT_VAR: "project",
+        MUSE_PROJECT_DIR: tempDir,
         WAVE_PROJECT_DIR: tempDir,
       });
       expect(result.configuration?.permissions?.allow).toContain("rule1");
@@ -124,7 +125,7 @@ describe("ConfigurationService", () => {
       expect(configService.getEnvSnapshot()).toMatchObject({
         USER_VAR: "user",
         PROJECT_VAR: "project",
-        WAVE_PROJECT_DIR: tempDir,
+        MUSE_PROJECT_DIR: tempDir,
       });
       expect(process.env.USER_VAR).toBeUndefined();
       expect(process.env.PROJECT_VAR).toBeUndefined();
@@ -186,7 +187,7 @@ describe("ConfigurationService", () => {
 
       expect(result.success).toBe(true);
       expect(result.configuration).toEqual({
-        env: { WAVE_PROJECT_DIR: tempDir },
+        env: { MUSE_PROJECT_DIR: tempDir, WAVE_PROJECT_DIR: tempDir },
       });
       expect(result.warnings).toContain(
         "No configuration files found in user or project directories",
@@ -423,23 +424,27 @@ describe("ConfigurationService", () => {
       expect(process.env.KEY).toBeUndefined();
     });
 
-    it("should mirror WAVE_SERVER_URL to process.env (process-singleton consumers)", () => {
-      const origServerUrl = process.env.WAVE_SERVER_URL;
+    it("should mirror MUSE_SERVER_URL to process.env (process-singleton consumers)", () => {
+      const origMuse = process.env.MUSE_SERVER_URL;
+      const origWave = process.env.WAVE_SERVER_URL;
+      delete process.env.MUSE_SERVER_URL;
       delete process.env.WAVE_SERVER_URL;
       try {
         configService.setEnvironmentVars({
-          WAVE_SERVER_URL: "https://test.example.com",
+          MUSE_SERVER_URL: "https://test.example.com",
         });
         // Mirrored to process.env so AuthService / remoteSettings (process
         // singletons without a per-session snapshot) can read it; also stored
-        // in the session snapshot.
-        expect(configService.getEnvSnapshot().WAVE_SERVER_URL).toBe(
+        // in the session snapshot. Legacy WAVE_* is mirrored too.
+        expect(configService.getEnvSnapshot().MUSE_SERVER_URL).toBe(
           "https://test.example.com",
         );
+        expect(process.env.MUSE_SERVER_URL).toBe("https://test.example.com");
         expect(process.env.WAVE_SERVER_URL).toBe("https://test.example.com");
       } finally {
-        if (origServerUrl !== undefined)
-          process.env.WAVE_SERVER_URL = origServerUrl;
+        if (origMuse !== undefined) process.env.MUSE_SERVER_URL = origMuse;
+        else delete process.env.MUSE_SERVER_URL;
+        if (origWave !== undefined) process.env.WAVE_SERVER_URL = origWave;
         else delete process.env.WAVE_SERVER_URL;
       }
     });
@@ -450,6 +455,9 @@ describe("ConfigurationService", () => {
 
     beforeEach(() => {
       process.env = { ...originalEnv };
+      delete process.env.MUSE_API_KEY;
+      delete process.env.MUSE_BASE_URL;
+      delete process.env.MUSE_CUSTOM_HEADERS;
       delete process.env.WAVE_API_KEY;
       delete process.env.WAVE_BASE_URL;
       delete process.env.WAVE_CUSTOM_HEADERS;
@@ -470,8 +478,8 @@ describe("ConfigurationService", () => {
 
     it("should resolve from internal env", () => {
       configService.setEnvironmentVars({
-        WAVE_API_KEY: "env-key",
-        WAVE_BASE_URL: "http://env-base.com",
+        MUSE_API_KEY: "env-key",
+        MUSE_BASE_URL: "http://env-base.com",
       });
       const config = configService.resolveGatewayConfig();
       expect(config.apiKey).toBe("env-key");
@@ -485,8 +493,8 @@ describe("ConfigurationService", () => {
 
     it("should parse custom headers from env", () => {
       configService.setEnvironmentVars({
-        WAVE_BASE_URL: "http://base.com",
-        WAVE_CUSTOM_HEADERS: "X-Header: value\nY-Header: value2",
+        MUSE_BASE_URL: "http://base.com",
+        MUSE_CUSTOM_HEADERS: "X-Header: value\nY-Header: value2",
       });
       const config = configService.resolveGatewayConfig();
       expect(config.defaultHeaders).toEqual({
@@ -499,18 +507,21 @@ describe("ConfigurationService", () => {
   describe("resolveModelConfig", () => {
     it("should resolve with defaults from environment", () => {
       const config = configService.resolveModelConfig();
-      const expectedAgentModel = process.env.WAVE_MODEL;
-      const expectedFastModel = process.env.WAVE_FAST_MODEL;
-      const expectedVisionModel = process.env.WAVE_VISION_MODEL;
+      const expectedAgentModel = process.env.MUSE_MODEL;
+      const expectedFastModel = process.env.MUSE_FAST_MODEL;
+      const expectedVisionModel = process.env.MUSE_VISION_MODEL;
       expect(config.model).toBe(expectedAgentModel);
       expect(config.fastModel).toBe(expectedFastModel);
       expect(config.visionModel).toBe(expectedVisionModel);
     });
 
     it("should return undefined model/fastModel when not configured", () => {
-      const originalModel = process.env.WAVE_MODEL;
-      const originalFastModel = process.env.WAVE_FAST_MODEL;
-      const originalVisionModel = process.env.WAVE_VISION_MODEL;
+      const originalModel = process.env.MUSE_MODEL;
+      const originalFastModel = process.env.MUSE_FAST_MODEL;
+      const originalVisionModel = process.env.MUSE_VISION_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_VISION_MODEL;
       delete process.env.WAVE_MODEL;
       delete process.env.WAVE_FAST_MODEL;
       delete process.env.WAVE_VISION_MODEL;
@@ -520,24 +531,24 @@ describe("ConfigurationService", () => {
         expect(config.fastModel).toBeUndefined();
         expect(config.visionModel).toBeUndefined();
       } finally {
-        process.env.WAVE_MODEL = originalModel;
-        process.env.WAVE_FAST_MODEL = originalFastModel;
-        process.env.WAVE_VISION_MODEL = originalVisionModel;
+        process.env.MUSE_MODEL = originalModel;
+        process.env.MUSE_FAST_MODEL = originalFastModel;
+        process.env.MUSE_VISION_MODEL = originalVisionModel;
       }
     });
 
     it("should resolve from internal env", () => {
       configService.setEnvironmentVars({
-        WAVE_MODEL: "custom-agent",
-        WAVE_FAST_MODEL: "custom-fast",
-        WAVE_VISION_MODEL: "custom-vision",
-        WAVE_MAX_OUTPUT_TOKENS: "1000",
+        MUSE_MODEL: "custom-agent",
+        MUSE_FAST_MODEL: "custom-fast",
+        MUSE_VISION_MODEL: "custom-vision",
+        MUSE_MAX_OUTPUT_TOKENS: "1000",
       });
       const config = configService.resolveModelConfig();
       expect(config.model).toBe("custom-agent");
       expect(config.fastModel).toBe("custom-fast");
       expect(config.visionModel).toBe("custom-vision");
-      // WAVE_MAX_OUTPUT_TOKENS env is still resolved via resolveMaxOutputTokens
+      // MUSE_MAX_OUTPUT_TOKENS env is still resolved via resolveMaxOutputTokens
       expect(configService.resolveMaxOutputTokens()).toBe(1000);
     });
 
@@ -575,10 +586,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -591,11 +602,11 @@ describe("ConfigurationService", () => {
           top_p: 0.9,
         });
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -614,10 +625,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -627,11 +638,11 @@ describe("ConfigurationService", () => {
 
         expect(resolved.fastModelOptions).toEqual({ temperature: 0.3 });
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -644,10 +655,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -657,11 +668,11 @@ describe("ConfigurationService", () => {
 
         expect(resolved.fastModelOptions).toBeUndefined();
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -674,21 +685,21 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig("gpt-4o");
 
         expect(resolved.fastModelOptions).toBeUndefined();
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
   });
@@ -706,10 +717,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -721,11 +732,11 @@ describe("ConfigurationService", () => {
           enable_thinking: false,
         });
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -743,10 +754,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -758,11 +769,11 @@ describe("ConfigurationService", () => {
           enable_thinking: false,
         });
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -776,10 +787,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -789,11 +800,11 @@ describe("ConfigurationService", () => {
 
         expect(resolved.disableThinkingOptions).toBeUndefined();
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
   });
@@ -810,10 +821,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig("claude-sonnet-4");
@@ -823,11 +834,11 @@ describe("ConfigurationService", () => {
           vision: true,
         });
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -844,10 +855,10 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      delete process.env.WAVE_FAST_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      delete process.env.MUSE_FAST_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const resolved = configService.resolveModelConfig(
@@ -859,25 +870,25 @@ describe("ConfigurationService", () => {
         expect(resolved.fastModelOptions).toEqual({ temperature: 0.2 });
         expect(resolved.fastModelOptions).not.toHaveProperty("capabilities");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
   });
 
   describe("resolveMaxInputTokens", () => {
-    const originalEnv = process.env.WAVE_MAX_INPUT_TOKENS;
+    const originalEnv = process.env.MUSE_MAX_INPUT_TOKENS;
 
     beforeEach(() => {
-      delete process.env.WAVE_MAX_INPUT_TOKENS;
+      delete process.env.MUSE_MAX_INPUT_TOKENS;
     });
 
     afterEach(() => {
       if (originalEnv !== undefined) {
-        process.env.WAVE_MAX_INPUT_TOKENS = originalEnv;
+        process.env.MUSE_MAX_INPUT_TOKENS = originalEnv;
       }
     });
 
@@ -888,7 +899,7 @@ describe("ConfigurationService", () => {
     });
 
     it("should resolve from internal env", () => {
-      configService.setEnvironmentVars({ WAVE_MAX_INPUT_TOKENS: "5000" });
+      configService.setEnvironmentVars({ MUSE_MAX_INPUT_TOKENS: "5000" });
       expect(configService.resolveMaxInputTokens()).toBe(5000);
     });
 
@@ -900,33 +911,33 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      delete process.env.WAVE_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      delete process.env.MUSE_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
-        configService.setEnvironmentVars({ WAVE_MAX_INPUT_TOKENS: "300000" });
+        configService.setEnvironmentVars({ MUSE_MAX_INPUT_TOKENS: "300000" });
         expect(configService.resolveMaxInputTokens()).toBe(131072);
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
       }
     });
 
-    it("should resolve per-model config from env WAVE_MODEL when config has no model field", async () => {
+    it("should resolve per-model config from env MUSE_MODEL when config has no model field", async () => {
       const config = {
         models: { "env-model": { maxInputTokens: 88888 } },
       };
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      process.env.WAVE_MODEL = "env-model";
+      const origModel = process.env.MUSE_MODEL;
+      process.env.MUSE_MODEL = "env-model";
       try {
         await configService.loadMergedConfiguration(tempDir);
         expect(configService.resolveMaxInputTokens()).toBe(88888);
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
       }
     });
 
@@ -941,16 +952,16 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      delete process.env.WAVE_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      delete process.env.MUSE_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         expect(configService.resolveMaxInputTokens(undefined, "kimi-k3")).toBe(
           131072,
         );
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
       }
     });
 
@@ -975,15 +986,15 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      delete process.env.WAVE_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      delete process.env.MUSE_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
-        configService.setEnvironmentVars({ WAVE_MAX_INPUT_TOKENS: "5000" });
+        configService.setEnvironmentVars({ MUSE_MAX_INPUT_TOKENS: "5000" });
         expect(configService.resolveMaxInputTokens()).toBe(5000);
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
       }
     });
   });
@@ -1030,16 +1041,16 @@ describe("ConfigurationService", () => {
 
   describe("resolveAutoMemoryEnabled", () => {
     afterEach(() => {
-      delete process.env.WAVE_DISABLE_AUTO_MEMORY;
-      delete process.env.WAVE_AUTO_MEMORY_FREQUENCY;
+      delete process.env.MUSE_DISABLE_AUTO_MEMORY;
+      delete process.env.MUSE_AUTO_MEMORY_FREQUENCY;
     });
 
     it("should default to true", () => {
       expect(configService.resolveAutoMemoryEnabled()).toBe(true);
     });
 
-    it("should honor WAVE_DISABLE_AUTO_MEMORY env when no override/config", () => {
-      process.env.WAVE_DISABLE_AUTO_MEMORY = "true";
+    it("should honor MUSE_DISABLE_AUTO_MEMORY env when no override/config", () => {
+      process.env.MUSE_DISABLE_AUTO_MEMORY = "true";
       expect(configService.resolveAutoMemoryEnabled()).toBe(false);
     });
 
@@ -1062,8 +1073,8 @@ describe("ConfigurationService", () => {
       expect(configService.resolveAutoMemoryEnabled()).toBe(false);
     });
 
-    it("should let session options override WAVE_DISABLE_AUTO_MEMORY env", () => {
-      process.env.WAVE_DISABLE_AUTO_MEMORY = "true";
+    it("should let session options override MUSE_DISABLE_AUTO_MEMORY env", () => {
+      process.env.MUSE_DISABLE_AUTO_MEMORY = "true";
       configService.setOptions({ autoMemoryEnabled: true });
       expect(configService.resolveAutoMemoryEnabled()).toBe(true);
     });
@@ -1071,15 +1082,15 @@ describe("ConfigurationService", () => {
 
   describe("resolveAutoMemoryFrequency", () => {
     afterEach(() => {
-      delete process.env.WAVE_AUTO_MEMORY_FREQUENCY;
+      delete process.env.MUSE_AUTO_MEMORY_FREQUENCY;
     });
 
     it("should default to 1", () => {
       expect(configService.resolveAutoMemoryFrequency()).toBe(1);
     });
 
-    it("should honor WAVE_AUTO_MEMORY_FREQUENCY env when no override/config", () => {
-      process.env.WAVE_AUTO_MEMORY_FREQUENCY = "3";
+    it("should honor MUSE_AUTO_MEMORY_FREQUENCY env when no override/config", () => {
+      process.env.MUSE_AUTO_MEMORY_FREQUENCY = "3";
       expect(configService.resolveAutoMemoryFrequency()).toBe(3);
     });
 
@@ -1094,7 +1105,7 @@ describe("ConfigurationService", () => {
     });
 
     it("should honor settings.json autoMemoryFrequency (merge keeps the key, beats env)", async () => {
-      process.env.WAVE_AUTO_MEMORY_FREQUENCY = "3";
+      process.env.MUSE_AUTO_MEMORY_FREQUENCY = "3";
       const config = { autoMemoryFrequency: 7 };
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
@@ -1105,7 +1116,7 @@ describe("ConfigurationService", () => {
     });
 
     it("should resolve by the priority chain options > settings.json > env > default", async () => {
-      process.env.WAVE_AUTO_MEMORY_FREQUENCY = "3";
+      process.env.MUSE_AUTO_MEMORY_FREQUENCY = "3";
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(
         JSON.stringify({ autoMemoryFrequency: 7 }),
@@ -1123,7 +1134,7 @@ describe("ConfigurationService", () => {
       language: "English",
       autoMemoryEnabled: false,
       autoMemoryFrequency: 9,
-      env: { WAVE_MAX_INPUT_TOKENS: "128000" },
+      env: { MUSE_MAX_INPUT_TOKENS: "128000" },
     };
 
     beforeEach(async () => {
@@ -1141,7 +1152,7 @@ describe("ConfigurationService", () => {
 
       expect(configService.resolveLanguage()).toBe("English");
       expect(configService.resolveAutoMemoryEnabled()).toBe(false);
-      expect(configService.getEnvSnapshot().WAVE_MAX_INPUT_TOKENS).toBe(
+      expect(configService.getEnvSnapshot().MUSE_MAX_INPUT_TOKENS).toBe(
         "128000",
       );
     });
@@ -1152,16 +1163,16 @@ describe("ConfigurationService", () => {
           language: "Chinese",
           autoMemoryEnabled: true,
           autoMemoryFrequency: 5,
-          env: { WAVE_MAX_INPUT_TOKENS: "64000" },
+          env: { MUSE_MAX_INPUT_TOKENS: "64000" },
         },
-        env: { WAVE_MAX_INPUT_TOKENS: "64000" },
+        env: { MUSE_MAX_INPUT_TOKENS: "64000" },
       }));
 
       expect(configService.resolveLanguage()).toBe("Chinese");
       expect(configService.resolveAutoMemoryEnabled()).toBe(true);
       expect(configService.resolveAutoMemoryFrequency()).toBe(5);
       expect(configService.resolveMaxInputTokens()).toBe(64000);
-      expect(configService.getEnvSnapshot().WAVE_MAX_INPUT_TOKENS).toBe(
+      expect(configService.getEnvSnapshot().MUSE_MAX_INPUT_TOKENS).toBe(
         "64000",
       );
     });
@@ -1287,7 +1298,7 @@ describe("ConfigurationService", () => {
     });
 
     it("should get configured models including current", () => {
-      configService.setEnvironmentVars({ WAVE_MODEL: "env-model" });
+      configService.setEnvironmentVars({ MUSE_MODEL: "env-model" });
       const models = configService.getConfiguredModels();
       expect(models).not.toContain("gemini-3-flash");
       expect(models).toContain("env-model");
@@ -1316,14 +1327,14 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      delete process.env.WAVE_MODEL;
+      const origModel = process.env.MUSE_MODEL;
+      delete process.env.MUSE_MODEL;
       try {
         await configService.loadMergedConfiguration(tempDir);
         const models = configService.getConfiguredModels();
         expect(models).toContain("persisted-model");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
       }
     });
   });
@@ -1334,67 +1345,67 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      delete process.env.WAVE_MODEL;
-      process.env.WAVE_FAST_MODEL = "fast-model";
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      delete process.env.MUSE_MODEL;
+      process.env.MUSE_FAST_MODEL = "fast-model";
       try {
         await configService.loadMergedConfiguration(tempDir);
         configService.setOptions({}); // no options.model
         const resolved = configService.resolveModelConfig();
         expect(resolved.model).toBe("config-model");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
-    it("should prioritize options.model over WAVE_MODEL env var and currentConfiguration.model", async () => {
+    it("should prioritize options.model over MUSE_MODEL env var and currentConfiguration.model", async () => {
       const config = { model: "config-model" };
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      process.env.WAVE_MODEL = "env-model";
-      process.env.WAVE_FAST_MODEL = "fast-model";
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      process.env.MUSE_MODEL = "env-model";
+      process.env.MUSE_FAST_MODEL = "fast-model";
       try {
         await configService.loadMergedConfiguration(tempDir);
         configService.setOptions({ model: "options-model" });
         const resolved = configService.resolveModelConfig();
         expect(resolved.model).toBe("options-model");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
-    it("should prioritize currentConfiguration.model over WAVE_MODEL env var", async () => {
+    it("should prioritize currentConfiguration.model over MUSE_MODEL env var", async () => {
       const config = { model: "config-model" };
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      process.env.WAVE_MODEL = "env-model";
-      process.env.WAVE_FAST_MODEL = "fast-model";
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      process.env.MUSE_MODEL = "env-model";
+      process.env.MUSE_FAST_MODEL = "fast-model";
       try {
         await configService.loadMergedConfiguration(tempDir);
         configService.setOptions({}); // no options.model
         const resolved = configService.resolveModelConfig();
         expect(resolved.model).toBe("config-model");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
 
@@ -1403,21 +1414,21 @@ describe("ConfigurationService", () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify(config));
 
-      const origModel = process.env.WAVE_MODEL;
-      const origFastModel = process.env.WAVE_FAST_MODEL;
-      process.env.WAVE_MODEL = "env-model";
-      process.env.WAVE_FAST_MODEL = "fast-model";
+      const origModel = process.env.MUSE_MODEL;
+      const origFastModel = process.env.MUSE_FAST_MODEL;
+      process.env.MUSE_MODEL = "env-model";
+      process.env.MUSE_FAST_MODEL = "fast-model";
       try {
         await configService.loadMergedConfiguration(tempDir);
         configService.setOptions({ model: "options-model" });
         const resolved = configService.resolveModelConfig("param-model");
         expect(resolved.model).toBe("param-model");
       } finally {
-        if (origModel !== undefined) process.env.WAVE_MODEL = origModel;
-        else delete process.env.WAVE_MODEL;
+        if (origModel !== undefined) process.env.MUSE_MODEL = origModel;
+        else delete process.env.MUSE_MODEL;
         if (origFastModel !== undefined)
-          process.env.WAVE_FAST_MODEL = origFastModel;
-        else delete process.env.WAVE_FAST_MODEL;
+          process.env.MUSE_FAST_MODEL = origFastModel;
+        else delete process.env.MUSE_FAST_MODEL;
       }
     });
   });
@@ -1676,7 +1687,7 @@ describe("ConfigurationService", () => {
         if (pathStr === userSettingsPath) {
           return JSON.stringify({
             env: {
-              WAVE_SERVER_URL: "https://codechat.codewave-test.163yun.com",
+              MUSE_SERVER_URL: "https://codechat.codewave-test.163yun.com",
             },
           });
         }
@@ -1684,7 +1695,7 @@ describe("ConfigurationService", () => {
       });
 
       expect(loadUserConfigEnv()).toEqual({
-        WAVE_SERVER_URL: "https://codechat.codewave-test.163yun.com",
+        MUSE_SERVER_URL: "https://codechat.codewave-test.163yun.com",
       });
     });
 

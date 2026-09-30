@@ -18,7 +18,7 @@ vi.mock("../../src/services/memory.js", () => ({
 /**
  * Post-compaction re-injection of invoked skills.
  *
- * Regression guard for a skill whose body contains `${WAVE_SKILL_DIR}`: the
+ * Regression guard for a skill whose body contains `${MUSE_SKILL_DIR}`: the
  * re-injection used to re-read the raw SKILL.md, so the model got the literal
  * placeholder back (spec core/message-compact 场景 4).
  */
@@ -32,7 +32,7 @@ describe("AIManager - invoked skills re-injection", () => {
     name: "demo",
     description: "折叠后的完整描述",
     skillPath: "/skills/demo",
-    content: "---\nname: demo\n---\n\nrun node ${WAVE_SKILL_DIR}/tool.mjs",
+    content: "---\nname: demo\n---\n\nrun node ${MUSE_SKILL_DIR}/tool.mjs",
   } as unknown as Skill;
 
   const invoke = (records: InvokedSkillRecord[]): Promise<string> => {
@@ -92,7 +92,7 @@ describe("AIManager - invoked skills re-injection", () => {
 
     expect(context).toContain("[Invoked Skills]");
     expect(context).toContain("run node /skills/demo/tool.mjs");
-    expect(context).not.toContain("${WAVE_SKILL_DIR}");
+    expect(context).not.toContain("${MUSE_SKILL_DIR}");
     // 记录里有正文就不必再渲染一次
     expect(renderSkillContent).not.toHaveBeenCalled();
   });
@@ -105,7 +105,7 @@ describe("AIManager - invoked skills re-injection", () => {
 
     expect(renderSkillContent).toHaveBeenCalled();
     expect(context).toContain("run node /skills/demo/tool.mjs");
-    expect(context).not.toContain("${WAVE_SKILL_DIR}");
+    expect(context).not.toContain("${MUSE_SKILL_DIR}");
   });
 
   it("shows the parsed description instead of raw frontmatter syntax", async () => {

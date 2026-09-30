@@ -385,6 +385,13 @@ describe("WorkflowManager", () => {
     // update live during execution, not only at completion — so the
     // /workflows UI reflects progress mid-run.
     it("updates run phases/agents/tokens and notifies mid-run, not only at completion", async () => {
+      const cpusSpy = vi.spyOn(os, "cpus").mockReturnValue(
+        Array.from({ length: 8 }, () => ({
+          model: "test",
+          speed: 0,
+          times: { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 },
+        })),
+      );
       const tmpDir = await fs.promises.mkdtemp(
         path.join(os.tmpdir(), "wf-progress-"),
       );
@@ -503,6 +510,7 @@ describe("WorkflowManager", () => {
       expect(run.phases[1].tokens).toBe(1234);
 
       await fs.promises.rm(tmpDir, { recursive: true, force: true });
+      cpusSpy.mockRestore();
     });
   });
 });

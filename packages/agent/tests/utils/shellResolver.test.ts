@@ -17,9 +17,9 @@ describe("shellResolver", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.WAVE_GIT_BASH_PATH;
+    delete process.env.MUSE_GIT_BASH_PATH;
     delete process.env.LOCALAPPDATA;
-    delete process.env.WAVE_SHELL;
+    delete process.env.MUSE_SHELL;
     delete process.env.SHELL;
     delete process.env.PATH;
   });
@@ -30,23 +30,23 @@ describe("shellResolver", () => {
   });
 
   describe("non-Windows platform", () => {
-    it("returns WAVE_SHELL override when it points to an executable bash", () => {
+    it("returns MUSE_SHELL override when it points to an executable bash", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
-      process.env.WAVE_SHELL = "/custom/bash";
+      process.env.MUSE_SHELL = "/custom/bash";
       vi.mocked(fs.accessSync).mockImplementation(() => undefined);
       expect(resolveShellPath()).toBe("/custom/bash");
     });
 
-    it("returns WAVE_SHELL override when it points to an executable zsh", () => {
+    it("returns MUSE_SHELL override when it points to an executable zsh", () => {
       Object.defineProperty(process, "platform", { value: "darwin" });
-      process.env.WAVE_SHELL = "/opt/homebrew/bin/zsh";
+      process.env.MUSE_SHELL = "/opt/homebrew/bin/zsh";
       vi.mocked(fs.accessSync).mockImplementation(() => undefined);
       expect(resolveShellPath()).toBe("/opt/homebrew/bin/zsh");
     });
 
-    it("ignores WAVE_SHELL when it is not bash/zsh", () => {
+    it("ignores MUSE_SHELL when it is not bash/zsh", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
-      process.env.WAVE_SHELL = "/bin/sh";
+      process.env.MUSE_SHELL = "/bin/sh";
       vi.mocked(fs.accessSync).mockImplementation(() => undefined);
       const result = resolveShellPath();
       expect(result).not.toBe("/bin/sh");
@@ -54,9 +54,9 @@ describe("shellResolver", () => {
       expect(result).toBeDefined();
     });
 
-    it("ignores WAVE_SHELL when not executable", () => {
+    it("ignores MUSE_SHELL when not executable", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
-      process.env.WAVE_SHELL = "/nonexistent/bash";
+      process.env.MUSE_SHELL = "/nonexistent/bash";
       vi.mocked(fs.accessSync).mockImplementation(() => {
         throw new Error("ENOENT");
       });
@@ -77,9 +77,9 @@ describe("shellResolver", () => {
       expect(resolveShellPath()).toBe("/bin/zsh");
     });
 
-    it("prefers WAVE_SHELL over $SHELL", () => {
+    it("prefers MUSE_SHELL over $SHELL", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
-      process.env.WAVE_SHELL = "/custom/bash";
+      process.env.MUSE_SHELL = "/custom/bash";
       process.env.SHELL = "/bin/bash";
       vi.mocked(fs.accessSync).mockImplementation(() => undefined);
       expect(resolveShellPath()).toBe("/custom/bash");
@@ -144,16 +144,16 @@ describe("shellResolver", () => {
     });
   });
 
-  describe("Windows with WAVE_GIT_BASH_PATH env var", () => {
+  describe("Windows with MUSE_GIT_BASH_PATH env var", () => {
     it("returns the env var path when set", () => {
       Object.defineProperty(process, "platform", { value: "win32" });
-      process.env.WAVE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
+      process.env.MUSE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
       expect(resolveShellPath()).toBe("D:\\custom\\git\\bash.exe");
     });
 
     it("returns the env var path without checking existsSync", () => {
       Object.defineProperty(process, "platform", { value: "win32" });
-      process.env.WAVE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
+      process.env.MUSE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
       resolveShellPath();
       expect(fs.existsSync).not.toHaveBeenCalled();
     });
@@ -239,9 +239,9 @@ describe("shellResolver", () => {
   });
 
   describe("Windows priority order", () => {
-    it("WAVE_GIT_BASH_PATH takes priority over git-inference and common paths", () => {
+    it("MUSE_GIT_BASH_PATH takes priority over git-inference and common paths", () => {
       Object.defineProperty(process, "platform", { value: "win32" });
-      process.env.WAVE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
+      process.env.MUSE_GIT_BASH_PATH = "D:\\custom\\git\\bash.exe";
       vi.mocked(fs.existsSync).mockReturnValue(true);
       expect(resolveShellPath()).toBe("D:\\custom\\git\\bash.exe");
       expect(execFileSync).not.toHaveBeenCalled();

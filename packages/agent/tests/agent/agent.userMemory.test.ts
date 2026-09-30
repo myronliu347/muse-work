@@ -62,7 +62,7 @@ describe("Agent User Memory Integration", () => {
 
   beforeEach(async () => {
     // Disable auto-memory to prevent background extraction and ENOENT errors
-    vi.stubEnv("WAVE_DISABLE_AUTO_MEMORY", "1");
+    vi.stubEnv("MUSE_DISABLE_AUTO_MEMORY", "1");
 
     // Set up mock directory path
     mockTempDir = "/mock/tmp/aimanager-test-123";

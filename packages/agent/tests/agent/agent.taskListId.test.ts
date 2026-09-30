@@ -67,8 +67,8 @@ describe("Agent - Task List ID Resolution", () => {
     process.env = originalEnv;
   });
 
-  it("should use WAVE_TASK_LIST_ID from environment if set", async () => {
-    process.env.WAVE_TASK_LIST_ID = "custom-task-list-id";
+  it("should use MUSE_TASK_LIST_ID from environment if set", async () => {
+    process.env.MUSE_TASK_LIST_ID = "custom-task-list-id";
 
     const agent = await Agent.create({
       apiKey: "test-key",
@@ -86,8 +86,8 @@ describe("Agent - Task List ID Resolution", () => {
     await agent.destroy();
   });
 
-  it("should fallback to sessionId if WAVE_TASK_LIST_ID is not set", async () => {
-    delete process.env.WAVE_TASK_LIST_ID;
+  it("should fallback to sessionId if MUSE_TASK_LIST_ID is not set", async () => {
+    delete process.env.MUSE_TASK_LIST_ID;
 
     const agent = await Agent.create({
       apiKey: "test-key",
@@ -105,7 +105,7 @@ describe("Agent - Task List ID Resolution", () => {
   });
 
   it("should maintain stable taskListId even if sessionId changes", async () => {
-    delete process.env.WAVE_TASK_LIST_ID;
+    delete process.env.MUSE_TASK_LIST_ID;
 
     const agent = await Agent.create({
       apiKey: "test-key",

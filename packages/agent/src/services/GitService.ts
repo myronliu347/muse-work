@@ -1,11 +1,12 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { envGet, MUSE_ENV } from "../utils/museEnv.js";
 
 const execFileAsync = promisify(execFile);
 
 export class GitService {
   private getTimeout(): number {
-    const envTimeout = process.env.WAVE_PLUGIN_GIT_TIMEOUT_MS;
+    const envTimeout = envGet(MUSE_ENV.PLUGIN_GIT_TIMEOUT_MS, process.env);
     if (envTimeout) {
       const parsed = parseInt(envTimeout, 10);
       if (!isNaN(parsed)) {
@@ -130,7 +131,7 @@ export class GitService {
 
     if (message.includes("ETIMEDOUT") || killed) {
       return new Error(
-        `Git operation timed out after ${this.getTimeout() / 1000}s. The repository may be too large or the network is slow. You can increase the timeout by setting the WAVE_PLUGIN_GIT_TIMEOUT_MS environment variable.`,
+        `Git operation timed out after ${this.getTimeout() / 1000}s. The repository may be too large or the network is slow. You can increase the timeout by setting the MUSE_PLUGIN_GIT_TIMEOUT_MS environment variable.`,
       );
     }
 

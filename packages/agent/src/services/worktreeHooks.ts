@@ -22,10 +22,11 @@ import type {
 } from "../types/hooks.js";
 import { executeCommand } from "./hook.js";
 import { logger } from "../utils/globalLogger.js";
+import { pluginRootEnv, substitutePluginRoot } from "../utils/museEnv.js";
 
 /** Minimal context required to run worktree hooks standalone. */
 export interface WorktreeHookContext {
-  /** Absolute project directory (also the hook cwd / $WAVE_PROJECT_DIR) */
+  /** Absolute project directory (also the hook cwd / $MUSE_PROJECT_DIR) */
   projectDir: string;
   sessionId?: string;
   transcriptPath?: string;
@@ -132,7 +133,7 @@ export async function executeWorktreeRemoveHook(
 
 /**
  * Run every configured hook command for a worktree event, mirroring
- * HookManager.executeHooks' per-command handling: `${WAVE_PLUGIN_ROOT}` /
+ * HookManager.executeHooks' per-command handling: `${MUSE_PLUGIN_ROOT}` /
  * `${CLAUDE_PLUGIN_ROOT}` substitution, plugin env injection, per-command
  * timeout, and fire-and-forget async hooks. Results are tagged with the
  * command for error messages.
@@ -162,28 +163,20 @@ async function runWorktreeHooks(
         ? { timeout: hookCommand.timeout * 1000 }
         : undefined;
 
-      // Build execution context with WAVE_PLUGIN_ROOT if this is a plugin hook
+      // Build execution context with MUSE_PLUGIN_ROOT if this is a plugin hook
       let command = hookCommand.command;
       const execContext: ExtendedHookExecutionContext = hookCommand.pluginRoot
         ? {
             ...baseContext,
             env: {
               ...(baseContext.env ?? {}),
-              WAVE_PLUGIN_ROOT: hookCommand.pluginRoot,
-              CLAUDE_PLUGIN_ROOT: hookCommand.pluginRoot,
+              ...pluginRootEnv(hookCommand.pluginRoot),
             },
           }
         : baseContext;
 
       if (hookCommand.pluginRoot) {
-        command = command.replace(
-          /\$\{WAVE_PLUGIN_ROOT\}/g,
-          hookCommand.pluginRoot,
-        );
-        command = command.replace(
-          /\$\{CLAUDE_PLUGIN_ROOT\}/g,
-          hookCommand.pluginRoot,
-        );
+        command = substitutePluginRoot(command, hookCommand.pluginRoot);
       }
 
       if (hookCommand.async) {
