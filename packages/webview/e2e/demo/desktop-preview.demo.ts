@@ -139,7 +139,7 @@ test.describe("Desktop Preview Pane Screenshots", () => {
         channel: string;
         args: unknown[];
       };
-      ipc.channel = "wave-picker";
+      ipc.channel = "muse-picker";
       ipc.args = [{ type: "ready" }];
       wv.dispatchEvent(ipc);
     });
@@ -209,7 +209,7 @@ test.describe("Desktop Preview Pane Screenshots", () => {
         channel: string;
         args: unknown[];
       };
-      ipc.channel = "wave-picker";
+      ipc.channel = "muse-picker";
       ipc.args = [
         {
           type: "submit",

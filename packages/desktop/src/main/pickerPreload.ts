@@ -6,7 +6,7 @@ import { ipcRenderer } from "electron";
  * Runs inside the guest page with `webpreferences="sandbox=yes,
  * contextIsolation=yes"`, so it can only use the sandboxed electron polyfill
  * (ipcRenderer) plus the DOM — no other Node APIs. Protocol on channel
- * "wave-picker" (see PreviewPane.tsx):
+ * "muse-picker" (see PreviewPane.tsx):
  *
  *   host → guest : { action: "activate", palette? } | { action: "deactivate" }
  *   guest → host : { type: "ready" }  (preload finished mounting)
@@ -20,7 +20,7 @@ import { ipcRenderer } from "electron";
  * testable in the desktop (node) test env.
  */
 
-export const PICKER_CHANNEL = "wave-picker";
+export const PICKER_CHANNEL = "muse-picker";
 
 export interface PickerPalette {
   accent: string;

@@ -95,7 +95,7 @@ const firePickerReady = (wv: MockWebview) =>
   fireEvent(
     wv,
     Object.assign(new Event("ipc-message"), {
-      channel: "wave-picker",
+      channel: "muse-picker",
       args: [{ type: "ready" }],
     }),
   );
@@ -107,7 +107,7 @@ const firePickerSubmit = (wv: MockWebview, payload: Record<string, unknown>) =>
   fireEvent(
     wv,
     Object.assign(new Event("ipc-message"), {
-      channel: "wave-picker",
+      channel: "muse-picker",
       args: [payload],
     }),
   );
@@ -170,7 +170,7 @@ describe("PreviewPane", () => {
     firePickerReady(wv);
 
     fireEvent.click(screen.getByTestId("preview-picker-toggle"));
-    expect(wv.send).toHaveBeenCalledWith("wave-picker", {
+    expect(wv.send).toHaveBeenCalledWith("muse-picker", {
       action: "activate",
       palette: expect.objectContaining({
         accent: expect.any(String),
@@ -183,7 +183,7 @@ describe("PreviewPane", () => {
     );
 
     fireEvent.click(screen.getByTestId("preview-picker-toggle"));
-    expect(wv.send).toHaveBeenLastCalledWith("wave-picker", {
+    expect(wv.send).toHaveBeenLastCalledWith("muse-picker", {
       action: "deactivate",
     });
     expect(screen.getByTestId("preview-picker-toggle")).toHaveAttribute(
@@ -209,7 +209,7 @@ describe("PreviewPane", () => {
     firePickerReady(wv);
     fireEvent.click(screen.getByTestId("preview-picker-toggle"));
     expect(wv.send).toHaveBeenCalledWith(
-      "wave-picker",
+      "muse-picker",
       expect.objectContaining({ action: "activate" }),
     );
     expect(
@@ -256,7 +256,7 @@ describe("PreviewPane", () => {
     expect(screen.getByTestId("preview-address")).toHaveValue(
       "http://localhost:5173/app#section",
     );
-    expect(wv.send).toHaveBeenCalledWith("wave-picker", {
+    expect(wv.send).toHaveBeenCalledWith("muse-picker", {
       action: "deactivate",
     });
     expect(screen.getByTestId("preview-picker-toggle")).toHaveAttribute(
@@ -277,7 +277,7 @@ describe("PreviewPane", () => {
     fireDomReady(wv);
     firePickerReady(wv); // fresh document re-announces ready
     expect(wv.send).toHaveBeenCalledWith(
-      "wave-picker",
+      "muse-picker",
       expect.objectContaining({ action: "activate" }),
     );
   });

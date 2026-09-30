@@ -8,8 +8,8 @@ import { pathToFileUrl } from "../../utils/pathToFileUrl";
  * are appended to the chat input so several can be edited and sent together.
  *
  * Communication with the picker preload inside the guest:
- *   host → guest : wv.send('wave-picker', { action, palette? })
- *   guest → host : 'ipc-message' DOM event, channel 'wave-picker'
+ *   host → guest : wv.send('muse-picker', { action, palette? })
+ *   guest → host : 'ipc-message' DOM event, channel 'muse-picker'
  */
 
 /** The subset of Electron's <webview> DOM API that PreviewPane uses. */
@@ -215,7 +215,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     const wv = webviewRef.current;
     if (!wv || !domReadyRef.current) return;
     wv.send(
-      "wave-picker",
+      "muse-picker",
       action === "activate"
         ? { action, palette: readPalette(asideRef.current) }
         : { action },
@@ -280,7 +280,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         channel: string;
         args: PreviewComment[];
       };
-      if (channel !== "wave-picker") return;
+      if (channel !== "muse-picker") return;
       const msg = args?.[0];
       if (msg?.type === "ready") {
         pickerReadyRef.current = true;
