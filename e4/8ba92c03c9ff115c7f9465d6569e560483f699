@@ -1,0 +1,74 @@
+packages/webview/src/styles/NewSessionPage.css
+  c8df0f85b58f7a52 79-83,108-109
+packages/webview/src/components/chat/NewSessionPage.tsx
+  c8df0f85b58f7a52 25
+packages/webview/src/styles/MessageInput.css
+  c8df0f85b58f7a52 14,60,63-64,84-85,125-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e48ba92c03c9ff115c7f9465d6569e560483f699",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 8,
+      "accepted_lines": 40,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/NewSessionPage.css": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 16,
+          "deletions": 6,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/styles/AgentManager.css": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/FileSuggestionDropdown.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/Message.css": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
