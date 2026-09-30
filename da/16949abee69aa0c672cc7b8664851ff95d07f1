@@ -1,0 +1,129 @@
+packages/agent/src/agent.ts
+  98ab170ac30fbe53 67,440,464-466,495,1426
+packages/agent/src/managers/messageQueue.ts
+  98ab170ac30fbe53 5,48,86,142
+packages/agent/src/types/hooks.ts
+  98ab170ac30fbe53 195
+packages/agent/docs/slimdown.md
+  98ab170ac30fbe53 41-42
+packages/agent/src/managers/aiManager.ts
+  98ab170ac30fbe53 362,364,366
+packages/webview/src/components/chat/QueuedMessageList.tsx
+  98ab170ac30fbe53 74
+packages/webview/tests/webview/bang-input-focus.test.tsx
+  98ab170ac30fbe53 4
+packages/webview/src/types/index.ts
+  98ab170ac30fbe53 670
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "da16949abee69aa0c672cc7b8664851ff95d07f1",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 300,
+      "accepted_lines": 20,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/queue-messages.test.tsx": {
+          "deletions": 25
+        },
+        "packages/agent/src/types/agent.ts": {
+          "deletions": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/types/hooks.test.ts": {
+          "deletions": 2
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/muse/hostBridge/confirm.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "deletions": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "deletions": 1
+        },
+        "packages/webview/tests/webview/bang-input-focus.test.tsx": {
+          "additions": 1,
+          "deletions": 36,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/agent.ts": {
+          "additions": 7,
+          "deletions": 9,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "deletions": 10
+        },
+        "packages/webview/src/components/chat/QueuedMessageList.tsx": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "deletions": 6
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/managers/messageQueue.test.ts": {
+          "deletions": 10
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/services/hook.test.ts": {
+          "deletions": 121
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/agent/src/types/hooks.ts": {
+          "additions": 1,
+          "deletions": 13,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/managers/hookManager.ts": {
+          "deletions": 20
+        },
+        "packages/agent/src/services/hook.ts": {
+          "deletions": 19
+        },
+        "packages/agent/src/managers/messageQueue.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 7
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
