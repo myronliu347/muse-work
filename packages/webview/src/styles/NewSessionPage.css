@@ -76,6 +76,11 @@
   background-color: transparent;
 }
 
+/* Draft page has no message nav rail — symmetric gutters so composer aligns with welcome column. */
+.new-session-page .input-area-container {
+  padding-right: var(--space-4);
+}
+
 .new-session-page-welcome {
   display: flex;
   justify-content: center;
@@ -100,7 +105,8 @@
   position: absolute;
   right: -2px;
   top: 0;
-  z-index: 1;
+  /* Above .input-content (z-index 2) so the cat is not clipped by the sender card. */
+  z-index: 3;
   width: 170px;
   height: 110px;
   pointer-events: none;

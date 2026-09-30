@@ -11,6 +11,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .input-row {
@@ -56,10 +57,11 @@
   align-items: center;
   gap: 14px;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   width: 100%;
   margin: -16px 0 0;
-  padding: 20px var(--space-3) 8px;
+  /* Top padding includes the 16px sender overlap; extra 6px below the seam centers 24px controls in the visible footer strip. */
+  padding: 22px var(--space-3) 10px;
   box-sizing: border-box;
   overflow: visible;
   background: var(--gray-2);
@@ -79,6 +81,8 @@
   min-width: 0;
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .input-meta-row .desktop-workdir-trigger,
@@ -118,6 +122,12 @@
   font-size: var(--font-size-1);
   opacity: 0.78;
   flex-shrink: 0;
+  display: block;
+}
+
+.input-meta-row .permission-mode-icon.header-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .input-meta-row .desktop-workdir-name,

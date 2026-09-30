@@ -21,8 +21,8 @@ export const NewSessionPage: React.FC<NewSessionPageProps> = ({
           className="new-session-page-composer"
           data-testid="new-session-page-composer"
         >
-          <SenderCat />
           {composer}
+          <SenderCat />
         </div>
       </div>
     </div>
