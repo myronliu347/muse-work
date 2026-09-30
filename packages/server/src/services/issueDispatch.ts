@@ -5,9 +5,8 @@ import type { SessionRunner } from "./sessionRunner/index.js";
 import type { WsHub } from "./wsHub.js";
 import {
   buildSystemPrompt,
-  resolveAgent,
+  resolveAgentForScenario,
   resolvePermission,
-  resolveScenarioAgent,
 } from "./agentConfig.js";
 import { resolveHome } from "../utils/paths.js";
 import { getLogger } from "../utils/logger.js";
@@ -309,8 +308,7 @@ export function createIssueDispatcher(opts: {
     if (!planning) {
       throw httpError(409, "planning session required");
     }
-    const agentKey = resolveScenarioAgent("issue-exec", home);
-    const agent = resolveAgent(agentKey, home);
+    const agent = resolveAgentForScenario("issue-exec", home);
     const permission = resolvePermission(agent.permission);
     const model = agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
     if (!model) {

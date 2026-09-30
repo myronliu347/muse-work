@@ -28,23 +28,9 @@ export interface MuseProvidersResponse {
   active: { providerId: string; modelId?: string };
 }
 
-/** 数字人 agent 定义（GET /agents 展开后返回）。 */
-export interface MuseAgent {
-  key: string;
-  name: string;
-  personality: string;
-  /** 性格显示名（server PERSONALITIES 导出，UI 直接展示不重复维护）。 */
-  personalityLabel?: string;
-  systemPrompt: string;
-  model: string;
-  fastModel: string;
-  tools: string[];
-  permission: string[];
-}
-
-/** 场景 → agent key 映射。 */
-export interface MuseAgentScenarios {
-  scenarios: Record<"session" | "popo" | "issue-plan" | "issue-exec", string>;
+/** 各场景默认 model id（GET /scenarios/models）。 */
+export interface MuseScenarioModels {
+  models: Record<"session" | "popo" | "issue-plan" | "issue-exec", string>;
 }
 
 export interface MuseCodeMakerQuota {
@@ -429,7 +415,6 @@ export class MuseApiClient {
     opts?: {
       model?: string;
       permissionMode?: "acceptEdits" | "bypassPermissions";
-      agent?: string;
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -440,7 +425,6 @@ export class MuseApiClient {
       workdir?: string;
       model?: string;
       permissionMode?: "acceptEdits" | "bypassPermissions";
-      agent?: string;
       worktreeName?: string;
       worktreeBranch?: string;
       baseBranch?: string;
@@ -449,7 +433,6 @@ export class MuseApiClient {
     if (workdir) body.workdir = workdir;
     if (opts?.model) body.model = opts.model;
     if (opts?.permissionMode) body.permissionMode = opts.permissionMode;
-    if (opts?.agent) body.agent = opts.agent;
     if (opts?.worktreeName) body.worktreeName = opts.worktreeName;
     if (opts?.worktreeBranch) body.worktreeBranch = opts.worktreeBranch;
     if (opts?.baseBranch) body.baseBranch = opts.baseBranch;
@@ -480,8 +463,8 @@ export class MuseApiClient {
     patch: Partial<
       Pick<
         MuseSession,
-        "title" | "pinned" | "model" | "permissionMode" | "agentName"
-      > & { agent?: string }
+        "title" | "pinned" | "model" | "permissionMode"
+      >
     >,
   ): Promise<MuseSession> {
     const res = await this.request(`/sessions/${encodeURIComponent(id)}`, {
@@ -984,33 +967,16 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async getAgents(): Promise<{ version: number; agents: MuseAgent[] }> {
-    const res = await this.request("/agents");
+  async getScenarioModels(): Promise<MuseScenarioModels> {
+    const res = await this.request("/scenarios/models");
     return parseJson(res);
   }
 
-  async getAgentScenarios(): Promise<MuseAgentScenarios> {
-    const res = await this.request("/agents/scenarios");
-    return parseJson(res);
-  }
-
-  async putAgents(payload: {
+  async putScenarioModels(payload: {
     version?: number;
-    agents: Record<string, Partial<MuseAgent>>;
-  }): Promise<{ version: number; agents: MuseAgent[] }> {
-    const res = await this.request("/agents", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    return parseJson(res);
-  }
-
-  async putAgentScenarios(payload: {
-    version?: number;
-    scenarios: Partial<Record<"session" | "popo" | "issue-plan" | "issue-exec", string>>;
-  }): Promise<MuseAgentScenarios> {
-    const res = await this.request("/agents/scenarios", {
+    models: Partial<MuseScenarioModels["models"]>;
+  }): Promise<MuseScenarioModels> {
+    const res = await this.request("/scenarios/models", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),

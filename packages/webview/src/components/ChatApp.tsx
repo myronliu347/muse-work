@@ -30,7 +30,7 @@ import {
 } from "../utils/issueGroups";
 import { PopoUiProvider, usePopoUi } from "./popo/popoUi";
 import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
-import { useAgentsStore } from "../stores/agentsStore";
+import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
 import { resolveMuseServerUrl } from "../muse/hostBridge";
@@ -175,9 +175,9 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   const popoUi = usePopoUi();
   const [showNewIssue, setShowNewIssue] = useState(false);
   const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
-  // 初始化数字人 agent store（GET /agents + /agents/scenarios），选择器/设置页共用
+  // 初始化 agent store（GET /agents + /agents/scenarios），用于草稿默认模型解析与设置页
   useEffect(() => {
-    useAgentsStore.getState().init(popoApi);
+    useScenarioModelsStore.getState().init(popoApi);
   }, [popoApi]);
   // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
   // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
@@ -449,36 +449,21 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     handleToastAction,
     handleModelSelect,
     handleSessionModelChange,
-    handleAgentChange,
     handleModelPopupClose,
     handleDesktopNewSession,
     handleDesktopNewSessionInWorkdir,
     handleInputCleared,
   } = dialogActions;
 
-  // session 场景映射的默认 agent key（无会话 agentName 时选择器展示它）。
-  const defaultSessionAgentKey = useAgentsStore(
-    (s) => s.scenarios?.session ?? "default",
+  const sessionDefaultModel = useScenarioModelsStore(
+    (s) => s.models?.session,
   );
-  // agent 列表缓存（设置页与输入框选择器共用），含每个 agent 的 model。
-  const agents = useAgentsStore((s) => s.agents);
 
-  // 已建会话：modelId = currentSession.model（server 按 agent 重算后 emit 回来，已联动）。
-  // draft 态：优先用户手动选的 model（≠默认值）；否则解析 draft 会话绑定的 agent
-  // （先会话所选 agentName，未选则 session 场景默认 agent）的 model，兜底默认模型。
   const currentSessionModel = (
     state.currentSession as { model?: string } | undefined
   )?.model;
-  const sessionAgentName = (
-    state.currentSession as { agentName?: string } | undefined
-  )?.agentName;
   const resolvedModelId = isDraftSession
-    ? resolveDraftModel(
-        currentSessionModel,
-        sessionAgentName,
-        defaultSessionAgentKey,
-        agents,
-      )
+    ? resolveDraftModel(currentSessionModel, sessionDefaultModel)
     : currentSessionModel;
 
   // Initialize webview and load sessions on component mount
@@ -702,9 +687,6 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       patchPane={patchPane}
       modelId={resolvedModelId}
       onModelChange={handleSessionModelChange}
-      agentName={(state.currentSession as { agentName?: string } | undefined)?.agentName}
-      defaultAgentName={defaultSessionAgentKey}
-      onAgentChange={handleAgentChange}
       rewindPopupOpen={rewindPopupOpen}
       rewindCheckpointsLoading={rewindCheckpointsLoading}
       rewindCheckpoints={rewindCheckpoints}

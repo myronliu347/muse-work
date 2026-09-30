@@ -25,7 +25,6 @@ export interface DialogHandlers {
   handleToastAction: (toast: UpdateToast) => void;
   handleModelSelect: (model: string) => void;
   handleSessionModelChange: (model: string) => void;
-  handleAgentChange: (agentKey: string) => void;
   handleModelPopupClose: () => void;
   handleDesktopNewSession: () => void;
   handleDesktopNewSessionInWorkdir: (workdir: string) => void;
@@ -153,14 +152,6 @@ export function useDialogs({
     [postToHost],
   );
 
-  // 输入框底部 agent 选择器 → PATCH /sessions/:id { agent }（hostBridge 处理）。
-  const handleAgentChange = useCallback(
-    (agentKey: string) => {
-      postToHost({ command: "setSessionAgent", agent: agentKey });
-    },
-    [postToHost],
-  );
-
   const handleModelPopupClose = useCallback(() => {
     patchPane({ modelPopupOpen: false });
     messageInputRef.current?.focus();
@@ -176,7 +167,6 @@ export function useDialogs({
     handleToastAction,
     handleModelSelect,
     handleSessionModelChange,
-    handleAgentChange,
     handleModelPopupClose,
     handleDesktopNewSession,
     handleDesktopNewSessionInWorkdir,

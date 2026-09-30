@@ -10,9 +10,8 @@ import {
 } from "./popoPrompt.js";
 import {
   buildSystemPrompt,
-  resolveAgent,
+  resolveAgentForScenario,
   resolvePermission,
-  resolveScenarioAgent,
 } from "../services/agentConfig.js";
 import { pluginDirIfPresent } from "../services/museSettings.js";
 
@@ -127,7 +126,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     if (!provider) throw new Error(`active provider not found: ${active.providerId}`);
     // Prefer the popo scenario agent's model (agents.json), same as issue
     // sessions — not the UI's global activeModelId.
-    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
+    const agent = resolveAgentForScenario("popo", options.home);
     const model =
       agent.model ??
       active.modelId ??
@@ -143,7 +142,7 @@ export function createPopoAgentFactory(options: PopoAgentFactoryOptions): PopoAg
     fs.mkdirSync(workdir, { recursive: true });
     // Resolve agent first so gateway can prefer agent.model when no gateway
     // was pre-resolved (refreshResidentAgent passes an explicit gateway).
-    const agent = resolveAgent(resolveScenarioAgent("popo", options.home), options.home);
+    const agent = resolveAgentForScenario("popo", options.home);
     const resolved = gateway ?? (await resolvePopoGateway());
 
     const plugins: Array<{ type: "local"; path: string }> = [];

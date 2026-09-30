@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { closeTestApp, listenTestApp } from "./helpers.js";
-import { agentsConfigPath } from "../src/services/agentConfig.js";
+import { scenarioModelsConfigPath } from "../src/services/agentConfig.js";
 
 describe("sessions HTTP routes", () => {
   let server: Server | undefined;
@@ -340,7 +340,7 @@ describe("sessions HTTP routes", () => {
   });
 });
 
-describe("sessions agent resolution", () => {
+describe("sessions scenario defaults", () => {
   let server: Server | undefined;
   let home: string | undefined;
 
@@ -352,7 +352,7 @@ describe("sessions agent resolution", () => {
     }
   });
 
-  it("POST /sessions 不传 agent → default agent：model=deepseek-flash + 人格段 + Muse 基座 systemPrompt", async () => {
+  it("POST /sessions 使用 session 场景默认 model 与内置 systemPrompt", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -364,44 +364,11 @@ describe("sessions agent resolution", () => {
     }).then((r) => r.json());
     expect(created.agentName).toBe("default");
     expect(created.model).toBe("deepseek-flash");
-    expect(created.systemPrompt).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
-    // default 内置 systemPrompt = Muse 基座 → 人格合成含基座指令
     expect(created.systemPrompt).toContain("You are Muse, an AI coding assistant");
+    expect(created.systemPrompt).not.toContain("你的性格");
   });
 
-  it("POST /sessions 传自定义 agents.json 里的 agent → agentName 落库 + 人格段 + 自定义 systemPrompt", async () => {
-    const app = await listenTestApp();
-    server = app.server;
-    home = app.home;
-
-    // 自定义 agents.json 定义 xiaomei
-    const agentsPath = agentsConfigPath(home);
-    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
-    fs.writeFileSync(
-      agentsPath,
-      JSON.stringify({
-        version: 1,
-        agents: {
-          xiaomei: {
-            name: "小美",
-            personality: "warm-patient",
-            systemPrompt: "请用中文回复",
-          },
-        },
-      }),
-    );
-
-    const created = await fetch(`${app.baseUrl}/sessions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ workdir: "/tmp/a", agent: "xiaomei" }),
-    }).then((r) => r.json());
-    expect(created.agentName).toBe("xiaomei");
-    expect(created.systemPrompt).toContain("你是小美。你的性格：语气柔和、详细解释、循循善诱。");
-    expect(created.systemPrompt).toContain("请用中文回复");
-  });
-
-  it("POST /sessions 传 systemPrompt → 完全接管（不拼人格）", async () => {
+  it("POST /sessions 传 systemPrompt → 完全接管", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
@@ -412,56 +379,24 @@ describe("sessions agent resolution", () => {
       body: JSON.stringify({ workdir: "/tmp/a", systemPrompt: "完全接管" }),
     }).then((r) => r.json());
     expect(created.systemPrompt).toBe("完全接管");
-    expect(created.systemPrompt).not.toContain("你是Muse");
   });
 
-  it("POST /sessions 传非法 agent key → 忽略，回落 default", async () => {
+  it("scenario-models.json 覆盖普通会话默认 model", async () => {
     const app = await listenTestApp();
     server = app.server;
     home = app.home;
 
-    const created = await fetch(`${app.baseUrl}/sessions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ workdir: "/tmp/a", agent: "ghost" }),
-    }).then((r) => r.json());
-    expect(created.agentName).toBe("default");
-  });
-
-  it("POST /sessions 场景映射：session 默认是 default", async () => {
-    const app = await listenTestApp();
-    server = app.server;
-    home = app.home;
-
-    // session 场景默认映射 default
-    const created = await fetch(`${app.baseUrl}/sessions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ workdir: "/tmp/a" }),
-    }).then((r) => r.json());
-    expect(created.agentName).toBe("default");
-  });
-
-  it("PATCH /sessions/:id agent → 更新 agentName 并重算展开字段（systemPrompt/model/fastModel/tools/权限）", async () => {
-    const app = await listenTestApp();
-    server = app.server;
-    home = app.home;
-
-    const agentsPath = agentsConfigPath(home);
-    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
+    const modelsPath = scenarioModelsConfigPath(home);
+    fs.mkdirSync(path.dirname(modelsPath), { recursive: true });
     fs.writeFileSync(
-      agentsPath,
+      modelsPath,
       JSON.stringify({
         version: 1,
-        agents: {
-          xiaomei: {
-            name: "小美",
-            personality: "warm-patient",
-            systemPrompt: "请用中文回复",
-            model: "m-xiaomei",
-            fastModel: "fast-xiaomei",
-            permission: ["Bash", "!Read"],
-          },
+        models: {
+          session: "m-from-scenario",
+          popo: "deepseek-flash",
+          "issue-plan": "deepseek-flash",
+          "issue-exec": "deepseek-flash",
         },
       }),
     );
@@ -471,118 +406,6 @@ describe("sessions agent resolution", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ workdir: "/tmp/a" }),
     }).then((r) => r.json());
-    expect(created.agentName).toBe("default");
-    // default agent 展开：model=deepseek、无 fastModel/tools/权限
-    expect(created.model).toBe("deepseek-flash");
-    expect(created.fastModel).toBeUndefined();
-    expect(created.tools).toBeUndefined();
-    expect(created.disallowedTools).toBeUndefined();
-
-    const patched = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent: "xiaomei" }),
-    }).then((r) => r.json());
-    expect(patched.agentName).toBe("xiaomei");
-    // 展开字段按新 agent 重算：systemPrompt = 人格段 + 自定义 systemPrompt
-    expect(patched.systemPrompt).toContain("你是小美。你的性格：语气柔和、详细解释、循循善诱。");
-    expect(patched.systemPrompt).toContain("请用中文回复");
-    // model 回落新 agent.model；fastModel / tools / 权限 随 agent 切换
-    expect(patched.model).toBe("m-xiaomei");
-    expect(patched.fastModel).toBe("fast-xiaomei");
-    expect(patched.disallowedTools).toEqual(["Bash"]);
-    expect(patched.allowedTools).toEqual(["Read"]);
-
-    // 非法 agent key → 忽略，保持原 agent
-    const ignored = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent: "ghost" }),
-    }).then((r) => r.json());
-    expect(ignored.agentName).toBe("xiaomei");
-    expect(ignored.model).toBe("m-xiaomei");
-  });
-
-  it("PATCH agent 保留会话显式 model/systemPrompt 覆盖（字段级显式赢）", async () => {
-    const app = await listenTestApp();
-    server = app.server;
-    home = app.home;
-
-    const agentsPath = agentsConfigPath(home);
-    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
-    fs.writeFileSync(
-      agentsPath,
-      JSON.stringify({
-        version: 1,
-        agents: {
-          xiaomei: { name: "小美", personality: "warm-patient", model: "m-xiaomei" },
-        },
-      }),
-    );
-
-    // 会话创建时显式 model + systemPrompt
-    const created = await fetch(`${app.baseUrl}/sessions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        workdir: "/tmp/a",
-        model: "m-explicit",
-        systemPrompt: "完全接管",
-      }),
-    }).then((r) => r.json());
-    expect(created.model).toBe("m-explicit");
-    expect(created.systemPrompt).toBe("完全接管");
-
-    // 切换 agent → 显式 model/systemPrompt 保留，不回落新 agent
-    const patched = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent: "xiaomei" }),
-    }).then((r) => r.json());
-    expect(patched.agentName).toBe("xiaomei");
-    expect(patched.model).toBe("m-explicit"); // 显式 model 保留
-    expect(patched.systemPrompt).toBe("完全接管"); // 显式 systemPrompt 保留（不拼人格）
-    expect(patched.systemPrompt).not.toContain("你是小美");
-  });
-
-  it("PATCH 同次请求带 model + agent → 显式 model 优先于新 agent.model", async () => {
-    const app = await listenTestApp();
-    server = app.server;
-    home = app.home;
-
-    const agentsPath = agentsConfigPath(home);
-    fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
-    fs.writeFileSync(
-      agentsPath,
-      JSON.stringify({
-        version: 1,
-        agents: {
-          xiaomei: { name: "小美", personality: "warm-patient", model: "m-xiaomei" },
-        },
-      }),
-    );
-
-    const created = await fetch(`${app.baseUrl}/sessions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ workdir: "/tmp/a" }),
-    }).then((r) => r.json());
-
-    const patched = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent: "xiaomei", model: "m-inline" }),
-    }).then((r) => r.json());
-    expect(patched.agentName).toBe("xiaomei");
-    expect(patched.model).toBe("m-inline");
-
-    // 再次切回 default：此时 model 已是显式（m-inline），保留
-    const back = await fetch(`${app.baseUrl}/sessions/${created.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent: "default" }),
-    }).then((r) => r.json());
-    expect(back.agentName).toBe("default");
-    expect(back.model).toBe("m-inline");
+    expect(created.model).toBe("m-from-scenario");
   });
 });

@@ -487,12 +487,6 @@ export interface MessageInputProps {
   modelId?: string;
   /** Called when the user picks a model in the sender toolbar. */
   onModelChange?: (modelId: string) => void;
-  /** 当前会话选用的数字人 agent key（Session.agentName；缺省用 session 场景映射）。 */
-  agentName?: string;
-  /** session 场景映射的默认 agent key（无会话 agentName 时展示）。 */
-  defaultAgentName?: string;
-  /** 用户在底部左侧 agent 选择器点选后回调（PATCH /sessions/:id { agent }）。 */
-  onAgentChange?: (agentKey: string) => void;
   /** Optional MuseApiClient for the embedded model select (tests / injection). */
   modelSelectApi?: import("../muse/apiClient").MuseApiClient;
   /** Absolute workdir for @ file mentions (desktop). */

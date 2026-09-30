@@ -324,7 +324,6 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
           // 回落 agent.model（勿用默认值兜底，否则会覆盖 agent 预设的模型）。
           ...(ctx.draftModel ? { model: ctx.draftModel } : {}),
           permissionMode: ctx.draftPermissionMode,
-          agent: ctx.draftAgent,
         },
       );
       await ctx.api.selectSession(session.id);
@@ -332,7 +331,6 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       ctx.pendingNewSession = false;
       ctx.suppressWorkdirPush = false;
       ctx.draftModel = undefined;
-      ctx.draftAgent = undefined;
       ctx.draftPermissionMode = "acceptEdits";
       // Server may have minted ~/.muse-work/projects/<date>-<uid>.
       if (session.workdir) {

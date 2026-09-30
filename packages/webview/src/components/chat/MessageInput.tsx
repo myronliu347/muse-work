@@ -46,7 +46,6 @@ import {
   PermModeBypassIcon,
 } from "../shared/HeaderIcons";
 import { MuseModelSelect } from "../shared/MuseModelSelect";
-import { AgentSelector } from "./AgentSelector";
 import "../../styles/MessageInput.css";
 
 interface AtMentionState {
@@ -128,9 +127,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       onModelChange,
       modelSelectApi,
       workdir,
-      agentName,
-      defaultAgentName,
-      onAgentChange,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -1570,12 +1566,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
                   <i className="codicon codicon-add" />
                 </button>
               </Tooltip>
-              <AgentSelector
-                agentName={agentName}
-                defaultAgentName={defaultAgentName}
-                onSelect={onAgentChange}
-                disabled={disabled}
-              />
               <div className="button-spacer" />
               {onModelChange && (
                 <div

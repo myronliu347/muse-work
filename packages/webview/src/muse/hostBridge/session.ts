@@ -26,7 +26,6 @@ export interface SessionModule {
   handleTogglePin: (id: string, pinnedNext: boolean) => Promise<void>;
   handleRenameSession: (id: string, title: string) => Promise<void>;
   handleSetSessionModel: (model: string) => Promise<void>;
-  handleSetSessionAgent: (agent: string) => Promise<void>;
   handleDesktopReady: () => Promise<void>;
   handleRefreshSessionTree: () => Promise<void>;
   refreshTree: () => Promise<MuseSessionsGrouped>;
@@ -46,7 +45,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         model: ctx.draftModel ?? DEFAULT_SESSION_MODEL_ID,
-        agentName: ctx.draftAgent,
       },
     });
     emitPermissionMode(ctx.draftPermissionMode);
@@ -226,7 +224,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     ctx.pendingNewSession = true;
     ctx.sessionId = null;
     ctx.draftModel = undefined;
-    ctx.draftAgent = undefined;
     ctx.draftPermissionMode = "acceptEdits";
     ctx.resetChatStreaming();
     postToWebview({ command: "updateMessages", messages: [] });
@@ -326,20 +323,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     emitCurrentSession(session);
   };
 
-  // 输入框 agent 选择器 → 草稿会话记 draftAgent（首次发送 POST /sessions 带 agent）；
-  // 已建会话 PATCH /sessions/:id { agent }。
-  const handleSetSessionAgent = async (agent: string): Promise<void> => {
-    if (!agent) return;
-    if (!ctx.sessionId || ctx.pendingNewSession) {
-      ctx.draftAgent = agent;
-      emitDraftSession();
-      return;
-    }
-    const session = await ctx.api.patchSession(ctx.sessionId, { agent });
-    patchTreeSession(ctx.sessionId, { agentName: session.agentName });
-    emitCurrentSession(session);
-  };
-
   const handleDesktopReady = async (): Promise<void> => {
     ctx.emitWorkdirState();
     try {
@@ -371,7 +354,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         ctx.suppressWorkdirPush = true;
         ctx.sessionId = null;
         ctx.draftModel = undefined;
-        ctx.draftAgent = undefined;
         ctx.draftPermissionMode = "acceptEdits";
         postToWebview({ command: "updateMessages", messages: [] });
         ctx.emitWorkdirState({ clearWorkdir: true });
@@ -399,7 +381,6 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     handleTogglePin,
     handleRenameSession,
     handleSetSessionModel,
-    handleSetSessionAgent,
     handleDesktopReady,
     handleRefreshSessionTree,
     refreshTree,

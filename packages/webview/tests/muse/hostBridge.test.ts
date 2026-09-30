@@ -721,6 +721,8 @@ describe("createHostBridge desktop workdir bootstrap", () => {
       listSessionsGrouped: vi.fn(async () => ({
         pinned: [],
         recent: [],
+        issueGroups: [],
+        closedIssueGroups: [],
         activeSessionId: undefined,
       })),
       createSession: vi.fn(async () => created),
@@ -733,14 +735,19 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
 
     bridge.postMessage({ command: "desktopReady" });
-    await flush();
+    await flushUntil(() =>
+      messages.some(
+        (m) =>
+          (m as { command?: string }).command === "updateCurrentSession",
+      ),
+    );
 
     expect(messages).toContainEqual(
       expect.objectContaining({
         command: "updateCurrentSession",
         session: expect.objectContaining({
           id: "__draft__",
-          model: "deepseek-v4-flash",
+          model: "deepseek-flash",
         }),
       }),
     );
@@ -752,77 +759,6 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     // 未手动选模型时不传 model，让 server 回落 agent.model（勿用默认值覆盖）
     expect(api.createSession).toHaveBeenCalledWith(undefined, {
       permissionMode: "acceptEdits",
-    });
-  });
-
-  it("pins draft agent on a new draft and sends it with createSession", async () => {
-    const created: MuseSession = {
-      ...baseSession,
-      id: "sess-created",
-      agentName: "xiaomei",
-      workdir: "/Users/demo/.muse-work/projects/x",
-    };
-    const api = stubApi({
-      listSessionsGrouped: vi.fn(async () => ({
-        pinned: [],
-        recent: [],
-        activeSessionId: undefined,
-      })),
-      createSession: vi.fn(async () => created),
-      selectSession: vi.fn(async () => ({ session: created })),
-    });
-    const bridge = createHostBridge({
-      api,
-      ws: stubWs(),
-      workdir: "/tmp",
-    });
-
-    bridge.postMessage({ command: "desktopReady" });
-    await flush();
-
-    messages.length = 0;
-    // 草稿态选 agent：不 PATCH，记 draftAgent 并 emitDraftSession 带 agentName
-    bridge.postMessage({ command: "setSessionAgent", agent: "xiaomei" });
-    await flush();
-    expect(api.patchSession).not.toHaveBeenCalled();
-    expect(messages).toContainEqual(
-      expect.objectContaining({
-        command: "updateCurrentSession",
-        session: expect.objectContaining({
-          id: "__draft__",
-          agentName: "xiaomei",
-        }),
-      }),
-    );
-
-    messages.length = 0;
-    vi.mocked(api.createSession).mockClear();
-    bridge.postMessage({ command: "sendMessage", text: "hi" });
-    await flush();
-    // 首条消息创建会话时把 draftAgent 带进 POST /sessions body（不传 model，
-    // server 按 agent 解析模型）
-    expect(api.createSession).toHaveBeenCalledWith(undefined, {
-      permissionMode: "acceptEdits",
-      agent: "xiaomei",
-    });
-  });
-
-  it("PATCHes agent for an existing session", async () => {
-    const api = stubApi();
-    const bridge = createHostBridge({
-      api,
-      ws: stubWs(),
-      workdir: "/tmp",
-    });
-
-    // 恢复已建会话（activeSessionId 命中 recent）
-    bridge.postMessage({ command: "desktopReady" });
-    await flush();
-
-    bridge.postMessage({ command: "setSessionAgent", agent: "xiaomei" });
-    await flush();
-    expect(api.patchSession).toHaveBeenCalledWith("sess-active", {
-      agent: "xiaomei",
     });
   });
 

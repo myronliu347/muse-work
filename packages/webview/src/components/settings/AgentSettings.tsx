@@ -15,7 +15,7 @@ import "../../styles/AgentSettings.css";
 
 export interface AgentSettingsHandle {
   isDirty: () => boolean;
-  /** 保存数字人 agent + 场景映射 + ~/.muse-work/settings.json。Returns true on success. */
+  /** 保存场景默认模型 + ~/.muse-work/settings.json。Returns true on success. */
   save: () => Promise<boolean>;
 }
 
@@ -97,7 +97,7 @@ export const AgentSettings = forwardRef<
     setSaving(true);
     setSaveError(null);
     try {
-      // 先保存数字人 agent + 场景映射（内部自校验），再保存原始 JSON
+      // 先保存场景默认模型（内部自校验），再保存原始 JSON
       if (managerRef.current) {
         const ok = await managerRef.current.save();
         if (!ok) return false;
@@ -124,7 +124,7 @@ export const AgentSettings = forwardRef<
       data-testid="agent-settings"
       className="muse-settings-stack agent-settings"
     >
-      {/* 数字人 agent 管理 + 场景映射（新） */}
+      {/* 各场景默认模型 */}
       <AgentManager api={client} ref={managerRef} />
 
       {/* ~/.muse-work/settings.json 原始 JSON 编辑器 */}

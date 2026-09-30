@@ -242,10 +242,6 @@
   cursor: not-allowed;
 }
 
-.input-buttons-row .agent-selector-trigger {
-  color: var(--gray-12);
-}
-
 .message-input {
   width: 100%;
   box-sizing: border-box;
@@ -429,10 +425,6 @@
   .input-meta-row .desktop-workdir-trigger,
   .input-model-select .muse-model-select.rt-SelectTrigger {
     max-width: 160px;
-  }
-
-  .agent-selector-trigger {
-    max-width: 108px;
   }
 }
 

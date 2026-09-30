@@ -1,104 +1,58 @@
-import { describe, it, expect } from "vitest";
-import { MuseApiClient } from "../../src/muse/apiClient.js";
+import { describe, expect, it, vi } from "vitest";
+import { MuseApiClient } from "../../src/muse/apiClient";
 
-const agent = {
-  key: "default",
-  name: "Muse",
-  personality: "professional",
-  systemPrompt: "",
-  model: "deepseek-v4-flash",
-  fastModel: "",
-  tools: [],
-  permission: [],
-};
-
-describe("MuseApiClient agent APIs", () => {
-  it("getAgents GETs /agents", async () => {
+describe("MuseApiClient scenario models", () => {
+  it("getScenarioModels GETs /scenarios/models", async () => {
     const fetches: string[] = [];
     const client = new MuseApiClient({
       baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push(`${init?.method ?? "GET"} ${url}`);
-        return new Response(
-          JSON.stringify({ version: 1, agents: [agent] }),
-          { status: 200 },
-        );
-      },
-    });
-    const body = await client.getAgents();
-    expect(fetches[0]).toBe("GET http://127.0.0.1:9/agents");
-    expect(body.agents[0]?.key).toBe("default");
-  });
-
-  it("getAgentScenarios GETs /agents/scenarios", async () => {
-    const fetches: string[] = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push(`${init?.method ?? "GET"} ${url}`);
+      fetch: async (input, init) => {
+        fetches.push(`${init?.method ?? "GET"} ${input}`);
         return new Response(
           JSON.stringify({
-            scenarios: {
-              session: "default",
-              popo: "popo",
-              "issue-plan": "plan",
-              "issue-exec": "execute",
+            models: {
+              session: "deepseek-v4-flash",
+              popo: "deepseek-v4-flash",
+              "issue-plan": "deepseek-v4-flash",
+              "issue-exec": "deepseek-v4-flash",
             },
           }),
           { status: 200 },
         );
       },
     });
-    const body = await client.getAgentScenarios();
-    expect(fetches[0]).toBe("GET http://127.0.0.1:9/agents/scenarios");
-    expect(body.scenarios.popo).toBe("popo");
+    const body = await client.getScenarioModels();
+    expect(fetches[0]).toBe("GET http://127.0.0.1:9/scenarios/models");
+    expect(body.models.session).toBe("deepseek-v4-flash");
   });
 
-  it("putAgents PUTs /agents with payload", async () => {
-    const bodies: string[] = [];
+  it("putScenarioModels PUTs /scenarios/models", async () => {
+    const fetches: Array<{ url: string; body: string }> = [];
     const client = new MuseApiClient({
       baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        bodies.push(init?.body as string);
-        return new Response(
-          JSON.stringify({ version: 1, agents: [agent] }),
-          { status: 200 },
-        );
-      },
-    });
-    await client.putAgents({
-      version: 1,
-      agents: { default: { name: "Muse" } },
-    });
-    expect(bodies[0]).toBe(
-      JSON.stringify({ version: 1, agents: { default: { name: "Muse" } } }),
-    );
-  });
-
-  it("putAgentScenarios PUTs /agents/scenarios", async () => {
-    const fetches: string[] = [];
-    const client = new MuseApiClient({
-      baseUrl: "http://127.0.0.1:9",
-      fetch: async (url, init) => {
-        fetches.push(`${init?.method ?? "GET"} ${url}`);
+      fetch: async (input, init) => {
+        fetches.push({
+          url: String(input),
+          body: String(init?.body ?? ""),
+        });
         return new Response(
           JSON.stringify({
-            scenarios: {
-              session: "default",
-              popo: "popo",
-              "issue-plan": "plan",
-              "issue-exec": "execute",
+            models: {
+              session: "m2",
+              popo: "deepseek-v4-flash",
+              "issue-plan": "deepseek-v4-flash",
+              "issue-exec": "deepseek-v4-flash",
             },
           }),
           { status: 200 },
         );
       },
     });
-    const body = await client.putAgentScenarios({
+    await client.putScenarioModels({
       version: 1,
-      scenarios: { session: "default" },
+      models: { session: "m2" },
     });
-    expect(fetches[0]).toBe("PUT http://127.0.0.1:9/agents/scenarios");
-    expect(body.scenarios.session).toBe("default");
+    expect(fetches[0]?.url).toContain("/scenarios/models");
+    expect(fetches[0]?.body).toContain('"session":"m2"');
   });
 });

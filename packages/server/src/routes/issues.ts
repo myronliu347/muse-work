@@ -9,9 +9,8 @@ import {
 } from "../utils/runnerError.js";
 import {
   buildSystemPrompt,
-  resolveAgent,
+  resolveAgentForScenario,
   resolvePermission,
-  resolveScenarioAgent,
 } from "../services/agentConfig.js";
 import { getLogger } from "../utils/logger.js";
 
@@ -197,8 +196,7 @@ issuesRoutes.post("/issues/:id/planning-session", async (c) => {
     body.agentMode === "single" ? "single" : "split";
 
   const scenario = agentMode === "single" ? "session" : "issue-plan";
-  const agentKey = resolveScenarioAgent(scenario, ctx.home);
-  const agent = resolveAgent(agentKey, ctx.home);
+  const agent = resolveAgentForScenario(scenario, ctx.home);
   const permission = resolvePermission(agent.permission);
   const model = agent.model ?? DEFAULT_ACTIVE_MODEL_ID;
   if (!model) {
