@@ -1229,9 +1229,8 @@ export async function handleSessionRestoration(
     }
 
     if (sessionToRestore) {
-      // Diagnostics only — never stdout: `wave --stdio`'s stdout carries the
-      // JSON-RPC channel, and a stray line there makes the host log a parse
-      // failure for every restore (the logger writes to the log file).
+      // Diagnostics only — never stdout. Hosts may treat stdout as a protocol
+      // channel; the logger writes to the log file.
       logger.info(`Restoring session: ${sessionToRestore.id}`);
 
       // // Initialize from session data

@@ -121,7 +121,7 @@ describe("ConfigurationService", () => {
       expect(result.configuration?.permissions?.allow).toContain("rule1");
       expect(result.configuration?.permissions?.allow).toContain("rule2");
       // Env vars land in the per-session snapshot (NOT process.env) so multiple
-      // sessions in one stdio process stay isolated.
+      // sessions in the same host process stay isolated.
       expect(configService.getEnvSnapshot()).toMatchObject({
         USER_VAR: "user",
         PROJECT_VAR: "project",

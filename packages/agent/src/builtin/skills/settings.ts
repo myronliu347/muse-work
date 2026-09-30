@@ -63,7 +63,7 @@ A plugin root needs \`.muse-plugin/plugin.json\` plus optional \`commands/\`, \`
 `,
   "skills/settings/SKILLS.md": `# Skills
 
-Skills are \`SKILL.md\` files under user/project/\`.agents\` skill directories, plus plugin skills. Invoke with the Skill tool. Feature-gated Wave-only skills (artifact, loop, daemon) are not shipped.
+Skills are \`SKILL.md\` files under user/project/\`.agents\` skill directories, plus plugin skills. Invoke with the Skill tool.
 `,
   "skills/settings/SUBAGENTS.md": `# Subagents
 

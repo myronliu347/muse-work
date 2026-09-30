@@ -236,7 +236,7 @@ export class ConfigurationService {
   private options: AgentOptions = {};
   private _configuredEnvKeys = new Set<string>();
   // Per-session environment snapshot: settings.json `env` is stored here (NOT
-  // written to process.env) so multiple sessions in one `wave --stdio` process
+  // written to process.env) so multiple sessions in the same host process
   // don't cross-pollute. Resolve methods read `this.liveEnvSnapshot ?? process.env`.
   private envSnapshot: Record<string, string> = {};
 

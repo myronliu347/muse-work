@@ -42,6 +42,7 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 | Bang 运行态 | `onCommandRunningChange`、`isCommandRunning`、队列 `type: "bang"`（历史 bang 消息块仍渲染） |
 | 对外 Wave 名 | settings skill 的 `plan` mode、MCP `wave-code`、WebFetch UA、runtimeDeps 文案 |
 | 市场 e2e | `plugin-search.demo.ts` |
+| 市场 / SSO CSS | `ConfigurationDialog.css` 无引用样式 |
 
 ## 第三轮
 

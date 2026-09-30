@@ -122,7 +122,7 @@ describe("session service additional coverage", () => {
           blocks: [],
         },
       ]);
-      // stdout is the `wave --stdio` JSON-RPC channel: one stray line there
+      // Hosts may treat stdout as a protocol channel: one stray line there
       // makes the host skip that line and log a parse failure for the whole
       // payload (the restore diagnostic used to be a plain console.log).
       const stdout = vi

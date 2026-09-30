@@ -161,7 +161,7 @@ export class McpManager {
   /**
    * Merged env for this session: OS env overlaid with the per-session settings
    * snapshot. MCP env-var expansion (${VAR}) resolves against this so multiple
-   * sessions in one `wave --stdio` process don't read each other's settings env.
+   * sessions in the same host process don't read each other's settings env.
    */
   private get envSnapshot(): Record<string, string> {
     return (
@@ -668,7 +668,7 @@ export class McpManager {
 
         // Base env = OS env overlaid with this session's settings snapshot, so
         // custom env vars from settings.json reach the MCP server subprocess
-        // without polluting other sessions sharing one `wave --stdio` process.
+        // without polluting other sessions in the same host process.
         const env: Record<string, string> = {
           ...this.envSnapshot,
           ...(server.config.env || {}),

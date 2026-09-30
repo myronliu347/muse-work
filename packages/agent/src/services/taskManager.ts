@@ -48,7 +48,7 @@ export class TaskManager extends EventEmitter {
 
     const rootSessionId = messageManager.getRootSessionId();
     // Read the per-session snapshot (not process.env) so multiple sessions in
-    // one `wave --stdio` process don't cross-pollute this flag.
+    // the same host process don't cross-pollute this flag.
     const envSnap =
       this.container
         .get<ConfigurationService>("ConfigurationService")

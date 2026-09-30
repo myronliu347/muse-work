@@ -38,7 +38,7 @@ export class BackgroundTaskManager {
   /**
    * Merged env (OS env overlaid with this session's settings snapshot) for
    * background-task subprocesses, so settings `env` vars reach them without
-   * polluting other sessions in one `wave --stdio` process.
+   * polluting other sessions in the same host process.
    */
   private get sessionEnv(): Record<string, string> {
     return (

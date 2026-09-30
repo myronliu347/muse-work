@@ -58,7 +58,7 @@ export class HookManager {
   /**
    * Merged env for this session (OS env overlaid with the per-session settings
    * snapshot). Hook subprocesses spawn with this env so settings.json `env`
-   * vars reach hooks without polluting other sessions in one stdio process.
+   * vars reach hooks without polluting other sessions in the same host process.
    */
   private get sessionEnv(): Record<string, string> {
     return (
