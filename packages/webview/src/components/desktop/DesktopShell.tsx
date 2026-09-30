@@ -651,12 +651,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       style={
         {
           "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
+          "--desktop-sidebar-drawer-width": `${sidebarWidth}px`,
         } as React.CSSProperties
       }
     >
       <DesktopSidebarToggle />
-      {!sidebarCollapsed ? (
       <DesktopSidebar
+        sidebarAccessHidden={sidebarCollapsed}
         onNewSession={() => {
           popoUi.selectChat(null);
           setShellView("chat");
@@ -726,7 +727,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
               : undefined
         }
       />
-      ) : null}
       {shellView === "automations" ? (
         <AutomationsPage
           api={api}

@@ -989,12 +989,13 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
         style={
           {
             "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
+            "--desktop-sidebar-drawer-width": `${sidebarWidth}px`,
           } as React.CSSProperties
         }
       >
         <DesktopSidebarToggle />
-        {!sidebarCollapsed ? (
         <DesktopSidebar
+          sidebarAccessHidden={sidebarCollapsed}
           onNewSession={() => {
             popoUi.selectChat(null);
             setView("chat");
@@ -1057,7 +1058,6 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
                 : undefined
           }
         />
-        ) : null}
         {view === "automations" ? (
           <AutomationsPage
             api={popoApi}

@@ -33,9 +33,9 @@
   grid-area: 1 / 1;
   z-index: 6;
   justify-self: start;
-  width: var(--desktop-sidebar-width);
-  min-width: var(--desktop-sidebar-width);
-  max-width: var(--desktop-sidebar-width);
+  width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
+  min-width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
+  max-width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
   height: 100%;
   max-height: 100%;
   display: flex;
@@ -48,6 +48,13 @@
   /* Traffic-light row: children start below this inset. */
   padding-top: var(--desktop-shell-titlebar-height);
   -webkit-app-region: no-drag;
+  transform: translateX(0);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-sidebar {
+  transform: translateX(-100%);
+  pointer-events: none;
 }
 
 .desktop-sidebar-titlebar-drag {
@@ -185,8 +192,10 @@
   background: var(--gray-4);
 }
 
-.desktop-sidebar-toggle .codicon {
-  font-size: 16px;
+.desktop-sidebar-toggle .header-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 /* 侧栏顶部菜单区：统一定义 padding 与按钮间距（按钮自身不带 margin） */
@@ -860,6 +869,88 @@
   .desktop-session-status-bar {
     animation: none;
     transform: none;
+  }
+
+  .desktop-sidebar {
+    transition: none;
+  }
+
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .automations-page,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .automations-page:not(.automations-page--editor)
+    .automations-page-scroll,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .chat-header,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .chat-header,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .issue-session-header,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .issue-session-header,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .messages-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .messages-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .input-area-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .input-area-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .new-session-page,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .new-session-page,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .welcome-view-shell,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .welcome-view-shell,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .popo-chat-detail-view,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .popo-chat-detail-view,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .queue-edit-warning-banner,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .queue-edit-warning-banner,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .loading-logo-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .loading-logo-container,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
+    .chat-restoring-overlay,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .chat-restoring-overlay {
+    transition: none;
   }
 }
 
@@ -1801,7 +1892,12 @@ body.is-panel-resizing * {
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
-  .chat-header {
+  .chat-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-session-header,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .issue-session-header {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
 }
 
@@ -1839,6 +1935,85 @@ body.is-panel-resizing * {
 .desktop-pane-row > .desktop-pane:first-child .issue-session-header {
   box-sizing: border-box;
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+}
+
+/* Sidebar collapse: slide drawer + ease main-column inset (not while drag-resizing). */
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .automations-page,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .automations-page:not(.automations-page--editor)
+  .automations-page-scroll,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .chat-header,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .chat-header,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .issue-session-header,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .issue-session-header,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .messages-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .messages-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .input-area-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .input-area-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .new-session-page,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .new-session-page,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .welcome-view-shell,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .welcome-view-shell,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .popo-chat-detail-view,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .popo-chat-detail-view,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .queue-edit-warning-banner,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .queue-edit-warning-banner,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .loading-logo-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .loading-logo-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .chat-restoring-overlay,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .chat-restoring-overlay {
+  transition: padding-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .desktop-layout .issue-session-header-title {

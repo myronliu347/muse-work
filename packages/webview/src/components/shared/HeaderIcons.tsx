@@ -262,6 +262,70 @@ export const PermModeBypassIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+/** 桌面：左侧栏显隐（左 pane 实心）。 */
+export const LayoutSidebarLeftIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <rect
+      x="2"
+      y="2"
+      width="12"
+      height="12"
+      rx="1.25"
+      stroke="currentColor"
+      strokeWidth="1.25"
+    />
+    <rect
+      x="3.125"
+      y="3.125"
+      width="4"
+      height="9.75"
+      rx="0.75"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+/** 桌面：右侧面板 dock（右 pane 实心）。 */
+export const LayoutSidebarRightIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <rect
+      x="2"
+      y="2"
+      width="12"
+      height="12"
+      rx="1.25"
+      stroke="currentColor"
+      strokeWidth="1.25"
+    />
+    <rect
+      x="8.875"
+      y="3.125"
+      width="4"
+      height="9.75"
+      rx="0.75"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 // Queue item action: delete (trash) — Figma 12.4329 x 13 glyph centered in a 16x16 box.
 export const QueueTrashIcon: React.FC<IconProps> = ({
   className = "header-icon",

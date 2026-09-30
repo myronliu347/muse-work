@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { LayoutSidebarLeftIcon } from "../shared/HeaderIcons";
 import { Tooltip } from "../shared/Tooltip";
 import { useDesktopSidebarCollapsed } from "../../hooks/useDesktopSidebarCollapsed";
 
@@ -50,10 +51,7 @@ export const DesktopSidebarToggle: React.FC = () => {
           onMouseDown={(e) => e.stopPropagation()}
           onClick={toggle}
         >
-          <span
-            className="codicon codicon-layout-sidebar-left"
-            aria-hidden="true"
-          />
+          <LayoutSidebarLeftIcon />
         </button>
       </Tooltip>
     </div>

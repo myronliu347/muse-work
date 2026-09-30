@@ -107,6 +107,8 @@ export interface DesktopSidebarProps {
   activeMenu?: "newChat" | "automations";
   /** 侧栏顶部「自动化」独立页 */
   onOpenAutomations?: () => void;
+  /** 抽屉滑出视口时，避免焦点与读屏进入侧栏。 */
+  sidebarAccessHidden?: boolean;
 }
 
 /**
@@ -147,6 +149,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onDeletePopoChat,
   activeMenu,
   onOpenAutomations,
+  sidebarAccessHidden = false,
 }) => {
   const { width, setWidth } = useDesktopSidebarWidth();
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -175,6 +178,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       className="desktop-sidebar"
       data-testid="desktop-sidebar"
       ref={sidebarRef}
+      aria-hidden={sidebarAccessHidden || undefined}
+      {...(sidebarAccessHidden ? ({ inert: "" } as const) : {})}
     >
       <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
       <div
