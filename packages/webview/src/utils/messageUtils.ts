@@ -269,8 +269,12 @@ export const linkifyFilePaths = (markdown: string): string => {
   let source = markdown.replace(
     /(```[\s\S]*?```)|(`[^`\n]+`)/g,
     (match, fenced: string | undefined, inline: string | undefined) => {
-      if (fenced) {
+      if (fenced !== undefined) {
         tokens.push(fenced);
+        return `\u0000${tokens.length - 1}\u0000`;
+      }
+      if (inline === undefined) {
+        tokens.push(match);
         return `\u0000${tokens.length - 1}\u0000`;
       }
       const content = inline.slice(1, -1);

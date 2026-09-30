@@ -147,7 +147,6 @@ export const MuseModelSelect: React.FC<MuseModelSelectProps> = ({
         data-testid={testId}
         aria-label="Model"
         variant={triggerVariant}
-        size="1"
         color="gray"
         placeholder={loading ? (error ? "模型不可用" : "加载模型…") : undefined}
         className="muse-model-select"

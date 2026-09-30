@@ -401,10 +401,8 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
           : undefined;
       if (targetId && targetId !== ctx.sessionId) {
         await ctx.activateSession(targetId);
-        sid = ctx.sessionId;
-      } else {
-        sid = await ensureSession();
       }
+      sid = ctx.sessionId ?? (await ensureSession());
       ctx.streamingMessageId = null;
       ctx.knownAssistantIds.clear();
       ctx.aborted = false;

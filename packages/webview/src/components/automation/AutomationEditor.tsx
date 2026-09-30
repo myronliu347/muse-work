@@ -1025,7 +1025,7 @@ function SoftSelect(props: {
 }): ReactElement {
   return (
     <Select.Root value={props.value} onValueChange={props.onValueChange}>
-      <Select.Trigger variant="soft" size="1" color="gray" />
+      <Select.Trigger variant="soft" color="gray" />
       <Select.Content
         position="popper"
         color="gray"

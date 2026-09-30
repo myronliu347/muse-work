@@ -60,6 +60,7 @@ export function listBranchesViaHost(
       const msg = event.data as {
         command?: string;
         workdir?: string;
+        paneId?: string;
         result?: GitBranchesResult | null;
       };
       if (msg?.command !== "desktopGitBranches") return;
@@ -290,7 +291,7 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
         },
         abortRef.current?.signal,
       );
-      if (cancelledRef.current || created.aborted) return;
+      if (cancelledRef.current || (!created.ok && created.aborted)) return;
       if (!created.ok) {
         if (isNotGitError(created.error)) {
           enabled = false;
@@ -474,12 +475,10 @@ export const OpenPlanningDialog: React.FC<OpenPlanningDialogProps> = ({
                   aria-label="基础分支"
                   variant="surface"
                   color="gray"
-                  size="1"
                   placeholder="读取分支…"
                 />
                 <Select.Content
                   position="popper"
-                  size="1"
                   className="open-planning-branch-content"
                   container={getOverlayHost()}
                 >
