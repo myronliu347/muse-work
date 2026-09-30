@@ -1,0 +1,78 @@
+packages/webview/src/components/desktop/DesktopShell.tsx
+  c8df0f85b58f7a52 654
+packages/webview/src/components/ChatApp.tsx
+  c8df0f85b58f7a52 992,998
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  c8df0f85b58f7a52 110-111,152,181-182
+packages/webview/src/components/shared/HeaderIcons.tsx
+  c8df0f85b58f7a52 265-328
+packages/webview/src/styles/DesktopApp.css
+  c8df0f85b58f7a52 36-38,51-57,195-198,873-954,1895-1900,1940-2018
+packages/webview/src/components/desktop/DesktopSidebarToggle.tsx
+  c8df0f85b58f7a52 2,54
+packages/webview/src/components/panels/PanelToggleControl.tsx
+  c8df0f85b58f7a52 2,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f0d68e02a8f3ea6657b5c665346d25d70ec990b0",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 280,
+      "total_deletions": 36,
+      "accepted_lines": 809,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        "docs/superpowers/prototypes/2026-09-30-issue-plan-exec-switch-demo.html": {
+          "accepted_lines": 396
+        },
+        "docs/superpowers/prototypes/2026-09-30-composer-meta-layers.html": {
+          "accepted_lines": 156
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopSidebarToggle.tsx": {
+          "additions": 2,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 181,
+          "deletions": 6,
+          "accepted_lines": 181
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 83,
+          "deletions": 19,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/components/panels/PanelToggleControl.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
