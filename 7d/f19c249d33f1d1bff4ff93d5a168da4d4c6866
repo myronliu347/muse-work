@@ -1,0 +1,178 @@
+packages/desktop/src/main/worktree.ts
+  98ab170ac30fbe53 5,37
+packages/agent/tests/utils/runtimeDeps.test.ts
+  98ab170ac30fbe53 461,470,542,627,642,669-693,745
+packages/desktop/src/main/fileSearch.ts
+  98ab170ac30fbe53 96
+packages/server/src/popo/chatStore.ts
+  98ab170ac30fbe53 20
+packages/server/src/services/museSystemPrompt.ts
+  98ab170ac30fbe53 5
+packages/desktop/src/main/workdirHost.ts
+  98ab170ac30fbe53 227-228
+packages/agent/src/types/plugins.ts
+  98ab170ac30fbe53 14
+packages/server/src/services/sessionStore.ts
+  98ab170ac30fbe53 15
+packages/webview/src/muse/hostBridge/desktop.ts
+  98ab170ac30fbe53 21
+packages/agent/src/utils/museEnv.ts
+  98ab170ac30fbe53 6,35
+packages/agent/src/types/configuration.ts
+  98ab170ac30fbe53 17
+packages/agent/src/utils/runtimeDeps.ts
+  98ab170ac30fbe53 21-22,62-64,377,421-433,437,444-449,554,562-565
+packages/webview/src/types/index.ts
+  98ab170ac30fbe53 131,133
+packages/agent/src/services/configurationService.ts
+  98ab170ac30fbe53 1201-1202,1270-1271
+packages/agent/tests/utils/gitUtils.test.ts
+  98ab170ac30fbe53 316,332,348-359
+packages/agent/src/utils/builtinEmbed.ts
+  98ab170ac30fbe53 17,37
+packages/agent/src/utils/gitUtils.ts
+  98ab170ac30fbe53 237-238,258-260
+packages/agent/tests/utils/builtinEmbed.test.ts
+  98ab170ac30fbe53 38,49
+packages/agent/src/utils/constants.ts
+  98ab170ac30fbe53 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7df19c249d33f1d1bff4ff93d5a168da4d4c6866",
+  "prompts": {
+    "98ab170ac30fbe53": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ee8df7cc-ab6d-4992-8876-7c579abcaa51",
+        "model": "grok-4.6"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 146,
+      "total_deletions": 71,
+      "accepted_lines": 113,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/utils/museEnv.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/runtimeDeps.ts": {
+          "additions": 36,
+          "deletions": 17,
+          "accepted_lines": 33
+        },
+        "packages/agent/tests/utils/gitUtils.test.ts": {
+          "additions": 18,
+          "deletions": 2,
+          "accepted_lines": 18
+        },
+        "packages/desktop/src/main/pickerPreload.ts": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/desktop/src/main/worktree.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/esbuild.config.mjs": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/webview/src/terminal-entry.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/src/popo/chatStore.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/museSystemPrompt.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/builtinEmbed.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionStore.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/constants.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/fileSearch.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/utils/builtinEmbed.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/desktop/src/main/preload.ts": {
+          "additions": 2,
+          "deletions": 2
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/types/configuration.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/types/plugins.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/utils/gitUtils.ts": {
+          "additions": 10,
+          "deletions": 8,
+          "accepted_lines": 5
+        },
+        "packages/agent/tests/utils/runtimeDeps.test.ts": {
+          "additions": 34,
+          "deletions": 9,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/index.tsx": {
+          "additions": 1,
+          "deletions": 1
+        },
+        "packages/server/src/services/waveAgentSettings.ts": {
+          "additions": 7,
+          "deletions": 7
+        }
+      }
+    }
+  }
+}
