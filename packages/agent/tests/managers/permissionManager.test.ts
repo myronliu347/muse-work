@@ -1969,7 +1969,6 @@ describe("PermissionManager", () => {
         "EnterPlanMode",
         "ExitPlanMode",
         "AskUserQuestion",
-        "Artifact",
       ]);
     });
   });

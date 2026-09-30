@@ -1,5 +1,0 @@
-{
-  "name": "review-plugin",
-  "description": "Adds a /review command for quick code reviews",
-  "version": "1.0.0"
-}

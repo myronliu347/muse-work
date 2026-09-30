@@ -6,13 +6,9 @@ import { writeTool } from "../tools/writeTool.js";
 import { exitPlanModeTool } from "../tools/exitPlanMode.js";
 import { enterPlanModeTool } from "../tools/enterPlanMode.js";
 import { askUserQuestionTool } from "../tools/askUserQuestion.js";
-import { cronCreateTool } from "../tools/cronCreateTool.js";
-import { cronDeleteTool } from "../tools/cronDeleteTool.js";
-import { cronListTool } from "../tools/cronListTool.js";
 import { webFetchTool } from "../tools/webFetchTool.js";
-import { artifactTool } from "../tools/artifactTool.js";
+import { workflowTool } from "../tools/workflowTool.js";
 import { execTool } from "../tools/execTool.js";
-import { isArtifactEnabled } from "../services/artifactAvailability.js";
 import { isExecEnabled } from "../services/execAvailability.js";
 import { buildExecPool, renderCatalog } from "../exec/catalog.js";
 import type { ExecPoolEntry, RenderedCatalog } from "../exec/catalog.js";
@@ -31,9 +27,6 @@ import {
   taskUpdateTool,
   taskListTool,
 } from "../tools/taskManagementTools.js";
-import { enterWorktreeTool } from "../tools/enterWorktreeTool.js";
-import { exitWorktreeTool } from "../tools/exitWorktreeTool.js";
-import { workflowTool } from "../tools/workflowTool.js";
 import { McpManager } from "./mcpManager.js";
 import { PermissionManager } from "./permissionManager.js";
 import { ChatCompletionFunctionTool } from "openai/resources.js";
@@ -135,25 +128,11 @@ class ToolManager {
       taskGetTool,
       taskUpdateTool,
       taskListTool,
-      cronCreateTool,
-      cronDeleteTool,
-      cronListTool,
       webFetchTool,
-      enterWorktreeTool,
-      exitWorktreeTool,
       workflowTool,
     ];
 
-    // Artifact is a feature-gated tool: not registered at all while the frame
-    // backend is not live, unless settings.json opts in via enableArtifact: true.
-    if (isArtifactEnabled(this.container.get<string>("Workdir"))) {
-      builtInTools.push(artifactTool);
-    }
-
-    // Exec is on by default; enableExec: false restores flat MCP declarations.
-    // Registration is decoupled from declaration: getToolsConfig() only declares
-    // it (and only then collapses the MCP pool) once MCP servers have connected
-    // and yielded a non-empty pool, which cannot be known until then.
+    // Exec is off by default (flat MCP tools). Opt in with enableExec: true.
     if (isExecEnabled(this.container.get<string>("Workdir"))) {
       builtInTools.push(execTool);
     }
@@ -174,14 +153,9 @@ class ToolManager {
 
   /**
    * Re-evaluate feature-gated built-in tools after a live configuration
-   * reload. Currently gates the Artifact tool on settings.json
-   * `enableArtifact` and the Exec tool on `enableExec`. Safe to call multiple
-   * times: gated tools are removed from the registry first, then
-   * initializeBuiltInTools() re-registers them only if still enabled (so
-   * toggling a flag off actually unregisters).
+   * reload. Gates the Exec tool on `enableExec`.
    */
   public reloadFeatureGatedTools(): void {
-    this.toolsRegistry.delete(artifactTool.name);
     this.toolsRegistry.delete(execTool.name);
     this.initializeBuiltInTools();
   }
@@ -282,11 +256,6 @@ class ToolManager {
         : undefined,
       skillManager: this.container.has("SkillManager")
         ? this.container.get<SkillManager>("SkillManager")
-        : undefined,
-      cronManager: this.container.has("CronManager")
-        ? this.container.get<import("./cronManager.js").CronManager>(
-            "CronManager",
-          )
         : undefined,
       aiManager: this.container.has("AIManager")
         ? this.container.get<import("./aiManager.js").AIManager>("AIManager")

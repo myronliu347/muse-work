@@ -7,6 +7,12 @@
  */
 
 import type { ToolContext, ToolResult } from "../tools/types.js";
+import TurndownService from "turndown";
+
+/** Convert HTML to markdown for WebFetch. */
+export function htmlToMarkdown(html: string): string {
+  return new TurndownService().turndown(html);
+}
 
 /** Human-readable byte size (e.g. "512B", "2.0KB", "1.5MB"). */
 export function formatSize(bytes: number): string {

@@ -46,7 +46,6 @@ import type { BackgroundTaskInfo, SessionCronInfo } from "../types/hooks.js";
 import type { PermissionManager } from "./permissionManager.js";
 import type { McpManager } from "./mcpManager.js";
 import type { SubagentManager } from "./subagentManager.js";
-import type { CronManager } from "./cronManager.js";
 import type { SkillManager } from "./skillManager.js";
 import type { LiveConfigManager } from "./liveConfigManager.js";
 import {
@@ -794,7 +793,7 @@ export class AIManager {
       logOTelEvent("compaction", {
         beforeTokens: String(messagesToCompact.length),
         afterTokens: "1",
-        model: compactModel,
+        model: compactModel ?? "",
       }).catch(() => {});
 
       // 11. Run SessionStart hooks (existing behavior)
@@ -1551,10 +1550,6 @@ ${question}`;
     return this.container.get<SubagentManager>("SubagentManager");
   }
 
-  private get cronManager(): CronManager | undefined {
-    return this.container.get<CronManager>("CronManager");
-  }
-
   private get skillManager(): SkillManager | undefined {
     return this.container.get<SkillManager>("SkillManager");
   }
@@ -1685,7 +1680,7 @@ ${question}`;
       let maxOutputTokensRecoveryCount = 0;
 
       inner: while (true) {
-        let llmSpan: import("@opentelemetry/api").Span | undefined;
+        let llmSpan: ReturnType<typeof startLLMRequestSpan>;
         try {
           // Save session in each iteration to ensure message persistence
           await this.messageManager.saveSession();
@@ -2373,14 +2368,7 @@ ${question}`;
           : undefined;
 
       const sessionCrons: SessionCronInfo[] | undefined =
-        hookName === "Stop"
-          ? (this.cronManager?.listJobs() ?? []).map((j) => ({
-              id: j.id,
-              schedule: j.cron,
-              recurring: j.recurring,
-              prompt: j.prompt,
-            }))
-          : undefined;
+        hookName === "Stop" ? [] : undefined;
 
       // Extract text content from the last assistant message so hooks can
       // inspect the final response without reading the transcript file.

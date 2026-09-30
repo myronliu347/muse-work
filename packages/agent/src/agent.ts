@@ -6,7 +6,6 @@ import { SubagentManager } from "./managers/subagentManager.js";
 import { McpManager } from "./managers/mcpManager.js";
 import { LspManager } from "./managers/lspManager.js";
 import { BashModeManager } from "./managers/bashModeManager.js";
-import { CronManager } from "./managers/cronManager.js";
 import { BackgroundTaskManager } from "./managers/backgroundTaskManager.js";
 import { MessageQueue, type QueuedMessage } from "./managers/messageQueue.js";
 import { SlashCommandManager } from "./managers/slashCommandManager.js";
@@ -74,7 +73,6 @@ export class Agent {
   private slashCommandManager: SlashCommandManager; // Add slash command manager instance
   private pluginManager: PluginManager; // Add plugin manager instance
   private skillManager: SkillManager; // Add skill manager instance
-  private cronManager: CronManager; // Add cron manager instance
   private hookManager: HookManager; // Add hooks manager instance
   private reversionManager: ReversionManager;
   private messageQueue: MessageQueue; // Unified queue for messages, bang commands, and notifications
@@ -252,7 +250,6 @@ export class Agent {
     this.slashCommandManager = this.container.get("SlashCommandManager")!;
     this.pluginManager = this.container.get("PluginManager")!;
     this.bashModeManager = this.container.get("BashModeManager")!;
-    this.cronManager = this.container.get("CronManager")!;
     this.messageQueue = this.container.get("MessageQueue")!;
     this.asyncWorkRegistry = this.container.get("AsyncWorkRegistry")!;
 
@@ -1055,7 +1052,6 @@ export class Agent {
     this.abortAIMessage(); // This will abort tools including Agent tool (subagents)
     this.abortBashCommand();
     this.abortSlashCommand();
-    this.cronManager.stop();
     // Cleanup background task manager
     this.backgroundTaskManager.cleanup();
     // Cleanup MCP connections

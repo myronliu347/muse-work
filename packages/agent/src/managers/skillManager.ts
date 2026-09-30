@@ -20,7 +20,6 @@ import {
   executeBashCommands,
 } from "../utils/markdownParser.js";
 import { getBuiltinSkillsDir } from "../utils/configPaths.js";
-import { isArtifactEnabled } from "../services/artifactAvailability.js";
 import { substitutePluginRoot, substituteSkillDir } from "../utils/museEnv.js";
 
 import { Container } from "../utils/container.js";
@@ -449,13 +448,7 @@ export class SkillManager extends EventEmitter {
    * is currently off. Mirrors ToolManager's gate for the Artifact tool so
    * the /artifact skill command stays in sync with enableArtifact.
    */
-  private isSkillGatedOff(metadata: SkillMetadata): boolean {
-    if (metadata.type !== "builtin") {
-      return false;
-    }
-    if (metadata.name === "artifact") {
-      return !isArtifactEnabled(this.workdir);
-    }
+  private isSkillGatedOff(_metadata: SkillMetadata): boolean {
     return false;
   }
 

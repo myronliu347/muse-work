@@ -9,7 +9,6 @@ export * from "./constants/tools.js";
 // Export main agent
 export * from "./agent.js";
 export * from "./core/plugin.js";
-export * from "./managers/cronManager.js";
 export * from "./managers/messageQueue.js";
 
 // Export all utilities

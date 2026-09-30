@@ -15,7 +15,6 @@ import { SkillManager } from "../managers/skillManager.js";
 import { SlashCommandManager } from "../managers/slashCommandManager.js";
 import { PluginManager } from "../managers/pluginManager.js";
 import { BashModeManager } from "../managers/bashModeManager.js";
-import { CronManager } from "../managers/cronManager.js";
 import { WorkflowManager } from "../managers/workflowManager.js";
 import { MemoryRuleManager } from "../managers/MemoryRuleManager.js";
 import { ReversionManager } from "../managers/reversionManager.js";
@@ -458,10 +457,6 @@ export function setupAgentContainer(
 
   const bashModeManager = new BashModeManager(container, { workdir });
   container.register("BashModeManager", bashModeManager);
-
-  const cronManager = new CronManager(container, messageManager.getSessionId());
-  container.register("CronManager", cronManager);
-  cronManager.start();
 
   const workflowManager = new WorkflowManager(container);
   container.register("WorkflowManager", workflowManager);

@@ -1406,7 +1406,7 @@ describe("AIManager", () => {
   });
 
   describe("Stop hook background_tasks and session_crons (User Story 17)", () => {
-    it("should inject background_tasks from BackgroundTaskManager and session_crons from CronManager into Stop hook context", async () => {
+    it("should inject background_tasks from BackgroundTaskManager and empty session_crons into Stop hook context", async () => {
       const taskManager = {
         on: vi.fn(),
         listTasks: vi.fn().mockResolvedValue([]),
@@ -1494,17 +1494,6 @@ describe("AIManager", () => {
             { subagentId: "sub-1", subagentType: "general-purpose" },
           ]),
       });
-      // CronManager: one job
-      container.register("CronManager", {
-        listJobs: vi.fn().mockReturnValue([
-          {
-            id: "cron-001",
-            cron: "0 9 * * 1-5",
-            recurring: true,
-            prompt: "check the build",
-          },
-        ]),
-      });
       container.register("SkillManager", {
         getAvailableSkills: vi.fn().mockReturnValue([]),
       });
@@ -1520,8 +1509,8 @@ describe("AIManager", () => {
       await testAIManager.sendAIMessage();
 
       // Stop hook should receive background_tasks with 3 running tasks
-      // (completed task filtered out), with per-type conditional fields,
-      // and session_crons with 1 cron job.
+      // (completed task filtered out), with per-type conditional fields.
+      // Cron tools were removed; session_crons is always empty.
       expect(mockHookManager.executeHooks).toHaveBeenCalledWith(
         "Stop",
         expect.objectContaining({
@@ -1549,14 +1538,7 @@ describe("AIManager", () => {
               name: "audit",
             },
           ],
-          sessionCrons: [
-            {
-              id: "cron-001",
-              schedule: "0 9 * * 1-5",
-              recurring: true,
-              prompt: "check the build",
-            },
-          ],
+          sessionCrons: [],
         }),
       );
     });
@@ -1616,7 +1598,7 @@ describe("AIManager", () => {
         getConfigurations: vi.fn().mockReturnValue([]),
         getActiveInstances: vi.fn().mockReturnValue([]),
       });
-      // No CronManager registered → cronManager getter returns undefined
+      // Cron tools were removed; session_crons is always empty.
       container.register("SkillManager", {
         getAvailableSkills: vi.fn().mockReturnValue([]),
       });

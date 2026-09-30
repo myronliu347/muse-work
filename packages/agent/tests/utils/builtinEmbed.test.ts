@@ -17,9 +17,8 @@ vi.mock("fs", async () => {
 
 vi.mock("../../src/builtin/index.js", () => ({
   BUILTIN_CONTENT: {
-    "skills/loop/SKILL.md": "loop content",
+    "skills/init/SKILL.md": "init content",
     "subagents/bash.md": "bash content",
-    "plugins/sdd/plugin.json": "plugin content",
   },
 }));
 
@@ -58,11 +57,7 @@ describe("builtinEmbed", () => {
       expectedDir,
       expect.objectContaining({ recursive: true, mode: 0o700 }),
     );
-    for (const rel of [
-      "skills/loop/SKILL.md",
-      "subagents/bash.md",
-      "plugins/sdd/plugin.json",
-    ]) {
+    for (const rel of ["skills/init/SKILL.md", "subagents/bash.md"]) {
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         join(expectedDir, rel),
         expect.any(String),
@@ -70,7 +65,7 @@ describe("builtinEmbed", () => {
     }
     // Nested dirs are created before their files.
     expect(fs.mkdirSync).toHaveBeenCalledWith(
-      join(expectedDir, "skills/loop"),
+      join(expectedDir, "skills/init"),
       expect.any(Object),
     );
   });

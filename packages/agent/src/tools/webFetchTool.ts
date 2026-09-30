@@ -2,16 +2,9 @@ import { LRUCache } from "lru-cache";
 import { WEB_FETCH_TOOL_NAME } from "../constants/tools.js";
 import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
 import { logger } from "../utils/globalLogger.js";
-import { isArtifactEnabled } from "../services/artifactAvailability.js";
-import { recordVersion } from "../services/artifactSession.js";
-import {
-  extractArtifactSlug,
-  htmlToMarkdown,
-  readArtifactContent,
-  summarizeArtifactAsReader,
-} from "../services/artifactContent.js";
 import {
   formatSize,
+  htmlToMarkdown,
   processContentWithAI,
 } from "../services/contentSummarizer.js";
 
@@ -175,35 +168,6 @@ Usage notes:
         content: "",
         error: validation.error,
       };
-    }
-
-    // Artifact URL interception: {host}/code/artifact/{slug} goes through the
-    // dedicated read channel (via=model_read + Bearer) instead of a public fetch.
-    // Only when the Artifact tool is enabled (spec 6.4: disabled = no interception).
-    if (isArtifactEnabled(context.workdir)) {
-      const artifactSlug = extractArtifactSlug(url);
-      if (artifactSlug) {
-        const readResult = await readArtifactContent(artifactSlug, {
-          url,
-          abortSignal: context.abortSignal,
-        });
-        if (readResult.kind === "error") {
-          return { success: false, content: "", error: readResult.error };
-        }
-        const { slug, version } = readResult.artifact;
-        if (context.sessionId && version) {
-          // Keep the stale-version guard in sync with what the model has seen.
-          recordVersion(context.sessionId, slug, version);
-        }
-        const result = await summarizeArtifactAsReader(
-          url,
-          prompt,
-          readResult.artifact,
-          context,
-        );
-        result.metadata = { artifactRead: { slug, ver: version } };
-        return result;
-      }
     }
 
     try {

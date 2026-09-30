@@ -1,8 +1,0 @@
-{
-  "name": "plugin-agent-demo",
-  "description": "Demo plugin with agent definitions using MUSE_PLUGIN_ROOT",
-  "version": "1.0.0",
-  "author": {
-    "name": "wave-agent"
-  }
-}

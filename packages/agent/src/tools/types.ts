@@ -120,8 +120,6 @@ export interface ToolContext {
   subagentManager?: import("../managers/subagentManager.js").SubagentManager;
   /** Skill manager instance for skill invocation */
   skillManager?: import("../managers/skillManager.js").SkillManager;
-  /** Cron manager instance for scheduling tasks */
-  cronManager?: import("../managers/cronManager.js").CronManager;
   /** AI manager instance for AI operations */
   aiManager?: import("../managers/aiManager.js").AIManager;
   /** AI service instance for AI operations */
