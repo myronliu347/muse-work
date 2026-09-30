@@ -1,0 +1,146 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  getUserConfigPath,
+  getProjectConfigPath,
+  getUserConfigPaths,
+  getProjectConfigPaths,
+  getAllConfigPaths,
+  getExistingConfigPaths,
+  getFirstExistingPath,
+  getEffectiveConfigPaths,
+  hasAnyConfig,
+  getConfigurationInfo,
+  getPluginsDir,
+  getBuiltinSkillsDir,
+  getBuiltinSubagentsDir,
+  getBuiltinPluginsDir,
+} from "../../src/utils/configPaths.js";
+import { join } from "path";
+import { homedir } from "os";
+import * as fs from "fs";
+
+vi.mock("../../src/utils/builtinEmbed.js", () => ({
+  ensureBuiltinMaterialized: () => "/fake-builtin-root",
+}));
+
+vi.mock("fs", async () => {
+  const actual = await vi.importActual<typeof import("fs")>("fs");
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+  };
+});
+
+describe("configPaths", () => {
+  const workdir = "/test/workdir";
+  const home = homedir();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("getUserConfigPath returns correct path", () => {
+    expect(getUserConfigPath()).toBe(join(home, ".wave", "settings.json"));
+  });
+
+  it("getProjectConfigPath returns correct path", () => {
+    expect(getProjectConfigPath(workdir)).toBe(
+      join(workdir, ".wave", "settings.json"),
+    );
+  });
+
+  it("getUserConfigPaths returns priority paths", () => {
+    const paths = getUserConfigPaths();
+    expect(paths).toEqual([join(home, ".wave", "settings.json")]);
+  });
+
+  it("getProjectConfigPaths returns priority paths", () => {
+    const paths = getProjectConfigPaths(workdir);
+    expect(paths).toEqual([
+      join(workdir, ".wave", "settings.local.json"),
+      join(workdir, ".wave", "settings.json"),
+    ]);
+  });
+
+  it("getPluginsDir returns correct path", () => {
+    expect(getPluginsDir()).toBe(join(home, ".wave", "plugins"));
+  });
+
+  it("builtin dir getters point into the materialized cache", () => {
+    expect(getBuiltinSkillsDir()).toBe(join("/fake-builtin-root", "skills"));
+    expect(getBuiltinSubagentsDir()).toBe(
+      join("/fake-builtin-root", "subagents"),
+    );
+    expect(getBuiltinPluginsDir()).toBe(join("/fake-builtin-root", "plugins"));
+  });
+
+  it("getAllConfigPaths returns all paths", () => {
+    const result = getAllConfigPaths(workdir);
+    expect(result.userPaths).toEqual(getUserConfigPaths());
+    expect(result.projectPaths).toEqual(getProjectConfigPaths(workdir));
+    expect(result.builtinPaths).toBeDefined();
+    expect(result.allPaths).toHaveLength(4);
+  });
+
+  it("getExistingConfigPaths filters existing paths", () => {
+    const userJson = join(home, ".wave", "settings.json");
+    const projectJson = join(workdir, ".wave", "settings.json");
+
+    vi.mocked(fs.existsSync).mockImplementation((path) => {
+      return path === userJson || path === projectJson;
+    });
+
+    const result = getExistingConfigPaths(workdir);
+    expect(result.userPaths).toEqual([userJson]);
+    expect(result.projectPaths).toEqual([projectJson]);
+    expect(result.existingPaths).toEqual([userJson, projectJson]);
+  });
+
+  it("getFirstExistingPath returns first match", () => {
+    const paths = ["path1", "path2", "path3"];
+    vi.mocked(fs.existsSync).mockImplementation((path) => path === "path2");
+
+    expect(getFirstExistingPath(paths)).toBe("path2");
+
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    expect(getFirstExistingPath(paths)).toBeUndefined();
+  });
+
+  it("getEffectiveConfigPaths handles precedence", () => {
+    const userJson = join(home, ".wave", "settings.json");
+    const localConfigPath = join(workdir, ".wave", "settings.local.json");
+
+    // Both exist
+    vi.mocked(fs.existsSync).mockImplementation((path) => {
+      return path === userJson || path === localConfigPath;
+    });
+
+    let result = getEffectiveConfigPaths(workdir);
+    expect(result.userPath).toBe(userJson);
+    expect(result.projectPath).toBe(localConfigPath);
+    expect(result.effectivePath).toBe(localConfigPath); // Project takes precedence
+
+    // Only user exists
+    vi.mocked(fs.existsSync).mockImplementation((path) => path === userJson);
+    result = getEffectiveConfigPaths(workdir);
+    expect(result.userPath).toBe(userJson);
+    expect(result.projectPath).toBeUndefined();
+    expect(result.effectivePath).toBe(userJson);
+  });
+
+  it("hasAnyConfig returns true if any config exists", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    expect(hasAnyConfig(workdir)).toBe(true);
+
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    expect(hasAnyConfig(workdir)).toBe(false);
+  });
+
+  it("getConfigurationInfo returns comprehensive info", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    const info = getConfigurationInfo(workdir);
+    expect(info.hasUser).toBe(false);
+    expect(info.hasProject).toBe(false);
+    expect(info.paths).toEqual(getAllConfigPaths(workdir).allPaths);
+  });
+});

@@ -1,0 +1,414 @@
+import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
+import { spawn } from "child_process";
+import { getRgPath } from "../utils/ripgrep.js";
+import { ensureRuntimeDeps } from "../utils/runtimeDeps.js";
+import { getDisplayPath } from "../utils/path.js";
+import { logger } from "../utils/globalLogger.js";
+import {
+  GREP_TOOL_NAME,
+  BASH_TOOL_NAME,
+  AGENT_TOOL_NAME,
+} from "../constants/tools.js";
+
+// Version control system directories to exclude from searches.
+// These are excluded automatically because they create noise in search results.
+// Mirrors Claude Code's VCS_DIRECTORIES_TO_EXCLUDE.
+const VCS_DIRECTORIES_TO_EXCLUDE = [
+  ".git",
+  ".svn",
+  ".hg",
+  ".bzr",
+  ".jj",
+  ".sl",
+] as const;
+
+/**
+ * Grep tool plugin - powerful search tool based on ripgrep
+ */
+export const grepTool: ToolPlugin = {
+  name: GREP_TOOL_NAME,
+  config: {
+    type: "function",
+    function: {
+      name: GREP_TOOL_NAME,
+      description: "A powerful search tool built on ripgrep",
+      parameters: {
+        type: "object",
+        properties: {
+          pattern: {
+            type: "string",
+            description:
+              "The regular expression pattern to search for in file contents",
+          },
+          path: {
+            type: "string",
+            description:
+              "File or directory to search in (rg PATH). Defaults to current working directory.",
+          },
+          glob: {
+            type: "string",
+            description:
+              'Glob pattern to filter files (e.g. "*.js", "*.{ts,tsx}") - maps to rg --glob',
+          },
+          output_mode: {
+            type: "string",
+            enum: ["content", "files_with_matches", "count"],
+            description:
+              'Output mode: "content" shows matching lines (supports -A/-B/-C context, -n line numbers, head_limit), "files_with_matches" shows file paths (supports head_limit), "count" shows match counts (supports head_limit). Defaults to "files_with_matches".',
+          },
+          "-B": {
+            type: "number",
+            description:
+              'Number of lines to show before each match (rg -B). Requires output_mode: "content", ignored otherwise.',
+          },
+          "-A": {
+            type: "number",
+            description:
+              'Number of lines to show after each match (rg -A). Requires output_mode: "content", ignored otherwise.',
+          },
+          "-C": {
+            type: "number",
+            description:
+              'Number of lines to show before and after each match (rg -C). Requires output_mode: "content", ignored otherwise.',
+          },
+          "-n": {
+            type: "boolean",
+            description:
+              'Show line numbers in output (rg -n). Requires output_mode: "content", ignored otherwise. Defaults to true.',
+          },
+          "-i": {
+            type: "boolean",
+            description: "Case insensitive search (rg -i)",
+          },
+          type: {
+            type: "string",
+            description:
+              "File type to search (rg --type). Common types: js, py, rust, go, java, etc. More efficient than include for standard file types.",
+          },
+          head_limit: {
+            type: "number",
+            description:
+              'Limit output to first N lines/entries, equivalent to "| head -N". Works across all output modes: content (limits output lines), files_with_matches (limits file paths), count (limits count entries). Defaults to 0 (unlimited).',
+          },
+          multiline: {
+            type: "boolean",
+            description:
+              "Enable multiline mode where . matches newlines and patterns can span lines (rg -U --multiline-dotall). Default: false.",
+          },
+          offset: {
+            type: "number",
+            description: "The number of matches to skip.",
+          },
+          context: {
+            type: "number",
+            description:
+              'Alias for -C. Number of lines to show before and after each match. Requires output_mode: "content", ignored otherwise.',
+          },
+        },
+        required: ["pattern"],
+      },
+    },
+  },
+  prompt: () => `A powerful search tool built on ripgrep
+
+  Usage:
+  - ALWAYS use ${GREP_TOOL_NAME} for search tasks. NEVER invoke \`grep\` or \`rg\` as a ${BASH_TOOL_NAME} command. The ${GREP_TOOL_NAME} tool has been optimized for correct permissions and access.
+  - Supports full regex syntax (e.g., "log.*Error", "function\\s+\\w+")
+  - Filter files with glob parameter (e.g., "*.js", "**/*.tsx") or type parameter (e.g., "js", "py", "rust")
+  - Output modes: "content" shows matching lines, "files_with_matches" shows only file paths (default), "count" shows match counts
+  - Use ${AGENT_TOOL_NAME} tool for open-ended searches requiring multiple rounds
+  - Pattern syntax: Uses ripgrep (not grep) - literal braces need escaping (use \`interface\\{\\}\` to find \`interface{}\` in Go code)
+  - Multiline matching: By default patterns match within single lines only. For cross-line patterns like \`struct \\{[\\s\\S]*?field\`, use \`multiline: true\`
+`,
+  execute: async (
+    args: Record<string, unknown>,
+    context: ToolContext,
+  ): Promise<ToolResult> => {
+    const pattern = args.pattern as string;
+    const searchPath = args.path as string;
+    const globPattern = args.glob as string;
+    const outputMode = (args.output_mode as string) || "files_with_matches";
+    const contextBefore = args["-B"] as number;
+    const contextAfter = args["-A"] as number;
+    const contextAround = args["-C"] as number;
+    const showLineNumbers = args["-n"] !== false;
+    const caseInsensitive = args["-i"] as boolean;
+    const fileType = args.type as string;
+    const headLimit = args.head_limit as number;
+    const multiline = args.multiline as boolean;
+    const offset = args.offset as number;
+    const contextArg = args.context as number;
+
+    if (!pattern || typeof pattern !== "string") {
+      return {
+        success: false,
+        content: "",
+        error: "pattern parameter is required and must be a string",
+      };
+    }
+
+    // Resolved per call, not at import time: the CLI installs this dependency
+    // itself, possibly after the module graph has been evaluated.
+    const rgPath = getRgPath();
+    if (!rgPath) {
+      // Cover the entry points that do not await the installer at startup.
+      void ensureRuntimeDeps();
+      return {
+        success: false,
+        content: "",
+        error:
+          "ripgrep is not available. Please install @vscode/ripgrep package.",
+      };
+    }
+
+    try {
+      const workdir = context.workdir;
+
+      // If the session cwd was auto-recovered (e.g. the previous worktree
+      // directory was removed manually via `git worktree remove`), surface
+      // the notice in this tool's result so the model is aware of the switch.
+      const cwdRecovery = context.aiManager?.consumeCwdRecovery?.();
+      const recoveryNotice = cwdRecovery
+        ? `Note: working directory ${cwdRecovery.from} no longer exists; session working directory recovered to ${cwdRecovery.to}.\n`
+        : "";
+      const rgArgs: string[] = [
+        "--color=never",
+        "--max-columns=500",
+        // Search hidden files/directories by default (aligns with Claude Code).
+        // --hidden does NOT disable .gitignore; only --no-ignore would.
+        "--hidden",
+      ];
+
+      // Exclude VCS directories to avoid noise from version control metadata.
+      // --hidden above would otherwise traverse .git/.svn/etc.
+      for (const dir of VCS_DIRECTORIES_TO_EXCLUDE) {
+        rgArgs.push("--glob", `!${dir}`);
+      }
+
+      // Set output mode
+      if (outputMode === "files_with_matches") {
+        rgArgs.push("-l");
+      } else if (outputMode === "count") {
+        rgArgs.push("-c");
+      }
+      // content mode is default, no special parameters needed
+
+      // Add line numbers (only effective in content mode)
+      if (showLineNumbers && outputMode === "content") {
+        rgArgs.push("-n");
+      }
+
+      // Add file names (in content mode)
+      if (outputMode === "content") {
+        rgArgs.push("-H");
+      }
+
+      // Case insensitive
+      if (caseInsensitive) {
+        rgArgs.push("-i");
+      }
+
+      // Multiline mode
+      if (multiline) {
+        rgArgs.push("-U", "--multiline-dotall");
+      }
+
+      // Context lines (only effective in content mode)
+      if (outputMode === "content") {
+        const effectiveContext = contextArg ?? contextAround;
+        if (effectiveContext) {
+          rgArgs.push("-C", effectiveContext.toString());
+        } else {
+          if (contextBefore) {
+            rgArgs.push("-B", contextBefore.toString());
+          }
+          if (contextAfter) {
+            rgArgs.push("-A", contextAfter.toString());
+          }
+        }
+      }
+
+      // File type filtering
+      if (fileType) {
+        rgArgs.push("--type", fileType);
+      }
+
+      // Glob pattern filtering
+      if (globPattern) {
+        rgArgs.push("--glob", globPattern);
+      }
+
+      // Add search pattern - use -e parameter to avoid patterns starting with - being mistaken as command line options
+      rgArgs.push("-e", pattern);
+
+      // Add search path
+      if (searchPath) {
+        rgArgs.push(searchPath);
+      } else {
+        rgArgs.push(".");
+      }
+
+      const result = await executeCommand(rgPath, rgArgs, workdir);
+
+      // Only a process-level spawn failure (exitCode null) is a hard error.
+      // rg exit 2 means some files were unreadable (e.g. device-name files
+      // like "nul" on Windows); stdout still holds usable partial results.
+      if (result.exitCode === null) {
+        return {
+          success: false,
+          content: "",
+          error: `${recoveryNotice}ripgrep failed: ${result.stderr}`.trim(),
+        };
+      }
+
+      if (result.exitCode !== 0 && result.exitCode !== 1) {
+        logger.debug(
+          `ripgrep exited with code ${result.exitCode}, keeping partial results: ${result.stderr.trim()}`,
+        );
+      }
+
+      const output = result.stdout.trim();
+      if (!output) {
+        return {
+          success: true,
+          content:
+            recoveryNotice +
+            "No matches found. Suggestion: specify the 'path' field to search in ignored or other directories (e.g., 'node_modules'), as the default search path is the current working directory and respects .gitignore.",
+          shortResult: "No matches found",
+          metadata: {
+            numMatches: 0,
+          },
+        };
+      }
+
+      let lines = output.split("\n");
+      const totalMatches = lines.length;
+
+      // Apply offset
+      const effectiveOffset = offset || 0;
+      if (effectiveOffset > 0) {
+        lines = lines.slice(effectiveOffset);
+      }
+
+      // Apply head_limit
+      const effectiveHeadLimit = headLimit || 0;
+      let truncated = false;
+      if (effectiveHeadLimit > 0 && lines.length > effectiveHeadLimit) {
+        lines = lines.slice(0, effectiveHeadLimit);
+        truncated = true;
+      }
+
+      const finalOutput = lines.join("\n");
+
+      // Generate short result
+      let shortResult: string;
+      const numMatches = lines.length;
+
+      if (outputMode === "files_with_matches") {
+        shortResult = `Found ${numMatches} file${numMatches === 1 ? "" : "s"}`;
+      } else if (outputMode === "count") {
+        shortResult = `Match counts for ${numMatches} file${numMatches === 1 ? "" : "s"}`;
+      } else {
+        shortResult = `Found ${numMatches} matching line${numMatches === 1 ? "" : "s"}`;
+      }
+
+      if (effectiveOffset > 0 || truncated) {
+        shortResult += ` (showing ${numMatches} of ${totalMatches})`;
+      }
+
+      return {
+        success: true,
+        content: recoveryNotice + finalOutput,
+        shortResult,
+        metadata: {
+          numMatches: totalMatches,
+          truncated,
+          appliedLimit: effectiveHeadLimit,
+          appliedOffset: effectiveOffset,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        content: "",
+        error: `Search failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  },
+  formatCompactParams: (
+    params: Record<string, unknown>,
+    context: ToolContext,
+  ) => {
+    const pattern = params.pattern as string;
+    const outputMode = params.output_mode as string;
+    const fileType = params.type as string;
+    const path = params.path as string;
+
+    let result = pattern || "";
+
+    if (fileType) {
+      result += ` ${fileType}`;
+    }
+
+    if (path) {
+      const displayPath = getDisplayPath(path, context.workdir);
+      result += ` in ${displayPath}`;
+    }
+
+    if (outputMode && outputMode !== "files_with_matches") {
+      result += ` [${outputMode}]`;
+    }
+
+    return result;
+  },
+};
+
+/**
+ * Execute command and return result
+ */
+function executeCommand(
+  command: string,
+  args: string[],
+  cwd: string,
+): Promise<{
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  error: boolean;
+}> {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("close", (code) => {
+      resolve({
+        stdout,
+        stderr,
+        exitCode: code,
+        error: code !== 0 && code !== 1, // rg returns 1 for no matches, not an error
+      });
+    });
+
+    child.on("error", (err) => {
+      resolve({
+        stdout,
+        stderr: err.message,
+        exitCode: null,
+        error: true,
+      });
+    });
+  });
+}

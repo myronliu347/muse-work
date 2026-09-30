@@ -5,7 +5,7 @@ import {
   AGENT_TOOL_NAME,
   ENTER_WORKTREE_TOOL_NAME,
   type Message,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import { elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Multi Agent Concurrency", () => {

@@ -16,7 +16,7 @@ import {
   ASK_USER_QUESTION_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
   AGENT_TOOL_NAME,
-} from "wave-agent-sdk/dist/constants/tools.js";
+} from "@muse-work/agent/constants";
 import type {
   Message as MessageType,
   MessageProps,

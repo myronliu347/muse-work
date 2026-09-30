@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { loadSessionFromJsonl } from "wave-agent-sdk";
-import type { SessionData } from "wave-agent-sdk";
+import { loadSessionFromJsonl } from "@muse-work/agent";
+import type { SessionData } from "@muse-work/agent";
 import type { PopoRuntime } from "./setup.js";
 
 export type PopoRoutesOptions = {

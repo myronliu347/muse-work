@@ -1,0 +1,454 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { DEFAULT_SYSTEM_PROMPT, buildSystemPrompt } from "@/prompts/index.js";
+import type { CallAgentOptions } from "@/services/aiService.js";
+import type { GatewayConfig, ModelConfig } from "@/types/index.js";
+import { DEFAULT_WAVE_MAX_OUTPUT_TOKENS } from "@/utils/constants.js";
+
+// Test configuration constants
+const TEST_GATEWAY_CONFIG: GatewayConfig = {
+  apiKey: "test-api-key",
+  baseURL: "http://localhost:test",
+};
+
+const TEST_MODEL_CONFIG: ModelConfig = {
+  model: "gemini-3-flash",
+  fastModel: "gemini-2.5-flash",
+};
+
+// Mock the OpenAI client
+const mockCreate = vi.fn();
+const mockOpenAI = {
+  chat: {
+    completions: {
+      create: mockCreate,
+    },
+  },
+};
+
+// Mock OpenAI constructor
+vi.mock("@/utils/openaiClient.js", () => ({
+  OpenAIClient: vi.fn().mockImplementation(function () {
+    return mockOpenAI;
+  }),
+}));
+
+// Mock constants
+vi.mock("@/utils/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/utils/constants.js")>();
+  return { ...actual, AGENT_MODEL_ID: "gpt-4o" };
+});
+
+// Mock environment variables
+vi.mock("process", () => ({
+  env: {
+    WAVE_API_KEY: "test-token",
+    WAVE_BASE_URL: "https://test-url.com",
+  },
+  cwd: () => "/test/cwd",
+}));
+
+describe("AI Service - Basic CallAgent", () => {
+  beforeEach(() => {
+    // Reset mock and set default behavior
+    mockCreate.mockReset();
+    // Mock withResponse() method
+    const mockWithResponse = vi.fn().mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: "Test response",
+            },
+            finish_reason: "stop",
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          total_tokens: 30,
+        },
+      },
+      response: {
+        headers: new Map([
+          ["x-request-id", "req-12345"],
+          ["content-type", "application/json"],
+        ]),
+      },
+    });
+    mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Helper function to get content from system message (handles both string and array formats)
+  const getSystemMessageContent = (
+    content: string | Array<{ type: string; text?: string }>,
+  ): string => {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (Array.isArray(content)) {
+      return content.map((part) => part.text || "").join("");
+    }
+    return "";
+  };
+
+  describe("callAgent basic functionality", () => {
+    // Import the function after mocking
+    let callAgent: (
+      options: CallAgentOptions,
+    ) => Promise<import("@/services/aiService.js").CallAgentResult>;
+
+    beforeEach(async () => {
+      const aiService = await import("@/services/aiService.js");
+      callAgent = aiService.callAgent;
+    });
+
+    it("should use empty system prompt when no custom systemPrompt provided", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+
+      // Should have system message as first message
+      expect(callArgs.messages[0].role).toBe("system");
+      const systemContent = getSystemMessageContent(
+        callArgs.messages[0].content,
+      );
+      expect(systemContent).toBe("");
+    });
+
+    it("should use custom systemPrompt when provided", async () => {
+      const customPrompt =
+        "You are a custom AI assistant with special capabilities.";
+
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+        systemPrompt: customPrompt,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+
+      // Should have custom system message as first message
+      expect(callArgs.messages[0].role).toBe("system");
+      const systemContent = getSystemMessageContent(
+        callArgs.messages[0].content,
+      );
+      expect(systemContent).toContain(customPrompt);
+      // Should not contain default prompt content
+      expect(systemContent).not.toContain("You are an interactive CLI tool");
+    });
+
+    it("should use provided system prompt without memory (moved to messages array)", async () => {
+      const systemPrompt = buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, [], {});
+
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+        systemPrompt,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+
+      // System prompt should not contain memory context (now injected as messages)
+      expect(callArgs.messages[0].role).toBe("system");
+      const systemContent = getSystemMessageContent(
+        callArgs.messages[0].content,
+      );
+      expect(systemContent).not.toContain("## Memory Context");
+    });
+
+    it("should handle response with usage information", async () => {
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response");
+      expect(result.usage).toEqual({
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      });
+    });
+
+    it("should handle response without usage information", async () => {
+      const mockWithResponse = vi.fn().mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: "Test response without usage",
+              },
+              finish_reason: "length",
+            },
+          ],
+        },
+        response: {
+          headers: new Map([["x-request-id", "req-67890"]]),
+        },
+      });
+      mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response without usage");
+      expect(result.usage).toBeUndefined();
+      expect(result.finish_reason).toBe("length");
+      expect(result.response_headers).toEqual({
+        "x-request-id": "req-67890",
+      });
+    });
+
+    it("should include finish_reason and response_headers in result", async () => {
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response");
+      expect(result.finish_reason).toBe("stop");
+      expect(result.response_headers).toEqual({
+        "x-request-id": "req-12345",
+        "content-type": "application/json",
+      });
+      expect(result.usage).toEqual({
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      });
+    });
+
+    it("should pass default max_tokens when no override is given", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.max_tokens).toBe(DEFAULT_WAVE_MAX_OUTPUT_TOKENS);
+    });
+
+    it("should prioritize maxTokens from callAgent options over the default", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+        maxTokens: 5678,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.max_tokens).toBe(5678);
+    });
+
+    it("should let modelConfig.options.max_tokens override the resolved max_tokens", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: {
+          ...TEST_MODEL_CONFIG,
+          options: { max_tokens: 2048 },
+        },
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.max_tokens).toBe(2048);
+    });
+
+    it("should handle different finish_reason values", async () => {
+      const mockWithResponse = vi.fn().mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_123",
+                    type: "function",
+                    function: {
+                      name: "test_tool",
+                      arguments: '{"arg": "value"}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+        },
+        response: {
+          headers: new Map([["x-request-id", "req-tool-call"]]),
+        },
+      });
+      mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.finish_reason).toBe("tool_calls");
+      expect(result.tool_calls).toHaveLength(1);
+      expect(result.tool_calls?.[0].type).toBe("function");
+      if (result.tool_calls?.[0].type === "function") {
+        expect(result.tool_calls[0].function.name).toBe("test_tool");
+      }
+    });
+
+    it("should handle response with empty headers", async () => {
+      const mockWithResponse = vi.fn().mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: "Test response",
+              },
+              finish_reason: "stop",
+            },
+          ],
+        },
+        response: {
+          headers: new Map(),
+        },
+      });
+      mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response");
+      expect(result.finish_reason).toBe("stop");
+      expect(result.response_headers).toBeUndefined();
+    });
+
+    it("should pass generic model configuration parameters to OpenAI", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: {
+          ...TEST_MODEL_CONFIG,
+          options: {
+            temperature: 0.7,
+            reasoning_effort: "high",
+            thinking: { type: "enabled", budget_tokens: 1024 },
+          },
+        },
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.temperature).toBe(0.7);
+      expect(callArgs.reasoning_effort).toBe("high");
+      expect(callArgs.thinking).toEqual({
+        type: "enabled",
+        budget_tokens: 1024,
+      });
+    });
+
+    it("should remove parameters set to null in modelConfig", async () => {
+      await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: {
+          ...TEST_MODEL_CONFIG,
+          options: { temperature: null as unknown as number },
+        },
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs).not.toHaveProperty("temperature");
+    });
+
+    it("should include reasoning_content in result even if it is an empty string", async () => {
+      const mockWithResponse = vi.fn().mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: "Test response",
+                reasoning_content: "",
+              },
+              finish_reason: "stop",
+            },
+          ],
+        },
+        response: {
+          headers: new Map(),
+        },
+      });
+      mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response");
+      expect(result.reasoning_content).toBe("");
+    });
+
+    it("should NOT include reasoning_content in result if it is undefined", async () => {
+      const mockWithResponse = vi.fn().mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: "Test response",
+                // reasoning_content is absent
+              },
+              finish_reason: "stop",
+            },
+          ],
+        },
+        response: {
+          headers: new Map(),
+        },
+      });
+      mockCreate.mockReturnValue({ withResponse: mockWithResponse });
+
+      const result = await callAgent({
+        gatewayConfig: TEST_GATEWAY_CONFIG,
+        modelConfig: TEST_MODEL_CONFIG,
+        messages: [{ role: "user", content: "Test message" }],
+        workdir: "/test/workdir",
+      });
+
+      expect(result.content).toBe("Test response");
+      expect(result).not.toHaveProperty("reasoning_content");
+    });
+  });
+});

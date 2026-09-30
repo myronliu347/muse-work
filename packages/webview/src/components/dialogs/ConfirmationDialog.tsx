@@ -6,7 +6,7 @@ import {
   EXIT_PLAN_MODE_TOOL_NAME,
   EDIT_TOOL_NAME,
   WRITE_TOOL_NAME,
-} from "wave-agent-sdk/dist/constants/tools.js";
+} from "@muse-work/agent/constants";
 import type {
   ConfirmationDialogProps,
   ConfirmationDecision,

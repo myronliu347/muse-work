@@ -1,0 +1,1089 @@
+import { randomUUID } from "crypto";
+import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
+import type { SubagentConfiguration } from "../utils/subagentParser.js";
+import type { Message, Usage } from "../types/index.js";
+import { AIManager } from "./aiManager.js";
+import { MessageManager } from "./messageManager.js";
+import { ToolManager } from "./toolManager.js";
+import {
+  AGENT_TOOL_NAME,
+  TASK_CREATE_TOOL_NAME,
+  TASK_GET_TOOL_NAME,
+  TASK_LIST_TOOL_NAME,
+  TASK_UPDATE_TOOL_NAME,
+} from "../constants/tools.js";
+import {
+  addConsolidatedAbortListener,
+  createAbortPromise,
+} from "../utils/abortUtils.js";
+import { BackgroundTaskManager } from "./backgroundTaskManager.js";
+import { MessageQueue } from "./messageQueue.js";
+import { logger } from "../utils/globalLogger.js";
+import {
+  UserMessageParams,
+  type ToolBlockUpdateCallbackParams,
+} from "../utils/messageOperations.js";
+
+import { Container } from "../utils/container.js";
+import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
+import type { PermissionManager } from "./permissionManager.js";
+import type { PermissionMode } from "../types/permissions.js";
+import { ConfigurationService } from "../services/configurationService.js";
+
+export interface SubagentManagerCallbacks {
+  // Granular subagent message callbacks (009-subagent)
+  /** Triggered when subagent adds user message */
+  onSubagentUserMessageAdded?: (
+    subagentId: string,
+    params: UserMessageParams,
+  ) => void;
+  /** Triggered when subagent creates assistant message */
+  onSubagentAssistantMessageAdded?: (
+    subagentId: string,
+    messageId: string,
+  ) => void;
+  /** Triggered during subagent content streaming updates */
+  onSubagentAssistantContentUpdated?: (params: {
+    subagentId: string;
+    messageId: string;
+    chunk: string;
+    stage: "streaming" | "end";
+  }) => void;
+  /** Triggered during subagent reasoning streaming updates */
+  onSubagentAssistantReasoningUpdated?: (params: {
+    subagentId: string;
+    messageId: string;
+    chunk: string;
+    stage: "streaming" | "end";
+  }) => void;
+  /** Triggered when subagent tool block is updated */
+  onSubagentToolBlockUpdated?: (
+    subagentId: string,
+    params: ToolBlockUpdateCallbackParams,
+  ) => void;
+  /** Triggered when subagent messages change */
+  onSubagentMessagesChange?: (subagentId: string, messages: Message[]) => void;
+  /** Triggered when subagent latest total tokens change */
+  onSubagentLatestTotalTokensChange?: (
+    subagentId: string,
+    tokens: number,
+  ) => void;
+}
+
+export interface SubagentInstance {
+  subagentId: string;
+  configuration: SubagentConfiguration;
+  aiManager: AIManager;
+  messageManager: MessageManager;
+  toolManager: ToolManager;
+  permissionManager: PermissionManager;
+  backgroundTaskManager: BackgroundTaskManager;
+  status: "initializing" | "active" | "completed" | "error" | "aborted";
+  messages: Message[];
+  usedTools: {
+    name: string;
+    parameters: string;
+    compactParams?: string;
+    stage?: string;
+  }[]; // Track tools with display info
+  subagentType: string; // Store the subagent type for hook context
+  description: string; // Store the AI-generated description
+  allowedTools?: string[]; // Optional permission rules (e.g. git:*)
+  backgroundTaskId?: string; // ID of the background task if transitioned
+  onUpdate?: () => void; // Optional callback for real-time updates
+  model?: string; // Optional model override
+  logStream?: fs.WriteStream; // Optional log stream for background tasks
+}
+
+export interface SubagentManagerOptions {
+  workdir: string;
+  callbacks?: SubagentManagerCallbacks; // Use SubagentManagerCallbacks instead of parentCallbacks
+  onUsageAdded?: (usage: Usage) => void;
+  stream: boolean;
+}
+
+export class SubagentManager {
+  private instances = new Map<string, SubagentInstance>();
+  private cachedConfigurations: SubagentConfiguration[] | null = null;
+
+  private workdir: string;
+  private callbacks?: SubagentManagerCallbacks; // Use SubagentManagerCallbacks instead of parentCallbacks
+  private onUsageAdded?: (usage: Usage) => void;
+  private container: Container;
+  private stream: boolean;
+
+  constructor(container: Container, options: SubagentManagerOptions) {
+    this.container = container;
+    this.workdir = options.workdir;
+    this.callbacks = options.callbacks; // Store SubagentManagerCallbacks
+    this.onUsageAdded = options.onUsageAdded;
+    this.stream = options.stream;
+  }
+
+  private get configurationService(): ConfigurationService {
+    return this.container.get<ConfigurationService>("ConfigurationService")!;
+  }
+
+  private get asyncWorkRegistry(): AsyncWorkRegistry | undefined {
+    return this.container.get<AsyncWorkRegistry>("AsyncWorkRegistry");
+  }
+
+  /**
+   * Initialize the SubagentManager by loading and caching configurations
+   */
+  async initialize(): Promise<void> {
+    await this.loadConfigurations();
+
+    // Hook into parent PermissionManager's update methods to propagate rules to subagents
+    const parentPm = this.container.get<PermissionManager>("PermissionManager");
+    if (
+      parentPm &&
+      typeof parentPm.updateAllowedRules === "function" &&
+      typeof parentPm.updateDeniedRules === "function" &&
+      typeof parentPm.updateAdditionalDirectories === "function"
+    ) {
+      const origUpdateAllowed = parentPm.updateAllowedRules.bind(parentPm);
+      const origUpdateDenied = parentPm.updateDeniedRules.bind(parentPm);
+      const origUpdateDirs =
+        parentPm.updateAdditionalDirectories.bind(parentPm);
+
+      parentPm.updateAllowedRules = (rules: string[]) => {
+        origUpdateAllowed(rules);
+        this.syncPermissionRulesToSubagents();
+      };
+      parentPm.updateDeniedRules = (rules: string[]) => {
+        origUpdateDenied(rules);
+        this.syncPermissionRulesToSubagents();
+      };
+      parentPm.updateAdditionalDirectories = (directories: string[]) => {
+        origUpdateDirs(directories);
+        this.syncPermissionRulesToSubagents();
+      };
+    }
+  }
+
+  /**
+   * Sync parent permission rules to all running subagents
+   */
+  private syncPermissionRulesToSubagents(): void {
+    const parentPm = this.container.get<PermissionManager>("PermissionManager");
+    if (!parentPm) return;
+
+    for (const instance of this.instances.values()) {
+      instance.permissionManager.updateAllowedRules(parentPm.getAllowedRules());
+      instance.permissionManager.updateDeniedRules(parentPm.getDeniedRules());
+      instance.permissionManager.updateAdditionalDirectories(
+        parentPm.getAdditionalDirectories(),
+      );
+    }
+  }
+
+  /**
+   * Load all available subagent configurations and cache them
+   */
+  async loadConfigurations(): Promise<SubagentConfiguration[]> {
+    if (this.cachedConfigurations === null) {
+      const { loadSubagentConfigurations } = await import(
+        "../utils/subagentParser.js"
+      );
+      this.cachedConfigurations = await loadSubagentConfigurations(
+        this.workdir,
+        this.getMergedEnv(),
+      );
+    }
+    return this.cachedConfigurations;
+  }
+
+  /**
+   * Rebuild the cached subagent configurations. Called after settings.json
+   * env becomes available (post loadMergedConfiguration) so conditional
+   * builtin subagents (e.g. `model: visionModel` requiring WAVE_VISION_MODEL)
+   * register correctly. Plugin agents are preserved across the rebuild.
+   */
+  async refreshConfigurations(): Promise<SubagentConfiguration[]> {
+    // Preserve plugin agents (namespaced `pluginName:agentName`) across the rebuild
+    const pluginAgents = (this.cachedConfigurations ?? []).filter((config) =>
+      config.name.includes(":"),
+    );
+    this.cachedConfigurations = null;
+    await this.loadConfigurations();
+    for (const agent of pluginAgents) {
+      this.cachedConfigurations!.push(agent);
+    }
+    // Re-sort by priority then name (matches registerPluginAgents)
+    this.cachedConfigurations!.sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.name.localeCompare(b.name);
+    });
+    return this.cachedConfigurations!;
+  }
+
+  /**
+   * Get the merged environment (OS env overlaid with settings.json env) used
+   * for conditional subagent registration (e.g. WAVE_VISION_MODEL).
+   */
+  private getMergedEnv(): Record<string, string> {
+    return (
+      this.configurationService?.getMergedEnv?.() ??
+      (process.env as Record<string, string>)
+    );
+  }
+
+  /**
+   * Delete a user-level or project-level subagent by removing its markdown
+   * file. Builtin and plugin agents are read-only and cannot be deleted.
+   * @param name - The subagent name as shown in configurations
+   * @returns true if the subagent was deleted
+   */
+  async deleteSubagent(name: string): Promise<boolean> {
+    const configs = this.cachedConfigurations ?? [];
+    const config = configs.find((c) => c.name === name);
+    if (!config) {
+      return false;
+    }
+
+    // Builtin and plugin agents are read-only
+    if (config.scope !== "user" && config.scope !== "project") {
+      return false;
+    }
+
+    const { unlink } = await import("fs/promises");
+    await unlink(config.filePath);
+
+    // Drop the deleted agent from the cached configurations immediately.
+    // A later refreshConfigurations() re-scans the filesystem and reflects
+    // the deletion persistently.
+    this.cachedConfigurations = configs.filter((c) => c.name !== name);
+
+    logger?.debug(`Deleted subagent '${name}' at ${config.filePath}`);
+    return true;
+  }
+
+  /**
+   * Get cached configurations synchronously (must call loadConfigurations first)
+   */
+  getConfigurations(): SubagentConfiguration[] {
+    if (this.cachedConfigurations === null) {
+      throw new Error(
+        "SubagentManager not initialized. Call loadConfigurations() first.",
+      );
+    }
+    return this.cachedConfigurations;
+  }
+
+  /**
+   * Find subagent by exact name match
+   */
+  async findSubagent(name: string) {
+    // Check cached configurations first (includes plugin agents)
+    if (this.cachedConfigurations !== null) {
+      const cached = this.cachedConfigurations.find(
+        (config) => config.name === name,
+      );
+      if (cached) return cached;
+    }
+    // Fall back to filesystem scan for non-plugin agents
+    const { findSubagentByName } = await import("../utils/subagentParser.js");
+    return findSubagentByName(name, this.workdir, this.getMergedEnv());
+  }
+
+  /**
+   * Register plugin agents into the cached configurations.
+   * Names each agent as `pluginName:agentName` to avoid collisions.
+   */
+  registerPluginAgents(
+    pluginName: string,
+    agents: SubagentConfiguration[],
+  ): void {
+    if (this.cachedConfigurations === null) {
+      // Should not happen if initialization order is correct
+      this.cachedConfigurations = [];
+    }
+
+    // Remove any previously registered agents for this plugin (by name prefix)
+    this.cachedConfigurations = this.cachedConfigurations.filter(
+      (config) => !config.name.startsWith(`${pluginName}:`),
+    );
+
+    for (const agent of agents) {
+      const namespacedName = `${pluginName}:${agent.name}`;
+      const namespacedAgent: SubagentConfiguration = {
+        ...agent,
+        name: namespacedName,
+        // Safety net: substitute any remaining ${WAVE_PLUGIN_ROOT} placeholders
+        systemPrompt: agent.systemPrompt.replace(
+          /\$\{WAVE_PLUGIN_ROOT\}/g,
+          agent.pluginRoot ?? "",
+        ),
+      };
+      this.cachedConfigurations!.push(namespacedAgent);
+    }
+
+    // Re-sort by priority then name
+    this.cachedConfigurations!.sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  /**
+   * Drop every subagent contributed by a plugin, addressed by its plugin name.
+   * Running instances are deliberately left alone — an in-place reload must not
+   * interrupt work already in flight. Called by the plugin reload path before
+   * re-registering.
+   * @returns the number of configurations removed
+   */
+  unregisterPluginAgents(pluginName: string): number {
+    if (this.cachedConfigurations === null) {
+      return 0;
+    }
+    const prefix = `${pluginName}:`;
+    const before = this.cachedConfigurations.length;
+    this.cachedConfigurations = this.cachedConfigurations.filter(
+      (config) => !config.name.startsWith(prefix),
+    );
+    return before - this.cachedConfigurations.length;
+  }
+
+  /**
+   * Create a new subagent instance with isolated managers
+   */
+  async createInstance(
+    configuration: SubagentConfiguration,
+    parameters: {
+      description: string;
+      prompt: string;
+      subagent_type: string;
+      allowedTools?: string[];
+      model?: string;
+      stream?: boolean;
+      permissionModeOverride?: PermissionMode;
+      maxTurns?: number;
+    },
+    runInBackground?: boolean,
+    onUpdate?: () => void,
+  ): Promise<SubagentInstance> {
+    const parentToolManager = this.container.get<ToolManager>("ToolManager");
+
+    if (!parentToolManager) {
+      throw new Error(
+        "SubagentManager not properly initialized - ToolManager not found in container",
+      );
+    }
+
+    const subagentId = randomUUID();
+
+    // Create a child container for the subagent to isolate its managers
+    const subagentContainer = this.container.createChild();
+
+    // Register an independent MessageQueue so the subagent's AIManager drains its
+    // own (empty) queue instead of falling back to the parent container's queue.
+    // Without this, concurrent background subagents steal sibling completion
+    // notifications from the parent queue, causing the main agent to exit early.
+    subagentContainer.register("MessageQueue", new MessageQueue());
+
+    // Deliberately shadow the parent ReversionManager with `undefined` so the
+    // subagent resolves no reversion manager instead of falling back to the
+    // parent's. Subagent Write/Edit must not be recorded into the main agent's
+    // file_history buffer — this mirrors Claude Code's explicit isolation for
+    // forked agents (`updateFileHistoryState: () => {}` in forkedAgent.ts).
+    // Without this, the subagent drains the SHARED parent buffer into its own
+    // transient messages (discarded on cleanup), leaving orphaned snapshot
+    // files on disk and racing the main agent's own drain. All ReversionManager
+    // consumers are truthiness-guarded, so resolving to `undefined` is safe.
+    subagentContainer.register("ReversionManager", undefined);
+
+    // Register a modified AgentOptions without onLoadingChange to prevent subagent loading
+    // from affecting the parent agent's loading state
+    const parentOptions =
+      this.container.get<import("../types/agent.js").AgentOptions>(
+        "AgentOptions",
+      );
+    if (parentOptions) {
+      const subagentOptions: import("../types/agent.js").AgentOptions = {
+        ...parentOptions,
+        defaultHeaders: {
+          ...parentOptions.defaultHeaders,
+          ...parentOptions.subagentHeaders?.[parameters.subagent_type],
+        },
+        callbacks: {
+          ...parentOptions.callbacks,
+          onLoadingChange: undefined,
+        },
+      };
+      subagentContainer.register("AgentOptions", subagentOptions);
+    }
+
+    // Create isolated PermissionManager for the subagent
+    const { PermissionManager } = await import("./permissionManager.js");
+    const parentPermissionManager =
+      this.container.get<PermissionManager>("PermissionManager");
+    const subagentPermissionManager = new PermissionManager(subagentContainer, {
+      configuredPermissionMode:
+        parameters.permissionModeOverride ??
+        parentPermissionManager?.getConfiguredPermissionMode(),
+      // Inherit the parent session's bypass authorization: the subagent is
+      // created mid-session, so re-deriving it from its own mode would
+      // (wrongly) deny an authorized session's plan-mode subagent.
+      bypassAuthorization: parentPermissionManager?.getBypassAuthorization?.(),
+      allowedRules: parentPermissionManager?.getAllowedRules(),
+      deniedRules: parentPermissionManager?.getDeniedRules(),
+      instanceAllowedRules:
+        parentPermissionManager?.getInstanceAllowedRules?.(),
+      instanceDeniedRules: [
+        ...(parentPermissionManager?.getInstanceDeniedRules?.() || []),
+        AGENT_TOOL_NAME, // Always deny Agent tool in subagents to prevent recursion
+        // Deny Task tools in subagents — they share the parent's TaskManager
+        // and could mutate the main agent's task list
+        TASK_CREATE_TOOL_NAME,
+        TASK_GET_TOOL_NAME,
+        TASK_UPDATE_TOOL_NAME,
+        TASK_LIST_TOOL_NAME,
+      ],
+      additionalDirectories:
+        parentPermissionManager?.getAdditionalDirectories(),
+      instanceAdditionalDirectories:
+        parentPermissionManager?.getInstanceAdditionalDirectories?.(),
+      systemAdditionalDirectories:
+        parentPermissionManager?.getSystemAdditionalDirectories(),
+      planFilePath: parentPermissionManager?.getPlanFilePath(),
+    });
+    subagentContainer.register("PermissionManager", subagentPermissionManager);
+
+    // Register the permission mode override in the subagent container so it
+    // shadows the inherited parent value during tool execution
+    if (parameters.permissionModeOverride) {
+      subagentContainer.register(
+        "PermissionMode",
+        parameters.permissionModeOverride,
+      );
+    }
+
+    // Add temporary permission rules if provided
+    if (parameters.allowedTools) {
+      logger.debug(
+        `Adding ${parameters.allowedTools.length} temporary permission rules to subagent ${subagentId}`,
+        { rules: parameters.allowedTools },
+      );
+      subagentPermissionManager.addTemporaryRules(parameters.allowedTools);
+    }
+
+    // Create isolated MessageManager for the subagent
+    const subagentCallbacks = this.createSubagentCallbacks(subagentId);
+
+    const messageManager = new MessageManager(subagentContainer, {
+      callbacks: subagentCallbacks,
+      workdir: this.workdir,
+      sessionType: "subagent",
+      subagentType: parameters.subagent_type,
+    });
+    subagentContainer.register("MessageManager", messageManager);
+
+    // Create isolated ToolManager for the subagent to ensure it uses the subagent's PermissionManager
+    const toolManager = new ToolManager({
+      container: subagentContainer,
+      tools: configuration.tools,
+    });
+    toolManager.initializeBuiltInTools();
+    subagentContainer.register("ToolManager", toolManager);
+
+    // Create isolated AIManager for the subagent
+    const aiManager = new AIManager(subagentContainer, {
+      workdir: this.workdir,
+      systemPrompt: configuration.systemPrompt,
+      subagentType: parameters.subagent_type, // Pass subagent type for hook context
+      modelOverride: parameters.model || configuration.model, // Pass model override
+      stream: parameters.stream ?? this.stream, // Pass streaming mode flag
+      maxTurns: parameters.maxTurns, // Pass maxTurns limit
+      callbacks: {
+        onUsageAdded: this.onUsageAdded,
+      },
+    });
+    subagentContainer.register("AIManager", aiManager);
+
+    // Create isolated BackgroundTaskManager for the subagent/forked agent
+    const subagentBackgroundTaskManager = new BackgroundTaskManager(
+      subagentContainer,
+      {
+        workdir: this.workdir,
+      },
+    );
+    subagentContainer.register(
+      "BackgroundTaskManager",
+      subagentBackgroundTaskManager,
+    );
+
+    const instance: SubagentInstance = {
+      subagentId,
+      configuration,
+      aiManager,
+      messageManager,
+      toolManager,
+      permissionManager: subagentPermissionManager,
+      backgroundTaskManager: subagentBackgroundTaskManager,
+      status: "initializing",
+      messages: [],
+      usedTools: [], // Initialize usedTools
+      subagentType: parameters.subagent_type, // Store the subagent type
+      description: parameters.description, // Store the AI-generated description
+      allowedTools: parameters.allowedTools, // Store optional permission rules
+      model: parameters.model, // Store optional model override
+      onUpdate,
+    };
+
+    this.instances.set(subagentId, instance);
+
+    return instance;
+  }
+
+  /**
+   * Execute agent using subagent instance
+   *
+   * IMPORTANT: This method automatically filters out the Agent tool from allowedTools
+   * to prevent subagents from spawning other subagents (infinite recursion protection)
+   */
+  async executeAgent(
+    instance: SubagentInstance,
+    prompt: string,
+    abortSignal?: AbortSignal,
+    runInBackground?: boolean,
+  ): Promise<string> {
+    try {
+      // Check if already aborted before starting
+      if (abortSignal?.aborted) {
+        throw new Error("Agent was aborted before execution started");
+      }
+
+      // Set status to active and update parent
+      this.updateInstanceStatus(instance.subagentId, "active");
+
+      const backgroundTaskManager = this.container.has("BackgroundTaskManager")
+        ? this.container.get<BackgroundTaskManager>("BackgroundTaskManager")
+        : undefined;
+
+      if (runInBackground && backgroundTaskManager) {
+        const taskId = backgroundTaskManager.generateId();
+        const startTime = Date.now();
+
+        // Create log file
+        const logPath = path.join(os.tmpdir(), `wave-subagent-${taskId}.log`);
+        const logStream = fs.createWriteStream(logPath, { flags: "a" });
+        instance.logStream = logStream;
+
+        backgroundTaskManager.addTask({
+          id: taskId,
+          type: "subagent",
+          status: "running",
+          startTime,
+          description: instance.description,
+          stdout: "",
+          stderr: "",
+          outputPath: logPath,
+          subagentId: instance.subagentId,
+          onStop: () => {
+            instance.logStream?.destroy();
+            instance.logStream = undefined;
+            instance.aiManager.abortAIMessage();
+            this.cleanupInstance(instance.subagentId);
+          },
+        });
+
+        instance.backgroundTaskId = taskId;
+
+        // Execute in background
+        // Note: notification enqueueing is handled by internalExecute when instance.backgroundTaskId is set
+        const backgroundPromise = (async () => {
+          try {
+            const result = await this.internalExecute(
+              instance,
+              prompt,
+              abortSignal,
+            );
+            const task = backgroundTaskManager?.getTask(taskId);
+            if (task) {
+              // internalExecute already recorded the terminal state; only fill
+              // in a "completed" status when the task was not concurrently
+              // killed (mirrors the catch branch below).
+              if (task.status !== "killed") {
+                task.status = "completed";
+                task.stdout = result;
+              }
+              task.endTime = Date.now();
+              task.runtime = task.endTime - startTime;
+            }
+          } catch (error) {
+            const task = backgroundTaskManager?.getTask(taskId);
+            if (task) {
+              // Preserve a "killed" terminal state (internalExecute already
+              // notified it) instead of flipping the in-map task to failed.
+              if (task.status !== "killed") {
+                task.status = "failed";
+                task.stderr =
+                  error instanceof Error ? error.message : String(error);
+              }
+              task.endTime = Date.now();
+              task.runtime = task.endTime - startTime;
+            }
+          } finally {
+            // Free the instance once the background task finishes: without
+            // this the instance (message history, caches) would linger in the
+            // map for the whole session, and the task's onStop closure would
+            // keep it alive even after that.
+            this.releaseInstance(instance.subagentId);
+          }
+        })();
+        this.asyncWorkRegistry?.track(backgroundPromise);
+
+        return taskId;
+      }
+
+      const result = await this.internalExecute(instance, prompt, abortSignal);
+      // Free the instance once the subagent finishes. Callers that still hold
+      // the reference can read its messageManager, but the map entry and the
+      // background task's onStop closure are released so the message history
+      // and caches can be garbage-collected.
+      this.releaseInstance(instance.subagentId);
+      return result;
+    } catch (error) {
+      this.updateInstanceStatus(instance.subagentId, "error");
+      // Release on failure too so errored instances don't linger for the
+      // session (the abort listener already releases on abort).
+      this.releaseInstance(instance.subagentId);
+      throw error;
+    }
+  }
+
+  async backgroundInstance(subagentId: string): Promise<string> {
+    const instance = this.instances.get(subagentId);
+    if (!instance) {
+      throw new Error(`Subagent instance ${subagentId} not found`);
+    }
+
+    const backgroundTaskManager = this.container.has("BackgroundTaskManager")
+      ? this.container.get<BackgroundTaskManager>("BackgroundTaskManager")
+      : undefined;
+
+    if (!backgroundTaskManager) {
+      throw new Error("BackgroundTaskManager not available");
+    }
+
+    const taskId = backgroundTaskManager.generateId();
+    const startTime = Date.now();
+
+    // Create log file
+    const logPath = path.join(os.tmpdir(), `wave-subagent-${taskId}.log`);
+    const logStream = fs.createWriteStream(logPath, { flags: "a" });
+    instance.logStream = logStream;
+
+    backgroundTaskManager.addTask({
+      id: taskId,
+      type: "subagent",
+      status: "running",
+      startTime,
+      description: instance.description,
+      stdout: "",
+      stderr: "",
+      outputPath: logPath,
+      subagentId: instance.subagentId,
+      onStop: () => {
+        instance.logStream?.destroy();
+        instance.logStream = undefined;
+        instance.aiManager.abortAIMessage();
+        this.cleanupInstance(instance.subagentId);
+      },
+    });
+
+    instance.backgroundTaskId = taskId;
+
+    return taskId;
+  }
+
+  private async internalExecute(
+    instance: SubagentInstance,
+    prompt: string,
+    abortSignal?: AbortSignal,
+  ): Promise<string> {
+    // Set up consolidated abort handler to prevent listener accumulation
+    let abortCleanup: (() => void) | undefined;
+    // Only link to parent abort signal if NOT running in background
+    if (abortSignal && !instance.backgroundTaskId) {
+      abortCleanup = addConsolidatedAbortListener(abortSignal, [
+        () => {
+          // Update status to aborted
+          this.updateInstanceStatus(instance.subagentId, "aborted");
+          // Cleanup instance immediately on abort
+          this.cleanupInstance(instance.subagentId);
+        },
+        () => {
+          // Abort the AI execution
+          instance.aiManager.abortAIMessage();
+        },
+      ]);
+    }
+
+    try {
+      // Add the user's prompt as a message
+      instance.messageManager.addUserMessage({ content: prompt });
+
+      // Execute the AI request
+      // The AIManager will handle abort signals through its own abort controllers
+      const executeAI = instance.aiManager.sendAIMessage();
+
+      // If we have an abort signal, race against it using utilities to prevent listener accumulation
+      if (abortSignal && !instance.backgroundTaskId) {
+        await Promise.race([
+          executeAI,
+          createAbortPromise(abortSignal, "Agent was aborted"),
+        ]);
+      } else {
+        await executeAI;
+      }
+
+      // Get the latest messages to extract the response
+      const messages = instance.messageManager.getMessages();
+      const lastAssistantMessage = messages
+        .filter((msg) => msg.role === "assistant")
+        .pop();
+
+      if (!lastAssistantMessage) {
+        throw new Error("No response from subagent");
+      }
+
+      // Extract text content from the last assistant message
+      const textBlocks = lastAssistantMessage.blocks.filter(
+        (block) => block.type === "text",
+      );
+      const response = textBlocks.map((block) => block.content).join("\n");
+
+      // Update status to completed and update parent
+      this.updateInstanceStatus(instance.subagentId, "completed");
+
+      const backgroundTaskManager = this.container.has("BackgroundTaskManager")
+        ? this.container.get<BackgroundTaskManager>("BackgroundTaskManager")
+        : undefined;
+
+      // If this was transitioned to background, update the background task
+      if (instance.backgroundTaskId && backgroundTaskManager) {
+        // Write final response and completion status to log before closing
+        if (instance.logStream && response) {
+          instance.logStream.write(
+            `[${new Date().toISOString()}] Final response:\n${response}\n`,
+          );
+        }
+        instance.logStream?.write(
+          `[${new Date().toISOString()}] Agent completed\n`,
+        );
+        instance.logStream?.end();
+        const task = backgroundTaskManager.getTask(instance.backgroundTaskId);
+        if (task) {
+          const wasAlreadyKilled = task.status === "killed";
+          // Preserve a "killed" terminal state (stopTask already notified it)
+          // instead of overwriting it with "completed" — mirrors shell exit
+          // semantics in BackgroundTaskManager.onExit.
+          if (!wasAlreadyKilled) {
+            task.status = "completed";
+            task.stdout = response || "Agent completed with no text response";
+          }
+          task.endTime = Date.now();
+          if (task.startTime) {
+            task.runtime = task.endTime - task.startTime;
+          }
+          // Skip notification if task was already stopped (e.g. by main agent shutdown)
+          if (!wasAlreadyKilled) {
+            const messageQueue = this.container.has("MessageQueue")
+              ? this.container.get<MessageQueue>("MessageQueue")
+              : undefined;
+            if (messageQueue) {
+              const summary = `Agent task "${instance.description}" completed`;
+              messageQueue.enqueueNotification(
+                `<task-notification>\n<task-id>${instance.backgroundTaskId}</task-id>\n<task-type>agent</task-type>\n<status>completed</status>\n<summary>${summary}</summary>\n</task-notification>`,
+              );
+            }
+          }
+          // Push a terminal snapshot: SubagentManager mutates the task object in
+          // place, so without an explicit notify the UI/hosts keep the last
+          // snapshot — the task created with status "running" — and the IDE
+          // background-task gate (new chat / history restore) stays locked.
+          backgroundTaskManager.notifyTasksChange();
+        }
+      }
+
+      return response || "Agent completed with no text response";
+    } catch (error) {
+      const backgroundTaskManager = this.container.has("BackgroundTaskManager")
+        ? this.container.get<BackgroundTaskManager>("BackgroundTaskManager")
+        : undefined;
+
+      // If this was transitioned to background, update the background task with error
+      if (instance.backgroundTaskId && backgroundTaskManager) {
+        // Write error to log before closing
+        instance.logStream?.write(
+          `[${new Date().toISOString()}] Agent failed: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+        instance.logStream?.end();
+        const task = backgroundTaskManager.getTask(instance.backgroundTaskId);
+        if (task) {
+          const wasAlreadyKilled = task.status === "killed";
+          // Preserve a user/agent-initiated "killed" terminal state instead of
+          // overwriting it with "failed" (mirrors shell exit semantics) — the
+          // abort that stopped the task surfaces here as a thrown error.
+          if (!wasAlreadyKilled) {
+            task.status = "failed";
+            task.stderr =
+              error instanceof Error ? error.message : String(error);
+          }
+          task.endTime = Date.now();
+          if (task.startTime) {
+            task.runtime = task.endTime - task.startTime;
+          }
+          // Push a terminal snapshot (see the completion branch above).
+          backgroundTaskManager.notifyTasksChange();
+          // Skip notification if task was already stopped (e.g. by main agent shutdown)
+          if (!wasAlreadyKilled) {
+            const messageQueue = this.container.has("MessageQueue")
+              ? this.container.get<MessageQueue>("MessageQueue")
+              : undefined;
+            if (messageQueue) {
+              const errorMsg =
+                error instanceof Error ? error.message : String(error);
+              const summary = `Agent task "${instance.description}" failed: ${errorMsg}`;
+              messageQueue.enqueueNotification(
+                `<task-notification>\n<task-id>${instance.backgroundTaskId}</task-id>\n<task-type>agent</task-type>\n<status>failed</status>\n<summary>${summary}</summary>\n</task-notification>`,
+              );
+            }
+          }
+        }
+      }
+      throw error;
+    } finally {
+      // Clean up abort listeners to prevent memory leaks
+      if (abortCleanup) {
+        abortCleanup();
+      }
+    }
+  }
+
+  /**
+   * Get instance by subagent ID
+   */
+  getInstance(subagentId: string): SubagentInstance | null {
+    return this.instances.get(subagentId) || null;
+  }
+
+  /**
+   * Update instance status
+   */
+  updateInstanceStatus(
+    subagentId: string,
+    status: SubagentInstance["status"],
+  ): void {
+    const instance = this.instances.get(subagentId);
+    if (instance) {
+      instance.status = status;
+    }
+  }
+
+  /**
+   * Add message to instance
+   */
+  addMessageToInstance(subagentId: string, message: Message): void {
+    const instance = this.instances.get(subagentId);
+    if (instance) {
+      instance.messages.push(message);
+    }
+  }
+
+  /**
+   * Clean up completed, errored, or aborted instances
+   */
+  cleanupInstance(subagentId: string): void {
+    const instance = this.instances.get(subagentId);
+    if (
+      instance &&
+      (instance.status === "completed" ||
+        instance.status === "error" ||
+        instance.status === "aborted")
+    ) {
+      this.releaseInstance(subagentId);
+    }
+  }
+
+  /**
+   * Release a subagent instance so its graph (message history, file-read
+   * caches, log stream) can be garbage-collected. Besides removing the
+   * instance from the map, this drops the background task's onStop closure,
+   * which captures the instance and would otherwise keep the whole graph
+   * alive for the rest of the session.
+   */
+  private releaseInstance(subagentId: string): void {
+    const instance = this.instances.get(subagentId);
+    if (!instance) {
+      return;
+    }
+    if (instance.backgroundTaskId) {
+      const backgroundTaskManager = this.container.has("BackgroundTaskManager")
+        ? this.container.get<BackgroundTaskManager>("BackgroundTaskManager")
+        : undefined;
+      const task = backgroundTaskManager?.getTask(instance.backgroundTaskId);
+      if (task) {
+        task.onStop = undefined;
+      }
+    }
+    if (instance.logStream && !instance.logStream.writableEnded) {
+      // Only force-close a stream that hasn't been ended yet (the completion
+      // and error paths already call end(); destroy would drop buffered data).
+      instance.logStream.destroy();
+    }
+    instance.logStream = undefined;
+    this.instances.delete(subagentId);
+  }
+
+  /**
+   * Get all active instances
+   */
+  getActiveInstances(): SubagentInstance[] {
+    return Array.from(this.instances.values()).filter(
+      (instance) =>
+        instance.status === "active" || instance.status === "initializing",
+    );
+  }
+
+  /**
+   * Clean up all instances (for session end)
+   */
+  cleanup(): void {
+    for (const instance of this.instances.values()) {
+      instance.aiManager.abortAIMessage();
+      instance.backgroundTaskManager.cleanup();
+    }
+    this.instances.clear();
+  }
+
+  /**
+   * Create subagent callbacks for a specific subagent ID
+   * Extracted to reuse in both create and restore flows
+   */
+  private createSubagentCallbacks(subagentId: string) {
+    return {
+      onUserMessageAdded: (params: UserMessageParams) => {
+        this.refreshSubagentState(subagentId);
+        // Forward user message events to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentUserMessageAdded) {
+          this.callbacks.onSubagentUserMessageAdded(subagentId, params);
+        }
+      },
+
+      onAssistantMessageAdded: (messageId: string) => {
+        this.refreshSubagentState(subagentId);
+        // Forward assistant message events to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentAssistantMessageAdded) {
+          this.callbacks.onSubagentAssistantMessageAdded(subagentId, messageId);
+        }
+      },
+
+      onAssistantContentUpdated: (params: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => {
+        this.refreshSubagentState(subagentId);
+        // Forward assistant content updates to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentAssistantContentUpdated) {
+          this.callbacks.onSubagentAssistantContentUpdated({
+            ...params,
+            subagentId,
+          });
+        }
+      },
+      onAssistantReasoningUpdated: (params: {
+        messageId: string;
+        chunk: string;
+        stage: "streaming" | "end";
+      }) => {
+        this.refreshSubagentState(subagentId);
+        // Forward assistant reasoning updates to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentAssistantReasoningUpdated) {
+          this.callbacks.onSubagentAssistantReasoningUpdated({
+            ...params,
+            subagentId,
+          });
+        }
+      },
+
+      onToolBlockUpdated: (params: ToolBlockUpdateCallbackParams) => {
+        this.refreshSubagentState(subagentId);
+        const instance = this.instances.get(subagentId);
+        if (instance) {
+          // Log tool execution to file only when finalized
+          if (instance.logStream && params.stage === "end") {
+            const displayParams =
+              params.compactParams ||
+              (params.parameters || "").substring(0, 100);
+            instance.logStream.write(
+              `[${new Date().toISOString()}] ${params.name}${displayParams ? ` ${displayParams}` : ""}\n`,
+            );
+          }
+        }
+
+        // Forward tool block updates to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentToolBlockUpdated) {
+          this.callbacks.onSubagentToolBlockUpdated(subagentId, params);
+        }
+      },
+
+      onLatestTotalTokensChange: (tokens: number) => {
+        const instance = this.instances.get(subagentId);
+        if (instance) {
+          // Trigger the onUpdate callback if provided
+          instance.onUpdate?.();
+        }
+        // Forward latest total tokens to parent via SubagentManager callbacks
+        if (this.callbacks?.onSubagentLatestTotalTokensChange) {
+          this.callbacks.onSubagentLatestTotalTokensChange(subagentId, tokens);
+        }
+      },
+
+      onErrorBlockAdded: (error: string) => {
+        this.refreshSubagentState(subagentId);
+        const instance = this.instances.get(subagentId);
+        if (instance?.logStream) {
+          instance.logStream.write(
+            `[${new Date().toISOString()}] Error: ${error}\n`,
+          );
+        }
+      },
+    };
+  }
+
+  /**
+   * Pull the latest messages from the subagent instance's MessageManager and
+   * refresh the instance's cached messages, usedTools, onUpdate and the
+   * onSubagentMessagesChange forwarding. Triggered by incremental callbacks.
+   */
+  private refreshSubagentState(subagentId: string): void {
+    const instance = this.instances.get(subagentId);
+    if (!instance) return;
+
+    const messages = instance.messageManager.getMessages();
+    instance.messages = messages;
+    // Compute usedTools from messages (last 2 tool blocks)
+    const toolBlocks = messages.flatMap(
+      (m) => m.blocks?.filter((b) => b.type === "tool") ?? [],
+    );
+    const last2 = toolBlocks.slice(-2);
+    instance.usedTools = last2.map((tb) => ({
+      name: tb.name ?? "",
+      parameters: tb.parameters ?? "",
+      compactParams: tb.compactParams,
+      stage: tb.stage,
+    }));
+    // Trigger the onUpdate callback if provided
+    instance.onUpdate?.();
+    // Forward subagent message changes to parent via callbacks
+    if (this.callbacks?.onSubagentMessagesChange) {
+      this.callbacks.onSubagentMessagesChange(subagentId, messages);
+    }
+  }
+}

@@ -12,7 +12,7 @@ import type {
 import { pinSessionTitle } from "../utils/session";
 import { transcriptScore } from "../utils/subagentTranscript";
 import { normalizeUserTextForDedupe } from "../utils/messageUtils";
-import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 
 const SESSION_SCOPED_DIALOGS = new Set([
   "mcp",

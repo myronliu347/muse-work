@@ -1,0 +1,1125 @@
+/**
+ * Hook Manager
+ *
+ * Central orchestrator for the hooks system. Handles configuration loading,
+ * validation, and hook execution across all supported events.
+ */
+
+import {
+  type HookEvent,
+  type HookEventConfig,
+  type HookExecutionContext,
+  type ExtendedHookExecutionContext,
+  type HookExecutionResult,
+  type HookValidationResult,
+  type SessionEndSource,
+  type SessionStartSource,
+  HookConfigurationError,
+  isValidHookEvent,
+  isValidHookEventConfig,
+} from "../types/hooks.js";
+import type {
+  WaveConfiguration,
+  PartialHookConfiguration,
+} from "../types/configuration.js";
+import { HookMatcher } from "../utils/hookMatcher.js";
+import { executeCommand, isCommandSafe } from "../services/hook.js";
+import { MessageSource } from "../types/index.js";
+import type { MessageManager } from "./messageManager.js";
+import { Container } from "../utils/container.js";
+import type { ConfigurationService } from "../services/configurationService.js";
+
+import { logger } from "../utils/globalLogger.js";
+
+export class HookManager {
+  private configuration: PartialHookConfiguration | undefined;
+  private programmaticHooks: PartialHookConfiguration = {};
+  /**
+   * Plugin hooks grouped by plugin root path. A map rather than one merged
+   * object because mergeHooksConfiguration only appends — a flat object can
+   * never be reversed, so the in-place plugin reload path could not drop
+   * exactly one plugin's hooks (and re-registering would double them).
+   */
+  private pluginHooks = new Map<string, PartialHookConfiguration>();
+  private waveConfigHooks: PartialHookConfiguration = {};
+  private readonly matcher: HookMatcher;
+  private readonly workdir: string;
+
+  constructor(
+    private container: Container,
+    workdir: string,
+    matcher: HookMatcher = new HookMatcher(),
+  ) {
+    this.workdir = workdir;
+    this.matcher = matcher;
+  }
+
+  /**
+   * Merged env for this session (OS env overlaid with the per-session settings
+   * snapshot). Hook subprocesses spawn with this env so settings.json `env`
+   * vars reach hooks without polluting other sessions in one stdio process.
+   */
+  private get sessionEnv(): Record<string, string> {
+    return (
+      this.container
+        .get<ConfigurationService>("ConfigurationService")
+        ?.getMergedEnv?.() ?? (process.env as Record<string, string>)
+    );
+  }
+
+  /**
+   * Load hook configuration from programmatic source (AgentOptions.hooks)
+   */
+  loadConfiguration(hooks?: PartialHookConfiguration): void {
+    this.programmaticHooks = {};
+
+    if (hooks) {
+      this.mergeHooksConfiguration(this.programmaticHooks, hooks);
+    }
+
+    // Validate merged configuration
+    const validation = this.validatePartialConfiguration(
+      this.programmaticHooks,
+    );
+    if (!validation.valid) {
+      throw new HookConfigurationError(
+        "merged configuration",
+        validation.errors,
+      );
+    }
+
+    this.rebuildConfiguration();
+  }
+
+  /**
+   * Load hooks configuration from a pre-loaded WaveConfiguration
+   * Configuration loading is now handled by ConfigurationService
+   */
+  loadConfigurationFromWaveConfig(waveConfig: WaveConfiguration | null): void {
+    try {
+      // Replace (not append) wave config hooks to avoid duplicates on reload
+      this.waveConfigHooks = {};
+
+      if (waveConfig?.hooks) {
+        const validation = this.validatePartialConfiguration(waveConfig.hooks);
+        if (!validation.valid) {
+          throw new HookConfigurationError(
+            "provided configuration",
+            validation.errors,
+          );
+        }
+        this.waveConfigHooks = { ...waveConfig.hooks };
+      }
+
+      this.rebuildConfiguration();
+    } catch (error) {
+      // Re-throw configuration errors, but handle other errors gracefully
+      if (error instanceof HookConfigurationError) {
+        throw error;
+      } else {
+        logger?.warn(
+          `[HookManager] Failed to load configuration, continuing with existing hooks: ${(error as Error).message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Rebuild the full configuration from all sources:
+   * programmatic (AgentOptions.hooks) + plugin + wave config (settings.json)
+   * Order determines precedence on conflict (later sources append).
+   */
+  private rebuildConfiguration(): void {
+    const rebuilt: PartialHookConfiguration = {};
+    this.mergeHooksConfiguration(rebuilt, this.programmaticHooks);
+    for (const hooks of this.pluginHooks.values()) {
+      this.mergeHooksConfiguration(rebuilt, hooks);
+    }
+    this.mergeHooksConfiguration(rebuilt, this.waveConfigHooks);
+    this.configuration = Object.keys(rebuilt).length > 0 ? rebuilt : undefined;
+  }
+
+  /**
+   * Execute hooks for a specific event
+   */
+  async executeHooks(
+    event: HookEvent,
+    context: HookExecutionContext | ExtendedHookExecutionContext,
+  ): Promise<HookExecutionResult[]> {
+    // Validate execution context
+    const contextValidation = this.validateExecutionContext(event, context);
+    if (!contextValidation.valid) {
+      logger?.error(
+        `[HookManager] Invalid execution context for ${event}: ${contextValidation.errors.join(", ")}`,
+      );
+      return [
+        {
+          success: false,
+          stderr: `Invalid execution context: ${contextValidation.errors.join(", ")}`,
+          duration: 0,
+          timedOut: false,
+        },
+      ];
+    }
+
+    if (!this.configuration) {
+      return [];
+    }
+
+    const eventConfigs = this.configuration[event];
+    if (!eventConfigs || eventConfigs.length === 0) {
+      return [];
+    }
+
+    const results: HookExecutionResult[] = [];
+
+    for (
+      let configIndex = 0;
+      configIndex < eventConfigs.length;
+      configIndex++
+    ) {
+      const config = eventConfigs[configIndex];
+
+      // Check if this config applies to the current context
+      if (!this.configApplies(config, event, context.toolName)) {
+        continue;
+      }
+
+      // Execute all commands for this configuration
+      for (
+        let commandIndex = 0;
+        commandIndex < config.hooks.length;
+        commandIndex++
+      ) {
+        const hookCommand = config.hooks[commandIndex];
+
+        try {
+          const options = hookCommand.timeout
+            ? { timeout: hookCommand.timeout * 1000 }
+            : undefined;
+
+          // Build execution context with WAVE_PLUGIN_ROOT if this is a plugin hook
+          let command = hookCommand.command;
+          const execContext: typeof context = hookCommand.pluginRoot
+            ? {
+                ...context,
+                env: {
+                  ...("env" in context ? (context.env ?? {}) : {}),
+                  WAVE_PLUGIN_ROOT: hookCommand.pluginRoot,
+                  CLAUDE_PLUGIN_ROOT: hookCommand.pluginRoot,
+                },
+              }
+            : context;
+
+          // Substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT} in the command string
+          if (hookCommand.pluginRoot) {
+            command = command.replace(
+              /\$\{WAVE_PLUGIN_ROOT\}/g,
+              hookCommand.pluginRoot,
+            );
+            command = command.replace(
+              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
+              hookCommand.pluginRoot,
+            );
+          }
+
+          if (hookCommand.async) {
+            // Execute async command without awaiting
+            executeCommand(command, execContext, options).catch((error) => {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "Unknown execution error";
+              logger?.error(
+                `[HookManager] Async hook command ${commandIndex + 1} failed: ${errorMessage}`,
+              );
+            });
+            // Async hooks are not included in results to prevent blocking
+            continue;
+          }
+
+          const result = await executeCommand(command, execContext, options);
+          results.push(result);
+
+          // Continue with next command even if this one fails
+          // This allows for non-critical hooks to fail without stopping the workflow
+        } catch (error) {
+          // This should be rare as executor handles most errors
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown execution error";
+          logger?.error(
+            `[HookManager] Unexpected error in command ${commandIndex + 1}: ${errorMessage}`,
+          );
+
+          results.push({
+            success: false,
+            stderr: errorMessage,
+            duration: 0,
+            timedOut: false,
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Process hook execution results and determine appropriate actions
+   * based on exit codes and hook event type
+   */
+  processHookResults(
+    event: HookEvent,
+    results: HookExecutionResult[],
+    messageManager?: MessageManager,
+    toolId?: string,
+    toolParameters?: string,
+  ): {
+    shouldBlock: boolean;
+    errorMessage?: string;
+  } {
+    if (!messageManager || results.length === 0) {
+      return { shouldBlock: false };
+    }
+
+    // First pass: Check for any blocking errors (exit code 2)
+    // Blocking errors take precedence and stop all processing
+    for (const result of results) {
+      if (result.exitCode === 2) {
+        // Handle blocking error immediately and return
+        const blockingResult = this.handleBlockingError(
+          event,
+          result,
+          messageManager,
+          toolId,
+          toolParameters,
+        );
+        return {
+          shouldBlock: blockingResult.shouldBlock,
+          errorMessage: blockingResult.errorMessage,
+        };
+      }
+    }
+
+    // Second pass: Process all non-blocking results
+    for (const result of results) {
+      if (result.exitCode === undefined) {
+        continue; // Skip results without exit codes
+      }
+
+      // Handle exit code interpretation
+      if (result.exitCode === 0) {
+        // Success case - handle stdout based on hook type
+        this.handleHookSuccess(event, result, messageManager);
+      } else {
+        // Non-blocking error case (any exit code except 0 and 2)
+        this.handleNonBlockingError(result, messageManager);
+      }
+    }
+
+    return { shouldBlock: false };
+  }
+
+  /**
+   * Handle successful hook execution (exit code 0)
+   */
+  private handleHookSuccess(
+    event: HookEvent,
+    result: HookExecutionResult,
+    messageManager: MessageManager,
+  ): void {
+    if (event === "UserPromptSubmit" && result.stdout?.trim()) {
+      // Inject stdout as user message context for UserPromptSubmit
+      messageManager.addUserMessage({
+        content: result.stdout.trim(),
+        source: MessageSource.HOOK,
+      });
+    }
+    // For SessionStart, stdout is processed separately in executeSessionStartHooks
+    // For SessionEnd, stdout is ignored (fire-and-forget cleanup)
+    // For other hook types (PreToolUse, PostToolUse, Stop, PermissionRequest), ignore stdout
+  }
+
+  /**
+   * Handle blocking error (exit code 2) - behavior varies by hook type
+   */
+  private handleBlockingError(
+    event: HookEvent,
+    result: HookExecutionResult,
+    messageManager: MessageManager,
+    toolId?: string,
+    toolParameters?: string,
+  ): {
+    shouldBlock: boolean;
+    errorMessage?: string;
+  } {
+    const errorMessage = result.stderr?.trim() || "Hook execution failed";
+
+    switch (event) {
+      case "UserPromptSubmit":
+        // Block prompt processing, show error to user, erase prompt
+        messageManager.addErrorBlock(errorMessage);
+        messageManager.removeLastUserMessage();
+        return {
+          shouldBlock: true,
+          errorMessage,
+        };
+
+      case "PreToolUse":
+        // Block tool execution and show error to Wave Agent via tool block
+        if (toolId) {
+          messageManager.updateToolBlock({
+            id: toolId,
+            parameters: toolParameters || "",
+            result: errorMessage,
+            success: false,
+            error: "Hook blocked tool execution",
+            stage: "end", // Hook blocking results in end stage with error
+          });
+        }
+        return { shouldBlock: true };
+
+      case "PostToolUse":
+        // Show error to Wave Agent via user message and allow AI to continue
+        messageManager.addUserMessage({
+          content: errorMessage,
+          source: MessageSource.HOOK,
+        });
+        return { shouldBlock: false };
+
+      case "Stop":
+        // Show error to Wave Agent via user message and block stopping to continue conversation
+        messageManager.addUserMessage({
+          content: errorMessage,
+          source: MessageSource.HOOK,
+        });
+        return { shouldBlock: true, errorMessage };
+
+      case "PermissionRequest":
+        // For permission request hooks with exit code 2, show stderr in error block and block (deny) permission
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: true, errorMessage };
+
+      case "SubagentStop":
+        // Similar to Stop, show error and allow blocking
+        messageManager.addUserMessage({
+          content: errorMessage,
+          source: MessageSource.HOOK,
+        });
+        return { shouldBlock: true, errorMessage };
+
+      case "WorktreeCreate":
+        // Non-blocking for now, just show error in error block
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      case "WorktreeRemove":
+        // Non-blocking for cleanup, log error but don't block
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      case "SessionStart":
+        // Non-blocking for startup, show error in error block
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      case "SessionEnd":
+        // Blocking error (exit code 2): show in error block, don't block shutdown
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      case "PreCompact":
+        // Non-blocking for compaction, show error in error block
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      case "PostCompact":
+        // Non-blocking for compaction, show error in error block
+        messageManager.addErrorBlock(errorMessage);
+        return { shouldBlock: false };
+
+      default:
+        return { shouldBlock: false };
+    }
+  }
+
+  /**
+   * Handle non-blocking error (other exit codes)
+   */
+  private handleNonBlockingError(
+    result: HookExecutionResult,
+    messageManager: MessageManager,
+  ): void {
+    const errorMessage = result.stderr?.trim() || "Hook execution failed";
+    messageManager.addErrorBlock(errorMessage);
+  }
+
+  /**
+   * Check if hooks are configured for an event/tool combination
+   */
+  hasHooks(event: HookEvent, toolName?: string): boolean {
+    if (!this.configuration) return false;
+
+    const eventConfigs = this.configuration[event];
+    if (!eventConfigs || eventConfigs.length === 0) return false;
+
+    return eventConfigs.some((config) =>
+      this.configApplies(config, event, toolName),
+    );
+  }
+
+  /**
+   * Validate Wave configuration structure and content
+   */
+  validateConfiguration(config: WaveConfiguration): HookValidationResult {
+    const errors: string[] = [];
+
+    if (!config || typeof config !== "object") {
+      return { valid: false, errors: ["Configuration must be an object"] };
+    }
+
+    // Validate hooks if present
+    if (config.hooks) {
+      if (typeof config.hooks !== "object") {
+        errors.push("hooks property must be an object");
+      } else {
+        // Validate each hook event
+        for (const [eventName, eventConfigs] of Object.entries(config.hooks)) {
+          // Validate event name
+          if (!isValidHookEvent(eventName)) {
+            errors.push(`Invalid hook event: ${eventName}`);
+            continue;
+          }
+
+          // Validate event configurations
+          if (!Array.isArray(eventConfigs)) {
+            errors.push(
+              `Hook event ${eventName} must be an array of configurations`,
+            );
+            continue;
+          }
+
+          eventConfigs.forEach((eventConfig, index) => {
+            const configErrors = this.validateEventConfig(
+              eventName as HookEvent,
+              eventConfig,
+              index,
+            );
+            errors.push(...configErrors);
+          });
+        }
+      }
+    }
+
+    // Validate environment variables if present
+    if (config.env) {
+      if (typeof config.env !== "object" || Array.isArray(config.env)) {
+        errors.push("env property must be an object");
+      } else {
+        for (const [key, value] of Object.entries(config.env)) {
+          if (typeof key !== "string" || key.trim() === "") {
+            errors.push(`Invalid environment variable key: ${key}`);
+          }
+          if (typeof value !== "string") {
+            errors.push(`Environment variable ${key} must have a string value`);
+          }
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Validate partial hook configuration structure and content
+   */
+  private validatePartialConfiguration(
+    config: PartialHookConfiguration,
+  ): HookValidationResult {
+    const errors: string[] = [];
+
+    if (!config || typeof config !== "object") {
+      return { valid: false, errors: ["Configuration must be an object"] };
+    }
+
+    // Validate each hook event that is present
+    for (const [eventName, eventConfigs] of Object.entries(config)) {
+      // Validate event name
+      if (!isValidHookEvent(eventName)) {
+        errors.push(`Invalid hook event: ${eventName}`);
+        continue;
+      }
+
+      // Validate event configurations
+      if (!Array.isArray(eventConfigs)) {
+        errors.push(
+          `Hook event ${eventName} must be an array of configurations`,
+        );
+        continue;
+      }
+
+      eventConfigs.forEach((eventConfig, index) => {
+        const configErrors = this.validateEventConfig(
+          eventName as HookEvent,
+          eventConfig,
+          index,
+        );
+        errors.push(...configErrors);
+      });
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfiguration(): PartialHookConfiguration | undefined {
+    if (!this.configuration) return undefined;
+
+    // Deep clone to prevent external modification
+    return JSON.parse(JSON.stringify(this.configuration));
+  }
+
+  /**
+   * Clear current configuration
+   */
+  clearConfiguration(): void {
+    this.configuration = undefined;
+  }
+
+  /**
+   * Validate execution context for a specific event
+   */
+  private validateExecutionContext(
+    event: HookEvent,
+    context: HookExecutionContext,
+  ): HookValidationResult {
+    const errors: string[] = [];
+
+    // Validate basic context structure
+    if (!context || typeof context !== "object") {
+      return { valid: false, errors: ["Context must be an object"] };
+    }
+
+    // Warn about event mismatch but don't fail validation
+    if (context.event !== event) {
+      logger?.warn(
+        `[HookManager] Context event '${context.event}' does not match requested event '${event}'`,
+      );
+    }
+
+    // Validate project directory
+    if (!context.projectDir || typeof context.projectDir !== "string") {
+      errors.push("Context must have a valid projectDir string");
+    }
+
+    // Validate timestamp
+    if (!context.timestamp || !(context.timestamp instanceof Date)) {
+      errors.push("Context must have a valid timestamp Date object");
+    }
+
+    // Validate tool-specific requirements
+    if (
+      event === "PreToolUse" ||
+      event === "PostToolUse" ||
+      event === "PermissionRequest"
+    ) {
+      if (!context.toolName || typeof context.toolName !== "string") {
+        errors.push(`${event} event requires a valid toolName in context`);
+      }
+    }
+
+    // Validate non-tool events don't have unexpected tool names
+    if (
+      (event === "UserPromptSubmit" ||
+        event === "Stop" ||
+        event === "SubagentStop" ||
+        event === "WorktreeCreate" ||
+        event === "WorktreeRemove" ||
+        event === "SessionStart" ||
+        event === "SessionEnd" ||
+        event === "PreCompact" ||
+        event === "PostCompact") &&
+      context.toolName !== undefined
+    ) {
+      logger?.warn(
+        `[HookManager] ${event} event has unexpected toolName in context: ${context.toolName}`,
+      );
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Generate a summary of hook execution results
+   */
+  private generateExecutionSummary(
+    event: HookEvent,
+    results: HookExecutionResult[],
+    totalDuration: number,
+  ): string {
+    if (results.length === 0) {
+      return `No hooks executed for ${event}`;
+    }
+
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.length - successful;
+    const timedOut = results.filter((r) => r.timedOut).length;
+    const avgDuration =
+      results.reduce((sum, r) => sum + r.duration, 0) / results.length;
+
+    let summary = `${successful}/${results.length} commands successful`;
+
+    if (failed > 0) {
+      summary += `, ${failed} failed`;
+    }
+
+    if (timedOut > 0) {
+      summary += `, ${timedOut} timed out`;
+    }
+
+    summary += ` (avg: ${Math.round(avgDuration)}ms, total: ${totalDuration}ms)`;
+
+    return summary;
+  }
+
+  /**
+   * Merge hook configurations, with the second taking precedence
+   */
+  private mergeHooksConfiguration(
+    target: PartialHookConfiguration,
+    source: PartialHookConfiguration,
+  ): void {
+    for (const [event, configs] of Object.entries(source)) {
+      if (isValidHookEvent(event)) {
+        // Concatenate hook configs so multiple sources (programmatic, file-based, plugins) coexist
+        if (!target[event]) {
+          target[event] = [...configs];
+        } else {
+          target[event] = [...target[event], ...configs];
+        }
+      }
+    }
+  }
+
+  /**
+   * Check if a hook configuration applies to the current context
+   */
+  private configApplies(
+    config: HookEventConfig,
+    event: HookEvent,
+    toolName?: string,
+  ): boolean {
+    // For events that don't use matchers, config always applies
+    if (
+      event === "UserPromptSubmit" ||
+      event === "Stop" ||
+      event === "SubagentStop" ||
+      event === "WorktreeCreate" ||
+      event === "WorktreeRemove" ||
+      event === "CwdChanged" ||
+      event === "SessionStart" ||
+      event === "SessionEnd" ||
+      event === "PreCompact" ||
+      event === "PostCompact"
+    ) {
+      return true;
+    }
+
+    // For tool-based events, check matcher if present
+    if (
+      event === "PreToolUse" ||
+      event === "PostToolUse" ||
+      event === "PermissionRequest"
+    ) {
+      if (!config.matcher) {
+        // No matcher means applies to all tools
+        return true;
+      }
+
+      if (!toolName) {
+        // No tool name provided, cannot match
+        return false;
+      }
+
+      return this.matcher.matches(config.matcher, toolName);
+    }
+
+    return false;
+  }
+
+  /**
+   * Validate a single event configuration
+   */
+  private validateEventConfig(
+    event: HookEvent,
+    config: unknown,
+    index: number,
+  ): string[] {
+    const errors: string[] = [];
+    const prefix = `Hook event ${event}[${index}]`;
+
+    if (!isValidHookEventConfig(config)) {
+      errors.push(`${prefix}: Invalid hook event configuration structure`);
+      return errors;
+    }
+
+    // Validate matcher requirements
+    if (
+      (event === "PreToolUse" ||
+        event === "PostToolUse" ||
+        event === "PermissionRequest") &&
+      config.matcher
+    ) {
+      if (!this.matcher.isValidPattern(config.matcher)) {
+        errors.push(`${prefix}: Invalid matcher pattern: ${config.matcher}`);
+      }
+    }
+
+    // Validate that non-tool events don't have matchers
+    if (
+      (event === "UserPromptSubmit" ||
+        event === "Stop" ||
+        event === "SubagentStop" ||
+        event === "WorktreeCreate" ||
+        event === "WorktreeRemove" ||
+        event === "SessionStart" ||
+        event === "SessionEnd" ||
+        event === "PreCompact" ||
+        event === "PostCompact") &&
+      config.matcher
+    ) {
+      errors.push(`${prefix}: Event ${event} should not have a matcher`);
+    }
+
+    // Validate commands
+    config.hooks.forEach((hookCommand, cmdIndex) => {
+      if (!isCommandSafe(hookCommand.command)) {
+        errors.push(
+          `${prefix}.hooks[${cmdIndex}]: Command may be unsafe: ${hookCommand.command}`,
+        );
+      }
+    });
+
+    return errors;
+  }
+
+  /**
+   * Get statistics about current configuration
+   */
+  getConfigurationStats(): {
+    totalEvents: number;
+    totalConfigs: number;
+    totalCommands: number;
+    eventBreakdown: Record<HookEvent, number>;
+  } {
+    if (!this.configuration) {
+      return {
+        totalEvents: 0,
+        totalConfigs: 0,
+        totalCommands: 0,
+        eventBreakdown: {
+          PreToolUse: 0,
+          PostToolUse: 0,
+          UserPromptSubmit: 0,
+          Stop: 0,
+          SubagentStop: 0,
+          PermissionRequest: 0,
+          WorktreeCreate: 0,
+          WorktreeRemove: 0,
+          CwdChanged: 0,
+          SessionStart: 0,
+          SessionEnd: 0,
+          PreCompact: 0,
+          PostCompact: 0,
+        },
+      };
+    }
+
+    const eventBreakdown: Record<HookEvent, number> = {
+      PreToolUse: 0,
+      PostToolUse: 0,
+      UserPromptSubmit: 0,
+      Stop: 0,
+      SubagentStop: 0,
+      PermissionRequest: 0,
+      WorktreeCreate: 0,
+      WorktreeRemove: 0,
+      CwdChanged: 0,
+      SessionStart: 0,
+      SessionEnd: 0,
+      PreCompact: 0,
+      PostCompact: 0,
+    };
+
+    let totalConfigs = 0;
+    let totalCommands = 0;
+
+    Object.entries(this.configuration).forEach(([event, configs]) => {
+      if (isValidHookEvent(event)) {
+        eventBreakdown[event] = configs.length;
+        totalConfigs += configs.length;
+        totalCommands += configs.reduce(
+          (sum, config) => sum + config.hooks.length,
+          0,
+        );
+      }
+    });
+
+    return {
+      totalEvents: Object.keys(this.configuration).length,
+      totalConfigs,
+      totalCommands,
+      eventBreakdown,
+    };
+  }
+
+  /**
+   * Execute CwdChanged hooks.
+   */
+  async executeCwdChangedHooks(
+    oldCwd: string,
+    newCwd: string,
+    sessionId: string,
+    transcriptPath: string,
+    env: Record<string, string>,
+  ): Promise<HookExecutionResult[]> {
+    const context: ExtendedHookExecutionContext = {
+      event: "CwdChanged",
+      projectDir: this.workdir,
+      timestamp: new Date(),
+      sessionId,
+      transcriptPath,
+      cwd: newCwd,
+      oldCwd,
+      newCwd,
+      env,
+    };
+    const results = await this.executeHooks("CwdChanged", context);
+    if (results.length > 0) {
+      // For CwdChanged hooks, we don't block, just log errors
+      this.processHookResults("CwdChanged", results);
+    }
+    return results;
+  }
+
+  /**
+   * Register hooks provided by a plugin
+   */
+  registerPluginHooks(
+    pluginRoot: string,
+    hooks: PartialHookConfiguration,
+  ): void {
+    // Stamp pluginRoot on each hook command
+    const stampedHooks: PartialHookConfiguration = {};
+    for (const [event, configs] of Object.entries(hooks)) {
+      if (!isValidHookEvent(event)) continue;
+      stampedHooks[event] = configs.map((config) => ({
+        ...config,
+        hooks: config.hooks.map((cmd) => ({ ...cmd, pluginRoot })),
+      }));
+    }
+
+    // Replace (not append) the previous registration for this root, so
+    // re-registering the same plugin never doubles its hooks.
+    this.pluginHooks.set(pluginRoot, stampedHooks);
+    this.rebuildConfiguration();
+  }
+
+  /**
+   * Drop every hook contributed by a plugin, addressed by its root path.
+   * Used by the in-place plugin reload path (before re-registering) and when a
+   * plugin is disabled or uninstalled.
+   * @returns true if this root had hooks registered
+   */
+  unregisterPluginHooks(pluginRoot: string): boolean {
+    const removed = this.pluginHooks.delete(pluginRoot);
+    if (removed) {
+      this.rebuildConfiguration();
+    }
+    return removed;
+  }
+
+  /**
+   * Get hooks registered by plugins (read-only view for the settings UI).
+   * Plugin hooks carry pluginRoot on each command and are read-only in the UI.
+   */
+  getPluginHooks(): PartialHookConfiguration {
+    const merged: PartialHookConfiguration = {};
+    for (const hooks of this.pluginHooks.values()) {
+      this.mergeHooksConfiguration(merged, hooks);
+    }
+    return merged;
+  }
+
+  /**
+   * Execute SessionStart hooks during initialization.
+   * Collects additionalContext and initialUserMessage from hook stdout.
+   */
+  async executeSessionStartHooks(
+    source: SessionStartSource,
+    sessionId: string,
+    transcriptPath: string,
+    agentType?: string,
+  ): Promise<{
+    results: HookExecutionResult[];
+    additionalContext?: string;
+    initialUserMessage?: string;
+  }> {
+    const context: ExtendedHookExecutionContext = {
+      event: "SessionStart",
+      projectDir: this.workdir,
+      timestamp: new Date(),
+      sessionId,
+      transcriptPath,
+      cwd: this.workdir,
+      source,
+      agentType,
+      env: Object.fromEntries(
+        Object.entries(this.sessionEnv).filter((e) => e[1] !== undefined),
+      ) as Record<string, string>,
+    };
+
+    const results = await this.executeHooks("SessionStart", context);
+
+    let additionalContext: string | undefined;
+    let initialUserMessage: string | undefined;
+
+    // Process stdout from successful hooks
+    for (const result of results) {
+      if (result.success && result.stdout?.trim()) {
+        const trimmed = result.stdout.trim();
+        // Try to parse as JSON for structured output
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.hookSpecificOutput?.additionalContext) {
+            additionalContext =
+              (additionalContext ? additionalContext + "\n" : "") +
+              parsed.hookSpecificOutput.additionalContext;
+          }
+          if (parsed.initialUserMessage) {
+            initialUserMessage = parsed.initialUserMessage;
+          }
+        } catch {
+          // Not JSON, treat as additional context
+          additionalContext =
+            (additionalContext ? additionalContext + "\n" : "") + trimmed;
+        }
+      }
+    }
+
+    return { results, additionalContext, initialUserMessage };
+  }
+
+  /**
+   * Execute SessionEnd hooks during agent destruction.
+   * Non-blocking: always continues shutdown even if hooks fail.
+   * No stdout processing needed (SessionEnd hooks are fire-and-forget cleanup).
+   */
+  async executeSessionEndHooks(
+    source: SessionEndSource,
+    sessionId: string,
+    transcriptPath: string,
+  ): Promise<HookExecutionResult[]> {
+    const context: ExtendedHookExecutionContext = {
+      event: "SessionEnd",
+      projectDir: this.workdir,
+      timestamp: new Date(),
+      sessionId,
+      transcriptPath,
+      cwd: this.workdir,
+      endSource: source,
+      env: Object.fromEntries(
+        Object.entries(this.sessionEnv).filter((e) => e[1] !== undefined),
+      ) as Record<string, string>,
+    };
+
+    const results = await this.executeHooks("SessionEnd", context);
+
+    // Process results but never block shutdown
+    if (results.length > 0) {
+      this.processHookResults("SessionEnd", results);
+    }
+
+    return results;
+  }
+
+  /**
+   * Execute PreCompact hooks before compaction.
+   * Returns custom instructions from hook stdout.
+   */
+  async executePreCompactHooks(
+    sessionId: string,
+    transcriptPath: string,
+    customInstructions?: string,
+  ): Promise<{
+    results: HookExecutionResult[];
+    additionalInstructions?: string;
+  }> {
+    const context: ExtendedHookExecutionContext = {
+      event: "PreCompact",
+      projectDir: this.workdir,
+      timestamp: new Date(),
+      sessionId,
+      transcriptPath,
+      cwd: this.workdir,
+      compactInstructions: customInstructions,
+      env: Object.fromEntries(
+        Object.entries(this.sessionEnv).filter((e) => e[1] !== undefined),
+      ) as Record<string, string>,
+    };
+
+    const results = await this.executeHooks("PreCompact", context);
+
+    let additionalInstructions: string | undefined;
+    for (const result of results) {
+      if (result.success && result.stdout?.trim()) {
+        const trimmed = result.stdout.trim();
+        additionalInstructions = additionalInstructions
+          ? additionalInstructions + "\n" + trimmed
+          : trimmed;
+      }
+    }
+
+    return { results, additionalInstructions };
+  }
+
+  /**
+   * Execute PostCompact hooks after compaction.
+   * Receives the compact summary text.
+   */
+  async executePostCompactHooks(
+    sessionId: string,
+    transcriptPath: string,
+    compactSummary: string,
+  ): Promise<HookExecutionResult[]> {
+    const context: ExtendedHookExecutionContext = {
+      event: "PostCompact",
+      projectDir: this.workdir,
+      timestamp: new Date(),
+      sessionId,
+      transcriptPath,
+      cwd: this.workdir,
+      compactSummary,
+      env: Object.fromEntries(
+        Object.entries(this.sessionEnv).filter((e) => e[1] !== undefined),
+      ) as Record<string, string>,
+    };
+
+    const results = await this.executeHooks("PostCompact", context);
+    if (results.length > 0) {
+      this.processHookResults("PostCompact", results);
+    }
+    return results;
+  }
+}

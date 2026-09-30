@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { WRITE_TOOL_NAME } from "wave-agent-sdk";
+import { WRITE_TOOL_NAME } from "@muse-work/agent";
 import { WriteToolPreview } from "../../src/components/message/WriteToolPreview";
 import type { ToolBlock } from "../../src/types";
 

@@ -1,0 +1,599 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { HookManager } from "../../src/managers/hookManager.js";
+import { Container } from "../../src/utils/container.js";
+import type { HookMatcher } from "../../src/utils/hookMatcher.js";
+import {
+  executeCommand,
+  executeCommands,
+  isCommandSafe,
+} from "../../src/services/hook.js";
+import { logger } from "../../src/utils/globalLogger.js";
+import {
+  HookConfigurationError,
+  type HookEvent,
+  type HookEventConfig,
+  type WaveConfiguration,
+  type HookExecutionContext,
+  type HookExecutionResult,
+  type HookValidationResult,
+} from "../../src/types/hooks.js";
+
+vi.mock("../../src/utils/globalLogger.js", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock the hook services
+vi.mock("../../src/services/hook.js");
+
+const mockExecuteCommand = vi.mocked(executeCommand);
+const mockExecuteCommands = vi.mocked(executeCommands);
+const mockIsCommandSafe = vi.mocked(isCommandSafe);
+
+describe("HookManager", () => {
+  let manager: HookManager;
+  let mockMatcher: HookMatcher;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Create mocks
+    mockMatcher = {
+      matches: vi.fn().mockReturnValue(true),
+      isValidPattern: vi.fn().mockReturnValue(true),
+      getPatternType: vi.fn().mockReturnValue("exact"),
+      getMatches: vi.fn().mockReturnValue([]),
+      compile: vi.fn().mockReturnValue(() => true),
+    } as unknown as HookMatcher;
+
+    // Setup service mocks
+    mockExecuteCommand.mockResolvedValue({
+      success: true,
+      duration: 100,
+      timedOut: false,
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+    } as HookExecutionResult);
+
+    mockExecuteCommands.mockResolvedValue([]);
+    mockIsCommandSafe.mockReturnValue(true);
+
+    const container = new Container();
+
+    // Create manager with mocks
+    manager = new HookManager(container, "/test/workdir", mockMatcher);
+  });
+
+  describe("Wave Configuration Management", () => {
+    it("should initialize with no configuration", () => {
+      expect(manager.getConfiguration()).toBeUndefined();
+    });
+
+    it("should load wave configuration successfully", () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+        env: {
+          NODE_ENV: "test",
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+      const loadedConfig = manager.getConfiguration();
+
+      expect(loadedConfig?.PostToolUse).toBeDefined();
+      expect(loadedConfig?.PostToolUse).toHaveLength(1);
+    });
+
+    it("should load partial wave configuration", () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+      const loadedConfig = manager.getConfiguration();
+
+      expect(loadedConfig?.PostToolUse).toBeDefined();
+      expect(loadedConfig?.PostToolUse).toHaveLength(1);
+    });
+
+    it("should clear wave configuration", () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+      expect(manager.getConfiguration()).not.toBeUndefined();
+
+      manager.clearConfiguration();
+      expect(manager.getConfiguration()).toBeUndefined();
+    });
+
+    it("should load hooks via loadConfiguration", () => {
+      manager.loadConfiguration({
+        UserPromptSubmit: [
+          { hooks: [{ type: "command" as const, command: "echo user" }] },
+        ],
+      });
+
+      const config = manager.getConfiguration();
+      expect(config?.UserPromptSubmit?.[0].hooks[0].command).toBe("echo user");
+    });
+
+    it("should throw HookConfigurationError on invalid merged config", () => {
+      const invalidHooks = { UserPromptSubmit: "not-an-array" };
+
+      expect(() =>
+        manager.loadConfiguration(
+          invalidHooks as unknown as Partial<
+            Record<HookEvent, HookEventConfig[]>
+          >,
+        ),
+      ).toThrow(HookConfigurationError);
+    });
+  });
+
+  describe("Hook Execution", () => {
+    it("should execute hooks for event", async () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+
+      const context: HookExecutionContext = {
+        event: "PostToolUse",
+        projectDir: "/test",
+        timestamp: new Date(),
+        toolName: "Edit",
+      };
+
+      const results = await manager.executeHooks("PostToolUse", context);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+    });
+
+    it("should execute async hooks without awaiting", async () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [
+                {
+                  type: "command",
+                  command: "async-hook",
+                  async: true,
+                  timeout: 5,
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+
+      const context: HookExecutionContext = {
+        event: "PostToolUse",
+        projectDir: "/test",
+        timestamp: new Date(),
+        toolName: "Edit",
+      };
+
+      const results = await manager.executeHooks("PostToolUse", context);
+
+      // Async hooks should not be in results
+      expect(results).toHaveLength(0);
+
+      // executeCommand should have been called with correct options
+      expect(mockExecuteCommand).toHaveBeenCalledWith("async-hook", context, {
+        timeout: 5000,
+      });
+    });
+
+    it("should return empty array when no hooks configured", async () => {
+      const context: HookExecutionContext = {
+        event: "UserPromptSubmit", // Use event that doesn't require toolName
+        projectDir: "/test",
+        timestamp: new Date(),
+      };
+
+      const results = await manager.executeHooks("UserPromptSubmit", context);
+      expect(results).toHaveLength(0);
+    });
+
+    it("should handle event with no matching configurations", async () => {
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+      };
+
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+
+      const context: HookExecutionContext = {
+        event: "Stop", // Different event
+        projectDir: "/test",
+        timestamp: new Date(),
+      };
+
+      const results = await manager.executeHooks("Stop", context);
+      expect(results).toHaveLength(0);
+    });
+
+    it("should return error result for invalid execution context", async () => {
+      const results = await manager.executeHooks("PreToolUse", {
+        event: "PreToolUse",
+      } as unknown as HookExecutionContext);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].stderr).toContain("Invalid execution context");
+    });
+
+    it("should skip configuration if matcher does not match", async () => {
+      (
+        mockMatcher.matches as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue(false);
+      manager.loadConfiguration({
+        PreToolUse: [
+          {
+            matcher: "other-tool",
+            hooks: [{ type: "command" as const, command: "echo hook" }],
+          },
+        ],
+      });
+
+      const results = await manager.executeHooks("PreToolUse", {
+        event: "PreToolUse",
+        projectDir: "/test",
+        timestamp: new Date(),
+        toolName: "my-tool",
+      });
+
+      expect(results).toHaveLength(0);
+      // Pin the wiring, not just the outcome: the matcher must receive the
+      // config's pattern and the context's toolName (not the event, etc.).
+      expect(mockMatcher.matches).toHaveBeenCalledWith("other-tool", "my-tool");
+    });
+
+    it("should handle unexpected error during command execution", async () => {
+      manager.loadConfiguration({
+        UserPromptSubmit: [
+          { hooks: [{ type: "command" as const, command: "echo fail" }] },
+        ],
+      });
+      mockExecuteCommand.mockRejectedValue(new Error("Execution failed"));
+
+      const results = await manager.executeHooks("UserPromptSubmit", {
+        event: "UserPromptSubmit",
+        projectDir: "/test",
+        timestamp: new Date(),
+      });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].stderr).toBe("Execution failed");
+    });
+  });
+
+  describe("Validation", () => {
+    it("should validate a correct configuration", () => {
+      const config: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [{ type: "command", command: "test-hook" }],
+            },
+          ],
+        },
+      };
+
+      const result: HookValidationResult =
+        manager.validateConfiguration(config);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should return errors for invalid configuration", () => {
+      const config = {
+        hooks: {
+          PostToolUse: [
+            {
+              // Missing hooks array
+              matcher: "Edit",
+            },
+          ],
+        },
+      } as unknown as WaveConfiguration;
+
+      const result: HookValidationResult =
+        manager.validateConfiguration(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it("should return error if config is not an object", () => {
+      const result = manager.validateConfiguration(
+        null as unknown as WaveConfiguration,
+      );
+      expect(result.valid).toBe(false);
+    });
+
+    it("should validate env property", () => {
+      const config = {
+        env: { VALID: "value", INVALID: 123 },
+      } as unknown as WaveConfiguration;
+
+      const result = manager.validateConfiguration(config);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "Environment variable INVALID must have a string value",
+      );
+    });
+
+    it("should validate hook event names", () => {
+      const config = {
+        hooks: { InvalidEvent: [] },
+      } as unknown as WaveConfiguration;
+
+      const result = manager.validateConfiguration(config);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("Invalid hook event: InvalidEvent");
+    });
+
+    it("should error if non-tool event has a matcher", () => {
+      const config = {
+        hooks: {
+          UserPromptSubmit: [
+            {
+              matcher: "some-matcher",
+              hooks: [{ type: "command" as const, command: "echo hook" }],
+            },
+          ],
+        },
+      } as unknown as WaveConfiguration;
+
+      const result = manager.validateConfiguration(config);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain(
+        "Event UserPromptSubmit should not have a matcher",
+      );
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("should handle invalid wave configuration gracefully", () => {
+      // This should not throw
+      manager.loadConfigurationFromWaveConfig({});
+      expect(manager.getConfiguration()).toBeUndefined();
+    });
+
+    it("should handle null wave configuration", () => {
+      // This should not throw
+      manager.loadConfigurationFromWaveConfig(null);
+      expect(manager.getConfiguration()).toBeUndefined();
+    });
+
+    it("should handle non-HookConfigurationError gracefully", () => {
+      // Force a non-HookConfigurationError out of the validation step; the
+      // catch block must not rethrow and must not touch existing hooks.
+      const originalValidate = (
+        manager as unknown as {
+          validatePartialConfiguration: (
+            hooks: unknown,
+          ) => ReturnType<HookManager["validateConfiguration"]>;
+        }
+      ).validatePartialConfiguration;
+      (
+        manager as unknown as {
+          validatePartialConfiguration: ReturnType<typeof vi.fn>;
+        }
+      ).validatePartialConfiguration = vi.fn().mockImplementation(() => {
+        throw new Error("Unexpected error");
+      });
+
+      manager.loadConfigurationFromWaveConfig({
+        hooks: {
+          UserPromptSubmit: [
+            { hooks: [{ type: "command" as const, command: "test" }] },
+          ],
+        },
+      } as unknown as WaveConfiguration);
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to load configuration"),
+      );
+      expect(manager.getConfiguration()).toBeUndefined();
+
+      (
+        manager as unknown as { validatePartialConfiguration: unknown }
+      ).validatePartialConfiguration = originalValidate;
+    });
+  });
+
+  describe("Plugin Hooks Preservation", () => {
+    it("should preserve plugin hooks when Wave config has no hooks", () => {
+      const pluginHooks = {
+        SessionStart: [
+          {
+            hooks: [
+              { type: "command" as const, command: "plugin-session-start" },
+            ],
+          },
+        ],
+      };
+
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+      expect(manager.hasHooks("SessionStart")).toBe(true);
+
+      // Wave config with no hooks key (like settings.local.json with only permissions/enabledPlugins)
+      manager.loadConfigurationFromWaveConfig({});
+
+      // Plugin hooks should still be present (regression: was being wiped out)
+      expect(manager.hasHooks("SessionStart")).toBe(true);
+    });
+
+    it("should preserve plugin hooks when Wave config is null", () => {
+      const pluginHooks = {
+        SessionStart: [
+          {
+            hooks: [
+              { type: "command" as const, command: "plugin-session-start" },
+            ],
+          },
+        ],
+      };
+
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+      manager.loadConfigurationFromWaveConfig(null);
+
+      expect(manager.hasHooks("SessionStart")).toBe(true);
+    });
+
+    it("should merge Wave config hooks with existing plugin hooks", () => {
+      const pluginHooks = {
+        SessionStart: [
+          {
+            hooks: [{ type: "command" as const, command: "plugin-hook" }],
+          },
+        ],
+      };
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [{ type: "command", command: "wave-hook" }],
+            },
+          ],
+        },
+      };
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+
+      // Both plugin and Wave hooks should be present
+      expect(manager.hasHooks("SessionStart")).toBe(true);
+      expect(manager.hasHooks("PostToolUse", "Edit")).toBe(true);
+    });
+
+    it("should allow Wave config hooks to override plugin hooks for same event", () => {
+      const pluginHooks = {
+        PostToolUse: [
+          {
+            matcher: "Read",
+            hooks: [{ type: "command" as const, command: "plugin-read-hook" }],
+          },
+        ],
+      };
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+
+      const waveConfig: WaveConfiguration = {
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Edit",
+              hooks: [{ type: "command", command: "wave-edit-hook" }],
+            },
+          ],
+        },
+      };
+      manager.loadConfigurationFromWaveConfig(waveConfig);
+
+      // Wave config concatenates with plugin hooks for same event
+      const config = manager.getConfiguration();
+      expect(config?.PostToolUse).toHaveLength(2);
+      expect(config?.PostToolUse?.[0].hooks[0].command).toBe(
+        "plugin-read-hook",
+      );
+      expect(config?.PostToolUse?.[1].hooks[0].command).toBe("wave-edit-hook");
+    });
+
+    // 插件变更的就地重载（docs/specs/ecosystem/plugin.md「插件变更的就地重载」
+    // 场景 3 / 6）：反注册按插件根路径隔离，且同根重复注册不叠加。
+    it("unregisterPluginHooks drops only that plugin root's hooks", () => {
+      manager.registerPluginHooks("/plugin/a", {
+        SessionStart: [
+          { hooks: [{ type: "command" as const, command: "a-hook" }] },
+        ],
+      });
+      manager.registerPluginHooks("/plugin/b", {
+        PostToolUse: [
+          {
+            matcher: "Read",
+            hooks: [{ type: "command" as const, command: "b-hook" }],
+          },
+        ],
+      });
+
+      expect(manager.unregisterPluginHooks("/plugin/a")).toBe(true);
+
+      expect(manager.hasHooks("SessionStart")).toBe(false);
+      expect(manager.hasHooks("PostToolUse", "Read")).toBe(true);
+      expect(manager.getPluginHooks().SessionStart).toBeUndefined();
+      expect(manager.getPluginHooks().PostToolUse).toHaveLength(1);
+    });
+
+    it("unregisterPluginHooks reports false for an unknown plugin root", () => {
+      expect(manager.unregisterPluginHooks("/plugin/unknown")).toBe(false);
+    });
+
+    it("re-registering the same plugin root does not double its hooks", () => {
+      const pluginHooks = {
+        SessionStart: [
+          {
+            hooks: [
+              { type: "command" as const, command: "plugin-session-start" },
+            ],
+          },
+        ],
+      };
+
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+      manager.registerPluginHooks("/plugin/root", pluginHooks);
+
+      expect(manager.getConfiguration()?.SessionStart).toHaveLength(1);
+    });
+  });
+});

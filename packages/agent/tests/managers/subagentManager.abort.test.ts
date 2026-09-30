@@ -1,0 +1,197 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { TaskManager } from "../../src/services/taskManager.js";
+import { SubagentManager } from "../../src/managers/subagentManager.js";
+import { ToolManager } from "../../src/managers/toolManager.js";
+import { BackgroundTaskManager } from "../../src/managers/backgroundTaskManager.js";
+import { Container } from "../../src/utils/container.js";
+import type { SubagentConfiguration } from "../../src/utils/subagentParser.js";
+
+// Mock dependencies
+vi.mock("../../src/managers/messageManager.js");
+vi.mock("../../src/managers/toolManager.js");
+vi.mock("../../src/managers/backgroundTaskManager.js");
+vi.mock("../../src/managers/aiManager.js", () => ({
+  AIManager: vi.fn().mockImplementation(function () {
+    return {
+      sendAIMessage: vi.fn().mockImplementation(async () => {
+        // Simulate some work
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return "Test response";
+      }),
+      abortAIMessage: vi.fn(),
+    };
+  }),
+}));
+
+// Mock the memory service
+vi.mock("../../src/services/memory.js", () => ({
+  MemoryService: vi.fn().mockImplementation(() => ({
+    getCombinedMemoryContent: vi.fn().mockResolvedValue(""),
+    getAutoMemoryDirectory: vi.fn().mockReturnValue("/mock/auto-memory"),
+    ensureAutoMemoryDirectory: vi.fn().mockResolvedValue(undefined),
+    getAutoMemoryContent: vi.fn().mockResolvedValue(""),
+  })),
+  getCombinedMemoryContent: vi.fn().mockResolvedValue(""),
+}));
+
+describe("SubagentManager - Abort Logic", () => {
+  let subagentManager: SubagentManager;
+  let mockToolManager: ToolManager;
+  let mockBackgroundTaskManager: BackgroundTaskManager;
+  let container: Container;
+
+  const testConfig: SubagentConfiguration = {
+    name: "TestAgent",
+    description: "Test agent",
+    systemPrompt: "System prompt",
+    tools: ["Read"],
+    model: "inherit",
+    filePath: "/test/agent.md",
+    scope: "user",
+    priority: 1,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockToolManager = {
+      list: vi.fn(() => [{ name: "Read" }]),
+      getPermissionManager: vi.fn(),
+    } as unknown as ToolManager;
+
+    mockBackgroundTaskManager = {
+      generateId: vi.fn().mockReturnValue("task_123"),
+      addTask: vi.fn(),
+      getTask: vi.fn(),
+      stopTask: vi.fn(),
+    } as unknown as BackgroundTaskManager;
+
+    const taskManager = {
+      on: vi.fn(),
+      listTasks: vi.fn().mockResolvedValue([]),
+      getTaskListId: vi.fn().mockReturnValue("test-task-list"),
+    } as unknown as TaskManager;
+
+    container = new Container();
+    container.register("ToolManager", mockToolManager);
+    container.register("TaskManager", taskManager);
+    container.register("BackgroundTaskManager", mockBackgroundTaskManager);
+
+    container.register("ConfigurationService", {
+      resolveGatewayConfig: () => ({ apiKey: "test", baseURL: "test" }),
+      resolveModelConfig: () => ({
+        model: "test-model",
+        fastModel: "test-fast-model",
+      }),
+      resolveMaxInputTokens: () => 1000,
+      resolveAutoMemoryEnabled: () => true,
+      resolveLanguage: () => "en",
+    });
+
+    subagentManager = new SubagentManager(container, {
+      workdir: "/test",
+      stream: false,
+    });
+  });
+
+  it("should abort subagent when NOT in background and parent aborts", async () => {
+    const instance = await subagentManager.createInstance(testConfig, {
+      description: "d",
+      prompt: "p",
+      subagent_type: "t",
+    });
+
+    const abortController = new AbortController();
+
+    const executePromise = subagentManager.executeAgent(
+      instance,
+      "test prompt",
+      abortController.signal,
+      false,
+    );
+
+    // Abort immediately
+    abortController.abort();
+
+    await expect(executePromise).rejects.toThrow("Agent was aborted");
+
+    const aiManager = instance.aiManager;
+    expect(aiManager.abortAIMessage).toHaveBeenCalled();
+  });
+
+  it("should NOT abort subagent when in background and parent aborts", async () => {
+    const instance = await subagentManager.createInstance(testConfig, {
+      description: "d",
+      prompt: "p",
+      subagent_type: "t",
+    });
+
+    const abortController = new AbortController();
+
+    // Execute in background
+    const taskId = await subagentManager.executeAgent(
+      instance,
+      "test prompt",
+      abortController.signal,
+      true,
+    );
+    expect(taskId).toBe("task_123");
+
+    // Abort the parent signal
+    abortController.abort();
+
+    // Wait a bit to ensure any async listeners would have fired
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const aiManager = instance.aiManager;
+    // Should NOT have been called because it's in background
+    expect(aiManager.abortAIMessage).not.toHaveBeenCalled();
+  });
+
+  it("should abort subagent when stopTask is called on background task", async () => {
+    const instance = await subagentManager.createInstance(testConfig, {
+      description: "d",
+      prompt: "p",
+      subagent_type: "t",
+    });
+
+    // Mock background task manager to actually store and retrieve the task
+    const tasks = new Map();
+    vi.mocked(mockBackgroundTaskManager.addTask).mockImplementation((task) => {
+      tasks.set(task.id, task);
+    });
+    vi.mocked(mockBackgroundTaskManager.getTask).mockImplementation((id) =>
+      tasks.get(id),
+    );
+
+    // Real BackgroundTaskManager for stopTask logic
+    // Adopt the mock's behavior for stopTask
+    vi.mocked(mockBackgroundTaskManager.stopTask).mockImplementation((id) => {
+      const task = tasks.get(id);
+      if (task) {
+        if (task.onStop) {
+          task.onStop();
+        }
+        task.status = "killed";
+        return true;
+      }
+      return false;
+    });
+
+    await subagentManager.executeAgent(
+      instance,
+      "test prompt",
+      undefined,
+      true,
+    );
+
+    // Wait for background task to start
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    mockBackgroundTaskManager.stopTask("task_123");
+
+    const aiManager = instance.aiManager;
+    expect(aiManager.abortAIMessage).toHaveBeenCalled();
+    expect(tasks.get("task_123").status).toBe("killed");
+  });
+});

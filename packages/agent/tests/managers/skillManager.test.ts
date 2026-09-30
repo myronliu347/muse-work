@@ -1,0 +1,1806 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { SkillManager } from "../../src/managers/skillManager.js";
+import { SlashCommandManager } from "../../src/managers/slashCommandManager.js";
+import { Container } from "../../src/utils/container.js";
+import type {
+  SkillManagerOptions,
+  SkillMetadata,
+  Skill,
+} from "../../src/types/index.js";
+import { readdir, stat, rm } from "fs/promises";
+import * as path from "path";
+import { logger } from "../../src/utils/globalLogger.js";
+import { FileWatcherService } from "../../src/services/fileWatcher.js";
+
+vi.mock("../../src/utils/configPaths.js", async () => {
+  const actual = await vi.importActual("../../src/utils/configPaths.js");
+  return {
+    ...actual,
+    getBuiltinSkillsDir: vi.fn().mockReturnValue("/test/builtin-skills"),
+  };
+});
+
+vi.mock("../../src/utils/globalLogger.js", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import {
+  parseSkillFile,
+  formatSkillError,
+} from "../../src/utils/skillParser.js";
+import { executeBashCommands } from "../../src/utils/markdownParser.js";
+import { isArtifactEnabled } from "../../src/services/artifactAvailability.js";
+
+vi.mock("fs/promises");
+vi.mock("../../src/services/fileWatcher.js");
+vi.mock("../../src/utils/skillParser.js", async () => {
+  const actual = await vi.importActual("../../src/utils/skillParser.js");
+  return {
+    ...actual,
+    parseSkillFile: vi.fn(),
+    formatSkillError: vi.fn(),
+  };
+});
+
+vi.mock("../../src/utils/markdownParser.js", async () => {
+  const actual = await vi.importActual("../../src/utils/markdownParser.js");
+  return {
+    ...actual,
+    executeBashCommands: vi.fn().mockResolvedValue(["mock-output"]),
+  };
+});
+
+vi.mock("../../src/services/artifactAvailability.js", () => ({
+  isArtifactEnabled: vi.fn(),
+}));
+
+describe("SkillManager", () => {
+  let skillManager: SkillManager;
+  let container: Container;
+  let mockFileWatcher: {
+    watchFile: ReturnType<typeof vi.fn>;
+    cleanup: ReturnType<typeof vi.fn>;
+    on: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isArtifactEnabled).mockReturnValue(false);
+
+    mockFileWatcher = {
+      watchFile: vi.fn().mockResolvedValue(undefined),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn().mockReturnThis(),
+    };
+    vi.mocked(FileWatcherService).mockImplementation(function () {
+      return mockFileWatcher;
+    } as unknown as typeof FileWatcherService);
+
+    container = new Container();
+    skillManager = new SkillManager(container, {
+      workdir: "/test/workdir",
+    });
+  });
+
+  afterEach(async () => {
+    if (skillManager) {
+      await skillManager.destroy();
+    }
+  });
+
+  describe("constructor", () => {
+    it("should initialize with default options", () => {
+      const manager = new SkillManager(container, { workdir: "/test/workdir" });
+      expect(manager).toBeInstanceOf(SkillManager);
+    });
+
+    it("should use provided options", () => {
+      const options: SkillManagerOptions = {
+        scanTimeout: 1000,
+      };
+
+      const manager = new SkillManager(container, options);
+      expect(manager).toBeInstanceOf(SkillManager);
+    });
+  });
+
+  describe("initialize", () => {
+    it("should discover builtin, personal and project skills successfully", async () => {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p.includes("builtin-skills")) {
+          return [
+            { name: "builtin1", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        if (p.includes(".wave/skills")) {
+          return [
+            { name: "skill1", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const path = filePath as string;
+        const name = path.includes("builtin1") ? "builtin1" : "skill1";
+        const type = path.includes("builtin1") ? "builtin" : "personal";
+        return {
+          isValid: true,
+          skillMetadata: {
+            name,
+            description: "desc",
+            type,
+            skillPath: path,
+          },
+          content: `---\nname: ${name}\n---\ncontent`,
+          frontmatter: { name },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+
+      await skillManager.initialize();
+
+      expect(skillManager.isInitialized()).toBe(true);
+      const skills = skillManager.getAvailableSkills();
+      expect(skills).toHaveLength(2);
+      expect(skills.find((s) => s.name === "builtin1")).toBeDefined();
+      expect(skills.find((s) => s.name === "skill1")).toBeDefined();
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("SkillManager initialized with 2 skills"),
+      );
+    });
+
+    it("should return skill metadata by name", async () => {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+          return [
+            { name: "skill1", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "skill1",
+          description: "desc1",
+          type: "personal",
+          skillPath: "/path/to/skill1",
+          context: "fork",
+          agent: "general-purpose",
+        },
+        content: "---\nname: skill1\n---\ncontent1",
+        frontmatter: { name: "skill1" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await skillManager.initialize();
+
+      const metadata = skillManager.getSkillMetadata("skill1");
+      expect(metadata).toBeDefined();
+      expect(metadata?.name).toBe("skill1");
+      expect(metadata?.context).toBe("fork");
+      expect(metadata?.agent).toBe("general-purpose");
+    });
+
+    it("should handle discovery errors and log warnings", async () => {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p.includes(".wave/skills") || p.includes("builtin-skills")) {
+          return [
+            { name: "invalid-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: false,
+        validationErrors: ["Invalid format"],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await skillManager.initialize();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Found 3 skill discovery errors"),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Skill error in"),
+      );
+    });
+
+    it("should handle initialization failure and throw error", async () => {
+      vi.mocked(readdir).mockRejectedValue(new Error("Read error"));
+
+      // readdir is called for personal and project skills.
+      // In discoverSkillCollection, readdir error is caught and logged as debug,
+      // but if something else throws in initialize, it should be caught.
+      // Let's mock discoverSkills to throw.
+      vi.spyOn(
+        skillManager as unknown as { discoverSkills: () => Promise<void> },
+        "discoverSkills",
+      ).mockRejectedValue(new Error("Discovery failed"));
+
+      await expect(skillManager.initialize()).rejects.toThrow(
+        "Discovery failed",
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Failed to initialize SkillManager:",
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe("discoverSkillCollection and findSkillDirectories", () => {
+    it("should skip directories without SKILL.md", async () => {
+      vi.mocked(readdir).mockResolvedValue([
+        { name: "no-skill-md", isDirectory: () => true },
+      ] as unknown as Awaited<ReturnType<typeof readdir>>);
+      vi.mocked(stat).mockRejectedValue(new Error("Not found"));
+
+      await skillManager.initialize();
+
+      expect(skillManager.getAvailableSkills()).toHaveLength(0);
+    });
+
+    it("should handle directory read errors gracefully", async () => {
+      // findSkillDirectories catches readdir errors and returns empty array.
+      // discoverSkillCollection catches findSkillDirectories errors (if any) or other errors and logs debug "Could not scan".
+      // To trigger "Could not scan", we need findSkillDirectories to throw or something else in discoverSkillCollection to throw.
+      // Since findSkillDirectories already has a try-catch around readdir, we need to mock findSkillDirectories itself.
+
+      const spy = vi
+        .spyOn(
+          skillManager as unknown as {
+            findSkillDirectories: () => Promise<string[]>;
+          },
+          "findSkillDirectories",
+        )
+        .mockRejectedValue(new Error("Scan failed"));
+
+      await skillManager.initialize();
+
+      expect(skillManager.getAvailableSkills()).toHaveLength(0);
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Could not scan"),
+      );
+      spy.mockRestore();
+    });
+
+    it("should handle readdir error in findSkillDirectories", async () => {
+      vi.mocked(readdir).mockRejectedValue(new Error("readdir failed"));
+      await skillManager.initialize();
+      expect(skillManager.getAvailableSkills()).toHaveLength(0);
+    });
+
+    it("should handle invalid skill files", async () => {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p.includes(".wave/skills") || p.includes("builtin-skills")) {
+          return [
+            { name: "bad-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockImplementation(() => {
+        throw new Error("Parse error");
+      });
+
+      await skillManager.initialize();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Found 3 skill discovery errors"),
+      );
+    });
+  });
+
+  describe("registerPluginSkills", () => {
+    it("should register skills from plugins", async () => {
+      // Initialize first
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+
+      const pluginSkill: Skill = {
+        name: "plugin-skill",
+        description: "from plugin",
+        type: "personal",
+        skillPath: "/plugin/path",
+        content: "content",
+        frontmatter: { name: "plugin-skill", description: "from plugin" },
+        isValid: true,
+        errors: [],
+      };
+
+      skillManager.registerPluginSkills("test-plugin", [pluginSkill]);
+
+      const skills = skillManager.getAvailableSkills();
+      expect(
+        skills.find((s) => s.name === "test-plugin:plugin-skill"),
+      ).toBeDefined();
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Registered 1 plugin skills from test-plugin"),
+      );
+    });
+
+    it("should register all metadata fields from plugin skills", async () => {
+      // Initialize first
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+
+      const pluginSkill: Skill = {
+        name: "plugin-skill",
+        description: "from plugin",
+        type: "personal",
+        skillPath: "/plugin/path",
+        content: "content",
+        frontmatter: {
+          name: "plugin-skill",
+          description: "from plugin",
+          context: "fork",
+          agent: "general-purpose",
+          model: "gpt-4",
+        },
+        isValid: true,
+        errors: [],
+        context: "fork",
+        agent: "general-purpose",
+        model: "gpt-4",
+        disableModelInvocation: true,
+        userInvocable: false,
+      };
+
+      skillManager.registerPluginSkills("test-plugin", [pluginSkill]);
+
+      const metadata = skillManager.getSkillMetadata(
+        "test-plugin:plugin-skill",
+      );
+      expect(metadata).toBeDefined();
+      expect(metadata?.context).toBe("fork");
+      expect(metadata?.agent).toBe("general-purpose");
+      expect(metadata?.model).toBe("gpt-4");
+      expect(metadata?.disableModelInvocation).toBe(true);
+      expect(metadata?.userInvocable).toBe(false);
+      expect(metadata?.pluginName).toBe("test-plugin");
+    });
+
+    it("should preserve pluginRoot from plugin skills", async () => {
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+
+      const pluginSkill: Skill = {
+        name: "plugin-skill",
+        description: "from plugin",
+        type: "personal",
+        skillPath: "/plugin/root/skills/my-skill",
+        pluginRoot: "/plugin/root",
+        content: "content",
+        frontmatter: { name: "plugin-skill", description: "from plugin" },
+        isValid: true,
+        errors: [],
+      };
+
+      skillManager.registerPluginSkills("test-plugin", [pluginSkill]);
+
+      const metadata = skillManager.getSkillMetadata(
+        "test-plugin:plugin-skill",
+      );
+      expect(metadata?.pluginRoot).toBe("/plugin/root");
+    });
+
+    it("should namespace skill names from plugins", async () => {
+      // Initialize first
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+
+      const pluginSkill: Skill = {
+        name: "my-skill",
+        description: "from plugin",
+        type: "personal",
+        skillPath: "/plugin/path",
+        content: "content",
+        frontmatter: { name: "my-skill", description: "from plugin" },
+        isValid: true,
+        errors: [],
+      };
+
+      skillManager.registerPluginSkills("my-plugin", [pluginSkill]);
+
+      const skills = skillManager.getAvailableSkills();
+      const namespacedSkill = skills.find(
+        (s) => s.name === "my-plugin:my-skill",
+      );
+      expect(namespacedSkill).toBeDefined();
+      expect(namespacedSkill?.pluginName).toBe("my-plugin");
+      expect(pluginSkill.name).toBe("my-plugin:my-skill");
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Registered 1 plugin skills from my-plugin"),
+      );
+    });
+  });
+
+  describe("deleteSkill", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(rm).mockReset();
+      vi.mocked(rm).mockResolvedValue(undefined);
+    });
+
+    /**
+     * Mock the filesystem as a set of skill directories: root path -> child
+     * skill dir names. `rm` removes the child from the matching root, so a
+     * follow-up refresh re-scans the post-delete state exactly like the real
+     * filesystem would.
+     */
+    function mockDisk(dirs: Record<string, string[]>) {
+      const disk = new Map(
+        Object.entries(dirs).map(([root, children]) => [root, [...children]]),
+      );
+      vi.mocked(readdir).mockImplementation(async (p) => {
+        const children = disk.get(String(p).replace(/\\/g, "/"));
+        if (!children) return [];
+        return children.map((name) => ({
+          name,
+          isDirectory: () => true,
+        })) as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(rm).mockImplementation(async (target) => {
+        const t = String(target).replace(/\\/g, "/");
+        for (const [root, children] of disk) {
+          if (t.startsWith(root + "/")) {
+            const child = t.slice(root.length + 1).split("/")[0];
+            const index = child ? children.indexOf(child) : -1;
+            if (index !== -1) children.splice(index, 1);
+          }
+        }
+      });
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const dir = path.dirname(String(filePath)).replace(/\\/g, "/");
+        const name = path.basename(dir);
+        return {
+          isValid: true,
+          skillMetadata: {
+            name,
+            description: `${name} description`,
+            skillPath: dir,
+          },
+          content: `---\nname: ${name}\n---\ncontent`,
+          frontmatter: { name },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+      return disk;
+    }
+
+    it("should delete every same-named user-level copy in a single delete", async () => {
+      const wave = "/home/u/.wave/skills";
+      const claude = "/home/u/.claude/skills";
+      const agents = "/home/u/.agents/skills";
+      // 'dup' physically exists in all three user dirs, but discovery merges
+      // same-named copies into one name-keyed entry (the .wave copy wins).
+      mockDisk({
+        [wave]: ["dup", "keep"],
+        [claude]: ["dup"],
+        [agents]: ["dup"],
+      });
+      const manager = new SkillManager(container, {
+        personalSkillsPath: wave,
+        personalClaudeSkillsPath: claude,
+        personalAgentsSkillsPath: agents,
+        workdir: "/test/workdir",
+      });
+      await manager.initialize();
+
+      const personal = manager
+        .getAvailableSkills()
+        .filter((s) => s.type === "personal");
+      expect(personal.map((s) => s.name)).toEqual(
+        expect.arrayContaining(["dup", "keep"]),
+      );
+      // one UI row, even though three physical copies exist
+      expect(personal.filter((s) => s.name === "dup")).toHaveLength(1);
+
+      const deleted = await manager.deleteSkill("dup");
+
+      expect(deleted).toBe(true);
+      for (const root of [wave, claude, agents]) {
+        expect(rm).toHaveBeenCalledWith(path.join(root, "dup"), {
+          recursive: true,
+          force: true,
+        });
+      }
+      // Directory-level delete contract: rm targets the skill folder so
+      // helper files inside it disappear with it — never just SKILL.md.
+      const removedTargets = vi
+        .mocked(rm)
+        .mock.calls.map((call) => String(call[0]));
+      expect(removedTargets.some((t) => t.endsWith("SKILL.md"))).toBe(false);
+      // caches converge with disk before deleteSkill resolves: the duplicate
+      // must NOT resurface from a lower-priority directory (bug ②)
+      const after = manager
+        .getAvailableSkills()
+        .filter((s) => s.type === "personal");
+      expect(after.find((s) => s.name === "dup")).toBeUndefined();
+      expect(after.map((s) => s.name)).toContain("keep");
+      await manager.destroy();
+    });
+
+    it("should delete all same-named project copies without touching user dirs", async () => {
+      const waveProj = "/test/workdir/.wave/skills";
+      const claudeProj = "/test/workdir/.claude/skills";
+      const agentsProj = "/test/workdir/.agents/skills";
+      mockDisk({
+        [waveProj]: ["proj-skill"],
+        [claudeProj]: ["proj-skill"],
+        [agentsProj]: ["proj-skill"],
+      });
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+      await manager.initialize();
+
+      const deleted = await manager.deleteSkill("proj-skill");
+
+      expect(deleted).toBe(true);
+      for (const root of [waveProj, claudeProj, agentsProj]) {
+        expect(rm).toHaveBeenCalledWith(path.join(root, "proj-skill"), {
+          recursive: true,
+          force: true,
+        });
+      }
+      expect(
+        manager.getAvailableSkills().find((s) => s.name === "proj-skill"),
+      ).toBeUndefined();
+      await manager.destroy();
+    });
+
+    it("should return false for unknown skill", async () => {
+      vi.mocked(readdir).mockResolvedValue([]);
+      const manager = new SkillManager(container, { workdir: "/test/workdir" });
+      await manager.initialize();
+
+      const deleted = await manager.deleteSkill("nonexistent");
+
+      expect(deleted).toBe(false);
+      expect(rm).not.toHaveBeenCalled();
+      await manager.destroy();
+    });
+
+    it("should refuse to delete builtin skills", async () => {
+      vi.mocked(readdir).mockResolvedValue([]);
+      const manager = new SkillManager(container, { workdir: "/test/workdir" });
+      await manager.initialize();
+
+      // Register a builtin skill directly through the plugin-style map path
+      const builtinSkill: Skill = {
+        name: "builtin-skill",
+        description: "builtin",
+        type: "builtin",
+        skillPath: "/builtin/skills/builtin-skill",
+        content: "content",
+        frontmatter: { name: "builtin-skill", description: "builtin" },
+        isValid: true,
+        errors: [],
+      };
+      manager.registerPluginSkills("builtin", [builtinSkill]);
+
+      const deleted = await manager.deleteSkill("builtin:builtin-skill");
+
+      expect(deleted).toBe(false);
+      expect(rm).not.toHaveBeenCalled();
+      await manager.destroy();
+    });
+  });
+
+  describe("loadSkill", () => {
+    it("should load skill from skillContent map", async () => {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+          return [
+            { name: "skill1", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: { name: "skill1", skillPath: "/path1" },
+        content: "---\nname: skill1\n---\ncontent1",
+        frontmatter: { name: "skill1" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await skillManager.initialize();
+      const skill = await skillManager.loadSkill("skill1");
+
+      expect(skill).toBeDefined();
+      expect(skill?.name).toBe("skill1");
+      expect(logger.debug).toHaveBeenCalledWith(
+        "Skill 'skill1' retrieved from loaded content",
+      );
+    });
+
+    it("should return null if skill not found", async () => {
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+
+      const skill = await skillManager.loadSkill("nonexistent");
+      expect(skill).toBeNull();
+      expect(logger.debug).toHaveBeenCalledWith(
+        "Skill 'nonexistent' not found",
+      );
+    });
+  });
+
+  describe("formatSkillContent", () => {
+    it("should format skill content correctly with frontmatter", async () => {
+      const mockSkill: Skill = {
+        name: "test-skill",
+        description: "A test skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: test-skill\ndescription: A test skill\n---\n\n# Actual Content",
+        frontmatter: { name: "test-skill", description: "A test skill" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+      skillManager.registerPluginSkills("test-plugin", [mockSkill]);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-plugin:test-skill",
+      });
+
+      expect(result.content).toContain(
+        "Base directory for this skill: /path/to/skill",
+      );
+      expect(result.content).toContain("# Actual Content");
+      expect(result.content).not.toContain("---");
+    });
+
+    it("should not include fork info in formatted skill content", async () => {
+      const mockSkill: Skill = {
+        name: "fork-skill",
+        description: "A forked skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: fork-skill\ndescription: A forked skill\ncontext: fork\n---\n\n# Actual Content",
+        frontmatter: {
+          name: "fork-skill",
+          description: "A forked skill",
+          context: "fork",
+        },
+        isValid: true,
+        errors: [],
+        context: "fork",
+      };
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+      skillManager.registerPluginSkills("test-plugin", [mockSkill]);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-plugin:fork-skill",
+      });
+
+      expect(result.content).toContain(
+        "Base directory for this skill: /path/to/skill",
+      );
+      expect(result.content).not.toContain("fork");
+      expect(result.content).toContain("# Actual Content");
+    });
+
+    it("should format skill content correctly without frontmatter markers in content", async () => {
+      const mockSkill: Skill = {
+        name: "test-skill",
+        description: "A test skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content: "# Just Content",
+        frontmatter: { name: "test-skill", description: "A test skill" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+      skillManager.registerPluginSkills("test-plugin", [mockSkill]);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-plugin:test-skill",
+      });
+
+      expect(result.content).toContain("# Just Content");
+    });
+
+    it("should substitute ${WAVE_SKILL_DIR} with the skill's directory path", async () => {
+      const mockSkill: Skill = {
+        name: "path-skill",
+        description: "A skill with path",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: path-skill\ndescription: A skill with path\n---\n\nSkill is at ${WAVE_SKILL_DIR}",
+        frontmatter: { name: "path-skill", description: "A skill with path" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+      skillManager.registerPluginSkills("test-plugin", [mockSkill]);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-plugin:path-skill",
+      });
+
+      expect(result.content).toContain("Skill is at /path/to/skill");
+      // Directory contract: skillPath is the skill's folder (see
+      // SkillMetadata.skillPath), so the substitution must never leak a
+      // SKILL.md file path into the prompt.
+      expect(result.content).not.toContain("SKILL.md");
+    });
+
+    it("should substitute ${WAVE_PLUGIN_ROOT} with the skill's plugin root path", async () => {
+      const mockSkill: Skill = {
+        name: "plugin-skill",
+        description: "A plugin skill",
+        type: "personal",
+        skillPath: "/plugin/root/skills/plugin-skill",
+        pluginRoot: "/plugin/root",
+        content:
+          "---\nname: plugin-skill\ndescription: A plugin skill\n---\n\nPlugin root is ${WAVE_PLUGIN_ROOT}",
+        frontmatter: { name: "plugin-skill", description: "A plugin skill" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await skillManager.initialize();
+      skillManager.registerPluginSkills("test-plugin", [mockSkill]);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-plugin:plugin-skill",
+      });
+
+      expect(result.content).toContain("Plugin root is /plugin/root");
+    });
+  });
+
+  describe("executeSkill", () => {
+    beforeEach(async () => {
+      // Mock initialization to make other methods available
+      vi.spyOn(skillManager, "getAvailableSkills").mockReturnValue([]);
+      vi.spyOn(skillManager, "loadSkill").mockResolvedValue(null);
+      await skillManager.initialize();
+    });
+
+    it("should execute valid skill successfully", async () => {
+      const mockSkill: Skill = {
+        name: "test-skill",
+        description: "A test skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: test-skill\ndescription: A test skill\n---\n\n# Test Content",
+        frontmatter: { name: "test-skill", description: "A test skill" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(mockSkill);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-skill",
+      });
+
+      expect(result.content).toContain(
+        "Base directory for this skill: /path/to/skill",
+      );
+      expect(result.content).toContain("# Test Content");
+      expect(result.context).toEqual({ skillName: "test-skill" });
+    });
+
+    it("should return allowedTools when executing skill", async () => {
+      const mockSkill: Skill = {
+        name: "test-skill",
+        description: "A test skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: test-skill\ndescription: A test skill\nallowed-tools: tool1, tool2\n---\n\n# Test Content",
+        frontmatter: {
+          name: "test-skill",
+          description: "A test skill",
+          "allowed-tools": ["tool1", "tool2"],
+        },
+        isValid: true,
+        errors: [],
+        allowedTools: ["tool1", "tool2"],
+      };
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(mockSkill);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "test-skill",
+      });
+
+      expect(result.allowedTools).toEqual(["tool1", "tool2"]);
+    });
+
+    it("should handle skill not found", async () => {
+      const mockSkills: SkillMetadata[] = [
+        {
+          name: "available-skill",
+          description: "An available skill",
+          type: "personal",
+          skillPath: "/path/to/skill",
+        },
+      ];
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(null);
+      vi.mocked(skillManager.getAvailableSkills).mockReturnValue(mockSkills);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "nonexistent-skill",
+      });
+
+      expect(result.content).toContain(
+        '**Skill not found**: "nonexistent-skill"',
+      );
+      expect(result.content).toContain("Available skills:");
+      expect(result.content).toContain("available-skill");
+    });
+
+    it("should handle invalid skill", async () => {
+      const mockSkill: Skill = {
+        name: "invalid-skill",
+        description: "An invalid skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content: "invalid content",
+        frontmatter: {
+          name: "invalid-skill",
+          description: "An invalid skill",
+        },
+        isValid: false,
+        errors: ["Missing required field: name"],
+      };
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(mockSkill);
+
+      vi.mocked(formatSkillError).mockReturnValue("Formatted Error");
+
+      const result = await skillManager.executeSkill({
+        skill_name: "invalid-skill",
+      });
+
+      expect(result.content).toContain("**Skill validation failed**");
+      expect(result.content).toContain("Formatted Error");
+    });
+
+    it("should handle skill loading error", async () => {
+      vi.mocked(skillManager.loadSkill).mockRejectedValue(
+        new Error("Loading failed") as never,
+      );
+
+      const result = await skillManager.executeSkill({
+        skill_name: "error-skill",
+      });
+
+      expect(result.content).toContain(
+        "**Error preparing skill**: Loading failed",
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Failed to prepare skill 'error-skill':",
+        expect.any(Error),
+      );
+    });
+
+    it("should log skill invocation", async () => {
+      const mockSkill: Skill = {
+        name: "test-skill",
+        description: "A test skill",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: test-skill\ndescription: A test skill\n---\n\n# Content",
+        frontmatter: { name: "test-skill", description: "A test skill" },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(mockSkill);
+
+      await skillManager.executeSkill({ skill_name: "test-skill" });
+
+      expect(logger.debug).toHaveBeenCalledWith("Invoking skill: test-skill");
+    });
+
+    it("should use container Workdir (not stale constructor workdir) for bash execution", async () => {
+      const mockSkill: Skill = {
+        name: "bash-skill",
+        description: "A skill with bash commands",
+        type: "personal",
+        skillPath: "/path/to/skill",
+        content:
+          "---\nname: bash-skill\ndescription: A skill with bash commands\n---\n\nResult: !`echo hello`",
+        frontmatter: {
+          name: "bash-skill",
+          description: "A skill with bash commands",
+        },
+        isValid: true,
+        errors: [],
+      };
+
+      vi.mocked(skillManager.loadSkill).mockResolvedValue(mockSkill);
+
+      // Simulate EnterWorktree: update the container's Workdir after construction
+      container.register("Workdir", "/new/worktree/path");
+
+      await skillManager.executeSkill({ skill_name: "bash-skill" });
+
+      // executeBashCommands should receive the updated workdir, not the original "/test/workdir"
+      expect(executeBashCommands).toHaveBeenCalledWith(
+        ["echo hello"],
+        "/new/worktree/path",
+      );
+    });
+  });
+
+  describe("formatAvailableSkills", () => {
+    beforeEach(async () => {
+      await skillManager.initialize();
+    });
+
+    it("should format skills list correctly when skills exist", async () => {
+      const mockSkills: SkillMetadata[] = [
+        {
+          name: "skill-1",
+          description: "First skill",
+          type: "personal",
+          skillPath: "/path/1",
+        },
+        {
+          name: "skill-2",
+          description: "Second skill",
+          type: "project",
+          skillPath: "/path/2",
+        },
+      ];
+
+      vi.spyOn(skillManager, "getAvailableSkills").mockReturnValue(mockSkills);
+      vi.spyOn(skillManager, "loadSkill").mockResolvedValue(null);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "nonexistent",
+      });
+
+      expect(result.content).toContain("• **skill-1** (personal): First skill");
+      expect(result.content).toContain("• **skill-2** (project): Second skill");
+    });
+
+    it("should show no skills message when empty", async () => {
+      vi.spyOn(skillManager, "getAvailableSkills").mockReturnValue([]);
+      vi.spyOn(skillManager, "loadSkill").mockResolvedValue(null);
+
+      const result = await skillManager.executeSkill({
+        skill_name: "nonexistent",
+      });
+
+      expect(result.content).toContain("• No skills available");
+      expect(result.content).toContain("Wave Skills documentation");
+    });
+  });
+
+  describe("Watcher", () => {
+    it("should initialize watcher when watch option is true", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+      });
+      vi.mocked(readdir).mockResolvedValue([]);
+
+      await manager.initialize();
+
+      expect(FileWatcherService).toHaveBeenCalled();
+      expect(mockFileWatcher.watchFile).toHaveBeenCalledWith(
+        expect.stringMatching(/[/\\]\.wave[/\\]skills$/),
+        expect.any(Function),
+      );
+      expect(mockFileWatcher.watchFile).toHaveBeenCalledWith(
+        expect.stringContaining(path.join("/test/workdir", ".wave", "skills")),
+        expect.any(Function),
+      );
+    });
+
+    it("should not initialize watcher when watch option is false", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: false,
+      });
+      vi.mocked(readdir).mockResolvedValue([]);
+
+      await manager.initialize();
+
+      expect(FileWatcherService).not.toHaveBeenCalled();
+    });
+
+    it("should refresh skills and update slash commands when a change is detected", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+      });
+      container.register("SkillManager", manager);
+
+      const slashCommandManager = new SlashCommandManager(container, {
+        workdir: "/test/workdir",
+      });
+      slashCommandManager.initialize();
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await manager.initialize();
+
+      // Get the callback passed to watchFile
+      const onEventCallback = mockFileWatcher.watchFile.mock.calls[0][1];
+
+      // Mock readdir to return a new skill after refresh
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        if (path.toString().replace(/\\/g, "/").includes(".wave/skills")) {
+          return [
+            { name: "new-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "new-skill",
+          description: "new desc",
+          type: "personal",
+          skillPath: "/path/to/new-skill",
+        },
+        content: "content",
+        frontmatter: { name: "new-skill" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      // Trigger the callback
+      await onEventCallback({
+        type: "change",
+        path: "/test/workdir/.wave/skills/new-skill/SKILL.md",
+        timestamp: Date.now(),
+      });
+
+      // Check if skills were refreshed
+      const skills = manager.getAvailableSkills();
+      expect(skills).toHaveLength(1);
+      expect(skills[0].name).toBe("new-skill");
+
+      // Check if slash commands were updated
+      const commands = slashCommandManager.getCommands();
+      expect(commands.find((c) => c.id === "new-skill")).toBeDefined();
+    });
+
+    it("should cleanup watcher when destroyed", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+      });
+      vi.mocked(readdir).mockResolvedValue([]);
+      await manager.initialize();
+
+      await manager.destroy();
+
+      expect(mockFileWatcher.cleanup).toHaveBeenCalled();
+    });
+
+    it("should preserve plugin skills when refreshSkills is triggered by file watcher", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+      });
+      container.register("SkillManager", manager);
+
+      const slashCommandManager = new SlashCommandManager(container, {
+        workdir: "/test/workdir",
+      });
+      slashCommandManager.initialize();
+
+      // Initialize with no discovered skills
+      vi.mocked(readdir).mockResolvedValue([]);
+      await manager.initialize();
+
+      // Register plugin skills
+      const pluginSkill: Skill = {
+        name: "commit-push-mr",
+        description: "Commit and push MR",
+        type: "personal",
+        skillPath: "/path/to/plugin/skills/commit-push-mr",
+        content: "---\nname: commit-push-mr\n---\nTask content",
+        frontmatter: {
+          name: "commit-push-mr",
+          description: "Commit and push MR",
+        },
+        isValid: true,
+        errors: [],
+        pluginRoot: "/path/to/plugin",
+      };
+      manager.registerPluginSkills("commit-skills", [pluginSkill]);
+
+      // Verify plugin skill is available
+      let skills = manager.getAvailableSkills();
+      expect(
+        skills.find((s) => s.name === "commit-skills:commit-push-mr"),
+      ).toBeDefined();
+
+      // Register skill commands after plugin registration
+      slashCommandManager.registerSkillCommands(manager.getAvailableSkills());
+      expect(
+        slashCommandManager.hasCommand("commit-skills:commit-push-mr"),
+      ).toBe(true);
+
+      // Get the file watcher callback
+      const onEventCallback = mockFileWatcher.watchFile.mock.calls[0][1];
+
+      // Trigger refreshSkills via file watcher (simulating a SKILL.md change)
+      await onEventCallback({
+        type: "change",
+        path: "/test/workdir/.wave/skills/some-skill/SKILL.md",
+        timestamp: Date.now(),
+      });
+
+      // Plugin skills should still be available after refresh
+      skills = manager.getAvailableSkills();
+      expect(
+        skills.find((s) => s.name === "commit-skills:commit-push-mr"),
+      ).toBeDefined();
+
+      // Plugin skill slash commands should still be registered
+      expect(
+        slashCommandManager.hasCommand("commit-skills:commit-push-mr"),
+      ).toBe(true);
+
+      await manager.destroy();
+    });
+
+    // 插件变更的就地重载（docs/specs/ecosystem/plugin.md「插件变更的就地重载」
+    // 场景 3 / 12）：反注册必须连插件专属映射一起清，否则下一次磁盘刷新会把
+    // 已卸载插件的技能复活。
+    it("should not resurrect unregistered plugin skills on the next refresh", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+      });
+      container.register("SkillManager", manager);
+
+      vi.mocked(readdir).mockResolvedValue([]);
+      await manager.initialize();
+
+      manager.registerPluginSkills("commit-skills", [
+        {
+          name: "commit-push-mr",
+          description: "Commit and push MR",
+          skillPath: "/path/to/plugin/skills/commit-push-mr",
+          pluginRoot: "/path/to/plugin",
+        } as unknown as Skill,
+      ]);
+      expect(
+        manager
+          .getAvailableSkills()
+          .find((s) => s.name === "commit-skills:commit-push-mr"),
+      ).toBeDefined();
+
+      manager.unregisterPluginSkills("commit-skills");
+
+      expect(
+        manager
+          .getAvailableSkills()
+          .find((s) => s.name === "commit-skills:commit-push-mr"),
+      ).toBeUndefined();
+
+      // 磁盘刷新（文件监视器触发）后仍不应出现。
+      const onEventCallback = mockFileWatcher.watchFile.mock.calls[0][1];
+      await onEventCallback({
+        type: "change",
+        path: "/test/workdir/.wave/skills/some-skill/SKILL.md",
+        timestamp: Date.now(),
+      });
+
+      expect(
+        manager
+          .getAvailableSkills()
+          .find((s) => s.name === "commit-skills:commit-push-mr"),
+      ).toBeUndefined();
+
+      await manager.destroy();
+    });
+  });
+
+  describe("Cross-tool skill directory compatibility", () => {
+    it("should discover skills from .claude/skills at project level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p === "/test/workdir/.claude/skills") {
+          return [
+            { name: "claude-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "claude-skill",
+          description: "from claude",
+          type: "project",
+          skillPath: "/test/workdir/.claude/skills/claude-skill",
+        },
+        content: "---\nname: claude-skill\n---\ncontent",
+        frontmatter: { name: "claude-skill" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      expect(skills.find((s) => s.name === "claude-skill")).toBeDefined();
+
+      await manager.destroy();
+    });
+
+    it("should discover skills from .claude/skills at personal level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        personalClaudeSkillsPath: "/home/user/.claude/skills",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString();
+        if (p === "/home/user/.claude/skills") {
+          return [
+            { name: "personal-claude-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "personal-claude-skill",
+          description: "from personal claude",
+          type: "personal",
+          skillPath: "/home/user/.claude/skills/personal-claude-skill",
+        },
+        content: "---\nname: personal-claude-skill\n---\ncontent",
+        frontmatter: { name: "personal-claude-skill" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      expect(
+        skills.find((s) => s.name === "personal-claude-skill"),
+      ).toBeDefined();
+
+      await manager.destroy();
+    });
+
+    it("should let .wave/skills override .claude/skills for same-named skill at project level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (
+          p === "/test/workdir/.claude/skills" ||
+          p === "/test/workdir/.wave/skills"
+        ) {
+          return [
+            { name: "override-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const p = filePath as string;
+        if (p.includes(".claude/skills")) {
+          return {
+            isValid: true,
+            skillMetadata: {
+              name: "override-skill",
+              description: "claude version",
+              type: "project",
+              skillPath: p,
+            },
+            content: "claude content",
+            frontmatter: { name: "override-skill" },
+            validationErrors: [],
+          } as unknown as ReturnType<typeof parseSkillFile>;
+        }
+        return {
+          isValid: true,
+          skillMetadata: {
+            name: "override-skill",
+            description: "wave version",
+            type: "project",
+            skillPath: p,
+          },
+          content: "wave content",
+          frontmatter: { name: "override-skill" },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      const skill = skills.find((s) => s.name === "override-skill");
+      expect(skill).toBeDefined();
+      expect(skill?.description).toBe("wave version");
+
+      await manager.destroy();
+    });
+
+    it("should include .claude/skills paths in watched paths", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+        personalClaudeSkillsPath: "/home/user/.claude/skills",
+      });
+      vi.mocked(readdir).mockResolvedValue([]);
+
+      await manager.initialize();
+
+      const watchedPaths = mockFileWatcher.watchFile.mock.calls.map(
+        (call: unknown[]) => call[0] as string,
+      );
+
+      expect(watchedPaths).toContain(
+        path.join("/test/workdir", ".claude", "skills"),
+      );
+      expect(watchedPaths).toContain("/home/user/.claude/skills");
+
+      await manager.destroy();
+    });
+
+    it("should discover skills from .agents/skills at project level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p === "/test/workdir/.agents/skills") {
+          return [
+            { name: "agents-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "agents-skill",
+          description: "from agents",
+          type: "project",
+          skillPath: "/test/workdir/.agents/skills/agents-skill",
+        },
+        content: "---\nname: agents-skill\n---\ncontent",
+        frontmatter: { name: "agents-skill" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      expect(skills.find((s) => s.name === "agents-skill")).toBeDefined();
+
+      await manager.destroy();
+    });
+
+    it("should discover skills from ~/.agents/skills at personal level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        personalAgentsSkillsPath: "/home/user/.agents/skills",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString();
+        if (p === "/home/user/.agents/skills") {
+          return [
+            { name: "personal-agents-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "personal-agents-skill",
+          description: "from personal agents",
+          type: "personal",
+          skillPath: "/home/user/.agents/skills/personal-agents-skill",
+        },
+        content: "---\nname: personal-agents-skill\n---\ncontent",
+        frontmatter: { name: "personal-agents-skill" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      expect(
+        skills.find((s) => s.name === "personal-agents-skill"),
+      ).toBeDefined();
+
+      await manager.destroy();
+    });
+
+    it("should let .wave/skills override .agents/skills for same-named skill at project level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (
+          p === "/test/workdir/.agents/skills" ||
+          p === "/test/workdir/.wave/skills"
+        ) {
+          return [
+            { name: "override-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const p = filePath as string;
+        if (p.includes(".agents/skills")) {
+          return {
+            isValid: true,
+            skillMetadata: {
+              name: "override-skill",
+              description: "agents version",
+              type: "project",
+              skillPath: p,
+            },
+            content: "agents content",
+            frontmatter: { name: "override-skill" },
+            validationErrors: [],
+          } as unknown as ReturnType<typeof parseSkillFile>;
+        }
+        return {
+          isValid: true,
+          skillMetadata: {
+            name: "override-skill",
+            description: "wave version",
+            type: "project",
+            skillPath: p,
+          },
+          content: "wave content",
+          frontmatter: { name: "override-skill" },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      const skill = skills.find((s) => s.name === "override-skill");
+      expect(skill).toBeDefined();
+      expect(skill?.description).toBe("wave version");
+
+      await manager.destroy();
+    });
+
+    it("should let .claude/skills override .agents/skills for same-named skill at project level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (
+          p === "/test/workdir/.agents/skills" ||
+          p === "/test/workdir/.claude/skills"
+        ) {
+          return [
+            { name: "override-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const p = filePath as string;
+        if (p.includes(".agents/skills")) {
+          return {
+            isValid: true,
+            skillMetadata: {
+              name: "override-skill",
+              description: "agents version",
+              type: "project",
+              skillPath: p,
+            },
+            content: "agents content",
+            frontmatter: { name: "override-skill" },
+            validationErrors: [],
+          } as unknown as ReturnType<typeof parseSkillFile>;
+        }
+        return {
+          isValid: true,
+          skillMetadata: {
+            name: "override-skill",
+            description: "claude version",
+            type: "project",
+            skillPath: p,
+          },
+          content: "claude content",
+          frontmatter: { name: "override-skill" },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      const skill = skills.find((s) => s.name === "override-skill");
+      expect(skill).toBeDefined();
+      expect(skill?.description).toBe("claude version");
+
+      await manager.destroy();
+    });
+
+    it("should let ~/.wave/skills override ~/.agents/skills for same-named skill at personal level", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        personalSkillsPath: "/home/user/.wave/skills",
+        personalAgentsSkillsPath: "/home/user/.agents/skills",
+      });
+
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString();
+        if (
+          p === "/home/user/.agents/skills" ||
+          p === "/home/user/.wave/skills"
+        ) {
+          return [
+            { name: "override-skill", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+
+      vi.mocked(parseSkillFile).mockImplementation((filePath) => {
+        const p = filePath as string;
+        if (p.includes(".agents/skills")) {
+          return {
+            isValid: true,
+            skillMetadata: {
+              name: "override-skill",
+              description: "agents version",
+              type: "personal",
+              skillPath: p,
+            },
+            content: "agents content",
+            frontmatter: { name: "override-skill" },
+            validationErrors: [],
+          } as unknown as ReturnType<typeof parseSkillFile>;
+        }
+        return {
+          isValid: true,
+          skillMetadata: {
+            name: "override-skill",
+            description: "wave version",
+            type: "personal",
+            skillPath: p,
+          },
+          content: "wave content",
+          frontmatter: { name: "override-skill" },
+          validationErrors: [],
+        } as unknown as ReturnType<typeof parseSkillFile>;
+      });
+
+      await manager.initialize();
+
+      const skills = manager.getAvailableSkills();
+      const skill = skills.find((s) => s.name === "override-skill");
+      expect(skill).toBeDefined();
+      expect(skill?.description).toBe("wave version");
+
+      await manager.destroy();
+    });
+
+    it("should include .agents/skills paths in watched paths", async () => {
+      const manager = new SkillManager(container, {
+        workdir: "/test/workdir",
+        watch: true,
+        personalAgentsSkillsPath: "/home/user/.agents/skills",
+      });
+      vi.mocked(readdir).mockResolvedValue([]);
+
+      await manager.initialize();
+
+      const watchedPaths = mockFileWatcher.watchFile.mock.calls.map(
+        (call: unknown[]) => call[0] as string,
+      );
+
+      expect(watchedPaths).toContain(
+        path.join("/test/workdir", ".agents", "skills"),
+      );
+      expect(watchedPaths).toContain("/home/user/.agents/skills");
+
+      await manager.destroy();
+    });
+  });
+
+  describe("feature-gated artifact skill", () => {
+    function mockArtifactSkillDiscovery() {
+      vi.mocked(readdir).mockImplementation(async (path) => {
+        const p = path.toString().replace(/\\/g, "/");
+        if (p.includes("builtin-skills")) {
+          return [
+            { name: "artifact", isDirectory: () => true },
+          ] as unknown as Awaited<ReturnType<typeof readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof readdir>>;
+      });
+      vi.mocked(stat).mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof stat>>,
+      );
+      vi.mocked(parseSkillFile).mockReturnValue({
+        isValid: true,
+        skillMetadata: {
+          name: "artifact",
+          description:
+            "Publish a local HTML or Markdown file as a shareable web page",
+          type: "builtin",
+          skillPath: "/test/builtin-skills/artifact/SKILL.md",
+          disableModelInvocation: true,
+        },
+        content: "---\nname: artifact\n---\ncontent",
+        frontmatter: { name: "artifact" },
+        validationErrors: [],
+      } as unknown as ReturnType<typeof parseSkillFile>);
+    }
+
+    it("should skip the artifact skill while the gate is off", async () => {
+      vi.mocked(isArtifactEnabled).mockReturnValue(false);
+      mockArtifactSkillDiscovery();
+
+      await skillManager.initialize();
+
+      expect(skillManager.getSkillMetadata("artifact")).toBeUndefined();
+      expect(
+        skillManager.getAvailableSkills().find((s) => s.name === "artifact"),
+      ).toBeUndefined();
+      expect(await skillManager.loadSkill("artifact")).toBeNull();
+    });
+
+    it("should register the artifact skill when the gate is on", async () => {
+      vi.mocked(isArtifactEnabled).mockReturnValue(true);
+      mockArtifactSkillDiscovery();
+
+      await skillManager.initialize();
+
+      const metadata = skillManager.getSkillMetadata("artifact");
+      expect(metadata).toBeDefined();
+      expect(metadata?.disableModelInvocation).toBe(true);
+      expect(await skillManager.loadSkill("artifact")).not.toBeNull();
+    });
+
+    it("should register/unregister the artifact skill on reloadFeatureGatedSkills", async () => {
+      vi.mocked(isArtifactEnabled).mockReturnValue(false);
+      mockArtifactSkillDiscovery();
+      await skillManager.initialize();
+      expect(skillManager.getSkillMetadata("artifact")).toBeUndefined();
+
+      vi.mocked(isArtifactEnabled).mockReturnValue(true);
+      await skillManager.reloadFeatureGatedSkills();
+      expect(skillManager.getSkillMetadata("artifact")).toBeDefined();
+
+      vi.mocked(isArtifactEnabled).mockReturnValue(false);
+      await skillManager.reloadFeatureGatedSkills();
+      expect(skillManager.getSkillMetadata("artifact")).toBeUndefined();
+    });
+
+    it("should register /artifact slash command only while the gate is on", async () => {
+      vi.mocked(isArtifactEnabled).mockReturnValue(false);
+      mockArtifactSkillDiscovery();
+      container.register("SkillManager", skillManager);
+      const slashCommandManager = new SlashCommandManager(container, {
+        workdir: "/test/workdir",
+      });
+      slashCommandManager.initialize();
+
+      await skillManager.initialize();
+      expect(slashCommandManager.hasCommand("artifact")).toBe(false);
+
+      vi.mocked(isArtifactEnabled).mockReturnValue(true);
+      await skillManager.reloadFeatureGatedSkills();
+      expect(slashCommandManager.hasCommand("artifact")).toBe(true);
+
+      vi.mocked(isArtifactEnabled).mockReturnValue(false);
+      await skillManager.reloadFeatureGatedSkills();
+      expect(slashCommandManager.hasCommand("artifact")).toBe(false);
+    });
+  });
+});

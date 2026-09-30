@@ -1,0 +1,693 @@
+import { describe, it, expect } from "vitest";
+import type { ChatCompletionFunctionTool } from "openai/resources.js";
+import type { McpManager } from "../../src/managers/mcpManager.js";
+import type { PermissionManager } from "../../src/managers/permissionManager.js";
+import {
+  buildExecPool,
+  renderCatalog,
+  renderCatalogEntry,
+  renderSearchCallForm,
+  renderSearchSignature,
+  resolveSearchQuery,
+} from "../../src/exec/catalog.js";
+import { EXEC_RESERVED_NAMESPACE } from "../../src/exec/constants.js";
+
+function tool(
+  name: string,
+  description?: string,
+  parameters?: Record<string, unknown>,
+): ChatCompletionFunctionTool {
+  return { type: "function", function: { name, description, parameters } };
+}
+
+function mcpManagerOf(
+  configs: ChatCompletionFunctionTool[],
+  outputSchemas: Map<string, Record<string, unknown>> = new Map(),
+): McpManager {
+  return {
+    getMcpToolsConfig: () => configs,
+    getMcpToolOutputSchemas: () => outputSchemas,
+  } as unknown as McpManager;
+}
+
+/** Catalog lines that begin an entry (a multi-line block starts with `tools.`). */
+const entryLines = (text: string) =>
+  text.split("\n").filter((line) => line.startsWith("tools."));
+
+/** A tool whose pretty signature is a six-line block (29 estimated tokens at the
+ * eleven-character name `mcp__srv__a`). */
+const blockEntry = (name: string) => ({
+  name,
+  inputSchema: {
+    type: "object",
+    properties: {
+      cmd: { type: "string", description: "the command" },
+      cwd: { type: "string", description: "working dir" },
+    },
+    required: ["cmd"],
+  },
+});
+
+/** An object schema nested `levels` deep; the innermost field is a string at that depth. */
+function nestedSchema(levels: number): Record<string, unknown> {
+  let schema: Record<string, unknown> = { type: "string" };
+  for (let i = 0; i < levels; i += 1) {
+    schema = { type: "object", properties: { [`p${i}`]: schema } };
+  }
+  return schema;
+}
+
+describe("buildExecPool", () => {
+  it("maps the very configs that would be declared flat", () => {
+    const config = tool("mcp__srv__run", "Run it (MCP: srv)", {
+      type: "object",
+      properties: { cmd: { type: "string" } },
+      required: ["cmd"],
+    });
+    const pool = buildExecPool(mcpManagerOf([config]));
+
+    expect(pool).toEqual([
+      {
+        name: "mcp__srv__run",
+        description: "Run it (MCP: srv)",
+        inputSchema: config.function.parameters,
+      },
+    ]);
+  });
+
+  it("drops tools denied by permission rules, exactly like the declaration path", () => {
+    const permissionManager = {
+      isToolDenied: (name: string) => name === "mcp__srv__secret",
+    } as unknown as PermissionManager;
+
+    const pool = buildExecPool(
+      mcpManagerOf([
+        tool("mcp__srv__safe"),
+        tool("mcp__srv__secret"),
+        tool("mcp__other__safe"),
+      ]),
+      permissionManager,
+    );
+
+    expect(pool.map((entry) => entry.name)).toEqual([
+      "mcp__srv__safe",
+      "mcp__other__safe",
+    ]);
+  });
+
+  it("tolerates a tool with no schema", () => {
+    const pool = buildExecPool(mcpManagerOf([tool("mcp__srv__ping")]));
+    expect(pool[0].inputSchema).toBeUndefined();
+    expect(pool[0].outputSchema).toBeUndefined();
+  });
+
+  it("carries each tool's declared output schema for the signature", () => {
+    // A tool declaration has no field for an output schema, so it rides
+    // alongside the pool rather than inside it.
+    const outputSchema = {
+      type: "object",
+      properties: { id: { type: "string" } },
+    };
+    const pool = buildExecPool(
+      mcpManagerOf(
+        [tool("mcp__srv__run"), tool("mcp__srv__quiet")],
+        new Map([["mcp__srv__run", outputSchema]]),
+      ),
+    );
+
+    expect(pool[0].outputSchema).toBe(outputSchema);
+    expect(pool[1].outputSchema).toBeUndefined();
+  });
+});
+
+describe("renderCatalogEntry", () => {
+  it("renders identifier-safe names as property access", () => {
+    const line = renderCatalogEntry({
+      name: "mcp__srv__run",
+      description: "Run a command\nSecond line is dropped",
+      inputSchema: {
+        type: "object",
+        properties: { cmd: { type: "string" }, cwd: { type: "string" } },
+        required: ["cmd"],
+      },
+    });
+
+    expect(line).toBe(
+      [
+        "tools.mcp__srv__run({",
+        "  cmd: string,",
+        "  cwd?: string,",
+        "}): Promise<unknown> // Run a command",
+      ].join("\n"),
+    );
+    // Only the first line of the tool description reaches the catalog.
+    expect(line).not.toContain("Second line");
+  });
+
+  it("falls back to bracket access when the name is not a valid identifier", () => {
+    const line = renderCatalogEntry({ name: "mcp__my-srv__x" });
+    expect(line).toBe('tools["mcp__my-srv__x"](unknown): Promise<unknown>');
+  });
+
+  it("renders a declared output schema as the return type", () => {
+    const line = renderCatalogEntry({
+      name: "mcp__srv__a",
+      outputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "the id" },
+          count: { type: "number" },
+        },
+        required: ["id"],
+      },
+    });
+
+    expect(line).toBe(
+      [
+        "tools.mcp__srv__a(unknown): Promise<{",
+        "  /** the id */",
+        "  id: string,",
+        "  count?: number,",
+        "}>",
+      ].join("\n"),
+    );
+  });
+
+  it("renders a degenerate output schema as what it says, not as a guess", () => {
+    // `{ type: "object" }` declares "some object, shape unspecified" — the
+    // lifetime of a real server declaring that. Rendering `{}` says exactly that;
+    // inventing a narrower shape would be a lie the model could act on.
+    expect(
+      renderCatalogEntry({
+        name: "mcp__srv__a",
+        outputSchema: { type: "object" },
+      }),
+    ).toBe("tools.mcp__srv__a(unknown): Promise<{}>");
+  });
+
+  it("renders enum, array and union types", () => {
+    expect(
+      renderCatalogEntry({
+        name: "a",
+        inputSchema: {
+          type: "object",
+          properties: { mode: { enum: ["fast", "slow"] } },
+        },
+      }),
+    ).toBe(
+      ["tools.a({", '  mode?: "fast" | "slow",', "}): Promise<unknown>"].join(
+        "\n",
+      ),
+    );
+
+    expect(
+      renderCatalogEntry({
+        name: "b",
+        inputSchema: {
+          type: "object",
+          properties: { items: { type: "array", items: { type: "string" } } },
+        },
+      }),
+    ).toBe(
+      ["tools.b({", "  items?: Array<string>,", "}): Promise<unknown>"].join(
+        "\n",
+      ),
+    );
+
+    expect(
+      renderCatalogEntry({
+        name: "c",
+        inputSchema: { anyOf: [{ type: "string" }, { type: "number" }] },
+      }),
+    ).toBe("tools.c(string | number): Promise<unknown>");
+  });
+
+  it("renders every property of a wide schema", () => {
+    // No per-level property cap: a wide schema is exactly where the model would
+    // otherwise have to guess which parameter to pass.
+    const wide = {
+      type: "object",
+      properties: Object.fromEntries(
+        Array.from({ length: 10 }, (_, i) => [`p${i}`, { type: "string" }]),
+      ),
+    };
+    const line = renderCatalogEntry({ name: "e", inputSchema: wide });
+    expect(line).toContain("  p9?: string,");
+    expect(line).not.toContain("...");
+  });
+
+  it("renders every enum variant", () => {
+    const line = renderCatalogEntry({
+      name: "en",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mode: {
+            enum: [
+              "alpha",
+              "bravo",
+              "charlie",
+              "delta",
+              "echo",
+              "foxtrot",
+              "golf",
+            ],
+          },
+        },
+      },
+    });
+    expect(line).toContain(
+      '  mode?: "alpha" | "bravo" | "charlie" | "delta" | "echo" | "foxtrot" | "golf",',
+    );
+  });
+
+  it("renders every union branch", () => {
+    // Like properties and enum variants, a union is a list of choices the model
+    // has to pick from, so no branch may be dropped. opencode's renderer, whose
+    // depth ceiling this one borrows, caps neither.
+    const line = renderCatalogEntry({
+      name: "u",
+      inputSchema: {
+        anyOf: ["a", "b", "c", "d", "e", "f"].map((kind) => ({
+          type: "object",
+          properties: { kind: { enum: [kind] } },
+        })),
+      },
+    });
+    expect(line).toContain('"f"');
+    expect(line.match(/kind/g) ?? []).toHaveLength(6);
+    expect(line).not.toContain("...");
+  });
+
+  it("expands nested schemas until the depth ceiling, then degrades to unknown", () => {
+    // `nestedSchema(n)` puts the innermost string at depth n.
+    expect(
+      renderCatalogEntry({ name: "d", inputSchema: nestedSchema(8) }),
+    ).toContain("p0?: string,");
+    // One level past the ceiling the field renders as `unknown` rather than
+    // expanding further or overflowing the stack.
+    const past = renderCatalogEntry({
+      name: "d",
+      inputSchema: nestedSchema(9),
+    });
+    expect(past).toContain("p0?: unknown,");
+    expect(past).not.toContain("string");
+  });
+
+  it("renders per-field JSDoc for descriptions, defaults and constraints", () => {
+    const line = renderCatalogEntry({
+      name: "g",
+      inputSchema: {
+        type: "object",
+        properties: {
+          owner: { type: "string", description: "Repository owner" },
+          perPage: {
+            type: "number",
+            description: "Results per page",
+            default: 30,
+          },
+          labels: {
+            type: "array",
+            items: { type: "string" },
+            description: "Filter by labels",
+            minItems: 1,
+            maxItems: 10,
+          },
+          home: { type: "string", format: "uri" },
+          legacy: { type: "string", deprecated: true },
+          plain: { type: "boolean" },
+        },
+      },
+    });
+
+    expect(line).toBe(
+      [
+        "tools.g({",
+        "  /** Repository owner */",
+        "  owner?: string,",
+        "  /**",
+        "   * Results per page",
+        "   * @default 30",
+        "   */",
+        "  perPage?: number,",
+        "  /**",
+        "   * Filter by labels",
+        "   * @minItems 1",
+        "   * @maxItems 10",
+        "   */",
+        "  labels?: Array<string>,",
+        "  /** @format uri */",
+        "  home?: string,",
+        "  /** @deprecated */",
+        "  legacy?: string,",
+        // No description and no tag -> no comment line at all.
+        "  plain?: boolean,",
+        "}): Promise<unknown>",
+      ].join("\n"),
+    );
+  });
+
+  it("clamps the tool description but keeps a field description verbatim", () => {
+    const line = renderCatalogEntry({
+      name: "gl",
+      description: `${"t".repeat(200)}\nsecond line`,
+      inputSchema: {
+        type: "object",
+        properties: {
+          p: { type: "string", description: `${"d".repeat(200)}\nsecond line` },
+        },
+      },
+    });
+    const lines = line.split("\n");
+
+    // Field text is decision guidance ("which variant, and why"), so it arrives
+    // whole: multi-line, no width cap, nothing dropped.
+    expect(lines.slice(0, 6)).toEqual([
+      "tools.gl({",
+      "  /**",
+      `   * ${"d".repeat(200)}`,
+      "   * second line",
+      "   */",
+      "  p?: string,",
+    ]);
+    // Only the tool's own description is compressed, to one line of fixed width.
+    expect(lines[lines.length - 1]).toBe(
+      `}): Promise<unknown> // ${"t".repeat(117)}...`,
+    );
+  });
+
+  it("emits a tag even when the field has no description", () => {
+    const line = renderCatalogEntry({
+      name: "gt",
+      inputSchema: {
+        type: "object",
+        properties: { limit: { type: "number", default: 30000 } },
+      },
+    });
+    expect(line).toContain("  /** @default 30000 */\n  limit?: number,");
+  });
+
+  it("neutralizes a comment terminator inside a description", () => {
+    const line = renderCatalogEntry({
+      name: "gs",
+      inputSchema: {
+        type: "object",
+        properties: { note: { type: "string", description: "Ends */ early" } },
+      },
+    });
+    expect(line).toContain("/** Ends * / early */");
+    expect(line).not.toContain("Ends */");
+  });
+});
+
+describe("search entry", () => {
+  it("renders its signature and its one-line call form from the same schema", () => {
+    // The sandbox entry point is documented in two places with different room:
+    // the multi-line signature in the API blurb and the one-line form in the
+    // truncation notice and in error messages. Both come from one schema.
+    expect(renderSearchSignature()).toBe(
+      [
+        `tools["${EXEC_RESERVED_NAMESPACE}"].search({`,
+        "  /** Substring matched against tool names and descriptions, case-insensitively. Omit it (or pass an empty string) to list the entire pool. */",
+        "  query?: string,",
+        "}): Promise<Array<{",
+        "    name: string,",
+        "    description?: string,",
+        "    signature: string,",
+        "  }>>",
+      ].join("\n"),
+    );
+    expect(renderSearchCallForm()).toBe(
+      `tools["${EXEC_RESERVED_NAMESPACE}"].search({ query: "..." })`,
+    );
+  });
+
+  it("advertises exactly the arguments the validator accepts", () => {
+    // Only the parameter block: the return type's fields are addresses into a
+    // result, not arguments, and reading them as arguments would make this test
+    // assert its own drift rather than catch it.
+    const signature = renderSearchSignature();
+    const block = signature.slice(0, signature.indexOf("}): ") + 1);
+    const advertised = block
+      .split("\n")
+      .map((line) => /^\s*([A-Za-z_$][\w$]*)\??:/.exec(line)?.[1])
+      .filter((key): key is string => key !== undefined);
+
+    expect(advertised).toEqual(["query"]);
+    // The form taught to the model, fed straight back in: drift between the
+    // prose and the host is what this catches.
+    expect(() => resolveSearchQuery({ query: "..." })).not.toThrow();
+  });
+
+  it("rejects an argument the schema does not declare instead of searching", () => {
+    // `{ q: "..." }` used to read as "no query" and answer with the whole pool,
+    // dressing a typo up as a successful search.
+    expect(() => resolveSearchQuery({ q: "sum" })).toThrow(
+      `search() does not take "q". Expected ${renderSearchCallForm()}`,
+    );
+  });
+
+  it("rejects a non-string query", () => {
+    expect(() => resolveSearchQuery({ query: 42 })).toThrow(
+      `search() expects "query" to be a string, got number. Expected ${renderSearchCallForm()}`,
+    );
+  });
+
+  it("trims and lower-cases the query, and treats an omission as empty", () => {
+    expect(resolveSearchQuery({ query: "  Sum  " })).toBe("sum");
+    expect(resolveSearchQuery({ query: "" })).toBe("");
+    expect(resolveSearchQuery({})).toBe("");
+  });
+});
+
+describe("renderCatalog", () => {
+  const entries = [
+    { name: "mcp__srv__a", description: "A" },
+    { name: "mcp__srv__b", description: "B" },
+    { name: "mcp__srv__c", description: "C" },
+  ];
+
+  it("renders every entry when the budget allows", () => {
+    const rendered = renderCatalog(entries, 10_000);
+    expect(rendered.truncated).toBe(false);
+    expect(rendered.shown).toBe(3);
+    expect(entryLines(rendered.text)).toHaveLength(3);
+  });
+
+  it("announces truncation with counts, and leaves the search form to the announcement", () => {
+    const rendered = renderCatalog(entries, 2);
+    expect(rendered.truncated).toBe(true);
+    expect(rendered.shown).toBeLessThan(3);
+    expect(rendered.text).toContain(
+      `PARTIAL — ${rendered.shown} of 3 tools shown`,
+    );
+    // One spelling of the way back, and it lives in the announcement's search
+    // section (which exists exactly when this line does): repeating the call form
+    // here is how prose and implementation would drift apart.
+    expect(rendered.text).not.toContain(renderSearchCallForm());
+    expect(rendered.text).not.toContain("search");
+  });
+
+  it("reports per-server counts alongside the rendered entries", () => {
+    const pooled = [
+      { name: "mcp__alpha__t1" },
+      { name: "mcp__alpha__t2" },
+      { name: "mcp__beta__t1" },
+    ];
+    // Room for a single entry: alpha gets one, beta's turn never comes.
+    const rendered = renderCatalog(pooled, 6);
+
+    // The announcement can only diff counts, so the snapshot has to come back from
+    // the renderer — recomputing it would mean parsing the rendered prose.
+    expect(rendered.namespaces).toEqual([
+      { name: "alpha", count: 2, shown: 1 },
+      { name: "beta", count: 1, shown: 0 },
+    ]);
+  });
+
+  it("reports every server's full count even when nothing is truncated", () => {
+    const rendered = renderCatalog(entries, 10_000);
+    expect(rendered.namespaces).toEqual([{ name: "srv", count: 3, shown: 3 }]);
+  });
+
+  it("names every server, with counts, when the catalog is truncated", () => {
+    const pooled = [
+      { name: "mcp__alpha__t1" },
+      { name: "mcp__alpha__t2" },
+      { name: "mcp__beta__t1" },
+    ];
+    // Room for a single entry: alpha gets one, beta's turn never comes.
+    const rendered = renderCatalog(pooled, 6);
+
+    expect(rendered.shown).toBe(1);
+    expect(rendered.text).toContain("- mcp__alpha (2 tools, 1 shown)");
+    // The server rotation alone cannot promise beta a seat, so the summary is
+    // what keeps it from being invisible.
+    expect(rendered.text).toContain("- mcp__beta (1 tool, none shown)");
+  });
+
+  it("drops the shown-count for a server that is fully shown", () => {
+    const pooled = [
+      { name: "mcp__alpha__t1" },
+      { name: "mcp__beta__t1" },
+      { name: "mcp__beta__t2" },
+    ];
+    // Each entry is 47 chars / 13 estimated tokens, so 26 is room for exactly two.
+    const rendered = renderCatalog(pooled, 26);
+
+    expect(rendered.shown).toBe(2);
+    expect(rendered.text).toContain("- mcp__alpha (1 tool)");
+    expect(rendered.text).toContain("- mcp__beta (2 tools, 1 shown)");
+  });
+
+  it("keeps the per-server summaries outside the budget", () => {
+    const pooled = Array.from({ length: 40 }, (_, index) => ({
+      name: `mcp__s${String(Math.floor(index / 2)).padStart(2, "0")}__t${
+        (index % 2) + 1
+      }`,
+      description: "d",
+    }));
+    // Twenty servers, two tools each. Every entry is 50 chars / 14 estimated
+    // tokens, so 280 is exactly one seat for each server. Were the summaries
+    // budgeted, half of them would lose their seat to their own summary line.
+    const rendered = renderCatalog(pooled, 280);
+
+    expect(rendered.shown).toBe(20);
+    expect(entryLines(rendered.text)).toHaveLength(20);
+    expect(rendered.text).toContain("- mcp__s00 (2 tools, 1 shown)");
+  });
+
+  it("omits the per-server summaries when nothing is truncated", () => {
+    const rendered = renderCatalog(entries, 10_000);
+    expect(rendered.truncated).toBe(false);
+    expect(rendered.text).not.toContain("- mcp__");
+  });
+
+  it("never leaks the budget number into model-visible text", () => {
+    const rendered = renderCatalog(entries, 4096);
+    expect(rendered.text).not.toContain("4096");
+    expect(rendered.text).not.toContain("token");
+  });
+
+  it("shows at least one whole entry even when it alone exceeds the budget", () => {
+    const rendered = renderCatalog(entries, 1);
+    expect(rendered.shown).toBe(1);
+    expect(rendered.text).toContain("tools.mcp__srv__a");
+    // The block is placed atomically: its description trailer comes along too.
+    expect(rendered.text).toContain("// A");
+  });
+
+  it("budgets a whole multi-line entry as one unit", () => {
+    const blocks = [
+      blockEntry("mcp__srv__a"),
+      blockEntry("mcp__srv__b"),
+      blockEntry("mcp__srv__c"),
+    ];
+    // Each block is six lines / 113 chars / 29 estimated tokens, so three of them
+    // cost 87 as blocks. Per-line accounting would need 102 and fit only two.
+    const exact = renderCatalog(blocks, 87);
+    expect(exact.shown).toBe(3);
+    expect(exact.truncated).toBe(false);
+
+    const oneLess = renderCatalog(blocks, 86);
+    expect(oneLess.shown).toBe(2);
+  });
+
+  it("round-robins whole blocks across servers", () => {
+    // A block's cost depends on its first line, which carries the tool name, so
+    // the three server names are kept the same length to make the budget exact.
+    const pooled = [
+      blockEntry("mcp__alpha__t1"),
+      blockEntry("mcp__alpha__t2"),
+      blockEntry("mcp__alpha__t3"),
+      blockEntry("mcp__bravo__t1"),
+      blockEntry("mcp__bravo__t2"),
+      blockEntry("mcp__delta__t1"),
+    ];
+    // Each block costs 30 tokens, so 90 is room for exactly one round.
+    const rendered = renderCatalog(pooled, 90);
+    expect(rendered.shown).toBe(3);
+    expect(rendered.truncated).toBe(true);
+
+    const order = [
+      "tools.mcp__alpha__t1",
+      "tools.mcp__bravo__t1",
+      "tools.mcp__delta__t1",
+    ].map((name) => rendered.text.indexOf(name));
+    expect(order[0]).toBeLessThan(order[1]);
+    expect(order[1]).toBeLessThan(order[2]);
+    expect(rendered.text).not.toContain("mcp__alpha__t2");
+  });
+
+  it("gives every server a seat before any server gets a second", () => {
+    // A plain first-N cut would show only alpha here and drop beta and gamma
+    // entirely, which the model would read as "those tools do not exist".
+    const pooled = [
+      { name: "mcp__alpha__t1" },
+      { name: "mcp__alpha__t2" },
+      { name: "mcp__alpha__t3" },
+      { name: "mcp__beta__t1" },
+      { name: "mcp__beta__t2" },
+      { name: "mcp__gamma__t1" },
+    ];
+    // Room for exactly three lines: one full round of the rotation.
+    const rendered = renderCatalog(pooled, 39);
+    // Summary lines sit in between; only the entries are being asserted here.
+    const lines = entryLines(rendered.text);
+
+    expect(rendered.shown).toBe(3);
+    expect(rendered.truncated).toBe(true);
+    expect(lines[0]).toContain("tools.mcp__alpha__t1");
+    expect(lines[1]).toContain("tools.mcp__beta__t1");
+    expect(lines[2]).toContain("tools.mcp__gamma__t1");
+    expect(rendered.text).not.toContain("mcp__alpha__t2");
+  });
+
+  it("is byte-stable for an unchanged pool", () => {
+    expect(renderCatalog(entries, 4096).text).toBe(
+      renderCatalog(entries, 4096).text,
+    );
+  });
+
+  it("seats the cheapest block of a server first, whatever order the pool came in", () => {
+    // Pool order is whatever `tools/list` returned, which is no reason to spend the
+    // budget there first: the rotation takes each server's next unshown entry, so
+    // ordering by cost is what makes a budget buy the most entries.
+    const rendered = renderCatalog(
+      [blockEntry("mcp__alpha__wide"), { name: "mcp__alpha__narrow" }],
+      4096,
+    );
+    const lines = entryLines(rendered.text);
+
+    expect(lines[0]).toContain("tools.mcp__alpha__narrow");
+    expect(lines[1]).toContain("tools.mcp__alpha__wide");
+  });
+
+  it("spends a budget that only fits one entry on the cheap one, not the first one", () => {
+    // 14 tokens is exactly the one-line entry
+    // (`tools.mcp__alpha__narrow(unknown): Promise<unknown>`, 51 chars) and far
+    // short of the six-line block. In pool order the block came first, and the
+    // first entry is always shown even when it alone is over budget — so this
+    // ordering is also what keeps a tiny budget from being swallowed by whichever
+    // tool the server happened to list first.
+    const rendered = renderCatalog(
+      [blockEntry("mcp__alpha__wide"), { name: "mcp__alpha__narrow" }],
+      14,
+    );
+
+    expect(rendered.shown).toBe(1);
+    expect(rendered.text).toContain("tools.mcp__alpha__narrow");
+    expect(rendered.text).not.toContain("tools.mcp__alpha__wide");
+  });
+
+  it("breaks a cost tie by tool name, so the order never depends on the pool", () => {
+    const rendered = renderCatalog(
+      [{ name: "mcp__alpha__t2" }, { name: "mcp__alpha__t1" }],
+      4096,
+    );
+    const lines = entryLines(rendered.text);
+
+    expect(lines[0]).toContain("tools.mcp__alpha__t1");
+    expect(lines[1]).toContain("tools.mcp__alpha__t2");
+  });
+});

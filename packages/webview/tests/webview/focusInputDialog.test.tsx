@@ -6,7 +6,7 @@ import {
   act,
   sendCommand,
 } from "./test-utils";
-import { EDIT_TOOL_NAME } from "wave-agent-sdk";
+import { EDIT_TOOL_NAME } from "@muse-work/agent";
 
 // Switching to a side-by-side pane fires `focusInput`. When a tool confirmation
 // is open in that pane the message input is hidden (display:none), so focusing

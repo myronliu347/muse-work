@@ -1,0 +1,661 @@
+/**
+ * JSONL file operations service
+ * Handles reading and writing JSONL (JSON Lines) session files for improved performance
+ */
+
+import {
+  appendFile,
+  readFile,
+  writeFile,
+  stat,
+  mkdir,
+  rename,
+  unlink,
+} from "fs/promises";
+import { randomUUID } from "crypto";
+import { dirname } from "path";
+import {
+  forEachLine,
+  getLastLine,
+  readFirstNLines,
+  readTailLines,
+} from "../utils/fileUtils.js";
+
+import type { Message } from "../types/index.js";
+import { extractLatestTotalTokens } from "../utils/tokenCalculation.js";
+import type { SessionFilename } from "../types/session.js";
+import { isReservedEntry } from "./sessionEntries.js";
+
+/**
+ * JSONL write options
+ */
+export interface JsonlWriteOptions {
+  // Safety options
+  atomic?: boolean; // Default: true (write to temp file first)
+}
+
+/**
+ * Flush threshold for `truncateSession`'s output buffer. Only bounds the
+ * rewrite's memory — the file it produces is identical regardless of value.
+ */
+const TRUNCATE_FLUSH_BYTES = 64 * 1024;
+
+/**
+ * Creation-time metadata persisted in the session file's header line
+ * (`{"type":"metadata",...}`). The header is append-only — written once on
+ * session creation and never rewritten — so only fields that are fixed at
+ * creation time belong here.
+ */
+export interface SessionMetadataHeader {
+  /** Real working directory (the encoded project dir name is lossy for paths containing "-"). */
+  workdir?: string;
+  /** ISO 8601 creation timestamp. */
+  createdAt?: string;
+  /** Git branch at creation time (`git branch --show-current`), when the directory is a git repo. */
+  gitBranch?: string;
+}
+
+/**
+ * User-set conversation title, appended as its own JSONL entry on rename.
+ * A dedicated entry type (rather than a field on the append-only metadata
+ * header) is what lets the title be changed after creation without rewriting
+ * the file: it is appended at rename time, and re-appended at EOF at the
+ * session's sparse flush points (`reAppendSessionMetadata` — exit, compaction,
+ * resume, rewind) rather than on every save.
+ */
+export interface CustomTitleEntry {
+  type: "custom-title";
+  customTitle: string;
+  /** Session the title belongs to (the file is per-session; kept for traceability). */
+  sessionId?: string;
+}
+
+/**
+ * JSONL handler class for message persistence operations
+ */
+export class JsonlHandler {
+  private readonly defaultWriteOptions: Required<JsonlWriteOptions>;
+
+  constructor() {
+    this.defaultWriteOptions = {
+      atomic: true,
+    };
+  }
+
+  /**
+   * Create a new session file.
+   *
+   * When `metadata` is provided, the first line is a metadata header
+   * recording creation-time facts about the session:
+   * `{"type":"metadata","workdir":...,"createdAt":...,"gitBranch":...}`. The
+   * encoded project dir name is lossy for paths containing "-", so persisting
+   * the real path lets session listing show it without decoding; `createdAt`
+   * and `gitBranch` similarly avoid lossy/fabricated reconstruction later.
+   * The header carries no `timestamp`, so message readers filter it out
+   * naturally.
+   *
+   * Legacy callers that omit `metadata` still get an empty file.
+   */
+  async createSession(
+    filePath: string,
+    metadata?: SessionMetadataHeader,
+  ): Promise<void> {
+    // Ensure directory exists
+    await this.ensureDirectory(dirname(filePath));
+
+    const content =
+      metadata && Object.keys(metadata).length > 0
+        ? `${JSON.stringify({ type: "metadata", ...metadata })}\n`
+        : "";
+    await writeFile(filePath, content, "utf8");
+  }
+
+  /**
+   * Append a single message to JSONL file
+   */
+  async appendMessage(filePath: string, message: Message): Promise<void> {
+    return this.appendMessages(filePath, [message]);
+  }
+
+  /**
+   * Append a user-set conversation title (`{"type":"custom-title",...}`).
+   *
+   * Appending — never rewriting — keeps the file's append-only contract intact
+   * and leaves the metadata header and every message untouched. The entry has
+   * no `timestamp`, so it can never be mistaken for a message by readers that
+   * filter on timestamps.
+   */
+  async appendCustomTitle(
+    filePath: string,
+    customTitle: string,
+    sessionId?: string,
+  ): Promise<void> {
+    const entry: CustomTitleEntry & { sessionId?: string } = {
+      type: "custom-title",
+      customTitle,
+      ...(sessionId ? { sessionId } : {}),
+    };
+    await this.ensureDirectory(dirname(filePath));
+    await appendFile(filePath, `${JSON.stringify(entry)}\n`, "utf8");
+  }
+
+  /**
+   * Read the session's user-set title from the tail window, if present.
+   *
+   * Scans the tail and keeps the newest entry, so a rename always wins over an
+   * earlier one. Only the tail is read: this is the cheap path used by session
+   * listing and by `reAppendSessionMetadata`'s external-writer refresh, and the
+   * write side re-appends the entry at EOF at its sparse flush points. An entry
+   * that later messages have already pushed out of the window is invisible
+   * here — that is what `readMessagesAndCustomTitle` recovers on resume.
+   */
+  async readCustomTitle(filePath: string): Promise<string | undefined> {
+    for (const line of (await readTailLines(filePath)).reverse()) {
+      try {
+        const parsed = JSON.parse(line) as {
+          type?: string;
+          customTitle?: unknown;
+        };
+        if (parsed.type !== "custom-title") continue;
+        return typeof parsed.customTitle === "string" && parsed.customTitle
+          ? parsed.customTitle
+          : undefined;
+      } catch {
+        // Partial line at the tail window's boundary — keep looking.
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Append multiple messages to JSONL file
+   */
+  async appendMessages(filePath: string, messages: Message[]): Promise<void> {
+    if (messages.length === 0) {
+      return;
+    }
+
+    return this.append(filePath, messages);
+  }
+
+  /**
+   * Append messages to JSONL file
+   */
+  async append(
+    filePath: string,
+    messages: Message[],
+    options?: JsonlWriteOptions,
+  ): Promise<void> {
+    if (messages.length === 0) {
+      return;
+    }
+
+    const opts = { ...this.defaultWriteOptions, ...options };
+
+    // Validate messages (always enabled for data integrity)
+    this.validateMessages(messages);
+
+    // Ensure directory exists
+    await this.ensureDirectory(dirname(filePath));
+
+    // Convert messages to JSONL lines (compact JSON, timestamp first)
+    const lines = messages.map((message) => {
+      const { timestamp, ...rest } = message;
+      return JSON.stringify({ timestamp, ...rest });
+    });
+
+    const content = lines.join("\n") + "\n";
+
+    if (opts.atomic) {
+      // Write to temp file first, then rename
+      const tempPath = `${filePath}.tmp`;
+      await writeFile(tempPath, content, "utf8");
+
+      // Atomic rename
+      const { rename } = await import("fs/promises");
+      await rename(tempPath, filePath);
+    } else {
+      // Direct append
+      await appendFile(filePath, content, "utf8");
+    }
+  }
+
+  /**
+   * Read all messages from JSONL file (simplified - no metadata handling)
+   */
+  async read(filePath: string): Promise<Message[]> {
+    return (await this.readMessagesAndCustomTitle(filePath)).messages;
+  }
+
+  /**
+   * Read the whole file once, returning every message plus the newest
+   * `custom-title` entry.
+   *
+   * `readCustomTitle` only scans the tail window, so a title that later
+   * messages pushed out of it is invisible there. The whole file still holds
+   * it, and the resume path collects it here: that recovered value is what a
+   * later `reAppendSessionMetadata` writes back at EOF, which is what makes an
+   * evicted title self-heal instead of being lost for good.
+   *
+   * @param filePath - Path to the session JSONL file
+   * @returns The messages (reserved entries filtered out) and the newest
+   *          non-empty custom title, when the file carries one
+   */
+  async readMessagesAndCustomTitle(
+    filePath: string,
+  ): Promise<{ messages: Message[]; customTitle?: string }> {
+    try {
+      const content = await readFile(filePath, "utf8");
+      // append() always terminates a written batch with "\n" (see append),
+      // so a file that does not end with a newline means the process was
+      // interrupted mid-write, leaving a partial trailing line behind.
+      const endsWithNewline = content.length === 0 || content.endsWith("\n");
+      const lines = content
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0);
+
+      if (lines.length === 0) {
+        return { messages: [] };
+      }
+
+      const allMessages: Message[] = [];
+      let customTitle: string | undefined;
+
+      // Parse every line: real messages are kept, reserved entries (the
+      // metadata header, and custom titles) are read for their own fields.
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        try {
+          const message = JSON.parse(line) as Message & {
+            type?: string;
+            customTitle?: unknown;
+          };
+          if (message.type === "custom-title") {
+            // Last one wins: a later rename supersedes an earlier one.
+            if (
+              typeof message.customTitle === "string" &&
+              message.customTitle
+            ) {
+              customTitle = message.customTitle;
+            }
+            continue;
+          }
+          // Any other reserved entry (metadata header): not a message
+          if (isReservedEntry(message.type)) continue;
+          if (message.timestamp) allMessages.push(message);
+        } catch (error) {
+          // A parse failure on the final line of a file that lacks a trailing
+          // newline is the residue of an interrupted append (complete batches
+          // always end with "\n"): drop the partial line and keep every
+          // message that was fully written. Corruption on any earlier line is
+          // genuine corruption and still fails.
+          if (!endsWithNewline && i === lines.length - 1) {
+            continue;
+          }
+          // Throw error for invalid JSON lines with line number
+          throw new Error(`Invalid JSON at line ${i + 1}: ${error}`);
+        }
+      }
+
+      return { messages: allMessages, customTitle };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return { messages: [] };
+      }
+      throw new Error(`Failed to read JSONL file "${filePath}": ${error}`);
+    }
+  }
+
+  /**
+   * Get the last message from JSONL file using efficient file reading (simplified)
+   */
+  async getLastMessage(filePath: string): Promise<Message | null> {
+    try {
+      // First check if file exists
+      try {
+        await stat(filePath);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+          return null;
+        }
+        throw err;
+      }
+
+      // Use our elegant utility to get the last line
+      const lastLine = await getLastLine(filePath);
+
+      if (!lastLine) {
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(lastLine) as Message & { type?: string };
+        if (!isReservedEntry(parsed.type)) {
+          return parsed as Message;
+        }
+      } catch (error) {
+        throw new Error(`Invalid JSON in last line of "${filePath}": ${error}`);
+      }
+
+      // The file ends with a reserved entry — a `custom-title` appended by a
+      // rename, or the metadata header of a session with no messages yet. Both
+      // are non-messages, so walk the tail window back to the newest message.
+      for (const line of (await readTailLines(filePath)).reverse()) {
+        try {
+          const parsed = JSON.parse(line) as Message & { type?: string };
+          if (isReservedEntry(parsed.type)) continue;
+          return parsed as Message;
+        } catch {
+          // Partial line at the tail window's boundary — keep looking.
+        }
+      }
+      return null;
+    } catch (error) {
+      throw new Error(
+        `Failed to get last message from "${filePath}": ${error}`,
+      );
+    }
+  }
+
+  /**
+   * Latest context-usage total for a session file.
+   *
+   * Sessions accumulate usage-less messages at the end — SessionStart hook
+   * meta messages are appended (and persisted) on every resume — so the last
+   * line alone cannot answer "how much context did this conversation use".
+   * Scan backwards over the file's tail window and take the newest message
+   * that carries usage.
+   *
+   * @param filePath - Path to the session JSONL file
+   * @returns total_tokens of the newest usage-bearing message, or 0 when the
+   *          tail holds none (empty/unreadable file, no completed request yet)
+   */
+  async getLatestTotalTokens(filePath: string): Promise<number> {
+    const messages: Message[] = [];
+    for (const line of await readTailLines(filePath)) {
+      try {
+        const parsed = JSON.parse(line) as Message & { type?: string };
+        // Reserved entry (metadata header, custom-title): not a message
+        if (isReservedEntry(parsed.type)) continue;
+        messages.push(parsed as Message);
+      } catch {
+        // Partial line at the tail window's boundary — drop it.
+        continue;
+      }
+    }
+    return extractLatestTotalTokens(messages);
+  }
+
+  /**
+   * Read the creation-time metadata from the session file's header line.
+   *
+   * Newer session files start with a `{"type":"metadata",...}` line (see
+   * `createSession`). Legacy files have no header.
+   *
+   * @param filePath - Path to the session JSONL file
+   * @returns The persisted metadata, or null when the file has no header
+   */
+  async readMetadata(filePath: string): Promise<SessionMetadataHeader | null> {
+    try {
+      const lines = await readFirstNLines(filePath, 1);
+      if (lines.length === 0) {
+        return null;
+      }
+      const header = JSON.parse(lines[0]) as
+        | ({ type?: string } & SessionMetadataHeader)
+        | null;
+      if (header?.type === "metadata") {
+        return {
+          workdir: header.workdir,
+          createdAt: header.createdAt,
+          gitBranch: header.gitBranch,
+        };
+      }
+    } catch {
+      // Unreadable or invalid first line — treat as a legacy file
+    }
+    return null;
+  }
+
+  /**
+   * Rewrite a session file keeping only its first `keepMessageCount` messages.
+   *
+   * This is the one operation that removes history from a session file
+   * (`/rewind`); every other write appends. It is a filter over the file's
+   * original lines rather than a re-serialization of parsed messages:
+   *
+   * - Reserved entries (`metadata` header, `custom-title`, and any type added
+   *   to `RESERVED_ENTRY_TYPES` later) are carried over byte for byte, wherever
+   *   they sit in the file. Rebuilding the file from `Message[]` used to lose
+   *   them — `read()` filters reserved entries out, so a rewrite could not see
+   *   the header or the title — which silently degraded the session to the
+   *   "legacy file without a header" shape: `createdAt` fell back to
+   *   `new Date()`, `gitBranch` vanished, and the title could never be read
+   *   back again.
+   * - Lines that are neither reserved nor a message (no `timestamp`) are also
+   *   carried over, so an entry type written by a newer version survives a
+   *   rewind performed by an older one.
+   * - Only message lines past `keepMessageCount` are dropped.
+   *
+   * The result is written to a temp file and renamed into place, so an
+   * interrupted rewrite leaves the original file untouched.
+   *
+   * The "is this a message line" test deliberately mirrors `read()`
+   * (`!isReservedEntry(type) && timestamp`) and the partial-trailing-line
+   * tolerance mirrors its interrupted-append handling, so the caller's message
+   * count and this file's line order stay in step.
+   *
+   * @param filePath - Session JSONL path (must already exist)
+   * @param keepMessageCount - Number of leading messages to keep
+   */
+  async truncateSession(
+    filePath: string,
+    keepMessageCount: number,
+  ): Promise<void> {
+    const tempPath = `${filePath}.tmp.${process.pid}.${randomUUID()}`;
+
+    try {
+      // Materialize the temp file up front so an empty result still renames.
+      await writeFile(tempPath, "", "utf8");
+
+      let keptMessages = 0;
+      let pendingBrokenLine = false;
+      let buffered: string[] = [];
+      let bufferedLength = 0;
+
+      const flush = async (): Promise<void> => {
+        if (buffered.length === 0) {
+          return;
+        }
+        await appendFile(tempPath, buffered.join(""), "utf8");
+        buffered = [];
+        bufferedLength = 0;
+      };
+
+      const keepLine = async (line: string): Promise<void> => {
+        const chunk = `${line}\n`;
+        buffered.push(chunk);
+        bufferedLength += chunk.length;
+        if (bufferedLength >= TRUNCATE_FLUSH_BYTES) {
+          await flush();
+        }
+      };
+
+      const handleLine = async (raw: string): Promise<void> => {
+        const line = raw.trim();
+        if (line.length === 0) {
+          return;
+        }
+
+        let parsed: { type?: string; timestamp?: unknown };
+        try {
+          parsed = JSON.parse(line) as { type?: string; timestamp?: unknown };
+        } catch (error) {
+          if (pendingBrokenLine) {
+            throw new Error(
+              `Invalid JSON in session file "${filePath}": ${error}`,
+            );
+          }
+          pendingBrokenLine = true;
+          return;
+        }
+
+        // A parseable line after a broken one proves the broken line was not
+        // the file's last, so it is corruption rather than a partial write.
+        if (pendingBrokenLine) {
+          throw new Error(
+            `Invalid JSON in session file "${filePath}": truncated trailing line`,
+          );
+        }
+
+        if (isReservedEntry(parsed.type) || !parsed.timestamp) {
+          await keepLine(line);
+          return;
+        }
+
+        if (keptMessages < keepMessageCount) {
+          keptMessages++;
+          await keepLine(line);
+        }
+      };
+
+      const { endsWithNewline } = await forEachLine(filePath, handleLine);
+
+      // A broken line is only acceptable as the last line of a file that lacks
+      // a trailing newline — the residue of an interrupted append.
+      if (pendingBrokenLine && endsWithNewline) {
+        throw new Error(`Invalid JSON in session file "${filePath}"`);
+      }
+
+      await flush();
+      await rename(tempPath, filePath);
+    } catch (error) {
+      try {
+        await unlink(tempPath);
+      } catch {
+        // Cleanup is best effort — the original error is more important.
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate messages before writing
+   */
+  private validateMessages(messages: Message[]): void {
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+
+      if (!message.id) {
+        throw new Error(`Message at index ${i} is missing required field: id`);
+      }
+
+      if (!message.role) {
+        throw new Error(
+          `Message at index ${i} is missing required field: role`,
+        );
+      }
+
+      if (!message.blocks) {
+        throw new Error(
+          `Message at index ${i} is missing required field: blocks`,
+        );
+      }
+
+      if (!Array.isArray(message.blocks)) {
+        throw new Error(
+          `Message at index ${i} has invalid blocks field: must be an array`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Ensure directory exists for the given file path
+   */
+  private async ensureDirectory(dirPath: string): Promise<void> {
+    try {
+      await mkdir(dirPath, { recursive: true });
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== "EEXIST") {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Parse session metadata from filename
+   * @param filePath - Path to the session file
+   * @returns Parsed session filename metadata
+   */
+  parseSessionFilename(filePath: string): SessionFilename {
+    // Extract filename from path
+    const filename = filePath.split("/").pop() || "";
+
+    // Check if it's a subagent session
+    const subagentMatch = filename.match(
+      /^subagent-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/,
+    );
+    if (subagentMatch) {
+      return {
+        sessionId: subagentMatch[1],
+        sessionType: "subagent",
+      };
+    }
+
+    // Check if it's a main session
+    const mainMatch = filename.match(
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/,
+    );
+    if (mainMatch) {
+      return {
+        sessionId: mainMatch[1],
+        sessionType: "main",
+      };
+    }
+
+    throw new Error(`Invalid session filename format: ${filename}`);
+  }
+
+  /**
+   * Validate filename format
+   * @param filename - Filename to validate
+   * @returns True if valid, false otherwise
+   */
+  isValidSessionFilename(filename: string): boolean {
+    // UUID validation patterns
+    const uuidPattern =
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/;
+    const subagentPattern =
+      /^subagent-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/;
+
+    return uuidPattern.test(filename) || subagentPattern.test(filename);
+  }
+
+  /**
+   * Generate simple filename for sessions
+   * @param sessionId - UUID session identifier
+   * @param sessionType - Type of session ("main" or "subagent")
+   * @returns Generated filename
+   */
+  generateSessionFilename(
+    sessionId: string,
+    sessionType: "main" | "subagent",
+  ): string {
+    // Validate sessionId is a valid UUID
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    if (!uuidPattern.test(sessionId)) {
+      throw new Error(`Invalid session ID format: ${sessionId}`);
+    }
+
+    if (sessionType === "subagent") {
+      return `subagent-${sessionId}.jsonl`;
+    } else {
+      return `${sessionId}.jsonl`;
+    }
+  }
+}

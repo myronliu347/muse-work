@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderChatApp, act, sendCommand } from "./test-utils";
-import { EDIT_TOOL_NAME } from "wave-agent-sdk";
-import type { Message } from "wave-agent-sdk";
+import { EDIT_TOOL_NAME } from "@muse-work/agent";
+import type { Message } from "@muse-work/agent";
 
 describe("Diff Viewer User Reported Case", () => {
   beforeEach(() => {
@@ -23,9 +23,9 @@ describe("Diff Viewer User Reported Case", () => {
           parameters: JSON.stringify({
             file_path: "/home/liuyiqi/code/bin/scripts/i-wave-agent.sh",
             old_string:
-              'pkg_name="wave-agent-sdk-$(date +%s).tgz"\nmv ./packages/agent-sdk/wave-agent-sdk-*.tgz "$dir/$pkg_name"',
+              'pkg_name="@muse-work/agent-$(date +%s).tgz"\nmv ./packages/agent-sdk/@muse-work/agent-*.tgz "$dir/$pkg_name"',
             new_string:
-              'rm -f "$dir"/wave-agent-sdk-*.tgz\npkg_name="wave-agent-sdk-$(date +%s).tgz"\nmv ./packages/agent-sdk/wave-agent-sdk-*.tgz "$dir/$pkg_name"',
+              'rm -f "$dir"/@muse-work/agent-*.tgz\npkg_name="@muse-work/agent-$(date +%s).tgz"\nmv ./packages/agent-sdk/@muse-work/agent-*.tgz "$dir/$pkg_name"',
           }),
           compactParams: "scripts/i-wave-agent.sh",
           stage: "end" as const,
@@ -54,9 +54,9 @@ describe("Diff Viewer User Reported Case", () => {
     });
 
     // Expected order based on the user's data:
-    // 1. + rm -f "$dir"/wave-agent-sdk-*.tgz (Added line)
-    // 2. pkg_name="wave-agent-sdk-$(date +%s).tgz" (Context line)
-    // 3. mv ./packages/agent-sdk/wave-agent-sdk-*.tgz "$dir/$pkg_name" (Context line)
+    // 1. + rm -f "$dir"/@muse-work/agent-*.tgz (Added line)
+    // 2. pkg_name="@muse-work/agent-$(date +%s).tgz" (Context line)
+    // 3. mv ./packages/agent-sdk/@muse-work/agent-*.tgz "$dir/$pkg_name" (Context line)
 
     expect(lineTexts[0]).toContain("rm -f");
     expect(lineTexts[1]).toContain("pkg_name=");

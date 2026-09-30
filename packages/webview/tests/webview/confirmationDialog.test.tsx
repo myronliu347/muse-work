@@ -11,7 +11,7 @@ import {
   BASH_TOOL_NAME,
   WRITE_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 
 describe("Confirmation Dialog", () => {
   beforeEach(() => {

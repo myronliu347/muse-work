@@ -2,7 +2,7 @@ import {
   Agent,
   type AgentOptions,
   type PermissionDecision,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import {
   loadProvidersConfig,
   type ProviderRegistry,

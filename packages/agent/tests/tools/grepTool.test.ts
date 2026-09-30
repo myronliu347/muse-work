@@ -1,0 +1,740 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { grepTool } from "@/tools/grepTool.js";
+import type { ToolContext } from "@/tools/types.js";
+import { TaskManager } from "@/services/taskManager.js";
+import type { ChildProcess } from "child_process";
+import { Container } from "@/utils/container.js";
+
+const testContext: ToolContext = {
+  workdir: "/test/workdir",
+  taskManager: new TaskManager(new Container(), "test-session"),
+};
+
+// Mock child_process
+vi.mock("child_process");
+
+// Mock ripgrep path — a mutable probe so one case can model "the search
+// dependency has not been installed (yet)".
+const rgProbe = vi.hoisted(() => ({ path: "/mock/rg" as string | undefined }));
+vi.mock("@/utils/ripgrep.js", () => ({
+  getRgPath: () => rgProbe.path,
+  resolveRipgrep: () => rgProbe.path,
+  resetRipgrep: () => {},
+}));
+
+// The installer the Grep tool kicks when ripgrep is missing (for entry points
+// that do not await it at startup) — mocked so no case touches the network.
+vi.mock("@/utils/runtimeDeps.js", () => ({
+  ensureRuntimeDeps: vi.fn(async () => ({ available: true })),
+}));
+
+vi.mock("../utils/path.js", () => ({
+  getDisplayPath: vi.fn((path: string) => path.replace("/test/workdir/", "")),
+}));
+
+// Import the mocked modules
+import { spawn } from "child_process";
+
+describe("grepTool", () => {
+  const mockSpawn = vi.mocked(spawn);
+  // Helper to create a mock spawn process
+  const createMockProcess = (
+    stdout: string,
+    stderr: string = "",
+    exitCode: number = 0,
+  ): Partial<ChildProcess> => {
+    const mockProcess = {
+      stdout: {
+        on: vi.fn(),
+        pipe: vi.fn(),
+      } as never,
+      stderr: {
+        on: vi.fn(),
+        pipe: vi.fn(),
+      } as never,
+      on: vi.fn(),
+      kill: vi.fn(),
+    } as Partial<ChildProcess>;
+
+    // Simulate data events
+    (
+      mockProcess.stdout as never as { on: ReturnType<typeof vi.fn> }
+    ).on.mockImplementation(
+      (event: string, callback: (data: Buffer) => void) => {
+        if (event === "data" && stdout) {
+          setTimeout(() => callback(Buffer.from(stdout)), 0);
+        }
+        return mockProcess.stdout;
+      },
+    );
+
+    (
+      mockProcess.stderr as never as { on: ReturnType<typeof vi.fn> }
+    ).on.mockImplementation(
+      (event: string, callback: (data: Buffer) => void) => {
+        if (event === "data" && stderr) {
+          setTimeout(() => callback(Buffer.from(stderr)), 0);
+        }
+        return mockProcess.stderr;
+      },
+    );
+
+    (mockProcess.on as ReturnType<typeof vi.fn>).mockImplementation(
+      (
+        event: string,
+        callback: ((code: number) => void) | ((error: Error) => void),
+      ) => {
+        if (event === "close") {
+          setTimeout(() => (callback as (code: number) => void)(exitCode), 0);
+        } else if (event === "error" && exitCode !== 0 && stderr) {
+          setTimeout(
+            () => (callback as (error: Error) => void)(new Error(stderr)),
+            0,
+          );
+        }
+        return mockProcess;
+      },
+    );
+
+    return mockProcess;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rgProbe.path = "/mock/rg";
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("should be properly configured", () => {
+    expect(grepTool.name).toBe("Grep");
+    expect(grepTool.config.type).toBe("function");
+    if (
+      grepTool.config.type === "function" &&
+      grepTool.config.function.parameters
+    ) {
+      expect(grepTool.config.function.name).toBe("Grep");
+      expect(grepTool.config.function.parameters.required).toEqual(["pattern"]);
+    }
+  });
+
+  it("kicks the runtime installer and reports an actionable error when ripgrep is missing", async () => {
+    // The CLI installs ripgrep itself at startup, so a missing binary is a
+    // first-run race for entry points that did not await the installer.
+    rgProbe.path = undefined;
+    const { ensureRuntimeDeps } = await import("@/utils/runtimeDeps.js");
+
+    const result = await grepTool.execute({ pattern: "anything" }, testContext);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("ripgrep is not available");
+    expect(vi.mocked(ensureRuntimeDeps)).toHaveBeenCalled();
+    expect(mockSpawn).not.toHaveBeenCalled();
+  });
+
+  it("should search hidden directories and exclude VCS dirs by default", async () => {
+    const stdout = ".wave/rules/testing.md\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "vitest-expert",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+
+    // --hidden must always be present so hidden dirs like .wave/ are searched.
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--hidden"]),
+      expect.any(Object),
+    );
+
+    // VCS directories must be excluded via negated --glob patterns.
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--glob", "!.git"]),
+      expect.any(Object),
+    );
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--glob", "!.svn"]),
+      expect.any(Object),
+    );
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--glob", "!.hg"]),
+      expect.any(Object),
+    );
+
+    // Sanity: --no-ignore must NOT be present (gitignore still respected).
+    const callArgs = mockSpawn.mock.calls[0]?.[1] as string[];
+    expect(callArgs).not.toContain("--no-ignore");
+  });
+
+  it("should find files containing pattern (files_with_matches mode)", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+    expect(result.shortResult).toContain("Found");
+  });
+
+  it("should show matching lines (content mode)", async () => {
+    const stdout = `src/index.ts:1:export const app = 'main';
+src/utils.ts:1:export const logger = {};
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export const",
+        output_mode: "content",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("export const app");
+    expect(result.content).toContain("src/utils.ts");
+    expect(result.content).toContain("export const logger");
+  });
+
+  it("prepends the cwd recovery notice when the session cwd was auto-recovered", async () => {
+    const stdout = "src/index.ts:1:export const app = 'main';\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const context: ToolContext = {
+      ...testContext,
+      aiManager: {
+        consumeCwdRecovery: vi.fn().mockReturnValue({
+          from: "/repo/.wave/worktrees/feat-a",
+          to: "/repo",
+        }),
+      } as unknown as ToolContext["aiManager"],
+    };
+
+    const result = await grepTool.execute({ pattern: "export const" }, context);
+
+    expect(result.success).toBe(true);
+    expect(result.content).toBe(
+      "Note: working directory /repo/.wave/worktrees/feat-a no longer exists; session working directory recovered to /repo.\nsrc/index.ts:1:export const app = 'main';",
+    );
+  });
+
+  it("omits the notice when there is no pending cwd recovery", async () => {
+    const stdout = "src/index.ts:1:export const app = 'main';\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const context: ToolContext = {
+      ...testContext,
+      aiManager: {
+        consumeCwdRecovery: vi.fn().mockReturnValue(null),
+      } as unknown as ToolContext["aiManager"],
+    };
+
+    const result = await grepTool.execute({ pattern: "export const" }, context);
+
+    expect(result.success).toBe(true);
+    expect(result.content).toBe("src/index.ts:1:export const app = 'main';");
+  });
+
+  it("should show match counts (count mode)", async () => {
+    const stdout = `src/index.ts:2
+src/utils.ts:3
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        output_mode: "count",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts:");
+    expect(result.content).toContain("src/utils.ts:");
+    expect(result.shortResult).toContain("Match counts");
+  });
+
+  it("should show line numbers in content mode", async () => {
+    const stdout = `src/index.ts:1:export const app = 'main';
+src/utils.ts:1:export const logger = {};
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export const",
+        output_mode: "content",
+        "-n": true,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toMatch(/src\/index\.ts:\d+:/);
+    expect(result.content).toMatch(/src\/utils\.ts:\d+:/);
+  });
+
+  it("should work with case insensitive search", async () => {
+    const stdout = "src/index.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "APPLICATION",
+        "-i": true,
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+
+    // Verify that the -i flag was passed
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["-i", "--max-columns=500"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should filter by file type", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        type: "ts",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+    expect(result.content).not.toContain("tests/app.test.js");
+
+    // Verify that the --type flag was passed
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--type", "ts"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should filter by glob pattern", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        glob: "*.ts",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+    expect(result.content).not.toContain("tests/app.test.js");
+
+    // Verify that the --glob flag was passed
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["--glob", "*.ts"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should show context lines", async () => {
+    const stdout = `src/index.ts-1-export const app = 'main';
+src/index.ts:2:export function createApp() {
+src/index.ts-3-  return new Application();
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "createApp",
+        output_mode: "content",
+        "-C": 2,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("export const app");
+    expect(result.content).toContain("export function createApp");
+    expect(result.content).toContain("return new Application");
+
+    // Verify that the -C flag was passed
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["-C", "2"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should show context before matches", async () => {
+    const stdout = `src/index.ts-1-export const app = 'main';
+src/index.ts:2:export function createApp() {
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "createApp",
+        output_mode: "content",
+        "-B": 1,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("export const app");
+    expect(result.content).toContain("export function createApp");
+  });
+
+  it("should show context after matches", async () => {
+    const stdout = `src/index.ts:2:export function createApp() {
+src/index.ts-3-  return new Application();
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "createApp",
+        output_mode: "content",
+        "-A": 1,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("export function createApp");
+    expect(result.content).toContain("return new Application");
+  });
+
+  it("should limit results with head_limit", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\nsrc/other.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        output_mode: "files_with_matches",
+        head_limit: 1,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    const lines = result.content.split("\n").filter((line) => line.trim());
+    expect(lines.length).toBe(1);
+    expect(result.shortResult).toContain("(showing 1 of 3)");
+  });
+
+  it("should work with multiline mode", async () => {
+    const stdout = "multiline.txt\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "struct.*name",
+        multiline: true,
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.content).toContain("multiline.txt");
+    }
+
+    // Verify that multiline flags were passed
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["-U", "--multiline-dotall"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should search in specific path", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        path: "src",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+
+    // Verify that the path was passed as an argument
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["src"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should return no matches message", async () => {
+    // Mock empty output with exit code 1 (no matches found)
+    mockSpawn.mockReturnValueOnce(createMockProcess("", "", 1) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "NONEXISTENT_PATTERN_12345",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("No matches found");
+    expect(result.content).toContain("Suggestion: specify the 'path' field");
+    expect(result.shortResult).toBe("No matches found");
+  });
+
+  it("should return partial results when ripgrep exits with code 2", async () => {
+    // rg exit 2 = some files were unreadable (e.g. a file named "nul" on
+    // Windows), but stdout still holds matches from the remaining files.
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    const stderr = "rg: .\\nul: Incorrect function. (os error 1)";
+    mockSpawn.mockReturnValueOnce(
+      createMockProcess(stdout, stderr, 2) as ChildProcess,
+    );
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+  });
+
+  it("should report no matches when ripgrep exits with code 2 and empty output", async () => {
+    mockSpawn.mockReturnValueOnce(
+      createMockProcess(
+        "",
+        "rg: .\\nul: Incorrect function. (os error 1)",
+        2,
+      ) as ChildProcess,
+    );
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.shortResult).toBe("No matches found");
+  });
+
+  it("should return error for missing pattern", async () => {
+    const result = await grepTool.execute({}, testContext);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("pattern parameter is required");
+  });
+
+  it("should return error for invalid pattern type", async () => {
+    const result = await grepTool.execute({ pattern: 123 }, testContext);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "pattern parameter is required and must be a string",
+    );
+  });
+
+  it("should support offset and context arguments", async () => {
+    const stdout = "file1.ts:1:match1\nfile2.ts:2:match2\nfile3.ts:3:match3\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "match",
+        offset: 1,
+        context: 2,
+        output_mode: "content",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    const lines = result.content.split("\n").filter((line) => line.trim());
+    expect(lines.length).toBe(2); // file2.ts and file3.ts
+    expect(result.metadata?.numMatches).toBe(3);
+    expect(result.metadata?.appliedOffset).toBe(1);
+
+    // Verify that context was passed as -C
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "/mock/rg",
+      expect.arrayContaining(["-C", "2"]),
+      expect.any(Object),
+    );
+  });
+
+  it("should format compact parameters correctly", () => {
+    const params1 = { pattern: "export" };
+    expect(grepTool.formatCompactParams?.(params1, testContext)).toBe("export");
+
+    const params2 = { pattern: "import", type: "ts" };
+    expect(grepTool.formatCompactParams?.(params2, testContext)).toBe(
+      "import ts",
+    );
+
+    const params3 = { pattern: "console", output_mode: "count" };
+    expect(grepTool.formatCompactParams?.(params3, testContext)).toBe(
+      "console [count]",
+    );
+
+    const params4 = { pattern: "test", type: "js", output_mode: "content" };
+    expect(grepTool.formatCompactParams?.(params4, testContext)).toBe(
+      "test js [content]",
+    );
+  });
+
+  it("should handle complex glob patterns with braces", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\nsrc/component.jsx\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "export",
+        glob: "**/*.{ts,tsx,js,jsx}",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+    expect(result.content).toContain("src/component.jsx");
+  });
+
+  it("should handle special regex characters", async () => {
+    const stdout = "src/index.ts\nsrc/utils.ts\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "function\\s+\\w+",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("src/index.ts");
+    expect(result.content).toContain("src/utils.ts");
+  });
+
+  it("should handle patterns starting with dash", async () => {
+    const stdout = `tasks.md:2:- [ ] Implement user authentication
+tasks.md:4:- [ ] Create API endpoints
+`;
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "- \\[ \\]",
+        output_mode: "content",
+        "-n": true,
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("tasks.md");
+    expect(result.content).toContain("- [ ] Implement user authentication");
+    expect(result.content).toContain("- [ ] Create API endpoints");
+    expect(result.content).not.toContain("- [x] Setup database connection");
+  });
+
+  it("should handle patterns starting with double dash", async () => {
+    const stdout = "tasks.md\n";
+    mockSpawn.mockReturnValueOnce(createMockProcess(stdout) as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "--verbose",
+        output_mode: "files_with_matches",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("tasks.md");
+  });
+
+  it("should handle ripgrep process errors", async () => {
+    const mockErrorProcess: Partial<ChildProcess> = {
+      stdout: { on: vi.fn(), pipe: vi.fn() } as never,
+      stderr: { on: vi.fn(), pipe: vi.fn() } as never,
+      on: vi.fn(),
+      kill: vi.fn(),
+    };
+
+    // Simulate process error
+    (mockErrorProcess.on as ReturnType<typeof vi.fn>).mockImplementation(
+      (event: string, callback: (error: Error) => void) => {
+        if (event === "error") {
+          setTimeout(() => callback(new Error("ripgrep not found")), 0);
+        }
+        return mockErrorProcess;
+      },
+    );
+
+    mockSpawn.mockReturnValueOnce(mockErrorProcess as ChildProcess);
+
+    const result = await grepTool.execute(
+      {
+        pattern: "test",
+      },
+      testContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("ripgrep not found");
+  });
+});

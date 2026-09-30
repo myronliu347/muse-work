@@ -1,0 +1,475 @@
+import { Container } from "./container.js";
+import { ForegroundTaskManager } from "../managers/foregroundTaskManager.js";
+import { BackgroundTaskManager } from "../managers/backgroundTaskManager.js";
+import { MessageQueue } from "../managers/messageQueue.js";
+import { TaskManager } from "../services/taskManager.js";
+import { MessageManager } from "../managers/messageManager.js";
+import { AIManager } from "../managers/aiManager.js";
+import { ToolManager } from "../managers/toolManager.js";
+import { McpManager } from "../managers/mcpManager.js";
+import { LspManager } from "../managers/lspManager.js";
+import { PermissionManager } from "../managers/permissionManager.js";
+import { PlanManager } from "../managers/planManager.js";
+import { HookManager } from "../managers/hookManager.js";
+import { SkillManager } from "../managers/skillManager.js";
+import { SlashCommandManager } from "../managers/slashCommandManager.js";
+import { PluginManager } from "../managers/pluginManager.js";
+import { BashModeManager } from "../managers/bashModeManager.js";
+import { CronManager } from "../managers/cronManager.js";
+import { WorkflowManager } from "../managers/workflowManager.js";
+import { MemoryRuleManager } from "../managers/MemoryRuleManager.js";
+import { ReversionManager } from "../managers/reversionManager.js";
+import { SubagentManager } from "../managers/subagentManager.js";
+import { LiveConfigManager } from "../managers/liveConfigManager.js";
+import { ConfigurationService } from "../services/configurationService.js";
+import { ReversionService } from "../services/reversionService.js";
+import { cleanupMetaOnlySessions } from "../services/session.js";
+import { runSessionCleanupInBackground } from "./sessionCleanup.js";
+import { MemoryService } from "../services/memory.js";
+import { AutoMemoryService } from "../services/autoMemoryService.js";
+import { USER_MEMORY_FILE } from "./constants.js";
+import { getGitMainRepoRoot } from "./gitUtils.js";
+import { toPosixPath } from "./path.js";
+import { EDIT_TOOL_NAME, WRITE_TOOL_NAME } from "../constants/tools.js";
+import { AsyncWorkRegistry } from "./asyncWorkRegistry.js";
+import type { AgentOptions, McpServerConfig } from "../types/index.js";
+import type {
+  PermissionMode,
+  Usage,
+  Task,
+  BackgroundTask,
+  ToolPermissionContext,
+} from "../types/index.js";
+
+import { logger } from "./globalLogger.js";
+import { authService } from "../services/authService.js";
+import { remoteSettingsService } from "../services/remoteSettingsService.js";
+
+export interface AgentContainerSetupOptions {
+  options: AgentOptions;
+  workdir: string;
+  configurationService: ConfigurationService;
+  systemPrompt?: string;
+  stream: boolean;
+
+  // Callbacks to Agent methods
+  onBackgroundTasksChange: (tasks: BackgroundTask[]) => void;
+  onTasksChange: (tasks: Task[]) => void;
+  onPermissionModeChange: (mode: PermissionMode) => void;
+  handlePlanModeTransition: (mode: PermissionMode) => void;
+  setPermissionMode: (mode: PermissionMode) => void;
+  addPermissionRule: (rule: string) => Promise<void>;
+  addUsage: (usage: Usage) => void;
+}
+
+export interface AgentContainerSetupResult {
+  container: Container;
+  /**
+   * Unregister module-level listeners registered during setup (remote settings
+   * hot-update, auth change). Must be called when the agent is destroyed;
+   * without it the module-level callback arrays pin the agent's object graph
+   * (the callback closures capture per-agent managers).
+   */
+  teardown: () => void;
+}
+
+export function setupAgentContainer(
+  setupOptions: AgentContainerSetupOptions,
+): AgentContainerSetupResult {
+  const {
+    options,
+    workdir,
+    configurationService,
+    systemPrompt,
+    stream,
+    onBackgroundTasksChange,
+    onTasksChange,
+    onPermissionModeChange,
+    handlePlanModeTransition,
+    setPermissionMode,
+    addPermissionRule,
+    addUsage,
+  } = setupOptions;
+
+  const callbacks = options.callbacks || {};
+  const container = new Container();
+  container.register("AgentOptions", options);
+  container.register("Workdir", workdir);
+
+  // Module-level listener teardowns collected during setup and returned to the
+  // agent, which invokes them in destroy(). The remote-settings callback
+  // strongly captures the per-agent LiveConfigManager: without unsubscribing
+  // it in destroy(), the module-level callback array keeps every created
+  // agent's object graph alive even after the host drops its references.
+  const teardowns: Array<() => void> = [];
+
+  if (options.worktreeName) {
+    container.register("WorktreeName", options.worktreeName);
+    container.register("MainRepoRoot", getGitMainRepoRoot(workdir));
+  }
+
+  // Per-agent worktree session state (EnterWorktree/ExitWorktree). Stored in the
+  // container so it is isolated per session, not shared process-wide.
+  container.register("WorktreeSession", null);
+
+  const messageQueue = new MessageQueue();
+  container.register("MessageQueue", messageQueue);
+
+  // Registry of live async work that must drain before the agent is destroyed
+  // (dispatch, background subagents, fork subagents — the fire-and-forget work
+  // sites). destroy() awaits its drain() so no async work can outlive the agent.
+  container.register("AsyncWorkRegistry", new AsyncWorkRegistry());
+
+  const foregroundTaskManager = new ForegroundTaskManager(container);
+  container.register("ForegroundTaskManager", foregroundTaskManager);
+  container.register("ConfigurationService", configurationService);
+
+  const memoryService = new MemoryService(container);
+  container.register("MemoryService", memoryService);
+
+  const autoMemoryService = new AutoMemoryService(container);
+  container.register("AutoMemoryService", autoMemoryService);
+
+  const memoryRuleManager = new MemoryRuleManager(container, { workdir });
+  container.register("MemoryRuleManager", memoryRuleManager);
+
+  const messageManager = new MessageManager(container, {
+    callbacks: {
+      ...callbacks,
+      onSessionIdChange: (sessionId) => {
+        const taskManager = container.get<TaskManager>("TaskManager");
+        if (taskManager) {
+          taskManager.syncWithSession().catch((error) => {
+            logger.error("Failed to sync task list with session:", error);
+          });
+        }
+        memoryService.clearCache();
+        callbacks.onSessionIdChange?.(sessionId);
+      },
+    },
+    workdir,
+  });
+  container.register("MessageManager", messageManager);
+
+  const resolvedTaskListId =
+    process.env.WAVE_TASK_LIST_ID || messageManager.getRootSessionId();
+
+  const taskManager = new TaskManager(container, resolvedTaskListId);
+  container.register("TaskManager", taskManager);
+  taskManager.on("tasksChange", async () => {
+    const tasks = await taskManager.listTasks();
+    onTasksChange(tasks);
+  });
+  taskManager.cleanupOldTaskLists(30).catch((error) => {
+    logger.error("Failed to cleanup old task lists:", error);
+  });
+
+  const backgroundTaskManager = new BackgroundTaskManager(container, {
+    callbacks: {
+      ...callbacks,
+      onBackgroundTasksChange: (tasks) => {
+        onBackgroundTasksChange(tasks);
+        callbacks.onBackgroundTasksChange?.(tasks);
+      },
+    },
+    workdir,
+  });
+  container.register("BackgroundTaskManager", backgroundTaskManager);
+
+  if (options.serverUrl) {
+    authService.setServerUrl(options.serverUrl);
+  }
+  const mcpManager = new McpManager(container, {
+    callbacks,
+    mcpServers: options.mcpServers as
+      | Record<string, McpServerConfig>
+      | undefined,
+  });
+  container.register("McpManager", mcpManager);
+
+  // Wire up auth change callback to refresh/clear remote settings
+  teardowns.push(
+    authService.onAuthChange(async (event) => {
+      if (event === "login") {
+        await remoteSettingsService.refresh();
+      } else if (event === "logout") {
+        remoteSettingsService.clear();
+      }
+    }),
+  );
+
+  const lspManager = options.lspManager || new LspManager(container);
+  container.register("LspManager", lspManager);
+
+  const permissionManager = new PermissionManager(container, {
+    instanceAllowedRules: options.allowedTools,
+    instanceDeniedRules: options.disallowedTools,
+    instanceAdditionalDirectories: options.additionalDirectories,
+  });
+  if (configurationService.resolveAutoMemoryEnabled()) {
+    const autoMemoryDir = memoryService.getAutoMemoryDirectory(workdir);
+    permissionManager.addSystemAdditionalDirectory(autoMemoryDir);
+    permissionManager.addSystemAdditionalDirectory(USER_MEMORY_FILE);
+  }
+  container.register("PermissionManager", permissionManager);
+  permissionManager.setOnConfiguredPermissionModeChange((mode) => {
+    handlePlanModeTransition(mode);
+    onPermissionModeChange(mode);
+  });
+
+  const planManager = new PlanManager(container);
+  container.register("PlanManager", planManager);
+
+  const hookManager = new HookManager(container, workdir);
+  if (options.hooks) {
+    hookManager.loadConfiguration(options.hooks);
+  }
+  container.register("HookManager", hookManager);
+
+  const skillManager = new SkillManager(container, {
+    workdir,
+    watch: options.watchSkills ?? true,
+  });
+  container.register("SkillManager", skillManager);
+
+  const rootSessionId = messageManager.getRootSessionId();
+
+  const reversionService = new ReversionService(rootSessionId);
+  container.register("ReversionService", reversionService);
+  reversionService.cleanupOldSessions(30).catch((error) => {
+    logger.error("Failed to cleanup old file history:", error);
+  });
+  // Remove pre-existing meta-only session files (SessionStart hook context
+  // with no real messages) that were persisted before lazy materialization.
+  cleanupMetaOnlySessions()
+    .then((count) => {
+      if (count > 0) {
+        logger.debug(`Removed ${count} meta-only session file(s)`);
+      }
+    })
+    .catch((error) => {
+      logger.error("Failed to cleanup meta-only session files:", error);
+    });
+  // Global session retention cleanup (cleanupPeriodDays, default 30 days).
+  // Once per process; reads settings itself since config isn't loaded yet.
+  runSessionCleanupInBackground(workdir);
+  const reversionManager = new ReversionManager(container);
+  container.register("ReversionManager", reversionManager);
+
+  const canUseToolWithPermissionRequest = options.canUseTool
+    ? async (context: ToolPermissionContext) => {
+        try {
+          const results = await hookManager.executeHooks("PermissionRequest", {
+            event: "PermissionRequest",
+            projectDir: workdir,
+            timestamp: new Date(),
+            sessionId: messageManager.getSessionId(),
+            transcriptPath: messageManager.getTranscriptPath(),
+            cwd: workdir,
+            toolName: context.toolName,
+            toolInput: context.toolInput,
+            planFilePath: permissionManager.getPlanFilePath(),
+            env: Object.fromEntries(
+              Object.entries(configurationService.getMergedEnv()).filter(
+                (e) => e[1] !== undefined,
+              ),
+            ) as Record<string, string>,
+          });
+
+          if (results.length > 0) {
+            const processResult = hookManager.processHookResults(
+              "PermissionRequest",
+              results,
+              messageManager,
+            );
+
+            if (processResult.shouldBlock) {
+              return {
+                behavior: "deny",
+                message:
+                  processResult.errorMessage ||
+                  "Permission denied by hook execution",
+              };
+            }
+          }
+        } catch (error) {
+          logger.warn("Failed to execute permission request hooks", {
+            toolName: context.toolName,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        const decision = await options.canUseTool!(context);
+
+        if (decision.newPermissionMode) {
+          setPermissionMode(decision.newPermissionMode);
+        }
+
+        if (decision.newPermissionRule) {
+          await addPermissionRule(decision.newPermissionRule);
+        }
+
+        if (decision.newAdditionalDirectory) {
+          // Session-level only: the user approved this directory from the
+          // confirmation dialog (never persisted to settings).
+          permissionManager.addInstanceAdditionalDirectory(
+            decision.newAdditionalDirectory,
+          );
+          // The dialog option is "允许本会话编辑 <目录名>/" — it has to cover
+          // later edits too, otherwise `default` mode would keep prompting for
+          // every Write/Edit in that directory. Forward slashes: minimatch
+          // treats the pattern `\` as an escape, while it normalises the input
+          // path's separators on Windows.
+          const pattern = `${toPosixPath(decision.newAdditionalDirectory)}/**`;
+          permissionManager.addInstanceAllowedRule(
+            `${EDIT_TOOL_NAME}(${pattern})`,
+          );
+          permissionManager.addInstanceAllowedRule(
+            `${WRITE_TOOL_NAME}(${pattern})`,
+          );
+        }
+
+        return decision;
+      }
+    : undefined;
+
+  const toolManager = new ToolManager({
+    container,
+    tools: options.tools,
+    customTools: options.customTools,
+  });
+  container.register("ToolManager", toolManager);
+
+  container.register("PermissionMode", options.permissionMode);
+  // Register the full permission mode transition (Agent.setPermissionMode) so
+  // tools like EnterPlanMode can trigger planManager.handlePlanModeTransition
+  // and onPermissionModeChange even in bypass mode (where canUseTool is skipped).
+  container.register("PermissionModeTransition", setPermissionMode);
+  logger.info("Registering CanUseToolCallback", {
+    hasCallback: !!canUseToolWithPermissionRequest,
+  });
+  container.register("CanUseToolCallback", canUseToolWithPermissionRequest);
+
+  const liveConfigManager = new LiveConfigManager(container, {
+    workdir,
+    onReload: async () => {
+      const models = configurationService.getConfiguredModels();
+      callbacks.onConfiguredModelsChange?.(models);
+      // Re-evaluate feature-gated tools (e.g. Artifact behind
+      // enableArtifact) so toggling the flag applies without a restart.
+      toolManager.reloadFeatureGatedTools();
+      // Same gate for the builtin /artifact skill: refresh emits "refreshed"
+      // so slash-command registration follows enableArtifact. Awaited (via the
+      // awaited onReload) so skills are re-populated before Agent.create()
+      // returns — otherwise callers right after create() could observe a
+      // mid-refresh skill list.
+      await skillManager.reloadFeatureGatedSkills().catch((error) => {
+        logger.error("Failed to reload feature-gated skills:", error);
+      });
+    },
+  });
+  container.register("LiveConfigManager", liveConfigManager);
+
+  // The turn-scoped configuration snapshot is held by LiveConfigManager (it owns
+  // the turn boundaries and the live reload) and read by ConfigurationService's
+  // resolve chain, so a mid-turn settings.json change applies from the next turn
+  // instead of shifting values under the running one.
+  configurationService.setTurnSnapshotSource(() =>
+    liveConfigManager.getTurnSnapshot(),
+  );
+
+  // Wire up remote settings hot-update: when polling detects changed settings,
+  // reload configuration so admin changes propagate to the running agent.
+  // The callback strongly captures the per-agent LiveConfigManager, so it MUST
+  // be unsubscribed in destroy() via teardown — otherwise the module-level
+  // callback array pins the whole agent object graph.
+  // Managed plugin config (enabledPlugins / marketplaces) last applied to the
+  // plugin subsystem, keyed by a JSON signature: a synced change that touches
+  // neither field must not bounce every plugin's MCP servers.
+  const remoteAtSetup = remoteSettingsService.getRemoteSettingsSync();
+  let managedPluginSignature = JSON.stringify([
+    remoteAtSetup?.enabledPlugins ?? null,
+    remoteAtSetup?.marketplaces ?? null,
+  ]);
+
+  teardowns.push(
+    remoteSettingsService.onSettingsUpdate(async () => {
+      await liveConfigManager.reload();
+
+      // Managed settings also drive plugin installation and loading: a synced
+      // change to `enabledPlugins` / `marketplaces` must re-read the plugins in
+      // place, otherwise an admin push would only take effect after a restart
+      // (spec enterprise server-managed-config「托管配置下发插件市场与启用列表」
+      // 场景 1 与 3).
+      const remote = remoteSettingsService.getRemoteSettingsSync();
+      const signature = JSON.stringify([
+        remote?.enabledPlugins ?? null,
+        remote?.marketplaces ?? null,
+      ]);
+      if (signature === managedPluginSignature) {
+        return;
+      }
+      managedPluginSignature = signature;
+      await container.get<PluginManager>("PluginManager")?.reloadAllPlugins();
+    }),
+  );
+
+  const subagentManager = new SubagentManager(container, {
+    workdir,
+    callbacks: {
+      onSubagentUserMessageAdded: callbacks.onSubagentUserMessageAdded,
+      onSubagentAssistantMessageAdded:
+        callbacks.onSubagentAssistantMessageAdded,
+      onSubagentAssistantContentUpdated:
+        callbacks.onSubagentAssistantContentUpdated,
+      onSubagentAssistantReasoningUpdated:
+        callbacks.onSubagentAssistantReasoningUpdated,
+      onSubagentToolBlockUpdated: callbacks.onSubagentToolBlockUpdated,
+      onSubagentMessagesChange: (subagentId, messages) => {
+        callbacks.onSubagentMessagesChange?.(subagentId, messages);
+      },
+      onSubagentLatestTotalTokensChange:
+        callbacks.onSubagentLatestTotalTokensChange,
+    },
+    onUsageAdded: (usage: Usage) => addUsage(usage),
+    stream,
+  });
+  container.register("SubagentManager", subagentManager);
+
+  const aiManager = new AIManager(container, {
+    callbacks: {
+      ...callbacks,
+      onUsageAdded: (usage: Usage) => addUsage(usage),
+    },
+    workdir,
+    systemPrompt,
+    stream,
+  });
+  container.register("AIManager", aiManager);
+
+  const slashCommandManager = new SlashCommandManager(container, { workdir });
+  container.register("SlashCommandManager", slashCommandManager);
+  slashCommandManager.initialize();
+
+  const pluginManager = new PluginManager(container, { workdir });
+  container.register("PluginManager", pluginManager);
+
+  const bashModeManager = new BashModeManager(container, { workdir });
+  container.register("BashModeManager", bashModeManager);
+
+  const cronManager = new CronManager(container, messageManager.getSessionId());
+  container.register("CronManager", cronManager);
+  cronManager.start();
+
+  const workflowManager = new WorkflowManager(container);
+  container.register("WorkflowManager", workflowManager);
+
+  return {
+    container,
+    teardown: () => {
+      for (const unsubscribe of teardowns) {
+        unsubscribe();
+      }
+    },
+  };
+}

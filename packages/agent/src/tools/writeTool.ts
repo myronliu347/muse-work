@@ -1,0 +1,271 @@
+import { readFile, mkdir, stat } from "fs/promises";
+import { createHash } from "crypto";
+import { dirname } from "path";
+import { logger } from "../utils/globalLogger.js";
+import { atomicWriteFile } from "../utils/atomicWrite.js";
+import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
+import { resolvePath, getDisplayPath } from "../utils/path.js";
+import { READ_TOOL_NAME } from "../constants/tools.js";
+
+/**
+ * File Write Tool Plugin
+ */
+export const writeTool: ToolPlugin = {
+  name: "Write",
+  isConcurrencySafe: false,
+  config: {
+    type: "function",
+    function: {
+      name: "Write",
+      description: "Writes a file to the local filesystem.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_path: {
+            type: "string",
+            description:
+              "The absolute path to the file to write (must be absolute, not relative)",
+          },
+          content: {
+            type: "string",
+            description: "The content to write to the file",
+          },
+        },
+        required: ["file_path", "content"],
+        additionalProperties: false,
+      },
+    },
+  },
+  prompt: () => `Writes a file to the local filesystem.
+
+Usage:
+- This tool will overwrite the existing file if there is one at the provided path.
+- If this is an existing file, you MUST use the \`${READ_TOOL_NAME}\` tool first to read the file's contents. This tool will fail if you did not read the file first.
+- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
+- NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
+- IMPORTANT: Always provide file_path parameter before content parameter when calling this tool.`,
+  execute: async (
+    args: Record<string, unknown>,
+    context: ToolContext,
+  ): Promise<ToolResult> => {
+    const filePath = args.file_path as string;
+    const content = args.content as string;
+
+    // Validate required parameters
+    if (!filePath || typeof filePath !== "string") {
+      return {
+        success: false,
+        content: "",
+        error: "file_path parameter is required and must be a string",
+      };
+    }
+
+    if (typeof content !== "string") {
+      return {
+        success: false,
+        content: "",
+        error: "content parameter is required and must be a string",
+      };
+    }
+
+    // Trigger conditional rule loading for this file
+    context.messageManager?.triggerFileRead(filePath);
+
+    try {
+      const resolvedPath = resolvePath(filePath, context.workdir);
+
+      // Check if file already exists
+      let originalContent = "";
+      let isExistingFile = false;
+
+      try {
+        originalContent = await readFile(resolvedPath, "utf-8");
+        isExistingFile = true;
+      } catch {
+        // File doesn't exist, this is normal for new file creation
+        isExistingFile = false;
+      }
+
+      // Read-before-write + staleness guards (aligned with Claude Code).
+      // Only enforced for existing files when readFileState is available
+      // (production always injects it; new-file creation always bypasses).
+      // Grep does not register a file as read, so Grep-then-Write on an
+      // existing file is still rejected. Staleness uses the same `>` + full-
+      // read content-hash fallback as editTool to avoid false positives from
+      // git checkout / editor round-trip save / cloud sync / antivirus.
+      // Plan mode is excluded: it has its own stricter write gate (plan-file-
+      // only, enforced in permissionManager) whose denial message must surface
+      // instead of being masked by a read-state rejection.
+      if (
+        isExistingFile &&
+        context.readFileState &&
+        context.permissionMode !== "plan"
+      ) {
+        const state = context.readFileState.get(resolvedPath);
+        if (!state) {
+          return {
+            success: false,
+            content: "",
+            error:
+              "File has not been read yet. Read it first before writing to it.",
+          };
+        }
+        const currentStats = await stat(resolvedPath);
+        if (currentStats.mtime.getTime() > state.mtime) {
+          const isFullRead =
+            state.offset === undefined && state.limit === undefined;
+          const contentUnchanged =
+            isFullRead &&
+            createHash("sha256").update(originalContent).digest("hex") ===
+              state.hash;
+          if (!contentUnchanged) {
+            return {
+              success: false,
+              content: "",
+              error:
+                "File has been unexpectedly modified since last read. Read it again before writing to it.",
+            };
+          }
+        }
+      }
+
+      // Check if overwriting existing file but content is the same
+      if (isExistingFile && originalContent === content) {
+        return {
+          success: true,
+          content: `File ${filePath} already has the same content, no changes needed`,
+          shortResult: "No changes needed",
+          filePath: resolvedPath,
+        };
+      }
+
+      // Ensure directory exists
+      const fileDir = dirname(resolvedPath);
+      try {
+        await mkdir(fileDir, { recursive: true });
+      } catch (mkdirError) {
+        // Ignore directory already exists error
+        if (
+          mkdirError instanceof Error &&
+          !mkdirError.message.includes("EEXIST")
+        ) {
+          logger.warn(
+            `Failed to create directory ${fileDir}: ${mkdirError.message}`,
+          );
+        }
+      }
+
+      // Permission check after validation but before real operation
+      if (context.permissionManager) {
+        try {
+          const permissionContext = context.permissionManager.createContext(
+            "Write",
+            context.permissionMode || "default",
+            context.canUseToolCallback,
+            { file_path: filePath, content },
+            context.toolCallId,
+          );
+          const permissionResult =
+            await context.permissionManager.checkPermission(permissionContext);
+
+          if (permissionResult.behavior === "deny") {
+            return {
+              success: false,
+              content: "",
+              error: `Write operation denied by user, reason: ${permissionResult.message || "No reason provided"}`,
+            };
+          }
+        } catch {
+          return {
+            success: false,
+            content: "",
+            error: "Permission check failed",
+          };
+        }
+      }
+
+      // Record snapshot for reversion
+      let snapshotId: string | undefined;
+      if (context.reversionManager && context.messageId) {
+        snapshotId = await context.reversionManager.recordSnapshot(
+          context.messageId,
+          resolvedPath,
+          isExistingFile ? "modify" : "create",
+        );
+      }
+
+      // Write file (atomic: temp file + rename, so concurrent readers never
+      // observe a truncated file). Staleness/OCC was checked above.
+      try {
+        await atomicWriteFile(resolvedPath, content);
+        // Commit snapshot on success
+        if (context.reversionManager && snapshotId) {
+          await context.reversionManager.commitSnapshot(snapshotId);
+        }
+      } catch (writeError) {
+        return {
+          success: false,
+          content: "",
+          error: `Failed to write file: ${writeError instanceof Error ? writeError.message : String(writeError)}`,
+        };
+      }
+
+      // Update readFileState so subsequent serialized edits pass staleness check
+      if (context.readFileState) {
+        const newStats = await stat(resolvedPath);
+        const hash = createHash("sha256").update(content).digest("hex");
+        context.readFileState.set(resolvedPath, {
+          mtime: newStats.mtime.getTime(),
+          hash,
+          source: "write",
+          content,
+          offset: undefined,
+          limit: undefined,
+        });
+      }
+
+      const shortResult = isExistingFile ? "File overwritten" : "File created";
+
+      const lines = content.split("\n").length;
+      const chars = content.length;
+      const detailedContent = `${shortResult} (${lines} lines, ${chars} characters)`;
+
+      logger.debug(`Write tool: ${shortResult}`);
+
+      return {
+        success: true,
+        content: detailedContent,
+        shortResult,
+        filePath: resolvedPath,
+        startLineNumber: 1,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Write tool error: ${errorMessage}`);
+      return {
+        success: false,
+        content: "",
+        error: errorMessage,
+      };
+    }
+  },
+  formatCompactParams: (
+    params: Record<string, unknown>,
+    context: ToolContext,
+  ) => {
+    const filePath = params.file_path as string;
+    const content = params.content as string;
+
+    let displayPath = getDisplayPath(filePath || "", context.workdir);
+
+    if (content) {
+      const lines = content.split("\n").length;
+      const chars = content.length;
+      displayPath += ` ${lines} lines, ${chars} chars`;
+    }
+
+    return displayPath;
+  },
+};

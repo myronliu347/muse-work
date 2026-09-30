@@ -1,5 +1,5 @@
 import React from "react";
-import type { Message } from "wave-agent-sdk";
+import type { Message } from "@muse-work/agent";
 import "../../styles/UserMessageNav.css";
 
 export type UserMessageNavEntry = { id: string; text: string };

@@ -1,0 +1,63 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Agent } from "../../src/agent.js";
+import { SkillManager } from "../../src/managers/skillManager.js";
+import { cleanupMetaOnlySessions } from "../../src/services/session.js";
+import * as fs from "fs/promises";
+
+vi.mock("fs/promises");
+vi.mock("../../src/managers/aiManager.js");
+vi.mock("../../src/managers/mcpManager.js");
+vi.mock("../../src/managers/skillManager.js");
+vi.mock("../../src/services/session.js");
+
+describe("Agent Foreground Task Management", () => {
+  const workdir = "/test/workdir";
+  let activeAgent: Agent | undefined;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(cleanupMetaOnlySessions).mockResolvedValue(0);
+    vi.mocked(fs.readFile).mockResolvedValue("");
+    vi.mocked(SkillManager.prototype.getAvailableSkills).mockReturnValue([]);
+  });
+
+  afterEach(async () => {
+    if (activeAgent) {
+      await activeAgent.destroy();
+      activeAgent = undefined;
+    }
+  });
+
+  it("should register and unregister foreground tasks via Agent", async () => {
+    const agent = await Agent.create({ workdir });
+    activeAgent = agent;
+    const backgroundHandler = vi.fn().mockResolvedValue(undefined);
+
+    agent.registerForegroundTask({
+      id: "test-task",
+      backgroundHandler,
+    });
+
+    // We can't easily access the private foregroundTaskManager,
+    // but we can test the backgroundCurrentTask method
+    await agent.backgroundCurrentTask();
+    expect(backgroundHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("should call onBackgroundCurrentTask callback", async () => {
+    const onBackgroundCurrentTask = vi.fn();
+    const agent = await Agent.create({
+      workdir,
+      callbacks: { onBackgroundCurrentTask },
+    });
+    activeAgent = agent;
+
+    agent.registerForegroundTask({
+      id: "test-task",
+      backgroundHandler: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await agent.backgroundCurrentTask();
+    expect(onBackgroundCurrentTask).toHaveBeenCalledTimes(1);
+  });
+});

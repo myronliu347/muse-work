@@ -8,7 +8,7 @@ import {
   sendHostMessage,
   fixtures,
 } from "./test-utils";
-import type { SubagentConfiguration } from "wave-agent-sdk/dist/types/index.js";
+import type { SubagentConfiguration } from "@muse-work/agent/types";
 
 const builtinAgent: SubagentConfiguration = {
   name: "explore",

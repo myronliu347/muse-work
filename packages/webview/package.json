@@ -54,7 +54,7 @@
     "motion": "^13.1.0",
     "shiki": "^4.4.3",
     "vscode-icons-js": "^11.6.1",
-    "wave-agent-sdk": "1.1.4",
+    "@muse-work/agent": "workspace:*",
     "zustand": "^5.0.15"
   }
 }

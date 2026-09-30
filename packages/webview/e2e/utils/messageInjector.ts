@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import type { Message, SessionMetadata } from "wave-agent-sdk";
+import type { Message, SessionMetadata } from "@muse-work/agent";
 
 declare global {
   interface Window {

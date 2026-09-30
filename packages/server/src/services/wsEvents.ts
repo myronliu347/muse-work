@@ -1,6 +1,6 @@
 import type { SessionStatus } from "./sessionStore.js";
 
-/** Tool block update payload mirrored from wave-agent-sdk callbacks. */
+/** Tool block update payload mirrored from @muse-work/agent callbacks. */
 export type ToolUpdateParams = {
   messageId: string;
   id: string;

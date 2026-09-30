@@ -1,0 +1,1341 @@
+/**
+ * Hook Services Unit Tests
+ *
+ * Consolidated tests for hook execution and settings functionality.
+ * Tests command execution, configuration loading, and service integration.
+ */
+
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type MockedFunction,
+} from "vitest";
+import { spawn } from "child_process";
+import { EventEmitter } from "events";
+
+import {
+  executeCommand,
+  executeCommands,
+  isCommandSafe,
+} from "../../src/services/hook.js";
+import { resolveShellPath } from "../../src/utils/shellResolver.js";
+import type {
+  HookExecutionContext,
+  ExtendedHookExecutionContext,
+} from "../../src/types/hooks.js";
+
+// Mock session service
+vi.mock("../../src/services/session.js", () => ({
+  generateSessionFilePath: vi
+    .fn()
+    .mockResolvedValue("/path/to/transcript.json"),
+}));
+
+// Mock child_process module
+vi.mock("child_process", () => ({
+  spawn: vi.fn(),
+}));
+
+// Mock shell resolver so Git Bash detection is deterministic in tests
+vi.mock("../../src/utils/shellResolver.js", () => ({
+  resolveShellPath: vi.fn(),
+}));
+
+const mockSpawn = spawn as unknown as MockedFunction<
+  (...args: Parameters<typeof spawn>) => MockChildProcess
+>;
+
+// Mock child process that extends EventEmitter
+class MockChildProcess extends EventEmitter {
+  stdout = new EventEmitter();
+  stderr = new EventEmitter();
+  stdin = new EventEmitter();
+  killed = false;
+  pid?: number;
+
+  kill(signal?: string) {
+    this.killed = true;
+    // Simulate process termination immediately
+    setImmediate(() => this.emit("close", signal === "SIGKILL" ? -9 : -15));
+  }
+
+  // Add other ChildProcess methods as no-ops to satisfy the interface
+  disconnect() {}
+  unref() {}
+  ref() {}
+}
+
+// Mock stdin that can be written to and ended
+class MockStdin extends EventEmitter {
+  writable = true;
+  write() {
+    return true;
+  }
+  end() {
+    this.writable = false;
+    return;
+  }
+}
+
+describe("Hook Services", () => {
+  let mockContext: HookExecutionContext;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // Enable hooks execution testing in this test suite
+    process.env.TEST_HOOK_EXECUTION = "true";
+
+    mockContext = {
+      event: "PostToolUse",
+      toolName: "Edit",
+      projectDir: "/test/project",
+      timestamp: new Date("2024-01-01T00:00:00Z"),
+    };
+
+    // Mock console.warn to prevent stderr output
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Clean up environment variable
+    delete process.env.TEST_HOOK_EXECUTION;
+
+    // Restore console.warn
+    consoleWarnSpy?.mockRestore();
+  });
+
+  describe("command execution", () => {
+    it("should execute successful command", async () => {
+      const mockStartTime = 1000;
+      const mockEndTime = 1050; // 50ms duration
+
+      // Mock Date.now to control timing
+      const mockDateNow = vi.spyOn(Date, "now");
+      mockDateNow
+        .mockReturnValueOnce(mockStartTime) // Called at start
+        .mockReturnValueOnce(mockEndTime); // Called at end
+
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      // Start execution
+      const resultPromise = executeCommand('echo "hello"', mockContext);
+
+      // Simulate successful execution immediately
+      setImmediate(() => {
+        mockProcess.stdout.emit("data", "hello\n");
+        mockProcess.emit("close", 0);
+      });
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("hello");
+      expect(result.stderr).toBe("");
+      expect(result.timedOut).toBe(false);
+      expect(result.duration).toBe(50);
+
+      mockDateNow.mockRestore();
+    });
+
+    it("should handle command failure", async () => {
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("false", mockContext);
+
+      setImmediate(() => {
+        mockProcess.stderr.emit("data", "command failed\n");
+        mockProcess.emit("close", 1);
+      });
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("command failed");
+      expect(result.timedOut).toBe(false);
+    });
+
+    it("should handle process errors", async () => {
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("nonexistent-command", mockContext);
+
+      setImmediate(() => {
+        mockProcess.emit("error", new Error("Command not found"));
+      });
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(false);
+      expect(result.stderr).toBe("Command not found");
+      expect(result.timedOut).toBe(false);
+    });
+
+    it("should return mock result when execution is skipped", async () => {
+      // Clean up the execution flag to test skip behavior
+      delete process.env.TEST_HOOK_EXECUTION;
+
+      const result = await executeCommand("echo test", mockContext);
+
+      expect(result.success).toBe(true);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+      expect(result.duration).toBe(0);
+      expect(result.timedOut).toBe(false);
+    });
+  });
+
+  describe("timeout handling", () => {
+    it("should timeout long-running commands", async () => {
+      vi.useFakeTimers();
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("sleep 30", mockContext, {
+        timeout: 100,
+      });
+
+      // Don't emit close event to simulate hanging process
+      vi.advanceTimersByTime(101);
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(false);
+      expect(result.timedOut).toBe(true);
+      expect(mockProcess.killed).toBe(true);
+      vi.useRealTimers();
+    });
+
+    it("should respect custom timeout values", async () => {
+      vi.useFakeTimers();
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("sleep 1", mockContext, {
+        timeout: 50,
+      });
+
+      vi.advanceTimersByTime(51);
+
+      const result = await resultPromise;
+
+      expect(result.timedOut).toBe(true);
+      vi.useRealTimers();
+    });
+
+    it("should use new default timeout of 10 minutes", async () => {
+      vi.useFakeTimers();
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("sleep 601", mockContext);
+
+      // Advance by 10 minutes (600,000 ms)
+      vi.advanceTimersByTime(600001);
+
+      const result = await resultPromise;
+
+      expect(result.timedOut).toBe(true);
+      vi.useRealTimers();
+    });
+
+    it("should cap timeout at 10 minutes", async () => {
+      vi.useFakeTimers();
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const resultPromise = executeCommand("sleep 1000", mockContext, {
+        timeout: 1200000, // 20 minutes
+      });
+
+      vi.advanceTimersByTime(600001);
+
+      const result = await resultPromise;
+
+      expect(result.timedOut).toBe(true);
+      vi.useRealTimers();
+    });
+  });
+
+  describe("command safety validation", () => {
+    it("should allow safe commands", () => {
+      expect(isCommandSafe('echo "hello"')).toBe(true);
+      expect(isCommandSafe("ls -la")).toBe(true);
+      expect(isCommandSafe("npm test")).toBe(true);
+      expect(isCommandSafe("eslint --fix src/")).toBe(true);
+      expect(isCommandSafe("prettier --write .")).toBe(true);
+    });
+
+    it("should reject dangerous commands", () => {
+      expect(isCommandSafe("rm -rf /")).toBe(false);
+      expect(isCommandSafe("sudo rm")).toBe(false);
+      expect(isCommandSafe("> /dev/sda")).toBe(false);
+      expect(isCommandSafe("dd if=/dev/zero of=/dev/sda")).toBe(false);
+      expect(isCommandSafe("mkfs")).toBe(false);
+      expect(isCommandSafe("fdisk")).toBe(false);
+      expect(isCommandSafe("format c:")).toBe(false);
+    });
+
+    it("should handle empty commands", () => {
+      expect(isCommandSafe("")).toBe(true);
+      expect(isCommandSafe("   ")).toBe(true);
+    });
+  });
+
+  describe("environment variables", () => {
+    it("should inject required environment variables", async () => {
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnEnv: NodeJS.ProcessEnv | undefined;
+
+      mockSpawn.mockImplementation((command, args, options) => {
+        spawnEnv = options?.env;
+        return mockProcess;
+      });
+
+      const resultPromise = executeCommand(
+        "echo $WAVE_PROJECT_DIR",
+        mockContext,
+      );
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnEnv).toBeDefined();
+      expect(spawnEnv!.HOOK_EVENT).toBe("PostToolUse");
+      expect(spawnEnv!.HOOK_TOOL_NAME).toBe("Edit");
+      expect(spawnEnv!.WAVE_PROJECT_DIR).toBe("/test/project");
+    });
+
+    it("should handle context without tool name", async () => {
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+
+      mockSpawn.mockImplementation(() => {
+        return mockProcess;
+      });
+
+      const contextWithoutTool: HookExecutionContext = {
+        ...mockContext,
+        toolName: undefined,
+      };
+
+      const resultPromise = executeCommand("echo test", contextWithoutTool);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("multiple commands execution", () => {
+    it("should execute multiple commands in sequence", async () => {
+      const mockProcess1 = new MockChildProcess();
+      const mockProcess2 = new MockChildProcess();
+      mockProcess1.stdin = new MockStdin();
+      mockProcess2.stdin = new MockStdin();
+
+      mockSpawn
+        .mockReturnValueOnce(mockProcess1)
+        .mockReturnValueOnce(mockProcess2);
+
+      const resultPromise = executeCommands(
+        ['echo "first"', 'echo "second"'],
+        mockContext,
+      );
+
+      // Simulate first command success
+      setImmediate(() => {
+        mockProcess1.stdout.emit("data", "first\n");
+        mockProcess1.emit("close", 0);
+      });
+
+      // Simulate second command success
+      setImmediate(() => {
+        mockProcess2.stdout.emit("data", "second\n");
+        mockProcess2.emit("close", 0);
+      });
+
+      const results = await resultPromise;
+
+      expect(results).toHaveLength(2);
+      expect(results[0].success).toBe(true);
+      expect(results[0].stdout).toBe("first");
+      expect(results[1].success).toBe(true);
+      expect(results[1].stdout).toBe("second");
+    });
+
+    it("should stop on first command failure", async () => {
+      const mockProcess1 = new MockChildProcess();
+      mockProcess1.stdin = new MockStdin();
+
+      mockSpawn.mockReturnValueOnce(mockProcess1);
+
+      const resultPromise = executeCommands(
+        ["false", 'echo "should not run"'],
+        mockContext,
+      );
+
+      setImmediate(() => {
+        mockProcess1.emit("close", 1);
+      });
+
+      const results = await resultPromise;
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(mockSpawn).toHaveBeenCalledTimes(1); // Second command should not be executed
+    });
+
+    it("should continue on failure when continueOnFailure is set", async () => {
+      const mockProcess1 = new MockChildProcess();
+      const mockProcess2 = new MockChildProcess();
+      mockProcess1.stdin = new MockStdin();
+      mockProcess2.stdin = new MockStdin();
+
+      mockSpawn
+        .mockReturnValueOnce(mockProcess1)
+        .mockReturnValueOnce(mockProcess2);
+
+      const resultPromise = executeCommands(
+        ["false", 'echo "should run"'],
+        mockContext,
+        { continueOnFailure: true },
+      );
+
+      setImmediate(() => {
+        mockProcess1.emit("close", 1);
+      });
+
+      setImmediate(() => {
+        mockProcess2.stdout.emit("data", "should run\n");
+        mockProcess2.emit("close", 0);
+      });
+
+      const results = await resultPromise;
+
+      expect(results).toHaveLength(2);
+      expect(results[0].success).toBe(false);
+      expect(results[1].success).toBe(true);
+      expect(results[1].stdout).toBe("should run");
+    });
+  });
+
+  describe("cross-platform support", () => {
+    it("should use Git Bash with POSIX command on Windows when available", async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", { value: "win32" });
+      vi.mocked(resolveShellPath).mockReturnValue(
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+      );
+
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnArgs: Parameters<typeof spawn> | undefined;
+
+      mockSpawn.mockImplementation((...args) => {
+        spawnArgs = args as Parameters<typeof spawn>;
+        return mockProcess;
+      });
+
+      const resultPromise = executeCommand(
+        'node "C:\\path\\script.js"',
+        mockContext,
+      );
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnArgs).toBeDefined();
+      expect(spawnArgs![0]).toBe("C:\\Program Files\\Git\\bin\\bash.exe");
+      expect(spawnArgs![1]).toEqual(["-c", 'node "/c/path/script.js"']);
+
+      // Restore original platform
+      Object.defineProperty(process, "platform", { value: originalPlatform });
+    });
+
+    it("should prepend bash for .sh hook commands on Windows", async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", { value: "win32" });
+      vi.mocked(resolveShellPath).mockReturnValue(
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+      );
+
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnArgs: Parameters<typeof spawn> | undefined;
+
+      mockSpawn.mockImplementation((...args) => {
+        spawnArgs = args as Parameters<typeof spawn>;
+        return mockProcess;
+      });
+
+      const resultPromise = executeCommand(
+        "C:\\plugins\\setup-worktree.sh",
+        mockContext,
+      );
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnArgs).toBeDefined();
+      expect(spawnArgs![1]).toEqual([
+        "-c",
+        "bash /c/plugins/setup-worktree.sh",
+      ]);
+
+      // Restore original platform
+      Object.defineProperty(process, "platform", { value: originalPlatform });
+    });
+
+    it("should fall back to cmd.exe on Windows when Git Bash is missing", async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", { value: "win32" });
+      vi.mocked(resolveShellPath).mockReturnValue(undefined);
+
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnArgs: Parameters<typeof spawn> | undefined;
+
+      mockSpawn.mockImplementation((...args) => {
+        spawnArgs = args as Parameters<typeof spawn>;
+        return mockProcess;
+      });
+
+      const resultPromise = executeCommand("echo test", mockContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnArgs).toBeDefined();
+      expect(spawnArgs![0]).toBe("cmd.exe");
+      expect(spawnArgs![1]).toEqual(["/c", "echo test"]);
+
+      // Restore original platform
+      Object.defineProperty(process, "platform", { value: originalPlatform });
+    });
+
+    it("should use correct shell for Unix systems", async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", { value: "linux" });
+
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnArgs: Parameters<typeof spawn> | undefined;
+
+      mockSpawn.mockImplementation((...args) => {
+        spawnArgs = args as Parameters<typeof spawn>;
+        return mockProcess;
+      });
+
+      const resultPromise = executeCommand("echo test", mockContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnArgs).toBeDefined();
+      expect(spawnArgs![0]).toBe("/bin/sh");
+      expect(spawnArgs![1]).toEqual(["-c", "echo test"]);
+
+      // Restore original platform
+      Object.defineProperty(process, "platform", { value: originalPlatform });
+    });
+  });
+
+  describe("JSON input handling", () => {
+    it("should send JSON input to stdin for extended context", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const extendedContext = {
+        ...mockContext,
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.md",
+        cwd: "/test/cwd",
+        userPrompt: "test prompt",
+      };
+
+      const resultPromise = executeCommand("echo test", extendedContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.session_id).toBe("test-session-123");
+      expect(parsedInput.transcript_path).toBe("/path/to/transcript.md");
+      expect(parsedInput.cwd).toBe("/test/cwd");
+      expect(parsedInput.hook_event_name).toBe("PostToolUse");
+    });
+
+    it("should include subagent_type in JSON input when executed by subagent", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const subagentContext = {
+        ...mockContext,
+        sessionId: "subagent-session-456",
+        transcriptPath: "/path/to/subagent-transcript.md",
+        cwd: "/test/cwd",
+        subagentType: "general-purpose", // Include subagent type
+      };
+
+      const resultPromise = executeCommand("echo test", subagentContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.session_id).toBe("subagent-session-456");
+      expect(parsedInput.transcript_path).toBe(
+        "/path/to/subagent-transcript.md",
+      );
+      expect(parsedInput.cwd).toBe("/test/cwd");
+      expect(parsedInput.hook_event_name).toBe("PostToolUse");
+      expect(parsedInput.subagent_type).toBe("general-purpose"); // Verify subagent_type is included
+    });
+
+    it("should not include subagent_type in JSON input when executed by main agent", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const mainAgentContext = {
+        ...mockContext,
+        sessionId: "main-session-789",
+        transcriptPath: "/path/to/main-transcript.md",
+        cwd: "/test/cwd",
+        // No subagentType field - this is from main agent
+      };
+
+      const resultPromise = executeCommand("echo test", mainAgentContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.session_id).toBe("main-session-789");
+      expect(parsedInput.transcript_path).toBe("/path/to/main-transcript.md");
+      expect(parsedInput.cwd).toBe("/test/cwd");
+      expect(parsedInput.hook_event_name).toBe("PostToolUse");
+      expect(parsedInput.subagent_type).toBeUndefined(); // Verify subagent_type is not included
+    });
+  });
+
+  describe("WorktreeCreate hook", () => {
+    it("should NOT inject HOOK_WORKTREE_NAME and HOOK_WORKTREE_PATH environment variables", async () => {
+      const mockProcess = new MockChildProcess();
+      mockProcess.stdin = new MockStdin();
+      let spawnEnv: NodeJS.ProcessEnv | undefined;
+
+      mockSpawn.mockImplementation((command, args, options) => {
+        spawnEnv = options?.env;
+        return mockProcess;
+      });
+
+      const worktreeContext: ExtendedHookExecutionContext = {
+        event: "WorktreeCreate",
+        projectDir: "/test/worktree-path",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        name: "test-worktree",
+      };
+
+      const resultPromise = executeCommand("echo test", worktreeContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(spawnEnv).toBeDefined();
+      expect(spawnEnv!.HOOK_EVENT).toBe("WorktreeCreate");
+      expect(spawnEnv!.HOOK_WORKTREE_NAME).toBeUndefined();
+      expect(spawnEnv!.HOOK_WORKTREE_PATH).toBeUndefined();
+      expect(spawnEnv!.WAVE_PROJECT_DIR).toBe("/test/worktree-path");
+    });
+
+    it("should include 'name' field in JSON input and NOT include 'worktree_name' or 'worktree_path'", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const worktreeContext: ExtendedHookExecutionContext = {
+        event: "WorktreeCreate",
+        projectDir: "/test/worktree-path",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        name: "test-worktree",
+      };
+
+      const resultPromise = executeCommand("echo test", worktreeContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.name).toBe("test-worktree");
+      expect(parsedInput.worktree_name).toBeUndefined();
+      expect(parsedInput.worktree_path).toBeUndefined();
+      expect(parsedInput.hook_event_name).toBe("WorktreeCreate");
+    });
+  });
+
+  describe("WorktreeRemove hook", () => {
+    it("should include worktree_path in JSON input for WorktreeRemove event", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const worktreeRemoveContext: ExtendedHookExecutionContext = {
+        event: "WorktreeRemove",
+        projectDir: "/test/main-repo",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/main-repo",
+        worktreePath: "/test/main-repo/.wave/worktrees/my-feature",
+      };
+
+      const resultPromise = executeCommand("echo test", worktreeRemoveContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("WorktreeRemove");
+      expect(parsedInput.worktree_path).toBe(
+        "/test/main-repo/.wave/worktrees/my-feature",
+      );
+    });
+  });
+
+  describe("SessionStart hook", () => {
+    it("should include source and agent_type in JSON input for SessionStart event", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const sessionStartContext: ExtendedHookExecutionContext = {
+        event: "SessionStart",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        source: "startup",
+        agentType: "planner",
+      };
+
+      const resultPromise = executeCommand("echo test", sessionStartContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("SessionStart");
+      expect(parsedInput.source).toBe("startup");
+      expect(parsedInput.agent_type).toBe("planner");
+    });
+  });
+
+  describe("SessionEnd hook", () => {
+    it("should include end_source in JSON input for SessionEnd event", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const sessionEndContext: ExtendedHookExecutionContext = {
+        event: "SessionEnd",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        endSource: "stop",
+      };
+
+      const resultPromise = executeCommand("echo test", sessionEndContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("SessionEnd");
+      expect(parsedInput.end_source).toBe("stop");
+    });
+  });
+
+  describe("Stop hook background_tasks and session_crons", () => {
+    it("should include background_tasks and session_crons for Stop event when provided", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const stopContext: ExtendedHookExecutionContext = {
+        event: "Stop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        backgroundTasks: [
+          {
+            id: "task-001",
+            type: "shell",
+            status: "running",
+            description: "tail logs",
+            command: "tail -f /var/log/syslog",
+          },
+          {
+            id: "task-002",
+            type: "subagent",
+            status: "running",
+            description: "refactor module",
+            agent_type: "general-purpose",
+          },
+          {
+            id: "task-003",
+            type: "workflow",
+            status: "running",
+            description: "Workflow: audit",
+            name: "audit",
+          },
+        ],
+        sessionCrons: [
+          {
+            id: "cron-001",
+            schedule: "0 9 * * 1-5",
+            recurring: true,
+            prompt: "check the build",
+          },
+        ],
+      };
+
+      const resultPromise = executeCommand("echo test", stopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      expect(stdinData).toBeTruthy();
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("Stop");
+      expect(parsedInput.background_tasks).toEqual([
+        {
+          id: "task-001",
+          type: "shell",
+          status: "running",
+          description: "tail logs",
+          command: "tail -f /var/log/syslog",
+        },
+        {
+          id: "task-002",
+          type: "subagent",
+          status: "running",
+          description: "refactor module",
+          agent_type: "general-purpose",
+        },
+        {
+          id: "task-003",
+          type: "workflow",
+          status: "running",
+          description: "Workflow: audit",
+          name: "audit",
+        },
+      ]);
+      expect(parsedInput.session_crons).toEqual([
+        {
+          id: "cron-001",
+          schedule: "0 9 * * 1-5",
+          recurring: true,
+          prompt: "check the build",
+        },
+      ]);
+    });
+
+    it("should include empty background_tasks and session_crons arrays for Stop event when nothing in flight", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const stopContext: ExtendedHookExecutionContext = {
+        event: "Stop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        backgroundTasks: [],
+        sessionCrons: [],
+      };
+
+      const resultPromise = executeCommand("echo test", stopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.background_tasks).toEqual([]);
+      expect(parsedInput.session_crons).toEqual([]);
+    });
+
+    it("should NOT include background_tasks and session_crons for SubagentStop event", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const subagentStopContext: ExtendedHookExecutionContext = {
+        event: "SubagentStop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "subagent-session-456",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        subagentType: "general-purpose",
+        // Even if provided, SubagentStop must not include these fields
+        backgroundTasks: [
+          {
+            id: "task-001",
+            type: "subagent",
+            status: "running",
+            description: "x",
+            agent_type: "general-purpose",
+          },
+        ],
+        sessionCrons: [
+          { id: "c1", schedule: "0 9 * * *", recurring: true, prompt: "p" },
+        ],
+      };
+
+      const resultPromise = executeCommand("echo test", subagentStopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("SubagentStop");
+      expect(parsedInput.background_tasks).toBeUndefined();
+      expect(parsedInput.session_crons).toBeUndefined();
+    });
+
+    it("should NOT include background_tasks and session_crons for other hook events", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const postToolContext: ExtendedHookExecutionContext = {
+        event: "PostToolUse",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        toolName: "Read",
+        // Even if provided, non-Stop events must not include these fields
+        backgroundTasks: [
+          {
+            id: "task-001",
+            type: "shell",
+            status: "running",
+            description: "x",
+            command: "echo hi",
+          },
+        ],
+        sessionCrons: [
+          { id: "c1", schedule: "0 9 * * *", recurring: true, prompt: "p" },
+        ],
+      };
+
+      const resultPromise = executeCommand("echo test", postToolContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("PostToolUse");
+      expect(parsedInput.background_tasks).toBeUndefined();
+      expect(parsedInput.session_crons).toBeUndefined();
+    });
+
+    it("should include last_assistant_message for Stop event when provided", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const stopContext: ExtendedHookExecutionContext = {
+        event: "Stop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        backgroundTasks: [],
+        sessionCrons: [],
+        lastAssistantMessage: "The task is complete.",
+      };
+
+      const resultPromise = executeCommand("echo test", stopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("Stop");
+      expect(parsedInput.last_assistant_message).toBe("The task is complete.");
+    });
+
+    it("should include last_assistant_message for SubagentStop event when provided", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const subagentStopContext: ExtendedHookExecutionContext = {
+        event: "SubagentStop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "subagent-session-456",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        subagentType: "general-purpose",
+        lastAssistantMessage: "Subagent finished refactoring.",
+      };
+
+      const resultPromise = executeCommand("echo test", subagentStopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("SubagentStop");
+      expect(parsedInput.last_assistant_message).toBe(
+        "Subagent finished refactoring.",
+      );
+    });
+
+    it("should NOT include last_assistant_message when undefined", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const stopContext: ExtendedHookExecutionContext = {
+        event: "Stop",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        backgroundTasks: [],
+        sessionCrons: [],
+        // lastAssistantMessage intentionally omitted
+      };
+
+      const resultPromise = executeCommand("echo test", stopContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("Stop");
+      expect(parsedInput.last_assistant_message).toBeUndefined();
+    });
+
+    it("should NOT include last_assistant_message for non-Stop events", async () => {
+      const mockProcess = new MockChildProcess();
+      const mockStdin = new MockStdin();
+      let stdinData = "";
+
+      vi.spyOn(mockStdin, "write").mockImplementation(
+        (_data?: string | Buffer | Uint8Array) => {
+          if (_data) {
+            stdinData += _data.toString();
+          }
+          return true;
+        },
+      );
+
+      mockProcess.stdin = mockStdin;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const postToolContext: ExtendedHookExecutionContext = {
+        event: "PostToolUse",
+        projectDir: "/test/project",
+        timestamp: new Date(),
+        sessionId: "test-session-123",
+        transcriptPath: "/path/to/transcript.json",
+        cwd: "/test/project",
+        toolName: "Read",
+        // Even if provided, non-Stop events must not include this field
+        lastAssistantMessage: "should not appear",
+      };
+
+      const resultPromise = executeCommand("echo test", postToolContext);
+
+      setImmediate(() => {
+        mockProcess.emit("close", 0);
+      });
+
+      await resultPromise;
+
+      const parsedInput = JSON.parse(stdinData);
+      expect(parsedInput.hook_event_name).toBe("PostToolUse");
+      expect(parsedInput.last_assistant_message).toBeUndefined();
+    });
+  });
+});

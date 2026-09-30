@@ -1,0 +1,2877 @@
+import { type CallAgentOptions } from "../services/aiService.js";
+import * as aiService from "../services/aiService.js";
+import { convertMessagesForAPI } from "../utils/convertMessagesForAPI.js";
+import { supportsVision } from "../utils/modelCapabilities.js";
+import { persistToolImages } from "../utils/toolImagePersistence.js";
+import { parseTaskNotificationXml } from "../utils/notificationXml.js";
+import { estimateContextTokens } from "../utils/tokenCalculation.js";
+import { estimateTokens } from "../utils/tokenEstimate.js";
+import {
+  getTaskReminderTurnCounts,
+  maybeInjectTaskReminder,
+  TASK_REMINDER_CONFIG,
+} from "../utils/taskReminder.js";
+import { getChangedFilesReminder } from "../utils/fileChangeReminder.js";
+import {
+  buildMcpInstructionsAnnouncement,
+  collectAnnouncedServers,
+} from "../utils/mcpInstructions.js";
+import {
+  buildExecCatalogAnnouncement,
+  collectExecCatalogState,
+} from "../exec/catalogAnnouncement.js";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import * as path from "node:path";
+import { EDIT_TOOL_NAME, WRITE_TOOL_NAME } from "../constants/tools.js";
+import type {
+  GatewayConfig,
+  ModelConfig,
+  Usage,
+  PermissionMode,
+  Message,
+} from "../types/index.js";
+import type { ToolManager } from "./toolManager.js";
+import type { ToolContext, ToolResult, ReadFileState } from "../tools/types.js";
+import type { MessageManager } from "./messageManager.js";
+import type { BackgroundTaskManager } from "./backgroundTaskManager.js";
+import {
+  ChatCompletionMessageFunctionToolCall,
+  type ChatCompletionMessageParam,
+} from "openai/resources.js";
+
+import type { HookManager } from "./hookManager.js";
+import type { ExtendedHookExecutionContext } from "../types/hooks.js";
+import type { BackgroundTaskInfo, SessionCronInfo } from "../types/hooks.js";
+import type { PermissionManager } from "./permissionManager.js";
+import type { McpManager } from "./mcpManager.js";
+import type { SubagentManager } from "./subagentManager.js";
+import type { CronManager } from "./cronManager.js";
+import type { SkillManager } from "./skillManager.js";
+import type { LiveConfigManager } from "./liveConfigManager.js";
+import {
+  buildSystemPrompt,
+  formatCompactSummary,
+  getCompactPrompt,
+} from "../prompts/index.js";
+import {
+  buildPlanModeReminder,
+  buildPlanModeReEntryReminder,
+  buildExitedPlanModeReminder,
+  wrapInSystemReminder,
+} from "../prompts/planModeReminders.js";
+import { Container } from "../utils/container.js";
+import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
+import type { WorktreeSession } from "../utils/worktreeSession.js";
+import { recoverTruncatedJson } from "../utils/stringUtils.js";
+import { ConfigurationService } from "../services/configurationService.js";
+import type { MessageQueue } from "./messageQueue.js";
+import { logger } from "../utils/globalLogger.js";
+import {
+  startInteractionSpan,
+  endInteractionSpan,
+  startLLMRequestSpan,
+  endLLMRequestSpan,
+  resetTracingState,
+} from "../telemetry/sessionTracing.js";
+import { logOTelEvent } from "../telemetry/events.js";
+import type { BackgroundTask } from "../types/processes.js";
+
+/** Result of a fork-path agent loop (compaction or auto-memory extraction). */
+interface ForkLoopResult {
+  content?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/** Max turns for the compaction fork: the model should summarize, not act. */
+const MAX_FORK_TURNS = 3;
+
+/** Max turns for the auto-memory extraction fork. */
+const MAX_AUTO_MEMORY_FORK_TURNS = 5;
+
+/**
+ * Max consecutive auto-resumes after `finish_reason === "length"` when the
+ * truncated turn produced NO tool calls (aligned with Claude Code's
+ * MAX_OUTPUT_TOKENS_RECOVERY_LIMIT). A tool call resets the counter — it is
+ * real progress. Exhausting the limit terminates the turn with an error
+ * instead of re-planning forever.
+ */
+const MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3;
+
+// Truncate text to `max` chars and append a "… [+N chars]" marker when exceeded.
+// Used for background_tasks description/command fields (≤1000 chars per spec FR-063).
+function truncateWithMarker(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max) + `… [+${text.length - max} chars]`;
+}
+
+// Map a BackgroundTask (from BackgroundTaskManager) to the Stop hook's
+// background_tasks array element shape (aligned with Claude Code v2.1.145+).
+// Conditional fields are populated based on task type:
+//   - shell:    `command`
+//   - subagent: `agent_type` (looked up via SubagentManager by subagentId)
+//   - workflow: `name` (extracted from "Workflow: <name>" description)
+function mapBackgroundTask(
+  task: BackgroundTask,
+  subagentManager: SubagentManager | undefined,
+): BackgroundTaskInfo {
+  const base: BackgroundTaskInfo = {
+    id: task.id,
+    type: task.type,
+    status: task.status,
+    description: truncateWithMarker(task.description ?? "", 1000),
+  };
+  if (task.type === "shell") {
+    return { ...base, command: truncateWithMarker(task.command ?? "", 1000) };
+  }
+  if (task.type === "subagent") {
+    const instance = subagentManager
+      ?.getActiveInstances()
+      .find((i) => i.subagentId === task.subagentId);
+    return { ...base, agent_type: instance?.subagentType ?? "" };
+  }
+  // workflow
+  const prefix = "Workflow: ";
+  const name = task.description?.startsWith(prefix)
+    ? task.description.slice(prefix.length)
+    : (task.description ?? "");
+  return { ...base, name };
+}
+
+export interface AIManagerCallbacks {
+  onCompactionStateChange?: (isCompacting: boolean) => void;
+  /**
+   * Streaming content from the compaction fork (accumulated, same semantics
+   * as `onContentUpdate` in CallAgentOptions). Reasoning chunks fall back to
+   * this channel when no reasoning callback is provided. Consumed by the CLI
+   * to show the compaction loading tail.
+   */
+  onCompactionContentUpdate?: (content: string) => void;
+  /** Streaming reasoning from the compaction fork (accumulated). */
+  onCompactionReasoningUpdate?: (content: string) => void;
+  onUsageAdded?: (usage: Usage) => void;
+  onCwdChange?: (newCwd: string) => void;
+  /**
+   * Full plan-file content after a successful `Write`/`Edit` of the plan file
+   * (spec: 计划文件更新后刷新计划面板). Inherited from AgentCallbacks via the
+   * spread in container setup.
+   */
+  onPlanFileUpdated?: (content: string) => void;
+}
+
+export interface AIManagerOptions {
+  callbacks?: AIManagerCallbacks;
+  workdir: string;
+  systemPrompt?: string;
+  subagentType?: string; // Optional subagent type for hook context
+  /**Whether to use streaming mode for AI responses - defaults to true */
+  stream?: boolean;
+  /**Optional model override (e.g. for subagents) */
+  modelOverride?: string;
+  /**Optional max turns limit to prevent runaway recursion (e.g. for auto-memory extraction) */
+  maxTurns?: number;
+}
+
+export class AIManager {
+  public isLoading: boolean = false;
+  private turnGeneration = 0; // Guards against concurrent sendAIMessage turns
+  private abortController: AbortController | null = null;
+  onLoadingChange?: (loading: boolean) => void;
+  private toolAbortController: AbortController | null = null;
+  private systemPrompt?: string;
+  private subagentType?: string; // Store subagent type for hook context
+  private stream: boolean; // Streaming mode flag
+  private modelOverride?: string;
+  private _onCwdChange?: (newCwd: string) => void; // Store callback for CWD changes
+  private originalWorkdir: string;
+  /** Pending cwd-recovery notice (set when getWorkdir() auto-recovers), consumed by tools */
+  private pendingCwdRecovery: { from: string; to: string } | null = null;
+  private consecutiveCompactionFailures: number = 0;
+  private readonly maxTurns?: number;
+  /** Tracks file mtime/hash at read time for staleness detection on Edit/Write */
+  private readFileState: ReadFileState = new Map();
+  /** Override tool_choice for this AI manager (e.g. for structured output) */
+  public toolChoiceOverride?:
+    | "auto"
+    | "none"
+    | "required"
+    | { type: "function"; function: { name: string } };
+
+  // Service overrides
+  constructor(
+    private container: Container,
+    options: AIManagerOptions,
+  ) {
+    this.systemPrompt = options.systemPrompt;
+    this.subagentType = options.subagentType; // Store subagent type
+    this.stream = options.stream ?? true; // Default to true if not specified
+    this.callbacks = options.callbacks ?? {};
+    this.modelOverride = options.modelOverride;
+    this._onCwdChange = options.callbacks?.onCwdChange; // Initialize onCwdChange
+    this.originalWorkdir = options.workdir;
+    this.maxTurns = options.maxTurns;
+  }
+
+  private get toolManager(): ToolManager {
+    return this.container.get<ToolManager>("ToolManager")!;
+  }
+
+  private get messageManager(): MessageManager {
+    return this.container.get<MessageManager>("MessageManager")!;
+  }
+
+  private get memoryService(): import("../services/memory.js").MemoryService {
+    return this.container.get<import("../services/memory.js").MemoryService>(
+      "MemoryService",
+    )!;
+  }
+
+  private get taskManager(): import("../services/taskManager.js").TaskManager {
+    return this.container.get<import("../services/taskManager.js").TaskManager>(
+      "TaskManager",
+    )!;
+  }
+
+  private get backgroundTaskManager(): BackgroundTaskManager | undefined {
+    return this.container.get<BackgroundTaskManager>("BackgroundTaskManager");
+  }
+
+  private get asyncWorkRegistry(): AsyncWorkRegistry | undefined {
+    return this.container.get<AsyncWorkRegistry>("AsyncWorkRegistry");
+  }
+
+  private get hookManager(): HookManager | undefined {
+    return this.container.get<HookManager>("HookManager");
+  }
+
+  private get reversionManager():
+    | import("./reversionManager.js").ReversionManager
+    | undefined {
+    return this.container.get<import("./reversionManager.js").ReversionManager>(
+      "ReversionManager",
+    );
+  }
+
+  private get permissionManager(): PermissionManager | undefined {
+    return this.container.get<PermissionManager>("PermissionManager");
+  }
+
+  private get mcpManager(): McpManager | undefined {
+    return this.container.get<McpManager>("McpManager");
+  }
+
+  private get planManager():
+    | import("./planManager.js").PlanManager
+    | undefined {
+    return this.container.get<import("./planManager.js").PlanManager>(
+      "PlanManager",
+    );
+  }
+
+  private get configurationService(): ConfigurationService {
+    return this.container.get<ConfigurationService>("ConfigurationService")!;
+  }
+
+  /**
+   * OS env merged with the per-session env snapshot. Falls back to process.env
+   * when ConfigurationService is absent or its getMergedEnv is missing (e.g. in
+   * unit tests with partial mocks), so hook-context env construction never
+   * throws. Use this (not the non-null `configurationService` getter) when
+   * building hook context env.
+   */
+  private get mergedEnv(): Record<string, string> {
+    return (
+      this.container
+        .get<ConfigurationService>("ConfigurationService")
+        ?.getMergedEnv?.() ?? (process.env as Record<string, string>)
+    );
+  }
+
+  // Getter methods for accessing dynamic configuration
+  public getGatewayConfig(): GatewayConfig {
+    return {
+      ...this.configurationService.resolveGatewayConfig(),
+      sessionId: this.messageManager.getSessionId(),
+    };
+  }
+
+  public getModelConfig(): ModelConfig {
+    const permissionMode = this.container.has("PermissionMode")
+      ? this.container.get<PermissionMode>("PermissionMode")
+      : undefined;
+
+    const parentModelConfig = this.configurationService.resolveModelConfig(
+      undefined,
+      undefined,
+      permissionMode,
+    );
+    let modelToUse: string | undefined;
+
+    if (this.modelOverride) {
+      if (this.modelOverride === "fastModel") {
+        modelToUse = parentModelConfig.fastModel;
+      } else if (this.modelOverride === "visionModel") {
+        modelToUse = parentModelConfig.visionModel;
+      } else if (this.modelOverride !== "inherit") {
+        modelToUse = this.modelOverride;
+      }
+    }
+
+    return this.configurationService.resolveModelConfig(
+      modelToUse,
+      undefined,
+      permissionMode,
+    );
+  }
+
+  public getMaxInputTokens(): number {
+    // Pass the resolved model (including fastModel/visionModel/override
+    // resolution) so subagents using a different model get that model's
+    // per-model maxInputTokens instead of the main model's value.
+    return this.configurationService.resolveMaxInputTokens(
+      undefined,
+      this.getModelConfig().model,
+    );
+  }
+
+  public getLanguage(): string {
+    return this.configurationService.resolveLanguage();
+  }
+
+  public getAutoMemoryEnabled(): boolean {
+    return this.configurationService.resolveAutoMemoryEnabled();
+  }
+
+  public getWorktreeBaseRef(): "fresh" | "head" {
+    return this.configurationService.resolveWorktreeBaseRef();
+  }
+
+  public getWorkdir(): string {
+    const workdir = this.container.get<string>("Workdir") ?? process.cwd();
+    if (existsSync(workdir)) {
+      return workdir;
+    }
+
+    // The stored workdir no longer exists — e.g. the current worktree
+    // directory was removed manually with `git worktree remove` outside
+    // wave's exit flow. Node spawn() chdirs to `cwd` before spawning, so
+    // every tool that spawns a subprocess (Bash, Grep, background tasks)
+    // would fail with ENOENT and cripple the session. Recover to the
+    // original workdir (main repo) so the session keeps working.
+    if (!existsSync(this.originalWorkdir)) {
+      // No valid fallback — keep the stale value (sessions started in a
+      // directory that was deleted since cannot recover to anything real).
+      return workdir;
+    }
+
+    this.pendingCwdRecovery = { from: workdir, to: this.originalWorkdir };
+
+    // If the removed directory was this session's worktree, drop the stale
+    // worktree session state so ExitWorktree no-ops and EnterWorktree can
+    // start a fresh session.
+    const worktreeSession = this.getWorktreeSession();
+    if (
+      worktreeSession &&
+      path.resolve(worktreeSession.worktreePath) === path.resolve(workdir)
+    ) {
+      this.setWorktreeSession(null);
+    }
+
+    logger.warn(
+      `Working directory ${workdir} no longer exists; recovered session workdir to ${this.originalWorkdir}`,
+    );
+
+    this.container.register("Workdir", this.originalWorkdir);
+    this._onCwdChange?.(this.originalWorkdir);
+    return this.originalWorkdir;
+  }
+
+  /**
+   * Consume a pending cwd-recovery notice (if any). After the session
+   * workdir was auto-recovered because the previous directory disappeared,
+   * the first tool that calls this surfaces the notice to the model.
+   * Returns null when no recovery is pending.
+   */
+  public consumeCwdRecovery(): { from: string; to: string } | null {
+    const recovery = this.pendingCwdRecovery;
+    this.pendingCwdRecovery = null;
+    return recovery;
+  }
+
+  public getOriginalWorkdir(): string {
+    return this.originalWorkdir;
+  }
+
+  /**
+   * Update the working directory mid-session (e.g., when entering/exiting a worktree).
+   * Only updates this session's DI container; it does NOT change the process-level
+   * process.cwd(), so concurrent sessions in the same stdio process are unaffected.
+   * Triggers `_onCwdChange` (wired by Agent to `onWorkdirChange`) so the host is
+   * notified of worktree switches. Unlike bash `cd`, this does NOT run CwdChanged
+   * hooks (worktree has its own WorktreeCreate/WorktreeRemove hooks).
+   */
+  public setWorkdir(newWorkdir: string): void {
+    this.container.register("Workdir", newWorkdir);
+    this._onCwdChange?.(newWorkdir);
+  }
+
+  /**
+   * Get this session's worktree session state (null if not in a worktree).
+   */
+  public getWorktreeSession(): WorktreeSession | null {
+    return (
+      this.container.get<WorktreeSession | null>("WorktreeSession") ?? null
+    );
+  }
+
+  /**
+   * Set this session's worktree session state.
+   */
+  public setWorktreeSession(session: WorktreeSession | null): void {
+    this.container.register("WorktreeSession", session);
+  }
+
+  public setOnCwdChange(callback: (newCwd: string) => void): void {
+    this._onCwdChange = callback;
+  }
+
+  private isCompacting: boolean = false;
+  private callbacks: AIManagerCallbacks;
+
+  /**
+   * Get filtered tool configuration based on tools list
+   */
+  private getFilteredToolsConfig() {
+    // Get available subagents and skills for dynamic prompts
+    const availableSubagents = this.subagentManager?.getConfigurations();
+    const availableSkills = this.skillManager
+      ?.getAvailableSkills()
+      .filter((skill) => !skill.disableModelInvocation);
+
+    return this.toolManager.getToolsConfig({
+      availableSubagents,
+      availableSkills,
+      workdir: this.getWorkdir(),
+      isSubagent: !!this.subagentType,
+    });
+  }
+
+  /**
+   * Add plan mode reminder as a persistent meta message to the message manager.
+   * Called before getMessages() so the stored message is included in the API call.
+   */
+  private maybeAddPlanModeMessage(
+    currentMode: PermissionMode | undefined,
+  ): void {
+    if (!this.permissionManager) return;
+
+    // Handle exit notification (one-time after leaving plan mode)
+    if (this.permissionManager.getNeedsPlanModeExitAttachment()) {
+      const planFilePath = this.permissionManager.getPlanFilePath();
+      const planExists = planFilePath ? existsSync(planFilePath) : false;
+      this.messageManager.addUserMessage({
+        content: buildExitedPlanModeReminder(planFilePath, planExists),
+        isMeta: true,
+      });
+      this.permissionManager.setNeedsPlanModeExitAttachment(false);
+    }
+
+    if (currentMode !== "plan") return;
+
+    const planFilePath = this.permissionManager.getPlanFilePath();
+    if (!planFilePath) return;
+
+    const planExists = existsSync(planFilePath);
+
+    // One-time plan entry reminder
+    const planMgr = this.planManager;
+    if (planMgr?.isPlanEntryReminderPending()) {
+      if (this.permissionManager.hasExitedPlanModeInSession() && planExists) {
+        // Re-entry: use small reminder
+        this.messageManager.addUserMessage({
+          content: buildPlanModeReEntryReminder(planFilePath),
+          isMeta: true,
+        });
+      } else {
+        // First entry: use full reminder
+        this.messageManager.addUserMessage({
+          content: buildPlanModeReminder(
+            planFilePath,
+            planExists,
+            !!this.subagentType,
+          ),
+          isMeta: true,
+        });
+      }
+      planMgr.consumePlanEntryReminder();
+    }
+  }
+
+  private async maybeGetTaskReminderText(
+    toolNames: Set<string>,
+  ): Promise<string | null> {
+    // Guard: no task tools available
+    if (!toolNames.has("TaskUpdate")) return null;
+
+    const internalMessages = this.messageManager.getMessages();
+    const turnCounts = getTaskReminderTurnCounts(internalMessages);
+
+    if (
+      turnCounts.turnsSinceLastTaskManagement <
+        TASK_REMINDER_CONFIG.TURNS_SINCE_WRITE ||
+      turnCounts.turnsSinceLastReminder <
+        TASK_REMINDER_CONFIG.TURNS_BETWEEN_REMINDERS
+    ) {
+      return null;
+    }
+
+    const tasks = await this.taskManager.listTasks();
+    return maybeInjectTaskReminder(turnCounts, tasks);
+  }
+
+  public setIsLoading(isLoading: boolean): void {
+    this.isLoading = isLoading;
+    this.onLoadingChange?.(isLoading);
+    const options =
+      this.container.get<import("../types/agent.js").AgentOptions>(
+        "AgentOptions",
+      );
+    options?.callbacks?.onLoadingChange?.(isLoading);
+  }
+
+  public abortAIMessage(): void {
+    // Bump generation so the in-flight turn's end-of-turn setIsLoading(false)
+    // is skipped (generation mismatch), preventing it from racing with this abort.
+    this.turnGeneration++;
+
+    // Interrupt AI service
+    if (this.abortController) {
+      try {
+        this.abortController.abort();
+      } catch (error) {
+        logger?.error("Failed to abort AI service:", error);
+      }
+    }
+
+    // Interrupt tool execution
+    if (this.toolAbortController) {
+      try {
+        this.toolAbortController.abort();
+      } catch (error) {
+        logger?.error("Failed to abort tool execution:", error);
+      }
+    }
+
+    this.setIsLoading(false);
+  }
+
+  // Helper method to generate compactParams
+  private generateCompactParams(
+    toolName: string,
+    toolArgs: Record<string, unknown>,
+  ): string {
+    try {
+      const toolPlugin = this.toolManager
+        .list()
+        .find((plugin) => plugin.name === toolName);
+      if (toolPlugin?.formatCompactParams) {
+        const context: ToolContext = {
+          workdir: this.getWorkdir(),
+          originalWorkdir: this.originalWorkdir,
+          taskManager: this.taskManager,
+        };
+        return toolPlugin.formatCompactParams(toolArgs, context);
+      }
+    } catch (error) {
+      logger?.warn("Failed to generate compactParams", error);
+    }
+    return "";
+  }
+
+  // Private method to update the displayed token statistics from a response.
+  // Uses only total_tokens — OpenAI-compatible usage already includes cache
+  // hits there, so adding cache fields would double-count and show an
+  // inflated context percentage. Same semantics as the auto-compaction
+  // threshold (maybeAutoCompactBeforeRequest), keeping display and
+  // compaction judgment consistent.
+  private updateLatestTotalTokens(usage: Usage | undefined): void {
+    if (!usage) return;
+
+    // Update token statistics - display total_tokens (cache fields excluded)
+    this.messageManager.setlatestTotalTokens(usage.total_tokens);
+  }
+
+  /**
+   * Pre-request auto-compaction check (aligned with Claude Code's
+   * autoCompactIfNeeded). Runs before every API request is issued: estimates
+   * the context that is about to be sent (last response's total_tokens plus
+   * character estimates for newer messages) and compacts first when it
+   * exceeds maxInputTokens, so over-limit requests are never sent. Only
+   * total_tokens is used — under OpenAI-compatible usage it already includes
+   * cache hits; adding cache fields would double-count and fire early.
+   * Fork paths (compaction / auto-memory) never reach here: they run in
+   * runForkLoop, not sendAIMessage.
+   */
+  private async maybeAutoCompactBeforeRequest(
+    abortController: AbortController,
+  ): Promise<void> {
+    // Circuit breaker: skip compaction after 3 consecutive failures
+    if (this.consecutiveCompactionFailures >= 3) {
+      logger?.warn(
+        `Skipping compaction: ${this.consecutiveCompactionFailures} consecutive failures`,
+      );
+      return;
+    }
+
+    const messages = this.messageManager.getMessages();
+    if (messages.length === 0) return;
+
+    const maxTokens = this.getMaxInputTokens();
+    const estimatedTokens = estimateContextTokens(messages);
+    if (estimatedTokens > maxTokens) {
+      logger?.debug(
+        `Estimated context tokens ${estimatedTokens} exceeded ${maxTokens}, compacting before request...`,
+      );
+      await this.compactConversation({ abortSignal: abortController.signal });
+    }
+  }
+
+  /**
+   * Manually compact the conversation history.
+   * Called by /compact slash command or auto-compaction trigger.
+   */
+  public async compactConversation(
+    options: {
+      customInstructions?: string;
+      abortSignal?: AbortSignal;
+    } = {},
+  ): Promise<void> {
+    const messagesToCompact = this.messageManager.getMessages();
+    if (messagesToCompact.length === 0) {
+      logger?.debug("No messages to compact");
+      return;
+    }
+
+    // Circuit breaker: skip if already compacting
+    if (this.isCompacting) {
+      logger?.warn("Compaction already in progress");
+      return;
+    }
+
+    // 压缩绑定发起时的会话：LLM fork 期间用户可能已把 agent 原地切到另一会话
+    // （IDE「历史对话」restoreSession / CLI 与插件 `/clear` 都会换 sessionId，
+    // 且均不被 isCompacting 阻拦）。写入阶段前必须复核，否则摘要块会追加进
+    // 切换后会话的内存列表并持久化进其转录文件（spec message-compact「压缩
+    // 期间的会话保护」；PM 缺陷 3478352534577408）。
+    const sessionIdAtStart = this.messageManager.getSessionId();
+
+    // 1. Run PreCompact hooks
+    let hookInstructions: string | undefined;
+    if (this.hookManager) {
+      try {
+        const preResult = await this.hookManager.executePreCompactHooks(
+          this.messageManager.getSessionId(),
+          this.messageManager.getTranscriptPath(),
+          options.customInstructions,
+        );
+        hookInstructions = preResult.additionalInstructions;
+      } catch (error) {
+        logger?.warn(`PreCompact hooks failed: ${(error as Error).message}`);
+      }
+    }
+
+    // 2. Merge custom instructions
+    const mergedInstructions =
+      [options.customInstructions, hookInstructions]
+        .filter(Boolean)
+        .join("\n") || undefined;
+
+    // 3. Save session before compaction
+    await this.messageManager.saveSession();
+
+    this.setIsCompacting(true);
+    try {
+      const modelConfig = this.getModelConfig();
+      const recentChatMessages = await convertMessagesForAPI(
+        messagesToCompact,
+        {
+          supportsVision: supportsVision(modelConfig.capabilities),
+        },
+      );
+      const compactPrompt = getCompactPrompt(mergedInstructions);
+
+      // 4. Fork path: fork the conversation with the same system prompt,
+      // tools, model, and generation params as the main loop so the forked
+      // request prefix matches exactly and the prompt cache is reused.
+      const forkResult = await this.runCompactFork(
+        recentChatMessages,
+        compactPrompt,
+        options.abortSignal,
+        this.callbacks?.onCompactionContentUpdate,
+        this.callbacks?.onCompactionReasoningUpdate,
+      );
+      const summaryContent = forkResult.content;
+      const compactTokens = forkResult.usage;
+      if (!summaryContent) {
+        throw new Error(
+          "Compaction failed: the model produced no summary output",
+        );
+      }
+      const compactModel = modelConfig.model;
+
+      // 5. Handle usage tracking
+      let compactUsage: Usage | undefined;
+      if (compactTokens) {
+        compactUsage = {
+          ...compactTokens,
+          model: compactModel,
+          operation_type: "compact",
+        };
+      }
+
+      // 6. Strip the <analysis> scratchpad and extract the <summary> body
+      const formattedSummary = formatCompactSummary(summaryContent);
+
+      // 7. Build post-compact context restoration
+      const enhancedSummary =
+        await this.buildPostCompactContext(formattedSummary);
+
+      // 8. Execute message reconstruction — only if the session is still the
+      // one this compaction started for. Abandoning here skips the entire
+      // write phase (summary append, post-compact context restore, plan-mode
+      // reminder, SessionStart/PostCompact hooks); the spent LLM call is not
+      // recovered and the original session simply stays uncompacted.
+      if (this.messageManager.getSessionId() !== sessionIdAtStart) {
+        logger?.warn(
+          `Compaction abandoned: session switched from ${sessionIdAtStart} to ${this.messageManager.getSessionId()} while the summary was being generated`,
+        );
+        return;
+      }
+      await this.messageManager.compactMessagesAndUpdateSession(
+        enhancedSummary,
+        compactUsage,
+      );
+
+      // Clear readFileState after compaction (aligned with Claude Code's
+      // compact flow): a file_unchanged stub would otherwise reference Read
+      // results that were just folded away. Clearing forces a real re-read.
+      this.readFileState.clear();
+
+      // Re-add plan mode reminder as persistent meta message after compaction
+      const postCompactMode = this.permissionManager?.getCurrentEffectiveMode(
+        this.getModelConfig().permissionMode,
+      );
+      if (postCompactMode === "plan") {
+        const planFilePath = this.permissionManager?.getPlanFilePath();
+        if (planFilePath) {
+          const planExists = existsSync(planFilePath);
+          this.messageManager.addUserMessage({
+            content: buildPlanModeReminder(
+              planFilePath,
+              planExists,
+              !!this.subagentType,
+            ),
+            isMeta: true,
+          });
+        }
+      }
+
+      // 9. Track usage
+      if (compactUsage && this.callbacks?.onUsageAdded) {
+        this.callbacks.onUsageAdded(compactUsage);
+      }
+
+      this.consecutiveCompactionFailures = 0;
+
+      // Reset incremental tracing state after compaction
+      resetTracingState();
+
+      // 10. Log OTEL event
+      logOTelEvent("compaction", {
+        beforeTokens: String(messagesToCompact.length),
+        afterTokens: "1",
+        model: compactModel,
+      }).catch(() => {});
+
+      // 11. Run SessionStart hooks (existing behavior)
+      if (this.hookManager) {
+        try {
+          const newSessionId = this.messageManager.getSessionId();
+          const sessionStartResult =
+            await this.hookManager.executeSessionStartHooks(
+              "compact",
+              newSessionId,
+              this.messageManager.getTranscriptPath(),
+              this.subagentType,
+            );
+          if (sessionStartResult.additionalContext) {
+            this.messageManager.addUserMessage({
+              content: `<system-reminder>\nSessionStart hook additional context: ${sessionStartResult.additionalContext}\n</system-reminder>`,
+              isMeta: true,
+            });
+          }
+          if (sessionStartResult.initialUserMessage) {
+            this.messageManager.addUserMessage({
+              content: sessionStartResult.initialUserMessage,
+              isMeta: true,
+            });
+          }
+        } catch (error) {
+          logger?.warn(
+            `SessionStart hooks on compact failed: ${(error as Error).message}`,
+          );
+        }
+      }
+
+      // 12. Run PostCompact hooks
+      if (this.hookManager) {
+        try {
+          await this.hookManager.executePostCompactHooks(
+            this.messageManager.getSessionId(),
+            this.messageManager.getTranscriptPath(),
+            formattedSummary,
+          );
+        } catch (error) {
+          logger?.warn(`PostCompact hooks failed: ${(error as Error).message}`);
+        }
+      }
+
+      logger?.debug(
+        `Successfully compacted ${messagesToCompact.length} messages`,
+      );
+    } catch (compactError) {
+      this.consecutiveCompactionFailures++;
+      logger?.error(
+        `Failed to compact messages (${this.consecutiveCompactionFailures} consecutive): ${compactError instanceof Error ? compactError.message : String(compactError)}`,
+      );
+      // 会话已被切走时错误块同样不得写进切换后的会话（与上面的写入放弃同口径）
+      if (this.messageManager.getSessionId() === sessionIdAtStart) {
+        this.messageManager.addErrorBlock(
+          `Failed to compact conversation history: ${compactError instanceof Error ? compactError.message : String(compactError)}. You may encounter context limit issues.`,
+        );
+      }
+    } finally {
+      this.setIsCompacting(false);
+    }
+  }
+
+  /**
+   * Build the system prompt used by the main agent loop. Extracted so the
+   * compaction fork can mirror it exactly — the forked request prefix must
+   * match the main conversation's for the prompt cache to be reused.
+   */
+  private async buildMainSystemPrompt(
+    filteredToolPlugins: ReturnType<ToolManager["getTools"]>,
+  ) {
+    let autoMemoryOptions: { directory: string; content: string } | undefined;
+
+    if (this.getAutoMemoryEnabled()) {
+      const directory = this.memoryService.getAutoMemoryDirectory(
+        this.getWorkdir(),
+      );
+      const content = await this.memoryService.getAutoMemoryContent(
+        this.getWorkdir(),
+      );
+      autoMemoryOptions = { directory, content };
+    }
+
+    return buildSystemPrompt(this.systemPrompt, filteredToolPlugins, {
+      workdir: this.getWorkdir(),
+      originalWorkdir: this.getOriginalWorkdir(),
+      language: this.getLanguage(),
+      isSubagent: !!this.subagentType,
+      worktreeSession: this.getWorktreeSession(),
+      additionalWorkingDirectories:
+        this.permissionManager?.getEffectiveAdditionalDirectories?.() ?? [],
+      autoMemory: autoMemoryOptions,
+    });
+  }
+
+  /**
+   * Announce the connected MCP servers' own usage notes in the conversation,
+   * once per server. Not part of the system prompt: this content appears when a
+   * connection happens, and rewriting the system prompt mid-session would drop
+   * the whole cached prefix (see `utils/mcpInstructions.ts`).
+   */
+  private maybeAnnounceMcpInstructions(): void {
+    const mcpManager = this.mcpManager;
+    // Optional for the same reason as `getEffectiveAdditionalDirectories` above:
+    // hosts and tests register partial McpManager doubles, and a missing
+    // usage-notes channel is not a reason to fail the turn. Bailing out matters
+    // more here than elsewhere — reading an absent manager as "no servers left"
+    // would announce every previously announced server as disconnected.
+    if (!mcpManager || typeof mcpManager.getServerInstructions !== "function") {
+      return;
+    }
+
+    const available = mcpManager.getServerInstructions(
+      (toolName) => this.permissionManager?.isToolDenied?.(toolName) === true,
+    );
+    const announced = collectAnnouncedServers(
+      this.messageManager.getMessages(),
+    );
+    const availableNames = new Set(available.map((server) => server.name));
+
+    const text = buildMcpInstructionsAnnouncement({
+      added: available.filter((server) => !announced.has(server.name)),
+      removed: Array.from(announced).filter(
+        (name) => !availableNames.has(name),
+      ),
+    });
+    if (!text) return;
+
+    this.messageManager.addUserMessage({
+      content: wrapInSystemReminder(text),
+      isMeta: true,
+    });
+  }
+
+  /**
+   * Announce the MCP catalog in the conversation, whenever the pool renders
+   * differently from the last announcement. Keeping it out of `Exec`'s description
+   * is what makes that declaration a constant: a server connecting would otherwise
+   * rewrite `tools[]`, which sits in the cached prefix (see
+   * `exec/catalogAnnouncement.ts`).
+   */
+  private maybeAnnounceExecCatalog(): void {
+    const toolManager = this.toolManager;
+    // Optional for the same reason as `maybeAnnounceMcpInstructions` above, and it
+    // matters just as much here: reading an absent channel as "the catalog is gone"
+    // would tell the model to stop using every tool an earlier catalog listed.
+    if (!toolManager || typeof toolManager.getExecCatalog !== "function")
+      return;
+
+    const text = buildExecCatalogAnnouncement(
+      collectExecCatalogState(this.messageManager.getMessages()),
+      toolManager.getExecCatalog(),
+    );
+    if (!text) return;
+
+    this.messageManager.addUserMessage({
+      content: wrapInSystemReminder(text),
+      isMeta: true,
+    });
+  }
+
+  private resolveFilteredTools() {
+    const toolsConfig = this.getFilteredToolsConfig();
+    const toolNames = new Set(toolsConfig.map((t) => t.function.name));
+    const filteredToolPlugins = this.toolManager
+      .getTools()
+      .filter((t) => toolNames.has(t.name));
+    return { toolsConfig, toolNames, filteredToolPlugins };
+  }
+
+  /**
+   * Fork-path loop: run a bounded agent loop over a copy of the conversation
+   * using the same system prompt, tools, model, and generation params as the
+   * main loop, so the forked request prefix matches exactly and the prompt
+   * cache is reused. A `canUseTool` gate decides whether each tool call
+   * executes locally (with a stripped context) or is denied and fed back to
+   * the model for another turn. Returns undefined content when the model never
+   * produces text; the caller treats that as a failure.
+   */
+  private async runForkLoop(
+    historyMessages: ChatCompletionMessageParam[],
+    prompt: string,
+    options: {
+      maxTurns: number;
+      /** Gate deciding which tool calls execute locally. When undefined, every tool call is denied. */
+      canUseTool?: (name: string, args: Record<string, unknown>) => boolean;
+      /** Message fed back to the model when a tool call is denied. */
+      deniedToolMessage?: string;
+      /** Surface partial output to the caller (e.g. the compaction loading
+       * tail) as it streams in. Reasoning chunks go to the reasoning channel
+       * when provided, otherwise they fall back to the content channel. */
+      onContentUpdate?: (content: string) => void;
+      onReasoningUpdate?: (content: string) => void;
+    },
+    abortSignal?: AbortSignal,
+  ): Promise<ForkLoopResult> {
+    const modelConfig = this.getModelConfig();
+    const gatewayConfig = this.getGatewayConfig();
+    const sessionId = this.messageManager.getSessionId();
+    const workdir = this.getWorkdir();
+
+    const forkMessages: ChatCompletionMessageParam[] = [...historyMessages];
+
+    // Mirror the main loop's memory injection so the request prefix matches.
+    const { prependContent } =
+      await this.messageManager.getMemoryForInjection();
+    if (prependContent.trim()) {
+      forkMessages.unshift({
+        role: "user",
+        content: wrapInSystemReminder(prependContent),
+      });
+    }
+
+    forkMessages.push({ role: "user", content: prompt });
+
+    const { toolsConfig, filteredToolPlugins } = this.resolveFilteredTools();
+    const systemPrompt = await this.buildMainSystemPrompt(filteredToolPlugins);
+
+    // Clone the parent session's read state so the fork inherits the read/dedup
+    // baseline (aligned with Claude Code's cloneFileStateCache): the fork can
+    // Edit a file the parent already read without re-reading it first. The
+    // clone is an independent Map with copied entries, so reads/writes inside
+    // the fork never leak back into the main session's dedup and staleness
+    // tracking.
+    const forkReadFileState: ReadFileState = new Map(
+      Array.from(this.readFileState, ([path, entry]) => [path, { ...entry }]),
+    );
+
+    let totalUsage: ForkLoopResult["usage"];
+    let content: string | undefined;
+
+    for (let turn = 0; turn < options.maxTurns; turn++) {
+      const result = await aiService.callAgent({
+        gatewayConfig,
+        modelConfig,
+        messages: forkMessages,
+        sessionId,
+        abortSignal,
+        workdir,
+        tools: toolsConfig,
+        systemPrompt,
+        maxTokens: this.configurationService.resolveMaxOutputTokens(),
+        toolChoice: this.toolChoiceOverride,
+        // Stream so a slow reasoning model emits first bytes before the
+        // gateway's idle timeout fires (non-streaming waits for the full
+        // response, which exceeds the timeout on large contexts).
+        stream: true,
+        // Surface partial output to the caller (e.g. the compaction loading
+        // tail) as it arrives. Reasoning chunks from thinking models go to
+        // the reasoning channel when the caller supplies one; otherwise they
+        // fall back to the content channel (CLI mixes both).
+        onContentUpdate: (content: string) => {
+          if (content.trim()) {
+            options.onContentUpdate?.(content);
+          }
+        },
+        onReasoningUpdate: (reasoning: string) => {
+          if (reasoning.trim()) {
+            if (options.onReasoningUpdate) {
+              options.onReasoningUpdate(reasoning);
+            } else {
+              options.onContentUpdate?.(reasoning);
+            }
+          }
+        },
+      });
+
+      if (result.usage) {
+        totalUsage = {
+          prompt_tokens:
+            (totalUsage?.prompt_tokens ?? 0) + result.usage.prompt_tokens,
+          completion_tokens:
+            (totalUsage?.completion_tokens ?? 0) +
+            result.usage.completion_tokens,
+          total_tokens:
+            (totalUsage?.total_tokens ?? 0) + result.usage.total_tokens,
+        };
+      }
+
+      if (result.content?.trim()) {
+        content = result.content;
+        break;
+      }
+
+      if (result.tool_calls && result.tool_calls.length > 0) {
+        const functionCalls = result.tool_calls.filter(
+          (tc) => tc.type === "function",
+        );
+        if (functionCalls.length === 0) break;
+
+        forkMessages.push({
+          role: "assistant",
+          content: result.content ?? null,
+          tool_calls: functionCalls,
+        });
+
+        for (const toolCall of functionCalls) {
+          const name = toolCall.function?.name || "";
+          const args = this.parseForkToolArgs(toolCall.function?.arguments);
+          let toolContent: string;
+          if (options.canUseTool && options.canUseTool(name, args)) {
+            toolContent = await this.executeForkTool(
+              name,
+              args,
+              workdir,
+              sessionId,
+              abortSignal,
+              forkReadFileState,
+            );
+          } else {
+            toolContent =
+              options.deniedToolMessage ??
+              "Tool use is not allowed in this context";
+          }
+          forkMessages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: toolContent,
+          });
+        }
+        continue;
+      }
+
+      // Neither text nor tool calls: retrying the identical request is
+      // pointless, bail out and let the caller fail.
+      break;
+    }
+
+    return { content, usage: totalUsage };
+  }
+
+  /**
+   * Fork-path compaction: deny all tool calls locally (the model is told to
+   * summarize, not act) and feed the rejections back for another turn.
+   */
+  private async runCompactFork(
+    historyMessages: ChatCompletionMessageParam[],
+    compactPrompt: string,
+    abortSignal?: AbortSignal,
+    onContentUpdate?: (content: string) => void,
+    onReasoningUpdate?: (content: string) => void,
+  ): Promise<ForkLoopResult> {
+    return this.runForkLoop(
+      historyMessages,
+      compactPrompt,
+      {
+        maxTurns: MAX_FORK_TURNS,
+        deniedToolMessage: "Tool use is not allowed during compaction",
+        onContentUpdate,
+        onReasoningUpdate,
+      },
+      abortSignal,
+    );
+  }
+
+  /**
+   * Auto-memory extraction via the perfect fork: the extraction prompt is run
+   * against the same request prefix as the main conversation (same system
+   * prompt, tools, model, and message history) so the prompt cache is reused.
+   * Gate-approved tools execute locally in a stripped context; everything else
+   * is denied. Usage is reported with operation_type "agent" so extraction
+   * token costs stay visible in session accounting.
+   */
+  public async runAutoMemoryFork(
+    messages: Message[],
+    prompt: string,
+    options: {
+      canUseTool: (name: string, args: Record<string, unknown>) => boolean;
+      deniedToolMessage?: string;
+      maxTurns?: number;
+    },
+    abortSignal?: AbortSignal,
+  ): Promise<ForkLoopResult> {
+    const modelConfig = this.getModelConfig();
+    const historyMessages = await convertMessagesForAPI(messages, {
+      supportsVision: supportsVision(modelConfig.capabilities),
+    });
+    // Give the fork a real signal even when the caller has none, so tools
+    // (e.g. Bash's foreground path) always receive a well-formed context.
+    const signal = abortSignal ?? new AbortController().signal;
+    const result = await this.runForkLoop(
+      historyMessages,
+      prompt,
+      {
+        maxTurns: options.maxTurns ?? MAX_AUTO_MEMORY_FORK_TURNS,
+        canUseTool: options.canUseTool,
+        deniedToolMessage: options.deniedToolMessage,
+      },
+      signal,
+    );
+
+    if (result.usage && this.callbacks?.onUsageAdded) {
+      this.callbacks.onUsageAdded({
+        ...result.usage,
+        model: modelConfig.model,
+        operation_type: "agent",
+      });
+    }
+    return result;
+  }
+
+  /**
+   * Parse a fork tool call's JSON arguments, recovering truncated JSON the
+   * same way the main loop does. Unparseable arguments fall back to `{}` and
+   * are rejected by the gate or the tool's own parameter validation.
+   */
+  private parseForkToolArgs(
+    argsString: string | undefined,
+  ): Record<string, unknown> {
+    if (!argsString?.trim()) return {};
+    try {
+      return JSON.parse(argsString) as Record<string, unknown>;
+    } catch {
+      try {
+        return JSON.parse(recoverTruncatedJson(argsString)) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        return {};
+      }
+    }
+  }
+
+  /**
+   * Execute a single tool call inside a fork with a stripped context: no
+   * permission manager (never prompts the user), no message manager (no
+   * conditional-rule triggering), no messageId (no file-history snapshots),
+   * and no background task manager (commands run in the foreground). Only
+   * gate-approved tool names reach this path.
+   */
+  private async executeForkTool(
+    name: string,
+    args: Record<string, unknown>,
+    workdir: string,
+    sessionId: string | undefined,
+    abortSignal: AbortSignal | undefined,
+    readFileState: ToolContext["readFileState"],
+  ): Promise<string> {
+    const plugin = this.toolManager.getTools().find((t) => t.name === name);
+    if (!plugin) {
+      return `Tool '${name}' not found`;
+    }
+    const context: ToolContext = {
+      abortSignal,
+      workdir,
+      originalWorkdir: this.originalWorkdir,
+      sessionId,
+      taskManager: this.taskManager,
+      readFileState,
+      onShortResultUpdate: () => {},
+      onResultUpdate: () => {},
+      onCwdChange: () => {},
+    };
+    try {
+      const result = await plugin.execute(args, context);
+      if (result.content) return result.content;
+      if (result.error) return `Error: ${result.error}`;
+      return "";
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger?.error(`Fork tool execution failed for ${name}:`, error);
+      return `Tool execution failed: ${message}`;
+    }
+  }
+
+  /**
+   * Fork-path side question ("/btw"): run a single-turn fork of the
+   * conversation using the same system prompt, tools, model, and generation
+   * params as the main loop, so the forked request prefix matches exactly and
+   * the prompt cache is reused. The in-progress assistant message (if any) is
+   * stripped so the fork starts from the last completed request prefix. Tools
+   * are never executed — the wrapped question instructs the model to answer
+   * directly; an attempted tool call is surfaced as an error string.
+   */
+  async runBtwFork(
+    question: string,
+    abortSignal?: AbortSignal,
+    onContent?: (content: string) => void,
+    onReasoning?: (content: string) => void,
+  ): Promise<{ content?: string; error?: string }> {
+    const modelConfig = this.getModelConfig();
+    const gatewayConfig = this.getGatewayConfig();
+    const sessionId = this.messageManager.getSessionId();
+    const workdir = this.getWorkdir();
+
+    const rawMessages = this.messageManager.getMessages();
+
+    // Strip the in-progress assistant message (a block still in "streaming"
+    // stage) so the fork's request prefix matches the last completed
+    // main-loop request and the prompt cache is reused.
+    const lastMessage = rawMessages[rawMessages.length - 1];
+    const hasInProgressMessage =
+      lastMessage?.role === "assistant" &&
+      lastMessage.blocks.some(
+        (b) => "stage" in b && (b as { stage?: string }).stage === "streaming",
+      );
+
+    const forkMessages: ChatCompletionMessageParam[] =
+      await convertMessagesForAPI(
+        hasInProgressMessage ? rawMessages.slice(0, -1) : rawMessages,
+        { supportsVision: supportsVision(modelConfig.capabilities) },
+      );
+
+    // Mirror the main loop's memory injection so the request prefix matches.
+    const { prependContent } =
+      await this.messageManager.getMemoryForInjection();
+    if (prependContent.trim()) {
+      forkMessages.unshift({
+        role: "user",
+        content: wrapInSystemReminder(prependContent),
+      });
+    }
+
+    // Wrap the question with the side-question instructions (verbatim
+    // Claude Code sideQuestion.ts) so the model answers directly.
+    const wrappedQuestion = `<system-reminder>This is a side question from the user. You must answer this question directly in a single response.
+
+IMPORTANT CONTEXT:
+- You are a separate, lightweight agent spawned to answer this one question
+- The main agent is NOT interrupted - it continues working independently in the background
+- You share the conversation context but are a completely separate instance
+- Do NOT reference being interrupted or what you were "previously doing" - that framing is incorrect
+
+CRITICAL CONSTRAINTS:
+- You have NO tools available - you cannot read files, run commands, search, or take any actions
+- This is a one-off response - there will be no follow-up turns
+- You can ONLY provide information based on what you already know from the conversation context
+- NEVER say things like "Let me try...", "I'll now...", "Let me check...", or promise to take any action
+- If you don't know the answer, say so - do not offer to look it up or investigate
+
+Simply answer the question with the information you have.</system-reminder>
+
+${question}`;
+    forkMessages.push({ role: "user", content: wrappedQuestion });
+
+    const { toolsConfig, filteredToolPlugins } = this.resolveFilteredTools();
+    const systemPrompt = await this.buildMainSystemPrompt(filteredToolPlugins);
+
+    try {
+      // Surface partial output to the caller (e.g. the /btw overlay's
+      // streaming display) as it arrives. Reasoning chunks from thinking
+      // models stream through a separate channel when the caller supplies
+      // one (webview hosts distinguish thinking from content so the panel
+      // can drop thinking text once content starts); otherwise they fall
+      // back to the content channel (CLI overlay mixes both).
+      const streamToOverlay = (text: string) => {
+        if (text.trim()) {
+          onContent?.(text);
+        }
+      };
+      const streamReasoning = (text: string) => {
+        if (text.trim()) {
+          if (onReasoning) {
+            onReasoning(text);
+          } else {
+            onContent?.(text);
+          }
+        }
+      };
+      const result = await aiService.callAgent({
+        gatewayConfig,
+        modelConfig,
+        messages: forkMessages,
+        sessionId,
+        abortSignal,
+        workdir,
+        tools: toolsConfig,
+        systemPrompt,
+        maxTokens: this.configurationService.resolveMaxOutputTokens(),
+        toolChoice: this.toolChoiceOverride,
+        // Stream so a slow reasoning model emits first bytes before the
+        // gateway's idle timeout fires (same rationale as runCompactFork).
+        stream: true,
+        onContentUpdate: streamToOverlay,
+        onReasoningUpdate: streamReasoning,
+      });
+
+      if (result.content?.trim()) {
+        return { content: result.content };
+      }
+
+      // A thinking model may emit only reasoning content (e.g. the stream
+      // is truncated before the final answer); surface that instead of
+      // falling through to "No response received".
+      if (result.reasoning_content?.trim()) {
+        return { content: result.reasoning_content };
+      }
+
+      if (result.tool_calls && result.tool_calls.length > 0) {
+        const firstFunctionCall = result.tool_calls.find(
+          (call) => call.type === "function",
+        );
+        const toolName = firstFunctionCall?.function?.name ?? "a tool";
+        return {
+          error: `(The model tried to call ${toolName} instead of answering directly. Try rephrasing or ask in the main conversation.)`,
+        };
+      }
+
+      // Neither text nor tool calls.
+      return { error: "No response received" };
+    } catch (error) {
+      // aiService.callAgent converts AbortError into a plain Error, so the
+      // abort is detected via the signal itself; rethrow so the UI can
+      // silently dismiss instead of showing an error.
+      if (abortSignal?.aborted) {
+        throw error;
+      }
+      return {
+        error: `(API error: ${error instanceof Error ? error.message : String(error)})`,
+      };
+    }
+  }
+
+  /**
+   * Build post-compact context restoration content.
+   * Restores file reads, working directory, plan mode, skills, and background tasks.
+   */
+  private async buildPostCompactContext(summary: string): Promise<string> {
+    const POST_COMPACT_TOKEN_BUDGET = 50_000;
+    const POST_COMPACT_MAX_TOKENS_PER_FILE = 5_000;
+    const POST_COMPACT_MAX_FILES_TO_RESTORE = 5;
+    const contextParts: string[] = [];
+
+    // 1. File context restoration
+    const recentFiles = this.messageManager.getRecentFileReads(
+      POST_COMPACT_MAX_FILES_TO_RESTORE,
+      POST_COMPACT_MAX_TOKENS_PER_FILE,
+    );
+    let usedTokens = 0;
+    for (const file of recentFiles) {
+      const fileTokens = estimateTokens(file.content);
+      if (usedTokens + fileTokens > POST_COMPACT_MAX_TOKENS_PER_FILE) continue;
+      if (fileTokens > 0) usedTokens += fileTokens;
+      contextParts.push(`\n\n## ${file.path}\n\`\`\`\n${file.content}\n\`\`\``);
+      if (contextParts.length >= POST_COMPACT_MAX_FILES_TO_RESTORE) break;
+      if (usedTokens >= POST_COMPACT_TOKEN_BUDGET) break;
+    }
+
+    // 4. Invoked skills context (with token budget, matching Claude Code)
+    const POST_COMPACT_SKILLS_TOKEN_BUDGET = 25_000;
+    const POST_COMPACT_MAX_TOKENS_PER_SKILL = 5_000;
+    const invokedSkills = this.messageManager.getInvokedSkills?.(10) ?? [];
+    if (invokedSkills.length > 0 && this.skillManager) {
+      const invokedSkillParts: string[] = [];
+      let skillsUsedTokens = 0;
+      for (const invoked of invokedSkills) {
+        try {
+          const skill = await this.skillManager.loadSkill(invoked.skillName);
+
+          // Re-inject what the model actually saw (already substituted, with the
+          // base-directory header). Re-render from the file only when that
+          // record is missing — never hand the model a raw SKILL.md, whose
+          // `${WAVE_SKILL_DIR}` would be a literal placeholder
+          // (spec core/message-compact 场景 4).
+          let skillContent =
+            invoked.content?.trim() ??
+            (skill ? this.skillManager.renderSkillContent(skill) : undefined);
+          if (!skillContent) continue;
+
+          const maxSkillChars = POST_COMPACT_MAX_TOKENS_PER_SKILL * 4;
+          if (skillContent.length > maxSkillChars) {
+            skillContent = `${skillContent.slice(0, maxSkillChars)}\n\n...[truncated]...`;
+          }
+
+          const skillTokens = estimateTokens(skillContent);
+          if (skillsUsedTokens + skillTokens > POST_COMPACT_SKILLS_TOKEN_BUDGET)
+            break;
+          skillsUsedTokens += skillTokens;
+
+          const description = skill?.description;
+          invokedSkillParts.push(
+            `\n\n## ${skill?.name ?? invoked.skillName}\n${description ? `*${description}*\n\n` : ""}\`\`\`\n${skillContent}\n\`\`\``,
+          );
+        } catch {
+          // Skip skills that can't be loaded
+        }
+      }
+      if (invokedSkillParts.length > 0) {
+        contextParts.push(
+          `\n\n[Invoked Skills]\n${invokedSkillParts.join("")}`,
+        );
+      }
+    }
+
+    // 5. Background subagent status (shell tasks excluded, matching Claude Code's createAsyncAgentAttachmentsIfNeeded)
+    const agents =
+      this.backgroundTaskManager
+        ?.getAllTasks()
+        .filter((a) => a.type === "subagent") || [];
+    if (agents.length > 0) {
+      const agentParts: string[] = [];
+      for (const a of agents) {
+        if (a.status === "killed") {
+          agentParts.push(
+            `Task "${a.description}" (${a.id}) was stopped by the user.`,
+          );
+        } else if (a.status === "running") {
+          const parts = [
+            `Background agent "${a.description}" (${a.id}) is still running.`,
+            `Do NOT spawn a duplicate. You will be notified when it completes.`,
+          ];
+          if (a.outputPath) {
+            parts.push(`You can read partial output at ${a.outputPath}.`);
+          }
+          agentParts.push(parts.join(" "));
+        } else {
+          // completed or failed
+          const parts = [
+            `Task ${a.id} (status: ${a.status}) (description: ${a.description}).`,
+          ];
+          const deltaText = a.status === "failed" ? a.stderr : a.stdout;
+          if (deltaText && deltaText.length > 0) {
+            const summary =
+              deltaText.length > 500
+                ? deltaText.slice(0, 500) + "..."
+                : deltaText;
+            parts.push(`Delta: ${summary}`);
+          }
+          if (a.outputPath) {
+            parts.push(
+              `Read the output file to retrieve the result: ${a.outputPath}.`,
+            );
+          }
+          agentParts.push(parts.join(" "));
+        }
+      }
+      if (agentParts.length > 0) {
+        contextParts.push(`\n\n[Background Tasks]\n${agentParts.join("\n")}`);
+      }
+    }
+
+    return (
+      summary +
+      (contextParts.length > 0
+        ? `\n\n[Context Restoration]` + contextParts.join("")
+        : "")
+    );
+  }
+
+  public getIsCompacting(): boolean {
+    return this.isCompacting;
+  }
+
+  public setIsCompacting(isCompacting: boolean): void {
+    if (this.isCompacting !== isCompacting) {
+      this.isCompacting = isCompacting;
+      this.callbacks.onCompactionStateChange?.(isCompacting);
+    }
+  }
+
+  private get subagentManager(): SubagentManager | undefined {
+    return this.container.get<SubagentManager>("SubagentManager");
+  }
+
+  private get cronManager(): CronManager | undefined {
+    return this.container.get<CronManager>("CronManager");
+  }
+
+  private get skillManager(): SkillManager | undefined {
+    return this.container.get<SkillManager>("SkillManager");
+  }
+
+  private get liveConfigManager(): LiveConfigManager | undefined {
+    return this.container.get<LiveConfigManager>("LiveConfigManager");
+  }
+
+  public async sendAIMessage(
+    options: {
+      recursionDepth?: number;
+      model?: string;
+      /** Rules for automatic tool approval (e.g., "Bash(git status*)") */
+      allowedRules?: string[];
+      maxTokens?: number;
+    } = {},
+  ): Promise<void> {
+    const { recursionDepth = 0, model, allowedRules, maxTokens } = options;
+    let turnOffset = recursionDepth;
+
+    // Pin the settings.json-derived configuration for the whole turn: live
+    // reload can land mid-turn and the turn must not see values shift under it
+    // (core/agent-config.md scenario 5). Nested turns (subagent turns inside
+    // their parent's) share the outer snapshot instead of re-capturing it; the
+    // release at the end of the turn mirrors this capture and lives on the
+    // single exit path of this function.
+    const ownsTurnSnapshot = recursionDepth === 0;
+    if (ownsTurnSnapshot) {
+      this.liveConfigManager?.onTurnStart();
+    }
+
+    // Reserve this turn synchronously before any async work. Bumping the
+    // generation invalidates any in-flight turn's end-of-turn cleanup, and
+    // recording myGeneration lets us skip cleanup if a newer turn (or abort)
+    // has superseded us. setIsLoading(true) here also closes the "idle but
+    // previous turn not finished" race window by marking us busy immediately.
+    this.turnGeneration++;
+    let myGeneration = this.turnGeneration;
+    this.setIsLoading(true);
+
+    outer: while (true) {
+      let shouldRestart = false;
+
+      // OpenTelemetry: start interaction span for this turn (initial call only)
+      let turnSequence = 0;
+      if (turnOffset === 0) {
+        const messages = this.messageManager.getMessages();
+        turnSequence = messages.filter((m) => m.role === "user").length;
+        const lastUserMessage = [...messages]
+          .reverse()
+          .find((m) => m.role === "user");
+        const userPromptText =
+          lastUserMessage?.blocks.find((b) => b.type === "text")?.content || "";
+        startInteractionSpan(userPromptText, turnSequence);
+
+        // Log user_prompt event
+        logOTelEvent("user_prompt", {
+          prompt_length: String(userPromptText.length),
+        }).catch(() => {}); // Non-blocking
+      }
+
+      // Apply allowed rules for the initial call
+      if (turnOffset === 0) {
+        if (allowedRules && allowedRules.length > 0) {
+          this.permissionManager?.addTemporaryRules(allowedRules);
+        }
+      }
+
+      // Scan for file mentions in the last user message to trigger conditional rules
+      if (turnOffset === 0) {
+        const messages = this.messageManager.getMessages();
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === "user") {
+          for (const block of lastMessage.blocks) {
+            if (block.type === "text") {
+              const content = block.content;
+              const fileMentionRegex = /(?:^|\s)@([\w.\-/]+)/g;
+              let match;
+              while ((match = fileMentionRegex.exec(content)) !== null) {
+                const filePath = match[1];
+                this.messageManager.triggerFileRead(filePath);
+              }
+            }
+          }
+        }
+      }
+
+      // Only create new AbortControllers for the initial call (turnOffset === 0)
+      // For restarts, reuse existing controllers to maintain abort signal
+      let abortController: AbortController;
+      let toolAbortController: AbortController;
+
+      if (turnOffset === 0) {
+        // Create new AbortControllers for initial call
+        abortController = new AbortController();
+        this.abortController = abortController;
+
+        toolAbortController = new AbortController();
+        this.toolAbortController = toolAbortController;
+
+        // Every tool call in a turn wires its own abort listener onto the
+        // shared tool signal (see toolAbortController.signal in executeTool),
+        // so a fan-out of >=11 parallel calls trips Node's default 10-listener
+        // cap and spams MaxListenersExceededWarning. The signal dies with the
+        // turn (toolAbortController is cleared in the tool loop), so there is
+        // no real leak — raise the cap to silence the noise. Optional chaining
+        // keeps this a no-op on Node >=26, which removed the EventTarget
+        // warning mechanism (and the setMaxListeners method) entirely.
+        const toolSignal = toolAbortController.signal as EventTarget & {
+          setMaxListeners?: (n: number) => void;
+        };
+        const turnSignal = abortController.signal as EventTarget & {
+          setMaxListeners?: (n: number) => void;
+        };
+        toolSignal.setMaxListeners?.(0);
+        turnSignal.setMaxListeners?.(0);
+      } else {
+        // Reuse existing controllers
+        abortController = this.abortController!;
+        toolAbortController = this.toolAbortController!;
+      }
+
+      let turnDepth = turnOffset;
+
+      // Consecutive truncation recoveries within this turn (no tool calls
+      // in between). Reset to 0 on tool calls / at each sendAIMessage entry,
+      // matching Claude Code's maxOutputTokensRecoveryCount semantics.
+      let maxOutputTokensRecoveryCount = 0;
+
+      inner: while (true) {
+        let llmSpan: import("@opentelemetry/api").Span | undefined;
+        try {
+          // Save session in each iteration to ensure message persistence
+          await this.messageManager.saveSession();
+
+          // Get current permission mode
+          const currentMode = this.permissionManager?.getCurrentEffectiveMode(
+            this.getModelConfig().permissionMode,
+          );
+
+          // Add plan mode reminder as persistent meta message before getting messages
+          this.maybeAddPlanModeMessage(currentMode);
+
+          // Process conditional rules triggered by file reads (persist as meta messages)
+          const triggeredRules = this.messageManager.processTriggeredRules();
+          for (const rule of triggeredRules) {
+            this.messageManager.addUserMessage({
+              content: `<!-- rule: ${rule.id} -->\n<system-reminder>\nThe following rules from .wave/rules apply to your work. Be sure to adhere to these instructions.\n\n${rule.content}\n</system-reminder>`,
+              isMeta: true,
+            });
+          }
+
+          // Nested memory: a read inside a subtree pulls in that subtree's
+          // AGENTS.md (persisted as a meta message, aligned with Claude Code's
+          // nested_memory attachment). Runs with the rules above — before the
+          // message snapshot below, so the file lands in this request rather
+          // than the next one. Optional call: hosts and tests register partial
+          // MessageManager doubles, and absence reads as "nothing triggered".
+          const nestedMemories =
+            (await this.messageManager.collectNestedMemoryFiles?.()) ?? [];
+          for (const memory of nestedMemories) {
+            this.messageManager.addUserMessage({
+              content: wrapInSystemReminder(
+                `Contents of ${memory.path}:\n\n${memory.content}`,
+              ),
+              isMeta: true,
+            });
+          }
+
+          // Pre-request auto-compaction: estimate the context about to be sent
+          // and compact BEFORE issuing the request, so an over-limit request
+          // never goes out. Skipped on fork paths (they use runForkLoop).
+          await this.maybeAutoCompactBeforeRequest(abortController);
+
+          // Announce MCP servers' own usage notes (persisted meta message) before
+          // the snapshot below, so a server that connected mid-session explains
+          // itself in the request that can already call it. After compaction, so
+          // the announcement is not the content that just got summarized away.
+          this.maybeAnnounceMcpInstructions();
+          this.maybeAnnounceExecCatalog();
+
+          // Get recent message history
+          const rawMessages = this.messageManager.getMessages();
+          const currentModelConfig = this.getModelConfig();
+          const recentMessages = await convertMessagesForAPI(rawMessages, {
+            supportsVision: supportsVision(currentModelConfig.capabilities),
+          });
+
+          // Track if assistant message has been created
+          let assistantMessageCreated = false;
+          /**
+           * Id of the assistant message this iteration streams into. Needed to
+           * drop that message if the streamed attempt dies mid-body and the
+           * request is re-issued non-streaming (spec: 流式响应正文中途断连时
+           * 降级为非流式重发).
+           */
+          let assistantMessageId: string | undefined;
+          const ensureAssistantMessage = () => {
+            if (!assistantMessageCreated) {
+              assistantMessageId = this.messageManager.addAssistantMessage();
+              assistantMessageCreated = true;
+            }
+          };
+
+          logger?.debug("modelConfig in sendAIMessage", this.getModelConfig());
+
+          const { toolsConfig, toolNames, filteredToolPlugins } =
+            this.resolveFilteredTools();
+
+          // Get memory for message-array injection (not system prompt)
+          const { prependContent } =
+            await this.messageManager.getMemoryForInjection();
+
+          const mainSystemPrompt =
+            await this.buildMainSystemPrompt(filteredToolPlugins);
+
+          // Call AI service with streaming callbacks if enabled
+          const callAgentOptions: CallAgentOptions = {
+            gatewayConfig: this.getGatewayConfig(),
+            modelConfig: this.getModelConfig(),
+            messages: recentMessages,
+            sessionId: this.messageManager.getSessionId(),
+            abortSignal: abortController.signal,
+            workdir: this.getWorkdir(), // Pass working directory
+            tools: toolsConfig, // Pass filtered tool configuration
+            model: model, // Use passed model
+            systemPrompt: mainSystemPrompt, // Pass custom system prompt
+            maxTokens:
+              maxTokens ?? this.configurationService.resolveMaxOutputTokens(), // Pass max tokens override, falling back to the resolved global value
+            toolChoice: this.toolChoiceOverride, // Pass tool_choice override
+            // Fast-model subagents send disable-thinking params only when
+            // explicitly configured (never in the agent loop).
+            disableThinkingOptions:
+              this.modelOverride === "fastModel"
+                ? this.getModelConfig().disableThinkingOptions
+                : undefined,
+          };
+
+          // Prepend: AGENTS.md + user memory + unconditional rules as system-reminder
+          if (prependContent.trim()) {
+            callAgentOptions.messages.unshift({
+              role: "user",
+              content: wrapInSystemReminder(prependContent),
+            });
+          }
+
+          // Task reminder: persist as meta message (conditional rules already persisted above)
+          const taskReminderText =
+            await this.maybeGetTaskReminderText(toolNames);
+          if (taskReminderText) {
+            this.messageManager.addUserMessage({
+              content: taskReminderText,
+              isMeta: true,
+            });
+          }
+
+          // External file-change reminder (aligned with Claude Code's
+          // changed_files attachment): notify the agent about files it read
+          // that were since changed on disk by another process — the
+          // auto-memory extraction fork, an external editor, another session.
+          // Persisted as a meta message like the task reminder, so it stays in
+          // the message prefix the auto-memory fork mirrors for cache reuse.
+          const changedFilesReminder = await getChangedFilesReminder(
+            this.readFileState,
+          );
+          if (changedFilesReminder) {
+            this.messageManager.addUserMessage({
+              content: wrapInSystemReminder(changedFilesReminder),
+              isMeta: true,
+            });
+          }
+
+          // Add streaming callbacks only if streaming is enabled
+          if (this.stream) {
+            callAgentOptions.onContentUpdate = (content: string) => {
+              // Agent may have been destroyed mid-stream; ignore in-flight updates.
+              if (!this.messageManager) return;
+              // Create assistant message on first chunk if not already created
+              ensureAssistantMessage();
+              this.messageManager.updateCurrentMessageContent(content);
+            };
+            callAgentOptions.onToolUpdate = (toolCall) => {
+              // Agent may have been destroyed mid-stream; ignore in-flight updates.
+              if (!this.messageManager) return;
+              // Create assistant message on first tool update if not already created
+              ensureAssistantMessage();
+
+              // Use parametersChunk as compact param for better performance
+              // No need to extract params or generate compact params during streaming
+
+              // Update tool block with streaming parameters using parametersChunk as compact param
+              // `parameters` is only present on start/running/end (authoritative); streaming
+              // carries only `parametersChunk`, so don't forward `parameters: undefined`
+              // (it would overwrite the accumulated block params in consumers)
+              this.messageManager.updateToolBlock({
+                id: toolCall.id,
+                name: toolCall.name,
+                ...(toolCall.parameters !== undefined
+                  ? { parameters: toolCall.parameters }
+                  : {}),
+                parametersChunk: toolCall.parametersChunk,
+                stage: toolCall.stage || "streaming", // Default to streaming if stage not provided
+              });
+            };
+            callAgentOptions.onReasoningUpdate = (reasoning: string) => {
+              // Agent may have been destroyed mid-stream; ignore in-flight updates.
+              if (!this.messageManager) return;
+              // Create assistant message on first reasoning update if not already created
+              ensureAssistantMessage();
+              this.messageManager.updateCurrentMessageReasoning(reasoning);
+            };
+          }
+
+          llmSpan = startLLMRequestSpan(
+            model || this.getModelConfig().model || "",
+            {
+              context: "interaction",
+              systemPrompt:
+                typeof callAgentOptions.systemPrompt === "string"
+                  ? callAgentOptions.systemPrompt
+                  : undefined,
+              inputMessages: callAgentOptions.messages,
+              toolsSchema: callAgentOptions.tools
+                ? JSON.stringify(callAgentOptions.tools)
+                : undefined,
+            },
+          );
+
+          const result = await aiService.callAgent(callAgentOptions);
+
+          // End LLM span with usage data
+          endLLMRequestSpan(llmSpan, {
+            model: model || this.getModelConfig().model || "",
+            success: true,
+            hasToolCall: !!(result.tool_calls && result.tool_calls.length > 0),
+            inputTokens: result.usage?.prompt_tokens,
+            outputTokens: result.usage?.completion_tokens,
+            cacheReadTokens: result.usage?.cache_read_input_tokens,
+            cacheCreationTokens: result.usage?.cache_creation_input_tokens,
+            modelOutput: result.content,
+          });
+
+          if (result.stream_fallback && assistantMessageCreated) {
+            // The streamed attempt died mid-body and the request was re-issued
+            // without streaming. Whatever it had already streamed in is void, so
+            // drop that message (and tell the hosts) rather than leaving half an
+            // answer above the real one; its tool calls were never executed
+            // (spec: 流式响应正文中途断连时降级为非流式重发).
+            this.messageManager.discardAssistantMessage(assistantMessageId);
+            assistantMessageId = undefined;
+            assistantMessageCreated = false;
+          }
+
+          const createdByStreaming = assistantMessageCreated;
+
+          // For non-streaming mode, create assistant message after callAgent returns
+          // Also create if streaming mode but no streaming callbacks were called (e.g., when content comes directly in result)
+          if (
+            !this.stream ||
+            (!assistantMessageCreated &&
+              (result.content || result.tool_calls || result.reasoning_content))
+          ) {
+            this.messageManager.addAssistantMessage();
+            assistantMessageCreated = true;
+          }
+
+          // Log finish reason and response headers if available
+          if (result.finish_reason) {
+            // Log warning headers when finish reason is length
+            if (result.finish_reason === "length") {
+              logger?.warn(
+                "AI response truncated due to length limit. Response headers:",
+                result.response_headers,
+              );
+            }
+          }
+
+          if (
+            result.additionalFields &&
+            Object.keys(result.additionalFields).length > 0
+          ) {
+            this.messageManager.mergeAssistantAdditionalFields(
+              result.additionalFields,
+            );
+          }
+
+          // Handle result reasoning content from non-streaming mode
+          if (result.reasoning_content && !createdByStreaming) {
+            this.messageManager.updateCurrentMessageReasoning(
+              result.reasoning_content,
+            );
+          }
+
+          // Handle result content from non-streaming mode
+          if (result.content && !createdByStreaming) {
+            this.messageManager.updateCurrentMessageContent(result.content);
+          }
+
+          // Handle usage tracking for agent operations
+          let usage: Usage | undefined;
+          if (result.usage) {
+            usage = {
+              prompt_tokens: result.usage.prompt_tokens,
+              completion_tokens: result.usage.completion_tokens,
+              total_tokens: result.usage.total_tokens,
+              model: model || this.getModelConfig().model,
+              operation_type: "agent",
+              // Preserve cache fields if present
+              ...(result.usage.cache_read_input_tokens !== undefined && {
+                cache_read_input_tokens: result.usage.cache_read_input_tokens,
+              }),
+              ...(result.usage.cache_creation_input_tokens !== undefined && {
+                cache_creation_input_tokens:
+                  result.usage.cache_creation_input_tokens,
+              }),
+            };
+          }
+
+          // Set usage on the assistant message if available
+          if (usage) {
+            const messages = this.messageManager.getMessages();
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              lastMessage.usage = usage;
+              this.messageManager.setMessages(messages);
+            }
+
+            // Notify Agent to add to usage tracking
+            if (this.callbacks?.onUsageAdded) {
+              this.callbacks.onUsageAdded(usage);
+            }
+          }
+
+          // Collect tool calls for processing
+          const toolCalls: ChatCompletionMessageFunctionToolCall[] = [];
+          if (result.tool_calls) {
+            for (const toolCall of result.tool_calls) {
+              if (toolCall.type === "function") {
+                toolCalls.push(toolCall);
+              }
+            }
+          }
+
+          if (toolCalls.length > 0) {
+            // Partition tool calls into batches: consecutive concurrency-safe
+            // tools run in parallel, non-safe tools (Edit, Write, MCP) run one
+            // at a time to prevent read-modify-write races on the same file.
+            const batches: {
+              calls: ChatCompletionMessageFunctionToolCall[];
+              safe: boolean;
+            }[] = [];
+            for (const call of toolCalls) {
+              const toolName = call.function?.name || "";
+              const safe = this.toolManager.isConcurrencySafe(toolName);
+              const lastBatch = batches[batches.length - 1];
+              if (lastBatch && lastBatch.safe && safe) {
+                lastBatch.calls.push(call);
+              } else {
+                batches.push({ calls: [call], safe });
+              }
+            }
+
+            // Execute batches sequentially; within a safe batch, tools run in parallel
+            for (const batch of batches) {
+              if (
+                abortController.signal.aborted ||
+                toolAbortController.signal.aborted
+              ) {
+                break;
+              }
+              if (batch.calls.length === 1) {
+                await this.executeToolCall(
+                  batch.calls[0],
+                  abortController,
+                  toolAbortController,
+                  result.finish_reason,
+                );
+              } else {
+                await Promise.all(
+                  batch.calls.map((call) =>
+                    this.executeToolCall(
+                      call,
+                      abortController,
+                      toolAbortController,
+                      result.finish_reason,
+                    ),
+                  ),
+                );
+              }
+            }
+          }
+
+          // Update token statistics for display (compaction decision is
+          // pre-request, see maybeAutoCompactBeforeRequest)
+          this.updateLatestTotalTokens(result.usage);
+
+          // Finalize text/reasoning blocks for the final response (no tools)
+          this.messageManager.finalizeStreamingBlocks();
+
+          // Check if there are tool operations or response was truncated, if so automatically initiate next AI service call
+          if (toolCalls.length > 0 || result.finish_reason === "length") {
+            // Check maxTurns limit before continuing
+            if (this.maxTurns && turnDepth + 1 >= this.maxTurns) {
+              logger?.debug(`Max turns (${this.maxTurns}) reached, stopping.`);
+            } else {
+              // Record committed snapshots to message history
+              if (this.reversionManager) {
+                const snapshots =
+                  this.reversionManager.getAndClearCommittedSnapshots();
+                if (snapshots.length > 0) {
+                  this.messageManager.addFileHistoryBlock(snapshots);
+                }
+              }
+
+              // Check interruption status
+              const isCurrentlyAborted =
+                abortController.signal.aborted ||
+                toolAbortController.signal.aborted;
+
+              // Check if all tools were manually backgrounded
+              const lastMessage =
+                this.messageManager.getMessages()[
+                  this.messageManager.getMessages().length - 1
+                ];
+              const toolBlocks =
+                lastMessage?.blocks.filter(
+                  (block): block is import("../types/messaging.js").ToolBlock =>
+                    block.type === "tool",
+                ) || [];
+              const hasBackgrounded =
+                toolBlocks.length > 0 &&
+                toolBlocks.some((block) => block.backgroundedByUser);
+
+              if (hasBackgrounded) {
+                logger?.info(
+                  "Some tools were manually backgrounded, stopping.",
+                );
+              } else if (!isCurrentlyAborted) {
+                // If the response was truncated WITHOUT any tool calls,
+                // enforce the consecutive recovery limit (aligned with Claude
+                // Code's MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3). Re-planning
+                // loops that never produce output would otherwise continue
+                // until the platform kills the task.
+                if (
+                  result.finish_reason === "length" &&
+                  toolCalls.length === 0 &&
+                  maxOutputTokensRecoveryCount >=
+                    MAX_OUTPUT_TOKENS_RECOVERY_LIMIT
+                ) {
+                  this.messageManager.addErrorBlock(
+                    `Response exceeded the output token limit ${MAX_OUTPUT_TOKENS_RECOVERY_LIMIT + 1} consecutive times without producing output or tool calls. Stopped to avoid an infinite loop. Break the remaining work into smaller pieces and try again.`,
+                  );
+                  break inner;
+                }
+
+                // If response was truncated, add a hidden continuation message
+                if (result.finish_reason === "length") {
+                  if (toolCalls.length === 0) {
+                    // Pure truncation — count toward the recovery limit.
+                    maxOutputTokensRecoveryCount++;
+                  } else {
+                    // Truncated with tool calls — real progress, reset the
+                    // consecutive counter.
+                    maxOutputTokensRecoveryCount = 0;
+                  }
+                  this.messageManager.addUserMessage({
+                    content:
+                      "Output token limit hit. Resume directly — no apology, no recap of what you were doing. Pick up mid-thought if that is where the cut happened. Break remaining work into smaller pieces.",
+                    isMeta: true,
+                  });
+                }
+
+                // Duplicate Tool Call Detection
+                if (toolCalls.length > 0) {
+                  const messages = this.messageManager.getMessages();
+                  // Find the most recent assistant message BEFORE the current one that has tool blocks
+                  // The current assistant message is messages[messages.length - 1]
+                  let previousAssistantWithTools: Message | undefined;
+                  for (let i = messages.length - 2; i >= 0; i--) {
+                    const msg = messages[i];
+                    if (
+                      msg.role === "assistant" &&
+                      msg.blocks.some((b) => b.type === "tool")
+                    ) {
+                      previousAssistantWithTools = msg;
+                      break;
+                    }
+                  }
+
+                  if (previousAssistantWithTools) {
+                    const previousToolBlocks =
+                      previousAssistantWithTools.blocks.filter(
+                        (b): b is import("../types/messaging.js").ToolBlock =>
+                          b.type === "tool",
+                      );
+
+                    for (const currentToolCall of toolCalls) {
+                      const currentName = currentToolCall.function?.name;
+                      const currentArgs = currentToolCall.function?.arguments;
+
+                      const isDuplicate = previousToolBlocks.some(
+                        (prevBlock) =>
+                          prevBlock.name === currentName &&
+                          prevBlock.parameters === currentArgs,
+                      );
+
+                      if (isDuplicate && currentName) {
+                        const toolId = currentToolCall.id;
+                        const lastMessage = messages[messages.length - 1];
+                        const toolBlock = lastMessage.blocks.find(
+                          (b): b is import("../types/messaging.js").ToolBlock =>
+                            b.type === "tool" && b.id === toolId,
+                        );
+                        if (toolBlock) {
+                          const warning = `\n\nNote: You just called this tool with the same arguments in the previous turn. Please ensure you are not in a loop and consider if you need to change your approach.`;
+                          this.messageManager.updateToolBlock({
+                            id: toolId,
+                            result: (toolBlock.result || "") + warning,
+                            stage: "end",
+                          });
+                        }
+                      }
+                    }
+                  }
+                }
+
+                // Yield to the event loop so macrotasks (abort timers,
+                // signals) can be processed between turns. Without this,
+                // mocked async operations (microtasks) would starve the
+                // event loop and abort timers would never fire.
+                await new Promise((resolve) => setImmediate(resolve));
+
+                // Re-check abort status after yielding — the signal may
+                // have fired during the setImmediate gap.
+                if (
+                  abortController.signal.aborted ||
+                  toolAbortController.signal.aborted
+                ) {
+                  break inner;
+                }
+
+                turnDepth++;
+                continue inner;
+              }
+            }
+          }
+
+          // No tool calls (or stop conditions) → inner loop done
+          break inner;
+        } catch (error) {
+          // End LLM span with error
+          endLLMRequestSpan(llmSpan, {
+            model: model || this.getModelConfig().model || "",
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+
+          // Log error event
+          logOTelEvent("error", {
+            error_type:
+              error instanceof Error ? error.constructor.name : "Unknown",
+            message: error instanceof Error ? error.message : String(error),
+          }).catch(() => {}); // Non-blocking
+
+          // Finalize any streaming text/reasoning blocks so the UI stops ticking
+          // its in-progress timer (e.g. when the request is aborted mid-thought).
+          this.messageManager.finalizeStreamingBlocks();
+
+          // Finalize any tool blocks stuck in start/streaming/running so the UI
+          // stops showing the yellow "running" spinner (e.g. abort mid-tool-stream).
+          this.messageManager.finalizeAbortedToolBlocks(
+            error instanceof Error ? error.message : undefined,
+          );
+
+          this.messageManager.addErrorBlock(
+            error instanceof Error ? error.message : "Unknown error occurred",
+          );
+
+          // Exit inner loop on error
+          break inner;
+        }
+      }
+
+      // Finally-equivalent (runs once per outer iteration):
+      // Only execute cleanup and hooks for the initial call
+      if (turnOffset === 0) {
+        // OpenTelemetry: end interaction span
+        endInteractionSpan();
+
+        // Save session in each iteration to ensure message persistence
+        await this.messageManager.saveSession();
+
+        // Clear temporary rules
+        this.permissionManager?.clearTemporaryRules();
+
+        // Clear abort controllers (only if we still own them — a concurrent
+        // turn may have already registered its own controller, and clearing
+        // it would orphan that turn and make it uninterruptible)
+        if (this.abortController === abortController) {
+          this.abortController = null;
+        }
+        if (this.toolAbortController === toolAbortController) {
+          this.toolAbortController = null;
+        }
+
+        // Execute Stop/SubagentStop hooks only if the operation was not aborted
+        const isCurrentlyAborted =
+          abortController.signal.aborted || toolAbortController.signal.aborted;
+
+        if (!isCurrentlyAborted) {
+          // Record committed snapshots to message history for the final turn
+          if (this.reversionManager) {
+            const snapshots =
+              this.reversionManager.getAndClearCommittedSnapshots();
+            if (snapshots.length > 0) {
+              this.messageManager.addFileHistoryBlock(snapshots);
+            }
+          }
+
+          // Execute Stop hooks
+          const shouldContinue = await this.executeStopHooks();
+
+          // If Stop/SubagentStop hooks indicate we should continue (due to blocking errors),
+          // restart the AI conversation cycle
+          if (shouldContinue) {
+            logger?.info(
+              `${this.subagentType ? "SubagentStop" : "Stop"} hooks indicate issues need fixing, continuing conversation...`,
+            );
+
+            // Restart the conversation to let AI fix the issues
+            shouldRestart = true;
+            turnOffset = 0;
+          }
+        }
+
+        // Inject pending notifications from background tasks (after Stop hooks,
+        // aligned with Claude Code which fires Stop hooks unconditionally).
+        // Skip injection when this turn was aborted: folding a pending
+        // notification in would restart the loop and resurrect the aborted
+        // turn — if a concurrent sendMessage is already running (e.g. the
+        // queue's "send now" button), it would spawn a second, orphaned,
+        // uninterruptible agent loop. The notification stays queued for the
+        // next turn.
+        const messageQueue = this.container.has("MessageQueue")
+          ? this.container.get<MessageQueue>("MessageQueue")
+          : undefined;
+        if (
+          messageQueue &&
+          messageQueue.hasNotifications() &&
+          !isCurrentlyAborted
+        ) {
+          const notifications = messageQueue.drainNotifications();
+          for (const notification of notifications) {
+            const block = parseTaskNotificationXml(notification);
+            if (block) {
+              this.messageManager.addNotificationMessage({
+                taskId: block.taskId,
+                taskType: block.taskType,
+                status: block.status,
+                summary: block.summary,
+                outputFile: block.outputFile,
+                result: block.result,
+              });
+            }
+          }
+          // Re-assert loading state before restarting: if this turn was
+          // aborted, abortAIMessage already reset loading to false, and the
+          // restart below continues the conversation — the UI must show
+          // streaming again (cursor, stop button, ESC handling).
+          this.setIsLoading(true);
+          // Adopt the current (possibly abort-bumped) generation so this
+          // continued turn's end-of-turn cleanup is not skipped as superseded.
+          myGeneration = this.turnGeneration;
+          // Restart outer loop to process the notifications
+          shouldRestart = true;
+          turnOffset = 0;
+        }
+      }
+
+      if (!shouldRestart) {
+        // Release loading state only after ALL cleanup is done (session save,
+        // Stop hooks, notification injection). Generation check ensures a
+        // superseded (aborted or newer) turn doesn't clobber the current
+        // loading state.
+        if (myGeneration === this.turnGeneration) {
+          this.setIsLoading(false);
+        }
+        if (ownsTurnSnapshot) {
+          this.liveConfigManager?.onTurnEnd();
+        }
+        break outer;
+      }
+    }
+  }
+
+  /**
+   * Execute Stop or SubagentStop hooks when AI response cycle completes
+   * Uses "SubagentStop" hook name when triggered by a subagent, otherwise uses "Stop"
+   * @returns Promise<boolean> - true if should continue conversation, false if should stop
+   */
+  private async executeStopHooks(): Promise<boolean> {
+    if (!this.hookManager) return false;
+
+    try {
+      // Use "SubagentStop" hook name when triggered by a subagent, otherwise use "Stop"
+      const hookName = this.subagentType ? "SubagentStop" : "Stop";
+
+      // For main-agent Stop events, snapshot running background tasks and
+      // session cron jobs so the hook can decide whether to block stopping.
+      // SubagentStop does not include these fields (per spec FR-065).
+      const backgroundTasks: BackgroundTaskInfo[] | undefined =
+        hookName === "Stop"
+          ? (this.backgroundTaskManager?.getAllTasks() ?? [])
+              .filter((t) => t.status === "running")
+              .map((t) => mapBackgroundTask(t, this.subagentManager))
+          : undefined;
+
+      const sessionCrons: SessionCronInfo[] | undefined =
+        hookName === "Stop"
+          ? (this.cronManager?.listJobs() ?? []).map((j) => ({
+              id: j.id,
+              schedule: j.cron,
+              recurring: j.recurring,
+              prompt: j.prompt,
+            }))
+          : undefined;
+
+      // Extract text content from the last assistant message so hooks can
+      // inspect the final response without reading the transcript file.
+      const allMessages = this.messageManager.getMessages();
+      const lastAssistant = [...allMessages]
+        .reverse()
+        .find((m) => m.role === "assistant");
+      const lastAssistantText = lastAssistant
+        ? lastAssistant.blocks
+            .filter((b) => b.type === "text")
+            .map((b) => b.content)
+            .join("\n")
+            .trim() || undefined
+        : undefined;
+
+      const context: ExtendedHookExecutionContext = {
+        event: hookName,
+        projectDir: this.getWorkdir(),
+        timestamp: new Date(),
+        sessionId: this.messageManager.getSessionId(),
+        transcriptPath: this.messageManager.getTranscriptPath(),
+        cwd: this.getWorkdir(),
+        subagentType: this.subagentType, // Include subagent type in hook context
+        backgroundTasks, // Stop-only: running background tasks snapshot
+        sessionCrons, // Stop-only: session cron jobs snapshot
+        lastAssistantMessage: lastAssistantText, // Stop/SubagentStop: last assistant message text
+        // Stop hooks don't need toolName, toolInput, toolResponse, or userPrompt
+        env: Object.fromEntries(
+          Object.entries(this.mergedEnv).filter((e) => e[1] !== undefined),
+        ) as Record<string, string>, // Include environment variables
+      };
+
+      const results = await this.hookManager.executeHooks(hookName, context);
+
+      // Process hook results to handle exit codes and appropriate responses
+      let shouldContinue = false;
+      if (results.length > 0) {
+        const processResult = this.hookManager.processHookResults(
+          hookName,
+          results,
+          this.messageManager,
+        );
+
+        // If hook processing indicates we should block (exit code 2), continue conversation
+        if (processResult.shouldBlock) {
+          logger?.info(
+            `${hookName} hook blocked stopping with error:`,
+            processResult.errorMessage,
+          );
+          shouldContinue = true;
+        }
+      }
+
+      // Log hook execution results for debugging
+      if (results.length > 0) {
+        logger?.debug(
+          `Executed ${results.length} ${hookName} hook(s):`,
+          results.map((r) => ({
+            success: r.success,
+            duration: r.duration,
+            exitCode: r.exitCode,
+            timedOut: r.timedOut,
+            stderr: r.stderr,
+          })),
+        );
+      }
+
+      // Trigger auto-memory extraction if enabled and this is the main agent
+      if (!this.subagentType) {
+        const autoMemoryService =
+          this.container.get<
+            import("../services/autoMemoryService.js").AutoMemoryService
+          >("AutoMemoryService");
+        if (autoMemoryService) {
+          // Trigger extraction, but don't block the return.
+          // onTurnEnd itself returns quickly after forking.
+          autoMemoryService.onTurnEnd(this.getWorkdir()).catch((err) => {
+            logger?.error("Auto-memory extraction trigger failed:", err);
+          });
+        }
+      }
+
+      return shouldContinue;
+    } catch (error) {
+      // Hook execution errors should not interrupt the main workflow
+      logger?.error(
+        `${this.subagentType ? "SubagentStop" : "Stop"} hook execution failed:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Execute a single tool call: arg parsing, block emission, PreToolUse hooks,
+   * tool execution, PostToolUse hooks, and error handling.
+   */
+  private async executeToolCall(
+    functionToolCall: ChatCompletionMessageFunctionToolCall,
+    abortController: AbortController,
+    toolAbortController: AbortController,
+    finishReason?: string | null,
+  ): Promise<void> {
+    const toolId = functionToolCall.id || "";
+
+    // Check if already interrupted, skip tool execution if so
+    if (abortController.signal.aborted || toolAbortController.signal.aborted) {
+      return;
+    }
+
+    const toolName = functionToolCall.function?.name || "";
+    // Safely parse tool parameters, handle tools without parameters
+    let toolArgs: Record<string, unknown> = {};
+    let jsonRecovered = false;
+    const argsString = functionToolCall.function?.arguments?.trim();
+
+    if (!argsString || argsString === "") {
+      // Tool without parameters, use empty object
+      toolArgs = {};
+    } else {
+      let recoveredArgs = argsString;
+      try {
+        toolArgs = JSON.parse(argsString);
+      } catch {
+        // Attempt to recover truncated JSON (e.g., missing closing braces)
+        recoveredArgs = recoverTruncatedJson(argsString);
+        try {
+          toolArgs = JSON.parse(recoveredArgs);
+          jsonRecovered = true;
+          logger.warn(`Recovered truncated JSON for tool "${toolName}"`);
+        } catch (parseError) {
+          let errorMessage = `Failed to parse tool arguments`;
+          if (finishReason === "length") {
+            errorMessage += " (output truncated, please reduce your output)";
+          }
+          logger?.error(errorMessage, parseError);
+          this.messageManager.updateToolBlock({
+            id: toolId,
+            parameters: argsString,
+            result: errorMessage,
+            success: false,
+            error: errorMessage,
+            stage: "end",
+            name: toolName,
+            compactParams: "",
+            timestamp: Date.now(),
+          });
+          return;
+        }
+      }
+    }
+
+    const compactParams = this.generateCompactParams(toolName, toolArgs);
+
+    // Emit start stage for non-streaming tool calls
+    if (!this.stream) {
+      this.messageManager.updateToolBlock({
+        id: toolId,
+        stage: "start",
+        name: toolName,
+        compactParams,
+        parameters: argsString,
+      });
+    }
+
+    // Emit running stage (tool execution about to start)
+    this.messageManager.updateToolBlock({
+      id: toolId,
+      stage: "running",
+      name: toolName,
+      compactParams,
+      parameters: argsString,
+      parametersChunk: "",
+    });
+
+    try {
+      // Execute PreToolUse hooks before tool execution
+      const shouldExecuteTool = await this.executePreToolUseHooks(
+        toolName,
+        toolArgs,
+        toolId,
+      );
+
+      // If PreToolUse hooks blocked execution, skip tool execution
+      if (!shouldExecuteTool) {
+        logger?.info(`Tool ${toolName} execution blocked by PreToolUse hooks`);
+        return;
+      }
+
+      // Create tool execution context
+      const context: ToolContext = {
+        abortSignal: toolAbortController.signal,
+        backgroundTaskManager: this.backgroundTaskManager,
+        workdir: this.getWorkdir(),
+        originalWorkdir: this.originalWorkdir,
+        messageId: this.messageManager.getMessages().slice(-1)[0]?.id,
+        sessionId: this.messageManager.getSessionId(),
+        toolCallId: toolId,
+        taskManager: this.taskManager,
+        readFileState: this.readFileState,
+        onShortResultUpdate: (shortResult: string) => {
+          this.messageManager.updateToolBlock({
+            id: toolId,
+            shortResult,
+            stage: "running",
+            compactParams,
+            name: toolName,
+          });
+        },
+        onResultUpdate: (result: string) => {
+          this.messageManager.updateToolBlock({
+            id: toolId,
+            result,
+            stage: "running",
+            compactParams,
+            name: toolName,
+          });
+        },
+        onCwdChange: async (newCwd: string) => {
+          const oldCwd = this.getWorkdir();
+          this.container.register("Workdir", newCwd);
+          this._onCwdChange?.(newCwd);
+          if (this.hookManager) {
+            const sessionId = this.messageManager.getSessionId();
+            const transcriptPath = this.messageManager.getTranscriptPath();
+            const env = Object.fromEntries(
+              Object.entries(this.mergedEnv).filter((e) => e[1] !== undefined),
+            ) as Record<string, string>;
+            await this.hookManager.executeCwdChangedHooks(
+              oldCwd,
+              newCwd,
+              sessionId,
+              transcriptPath,
+              env,
+            );
+          }
+        },
+      };
+
+      // Execute tool
+      const toolResult = await this.toolManager.execute(
+        functionToolCall.function?.name || "",
+        toolArgs,
+        context,
+      );
+
+      // MCP tools can return images (e.g. Figma screenshots) as in-memory
+      // base64. When this agent's model cannot see them, persist each image to
+      // a temp file so the non-vision path in convertMessagesForAPI can attach
+      // `[Image source: <path>]` metadata and the main model can delegate
+      // recognition to the vision subagent. Vision-capable models keep the
+      // inline base64 — no disk writes.
+      let toolImages = toolResult.images;
+      if (
+        toolImages &&
+        toolImages.length > 0 &&
+        !supportsVision(this.getModelConfig().capabilities)
+      ) {
+        toolImages = persistToolImages(toolImages);
+      }
+
+      // Build result content, adding truncation warning if JSON was recovered
+      let toolResultContent =
+        toolResult.content ||
+        (toolResult.error ? `Error: ${toolResult.error}` : "");
+      if (jsonRecovered) {
+        toolResultContent +=
+          "\n\nTool arguments were truncated (likely exceeded max output tokens). Please reduce your output or split into multiple tool calls.";
+      }
+
+      // Update message state - tool execution completed
+      this.messageManager.updateToolBlock({
+        id: toolId,
+        parameters: argsString,
+        result: toolResultContent,
+        success: toolResult.success,
+        error: toolResult.error,
+        stage: "end",
+        name: toolName,
+        compactParams,
+        shortResult: toolResult.shortResult,
+        backgroundTaskId: toolResult.backgroundTaskId,
+        backgroundedByUser: toolResult.backgroundedByUser,
+        assistantAutoBackgrounded: toolResult.assistantAutoBackgrounded,
+        startLineNumber: toolResult.startLineNumber,
+        images: toolImages,
+        timestamp: Date.now(),
+      });
+
+      // Plan panel refresh (spec: 计划文件更新后刷新计划面板): a successful
+      // Write/Edit of the plan file broadcasts the new content so hosts can
+      // update an already-open plan panel without waiting for ExitPlanMode.
+      await this.notifyPlanFileUpdate(toolName, toolArgs, toolResult.success);
+
+      // Execute PostToolUse hooks after successful tool completion
+      await this.executePostToolUseHooks(
+        toolId,
+        toolName,
+        toolArgs,
+        toolResult,
+      );
+    } catch (toolError) {
+      const errorMessage =
+        toolError instanceof Error ? toolError.message : String(toolError);
+
+      this.messageManager.updateToolBlock({
+        id: toolId,
+        parameters: JSON.stringify(toolArgs, null, 2),
+        result: `Tool execution failed: ${errorMessage}`,
+        success: false,
+        error: errorMessage,
+        stage: "end",
+        name: toolName,
+        compactParams,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  /**
+   * Plan panel refresh (spec: 计划文件更新后刷新计划面板).
+   *
+   * When a successful `Write`/`Edit` targets the current plan file, read it and
+   * emit the full content so hosts can update an already-open plan panel. The
+   * path comparison mirrors the plan-mode allow branch in PermissionManager so
+   * "the write that was allowed" and "the write that refreshes the panel" stay
+   * the same set. The path is only set while plan mode is active, so post-exit
+   * writes can't reach the panels.
+   */
+  private async notifyPlanFileUpdate(
+    toolName: string,
+    toolArgs: Record<string, unknown>,
+    success: boolean,
+  ): Promise<void> {
+    if (!success) return;
+    if (toolName !== WRITE_TOOL_NAME && toolName !== EDIT_TOOL_NAME) return;
+
+    const targetPath = toolArgs.file_path;
+    if (typeof targetPath !== "string" || targetPath.trim() === "") return;
+
+    const planFilePath = this.container
+      .get<PermissionManager>("PermissionManager")
+      ?.getPlanFilePath();
+    if (!planFilePath) return;
+    if (path.resolve(targetPath) !== path.resolve(planFilePath)) return;
+
+    try {
+      const content = await readFile(planFilePath, "utf8");
+      this.callbacks?.onPlanFileUpdated?.(content);
+    } catch (error) {
+      logger?.warn(
+        `Failed to read plan file for panel refresh: ${planFilePath}`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Execute PreToolUse hooks before tool execution
+   * Returns true if hooks allow tool execution, false if blocked
+   */
+  private async executePreToolUseHooks(
+    toolName: string,
+    toolInput?: Record<string, unknown>,
+    toolId?: string,
+  ): Promise<boolean> {
+    if (!this.hookManager) return true;
+
+    try {
+      const context: ExtendedHookExecutionContext = {
+        event: "PreToolUse",
+        projectDir: this.getWorkdir(),
+        timestamp: new Date(),
+        toolName,
+        sessionId: this.messageManager.getSessionId(),
+        transcriptPath: this.messageManager.getTranscriptPath(),
+        cwd: this.getWorkdir(),
+        toolInput,
+        subagentType: this.subagentType, // Include subagent type in hook context
+        env: Object.fromEntries(
+          Object.entries(this.mergedEnv).filter((e) => e[1] !== undefined),
+        ) as Record<string, string>, // Include environment variables
+      };
+
+      const results = await this.hookManager.executeHooks(
+        "PreToolUse",
+        context,
+      );
+
+      // Process hook results to handle exit codes and determine if tool should be blocked
+      let shouldContinue = true;
+      if (results.length > 0) {
+        const processResult = this.hookManager.processHookResults(
+          "PreToolUse",
+          results,
+          this.messageManager,
+          toolId, // Pass toolId for proper PreToolUse blocking error handling
+          JSON.stringify(toolInput || {}, null, 2), // Pass serialized tool parameters
+        );
+        shouldContinue = !processResult.shouldBlock;
+      }
+
+      // Log tool_decision event
+      logOTelEvent("tool_decision", {
+        tool_name: toolName,
+        decision: shouldContinue ? "approved" : "blocked",
+        source: "hook",
+      }).catch(() => {}); // Non-blocking
+
+      // Log hook execution results for debugging
+      if (results.length > 0) {
+        logger?.debug(
+          `Executed ${results.length} PreToolUse hook(s) for ${toolName}:`,
+          results.map((r) => ({
+            success: r.success,
+            duration: r.duration,
+            exitCode: r.exitCode,
+            timedOut: r.timedOut,
+            stderr: r.stderr,
+          })),
+        );
+      }
+
+      return shouldContinue;
+    } catch (error) {
+      // Hook execution errors should not interrupt the main workflow
+      logger?.error("PreToolUse hook execution failed:", error);
+      return true; // Allow tool execution on hook errors
+    }
+  }
+
+  /**
+   * Execute PostToolUse hooks after tool completion
+   */
+  private async executePostToolUseHooks(
+    toolId: string,
+    toolName: string,
+    toolInput?: Record<string, unknown>,
+    toolResponse?: ToolResult,
+  ): Promise<void> {
+    if (!this.hookManager) return;
+
+    try {
+      const context: ExtendedHookExecutionContext = {
+        event: "PostToolUse",
+        projectDir: this.getWorkdir(),
+        timestamp: new Date(),
+        toolName,
+        sessionId: this.messageManager.getSessionId(),
+        transcriptPath: this.messageManager.getTranscriptPath(),
+        cwd: this.getWorkdir(),
+        toolInput,
+        toolResponse,
+        subagentType: this.subagentType, // Include subagent type in hook context
+        planFilePath: this.permissionManager?.getPlanFilePath(),
+        env: Object.fromEntries(
+          Object.entries(this.mergedEnv).filter((e) => e[1] !== undefined),
+        ) as Record<string, string>, // Include environment variables
+      };
+
+      const results = await this.hookManager.executeHooks(
+        "PostToolUse",
+        context,
+      );
+
+      // Process hook results to handle exit codes and update tool results
+      if (results.length > 0) {
+        this.hookManager.processHookResults(
+          "PostToolUse",
+          results,
+          this.messageManager,
+          toolId,
+        );
+      }
+
+      // Log hook execution results for debugging
+      if (results.length > 0) {
+        logger?.debug(
+          `Executed ${results.length} PostToolUse hook(s) for ${toolName}:`,
+          results.map((r) => ({
+            success: r.success,
+            duration: r.duration,
+            exitCode: r.exitCode,
+            timedOut: r.timedOut,
+            stderr: r.stderr,
+          })),
+        );
+      }
+    } catch (error) {
+      // Hook execution errors should not interrupt the main workflow
+      logger?.error("PostToolUse hook execution failed:", error);
+    }
+  }
+}

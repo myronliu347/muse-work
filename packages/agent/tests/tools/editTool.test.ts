@@ -1,0 +1,940 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { editTool } from "@/tools/editTool.js";
+import { TaskManager } from "@/services/taskManager.js";
+import { readFile, writeFile, stat } from "fs/promises";
+import { createHash } from "crypto";
+import * as path from "path";
+import type { ToolContext } from "@/tools/types.js";
+import { Container } from "@/utils/container.js";
+
+// Source resolves file_path against context.workdir via path.resolve().
+// On Windows that prepends a drive letter (D:\...), so any path the source
+// stores/returns (readFileState keys, result.filePath, readFile/writeFile
+// call args) must be expressed as path.resolve(...) to match cross-platform.
+// Input file_path args stay literal; only the *resolved* form is wrapped.
+const WORKDIR = "/test/workdir";
+const r = (p: string) => path.resolve(WORKDIR, p);
+
+// Mock fs/promises
+vi.mock("fs/promises");
+// Edits route through the atomic writer. Forward it to the mocked fs/promises
+// so the existing write-call assertions keep working; the atomic
+// temp-file+rename mechanics are covered by atomicWrite.test.ts.
+vi.mock("@/utils/atomicWrite.js", async () => {
+  const fsp = await import("fs/promises");
+  return {
+    atomicWriteFile: vi.fn((filePath: string, data: string) =>
+      fsp.writeFile(filePath, data, "utf-8"),
+    ),
+  };
+});
+import { atomicWriteFile } from "@/utils/atomicWrite.js";
+vi.mock("../../src/utils/editUtils.js", () => ({
+  escapeRegExp: vi.fn((s) => s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)),
+  analyzeEditMismatch: vi.fn(
+    (s) => `String to replace not found in file.\nString: ${s}`,
+  ),
+}));
+
+describe("editTool", () => {
+  let mockContext: ToolContext;
+
+  beforeEach(() => {
+    mockContext = {
+      abortSignal: new AbortController().signal,
+      workdir: WORKDIR,
+      taskManager: new TaskManager(new Container(), "test-session"),
+      // Pre-populate readFileState so read-before-edit check passes.
+      // Keys must be the *resolved* path (matches source's resolvePath()).
+      // Individual tests can override with an empty Map or undefined.
+      readFileState: new Map([
+        [r("/test/file.js"), { mtime: 1000, hash: "abc", source: "read" }],
+        [
+          r("/test/workdir/file.js"),
+          { mtime: 1000, hash: "abc", source: "read" },
+        ],
+        [
+          r("/test/nonexistent.js"),
+          { mtime: 1000, hash: "abc", source: "read" },
+        ],
+        [
+          r("/absolute/path/file.js"),
+          { mtime: 1000, hash: "abc", source: "read" },
+        ],
+      ]),
+    };
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default stat mock returns mtime matching pre-populated readFileState
+    vi.mocked(stat).mockResolvedValue({
+      mtime: { getTime: () => 1000 } as Date,
+    } as unknown as Awaited<ReturnType<typeof stat>>);
+    // afterEach's resetAllMocks wipes the factory implementation.
+    vi.mocked(atomicWriteFile).mockImplementation(
+      (filePath: string, data: string) => writeFile(filePath, data, "utf-8"),
+    );
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("should have correct tool configuration", () => {
+    expect(editTool.name).toBe("Edit");
+    expect(editTool.config.function.name).toBe("Edit");
+    expect(editTool.config.function.description).toBe(
+      "A tool for editing files",
+    );
+    expect(editTool.config.type).toBe("function");
+
+    // Type guard to access function properties
+    if (editTool.config.type === "function") {
+      expect(editTool.config.function.name).toBe("Edit");
+      if (editTool.config.function.parameters) {
+        expect(editTool.config.function.parameters.required).toEqual([
+          "file_path",
+          "old_string",
+          "new_string",
+        ]);
+      }
+    }
+  });
+
+  it("should successfully replace unique string in file", async () => {
+    const mockContent = "function hello() {\n  console.log('Hello');\n}";
+    const expectedContent =
+      "function hello() {\n  console.log('Hello World');\n}";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "console.log('Hello');",
+        new_string: "console.log('Hello World');",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("Text replaced successfully");
+    expect(result.filePath).toBe(r("/test/file.js"));
+
+    expect(readFile).toHaveBeenCalledWith(r("/test/file.js"), "utf-8");
+    // Routed through the atomic writer (temp file + rename).
+    expect(atomicWriteFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+    );
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should replace all occurrences when replace_all is true", async () => {
+    const mockContent = "var x = 1;\nvar y = 2;\nvar z = 3;";
+    const expectedContent = "let x = 1;\nlet y = 2;\nlet z = 3;";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "var",
+        new_string: "let",
+        replace_all: true,
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("Replaced 3 instances");
+
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should keep $ sequences in new_string literal (issue #1752)", async () => {
+    const mockContent = "line one\nline two\nline three";
+    const expectedContent = "line one\nA$&B A$$B A$1B A$xB\nline three";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "line two",
+        new_string: "A$&B A$$B A$1B A$xB",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should keep $ literal with backticks in new_string (issue #1752)", async () => {
+    const mockContent =
+      "// neither `.` nor `$` matches in a non-multiline regex — headings would";
+    const expectedContent =
+      "// neither `.` nor `$` matches in a non-multiline regex — headings would\n// `$` matches — note added line";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string:
+          "// neither `.` nor `$` matches in a non-multiline regex — headings would",
+        new_string:
+          "// neither `.` nor `$` matches in a non-multiline regex — headings would\n// `$` matches — note added line",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should keep $ literal in replace_all mode (issue #1752)", async () => {
+    const mockContent = "a $x b\na $x b";
+    const expectedContent = "a A$&B b\na A$&B b";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "$x",
+        new_string: "A$&B",
+        replace_all: true,
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("Replaced 2 instances");
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should fail when old_string is not unique and replace_all is false", async () => {
+    const mockContent = "var x = 1;\nvar y = 2;\nvar z = 3;";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "var",
+        new_string: "let",
+        replace_all: false,
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("appears 3 times in the file");
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("should fail when old_string is not found", async () => {
+    const mockContent = "function hello() {\n  console.log('Hello');\n}";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "nonexistent text",
+        new_string: "replacement",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("String to replace not found in file");
+  });
+
+  it("should fail when file cannot be read", async () => {
+    vi.mocked(readFile).mockRejectedValue(new Error("File not found"));
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/nonexistent.js",
+        old_string: "old",
+        new_string: "new",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Failed to read file: File not found");
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("should fail when file cannot be written", async () => {
+    const mockContent = "function hello() {}";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockRejectedValue(new Error("Permission denied"));
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "hello",
+        new_string: "world",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Failed to write file: Permission denied");
+  });
+
+  it("should fail when required parameters are missing", async () => {
+    const result1 = await editTool.execute(
+      {
+        old_string: "old",
+        new_string: "new",
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result1.success).toBe(false);
+    expect(result1.error).toContain("file_path parameter is required");
+
+    const result2 = await editTool.execute(
+      {
+        file_path: 123,
+        old_string: "old",
+        new_string: "new",
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result2.success).toBe(false);
+    expect(result2.error).toContain("file_path parameter is required");
+
+    const result3 = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        new_string: "new",
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result3.success).toBe(false);
+    expect(result3.error).toContain("old_string parameter is required");
+
+    const result4 = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: 123,
+        new_string: "new",
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result4.success).toBe(false);
+    expect(result4.error).toContain("old_string parameter is required");
+
+    const result5 = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "old",
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result5.success).toBe(false);
+    expect(result5.error).toContain("new_string parameter is required");
+
+    const result6 = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "old",
+        new_string: 123,
+      } as unknown as Parameters<typeof editTool.execute>[0],
+      mockContext,
+    );
+
+    expect(result6.success).toBe(false);
+    expect(result6.error).toContain("new_string parameter is required");
+  });
+
+  it("should fail when old_string and new_string are the same", async () => {
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "same",
+        new_string: "same",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "old_string and new_string must be different",
+    );
+  });
+
+  it("should handle special regex characters in old_string", async () => {
+    const mockContent = "function test() { return /^[a-z]+$/; }";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "/^[a-z]+$/",
+        new_string: "/^[a-zA-Z]+$/",
+        replace_all: true,
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should work with absolute file paths", async () => {
+    const mockContent = "test content";
+    const expectedContent = "new content";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/absolute/path/file.js",
+        old_string: "test",
+        new_string: "new",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    // Should preserve absolute path
+    expect(readFile).toHaveBeenCalledWith(r("/absolute/path/file.js"), "utf-8");
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/absolute/path/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should handle permission denial", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    const mockPermissionManager = {
+      createContext: vi.fn().mockReturnValue({}),
+      checkPermission: vi.fn().mockResolvedValue({
+        behavior: "deny",
+        message: "User denied",
+      }),
+    };
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      {
+        ...mockContext,
+        permissionManager:
+          mockPermissionManager as unknown as ToolContext["permissionManager"],
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "Edit operation denied by user, reason: User denied",
+    );
+  });
+
+  it("should handle permission check failure", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    const mockPermissionManager = {
+      createContext: vi.fn().mockReturnValue({}),
+      checkPermission: vi.fn().mockRejectedValue(new Error("Check failed")),
+    };
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      {
+        ...mockContext,
+        permissionManager:
+          mockPermissionManager as unknown as ToolContext["permissionManager"],
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Permission check failed");
+  });
+
+  it("should record and commit snapshot when reversionManager is present", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const mockReversionManager = {
+      recordSnapshot: vi.fn().mockResolvedValue("snapshot-123"),
+      commitSnapshot: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      {
+        ...mockContext,
+        reversionManager:
+          mockReversionManager as unknown as ToolContext["reversionManager"],
+        messageId: "msg-123",
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockReversionManager.recordSnapshot).toHaveBeenCalledWith(
+      "msg-123",
+      r("/test/file.js"),
+      "modify",
+    );
+    expect(mockReversionManager.commitSnapshot).toHaveBeenCalledWith(
+      "snapshot-123",
+    );
+  });
+
+  it("should handle generic errors in execute", async () => {
+    vi.mocked(readFile).mockImplementation(() => {
+      throw new Error("Generic error");
+    });
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "old",
+        new_string: "new",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Generic error");
+  });
+
+  it("should format compact params correctly", () => {
+    const formatCompactParams = (
+      editTool as unknown as {
+        formatCompactParams: (
+          params: { file_path: string },
+          context: { workdir: string },
+        ) => string;
+      }
+    ).formatCompactParams;
+    const result = formatCompactParams(
+      { file_path: "src/index.ts" },
+      { workdir: "/test" },
+    );
+    expect(result).toBe("src/index.ts");
+  });
+
+  it("should reject edit when file has not been read first", async () => {
+    const result = await editTool.execute(
+      {
+        file_path: "/test/workdir/file.js",
+        old_string: "old",
+        new_string: "new",
+      },
+      {
+        ...mockContext,
+        readFileState: new Map(),
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("must read the file");
+    expect(result.error).toContain("Read");
+  });
+
+  it("should allow edit when file has been read first", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/workdir/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      {
+        ...mockContext,
+        readFileState: new Map([
+          [
+            r("/test/workdir/file.js"),
+            { mtime: 1000, hash: "abc", source: "read" },
+          ],
+        ]),
+      },
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should handle CRLF line endings in file content", async () => {
+    const mockContent = "function hello() {\r\n  console.log('Hello');\r\n}";
+    // CRLF is normalized to LF for matching, so output also uses LF
+    const expectedContent =
+      "function hello() {\n  console.log('Hello World');\n}";
+
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "console.log('Hello');",
+        new_string: "console.log('Hello World');",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+    expect(writeFile).toHaveBeenCalledWith(
+      r("/test/file.js"),
+      expectedContent,
+      "utf-8",
+    );
+  });
+
+  it("should match old_string with LF against CRLF file", async () => {
+    const mockContent = "line1\r\nline2\r\nline3";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "line1\nline2",
+        new_string: "line1\nmodified",
+      },
+      mockContext,
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should fail with staleness error when file modified since last read", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    // readFileState shows mtime=1000, but current file has mtime=2000
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 1000,
+      hash: "abc",
+      source: "read",
+    });
+
+    vi.mocked(stat).mockResolvedValue({
+      mtime: { getTime: () => 2000 } as Date,
+    } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("unexpectedly modified");
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("should pass staleness check when file mtime matches readFileState", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 1000,
+      hash: "abc",
+      source: "read",
+    });
+
+    // First stat: staleness check (mtime matches)
+    // Second stat: post-write state update
+    vi.mocked(stat)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 1000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 2000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should pass staleness check when mtime changed but content is unchanged (full read)", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    // readFileState: recorded mtime older than current, but hash matches content
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 1000,
+      hash: createHash("sha256").update(mockContent).digest("hex"),
+      source: "read",
+    });
+
+    // First stat: staleness check (newer mtime) → content fallback allows edit
+    // Second stat: post-write state update
+    vi.mocked(stat)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 2000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 3000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(true);
+    expect(writeFile).toHaveBeenCalled();
+  });
+
+  it("should fail staleness check for partial read even when content hash matches", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+
+    // Partial read: offset/limit defined → no content fallback
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 1000,
+      hash: createHash("sha256").update(mockContent).digest("hex"),
+      source: "read",
+      offset: 0,
+      limit: 10,
+    });
+
+    vi.mocked(stat).mockResolvedValue({
+      mtime: { getTime: () => 2000 } as Date,
+    } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("unexpectedly modified");
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("should pass staleness check when mtime went backward (only newer flagged)", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    // readFileState recorded a newer mtime than current (clock skew / restore)
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 2000,
+      hash: "abc",
+      source: "read",
+    });
+
+    // First stat: staleness check (current 1000 < recorded 2000 → not flagged)
+    // Second stat: post-write state update
+    vi.mocked(stat)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 1000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 3000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("should update readFileState after successful edit", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    const readFileState = new Map<
+      string,
+      {
+        mtime: number;
+        hash: string;
+        source: "read" | "edit";
+        offset?: number;
+        limit?: number;
+      }
+    >();
+    readFileState.set(r("/test/file.js"), {
+      mtime: 1000,
+      hash: "abc",
+      source: "read",
+    });
+
+    // First stat: staleness check (mtime matches readFileState)
+    // Second stat: post-write state update (new mtime)
+    vi.mocked(stat)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 1000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>)
+      .mockResolvedValueOnce({
+        mtime: { getTime: () => 2000 } as Date,
+      } as unknown as Awaited<ReturnType<typeof stat>>);
+
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState },
+    );
+
+    expect(result.success).toBe(true);
+    const updated = readFileState.get(r("/test/file.js"));
+    expect(updated).toBeDefined();
+    expect(updated?.mtime).toBe(2000);
+  });
+
+  it("should reject edit when readFileState is not provided", async () => {
+    const mockContent = "some content";
+    vi.mocked(readFile).mockResolvedValue(mockContent);
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    // No readFileState in context — read-before-edit check rejects,
+    // staleness check never reached (stat not called)
+    const result = await editTool.execute(
+      {
+        file_path: "/test/file.js",
+        old_string: "some",
+        new_string: "other",
+      },
+      { ...mockContext, readFileState: undefined },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("must read the file");
+    expect(stat).not.toHaveBeenCalled();
+  });
+});

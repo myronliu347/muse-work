@@ -1,0 +1,331 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MemoryRuleManager } from "../src/managers/MemoryRuleManager.js";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
+import { logger } from "../src/utils/globalLogger.js";
+import { Container } from "../src/utils/container.js";
+
+vi.mock("node:fs/promises");
+vi.mock("../src/utils/globalLogger.js");
+
+describe("MemoryRuleManager", () => {
+  const workdir = "/test/workdir";
+  const homedir = "/home/user";
+  let manager: MemoryRuleManager;
+  let container: Container;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(os.homedir).mockReturnValue(homedir);
+    vi.mocked(fs.realpath).mockImplementation(async (p) => p.toString());
+    vi.mocked(fs.stat).mockImplementation(async (p) => {
+      if (p.toString().endsWith(".md")) {
+        return { isDirectory: () => false } as unknown as Awaited<
+          ReturnType<typeof fs.stat>
+        >;
+      }
+      return { isDirectory: () => true } as unknown as Awaited<
+        ReturnType<typeof fs.stat>
+      >;
+    });
+    container = new Container();
+    manager = new MemoryRuleManager(container, { workdir });
+  });
+
+  describe("discoverRules", () => {
+    it("should correctly scan directories and discover rules", async () => {
+      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      const userRulesDir = path.join(homedir, ".wave", "rules");
+
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === userRulesDir) {
+          return [
+            { isFile: () => true, name: "user-rule1.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        if (dir === projectRulesDir) {
+          return [
+            { isFile: () => true, name: "project-rule1.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("user-rule1.md")
+        ) {
+          return "---\npaths:\n  - src/**/*.ts\n---\nUser rule content";
+        }
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("project-rule1.md")
+        ) {
+          return "---\npriority: 10\n---\nProject rule content";
+        }
+        return "";
+      });
+
+      await manager.discoverRules();
+
+      const activeRules = manager.getActiveRules(["src/index.ts"]);
+      expect(activeRules).toHaveLength(2);
+
+      const userRule = activeRules.find((r) => r.source === "user");
+      expect(userRule?.content).toBe("User rule content");
+
+      const projectRule = activeRules.find((r) => r.source === "project");
+      expect(projectRule?.content).toBe("Project rule content");
+    });
+
+    it("should handle missing directories gracefully (ENOENT)", async () => {
+      vi.mocked(fs.readdir).mockRejectedValue({ code: "ENOENT" });
+      await expect(manager.discoverRules()).resolves.not.toThrow();
+      expect(manager.getActiveRules([])).toHaveLength(0);
+    });
+
+    it("should log error for other readdir errors", async () => {
+      const error = new Error("Permission denied") as NodeJS.ErrnoException;
+      error.code = "EACCES";
+      vi.mocked(fs.readdir).mockRejectedValue(error);
+
+      await manager.discoverRules();
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe("getActiveRules", () => {
+    it("should filter rules based on files in context", async () => {
+      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === projectRulesDir) {
+          return [
+            { isFile: () => true, name: "rule1.md" },
+            { isFile: () => true, name: "rule2.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (typeof filePath === "string" && filePath.includes("rule1.md"))
+          return '---\npaths:\n  - "*.ts"\n---\nRule 1';
+        if (typeof filePath === "string" && filePath.includes("rule2.md"))
+          return '---\npaths:\n  - "*.js"\n---\nRule 2';
+        return "";
+      });
+
+      await manager.discoverRules();
+
+      expect(manager.getActiveRules(["index.ts"])).toHaveLength(1);
+      expect(manager.getActiveRules(["index.js"])).toHaveLength(1);
+      expect(manager.getActiveRules(["index.ts", "index.js"])).toHaveLength(2);
+      expect(manager.getActiveRules(["README.md"])).toHaveLength(0);
+    });
+  });
+
+  describe("getActiveRulesSplit", () => {
+    it("should split rules into unconditional and conditional", async () => {
+      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === projectRulesDir) {
+          return [
+            { isFile: () => true, name: "unconditional.md" },
+            { isFile: () => true, name: "conditional-ts.md" },
+            { isFile: () => true, name: "conditional-js.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("unconditional.md")
+        )
+          return "Always active rule";
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("conditional-ts.md")
+        )
+          return '---\npaths:\n  - "*.ts"\n---\nTS rule';
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("conditional-js.md")
+        )
+          return '---\npaths:\n  - "*.js"\n---\nJS rule';
+        return "";
+      });
+
+      await manager.discoverRules();
+
+      // No files in context: only unconditional rules
+      const empty = manager.getActiveRulesSplit([]);
+      expect(empty.unconditional).toHaveLength(1);
+      expect(empty.unconditional[0].content).toBe("Always active rule");
+      expect(empty.conditional).toHaveLength(0);
+
+      // TS file in context: unconditional + TS conditional
+      const tsSplit = manager.getActiveRulesSplit(["index.ts"]);
+      expect(tsSplit.unconditional).toHaveLength(1);
+      expect(tsSplit.conditional).toHaveLength(1);
+      expect(tsSplit.conditional[0].content).toBe("TS rule");
+
+      // Both TS and JS files: unconditional + both conditional
+      const bothSplit = manager.getActiveRulesSplit(["index.ts", "index.js"]);
+      expect(bothSplit.unconditional).toHaveLength(1);
+      expect(bothSplit.conditional).toHaveLength(2);
+
+      // Non-matching file: only unconditional
+      const noMatch = manager.getActiveRulesSplit(["README.md"]);
+      expect(noMatch.unconditional).toHaveLength(1);
+      expect(noMatch.conditional).toHaveLength(0);
+    });
+  });
+
+  describe("Prioritization and Overriding", () => {
+    it("should allow project rules to override user rules with the same ID", async () => {
+      const projectRulesDir = path.join(workdir, ".wave", "rules");
+      const userRulesDir = path.join(homedir, ".wave", "rules");
+
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === userRulesDir || dir === projectRulesDir) {
+          return [
+            { isFile: () => true, name: "common.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (typeof filePath === "string" && filePath.includes(userRulesDir))
+          return "User version";
+        if (typeof filePath === "string" && filePath.includes(projectRulesDir))
+          return "Project version";
+        return "";
+      });
+
+      const { MemoryRuleService } = await import(
+        "../src/services/MemoryRuleService.js"
+      );
+      const parseRuleSpy = vi.spyOn(MemoryRuleService.prototype, "parseRule");
+      parseRuleSpy.mockImplementation((content, filePath, source) => {
+        return {
+          id: "common-id",
+          content: content.trim(),
+          metadata: {},
+          source,
+          filePath,
+        };
+      });
+
+      await manager.discoverRules();
+
+      const rules = manager.getActiveRules([]);
+      expect(rules).toHaveLength(1);
+      expect(rules[0].source).toBe("project");
+      expect(rules[0].content).toBe("Project version");
+
+      parseRuleSpy.mockRestore();
+    });
+
+    it("should discover rules from .claude/rules at project and user level", async () => {
+      const projectClaudeRulesDir = path.join(workdir, ".claude", "rules");
+      const userClaudeRulesDir = path.join(homedir, ".claude", "rules");
+
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === userClaudeRulesDir) {
+          return [
+            { isFile: () => true, name: "claude-user-rule.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        if (dir === projectClaudeRulesDir) {
+          return [
+            { isFile: () => true, name: "claude-project-rule.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("claude-user-rule.md")
+        ) {
+          return "User claude rule content";
+        }
+        if (
+          typeof filePath === "string" &&
+          filePath.includes("claude-project-rule.md")
+        ) {
+          return "Project claude rule content";
+        }
+        return "";
+      });
+
+      await manager.discoverRules();
+
+      const rules = manager.getActiveRules([]);
+      expect(rules).toHaveLength(2);
+
+      const userRule = rules.find((r) => r.source === "user");
+      expect(userRule?.content).toBe("User claude rule content");
+
+      const projectRule = rules.find((r) => r.source === "project");
+      expect(projectRule?.content).toBe("Project claude rule content");
+    });
+
+    it("should let .wave/rules override .claude/rules for same-named rule", async () => {
+      const projectClaudeRulesDir = path.join(workdir, ".claude", "rules");
+      const projectWaveRulesDir = path.join(workdir, ".wave", "rules");
+
+      vi.mocked(fs.readdir).mockImplementation(async (dir) => {
+        if (dir === projectClaudeRulesDir || dir === projectWaveRulesDir) {
+          return [
+            { isFile: () => true, name: "common.md" },
+          ] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+        }
+        return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+      });
+
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        if (
+          typeof filePath === "string" &&
+          filePath.includes(projectClaudeRulesDir)
+        )
+          return "Claude version";
+        if (
+          typeof filePath === "string" &&
+          filePath.includes(projectWaveRulesDir)
+        )
+          return "Wave version";
+        return "";
+      });
+
+      const { MemoryRuleService } = await import(
+        "../src/services/MemoryRuleService.js"
+      );
+      const parseRuleSpy = vi.spyOn(MemoryRuleService.prototype, "parseRule");
+      parseRuleSpy.mockImplementation((content, filePath, source) => {
+        return {
+          id: "common.md",
+          content: content.trim(),
+          metadata: {},
+          source,
+          filePath,
+        };
+      });
+
+      await manager.discoverRules();
+
+      const rules = manager.getActiveRules([]);
+      expect(rules).toHaveLength(1);
+      expect(rules[0].source).toBe("project");
+      expect(rules[0].content).toBe("Wave version");
+
+      parseRuleSpy.mockRestore();
+    });
+  });
+});

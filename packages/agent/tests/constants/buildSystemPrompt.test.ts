@@ -1,0 +1,64 @@
+import { describe, it, expect } from "vitest";
+import {
+  buildSystemPrompt,
+  DEFAULT_SYSTEM_PROMPT,
+  TOOL_POLICY,
+  type SystemPromptBlock,
+} from "../../src/prompts/index.js";
+import { READ_TOOL_NAME, WRITE_TOOL_NAME } from "../../src/constants/tools.js";
+import { ToolPlugin } from "../../src/tools/types.js";
+
+/** Flatten SystemPromptBlock[] into a single string for string-based assertions */
+function flattenBlocks(blocks: SystemPromptBlock[]): string {
+  return blocks.map((b) => b.text).join("\n\n");
+}
+
+describe("buildSystemPrompt", () => {
+  it("should include tool policy when tools are present", () => {
+    const tools = [
+      {
+        name: READ_TOOL_NAME,
+        prompt: () => "Read for reading files",
+      } as unknown as ToolPlugin,
+    ];
+    const prompt = flattenBlocks(
+      buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, tools),
+    );
+    expect(prompt).toContain(TOOL_POLICY);
+  });
+
+  it("should exclude tool policy when no tools are present", () => {
+    const prompt = flattenBlocks(buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, []));
+    expect(prompt).not.toContain(TOOL_POLICY);
+  });
+
+  it("should NOT include tool-specific prompts when tools are present", () => {
+    const tools = [
+      {
+        name: READ_TOOL_NAME,
+        prompt: () => "Read for reading files",
+      } as unknown as ToolPlugin,
+      {
+        name: WRITE_TOOL_NAME,
+        prompt: () => "Write for creating files",
+      } as unknown as ToolPlugin,
+    ];
+    const prompt = flattenBlocks(
+      buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, tools),
+    );
+    expect(prompt).not.toContain("Read for reading files");
+    expect(prompt).not.toContain("Write for creating files");
+  });
+
+  it("never carries MCP usage notes in any block", () => {
+    // A server's usage notes are announced as a message when the server becomes
+    // usable, not put into the prompt: they appear only when a connection
+    // happens, and that must not rewrite the cached prefix
+    // (docs/specs/ecosystem/mcp.md, docs/specs/core/prompt-cache-control.md).
+    const blocks = buildSystemPrompt(DEFAULT_SYSTEM_PROMPT, []);
+    const prompt = flattenBlocks(blocks);
+
+    expect(prompt).not.toContain("<mcp_instructions>");
+    expect(prompt).not.toContain("mcp-instructions");
+  });
+});

@@ -1,17 +1,17 @@
 /**
  * Tool parameter transformation utilities for UI rendering
- * Uses tool parameter types from wave-agent-sdk with type assertions based on tool name
+ * Uses tool parameter types from @muse-work/agent with type assertions based on tool name
  */
 
-import type { ToolBlock } from "wave-agent-sdk/dist/types/messaging.js";
+import type { ToolBlock } from "@muse-work/agent/types";
 import type {
   WriteToolParameters,
   EditToolParameters,
-} from "wave-agent-sdk/dist/types/tools.js";
+} from "@muse-work/agent/types";
 import {
   WRITE_TOOL_NAME,
   EDIT_TOOL_NAME,
-} from "wave-agent-sdk/dist/constants/tools.js";
+} from "@muse-work/agent/constants";
 
 export interface Change {
   oldContent: string;

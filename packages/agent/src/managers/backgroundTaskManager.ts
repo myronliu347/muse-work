@@ -1,0 +1,569 @@
+import { spawn, type ChildProcess } from "child_process";
+import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
+import { BackgroundTask, BackgroundShell } from "../types/processes.js";
+import { stripAnsiColors } from "../utils/stringUtils.js";
+import { readTailTextSync } from "../utils/fileUtils.js";
+import { WindowsStreamDecoder } from "../utils/encoding.js";
+import { logger } from "../utils/globalLogger.js";
+import { Container } from "../utils/container.js";
+import { MessageQueue } from "./messageQueue.js";
+import { resolveShellPath } from "../utils/shellResolver.js";
+import type { ConfigurationService } from "../services/configurationService.js";
+
+export interface BackgroundTaskManagerCallbacks {
+  onBackgroundTasksChange?: (tasks: BackgroundTask[]) => void;
+}
+
+export interface BackgroundTaskManagerOptions {
+  callbacks?: BackgroundTaskManagerCallbacks;
+  workdir: string;
+}
+
+export class BackgroundTaskManager {
+  private tasks = new Map<string, BackgroundTask>();
+  private nextId = 1;
+  private callbacks: BackgroundTaskManagerCallbacks;
+  private workdir: string;
+
+  constructor(
+    private container: Container,
+    options: BackgroundTaskManagerOptions,
+  ) {
+    this.callbacks = options.callbacks || {};
+    this.workdir = options.workdir;
+  }
+
+  /**
+   * Merged env (OS env overlaid with this session's settings snapshot) for
+   * background-task subprocesses, so settings `env` vars reach them without
+   * polluting other sessions in one `wave --stdio` process.
+   */
+  private get sessionEnv(): Record<string, string> {
+    return (
+      this.container
+        .get<ConfigurationService>("ConfigurationService")
+        ?.getMergedEnv?.() ?? (process.env as Record<string, string>)
+    );
+  }
+
+  /**
+   * Fire the onBackgroundTasksChange callback so UI consumers refresh.
+   * Public so other managers (e.g. WorkflowManager) can trigger a refresh
+   * when their state changes without mutating a background task.
+   */
+  public notifyTasksChange(): void {
+    this.callbacks.onBackgroundTasksChange?.(Array.from(this.tasks.values()));
+  }
+
+  public generateId(): string {
+    return `task_${process.pid}_${this.nextId++}`;
+  }
+
+  public addTask(task: BackgroundTask): void {
+    this.tasks.set(task.id, task);
+    this.notifyTasksChange();
+  }
+
+  public getTask(id: string): BackgroundTask | undefined {
+    return this.tasks.get(id);
+  }
+
+  public getAllTasks(): BackgroundTask[] {
+    return Array.from(this.tasks.values());
+  }
+
+  public startShell(
+    command: string,
+    timeout?: number,
+    cwd?: string,
+  ): { id: string; child: ChildProcess; detach: () => void } {
+    const id = this.generateId();
+    const startTime = Date.now();
+
+    const child = spawn(command, {
+      shell: resolveShellPath() ?? true,
+      stdio: "pipe",
+      detached: true,
+      cwd: cwd ?? this.workdir,
+      env: {
+        ...process.env,
+        ...this.sessionEnv,
+      },
+    });
+
+    // Create log file
+    const logPath = path.join(os.tmpdir(), `wave-task-${id}.log`);
+    const logStream = fs.createWriteStream(logPath, { flags: "w" });
+    // A failed open/write of the log file (e.g. EBUSY on Windows when a stale
+    // handle from a previous run still locks the temp file) must not surface as
+    // an uncaught stream error — the log is best-effort side output and the
+    // task itself keeps running regardless.
+    logStream.on("error", (error: Error) => {
+      logger.warn(`Failed to write background task log ${logPath}:`, error);
+    });
+
+    const shell: BackgroundShell = {
+      id,
+      type: "shell",
+      process: child,
+      command,
+      startTime,
+      status: "running",
+      stdout: "",
+      stderr: "",
+      outputPath: logPath,
+      onStop: () => {
+        try {
+          logStream.end();
+          if (child.pid) {
+            process.kill(-child.pid, "SIGTERM");
+            const forceKillTimer = setTimeout(() => {
+              if (child.pid && !child.killed) {
+                try {
+                  process.kill(-child.pid, "SIGKILL");
+                } catch (error: unknown) {
+                  // ESRCH means the process already exited — not an error
+                  if (
+                    !(error instanceof Error) ||
+                    (error as NodeJS.ErrnoException).code !== "ESRCH"
+                  ) {
+                    logger.error("Failed to force kill process:", error);
+                  }
+                }
+              }
+            }, 1000);
+            forceKillTimer.unref();
+          } else {
+            child.kill("SIGTERM");
+          }
+        } catch {
+          child.kill("SIGTERM");
+        }
+      },
+    };
+
+    this.tasks.set(id, shell);
+    this.notifyTasksChange();
+
+    // Set up timeout if specified
+    let timeoutHandle: NodeJS.Timeout | undefined;
+    if (timeout && timeout > 0) {
+      timeoutHandle = setTimeout(() => {
+        if (shell.status === "running") {
+          const timeoutMsg = "\n\nCommand timed out";
+          shell.stderr += timeoutMsg;
+          if (logStream.writable) {
+            logStream.write(timeoutMsg);
+          }
+          this.stopTask(id);
+        }
+      }, timeout);
+    }
+
+    // On Windows, native tools (taskkill, powershell, ...) write GBK (cp936)
+    // instead of UTF-8; decode their byte streams accordingly (issue #1753).
+    const stdoutDecoder =
+      process.platform === "win32" ? new WindowsStreamDecoder() : null;
+    const stderrDecoder =
+      process.platform === "win32" ? new WindowsStreamDecoder() : null;
+
+    const onStdout = (data: Buffer | string) => {
+      const stripped = stripAnsiColors(
+        stdoutDecoder ? stdoutDecoder.push(data as Buffer) : data.toString(),
+      );
+      shell.stdout += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+      }
+      this.notifyTasksChange();
+    };
+
+    const onStderr = (data: Buffer | string) => {
+      const stripped = stripAnsiColors(
+        stderrDecoder ? stderrDecoder.push(data as Buffer) : data.toString(),
+      );
+      shell.stderr += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+      }
+      this.notifyTasksChange();
+    };
+
+    const onExit = (code: number | null) => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      // Decode any bytes still held at stream end (e.g. a trailing UTF-8
+      // character split across the last chunk).
+      if (stdoutDecoder) {
+        const rest = stdoutDecoder.flush();
+        if (rest) {
+          shell.stdout += rest;
+          if (logStream.writable) {
+            logStream.write(rest);
+          }
+        }
+      }
+      if (stderrDecoder) {
+        const rest = stderrDecoder.flush();
+        if (rest) {
+          shell.stderr += rest;
+          if (logStream.writable) {
+            logStream.write(rest);
+          }
+        }
+      }
+      if (logStream.writable) {
+        logStream.end();
+      }
+      const wasKilled = shell.status === "killed";
+      if (!wasKilled) {
+        shell.status = code === 0 ? "completed" : "failed";
+      }
+      shell.exitCode = code ?? 0;
+      shell.endTime = Date.now();
+      shell.runtime = shell.endTime - startTime;
+      this.notifyTasksChange();
+
+      // Skip notification if task was manually killed (user/agent-initiated stop)
+      if (!wasKilled) {
+        const messageQueue = this.container.has("MessageQueue")
+          ? this.container.get<MessageQueue>("MessageQueue")
+          : undefined;
+        if (messageQueue) {
+          const statusStr = shell.status;
+          const summary = `Command "${command}" ${statusStr} with exit code ${code ?? 0}`;
+          messageQueue.enqueueNotification(
+            `<task-notification>\n<task-id>${id}</task-id>\n<task-type>shell</task-type>\n<output-file>${logPath}</output-file>\n<status>${statusStr}</status>\n<summary>${summary}</summary>\n</task-notification>`,
+          );
+        }
+      }
+    };
+
+    const onError = (error: Error) => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      const stripped = `\nProcess error: ${stripAnsiColors(error.message)}`;
+      shell.status = "failed";
+      shell.stderr += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+        logStream.end();
+      }
+      shell.exitCode = 1;
+      shell.endTime = Date.now();
+      shell.runtime = shell.endTime - startTime;
+      this.notifyTasksChange();
+
+      // Enqueue error notification
+      const messageQueue = this.container.has("MessageQueue")
+        ? this.container.get<MessageQueue>("MessageQueue")
+        : undefined;
+      if (messageQueue) {
+        const summary = `Command "${command}" failed with error: ${stripAnsiColors(error.message)}`;
+        messageQueue.enqueueNotification(
+          `<task-notification>\n<task-id>${id}</task-id>\n<task-type>shell</task-type>\n<output-file>${logPath}</output-file>\n<status>failed</status>\n<summary>${summary}</summary>\n</task-notification>`,
+        );
+      }
+    };
+
+    child.stdout?.on("data", onStdout);
+    child.stderr?.on("data", onStderr);
+    child.on("exit", onExit);
+    child.on("error", onError);
+
+    const detach = () => {
+      child.stdout?.off("data", onStdout);
+      child.stderr?.off("data", onStderr);
+      child.off("exit", onExit);
+      child.off("error", onError);
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      logStream.end();
+      this.tasks.delete(id);
+      this.notifyTasksChange();
+    };
+
+    return { id, child, detach };
+  }
+
+  public adoptProcess(
+    child: ChildProcess,
+    command: string,
+    initialStdout: string = "",
+    initialStderr: string = "",
+  ): string {
+    const id = this.generateId();
+    const startTime = Date.now();
+
+    // Create log file
+    const logPath = path.join(os.tmpdir(), `wave-task-${id}.log`);
+    const logStream = fs.createWriteStream(logPath, { flags: "w" });
+    // Same best-effort handling as startShell: a locked temp file (EBUSY on
+    // Windows) must not become an uncaught stream error.
+    logStream.on("error", (error: Error) => {
+      logger.warn(`Failed to write background task log ${logPath}:`, error);
+    });
+
+    // Write initial output to log file
+    if (initialStdout) {
+      logStream.write(stripAnsiColors(initialStdout));
+    }
+    if (initialStderr) {
+      logStream.write(stripAnsiColors(initialStderr));
+    }
+
+    const shell: BackgroundShell = {
+      id,
+      type: "shell",
+      process: child,
+      command,
+      startTime,
+      status: "running",
+      stdout: initialStdout,
+      stderr: initialStderr,
+      outputPath: logPath,
+      onStop: () => {
+        try {
+          logStream.end();
+          if (child.pid) {
+            process.kill(-child.pid, "SIGTERM");
+            const forceKillTimer = setTimeout(() => {
+              if (child.pid && !child.killed) {
+                try {
+                  process.kill(-child.pid, "SIGKILL");
+                } catch (error: unknown) {
+                  // ESRCH means the process already exited — not an error
+                  if (
+                    !(error instanceof Error) ||
+                    (error as NodeJS.ErrnoException).code !== "ESRCH"
+                  ) {
+                    logger.error("Failed to force kill process:", error);
+                  }
+                }
+              }
+            }, 1000);
+            forceKillTimer.unref();
+          } else {
+            child.kill("SIGTERM");
+          }
+        } catch {
+          child.kill("SIGTERM");
+        }
+      },
+    };
+
+    this.tasks.set(id, shell);
+    this.notifyTasksChange();
+
+    // On Windows, native tools write GBK (cp936) instead of UTF-8; decode
+    // their byte streams accordingly (issue #1753).
+    const stdoutDecoder =
+      process.platform === "win32" ? new WindowsStreamDecoder() : null;
+    const stderrDecoder =
+      process.platform === "win32" ? new WindowsStreamDecoder() : null;
+
+    child.stdout?.on("data", (data) => {
+      const stripped = stripAnsiColors(
+        stdoutDecoder ? stdoutDecoder.push(data) : data.toString(),
+      );
+      shell.stdout += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+      }
+      this.notifyTasksChange();
+    });
+
+    child.stderr?.on("data", (data) => {
+      const stripped = stripAnsiColors(
+        stderrDecoder ? stderrDecoder.push(data) : data.toString(),
+      );
+      shell.stderr += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+      }
+      this.notifyTasksChange();
+    });
+
+    child.on("exit", (code) => {
+      // Decode any bytes still held at stream end
+      if (stdoutDecoder) {
+        const rest = stdoutDecoder.flush();
+        if (rest) {
+          shell.stdout += rest;
+          if (logStream.writable) {
+            logStream.write(rest);
+          }
+        }
+      }
+      if (stderrDecoder) {
+        const rest = stderrDecoder.flush();
+        if (rest) {
+          shell.stderr += rest;
+          if (logStream.writable) {
+            logStream.write(rest);
+          }
+        }
+      }
+      if (logStream.writable) {
+        logStream.end();
+      }
+      const wasKilled = shell.status === "killed";
+      if (!wasKilled) {
+        shell.status = code === 0 ? "completed" : "failed";
+      }
+      shell.exitCode = code ?? 0;
+      shell.endTime = Date.now();
+      shell.runtime = shell.endTime - startTime;
+      this.notifyTasksChange();
+
+      // Skip notification if task was manually killed (user/agent-initiated stop)
+      if (!wasKilled) {
+        const messageQueue = this.container.has("MessageQueue")
+          ? this.container.get<MessageQueue>("MessageQueue")
+          : undefined;
+        if (messageQueue) {
+          const statusStr = shell.status;
+          const summary = `Command "${command}" ${statusStr} with exit code ${code ?? 0}`;
+          messageQueue.enqueueNotification(
+            `<task-notification>\n<task-id>${id}</task-id>\n<task-type>shell</task-type>\n<output-file>${logPath}</output-file>\n<status>${statusStr}</status>\n<summary>${summary}</summary>\n</task-notification>`,
+          );
+        }
+      }
+    });
+
+    child.on("error", (error) => {
+      const stripped = `\nProcess error: ${stripAnsiColors(error.message)}`;
+      shell.status = "failed";
+      shell.stderr += stripped;
+      if (logStream.writable) {
+        logStream.write(stripped);
+        logStream.end();
+      }
+      shell.exitCode = 1;
+      shell.endTime = Date.now();
+      shell.runtime = shell.endTime - startTime;
+      this.notifyTasksChange();
+
+      // Enqueue error notification
+      const messageQueue = this.container.has("MessageQueue")
+        ? this.container.get<MessageQueue>("MessageQueue")
+        : undefined;
+      if (messageQueue) {
+        const summary = `Command "${command}" failed with error: ${stripAnsiColors(error.message)}`;
+        messageQueue.enqueueNotification(
+          `<task-notification>\n<task-id>${id}</task-id>\n<task-type>shell</task-type>\n<output-file>${logPath}</output-file>\n<status>failed</status>\n<summary>${summary}</summary>\n</task-notification>`,
+        );
+      }
+    });
+
+    return id;
+  }
+
+  public getOutput(
+    id: string,
+    filter?: string,
+  ): {
+    stdout: string;
+    stderr: string;
+    status: string;
+    outputPath?: string;
+    type: string;
+    exitCode?: number;
+  } | null {
+    const task = this.tasks.get(id);
+    if (!task) {
+      return null;
+    }
+
+    let stdout = task.stdout;
+    let stderr = task.stderr;
+
+    // A running agent task keeps its tool-call log in `outputPath` while
+    // `stdout` stays empty until the terminal snapshot fills it (see
+    // SubagentManager) — so /tasks shows an empty output block for the whole
+    // run. Fall back to the log file tail to surface live progress.
+    //
+    // Only when the in-memory buffer is empty, and only while running: shell
+    // tasks accumulate stdout chunk by chunk (that buffer is authoritative and
+    // identical to the file), so reading the file on top of it would duplicate
+    // the text; once a task reaches a terminal state the snapshot already
+    // carries the final output.
+    if (!stdout && task.status === "running" && task.outputPath) {
+      stdout = stripAnsiColors(readTailTextSync(task.outputPath));
+    }
+
+    // Apply regex filter if provided
+    if (filter) {
+      try {
+        const regex = new RegExp(filter);
+        stdout = stdout
+          .split("\n")
+          .filter((line) => regex.test(line))
+          .join("\n");
+        stderr = stderr
+          .split("\n")
+          .filter((line) => regex.test(line))
+          .join("\n");
+      } catch (error) {
+        logger.warn(`Invalid filter regex: ${filter}`, error);
+      }
+    }
+
+    return {
+      stdout,
+      stderr,
+      status: task.status,
+      outputPath: task.outputPath,
+      type: task.type,
+      exitCode: task.exitCode,
+    };
+  }
+
+  public stopTask(id: string): boolean {
+    const task = this.tasks.get(id);
+    if (!task || task.status !== "running") {
+      return false;
+    }
+
+    if (task.onStop) {
+      try {
+        const result = task.onStop();
+        if (result instanceof Promise) {
+          result.catch((error) => {
+            logger.error("Error in background task onStop callback:", error);
+          });
+        }
+      } catch (error) {
+        logger.error("Error in background task onStop callback:", error);
+      }
+    }
+
+    // If it's a subagent task, we should also notify the subagent manager to cleanup
+    // However, to avoid circular dependency, we rely on the onStop callback
+    // which is already set to instance.aiManager.abortAIMessage()
+    // The subagentManager.cleanupInstance will be called by the tool or by status change.
+
+    task.status = "killed";
+    task.endTime = Date.now();
+    task.runtime = task.endTime - task.startTime;
+    this.notifyTasksChange();
+
+    return true;
+  }
+
+  public cleanup(): void {
+    // Kill all running tasks
+    for (const [id, task] of this.tasks) {
+      if (task.status === "running") {
+        this.stopTask(id);
+      }
+    }
+    this.tasks.clear();
+    this.notifyTasksChange();
+  }
+}

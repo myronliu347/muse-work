@@ -5,7 +5,7 @@
  * providing type safety and better development experience.
  */
 
-// Import message structures and session types from wave-agent-sdk
+// Import message structures and session types from @muse-work/agent
 import type {
   Message,
   MessageBlock,
@@ -29,13 +29,13 @@ import type {
   BackgroundTaskSummary,
   SerializableWorkflowRun,
   SubagentConfiguration,
-} from "wave-agent-sdk/dist/types/index.js";
-import type { FileSnapshot } from "wave-agent-sdk/dist/types/reversion.js";
+} from "@muse-work/agent/types";
+import type { FileSnapshot } from "@muse-work/agent/types";
 import type {
   SessionMetadata,
   SessionData,
-} from "wave-agent-sdk/dist/services/session.js";
-import type { ToolBlockUpdateCallbackParams } from "wave-agent-sdk/dist/utils/messageOperations.js";
+} from "@muse-work/agent/types";
+import type { ToolBlockUpdateCallbackParams } from "@muse-work/agent/types";
 
 export type {
   Message,
@@ -664,7 +664,7 @@ export interface ChatHeaderProps {
   }>;
 }
 
-// Matches wave-agent-sdk's QueuedMessage type
+// Matches @muse-work/agent's QueuedMessage type
 export interface QueuedMessage {
   id?: string;
   type?: "message" | "bang";

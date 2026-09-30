@@ -1,6 +1,6 @@
 /**
  * Lightweight workspace file search for @ mentions (local desktop only).
- * Avoids pulling wave-agent-sdk / ripgrep into the Electron main process.
+ * Avoids pulling @muse-work/agent / ripgrep into the Electron main process.
  */
 
 import fs from "node:fs";

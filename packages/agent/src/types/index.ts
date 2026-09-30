@@ -1,0 +1,50 @@
+/**
+ * Main type index - Barrel export for backward compatibility
+ * Re-exports all domain types for legacy imports
+ *
+ * Legacy import pattern (continues to work):
+ *   import { Message, Logger, McpTool } from 'wave-agent-sdk/types';
+ *
+ * New domain-specific import pattern:
+ *   import { Message } from 'wave-agent-sdk/types/messaging';
+ *   import { Logger } from 'wave-agent-sdk/types/core';
+ *   import { McpTool } from 'wave-agent-sdk/types/mcp';
+ */
+
+// Core foundational types
+export * from "./core.js";
+
+// Domain-specific types
+export * from "./messaging.js";
+export * from "./mcp.js";
+export * from "./processes.js";
+export * from "./commands.js";
+export * from "./skills.js";
+export * from "./config.js";
+export * from "./session.js";
+export * from "./environment.js";
+export * from "./configuration.js"; // New configuration management types
+export * from "./hooks.js";
+export * from "./permissions.js";
+export * from "./tools.js"; // Tool parameter types
+export * from "./fileSearch.js"; // File search types
+export * from "./lsp.js";
+export * from "./plugins.js";
+export * from "./marketplace.js";
+export * from "./memoryRule.js";
+export * from "./history.js";
+export * from "./tasks.js";
+export * from "./agent.js";
+export * from "./cron.js";
+export * from "./telemetry.js";
+export * from "./auth.js";
+export * from "./workflow.js";
+
+// Types UI consumers (vsce, desktop webview) import via the `wave-agent-sdk/types`
+// entry; they live outside this barrel's domain files, so re-export them here
+// (type-only, erased at compile time).
+export type { SessionMetadata, SessionData } from "../services/session.js";
+export type { ToolBlockUpdateCallbackParams } from "../utils/messageOperations.js";
+export type { QueuedMessage } from "../managers/messageQueue.js";
+export type { SubagentConfiguration } from "../utils/subagentParser.js";
+export type { FileSnapshot } from "./reversion.js";

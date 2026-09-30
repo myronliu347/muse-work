@@ -18,7 +18,7 @@ describe("electron-builder extraResources", () => {
   it("copies muse-server node_modules as a top-level extraResource", () => {
     // electron-builder's FileMatcher skips a directory named `node_modules`
     // when it is nested under another extraResources `from`. The server tree
-    // must be copied in two FileSets so winston / wave-agent-sdk ship in the app.
+    // must be copied in two FileSets so winston / @muse-work/agent ship in the app.
     const extras = pkg.build?.extraResources ?? [];
     expect(extras).toEqual(
       expect.arrayContaining([

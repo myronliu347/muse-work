@@ -101,6 +101,7 @@ Provider 配置位于 `~/.muse-work/providers.json`（默认端口 `8787`）：
 | `@muse-work/desktop` | Electron 壳：拉起本地 server、加载 webview、窗口/工作目录/本地文件能力（`productName`: Muse） |
 | `@muse-work/webview` | 对话 UI、model 选择、登录入口、各类面板 |
 | `@muse-work/server` | Agent 宿主：会话 / 消息流 / 权限，HTTP + WebSocket API |
+| `@muse-work/agent` | Agent 运行时（从 `wave-agent-sdk` fork，本仓维护） |
 | `@muse-work/provider` | Provider 接口、凭证、签名、`providers.json` 配置 |
 
 ## 开发

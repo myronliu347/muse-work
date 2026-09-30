@@ -7,7 +7,7 @@ import {
   ENTER_PLAN_MODE_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
   type Message,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import { screenshotWebp, elementScreenshotWebp } from "../utils/screenshot.js";
 
 test.describe("Product Specification Screenshots - Confirmations", () => {

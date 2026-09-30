@@ -1,0 +1,351 @@
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import { createReadStream } from "node:fs";
+import path from "node:path";
+import { glob } from "glob";
+
+/**
+ * Reads the first line of a file efficiently using Node.js readline.
+ *
+ * @param {string} filePath - The path to the file.
+ * @return {Promise<string>} - The first non-empty line of the file, or an empty string otherwise.
+ */
+export async function readFirstLine(filePath: string): Promise<string> {
+  const { createInterface } = await import("node:readline");
+
+  const fileStream = createReadStream(filePath);
+  const rl = createInterface({
+    input: fileStream,
+    crlfDelay: Infinity, // Handle \r\n properly
+  });
+
+  try {
+    for await (const line of rl) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.length > 0) {
+        return trimmedLine;
+      }
+    }
+    return "";
+  } catch {
+    // If reading fails (e.g., file doesn't exist), return empty string
+    return "";
+  } finally {
+    rl.close();
+    fileStream.destroy();
+  }
+}
+
+/**
+ * Reads up to N lines from a file using Node.js readline.
+ *
+ * @param {string} filePath - The path to the file.
+ * @param {number} maxLines - Maximum number of non-empty lines to read.
+ * @return {Promise<string[]>} - Array of non-empty lines (up to maxLines).
+ */
+export async function readFirstNLines(
+  filePath: string,
+  maxLines: number,
+): Promise<string[]> {
+  const { createInterface } = await import("node:readline");
+
+  const fileStream = createReadStream(filePath);
+  const rl = createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
+
+  const lines: string[] = [];
+
+  try {
+    for await (const line of rl) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.length > 0) {
+        lines.push(trimmedLine);
+        if (lines.length >= maxLines) {
+          break;
+        }
+      }
+    }
+    return lines;
+  } catch {
+    return lines;
+  } finally {
+    rl.close();
+    fileStream.destroy();
+  }
+}
+
+/**
+ * Streams a file line by line without holding it in memory.
+ *
+ * Splits on `\n` and hands each segment to `onLine`; a trailing `\r` is left
+ * for the callback's own `trim()`. When the file does not end with a newline,
+ * the trailing partial segment is delivered too, so callers can apply the same
+ * "interrupted append" tolerance `JsonlHandler.read()` uses — its
+ * `endsWithNewline` flag is exactly the return value here.
+ *
+ * Memory stays at one line: chunks are consumed as they arrive and are not
+ * accumulated.
+ *
+ * @param {string} filePath - The path to the file.
+ * @param {(line: string) => void | Promise<void>} onLine - Called per segment, in file order.
+ * @return {Promise<{ endsWithNewline: boolean }>} - Whether the file ended with a newline (empty files count as true).
+ */
+export async function forEachLine(
+  filePath: string,
+  onLine: (line: string) => void | Promise<void>,
+): Promise<{ endsWithNewline: boolean }> {
+  const fileStream = createReadStream(filePath, { encoding: "utf8" });
+
+  try {
+    let carry = "";
+    for await (const chunk of fileStream) {
+      carry += chunk as string;
+      let newlineIndex = carry.indexOf("\n");
+      while (newlineIndex !== -1) {
+        await onLine(carry.slice(0, newlineIndex));
+        carry = carry.slice(newlineIndex + 1);
+        newlineIndex = carry.indexOf("\n");
+      }
+    }
+
+    if (carry.length > 0) {
+      await onLine(carry);
+    }
+    return { endsWithNewline: carry.length === 0 };
+  } finally {
+    fileStream.destroy();
+  }
+}
+
+/**
+ * Reads a file from the end and returns the last non-empty line.
+ *
+ * This version supports files that end with:
+ *   - "\n" (Unix-style, including modern macOS)
+ *   - "\r\n" (Windows-style)
+ *   - "\r" (older Mac-style, HL7, etc.)
+ *
+ * @param {string} filePath - The path to the file.
+ * @param {number} [minLength=1] - Minimum length for the returned line.
+ * @return {Promise<string>} - The last non-empty line of the file, or an empty string if no non-empty lines found.
+ */
+export async function getLastLine(
+  filePath: string,
+  minLength = 1,
+): Promise<string> {
+  let fileHandle;
+  try {
+    const stats = await fs.stat(filePath);
+    const fileSize = stats.size;
+
+    if (fileSize === 0) return "";
+
+    fileHandle = await fs.open(filePath, "r");
+    const bufferSize = 8 * 1024; // 8KB buffer is usually enough for the last line
+    const buffer = Buffer.alloc(bufferSize);
+
+    let lineEnd: number | null = null;
+    let lineStart: number | null = null;
+    let currentPosition = fileSize;
+
+    while (currentPosition > 0 && lineStart === null) {
+      const readSize = Math.min(bufferSize, currentPosition);
+      currentPosition -= readSize;
+
+      const { bytesRead } = await fileHandle.read(
+        buffer,
+        0,
+        readSize,
+        currentPosition,
+      );
+
+      for (let i = bytesRead - 1; i >= 0; i--) {
+        const charCode = buffer[i];
+        if (lineEnd === null) {
+          // Still looking for the end of the last non-empty line (skip trailing newlines and whitespace)
+          if (charCode > 32) {
+            lineEnd = currentPosition + i + 1;
+          }
+        } else {
+          // Looking for the start of the line (the newline before it)
+          if (charCode === 10 || charCode === 13) {
+            lineStart = currentPosition + i + 1;
+            break;
+          }
+        }
+      }
+    }
+
+    if (lineEnd === null) return "";
+    if (lineStart === null) lineStart = 0;
+
+    const length = lineEnd - lineStart;
+    if (length < minLength) return "";
+
+    const resultBuffer = Buffer.alloc(length);
+    await fileHandle.read(resultBuffer, 0, length, lineStart);
+    const result = resultBuffer.toString("utf8").trim();
+    return result.length >= minLength ? result : "";
+  } catch {
+    // If reading fails (e.g., file doesn't exist), return empty string
+    return "";
+  } finally {
+    if (fileHandle) {
+      await fileHandle.close();
+    }
+  }
+}
+
+/**
+ * Read up to `maxBytes` from the end of a file and return the lines it holds,
+ * oldest first. The window may start in the middle of a line, in which case
+ * that partial first line is dropped so every returned line is complete —
+ * callers parse them as JSON.
+ *
+ * @param {string} filePath - The path to the file.
+ * @param {number} maxBytes - Size of the tail window (default 64KB).
+ * @return {Promise<string[]>} - Trailing non-empty lines, or [] if unreadable.
+ */
+export async function readTailLines(
+  filePath: string,
+  maxBytes = 64 * 1024,
+): Promise<string[]> {
+  let fileHandle;
+  try {
+    const stats = await fs.stat(filePath);
+    const fileSize = stats.size;
+    if (fileSize === 0) return [];
+
+    const readSize = Math.min(maxBytes, fileSize);
+    const start = fileSize - readSize;
+
+    fileHandle = await fs.open(filePath, "r");
+    const buffer = Buffer.alloc(readSize);
+    const { bytesRead } = await fileHandle.read(buffer, 0, readSize, start);
+
+    const lines = buffer.subarray(0, bytesRead).toString("utf8").split("\n");
+    if (start > 0) lines.shift(); // partial line (window began mid-line)
+    return lines.map((line) => line.trim()).filter((line) => line !== "");
+  } catch {
+    // Unreadable file (missing, permissions, race with deletion): no tail.
+    return [];
+  } finally {
+    if (fileHandle) {
+      await fileHandle.close();
+    }
+  }
+}
+
+/**
+ * Synchronously read up to `maxBytes` from the end of a file and return the
+ * raw tail text (blank lines preserved). When the window starts mid-line the
+ * partial first line is dropped, so the result holds complete lines only.
+ *
+ * Synchronous on purpose: the caller (`BackgroundTaskManager.getOutput`) sits
+ * on the synchronous `getBackgroundTaskOutput` path that hosts and the CLI
+ * already consume. The window is capped, so the blocking read stays small.
+ *
+ * @param {string} filePath - The path to the file.
+ * @param {number} maxBytes - Size of the tail window (default 64KB).
+ * @return {string} - Tail text, or "" when the file is empty or unreadable.
+ */
+export function readTailTextSync(
+  filePath: string,
+  maxBytes = 64 * 1024,
+): string {
+  let fd: number | undefined;
+  try {
+    const fileSize = fsSync.statSync(filePath).size;
+    if (fileSize === 0) return "";
+
+    const readSize = Math.min(maxBytes, fileSize);
+    const start = fileSize - readSize;
+    const buffer = Buffer.alloc(readSize);
+    fd = fsSync.openSync(filePath, "r");
+    const bytesRead = fsSync.readSync(fd, buffer, 0, readSize, start);
+
+    const text = buffer.subarray(0, bytesRead).toString("utf8");
+    if (start === 0) return text;
+    // The window began mid-line, so its first line is partial (and may start
+    // with a byte-truncated multibyte character): drop it.
+    const firstNewline = text.indexOf("\n");
+    return firstNewline === -1 ? "" : text.slice(firstNewline + 1);
+  } catch {
+    // Missing file, permissions, race with deletion: no tail to show.
+    return "";
+  } finally {
+    if (fd !== undefined) {
+      fsSync.closeSync(fd);
+    }
+  }
+}
+
+/**
+ * Simple Levenshtein distance implementation
+ */
+function levenshtein(a: string, b: string): number {
+  const matrix = Array.from({ length: a.length + 1 }, () =>
+    Array.from({ length: b.length + 1 }, () => 0),
+  );
+
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost,
+      );
+    }
+  }
+
+  return matrix[a.length][b.length];
+}
+
+/**
+ * Suggests similar paths if a file is not found.
+ */
+export async function suggestPathUnderCwd(
+  targetPath: string,
+  workdir: string,
+): Promise<string[]> {
+  try {
+    const allFiles = await glob("**/*", {
+      cwd: workdir,
+      nodir: true,
+      dot: true,
+      ignore: ["**/.git/**", "**/node_modules/**"],
+    });
+
+    const targetBasename = path.basename(targetPath);
+    const suggestions = allFiles
+      .map((file) => ({
+        path: file,
+        distance: levenshtein(targetBasename, path.basename(file)),
+      }))
+      .filter((item) => item.distance <= 3) // Threshold for similarity
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 5)
+      .map((item) => item.path);
+
+    return suggestions;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Uses fuzzy matching to find the intended file.
+ */
+export async function findSimilarFile(
+  targetPath: string,
+  workdir: string,
+): Promise<string | null> {
+  const suggestions = await suggestPathUnderCwd(targetPath, workdir);
+  return suggestions.length > 0 ? suggestions[0] : null;
+}

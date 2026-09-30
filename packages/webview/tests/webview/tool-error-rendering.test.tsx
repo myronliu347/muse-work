@@ -6,7 +6,7 @@ import {
   READ_TOOL_NAME,
   BASH_TOOL_NAME,
   WRITE_TOOL_NAME,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 
 const hoverToolError = () => {
   fireEvent.mouseEnter(document.querySelector(".tool-error")!);

@@ -1,0 +1,594 @@
+import { randomUUID } from "crypto";
+import type {
+  Message,
+  Usage,
+  ToolBlock,
+  TaskNotificationBlock,
+} from "../types/index.js";
+import { MessageSource } from "../types/index.js";
+import { readFileSync } from "fs";
+import { extname } from "path";
+import { ChatCompletionMessageFunctionToolCall } from "openai/resources.js";
+import { logger } from "./globalLogger.js";
+
+// Base user message parameters interface
+export interface UserMessageParams {
+  content: string;
+  customCommandContent?: string;
+  images?: Array<{ path: string; mimeType: string }>;
+  source?: MessageSource;
+  isMeta?: boolean;
+}
+
+// Parameter interfaces for message operations
+export interface AddUserMessageParams extends UserMessageParams {
+  messages: Message[];
+  id?: string;
+}
+
+export interface UpdateToolBlockParams {
+  messages: Message[];
+  id: string;
+  messageId?: string; // Optional message ID to target a specific message
+  parameters?: string;
+  result?: string;
+  success?: boolean;
+  error?: string;
+  /**
+   * Tool execution stage:
+   * - 'start': Tool call initiated during AI streaming
+   * - 'streaming': Tool parameters being received incrementally
+   * - 'running': Tool execution in progress
+   * - 'end': Tool execution completed with final result
+   */
+  stage?: "start" | "streaming" | "running" | "end";
+  name?: string;
+  shortResult?: string;
+  startLineNumber?: number;
+  images?: Array<{ data: string; mediaType?: string; path?: string }>;
+  compactParams?: string;
+  parametersChunk?: string; // Incremental parameter updates for streaming
+  backgroundTaskId?: string;
+  backgroundedByUser?: boolean;
+  assistantAutoBackgrounded?: boolean;
+  timestamp?: number;
+}
+
+// Agent specific interfaces (without messages parameter)
+export type AgentToolBlockUpdateParams = Omit<
+  UpdateToolBlockParams,
+  "messages"
+>;
+
+// Callback payload type — SDK always fills messageId (required)
+export type ToolBlockUpdateCallbackParams = Omit<
+  AgentToolBlockUpdateParams,
+  "messageId"
+> & {
+  messageId: string;
+};
+
+export interface AddErrorBlockParams {
+  messages: Message[];
+  error: string;
+}
+
+/**
+ * Convert image file path to base64 format
+ * @param imagePath Image file path
+ * @returns base64 format image data URL, or `undefined` when the file cannot be
+ *   used as an image (unreadable, empty, or an extension we cannot map to a
+ *   MIME type). Callers must skip the image instead of sending an empty or
+ *   mislabelled payload — the model gateway rejects both with
+ *   `HTTP 400 ... You have uploaded an unsupported image`.
+ */
+export const convertImageToBase64 = (imagePath: string): string | undefined => {
+  let imageBuffer: Buffer;
+  try {
+    imageBuffer = readFileSync(imagePath);
+  } catch (error) {
+    logger.error(`Failed to convert image to base64: ${imagePath}`, error);
+    return undefined;
+  }
+
+  if (imageBuffer.length === 0) {
+    logger.warn(`Skipping empty image file: ${imagePath}`);
+    return undefined;
+  }
+
+  const ext = extname(imagePath).toLowerCase().substring(1);
+
+  // Determine MIME type based on file extension. Unknown extensions are NOT
+  // relabelled as image/png (that is how svg/heic/avif bytes used to reach the
+  // model dressed up as PNG).
+  let mimeType: string;
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      mimeType = "image/jpeg";
+      break;
+    case "png":
+      mimeType = "image/png";
+      break;
+    case "gif":
+      mimeType = "image/gif";
+      break;
+    case "webp":
+      mimeType = "image/webp";
+      break;
+    case "bmp":
+      mimeType = "image/bmp";
+      break;
+    default:
+      logger.warn(`Skipping image with unsupported extension: ${imagePath}`);
+      return undefined;
+  }
+
+  const base64String = imageBuffer.toString("base64");
+  return `data:${mimeType};base64,${base64String}`;
+};
+
+export const generateMessageId = (): string => `msg-${randomUUID()}`;
+
+// Add user message
+export const addUserMessageToMessages = ({
+  messages,
+  content,
+  customCommandContent,
+  images,
+  source,
+  id,
+  isMeta,
+}: AddUserMessageParams): Message[] => {
+  const blocks: Message["blocks"] = [];
+
+  // Create text block with optional source and customCommandContent
+  const textBlock = {
+    type: "text" as const,
+    content,
+    stage: "end" as const,
+    ...(customCommandContent && { customCommandContent }),
+    ...(source && { source }),
+  };
+  blocks.push(textBlock);
+
+  // If there are images, add image block
+  if (images && images.length > 0) {
+    const imageUrls = images.map((img) => img.path);
+    blocks.push({
+      type: "image",
+      imageUrls,
+    });
+  }
+
+  const userMessage: Message = {
+    id: id || generateMessageId(),
+    role: "user",
+    blocks,
+    timestamp: new Date().toISOString(),
+    ...(isMeta !== undefined && { isMeta }),
+  };
+  return [...messages, userMessage];
+};
+
+/**
+ * Update a user message's content by its ID.
+ */
+export const updateUserMessageInMessages = (
+  messages: Message[],
+  id: string,
+  params: Partial<UserMessageParams>,
+): Message[] => {
+  return messages.map((msg) => {
+    if (msg.id === id && msg.role === "user") {
+      const newBlocks = msg.blocks.map((block) => {
+        if (block.type === "text") {
+          return {
+            ...block,
+            ...(params.content !== undefined && { content: params.content }),
+            ...(params.customCommandContent !== undefined && {
+              customCommandContent: params.customCommandContent,
+            }),
+            ...(params.source !== undefined && { source: params.source }),
+          };
+        }
+        return block;
+      });
+      return {
+        ...msg,
+        blocks: newBlocks,
+        ...(params.isMeta !== undefined && { isMeta: params.isMeta }),
+      };
+    }
+    return msg;
+  });
+};
+
+// Add assistant message (support one-time addition of answer and tool calls)
+export const addAssistantMessageToMessages = (
+  messages: Message[],
+  content?: string,
+  toolCalls?: ChatCompletionMessageFunctionToolCall[],
+  usage?: Usage,
+  additionalFields?: Record<string, unknown>,
+): Message[] => {
+  const blocks: Message["blocks"] = [];
+
+  // If there's answer content, add text block
+  if (content) {
+    blocks.push({ type: "text", content: content });
+  }
+
+  // If there are tool calls, add tool blocks
+  if (toolCalls && toolCalls.length > 0) {
+    toolCalls.forEach((toolCall) => {
+      blocks.push({
+        type: "tool",
+        parameters: toolCall.function.arguments || "",
+        result: "",
+        id: toolCall.id || "",
+        name: toolCall.function?.name || "",
+        stage: "start",
+      });
+    });
+  }
+
+  const initialAssistantMessage: Message = {
+    id: generateMessageId(),
+    role: "assistant",
+    blocks,
+    timestamp: new Date().toISOString(),
+    usage, // Include usage data if provided
+    ...(additionalFields ? { additionalFields: { ...additionalFields } } : {}),
+  };
+
+  return [...messages, initialAssistantMessage];
+};
+
+/**
+ * Add a tool block to a specific message by ID.
+ */
+export const addToolBlockToMessageInMessages = (
+  messages: Message[],
+  messageId: string,
+  params: Omit<AgentToolBlockUpdateParams, "id">,
+): { messages: Message[]; toolBlockId: string } => {
+  const toolBlockId = randomUUID();
+  const newMessages = messages.map((msg) => {
+    if (msg.id === messageId) {
+      return {
+        ...msg,
+        blocks: [
+          ...msg.blocks,
+          {
+            type: "tool" as const,
+            id: toolBlockId,
+            name: params.name || "unknown",
+            parameters: params.parameters || "",
+            result: params.result || "",
+            stage: "start",
+            ...params,
+          } as ToolBlock,
+        ],
+      };
+    }
+    return msg;
+  });
+  return { messages: newMessages, toolBlockId };
+};
+
+// Update Tool Block of the last assistant or user message
+export const updateToolBlockInMessage = ({
+  messages,
+  id,
+  messageId,
+  parameters,
+  result,
+  success,
+  error,
+  stage,
+  name,
+  shortResult,
+  startLineNumber,
+  images,
+  compactParams,
+  parametersChunk,
+  backgroundTaskId,
+  backgroundedByUser,
+  assistantAutoBackgrounded,
+}: UpdateToolBlockParams): { messages: Message[]; messageId?: string } => {
+  const newMessages = [...messages];
+
+  // If messageId is provided, target that specific message
+  if (messageId) {
+    const messageIndex = newMessages.findIndex((msg) => msg.id === messageId);
+    if (messageIndex !== -1) {
+      const toolBlockIndex = newMessages[messageIndex].blocks.findIndex(
+        (block) => block.type === "tool" && block.id === id,
+      );
+
+      if (toolBlockIndex !== -1) {
+        const toolBlock = newMessages[messageIndex].blocks[toolBlockIndex];
+        if (toolBlock.type === "tool") {
+          if (parameters !== undefined) toolBlock.parameters = parameters;
+          else if (parametersChunk !== undefined)
+            toolBlock.parameters =
+              (toolBlock.parameters || "") + parametersChunk;
+          if (result !== undefined) toolBlock.result = result;
+          if (shortResult !== undefined) toolBlock.shortResult = shortResult;
+          if (startLineNumber !== undefined)
+            toolBlock.startLineNumber = startLineNumber;
+          if (images !== undefined) toolBlock.images = images;
+          if (success !== undefined) toolBlock.success = success;
+          if (error !== undefined) toolBlock.error = error;
+          if (stage !== undefined) toolBlock.stage = stage;
+          if (compactParams !== undefined)
+            toolBlock.compactParams = compactParams;
+          if (parametersChunk !== undefined)
+            toolBlock.parametersChunk = parametersChunk;
+          if (backgroundTaskId !== undefined)
+            toolBlock.backgroundTaskId = backgroundTaskId;
+          if (backgroundedByUser !== undefined)
+            toolBlock.backgroundedByUser = backgroundedByUser;
+          if (assistantAutoBackgrounded !== undefined)
+            toolBlock.assistantAutoBackgrounded = assistantAutoBackgrounded;
+        }
+      }
+    }
+    return { messages: newMessages, messageId };
+  }
+
+  // Find the last assistant or user message
+  for (let i = newMessages.length - 1; i >= 0; i--) {
+    if (newMessages[i].role === "assistant" || newMessages[i].role === "user") {
+      const toolBlockIndex = newMessages[i].blocks.findIndex(
+        (block) => block.type === "tool" && block.id === id,
+      );
+
+      if (toolBlockIndex !== -1) {
+        const toolBlock = newMessages[i].blocks[toolBlockIndex];
+        if (toolBlock.type === "tool") {
+          if (parameters !== undefined) toolBlock.parameters = parameters;
+          else if (parametersChunk !== undefined)
+            toolBlock.parameters =
+              (toolBlock.parameters || "") + parametersChunk;
+          if (result !== undefined) toolBlock.result = result;
+          if (shortResult !== undefined) toolBlock.shortResult = shortResult;
+          if (startLineNumber !== undefined)
+            toolBlock.startLineNumber = startLineNumber;
+          if (images !== undefined) toolBlock.images = images; // Add image data update
+          if (success !== undefined) toolBlock.success = success;
+          if (error !== undefined) toolBlock.error = error;
+          if (stage !== undefined) toolBlock.stage = stage;
+          if (compactParams !== undefined)
+            toolBlock.compactParams = compactParams;
+          if (parametersChunk !== undefined)
+            toolBlock.parametersChunk = parametersChunk;
+          if (backgroundTaskId !== undefined)
+            toolBlock.backgroundTaskId = backgroundTaskId;
+          if (backgroundedByUser !== undefined)
+            toolBlock.backgroundedByUser = backgroundedByUser;
+          if (assistantAutoBackgrounded !== undefined)
+            toolBlock.assistantAutoBackgrounded = assistantAutoBackgrounded;
+        }
+        const foundMessageId = newMessages[i].id;
+        return { messages: newMessages, messageId: foundMessageId };
+      } else if (newMessages[i].role === "assistant") {
+        // If existing block not found in assistant message, create new one
+        // This handles cases where we're streaming tool parameters before execution
+        newMessages[i].blocks.push({
+          type: "tool",
+          parameters:
+            parameters !== undefined ? parameters : (parametersChunk ?? ""),
+          result: result || "",
+          shortResult: shortResult,
+          startLineNumber: startLineNumber,
+          images: images, // Add image data
+          id: id,
+          name: name || "unknown",
+          success: success,
+          error: error,
+          stage: stage ?? "start",
+          compactParams: compactParams,
+          parametersChunk: parametersChunk,
+          backgroundTaskId: backgroundTaskId,
+          backgroundedByUser: backgroundedByUser,
+          assistantAutoBackgrounded: assistantAutoBackgrounded,
+        });
+        const foundMessageId = newMessages[i].id;
+        return { messages: newMessages, messageId: foundMessageId };
+      }
+    }
+  }
+  return { messages: newMessages };
+};
+
+// Add Error Block to the last assistant message
+export const addErrorBlockToMessage = ({
+  messages,
+  error,
+}: AddErrorBlockParams): Message[] => {
+  const newMessages = [...messages];
+
+  // Check if the last message is an assistant message
+  const lastMessage = newMessages[newMessages.length - 1];
+  if (lastMessage && lastMessage.role === "assistant") {
+    // Create a new message object with the error block added
+    newMessages[newMessages.length - 1] = {
+      ...lastMessage,
+      blocks: [
+        ...lastMessage.blocks,
+        {
+          type: "error",
+          content: error,
+        },
+      ],
+    };
+  } else {
+    // If the last message is not an assistant message, create a new assistant message
+    newMessages.push({
+      id: generateMessageId(),
+      role: "assistant",
+      blocks: [
+        {
+          type: "error",
+          content: error,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return newMessages;
+};
+
+/**
+ * Helper to count tool blocks in messages
+ */
+export function countToolBlocks(messages: Message[]): number {
+  let toolCount = 0;
+  messages.forEach((msg) => {
+    msg.blocks.forEach((block) => {
+      if (block.type === "tool") {
+        toolCount++;
+      }
+    });
+  });
+  return toolCount;
+}
+
+/**
+ * Remove the last user message from the conversation
+ * Used for hook error handling when the user prompt needs to be erased
+ */
+export const removeLastUserMessage = (messages: Message[]): Message[] => {
+  const newMessages = [...messages];
+  for (let i = newMessages.length - 1; i >= 0; i--) {
+    if (newMessages[i].role === "user") {
+      newMessages.splice(i, 1);
+      break;
+    }
+  }
+  return newMessages;
+};
+
+/**
+ * Efficiently clone a message for UI freezing.
+ * Clones the message object and its blocks array, but reuses string references.
+ */
+export function cloneMessage(message: Message): Message {
+  return {
+    ...message,
+    blocks: message.blocks.map((block) => {
+      const clonedBlock = { ...block };
+      // Deep clone arrays/objects within blocks if they exist
+      if (clonedBlock.type === "tool" && clonedBlock.images) {
+        clonedBlock.images = clonedBlock.images.map((img) => ({ ...img }));
+      } else if (clonedBlock.type === "image" && clonedBlock.imageUrls) {
+        clonedBlock.imageUrls = [...clonedBlock.imageUrls];
+      } else if (clonedBlock.type === "file_history" && clonedBlock.snapshots) {
+        clonedBlock.snapshots = clonedBlock.snapshots.map((s) => ({ ...s }));
+      }
+      return clonedBlock;
+    }) as Message["blocks"],
+    // Clone additionalFields if it exists
+    ...(message.additionalFields
+      ? { additionalFields: { ...message.additionalFields } }
+      : {}),
+  };
+}
+
+/**
+ * Helper to format tool and token summary
+ */
+export function formatToolTokenSummary(
+  toolCount: number,
+  tokens: number,
+): string {
+  if (toolCount === 0) {
+    return "";
+  }
+  let summary = `(${toolCount} tools`;
+  if (tokens > 0) {
+    summary += ` | ${tokens.toLocaleString()} tokens`;
+  }
+  summary += ")";
+  return summary;
+}
+
+/**
+ * Fold a message list at the last compact boundary — returns only messages from
+ * the most recent compact summary forward. Mirrors what is sent to the LLM
+ * (convertMessagesForAPI stops at the last compact block), so the display layer
+ * matches the AI context. The session file keeps the full history; folding is
+ * display-only.
+ */
+export function sliceFromLastCompact(messages: Message[]): Message[] {
+  let lastCompactIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].blocks?.some((b) => b.type === "compact")) {
+      lastCompactIndex = i;
+      break;
+    }
+  }
+  return lastCompactIndex >= 0 ? messages.slice(lastCompactIndex) : messages;
+}
+
+/**
+ * Extracts displayable text from a Message object, handling various block types.
+ * Returns the first available content block.
+ */
+export function getMessageContent(message: Message): string {
+  // Find first available content block
+  const textBlock = message.blocks.find((block) => block.type === "text");
+  if (textBlock && "content" in textBlock) {
+    return textBlock.content;
+  }
+
+  const compactBlock = message.blocks.find((block) => block.type === "compact");
+  if (compactBlock && "content" in compactBlock) {
+    return compactBlock.content;
+  }
+
+  return "";
+}
+
+export interface AddNotificationMessageParams {
+  messages: Message[];
+  taskId: string;
+  taskType: "shell" | "agent" | "workflow";
+  status: "completed" | "failed" | "killed" | "aborted";
+  summary: string;
+  outputFile?: string;
+  result?: string;
+}
+
+export const addNotificationMessageToMessages = ({
+  messages,
+  taskId,
+  taskType,
+  status,
+  summary,
+  outputFile,
+  result,
+}: AddNotificationMessageParams): Message[] => {
+  const block: TaskNotificationBlock = {
+    type: "task_notification",
+    taskId,
+    taskType,
+    status,
+    summary,
+    ...(outputFile !== undefined && { outputFile }),
+    ...(result !== undefined && { result }),
+  };
+
+  const notificationMessage: Message = {
+    id: generateMessageId(),
+    role: "user",
+    blocks: [block],
+    isMeta: true,
+    timestamp: new Date().toISOString(),
+  };
+
+  return [...messages, notificationMessage];
+};

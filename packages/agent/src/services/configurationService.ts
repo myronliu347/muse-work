@@ -1,0 +1,1837 @@
+/**
+ * Configuration Service
+ *
+ * Centralized service for loading, validating, and managing Wave configuration files.
+ * Replaces distributed configuration logic previously embedded in hook.ts.
+ */
+
+import { readFileSync, existsSync, promises as fs } from "fs";
+import * as path from "path";
+import * as os from "os";
+import { isValidHookEvent } from "../types/hooks.js";
+import type { HookEvent, HookEventConfig } from "../types/hooks.js";
+import { logger } from "../utils/globalLogger.js";
+import type {
+  ConfigurationLoadResult,
+  ValidationResult,
+  ConfigurationPaths,
+  WaveConfiguration,
+  Scope,
+  MarketplaceConfig,
+} from "../types/configuration.js";
+import {
+  getAllConfigPaths,
+  getExistingConfigPaths,
+  getUserConfigPaths,
+  getProjectConfigPaths,
+} from "../utils/configPaths.js";
+import {
+  type EnvironmentValidationResult,
+  type MergedEnvironmentContext,
+  type EnvironmentMergeOptions,
+  isValidEnvironmentVars,
+} from "../types/environment.js";
+import {
+  GatewayConfig,
+  ModelConfig,
+  PermissionMode,
+  AgentOptions,
+} from "../types/index.js";
+import {
+  DEFAULT_WAVE_MAX_INPUT_TOKENS,
+  DEFAULT_WAVE_MAX_OUTPUT_TOKENS,
+  DEFAULT_SERVER_URL,
+  DEFAULT_LANGUAGE,
+} from "../utils/constants.js";
+import { ClientOptions } from "openai";
+import { parseCustomHeaders } from "../utils/stringUtils.js";
+import {
+  getRemoteSettingsSync,
+  mergeRemoteSettings,
+} from "./remoteSettingsService.js";
+import { createAuthAwareFetch } from "./authService.js";
+import { ensureWaveRuntimeFilesExcluded } from "../utils/gitUtils.js";
+import { atomicWriteFile } from "../utils/atomicWrite.js";
+
+/**
+ * Validate a configuration object's structure and values. Module-level so it
+ * can be reused without instantiating ConfigurationService (e.g. background
+ * session cleanup runs before config is loaded).
+ */
+export function validateConfigurationObject(
+  config: WaveConfiguration,
+): ValidationResult {
+  const result: ValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Validate basic structure
+  if (!config || typeof config !== "object") {
+    result.isValid = false;
+    result.errors.push("Configuration must be a valid object");
+    return result;
+  }
+
+  // Validate hooks if present
+  if (config.hooks !== undefined) {
+    if (typeof config.hooks !== "object" || config.hooks === null) {
+      result.isValid = false;
+      result.errors.push("Hooks configuration must be an object");
+    } else {
+      for (const [event, eventConfigs] of Object.entries(config.hooks)) {
+        if (!isValidHookEvent(event)) {
+          result.warnings.push(`Unknown hook event: ${event}`);
+          continue;
+        }
+
+        if (!Array.isArray(eventConfigs)) {
+          result.isValid = false;
+          result.errors.push(`Hook event '${event}' must be an array`);
+          continue;
+        }
+
+        // Validate individual hook configurations
+        for (let i = 0; i < eventConfigs.length; i++) {
+          const hookConfig = eventConfigs[i];
+          if (!hookConfig || typeof hookConfig !== "object") {
+            result.isValid = false;
+            result.errors.push(
+              `Hook configuration ${i} for event '${event}' must be an object`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // Validate enabledPlugins if present
+  if (config.enabledPlugins !== undefined) {
+    if (
+      typeof config.enabledPlugins !== "object" ||
+      config.enabledPlugins === null
+    ) {
+      result.isValid = false;
+      result.errors.push("enabledPlugins configuration must be an object");
+    } else {
+      for (const [pluginId, enabled] of Object.entries(config.enabledPlugins)) {
+        if (typeof enabled !== "boolean") {
+          result.isValid = false;
+          result.errors.push(
+            `Value for plugin '${pluginId}' in enabledPlugins must be a boolean`,
+          );
+        }
+        if (!pluginId.includes("@")) {
+          result.warnings.push(
+            `Plugin ID '${pluginId}' in enabledPlugins should follow 'name@marketplace' format`,
+          );
+        }
+      }
+    }
+  }
+
+  // Validate environment variables if present
+  if (config.env !== undefined) {
+    const envValidation = validateEnvironmentConfig(config.env);
+    if (!envValidation.isValid) {
+      result.isValid = false;
+      result.errors.push(...envValidation.errors);
+    }
+    result.warnings.push(...envValidation.warnings);
+  }
+
+  // Validate permissions if present
+  if (config.permissions !== undefined) {
+    if (typeof config.permissions !== "object" || config.permissions === null) {
+      result.isValid = false;
+      result.errors.push("Permissions configuration must be an object");
+    } else {
+      // Validate allow if present
+      if (config.permissions.allow !== undefined) {
+        if (!Array.isArray(config.permissions.allow)) {
+          result.isValid = false;
+          result.errors.push("Permissions allow must be an array of strings");
+        } else if (
+          !config.permissions.allow.every((rule) => typeof rule === "string")
+        ) {
+          result.isValid = false;
+          result.errors.push("All permission allow rules must be strings");
+        }
+      }
+
+      // Validate deny if present
+      if (config.permissions.deny !== undefined) {
+        if (!Array.isArray(config.permissions.deny)) {
+          result.isValid = false;
+          result.errors.push("Permissions deny must be an array of strings");
+        } else if (
+          !config.permissions.deny.every((rule) => typeof rule === "string")
+        ) {
+          result.isValid = false;
+          result.errors.push("All permission deny rules must be strings");
+        }
+      }
+
+      // Validate defaultMode if present
+      if (config.permissions.defaultMode !== undefined) {
+        const validModes: PermissionMode[] = [
+          "default",
+          "bypassPermissions",
+          "acceptEdits",
+          "plan",
+          "dontAsk",
+        ];
+        if (!validModes.includes(config.permissions.defaultMode)) {
+          result.isValid = false;
+          result.errors.push(
+            `Invalid defaultMode: "${config.permissions.defaultMode}". Must be one of: ${validModes.join(", ")}`,
+          );
+        }
+      }
+    }
+  }
+
+  // Validate autoMemoryEnabled if present
+  if (
+    config.autoMemoryEnabled !== undefined &&
+    typeof config.autoMemoryEnabled !== "boolean"
+  ) {
+    result.isValid = false;
+    result.errors.push("autoMemoryEnabled configuration must be a boolean");
+  }
+
+  // Validate autoMemoryFrequency if present
+  if (
+    config.autoMemoryFrequency !== undefined &&
+    (typeof config.autoMemoryFrequency !== "number" ||
+      config.autoMemoryFrequency <= 0)
+  ) {
+    result.isValid = false;
+    result.errors.push(
+      "autoMemoryFrequency configuration must be a positive number",
+    );
+  }
+
+  // Validate cleanupPeriodDays if present
+  if (
+    config.cleanupPeriodDays !== undefined &&
+    (typeof config.cleanupPeriodDays !== "number" ||
+      !Number.isInteger(config.cleanupPeriodDays) ||
+      config.cleanupPeriodDays < 0)
+  ) {
+    result.isValid = false;
+    result.errors.push(
+      "cleanupPeriodDays configuration must be a non-negative integer",
+    );
+  }
+
+  // Validate models if present
+  if (config.models !== undefined) {
+    if (typeof config.models !== "object" || config.models === null) {
+      result.isValid = false;
+      result.errors.push("models configuration must be an object");
+    } else {
+      for (const [modelName, modelConfig] of Object.entries(config.models)) {
+        if (typeof modelConfig !== "object" || modelConfig === null) {
+          result.isValid = false;
+          result.errors.push(
+            `Configuration for model '${modelName}' must be an object`,
+          );
+        }
+      }
+    }
+  }
+
+  // Validate worktree if present
+  if (config.worktree !== undefined) {
+    if (typeof config.worktree !== "object" || config.worktree === null) {
+      result.isValid = false;
+      result.errors.push("worktree configuration must be an object");
+    } else if (
+      config.worktree.baseRef !== undefined &&
+      config.worktree.baseRef !== "fresh" &&
+      config.worktree.baseRef !== "head"
+    ) {
+      result.isValid = false;
+      result.errors.push(
+        `Invalid worktree.baseRef: "${config.worktree.baseRef}". Must be "fresh" or "head".`,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * The settings.json-derived configuration a turn reads from, captured when the
+ * turn started (see {@link ConfigurationService.setTurnSnapshotSource}). Held
+ * while a turn runs so a live reload can't shift values under it.
+ */
+export interface TurnConfigurationSnapshot {
+  configuration: WaveConfiguration | null;
+  env: Record<string, string>;
+}
+
+/**
+ * Default ConfigurationService implementation
+ *
+ * Provides centralized configuration loading, validation, and management.
+ * Extracted from distributed logic in hook.ts with improved error handling.
+ */
+export class ConfigurationService {
+  private currentConfiguration: WaveConfiguration | null = null;
+  private options: AgentOptions = {};
+  private _configuredEnvKeys = new Set<string>();
+  // Per-session environment snapshot: settings.json `env` is stored here (NOT
+  // written to process.env) so multiple sessions in one `wave --stdio` process
+  // don't cross-pollute. Resolve methods read `this.liveEnvSnapshot ?? process.env`.
+  private envSnapshot: Record<string, string> = {};
+
+  // Turn-scoped snapshot of the settings.json-derived configuration, owned by
+  // LiveConfigManager (it knows the turn boundaries and the live reload) and
+  // read here through a source registered at wiring time. Live reload updates
+  // `currentConfiguration` as soon as the file changes, but a turn must not see
+  // the value shift under it: while a turn is running the snapshot is what the
+  // resolve methods read, so changes land at the next turn boundary
+  // (docs/specs/core/agent-config.md scenario 5).
+  private turnSnapshotSource?: () => TurnConfigurationSnapshot | null;
+
+  /**
+   * Register the turn-snapshot source (see {@link TurnConfigurationSnapshot}).
+   */
+  setTurnSnapshotSource(source: () => TurnConfigurationSnapshot | null): void {
+    this.turnSnapshotSource = source;
+  }
+
+  /**
+   * Set agent options for configuration resolution
+   */
+  setOptions(options: AgentOptions): void {
+    this.options = options;
+  }
+
+  /** Configuration the current turn reads from (live configuration outside a turn). */
+  private get liveConfiguration(): WaveConfiguration | null {
+    const snapshot = this.turnSnapshotSource?.();
+    return snapshot ? snapshot.configuration : this.currentConfiguration;
+  }
+
+  /** Environment snapshot the current turn reads from. */
+  private get liveEnvSnapshot(): Record<string, string> {
+    const snapshot = this.turnSnapshotSource?.();
+    return snapshot ? snapshot.env : this.envSnapshot;
+  }
+
+  /**
+   * Returns a copy of the per-session environment snapshot (settings.json `env`).
+   * Priority over OS env; does NOT include OS env. For subprocess spawning use
+   * {@link getMergedEnv} instead.
+   */
+  getEnvSnapshot(): Record<string, string> {
+    return { ...this.liveEnvSnapshot };
+  }
+
+  /**
+   * Returns OS env merged with the session snapshot (snapshot wins). Use this
+   * when spawning user-facing subprocesses (bash, hooks, bang, background, MCP)
+   * so they inherit both OS env and the session's settings env.
+   */
+  getMergedEnv(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries({ ...process.env, ...this.liveEnvSnapshot }).filter(
+        ([, v]) => v !== undefined,
+      ),
+    ) as Record<string, string>;
+  }
+
+  // Core loading operations
+
+  /**
+   * Load and merge configuration with comprehensive validation
+   */
+  async loadMergedConfiguration(
+    workdir: string,
+  ): Promise<ConfigurationLoadResult> {
+    try {
+      // Use the merged configuration function (this loads user and project configs internally)
+      const mergedConfig = loadMergedWaveConfig(workdir);
+
+      if (!mergedConfig) {
+        // Still set system environment variables even if no config is found
+        const env = { WAVE_PROJECT_DIR: workdir };
+        this.setEnvironmentVars(env);
+
+        return {
+          configuration: { env },
+          success: true, // No config is valid
+          warnings: [
+            "No configuration files found in user or project directories",
+          ],
+        };
+      }
+
+      // Comprehensive validation
+      const validation = this.validateConfiguration(mergedConfig);
+
+      if (!validation.isValid) {
+        return {
+          configuration: null,
+          success: false,
+          error: `Merged configuration validation failed: ${validation.errors.join(", ")}`,
+          warnings: validation.warnings,
+        };
+      }
+
+      // Merge remote settings (highest priority: Remote > Local > Project > User)
+      const remoteSettings = getRemoteSettingsSync();
+      const finalConfig = remoteSettings
+        ? mergeRemoteSettings(mergedConfig, remoteSettings)
+        : mergedConfig;
+
+      // Success case
+      this.currentConfiguration = finalConfig;
+
+      // Set environment variables from merged config and inject system variables
+      const env = {
+        ...(finalConfig.env || {}),
+        WAVE_PROJECT_DIR: workdir,
+      };
+      this.setEnvironmentVars(env);
+      finalConfig.env = env;
+
+      return {
+        configuration: finalConfig,
+        success: true,
+        sourcePath: "merged configuration",
+        warnings: validation.warnings,
+      };
+    } catch (error) {
+      return {
+        configuration: null,
+        success: false,
+        error: `Failed to load merged configuration from ${workdir}: ${(error as Error).message}`,
+        warnings: [],
+      };
+    }
+  }
+
+  // Validation operations
+
+  /**
+   * Validate configuration object structure and values
+   */
+  validateConfiguration(config: WaveConfiguration): ValidationResult {
+    return validateConfigurationObject(config);
+  }
+
+  /**
+   * Validate configuration file without loading
+   */
+  validateConfigurationFile(filePath: string): ValidationResult {
+    const result: ValidationResult = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+    };
+
+    if (!existsSync(filePath)) {
+      result.isValid = false;
+      result.errors.push(`Configuration file not found: ${filePath}`);
+      return result;
+    }
+
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const config = JSON.parse(content) as WaveConfiguration;
+
+      // Use the main validation method
+      const configValidation = this.validateConfiguration(config);
+      result.isValid = configValidation.isValid;
+      result.errors = configValidation.errors;
+      result.warnings = configValidation.warnings;
+    } catch (error) {
+      result.isValid = false;
+      if (error instanceof SyntaxError) {
+        result.errors.push(
+          `Invalid JSON syntax in ${filePath}: ${error.message}`,
+        );
+      } else {
+        result.errors.push(
+          `Error reading configuration file ${filePath}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  // Utility operations
+
+  /**
+   * Store environment variables from configuration into the per-session
+   * snapshot (NOT process.env). Settings `env` shadows OS env for this session
+   * only — multiple sessions in one stdio process stay isolated.
+   *
+   * Exception: `WAVE_SERVER_URL` is also mirrored to `process.env` because the
+   * process-level singletons (AuthService, remoteSettingsService background
+   * fetch) need to read it and don't hold a per-session snapshot. Same value
+   * across sessions ⇒ no cross-pollution. See docs/specs/core/agent-config.md.
+   */
+  setEnvironmentVars(env: Record<string, string>): void {
+    for (const [key, value] of Object.entries(env)) {
+      if (
+        process.env[key] !== undefined &&
+        !this._configuredEnvKeys.has(key) &&
+        process.env[key] !== value
+      ) {
+        logger.warn(`Overriding environment variable: ${key}`);
+      }
+      this.envSnapshot[key] = value;
+      this._configuredEnvKeys.add(key);
+      // WAVE_SERVER_URL is consumed by process-level singletons (AuthService,
+      // remoteSettingsService) that can't see the per-session snapshot — mirror
+      // it to process.env so they read the settings value. Same value across
+      // sessions ⇒ no last-session-wins cross-pollution.
+      if (key === "WAVE_SERVER_URL") {
+        process.env[key] = value;
+      }
+    }
+  }
+
+  // =============================================================================
+  // Configuration Resolution Methods (merged from configResolver.ts)
+  // =============================================================================
+
+  /**
+   * Read SSO token from ~/.wave/auth.json
+   */
+  private readSSOToken(): string | undefined {
+    const homeDir = os.homedir();
+    const authPath = path.join(homeDir, ".wave", "auth.json");
+    if (!existsSync(authPath)) {
+      return undefined;
+    }
+    try {
+      const content = readFileSync(authPath, "utf-8");
+      const authConfig = JSON.parse(content) as { SSO_TOKEN?: string };
+      return authConfig.SSO_TOKEN;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Resolves gateway configuration from constructor args and environment
+   * Resolution priority: SSO_TOKEN > options > env (from settings.json) > process.env > error
+   * @param apiKey - API key override (optional)
+   * @param baseURL - Base URL override (optional)
+   * @param defaultHeaders - HTTP headers override (optional)
+   * @param fetchOptions - Fetch options override (optional)
+   * @param fetch - Custom fetch implementation override (optional)
+   * @returns Resolved gateway configuration
+   * @returns Resolved model configuration (model/fastModel may be undefined if not yet configured)
+   */
+  resolveGatewayConfig(
+    apiKey?: string,
+    baseURL?: string,
+    defaultHeaders?: Record<string, string>,
+    fetchOptions?: ClientOptions["fetchOptions"],
+    fetch?: ClientOptions["fetch"],
+  ): GatewayConfig {
+    // Check for SSO token first - if present and server URL is available, use SSO mode.
+    // Server URL resolution: options.serverUrl > process.env.WAVE_SERVER_URL > default.
+    // settings.json `env` WAVE_SERVER_URL is mirrored to process.env by
+    // setEnvironmentVars (so process-level singletons AuthService / remoteSettings
+    // can read it), then read here. See docs/specs/core/agent-config.md.
+    const ssoToken = this.readSSOToken();
+    const serverUrl =
+      this.options.serverUrl ||
+      process.env.WAVE_SERVER_URL ||
+      DEFAULT_SERVER_URL;
+    if (ssoToken && serverUrl) {
+      const baseFetch = fetch ?? this.options.fetch ?? globalThis.fetch;
+      const authAwareFetch = createAuthAwareFetch(
+        baseFetch as typeof globalThis.fetch,
+      ) as ClientOptions["fetch"];
+      return {
+        apiKey: ssoToken,
+        baseURL: `${serverUrl}/api/v1`,
+        defaultHeaders:
+          Object.keys(defaultHeaders || {}).length > 0
+            ? defaultHeaders
+            : undefined,
+        fetchOptions: fetchOptions ?? this.options.fetchOptions,
+        fetch: authAwareFetch,
+      };
+    }
+
+    // Resolve API key: override > options > env (settings.json) > process.env
+    // Note: Explicitly provided empty strings should be treated as invalid, not fall back to env
+    let resolvedApiKey: string | undefined;
+    if (apiKey !== undefined) {
+      resolvedApiKey = apiKey;
+    } else if (this.options.apiKey !== undefined) {
+      resolvedApiKey = this.options.apiKey;
+    } else {
+      resolvedApiKey =
+        this.liveEnvSnapshot.WAVE_API_KEY ?? process.env.WAVE_API_KEY;
+    }
+
+    // Resolve base URL: override > options > env (settings.json) > process.env
+    // Note: Explicitly provided empty strings should be treated as invalid, not fall back to env
+    let resolvedBaseURL: string | undefined;
+    if (baseURL !== undefined) {
+      resolvedBaseURL = baseURL;
+    } else if (this.options.baseURL !== undefined) {
+      resolvedBaseURL = this.options.baseURL;
+    } else {
+      resolvedBaseURL =
+        this.liveEnvSnapshot.WAVE_BASE_URL ?? process.env.WAVE_BASE_URL;
+    }
+
+    // Fallback to process.env if still not resolved (for dynamic updates in tests)
+    if (resolvedApiKey === undefined) {
+      resolvedApiKey =
+        this.liveEnvSnapshot.WAVE_API_KEY ?? process.env.WAVE_API_KEY;
+    }
+    if (!resolvedBaseURL) {
+      resolvedBaseURL =
+        this.liveEnvSnapshot.WAVE_BASE_URL ?? process.env.WAVE_BASE_URL;
+    }
+
+    // Treat empty string as not provided
+    if (resolvedBaseURL?.trim() === "") {
+      resolvedBaseURL = undefined;
+    }
+
+    // Resolve custom headers from environment: env (settings.json) > process.env
+    const envCustomHeaders =
+      this.liveEnvSnapshot.WAVE_CUSTOM_HEADERS ??
+      process.env.WAVE_CUSTOM_HEADERS ??
+      "";
+    const parsedEnvHeaders = parseCustomHeaders(envCustomHeaders);
+
+    // Merge headers: env headers < options < override
+    const resolvedHeaders = {
+      ...parsedEnvHeaders,
+      ...this.options.defaultHeaders,
+      ...defaultHeaders,
+    };
+
+    return {
+      apiKey: resolvedApiKey,
+      baseURL: resolvedBaseURL,
+      defaultHeaders:
+        Object.keys(resolvedHeaders).length > 0 ? resolvedHeaders : undefined,
+      fetchOptions: fetchOptions ?? this.options.fetchOptions,
+      fetch: fetch ?? this.options.fetch,
+    };
+  }
+
+  /**
+   * Resolves model configuration with fallbacks
+   * Resolution priority: override > options > env (from settings.json) > process.env > default
+   * @param model - Agent model override (optional)
+   * @param fastModel - Fast model override (optional)
+   * @param permissionMode - Permission mode override (optional)
+   * @param visionModel - Vision model override (optional)
+   * @returns Resolved model configuration with defaults
+   */
+  resolveModelConfig(
+    model?: string,
+    fastModel?: string,
+    permissionMode?: PermissionMode,
+    visionModel?: string,
+  ): ModelConfig {
+    // Resolve agent model: override > options > currentConfiguration (settings.json model, possibly remote-merged) > process.env
+    // Priority: user's explicit model field > admin's env.WAVE_MODEL default.
+    // If admin wants hard enforcement, they set the `model` scalar field (overwrites local in mergeRemoteSettings).
+    const resolvedAgentModel =
+      model ||
+      this.options.model ||
+      this.liveConfiguration?.model ||
+      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+
+    // Resolve fast model: override > options > process.env (includes settings.json env)
+    const resolvedFastModel =
+      fastModel ||
+      this.options.fastModel ||
+      (this.liveEnvSnapshot.WAVE_FAST_MODEL ?? process.env.WAVE_FAST_MODEL);
+
+    // Resolve vision model: override > options > process.env (includes settings.json env)
+    const resolvedVisionModel =
+      visionModel ||
+      this.options.visionModel ||
+      (this.liveEnvSnapshot.WAVE_VISION_MODEL ?? process.env.WAVE_VISION_MODEL);
+
+    const baseConfig: ModelConfig = {
+      model: resolvedAgentModel,
+      fastModel: resolvedFastModel,
+      visionModel: resolvedVisionModel,
+      permissionMode: permissionMode ?? this.options.permissionMode,
+    };
+
+    // Resolve fast model generation params from models[fastModel].options.
+    // Set on baseConfig before the modelSpecificConfig spread so it isn't overwritten.
+    const fastModelSource =
+      resolvedFastModel && this.liveConfiguration?.models?.[resolvedFastModel];
+    if (fastModelSource && fastModelSource.options) {
+      baseConfig.fastModelOptions = fastModelSource.options;
+    }
+
+    // Resolve fast-model disable-thinking params from models[fastModel].disableThinkingOptions
+    const fastModelDisableThinking =
+      fastModelSource && fastModelSource.disableThinkingOptions
+        ? fastModelSource.disableThinkingOptions
+        : undefined;
+    if (fastModelDisableThinking) {
+      baseConfig.disableThinkingOptions = fastModelDisableThinking;
+    }
+
+    // Merge model-specific settings from configuration
+    const modelSpecificConfig =
+      resolvedAgentModel &&
+      this.liveConfiguration?.models?.[resolvedAgentModel];
+
+    if (modelSpecificConfig) {
+      const resolved: ModelConfig = {
+        ...baseConfig,
+        ...modelSpecificConfig,
+      };
+      // Re-apply after the spread so the agent model's own
+      // disableThinkingOptions cannot clobber the fast-model value.
+      if (fastModelDisableThinking) {
+        resolved.disableThinkingOptions = fastModelDisableThinking;
+      }
+      return resolved;
+    }
+
+    return baseConfig;
+  }
+
+  /**
+   * Resolves token limit with fallbacks
+   * Resolution priority: override > options > models[model].maxInputTokens > env (from settings.json) > process.env > default
+   * @param constructorLimit - Token limit override (optional)
+   * @param model - Model to resolve per-model maxInputTokens for (optional; falls back to the resolved agent model chain)
+   * @returns Resolved token limit
+   */
+  resolveMaxInputTokens(constructorLimit?: number, model?: string): number {
+    // If override value provided, use it
+    if (constructorLimit !== undefined) {
+      return constructorLimit;
+    }
+
+    // If options value provided, use it
+    if (this.options.maxInputTokens !== undefined) {
+      return this.options.maxInputTokens;
+    }
+
+    // Per-model config (models[X].maxInputTokens). Resolve the model with the
+    // same chain as resolveModelConfig: caller > options > currentConfiguration > env.
+    const resolvedModel =
+      model ||
+      this.options.model ||
+      this.liveConfiguration?.model ||
+      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+    const modelConfig =
+      resolvedModel && this.liveConfiguration?.models?.[resolvedModel];
+    if (modelConfig && modelConfig.maxInputTokens !== undefined) {
+      return modelConfig.maxInputTokens;
+    }
+
+    // Try env (settings.json snapshot) first, then process.env
+    const envMaxInputTokens =
+      this.liveEnvSnapshot.WAVE_MAX_INPUT_TOKENS ??
+      process.env.WAVE_MAX_INPUT_TOKENS;
+    if (envMaxInputTokens) {
+      const parsed = parseInt(envMaxInputTokens, 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+
+    // Use default
+    return DEFAULT_WAVE_MAX_INPUT_TOKENS;
+  }
+
+  /**
+   * Resolves preferred language with fallbacks
+   * Resolution priority: override > options > settings.json > default (`zh-CN`)
+   *
+   * 末尾的默认值保证「未设置」时也有明确生效值，且与设置页下拉的默认项一致
+   * （spec agent-config 边界说明「语言默认值」）。调用方不得再假定
+   * 「undefined = 不注入语言指令」。
+   *
+   * @param constructorLanguage - Language override (optional)
+   * @returns Resolved language (never empty)
+   */
+  resolveLanguage(constructorLanguage?: string): string {
+    // 1. Override (highest priority)
+    if (constructorLanguage !== undefined) {
+      return constructorLanguage;
+    }
+
+    // 2. Agent options
+    if (this.options.language !== undefined) {
+      return this.options.language;
+    }
+
+    // 3. settings.json (merged)
+    if (this.liveConfiguration?.language) {
+      return this.liveConfiguration.language;
+    }
+
+    // 4. Default
+    return DEFAULT_LANGUAGE;
+  }
+
+  /**
+   * Resolves auto-memory enabled state with fallbacks
+   * Resolution priority: session options (session-level override) > settings.json > WAVE_DISABLE_AUTO_MEMORY > default (true)
+   * @returns Resolved auto-memory enabled state
+   */
+  resolveAutoMemoryEnabled(): boolean {
+    return this.resolveAutoMemoryEnabledFrom(
+      this.liveConfiguration,
+      this.liveEnvSnapshot,
+    );
+  }
+
+  /**
+   * Same resolution chain but read from the live merged configuration, ignoring
+   * the turn snapshot. The permission safe zone is a live mechanism (like
+   * permission rules, applied by LiveConfigManager on reload), so its sync must
+   * not be pinned to the turn-start value.
+   */
+  resolveAutoMemoryEnabledNow(): boolean {
+    return this.resolveAutoMemoryEnabledFrom(
+      this.currentConfiguration,
+      this.envSnapshot,
+    );
+  }
+
+  private resolveAutoMemoryEnabledFrom(
+    config: WaveConfiguration | null,
+    env: Record<string, string>,
+  ): boolean {
+    // 1. Per-session options override (session-level override semantics; user
+    //    preferences are no longer passed this way — see core/agent-config.md)
+    if (this.options.autoMemoryEnabled !== undefined) {
+      return this.options.autoMemoryEnabled;
+    }
+
+    // 2. settings.json (merged)
+    if (config?.autoMemoryEnabled !== undefined) {
+      return config.autoMemoryEnabled;
+    }
+
+    // 3. WAVE_DISABLE_AUTO_MEMORY environment variable (settings snapshot > OS env)
+    const disableAutoMemory =
+      env.WAVE_DISABLE_AUTO_MEMORY ?? process.env.WAVE_DISABLE_AUTO_MEMORY;
+    if (disableAutoMemory === "1" || disableAutoMemory === "true") {
+      return false;
+    }
+
+    // 4. Default (true)
+    return true;
+  }
+
+  /**
+   * Resolves worktree base ref with fallbacks
+   * Resolution priority: settings.json > default ("fresh")
+   * @returns Resolved worktree base ref
+   */
+  resolveWorktreeBaseRef(): "fresh" | "head" {
+    const baseRef = this.liveConfiguration?.worktree?.baseRef;
+    if (baseRef === "head") {
+      return "head";
+    }
+    return "fresh";
+  }
+
+  /**
+   * Resolves auto-memory extraction frequency with fallbacks
+   * Resolution priority: session options (程序化会话级覆盖) > settings.json > WAVE_AUTO_MEMORY_FREQUENCY > default (1)
+   * @returns Resolved auto-memory extraction frequency (turns)
+   */
+  resolveAutoMemoryFrequency(): number {
+    // 1. Per-session options override (Agent.create → setOptions 的程序化会话级
+    //    覆盖；三端设置页的值不走这里——它们落用户级 settings.json，由实时重载
+    //    在下一轮生效，见 spec core/agent-config.md「设置实时重载」)。
+    //    Only positive values are honored so a malformed 0/negative never
+    //    degenerates into per-turn extraction.
+    if (
+      this.options.autoMemoryFrequency !== undefined &&
+      this.options.autoMemoryFrequency > 0
+    ) {
+      return this.options.autoMemoryFrequency;
+    }
+
+    // 2. settings.json (merged)
+    if (this.liveConfiguration?.autoMemoryFrequency !== undefined) {
+      return this.liveConfiguration.autoMemoryFrequency;
+    }
+
+    // 3. WAVE_AUTO_MEMORY_FREQUENCY environment variable (settings snapshot > OS env)
+    const envFrequency =
+      this.liveEnvSnapshot.WAVE_AUTO_MEMORY_FREQUENCY ??
+      process.env.WAVE_AUTO_MEMORY_FREQUENCY;
+    if (envFrequency) {
+      const parsed = parseInt(envFrequency, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    // 4. Default (1)
+    return 1;
+  }
+
+  /**
+   * Resolves max output tokens with fallbacks
+   * Resolution priority: override > options > env (from settings.json) > process.env > default
+   * @param constructorLimit - Max output tokens override (optional)
+   * @returns Resolved max output tokens
+   */
+  resolveMaxOutputTokens(constructorLimit?: number): number {
+    // If override value provided, use it
+    if (constructorLimit !== undefined) {
+      return constructorLimit;
+    }
+
+    // If options value provided, use it
+    if (this.options.maxTokens !== undefined) {
+      return this.options.maxTokens;
+    }
+
+    // Try env (settings.json snapshot) first, then process.env
+    const envMaxOutputTokens =
+      this.liveEnvSnapshot.WAVE_MAX_OUTPUT_TOKENS ??
+      process.env.WAVE_MAX_OUTPUT_TOKENS;
+    if (envMaxOutputTokens) {
+      const parsed = parseInt(envMaxOutputTokens, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    // Use default
+    return DEFAULT_WAVE_MAX_OUTPUT_TOKENS;
+  }
+
+  /**
+   * Set the active model in the session.
+   *
+   * Persisting to `~/.wave/settings.json` is best-effort: the in-memory model
+   * applies immediately, and a failed write (e.g. a locked file / rename EPERM
+   * on Windows) is logged instead of escaping as an unhandled rejection.
+   */
+  async setModel(model: string): Promise<void> {
+    this.options.model = model;
+    try {
+      await this.persistModelToSettings(model);
+    } catch (error) {
+      logger.warn(`Failed to persist model to settings: ${error}`);
+    }
+  }
+
+  private async persistModelToSettings(model: string): Promise<void> {
+    const configPath = getUserConfigPaths()[0]; // ~/.wave/settings.json
+    const configDir = path.dirname(configPath);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: WaveConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // Start fresh if corrupted
+      }
+    }
+
+    config.model = model;
+    await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+  }
+
+  /**
+   * Get all configured models from settings.json and environment
+   */
+  getConfiguredModels(): string[] {
+    const models = new Set<string>();
+
+    // Add current model from options or environment (settings snapshot > OS env)
+    const currentModel =
+      this.options.model ||
+      (this.liveEnvSnapshot.WAVE_MODEL ?? process.env.WAVE_MODEL);
+    if (currentModel) {
+      models.add(currentModel);
+    }
+
+    // Persisted model from settings (includes remote-merged)
+    if (this.liveConfiguration?.model) {
+      models.add(this.liveConfiguration.model);
+    }
+
+    // Add models from merged configuration
+    if (this.liveConfiguration?.models) {
+      Object.keys(this.liveConfiguration.models).forEach((model) => {
+        models.add(model);
+      });
+    }
+
+    return Array.from(models);
+  }
+
+  /**
+   * Get the telemetry config from the loaded settings.
+   */
+  resolveTelemetryConfig():
+    | Partial<import("../types/telemetry.js").TelemetryConfig>
+    | undefined {
+    return this.liveConfiguration?.monitoring?.telemetry;
+  }
+
+  /**
+   * Resolve all configuration file paths
+   */
+  getConfigurationPaths(workdir: string): ConfigurationPaths {
+    const allPaths = getAllConfigPaths(workdir);
+    const existingPaths = getExistingConfigPaths(workdir);
+
+    return {
+      userPaths: allPaths.userPaths,
+      projectPaths: allPaths.projectPaths,
+      builtinPaths: allPaths.builtinPaths,
+      allPaths: allPaths.allPaths,
+      existingPaths: existingPaths.existingPaths,
+    };
+  }
+
+  /**
+   * Add a permission rule to the local settings.local.json
+   */
+  async addAllowedRule(workdir: string, rule: string): Promise<void> {
+    const localConfigPath = path.join(workdir, ".wave", "settings.local.json");
+
+    // Ensure .wave directory exists
+    const waveDir = path.join(workdir, ".wave");
+    ensureWaveRuntimeFilesExcluded(workdir);
+    if (!existsSync(waveDir)) {
+      await fs.mkdir(waveDir, { recursive: true });
+    }
+
+    let config: WaveConfiguration = {};
+    if (existsSync(localConfigPath)) {
+      try {
+        const content = await fs.readFile(localConfigPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // If file is corrupted, start with empty config
+      }
+    }
+
+    if (!config.permissions) {
+      config.permissions = {};
+    }
+    if (!config.permissions.allow) {
+      config.permissions.allow = [];
+    }
+
+    if (!config.permissions.allow.includes(rule)) {
+      config.permissions.allow.push(rule);
+      await atomicWriteFile(localConfigPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Add an additional directory to the local settings.local.json
+   * `permissions.additionalDirectories`, so it persists across sessions.
+   */
+  async addAdditionalDirectory(
+    workdir: string,
+    directory: string,
+  ): Promise<void> {
+    const localConfigPath = path.join(workdir, ".wave", "settings.local.json");
+
+    // Ensure .wave directory exists
+    const waveDir = path.join(workdir, ".wave");
+    ensureWaveRuntimeFilesExcluded(workdir);
+    if (!existsSync(waveDir)) {
+      await fs.mkdir(waveDir, { recursive: true });
+    }
+
+    let config: WaveConfiguration = {};
+    if (existsSync(localConfigPath)) {
+      try {
+        const content = await fs.readFile(localConfigPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // If file is corrupted, start with empty config
+      }
+    }
+
+    if (!config.permissions) {
+      config.permissions = {};
+    }
+    if (!config.permissions.additionalDirectories) {
+      config.permissions.additionalDirectories = [];
+    }
+
+    if (!config.permissions.additionalDirectories.includes(directory)) {
+      config.permissions.additionalDirectories.push(directory);
+      await atomicWriteFile(localConfigPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Update the enabled state of a plugin in the specified scope
+   */
+  async updateEnabledPlugin(
+    workdir: string,
+    scope: Scope,
+    pluginId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    let configPath: string;
+    if (scope === "user") {
+      configPath = getUserConfigPaths()[0]; // settings.json
+    } else if (scope === "project") {
+      configPath = getProjectConfigPaths(workdir)[1]; // settings.json
+    } else {
+      configPath = getProjectConfigPaths(workdir)[0]; // local settings.local.json
+    }
+
+    // Ensure directory exists
+    const configDir = path.dirname(configPath);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: WaveConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // Start with empty config if file is corrupted
+      }
+    }
+
+    if (!config.enabledPlugins) {
+      config.enabledPlugins = {};
+    }
+
+    config.enabledPlugins[pluginId] = enabled;
+
+    await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+  }
+
+  /**
+   * Resolve the settings.json path for a hook scope.
+   * user → ~/.wave/settings.json; project → <workdir>/.wave/settings.json
+   */
+  private resolveHookConfigPath(
+    workdir: string,
+    scope: Scope,
+  ): { configPath: string; configDir: string } {
+    const configPath =
+      scope === "user"
+        ? getUserConfigPaths()[0]
+        : getProjectConfigPaths(workdir)[1];
+    return { configPath, configDir: path.dirname(configPath) };
+  }
+
+  /**
+   * Absolute path of the settings.json that holds hooks for `scope`
+   * (user → ~/.wave/settings.json, project → <workdir>/.wave/settings.json).
+   * Hosts surface it to the GUI so editors / file panels can open the file —
+   * they cannot expand a `~` prefix, so the path must already be absolute.
+   */
+  getHookConfigPath(workdir: string, scope: "user" | "project"): string {
+    return this.resolveHookConfigPath(workdir, scope).configPath;
+  }
+
+  /**
+   * Get hook configurations at a specific scope (user or project settings.json)
+   */
+  async getHooksByScope(
+    workdir: string,
+    scope: Scope,
+  ): Promise<Partial<Record<HookEvent, HookEventConfig[]>>> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      return {};
+    }
+    const { configPath } = this.resolveHookConfigPath(workdir, scope);
+    if (!existsSync(configPath)) {
+      return {};
+    }
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const config = JSON.parse(content) as WaveConfiguration;
+      return config.hooks || {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Delete a hook at a specific scope, identified by hookName of the form
+   * `Event:Matcher`. Removes the matching entry from the scope's settings.json
+   * hooks block.
+   */
+  async deleteHook(
+    workdir: string,
+    scope: Scope,
+    hookName: string,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    const { configPath, configDir } = this.resolveHookConfigPath(
+      workdir,
+      scope,
+    );
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let config: WaveConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        config = JSON.parse(content);
+      } catch {
+        // Start with empty config if file is corrupted
+      }
+    }
+
+    const hooks = config.hooks || {};
+    const { event, matcher } = parseHookName(hookName);
+    if (!isValidHookEvent(event)) {
+      throw new Error(`Invalid hook event: ${event}`);
+    }
+    const eventConfigs = hooks[event];
+    if (eventConfigs) {
+      const remaining = eventConfigs.filter(
+        (cfg) => (cfg.matcher || "") !== (matcher || ""),
+      );
+      if (remaining.length > 0) {
+        hooks[event] = remaining;
+      } else {
+        delete hooks[event];
+      }
+      config.hooks = hooks;
+      await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+    }
+  }
+
+  /**
+   * Get merged marketplaces from all scopes, with admin-managed (remote) entries
+   * taking precedence per key (spec enterprise server-managed-config「托管配置
+   * 下发插件市场与启用列表」场景 5).
+   */
+  getMergedMarketplaces(workdir: string): Record<string, MarketplaceConfig> {
+    const mergedConfig = loadMergedWaveConfig(workdir);
+    return {
+      ...(mergedConfig?.marketplaces || {}),
+      ...(this.getManagedMarketplaces() || {}),
+    };
+  }
+
+  /**
+   * Marketplaces declared by the remote (managed) settings. `null` means the
+   * managed layer declares none, leaving the local configuration chain in charge.
+   */
+  getManagedMarketplaces(): Record<string, MarketplaceConfig> | null {
+    return getRemoteSettingsSync()?.marketplaces ?? null;
+  }
+
+  /**
+   * Get marketplaces at a specific scope
+   */
+  getScopedMarketplaces(
+    workdir: string,
+    scope: Scope,
+  ): Record<string, MarketplaceConfig> {
+    let configPath: string;
+    if (scope === "user") {
+      configPath = getUserConfigPaths()[0];
+    } else if (scope === "project") {
+      configPath = getProjectConfigPaths(workdir)[1];
+    } else {
+      configPath = getProjectConfigPaths(workdir)[0];
+    }
+    const config = loadWaveConfigFromFile(configPath);
+    return config?.marketplaces || {};
+  }
+
+  /**
+   * Add a marketplace to the specified scope
+   */
+  async addMarketplaceToScope(
+    workdir: string,
+    scope: Scope,
+    name: string,
+    config: MarketplaceConfig,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    let configPath: string;
+    if (scope === "user") {
+      configPath = getUserConfigPaths()[0];
+    } else if (scope === "project") {
+      configPath = getProjectConfigPaths(workdir)[1];
+    } else {
+      configPath = getProjectConfigPaths(workdir)[0];
+    }
+
+    const configDir = path.dirname(configPath);
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+
+    let fileConfig: WaveConfiguration = {};
+    if (existsSync(configPath)) {
+      try {
+        const content = await fs.readFile(configPath, "utf-8");
+        fileConfig = JSON.parse(content);
+      } catch {
+        // Start with empty config if file is corrupted
+      }
+    }
+
+    if (!fileConfig.marketplaces) {
+      fileConfig.marketplaces = {};
+    }
+    fileConfig.marketplaces[name] = config;
+
+    await atomicWriteFile(configPath, JSON.stringify(fileConfig, null, 2));
+  }
+
+  /**
+   * Remove a marketplace from the specified scope
+   */
+  async removeMarketplaceFromScope(
+    workdir: string,
+    scope: Scope,
+    name: string,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    let configPath: string;
+    if (scope === "user") {
+      configPath = getUserConfigPaths()[0];
+    } else if (scope === "project") {
+      configPath = getProjectConfigPaths(workdir)[1];
+    } else {
+      configPath = getProjectConfigPaths(workdir)[0];
+    }
+
+    if (!existsSync(configPath)) {
+      return;
+    }
+
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const fileConfig: WaveConfiguration = JSON.parse(content);
+
+      if (fileConfig.marketplaces && name in fileConfig.marketplaces) {
+        delete fileConfig.marketplaces[name];
+        await atomicWriteFile(configPath, JSON.stringify(fileConfig, null, 2));
+      }
+    } catch {
+      // Ignore errors for corrupted or non-existent files
+    }
+  }
+
+  /**
+   * Remove a plugin from the enabled plugins in the specified scope
+   */
+  async removeEnabledPlugin(
+    workdir: string,
+    scope: Scope,
+    pluginId: string,
+  ): Promise<void> {
+    if (scope !== "user" && !existsSync(workdir)) {
+      throw new Error(`Working directory does not exist: ${workdir}`);
+    }
+
+    let configPath: string;
+    if (scope === "user") {
+      configPath = getUserConfigPaths()[0]; // settings.json
+    } else if (scope === "project") {
+      configPath = getProjectConfigPaths(workdir)[1]; // settings.json
+    } else {
+      configPath = getProjectConfigPaths(workdir)[0]; // local settings.local.json
+    }
+
+    if (!existsSync(configPath)) {
+      return; // Nothing to remove
+    }
+
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const config: WaveConfiguration = JSON.parse(content);
+
+      if (config.enabledPlugins && pluginId in config.enabledPlugins) {
+        delete config.enabledPlugins[pluginId];
+        await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
+      }
+    } catch {
+      // Ignore errors for corrupted or non-existent files
+    }
+  }
+
+  /**
+   * Get merged enabled plugins from all scopes, with admin-managed (remote)
+   * entries taking precedence per key (spec enterprise server-managed-config
+   * 「托管配置下发插件市场与启用列表」场景 5). A managed `false` therefore
+   * force-disables a plugin no matter what the local files say.
+   */
+  getMergedEnabledPlugins(workdir: string): Record<string, boolean> {
+    const mergedConfig = loadMergedWaveConfig(workdir);
+    return {
+      ...(mergedConfig?.enabledPlugins || {}),
+      ...(this.getManagedEnabledPlugins() || {}),
+    };
+  }
+
+  /**
+   * Enabled-plugin entries declared by the remote (managed) settings. `null`
+   * means the managed layer declares none. Doubles as the authoritative
+   * "is this plugin managed by the organization" lookup (spec plugin A-024).
+   */
+  getManagedEnabledPlugins(): Record<string, boolean> | null {
+    return getRemoteSettingsSync()?.enabledPlugins ?? null;
+  }
+
+  /**
+   * Load Wave configuration from a JSON file
+   * Supports both hooks and environment variables with proper validation
+   */
+  loadWaveConfigFromFile(filePath: string): WaveConfiguration | null {
+    return loadWaveConfigFromFile(filePath);
+  }
+}
+// =============================================================================
+// Extracted Configuration Functions
+// =============================================================================
+
+/**
+ * Validate environment variable configuration
+ */
+export function validateEnvironmentConfig(
+  env: unknown,
+  configPath?: string,
+): EnvironmentValidationResult {
+  const result: EnvironmentValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Check if env is defined
+  if (env === undefined || env === null) {
+    return result; // undefined/null env is valid (means no env vars)
+  }
+
+  // Validate that env is a Record<string, string>
+  if (!isValidEnvironmentVars(env)) {
+    result.isValid = false;
+    result.errors.push(
+      `Invalid env field format${configPath ? ` in ${configPath}` : ""}. Environment variables must be a Record<string, string>.`,
+    );
+    return result;
+  }
+
+  // Additional validation for environment variable names
+  const envVars = env as Record<string, string>;
+  for (const [key, value] of Object.entries(envVars)) {
+    // Check for valid environment variable naming convention
+    if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) {
+      result.warnings.push(
+        `Environment variable '${key}' does not follow standard naming convention (alphanumeric and underscores only).`,
+      );
+    }
+
+    // Check for empty values
+    if (value === "") {
+      result.warnings.push(`Environment variable '${key}' has an empty value.`);
+    }
+
+    // Check for reserved variable names that might cause conflicts
+    const reservedNames = [
+      "PATH",
+      "HOME",
+      "USER",
+      "PWD",
+      "SHELL",
+      "TERM",
+      "NODE_ENV",
+    ];
+    if (reservedNames.includes(key.toUpperCase())) {
+      result.warnings.push(
+        `Environment variable '${key}' overrides a system variable, which may cause unexpected behavior.`,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Merge environment configurations with project taking precedence over user
+ */
+export function mergeEnvironmentConfig(
+  userEnv: Record<string, string> | undefined,
+  projectEnv: Record<string, string> | undefined,
+  options: EnvironmentMergeOptions = {},
+): MergedEnvironmentContext {
+  const userVars = userEnv || {};
+  const projectVars = projectEnv || {};
+  const mergedVars: Record<string, string> = {};
+  const conflicts: MergedEnvironmentContext["conflicts"] = [];
+
+  // Start with user environment variables
+  Object.assign(mergedVars, userVars);
+
+  // Override with project environment variables and track conflicts
+  for (const [key, projectValue] of Object.entries(projectVars)) {
+    const userValue = userVars[key];
+
+    if (
+      userValue !== undefined &&
+      userValue !== projectValue &&
+      options.includeConflictWarnings !== false
+    ) {
+      // Conflict detected - project value takes precedence
+      conflicts.push({
+        key,
+        userValue,
+        projectValue,
+        resolvedValue: projectValue,
+      });
+    }
+
+    mergedVars[key] = projectValue;
+  }
+
+  return {
+    userVars,
+    projectVars,
+    mergedVars,
+    conflicts,
+  };
+}
+
+/**
+ * Load Wave configuration from a JSON file
+ * Supports both hooks and environment variables with proper validation
+ */
+export function loadWaveConfigFromFile(
+  filePath: string,
+): WaveConfiguration | null {
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const content = readFileSync(filePath, "utf-8");
+
+    // Tolerate empty/whitespace-only files: a concurrent writer may have the
+    // file truncated mid-write. Returning null lets callers skip this source
+    // instead of crashing (consistent with the "file not found" path).
+    if (content.trim() === "") {
+      logger.warn(`Empty configuration file (likely mid-write): ${filePath}`);
+      return null;
+    }
+
+    const config = JSON.parse(content) as WaveConfiguration;
+
+    return {
+      hooks: config.hooks || undefined,
+      env: config.env || undefined,
+      permissions: config.permissions || undefined,
+      enabledPlugins: config.enabledPlugins || undefined,
+      language: config.language || undefined,
+      model: config.model || undefined,
+      autoMemoryEnabled:
+        config.autoMemoryEnabled !== undefined
+          ? config.autoMemoryEnabled
+          : undefined,
+      autoMemoryFrequency:
+        config.autoMemoryFrequency !== undefined
+          ? config.autoMemoryFrequency
+          : undefined,
+      cleanupPeriodDays:
+        config.cleanupPeriodDays !== undefined
+          ? config.cleanupPeriodDays
+          : undefined,
+      models: config.models || undefined,
+      marketplaces: config.marketplaces || undefined,
+      worktree: config.worktree || undefined,
+      enableArtifact:
+        config.enableArtifact !== undefined ? config.enableArtifact : undefined,
+      enableExec:
+        config.enableExec !== undefined ? config.enableExec : undefined,
+    };
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      // Tolerate corrupt JSON: a concurrent writer may leave the file in a
+      // partially-written state. Warn and return null so callers skip this
+      // source instead of crashing.
+      logger.warn(`Invalid JSON syntax in ${filePath}: ${error.message}`);
+      return null;
+    }
+
+    // Re-throw other errors as-is
+    throw error;
+  }
+}
+
+/**
+ * Load the user-level (~/.wave/settings.json) `env` block only — no workdir
+ * dependency. Used at daemon startup to apply WAVE_SERVER_URL before any agent
+ * initializes: auth queries (getAuthStatus) can run before the first agent,
+ * and AuthService falls back to the default URL otherwise.
+ */
+export function loadUserConfigEnv(): Record<string, string> {
+  const config = loadWaveConfigFromFile(getUserConfigPaths()[0]);
+  return config?.env ?? {};
+}
+
+/**
+ * Load and merge Wave configuration from both user and project sources
+ * Project configuration takes precedence over user configuration
+ * Checks .local.json files first, then falls back to .json files
+ */
+export function loadMergedWaveConfig(
+  workdir: string,
+): WaveConfiguration | null {
+  const userPaths = getUserConfigPaths(); // [json]
+  const projectPaths = getProjectConfigPaths(workdir); // [local, json]
+
+  // Priority order (lowest to highest):
+  // user settings.json -> project settings.json -> local settings.local.json
+  const pathsToLoad = [
+    userPaths[0], // user settings.json
+    projectPaths[1], // project settings.json
+    projectPaths[0], // local settings.local.json
+  ];
+
+  const configs: WaveConfiguration[] = [];
+  for (const path of pathsToLoad) {
+    const config = loadWaveConfigFromFile(path);
+    if (config) {
+      configs.push(config);
+    }
+  }
+
+  if (configs.length === 0) {
+    return null;
+  }
+
+  // Merge all configurations in order
+  const mergedConfig: WaveConfiguration = {};
+
+  for (const config of configs) {
+    // Merge hooks
+    if (config.hooks) {
+      if (!mergedConfig.hooks) mergedConfig.hooks = {};
+      for (const [event, eventConfigs] of Object.entries(config.hooks)) {
+        if (!isValidHookEvent(event)) continue;
+        if (!mergedConfig.hooks[event]) mergedConfig.hooks[event] = [];
+        mergedConfig.hooks[event]!.push(...eventConfigs);
+      }
+    }
+
+    // Merge env
+    if (config.env) {
+      const environmentContext = mergeEnvironmentConfig(
+        mergedConfig.env,
+        config.env,
+        { includeConflictWarnings: true },
+      );
+      mergedConfig.env = environmentContext.mergedVars;
+    }
+
+    // Merge permissions
+    if (config.permissions) {
+      if (!mergedConfig.permissions) mergedConfig.permissions = {};
+
+      // Merge allow rules
+      if (config.permissions.allow) {
+        if (!mergedConfig.permissions.allow)
+          mergedConfig.permissions.allow = [];
+        mergedConfig.permissions.allow = [
+          ...new Set([
+            ...mergedConfig.permissions.allow,
+            ...config.permissions.allow,
+          ]),
+        ];
+      }
+
+      // Merge deny rules
+      if (config.permissions.deny) {
+        if (!mergedConfig.permissions.deny) mergedConfig.permissions.deny = [];
+        mergedConfig.permissions.deny = [
+          ...new Set([
+            ...mergedConfig.permissions.deny,
+            ...config.permissions.deny,
+          ]),
+        ];
+      }
+
+      // Merge defaultMode (last one wins)
+      if (config.permissions.defaultMode !== undefined) {
+        mergedConfig.permissions.defaultMode = config.permissions.defaultMode;
+      }
+
+      // Merge additionalDirectories
+      if (config.permissions.additionalDirectories) {
+        if (!mergedConfig.permissions.additionalDirectories)
+          mergedConfig.permissions.additionalDirectories = [];
+        mergedConfig.permissions.additionalDirectories = [
+          ...new Set([
+            ...mergedConfig.permissions.additionalDirectories,
+            ...config.permissions.additionalDirectories,
+          ]),
+        ];
+      }
+    }
+
+    // Merge enabledPlugins
+    if (config.enabledPlugins) {
+      if (!mergedConfig.enabledPlugins) mergedConfig.enabledPlugins = {};
+      Object.assign(mergedConfig.enabledPlugins, config.enabledPlugins);
+    }
+
+    // Merge language (last one wins)
+    if (config.language !== undefined) {
+      mergedConfig.language = config.language;
+    }
+
+    // Merge model (last one wins)
+    if (config.model !== undefined) {
+      mergedConfig.model = config.model;
+    }
+
+    // Merge autoMemoryEnabled (last one wins)
+    if (config.autoMemoryEnabled !== undefined) {
+      mergedConfig.autoMemoryEnabled = config.autoMemoryEnabled;
+    }
+
+    // Merge autoMemoryFrequency (last one wins)
+    if (config.autoMemoryFrequency !== undefined) {
+      mergedConfig.autoMemoryFrequency = config.autoMemoryFrequency;
+    }
+
+    // Merge cleanupPeriodDays (last one wins)
+    if (config.cleanupPeriodDays !== undefined) {
+      mergedConfig.cleanupPeriodDays = config.cleanupPeriodDays;
+    }
+
+    // Merge marketplaces (last one wins for same key)
+    if (config.marketplaces) {
+      if (!mergedConfig.marketplaces) mergedConfig.marketplaces = {};
+      Object.assign(mergedConfig.marketplaces, config.marketplaces);
+    }
+
+    // Merge worktree (last one wins)
+    if (config.worktree !== undefined) {
+      mergedConfig.worktree = config.worktree;
+    }
+
+    // Merge enableArtifact (last one wins)
+    if (config.enableArtifact !== undefined) {
+      mergedConfig.enableArtifact = config.enableArtifact;
+    }
+
+    // Merge enableExec (last one wins)
+    if (config.enableExec !== undefined) {
+      mergedConfig.enableExec = config.enableExec;
+    }
+
+    // Merge models
+    if (config.models) {
+      if (!mergedConfig.models) mergedConfig.models = {};
+      for (const [modelName, modelConfig] of Object.entries(config.models)) {
+        if (!mergedConfig.models[modelName]) {
+          mergedConfig.models[modelName] = {};
+        }
+        Object.assign(mergedConfig.models[modelName], modelConfig);
+      }
+    }
+  }
+
+  return {
+    hooks:
+      mergedConfig.hooks && Object.keys(mergedConfig.hooks).length > 0
+        ? mergedConfig.hooks
+        : undefined,
+    env:
+      mergedConfig.env && Object.keys(mergedConfig.env).length > 0
+        ? mergedConfig.env
+        : undefined,
+    permissions:
+      mergedConfig.permissions &&
+      Object.keys(mergedConfig.permissions).length > 0
+        ? mergedConfig.permissions
+        : undefined,
+    enabledPlugins:
+      mergedConfig.enabledPlugins &&
+      Object.keys(mergedConfig.enabledPlugins).length > 0
+        ? mergedConfig.enabledPlugins
+        : undefined,
+    language: mergedConfig.language,
+    model: mergedConfig.model,
+    autoMemoryEnabled: mergedConfig.autoMemoryEnabled,
+    autoMemoryFrequency: mergedConfig.autoMemoryFrequency,
+    cleanupPeriodDays: mergedConfig.cleanupPeriodDays,
+    marketplaces:
+      mergedConfig.marketplaces &&
+      Object.keys(mergedConfig.marketplaces).length > 0
+        ? mergedConfig.marketplaces
+        : undefined,
+    models:
+      mergedConfig.models && Object.keys(mergedConfig.models).length > 0
+        ? mergedConfig.models
+        : undefined,
+    worktree: mergedConfig.worktree,
+    enableArtifact: mergedConfig.enableArtifact,
+    enableExec: mergedConfig.enableExec,
+  };
+}
+
+/**
+ * Parse a hookName of the form `Event:Matcher` (e.g. `PreToolUse:Write`)
+ * into its event and matcher parts. Hooks without a matcher use the event
+ * name alone (e.g. `SessionStart`).
+ */
+export function parseHookName(hookName: string): {
+  event: HookEvent;
+  matcher: string;
+} {
+  const separator = hookName.indexOf(":");
+  if (separator === -1) {
+    return { event: hookName as HookEvent, matcher: "" };
+  }
+  return {
+    event: hookName.slice(0, separator) as HookEvent,
+    matcher: hookName.slice(separator + 1),
+  };
+}

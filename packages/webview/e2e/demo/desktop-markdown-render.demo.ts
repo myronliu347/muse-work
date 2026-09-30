@@ -1,7 +1,7 @@
 import { test, expect } from "../utils/desktopTestHarness.js";
 import { MessageInjector } from "../utils/messageInjector.js";
 import { MockDataGenerator } from "../fixtures/mockData.js";
-import { READ_TOOL_NAME } from "wave-agent-sdk";
+import { READ_TOOL_NAME } from "@muse-work/agent";
 import { screenshotWebp } from "../utils/screenshot.js";
 
 const DIR_A = "/Users/dev/projects/wave-agent";

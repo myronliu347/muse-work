@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { PluginLoader } from "wave-agent-sdk/dist/services/pluginLoader.js";
+import { PluginLoader } from "@muse-work/agent";
 import { resolvePluginDir } from "../src/services/museSettings.js";
 
 const pluginDir = resolvePluginDir("mattpocock");

@@ -1,0 +1,210 @@
+import { readFileSync } from "fs";
+import { dirname } from "path";
+import { parseFrontmatterYaml, splitFrontmatter } from "./frontmatterYaml.js";
+import type {
+  ParsedSkillFile,
+  SkillParseOptions,
+  SkillFrontmatter,
+  SkillMetadata,
+} from "../types/index.js";
+
+/**
+ * Parse a SKILL.md file and validate its contents
+ */
+export function parseSkillFile(
+  filePath: string,
+  options: SkillParseOptions = {},
+): ParsedSkillFile {
+  const { validateMetadata = true, basePath } = options;
+
+  const result: ParsedSkillFile = {
+    frontmatter: { name: "", description: "" },
+    content: "",
+    skillMetadata: {
+      name: "",
+      description: "",
+      type: "personal",
+      skillPath: "",
+    },
+    validationErrors: [],
+    isValid: false,
+  };
+
+  try {
+    // Read file content
+    const content = readFileSync(filePath, "utf-8");
+    result.content = content;
+
+    // Parse YAML frontmatter
+    const { yaml } = splitFrontmatter(content);
+    if (yaml === null) {
+      result.validationErrors.push("Missing YAML frontmatter");
+      return result;
+    }
+
+    result.frontmatter = parseYamlFrontmatter(yaml);
+
+    if (!result.frontmatter.name || !result.frontmatter.description) {
+      result.validationErrors.push(
+        "Missing required fields: name and description",
+      );
+      return result;
+    }
+
+    // Determine skill type and path
+    const skillPath = basePath || dirname(filePath);
+    const skillType =
+      skillPath.includes("/.wave/skills") ||
+      skillPath.includes("\\.wave\\skills") ||
+      skillPath.includes("/.claude/skills") ||
+      skillPath.includes("\\.claude\\skills") ||
+      skillPath.includes("/.agents/skills") ||
+      skillPath.includes("\\.agents\\skills")
+        ? "project"
+        : "personal";
+
+    // Extract allowed tools
+    let allowedTools: string[] | undefined;
+    const rawAllowedTools = result.frontmatter["allowed-tools"];
+    if (Array.isArray(rawAllowedTools)) {
+      allowedTools = rawAllowedTools.map((t) => String(t).trim());
+    } else if (typeof rawAllowedTools === "string") {
+      allowedTools = rawAllowedTools
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    }
+
+    // Extract disable-model-invocation
+    const disableModelInvocation =
+      result.frontmatter["disable-model-invocation"] === true ||
+      result.frontmatter["disable-model-invocation"] === "true";
+
+    // Extract user-invocable (default to true)
+    const userInvocable =
+      result.frontmatter["user-invocable"] === undefined ||
+      result.frontmatter["user-invocable"] === true ||
+      result.frontmatter["user-invocable"] === "true";
+
+    result.skillMetadata = {
+      name: result.frontmatter.name,
+      description: result.frontmatter.description,
+      type: skillType,
+      skillPath,
+      allowedTools,
+      context: result.frontmatter.context,
+      agent: result.frontmatter.agent,
+      model: result.frontmatter.model as string | undefined,
+      disableModelInvocation,
+      userInvocable,
+    };
+
+    // Validate metadata if requested
+    if (validateMetadata) {
+      const validationErrors = validateSkillMetadata(result.skillMetadata);
+      result.validationErrors.push(...validationErrors);
+    }
+
+    result.isValid = result.validationErrors.length === 0;
+    return result;
+  } catch (error) {
+    result.validationErrors.push(
+      `Failed to read skill file: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return result;
+  }
+}
+
+/**
+ * Simple YAML frontmatter parser for skill files.
+ *
+ * The value parsing lives in `frontmatterYaml.ts` so skills, subagents, custom
+ * slash commands, memory rules and memory files all read frontmatter the same
+ * way (block scalars included — see spec `ecosystem/agent-skills` 场景 2).
+ * Here we only narrow the result to the fields a skill declares.
+ */
+function parseYamlFrontmatter(yamlContent: string): SkillFrontmatter {
+  const parsed = parseFrontmatterYaml(yamlContent);
+  const asString = (key: string): string | undefined => {
+    const value = parsed[key];
+    return typeof value === "string" ? value : undefined;
+  };
+
+  return {
+    ...parsed,
+    // Required fields must be strings: a bare `name:` / `description:` key
+    // parses to a list, which validation reports as missing.
+    name: asString("name") ?? "",
+    description: asString("description") ?? "",
+  };
+}
+
+/**
+ * Validate skill metadata according to requirements
+ */
+export function validateSkillMetadata(metadata: SkillMetadata): string[] {
+  const errors: string[] = [];
+
+  // Import SKILL_DEFAULTS dynamically to avoid circular imports
+  const NAME_PATTERN = /^[a-z0-9-]+$/;
+  const MAX_NAME_LENGTH = 64;
+  const MIN_DESCRIPTION_LENGTH = 1;
+
+  // Validate name
+  if (!metadata.name) {
+    errors.push("Skill name is required");
+  } else {
+    if (metadata.name.length > MAX_NAME_LENGTH) {
+      errors.push(`Skill name must be ${MAX_NAME_LENGTH} characters or less`);
+    }
+    if (!NAME_PATTERN.test(metadata.name)) {
+      errors.push(
+        "Skill name must contain only lowercase letters, numbers, and hyphens",
+      );
+    }
+  }
+
+  // Validate description (no length limit, aligned with Claude Code which
+  // truncates long descriptions at render time instead of rejecting the skill)
+  if (!metadata.description) {
+    errors.push("Skill description is required");
+  } else {
+    if (metadata.description.length < MIN_DESCRIPTION_LENGTH) {
+      errors.push(
+        `Skill description must be at least ${MIN_DESCRIPTION_LENGTH} character`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Check if a skill name is valid format
+ */
+export function isValidSkillName(name: string): boolean {
+  const NAME_PATTERN = /^[a-z0-9-]+$/;
+  const MAX_NAME_LENGTH = 64;
+
+  return (
+    name.length > 0 && name.length <= MAX_NAME_LENGTH && NAME_PATTERN.test(name)
+  );
+}
+
+/**
+ * Generate user-friendly error messages for skill validation
+ */
+export function formatSkillError(skillPath: string, errors: string[]): string {
+  const header = `Skill validation failed for ${skillPath}:`;
+  const errorList = errors.map((error) => `  • ${error}`).join("\n");
+
+  const suggestions = [
+    "To fix this skill:",
+    "  1. Ensure SKILL.md has valid YAML frontmatter (---...---)",
+    "  2. Include required fields: name and description",
+    "  3. Use lowercase letters, numbers, and hyphens only for name",
+    "  4. Keep name under 64 characters",
+  ].join("\n");
+
+  return `${header}\n${errorList}\n\n${suggestions}`;
+}

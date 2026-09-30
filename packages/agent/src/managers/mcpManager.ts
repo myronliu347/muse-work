@@ -1,0 +1,1277 @@
+import { promises as fs } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { ChatCompletionFunctionTool } from "openai/resources.js";
+import {
+  createMcpToolPlugin,
+  findToolServer,
+  mcpToolFlatName,
+} from "../utils/mcpUtils.js";
+import type { ToolPlugin, ToolResult, ToolContext } from "../tools/types.js";
+import { Container } from "../utils/container.js";
+import { truncateMcpInstructions } from "../utils/mcpInstructions.js";
+import type { ConfigurationService } from "../services/configurationService.js";
+import type {
+  Logger,
+  McpServerConfig,
+  McpConfig,
+  McpTool,
+  McpToolCallResult,
+  McpServerStatus,
+} from "../types/index.js";
+
+interface McpConnection {
+  client: Client;
+  transport: Transport;
+  process: null; // StdioClientTransport manages process internally
+}
+
+export interface McpManagerCallbacks {
+  onMcpServersChange?: (servers: McpServerStatus[]) => void;
+}
+
+import { logger } from "../utils/globalLogger.js";
+
+export interface McpManagerOptions {
+  callbacks?: McpManagerCallbacks;
+  logger?: Logger;
+  /** Pre-configured MCP servers passed from constructor options */
+  mcpServers?: Record<string, McpServerConfig>;
+}
+
+/**
+ * Expand environment variables in a string value.
+ * Supports ${VAR} and ${VAR:-default} patterns.
+ */
+const WAVE_TEMPLATE_VARS = ["WAVE_PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"];
+
+/**
+ * Expand environment variables in a string value.
+ * Supports ${VAR} and ${VAR:-default} patterns.
+ *
+ * @param env - Merged env to resolve against (session snapshot over OS env).
+ *              Defaults to `process.env` for backward compatibility with tests
+ *              and standalone callers.
+ */
+export function expandEnvVars(
+  value: string,
+  env: Record<string, string | undefined> = process.env as Record<
+    string,
+    string | undefined
+  >,
+): string {
+  return value.replace(/\$\{([^}]+)\}/g, (_match, expr: string) => {
+    const [varName, ...rest] = expr.split(":-");
+    const defaultValue = rest.join(":-");
+    // Skip Wave-specific template variables — they are handled at spawn time
+    if (WAVE_TEMPLATE_VARS.includes(varName)) {
+      return _match; // return original ${...} string untouched
+    }
+    return env[varName] ?? process.env[varName] ?? defaultValue;
+  });
+}
+
+/**
+ * Walk an MCP config and resolve environment variables in all string fields.
+ * Expands ${VAR} against the session env snapshot (over OS env); falls back to
+ * process.env. WAVE_PLUGIN_ROOT is skipped — handled at spawn time.
+ */
+export function resolveMcpConfig(
+  config: McpConfig,
+  env: Record<string, string | undefined> = process.env as Record<
+    string,
+    string | undefined
+  >,
+): McpConfig {
+  const resolved: McpConfig = { mcpServers: {} };
+
+  for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+    const resolvedServer: McpServerConfig = { ...serverConfig };
+
+    if (resolvedServer.command) {
+      resolvedServer.command = expandEnvVars(resolvedServer.command, env);
+    }
+
+    if (resolvedServer.args) {
+      resolvedServer.args = resolvedServer.args.map((a) =>
+        expandEnvVars(a, env),
+      );
+    }
+
+    if (resolvedServer.env) {
+      const resolvedEnv: Record<string, string> = {};
+      for (const [key, val] of Object.entries(resolvedServer.env)) {
+        resolvedEnv[key] = expandEnvVars(val, env);
+      }
+      resolvedServer.env = resolvedEnv;
+    }
+
+    if (resolvedServer.url) {
+      resolvedServer.url = expandEnvVars(resolvedServer.url, env);
+    }
+
+    if (resolvedServer.headers) {
+      const resolvedHeaders: Record<string, string> = {};
+      for (const [key, val] of Object.entries(resolvedServer.headers)) {
+        resolvedHeaders[key] = expandEnvVars(val, env);
+      }
+      resolvedServer.headers = resolvedHeaders;
+    }
+
+    resolved.mcpServers[name] = resolvedServer;
+  }
+
+  return resolved;
+}
+
+export class McpManager {
+  private config: McpConfig | null = null;
+  private servers: Map<string, McpServerStatus> = new Map();
+  private connections: Map<string, McpConnection> = new Map();
+  private configPath: string = "";
+  private userConfigPath: string = "";
+  private workdir: string = "";
+  private callbacks: McpManagerCallbacks;
+  private mcpServers: Record<string, McpServerConfig> | undefined;
+
+  private reconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  private reconnectAttempts: Map<string, number> = new Map();
+  /** Explicit disconnectServer teardowns currently in flight */
+  private disconnecting: Set<string> = new Set();
+
+  constructor(
+    private container: Container,
+    options: McpManagerOptions = {},
+  ) {
+    this.callbacks = options.callbacks || {};
+    this.mcpServers = options.mcpServers;
+  }
+
+  /**
+   * Merged env for this session: OS env overlaid with the per-session settings
+   * snapshot. MCP env-var expansion (${VAR}) resolves against this so multiple
+   * sessions in one `wave --stdio` process don't read each other's settings env.
+   */
+  private get envSnapshot(): Record<string, string> {
+    return (
+      this.container
+        .get<ConfigurationService>("ConfigurationService")
+        ?.getMergedEnv?.() ?? (process.env as Record<string, string>)
+    );
+  }
+
+  /**
+   * Initialize MCP manager with working directory and optionally auto-connect
+   */
+  async initialize(
+    workdir: string,
+    autoConnect: boolean = false,
+  ): Promise<void> {
+    this.configPath = join(workdir, ".mcp.json");
+    this.userConfigPath = join(homedir(), ".wave", "mcp.json");
+    this.workdir = workdir;
+
+    // Register constructor-provided servers before loading .mcp.json
+    if (this.mcpServers) {
+      for (const [name, config] of Object.entries(this.mcpServers)) {
+        this.addServer(name, config);
+      }
+    }
+
+    if (autoConnect) {
+      logger?.debug("Initializing MCP servers...");
+
+      // Load workspace MCP configuration (always read, merge with any plugin servers already added)
+      await this.loadConfig();
+
+      const config = this.config;
+
+      if (config && config.mcpServers) {
+        // Connect to all configured servers in background to avoid blocking agent initialization
+        Object.keys(config.mcpServers).forEach((serverName) => {
+          logger?.debug(`Connecting to MCP server: ${serverName}`);
+          this.connectServer(serverName)
+            .then((success) => {
+              if (success) {
+                logger?.debug(
+                  `Successfully connected to MCP server: ${serverName}`,
+                );
+              } else {
+                logger?.warn(`Failed to connect to MCP server: ${serverName}`);
+              }
+            })
+            .catch((error) => {
+              logger?.error(
+                `Background connection to MCP server ${serverName} failed:`,
+                error,
+              );
+            });
+        });
+      }
+
+      logger?.debug("MCP servers initialization started in background");
+      // Trigger state change callback after starting initialization
+      this.callbacks.onMcpServersChange?.(this.getAllServers());
+    }
+  }
+
+  async ensureConfigLoaded(): Promise<McpConfig | null> {
+    if (!this.config) {
+      return this.loadConfig();
+    }
+    return this.config;
+  }
+
+  async loadConfig(): Promise<McpConfig | null> {
+    if (!this.configPath) {
+      logger?.warn("MCP config path not set. Call initialize() first.");
+      return null;
+    }
+
+    try {
+      // Load user-level (~/.wave/mcp.json) and project-level (<workdir>/.mcp.json)
+      // configs, then merge with project taking precedence over user-level.
+      const userConfig = await this.readConfigFile(this.userConfigPath);
+      const projectConfig = await this.readConfigFile(this.configPath);
+
+      // Neither file exists: preserve the original null contract (constructor-
+      // provided servers may still be present in this.config).
+      if (!userConfig && !projectConfig) {
+        return this.config;
+      }
+
+      const userResolved = userConfig
+        ? resolveMcpConfig(userConfig, this.envSnapshot)
+        : null;
+      const projectResolved = projectConfig
+        ? resolveMcpConfig(projectConfig, this.envSnapshot)
+        : null;
+
+      // Extract original (pre-resolution) URLs for safe display
+      const originalUrls: Record<string, string | undefined> = {};
+      for (const [name, serverConfig] of Object.entries({
+        ...(userConfig?.mcpServers || {}),
+        ...(projectConfig?.mcpServers || {}),
+      })) {
+        originalUrls[name] = serverConfig.url;
+      }
+
+      // Merge: existing config (e.g. plugin servers) -> user -> project -> constructor
+      const merged: McpConfig = { mcpServers: {} };
+      if (this.config) {
+        Object.assign(merged.mcpServers, this.config.mcpServers);
+      }
+      if (userResolved) {
+        Object.assign(merged.mcpServers, userResolved.mcpServers);
+      }
+      if (projectResolved) {
+        Object.assign(merged.mcpServers, projectResolved.mcpServers);
+      }
+      if (this.mcpServers) {
+        Object.assign(merged.mcpServers, this.mcpServers);
+      }
+      this.config = merged;
+
+      // Initialize server statuses (preserve existing status for already known servers)
+      if (this.config) {
+        for (const [name, config] of Object.entries(this.config.mcpServers)) {
+          const existingServer = this.servers.get(name);
+
+          // Determine scope: plugin servers registered with pluginRoot keep
+          // their plugin scope; user-level names come from ~/.wave/mcp.json.
+          let scope: McpServerStatus["scope"] = existingServer?.scope;
+          if (!scope) {
+            if (config.pluginRoot) {
+              scope = "plugin";
+            } else if (userConfig?.mcpServers?.[name]) {
+              scope = "user";
+            } else {
+              scope = "project";
+            }
+          }
+
+          if (existingServer) {
+            // Update config but preserve status and other runtime info
+            this.servers.set(name, {
+              ...existingServer,
+              config, // Update config in case it changed
+              originalUrl: originalUrls[name] ?? existingServer.originalUrl,
+              scope,
+            });
+          } else {
+            // New server, initialize with disconnected status
+            this.servers.set(name, {
+              name,
+              config,
+              originalUrl: originalUrls[name],
+              scope,
+              status: "disconnected",
+            });
+          }
+        }
+      }
+
+      return this.config;
+    } catch (error) {
+      // Only log error if it's not a "file not found" error
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger?.error("Failed to load MCP config:", error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Read a raw MCP config file, tolerating ENOENT and corrupt JSON.
+   */
+  private async readConfigFile(configPath: string): Promise<McpConfig | null> {
+    if (!configPath) return null;
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      return JSON.parse(content) as McpConfig;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") return null;
+      logger?.error("Failed to load .mcp.json:", error);
+      return null;
+    }
+  }
+
+  /**
+   * The user-level MCP config path (~/.wave/mcp.json).
+   */
+  getUserConfigPath(): string {
+    return this.userConfigPath;
+  }
+
+  /**
+   * The project-level MCP config path (<workdir>/.mcp.json).
+   */
+  getProjectConfigPath(): string {
+    return this.configPath;
+  }
+
+  async saveConfig(config: McpConfig): Promise<boolean> {
+    try {
+      await fs.writeFile(this.configPath, JSON.stringify(config, null, 2));
+      this.config = config;
+      return true;
+    } catch (error) {
+      logger?.error("Failed to save .mcp.json:", error);
+      return false;
+    }
+  }
+
+  getConfig(): McpConfig | null {
+    return this.config;
+  }
+
+  getAllServers(): McpServerStatus[] {
+    return Array.from(this.servers.values());
+  }
+
+  getServer(name: string): McpServerStatus | undefined {
+    return this.servers.get(name);
+  }
+
+  /**
+   * The usage notes each usable server described about itself (`initialize`'s
+   * `instructions`), for the announcement appended to the conversation.
+   *
+   * "Usable" is the same predicate `getAllConnectedTools` uses — connected, or
+   * reconnecting with its last-known snapshot retained — so a server's prose is
+   * visible exactly while its tools are. A server that dropped, failed to connect
+   * or went to `error` keeps its snapshot but stops being reported here, which is
+   * what keeps a dead server from still talking to the model.
+   *
+   * `isDenied` receives flattened tool names (`mcp__server__tool`, the shape
+   * permission rules match on); a server whose tools are *all* excluded by rules is
+   * dropped whole, so prose cannot reach the context after the user ruled the
+   * server out. A server exposing no tools at all is still reported: nothing was
+   * excluded, it is simply a server that brings context rather than tools.
+   */
+  getServerInstructions(
+    isDenied?: (toolName: string) => boolean,
+  ): Array<{ name: string; instructions: string }> {
+    const result: Array<{ name: string; instructions: string }> = [];
+    for (const server of this.servers.values()) {
+      const usable =
+        server.status === "connected" || server.status === "reconnecting";
+      const instructions = server.instructions?.trim();
+      if (!usable || !instructions) continue;
+      const tools = server.tools ?? [];
+      if (
+        tools.length > 0 &&
+        tools.every((tool) =>
+          isDenied?.(mcpToolFlatName(server.name, tool.name)),
+        )
+      ) {
+        continue;
+      }
+      result.push({ name: server.name, instructions });
+    }
+    return result;
+  }
+
+  updateServerStatus(name: string, updates: Partial<McpServerStatus>): void {
+    const server = this.servers.get(name);
+    if (server) {
+      this.servers.set(name, { ...server, ...updates });
+      // Trigger state change callback
+      this.callbacks.onMcpServersChange?.(this.getAllServers());
+    }
+  }
+
+  addServer(name: string, config: McpServerConfig): boolean {
+    if (this.servers.has(name)) {
+      return false;
+    }
+
+    // Capture original URL before any resolution for safe display
+    const originalUrl = config.url;
+
+    // Expand env vars against the session snapshot (over OS env, e.g. ${TAVILY_API_KEY})
+    const env = this.envSnapshot;
+    const resolvedConfig: McpServerConfig = { ...config };
+    if (resolvedConfig.command) {
+      resolvedConfig.command = expandEnvVars(resolvedConfig.command, env);
+    }
+    if (resolvedConfig.args) {
+      resolvedConfig.args = resolvedConfig.args.map((a) =>
+        expandEnvVars(a, env),
+      );
+    }
+    if (resolvedConfig.env) {
+      const resolvedEnv: Record<string, string> = {};
+      for (const [key, val] of Object.entries(resolvedConfig.env)) {
+        resolvedEnv[key] = expandEnvVars(val, env);
+      }
+      resolvedConfig.env = resolvedEnv;
+    }
+    if (resolvedConfig.url) {
+      resolvedConfig.url = expandEnvVars(resolvedConfig.url, env);
+    }
+    if (resolvedConfig.headers) {
+      const resolvedHeaders: Record<string, string> = {};
+      for (const [key, val] of Object.entries(resolvedConfig.headers)) {
+        resolvedHeaders[key] = expandEnvVars(val, env);
+      }
+      resolvedConfig.headers = resolvedHeaders;
+    }
+
+    const newServer: McpServerStatus = {
+      name,
+      config: resolvedConfig,
+      originalUrl,
+      scope: resolvedConfig.pluginRoot ? "plugin" : undefined,
+      status: "disconnected",
+    };
+
+    this.servers.set(name, newServer);
+
+    // Update config
+    if (this.config) {
+      this.config.mcpServers[name] = resolvedConfig;
+    } else {
+      this.config = {
+        mcpServers: { [name]: resolvedConfig },
+      };
+    }
+
+    return true;
+  }
+
+  removeServer(name: string): boolean {
+    // Disconnect if connected
+    if (this.connections.has(name)) {
+      this.disconnectServer(name);
+    }
+
+    const removed = this.servers.delete(name);
+
+    if (removed && this.config) {
+      delete this.config.mcpServers[name];
+    }
+
+    return removed;
+  }
+
+  /**
+   * Drop every MCP server contributed by a plugin (matched on pluginRoot),
+   * disconnecting each one. Needed instead of re-adding under the same name
+   * because addServer refuses a name that is already registered.
+   * Called by the in-place plugin reload path before re-registering.
+   * @returns the number of servers removed
+   */
+  removeServersForPlugin(pluginRoot: string): number {
+    let removed = 0;
+    for (const [name, server] of Array.from(this.servers.entries())) {
+      if (server.config.pluginRoot !== pluginRoot) {
+        continue;
+      }
+      this.removeServer(name);
+      removed += 1;
+    }
+    if (removed > 0) {
+      logger?.debug(
+        `Removed ${removed} MCP servers for plugin root ${pluginRoot}`,
+      );
+    }
+    return removed;
+  }
+
+  /**
+   * Remove a server from a persisted config file (user or project scope),
+   * then disconnect and drop it from the in-memory registry.
+   * @param scope - "user" removes from ~/.wave/mcp.json; "project" removes from <workdir>/.mcp.json
+   * @param name - The server name
+   * @returns true if the server was found and removed
+   */
+  async removeServerFromConfig(
+    scope: "user" | "project",
+    name: string,
+  ): Promise<boolean> {
+    const configPath = scope === "user" ? this.userConfigPath : this.configPath;
+    if (!configPath) return false;
+
+    const rawConfig = await this.readConfigFile(configPath);
+    if (
+      !rawConfig ||
+      !rawConfig.mcpServers ||
+      !(name in rawConfig.mcpServers)
+    ) {
+      return false;
+    }
+
+    delete rawConfig.mcpServers[name];
+
+    if (Object.keys(rawConfig.mcpServers).length === 0) {
+      await fs.rm(configPath, { force: true });
+    } else {
+      await fs.writeFile(configPath, JSON.stringify(rawConfig, null, 2));
+    }
+
+    // Drop from memory (disconnects if connected)
+    this.removeServer(name);
+    return true;
+  }
+
+  // Real MCP connection implementation
+  async connectServer(name: string): Promise<boolean> {
+    const server = this.servers.get(name);
+    if (!server) return false;
+
+    // Already connected
+    if (this.connections.has(name)) return true;
+
+    // An explicit disconnectServer teardown is in flight for this server —
+    // don't race it (e.g. an auto-reconnect timer that just fired) by spawning
+    // a fresh process the user asked to stop.
+    if (this.disconnecting.has(name)) return false;
+
+    this.updateServerStatus(name, { status: "connecting" });
+
+    try {
+      // Create transport - it will manage the process
+      let transport: Transport;
+      let client: Client;
+      let tools: McpTool[] = [];
+      // Server-level usage notes from `initialize`; part of the connection's
+      // handshake, so it is read once here rather than re-requested later.
+      let instructions: string | undefined;
+
+      const createClient = () =>
+        new Client(
+          {
+            name: "wave-code",
+            version: "1.0.0",
+          },
+          {
+            capabilities: {},
+          },
+        );
+
+      const serverType = server.config.type;
+
+      if (serverType === "http" || (!serverType && server.config.url)) {
+        if (!server.config.url) {
+          throw new Error(
+            `MCP server ${name} with type "http" requires a 'url'`,
+          );
+        }
+        const url = new URL(server.config.url);
+        const headers = server.config.headers;
+        logger?.debug(
+          `Connecting to MCP server ${name} using Streamable HTTP at ${url.href}`,
+        );
+        transport = new StreamableHTTPClientTransport(url, {
+          requestInit: { headers },
+        });
+        client = createClient();
+        await client.connect(transport);
+        instructions = truncateMcpInstructions(client.getInstructions());
+        const toolsResponse = await client.listTools();
+        tools =
+          toolsResponse.tools?.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            outputSchema: tool.outputSchema,
+          })) || [];
+        logger?.info(`Connected to MCP server ${name} using Streamable HTTP`);
+      } else if (serverType === "sse") {
+        if (!server.config.url) {
+          throw new Error(
+            `MCP server ${name} with type "sse" requires a 'url'`,
+          );
+        }
+        const url = new URL(server.config.url);
+        const headers = server.config.headers;
+        logger?.debug(
+          `Connecting to MCP server ${name} using SSE at ${url.href}`,
+        );
+        transport = new SSEClientTransport(url, {
+          requestInit: { headers },
+        });
+        client = createClient();
+        await client.connect(transport);
+        instructions = truncateMcpInstructions(client.getInstructions());
+        const toolsResponse = await client.listTools();
+        tools =
+          toolsResponse.tools?.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            outputSchema: tool.outputSchema,
+          })) || [];
+        logger?.info(`Connected to MCP server ${name} using SSE`);
+      } else if (
+        serverType === "stdio" ||
+        (!serverType && server.config.command)
+      ) {
+        if (!server.config.command) {
+          throw new Error(
+            `MCP server ${name} with type "stdio" requires a 'command'`,
+          );
+        }
+
+        // Base env = OS env overlaid with this session's settings snapshot, so
+        // custom env vars from settings.json reach the MCP server subprocess
+        // without polluting other sessions sharing one `wave --stdio` process.
+        const env: Record<string, string> = {
+          ...this.envSnapshot,
+          ...(server.config.env || {}),
+        };
+
+        // For plugin servers, substitute ${WAVE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_ROOT}
+        let command = server.config.command;
+        let args = server.config.args || [];
+        if (server.config.pluginRoot) {
+          env.WAVE_PLUGIN_ROOT = server.config.pluginRoot;
+          env.CLAUDE_PLUGIN_ROOT = server.config.pluginRoot;
+          command = command.replace(
+            /\$\{WAVE_PLUGIN_ROOT\}/g,
+            server.config.pluginRoot,
+          );
+          command = command.replace(
+            /\$\{CLAUDE_PLUGIN_ROOT\}/g,
+            server.config.pluginRoot,
+          );
+          args = args.map((arg) => {
+            let result = arg.replace(
+              /\$\{WAVE_PLUGIN_ROOT\}/g,
+              server.config.pluginRoot!,
+            );
+            result = result.replace(
+              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
+              server.config.pluginRoot!,
+            );
+            return result;
+          });
+          // Also expand plugin root in user-provided env values
+          for (const [key, value] of Object.entries(server.config.env || {})) {
+            let expanded = value.replace(
+              /\$\{WAVE_PLUGIN_ROOT\}/g,
+              server.config.pluginRoot!,
+            );
+            expanded = expanded.replace(
+              /\$\{CLAUDE_PLUGIN_ROOT\}/g,
+              server.config.pluginRoot!,
+            );
+            env[key] = expanded;
+          }
+        }
+        transport = new StdioClientTransport({
+          command,
+          args,
+          env,
+          cwd: this.workdir, // Use the agent's workdir as the process working directory
+          stderr: "pipe", // Pipe stderr to capture it
+        });
+
+        // Buffer stderr silently (MCP servers use stderr for all logging;
+        // stdout is reserved for JSON-RPC). Only dump it on connection
+        // success (once) or failure — not line-by-line in real time.
+        // Aligns with Claude Code's approach to avoid noise from [INFO],
+        // [DEBUG], Warning: lines that are not actual errors.
+        const stderr = (transport as StdioClientTransport).stderr;
+        let stderrOutput = "";
+        if (stderr) {
+          stderr.on("data", (chunk: Buffer) => {
+            if (stderrOutput.length < 64 * 1024 * 1024) {
+              stderrOutput += chunk.toString();
+            }
+          });
+        }
+
+        client = createClient();
+        try {
+          await client.connect(transport);
+        } catch (error) {
+          if (stderrOutput.trim()) {
+            logger?.error(
+              `[MCP Server ${name}] Server stderr: ${stderrOutput.trim()}`,
+            );
+          }
+          throw error;
+        }
+
+        // Dump accumulated stderr once after successful connection
+        if (stderrOutput.trim()) {
+          logger?.debug(
+            `[MCP Server ${name}] Server stderr: ${stderrOutput.trim()}`,
+          );
+          stderrOutput = "";
+        }
+
+        instructions = truncateMcpInstructions(client.getInstructions());
+        const toolsResponse = await client.listTools();
+        tools =
+          toolsResponse.tools?.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            outputSchema: tool.outputSchema,
+          })) || [];
+      } else if (serverType) {
+        // Unknown type value
+        throw new Error(
+          `MCP server ${name} has unknown type "${serverType}". Must be "stdio", "sse", or "http"`,
+        );
+      } else {
+        throw new Error(
+          `MCP server ${name} configuration must include either 'command' or 'url'`,
+        );
+      }
+
+      // Handle transport errors (e.g. SSE stream disconnected)
+      // The SDK auto-reconnects for transient SSE errors, so we use
+      // "reconnecting" status instead of "error". We then poll listTools()
+      // to detect when reconnection succeeds.
+      transport.onerror = (error: Error) => {
+        const isTransient = error.message?.includes("SSE stream disconnected");
+        if (isTransient) {
+          logger?.warn(
+            `MCP Server ${name} transient transport error (SDK will auto-reconnect): ${error.message}`,
+          );
+          this.updateServerStatus(name, {
+            status: "reconnecting",
+            error: error.message,
+          });
+          // Poll to detect when the SDK's auto-reconnect succeeds
+          this.pollReconnectRecovery(name, client);
+        } else {
+          logger?.error(`MCP Server ${name} transport error:`, error);
+          this.updateServerStatus(name, {
+            status: "error",
+            error: error.message,
+          });
+        }
+      };
+
+      transport.onclose = () => {
+        logger?.debug(`MCP Server ${name} transport closed`);
+        // Only the current generation of this server's transport may mutate
+        // state: a stale process 'close' arriving after an auto-reconnect must
+        // not tear down (or schedule a reconnect for) the live connection.
+        const current = this.connections.get(name);
+        if (!current || current.transport !== transport) return;
+        this.connections.delete(name);
+        this.updateServerStatus(name, {
+          status: "disconnected",
+          tools: [],
+          toolCount: 0,
+          instructions: undefined,
+        });
+        // Auto-reconnect with exponential backoff. Skipped while an explicit
+        // disconnectServer teardown is in flight — that close is expected, and
+        // reconnecting would silently undo a user-initiated disconnect.
+        if (!this.disconnecting.has(name) && !this.reconnectTimers.has(name)) {
+          this.scheduleReconnect(name);
+        }
+      };
+
+      // Store connection
+      this.connections.set(name, {
+        client,
+        transport,
+        process: null,
+      });
+
+      // Update status
+      this.updateServerStatus(name, {
+        status: "connected",
+        tools,
+        toolCount: tools.length,
+        capabilities: ["tools"],
+        instructions,
+        lastConnected: Date.now(),
+        error: undefined,
+      });
+
+      return true;
+    } catch (error) {
+      logger?.error(`Failed to connect to MCP server ${name}:`, error);
+      // updateServerStatus will trigger the callback
+      this.updateServerStatus(name, {
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Schedule auto-reconnect with exponential backoff.
+   * Delays: 1s, 2s, 4s, 8s, 16s, 30s, 30s, ...
+   */
+  private scheduleReconnect(name: string): void {
+    const attempts = this.reconnectAttempts.get(name) ?? 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+    this.reconnectAttempts.set(name, attempts + 1);
+
+    logger?.info(
+      `Scheduling MCP server ${name} reconnect in ${delay}ms (attempt ${attempts + 1})`,
+    );
+
+    const timer = setTimeout(() => {
+      this.reconnectTimers.delete(name);
+      logger?.debug(`Auto-reconnecting MCP server: ${name}`);
+      this.connectServer(name)
+        .then((success) => {
+          if (success) {
+            logger?.info(`Auto-reconnected MCP server: ${name}`);
+            this.reconnectAttempts.delete(name);
+          } else {
+            logger?.warn(`Auto-reconnect failed for MCP server: ${name}`);
+            // Will be retried via onclose handler
+          }
+        })
+        .catch((error) => {
+          logger?.error(`Auto-reconnect error for MCP server ${name}:`, error);
+        });
+    }, delay);
+
+    this.reconnectTimers.set(name, timer);
+  }
+
+  /**
+   * Poll listTools() to detect when the SDK's auto-reconnect succeeds
+   * after a transient SSE disconnect. Restores status to "connected".
+   */
+  private async pollReconnectRecovery(
+    name: string,
+    client: Client,
+  ): Promise<void> {
+    const maxAttempts = 10;
+    const delay = 3000; // Match SDK's reconnection delay
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((r) => setTimeout(r, delay));
+      const serverStatus = this.servers.get(name);
+      if (serverStatus?.status !== "reconnecting") {
+        return; // Status changed by onclose or user action — stop polling
+      }
+      try {
+        const toolsResponse = await client.listTools();
+        const tools =
+          toolsResponse.tools?.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            outputSchema: tool.outputSchema,
+          })) || [];
+        logger?.info(
+          `MCP Server ${name} auto-reconnected successfully (attempt ${i + 1})`,
+        );
+        this.updateServerStatus(name, {
+          status: "connected",
+          tools,
+          toolCount: tools.length,
+          lastConnected: Date.now(),
+          error: undefined,
+        });
+        this.reconnectAttempts.delete(name);
+        return;
+      } catch {
+        logger?.debug(
+          `MCP Server ${name} reconnect recovery check ${i + 1}/${maxAttempts} failed`,
+        );
+      }
+    }
+    // If we exhausted attempts, fall through to McpManager's own reconnect
+    logger?.warn(
+      `MCP Server ${name} SDK auto-reconnect did not recover after ${maxAttempts} attempts`,
+    );
+  }
+
+  private cancelReconnect(name: string): void {
+    const timer = this.reconnectTimers.get(name);
+    if (timer) {
+      clearTimeout(timer);
+      this.reconnectTimers.delete(name);
+    }
+    this.reconnectAttempts.delete(name);
+  }
+
+  async disconnectServer(name: string): Promise<boolean> {
+    // Cancel any pending reconnect attempts
+    this.cancelReconnect(name);
+
+    const server = this.servers.get(name);
+    const connection = this.connections.get(name);
+
+    // Nothing live to tear down. Still reconcile a stale "connected"-style
+    // status (e.g. after an unobserved crash left no connection entry) so the
+    // UI converges instead of staying wedged on a disconnect action.
+    if (!connection) {
+      if (server && server.status !== "disconnected") {
+        this.updateServerStatus(name, {
+          status: "disconnected",
+          tools: [],
+          toolCount: 0,
+          instructions: undefined,
+          error: undefined,
+        });
+      }
+      return false;
+    }
+
+    // Idempotent: a teardown is already running for this server.
+    if (this.disconnecting.has(name)) return false;
+
+    // Mark before closing so transport.onclose knows this is an expected,
+    // user-initiated teardown and must not schedule an auto-reconnect.
+    this.disconnecting.add(name);
+    try {
+      // Close client connection and transport
+      await connection.client.close();
+      await connection.transport.close();
+
+      // Remove connection (transport.onclose may already have done so)
+      if (this.connections.get(name) === connection) {
+        this.connections.delete(name);
+      }
+
+      // updateServerStatus will trigger the callback
+      this.updateServerStatus(name, {
+        status: "disconnected",
+        tools: [],
+        toolCount: 0,
+        instructions: undefined,
+        error: undefined,
+      });
+
+      return true;
+    } catch (error) {
+      logger?.error(`Error disconnecting from MCP server ${name}:`, error);
+      // Never leave the server reporting connected after a failed teardown:
+      // drop the connection and push a terminal state so the caller/UI gets a
+      // definitive outcome instead of an endless "disconnecting" spinner.
+      if (this.connections.get(name) === connection) {
+        this.connections.delete(name);
+      }
+      this.updateServerStatus(name, {
+        status: "disconnected",
+        tools: [],
+        toolCount: 0,
+        instructions: undefined,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    } finally {
+      this.disconnecting.delete(name);
+    }
+  }
+
+  // Get all tools from connected servers.
+  // "reconnecting" servers retain their last-known tool snapshot so that
+  // transient SSE disconnects don't churn the tool list (which would bust
+  // the prompt cache). Tools are only dropped once the server truly fails
+  // (status "error"/"disconnected").
+  getAllConnectedTools(): McpTool[] {
+    const allTools: McpTool[] = [];
+    for (const server of this.servers.values()) {
+      const usable =
+        server.status === "connected" || server.status === "reconnecting";
+      if (usable && server.tools) {
+        allTools.push(...server.tools);
+      }
+    }
+    return allTools;
+  }
+
+  // Execute MCP tool
+  async executeMcpTool(
+    toolName: string,
+    args: Record<string, unknown>,
+    context?: ToolContext,
+  ): Promise<McpToolCallResult> {
+    // Check if it's a prefixed name: mcp__[serverName]__[toolName]
+    if (!toolName.startsWith("mcp__")) {
+      throw new Error(
+        `Invalid MCP tool name: ${toolName}. Must start with 'mcp__'`,
+      );
+    }
+
+    // Permission check
+    if (context?.permissionManager) {
+      const permissionContext = context.permissionManager.createContext(
+        toolName,
+        context.permissionMode || "default",
+        context.canUseToolCallback,
+        args,
+        context.toolCallId,
+      );
+
+      const decision =
+        await context.permissionManager.checkPermission(permissionContext);
+      if (decision.behavior === "deny") {
+        throw new Error(decision.message || "Permission denied");
+      }
+    }
+
+    const parts = toolName.split("__");
+    if (parts.length < 3) {
+      throw new Error(
+        `Invalid MCP tool name format: ${toolName}. Expected 'mcp__[server]__[tool]'`,
+      );
+    }
+
+    const targetServerName = parts[1];
+    const actualToolName = parts.slice(2).join("__");
+
+    const server = this.servers.get(targetServerName);
+    if (server && server.status === "connected" && server.tools) {
+      const tool = server.tools.find((t) => t.name === actualToolName);
+      if (tool) {
+        const connection = this.connections.get(targetServerName);
+        if (connection) {
+          return this.executeToolOnConnection(
+            connection,
+            actualToolName,
+            args,
+            targetServerName,
+          );
+        }
+      }
+    }
+
+    throw new Error(`Tool ${toolName} not found on any connected MCP server`);
+  }
+
+  private async executeToolOnConnection(
+    connection: McpConnection,
+    toolName: string,
+    args: Record<string, unknown>,
+    serverName: string,
+  ): Promise<McpToolCallResult> {
+    try {
+      const result = await connection.client.callTool({
+        name: toolName,
+        arguments: args,
+      });
+
+      // Separate text content and image data
+      const textContent: string[] = [];
+      const images: Array<{ data: string; mediaType?: string }> = [];
+
+      if (Array.isArray(result.content)) {
+        result.content.forEach(
+          (c: {
+            type: string;
+            text?: string;
+            data?: string;
+            mimeType?: string;
+            resource?: { uri: string };
+            [key: string]: unknown;
+          }) => {
+            if (c.type === "text") {
+              textContent.push(c.text || "");
+            } else if (c.type === "image" && c.data) {
+              images.push({
+                data: c.data,
+                mediaType: c.mimeType || "image/png", // MCP standard mimeType, PNG fallback
+              });
+            } else if (c.type === "resource") {
+              textContent.push(`[Resource: ${c.resource?.uri || ""}]`);
+            } else {
+              textContent.push(JSON.stringify(c, null, 2));
+            }
+          },
+        );
+      } else if (result.content) {
+        textContent.push(String(result.content));
+      }
+
+      const textContentStr =
+        textContent.length > 0
+          ? textContent.join("\n")
+          : images.length > 0
+            ? `Tool returned ${images.length} image(s).`
+            : "No content";
+
+      // The sandbox's value, decided from the text parts rather than from
+      // `textContentStr`: that one carries display placeholders ("No content"),
+      // and a script has to be able to tell "the tool said nothing" (`null`) from
+      // "the tool said 'No content'". Same rule the catalog renders return types
+      // from: structured, else text, else null.
+      const text = textContent.join("\n");
+      const output = result.structuredContent ?? (text === "" ? null : text);
+
+      return {
+        success: true,
+        content: textContentStr,
+        output,
+        images: images.length > 0 ? images : undefined,
+        serverName,
+      };
+    } catch (error) {
+      throw new Error(
+        `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  // Cleanup all connections
+  async cleanup(): Promise<void> {
+    // Cancel all pending reconnect timers
+    for (const name of this.reconnectTimers.keys()) {
+      this.cancelReconnect(name);
+    }
+    const disconnectPromises = Array.from(this.connections.keys()).map((name) =>
+      this.disconnectServer(name),
+    );
+    await Promise.all(disconnectPromises);
+  }
+
+  // ========== Tools Registry Methods ==========
+
+  /**
+   * Get all currently available MCP tools as plugins
+   */
+  getMcpToolPlugins(): ToolPlugin[] {
+    const mcpTools = new Map<string, ToolPlugin>();
+
+    // Get all connected MCP tools
+    const connectedTools = this.getAllConnectedTools();
+    const servers = this.getAllServers();
+
+    // Find server name for each tool and create plugins
+    for (const tool of connectedTools) {
+      // Find which server this tool belongs to
+      const server = findToolServer(tool.name, servers);
+
+      if (server) {
+        const plugin = createMcpToolPlugin(
+          tool,
+          server.name,
+          (
+            name: string,
+            args: Record<string, unknown>,
+            context?: ToolContext,
+          ) => this.executeMcpTool(name, args, context),
+        );
+        mcpTools.set(plugin.name, plugin);
+      }
+    }
+
+    return Array.from(mcpTools.values());
+  }
+
+  /**
+   * Get all currently available MCP tools as OpenAI function tools
+   */
+  getMcpToolsConfig(): ChatCompletionFunctionTool[] {
+    return this.getMcpToolPlugins().map((tool) => tool.config);
+  }
+
+  /**
+   * Declared output schema per flattened tool name, for the Exec catalog's return
+   * types.
+   *
+   * A separate accessor because `getMcpToolsConfig()` cannot carry it: an OpenAI
+   * function declaration has room for `parameters` and nothing else, so the schema
+   * a server declared for its *output* has no field to travel in. Correlated with
+   * the same `findToolServer` lookup `getMcpToolPlugins` uses and keyed with the
+   * same `mcpToolFlatName`, so the two agree on which server owns a tool.
+   *
+   * Servers that declare no output schema are simply absent, which renders as
+   * `Promise<unknown>`: honest about the call returning *something* of unspecified
+   * shape.
+   */
+  getMcpToolOutputSchemas(): Map<string, Record<string, unknown>> {
+    const schemas = new Map<string, Record<string, unknown>>();
+    const servers = this.getAllServers();
+    for (const tool of this.getAllConnectedTools()) {
+      const server = findToolServer(tool.name, servers);
+      if (server && tool.outputSchema) {
+        schemas.set(mcpToolFlatName(server.name, tool.name), tool.outputSchema);
+      }
+    }
+    return schemas;
+  }
+
+  /**
+   * Execute an MCP tool by name (registry version)
+   */
+  async executeMcpToolByRegistry(
+    name: string,
+    args: Record<string, unknown>,
+    context: ToolContext,
+  ): Promise<ToolResult> {
+    const plugins = this.getMcpToolPlugins();
+    const tool = plugins.find((plugin) => plugin.name === name);
+
+    if (!tool) {
+      return {
+        success: false,
+        content: "",
+        error: `MCP tool '${name}' not found or server disconnected`,
+      };
+    }
+    return tool.execute(args, context);
+  }
+
+  /**
+   * Check if a tool name belongs to an MCP tool
+   */
+  isMcpTool(name: string): boolean {
+    if (!name.startsWith("mcp__")) return false;
+
+    for (const server of this.servers.values()) {
+      if (server.status === "connected" && server.tools) {
+        for (const tool of server.tools) {
+          if (`mcp__${server.name}__${tool.name}` === name) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+}

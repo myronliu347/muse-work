@@ -1,0 +1,276 @@
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { homedir } from "node:os";
+import { USER_MEMORY_FILE, DATA_DIRECTORY } from "../utils/constants.js";
+import { logger } from "../utils/globalLogger.js";
+import { atomicWriteFile } from "../utils/atomicWrite.js";
+import { Container } from "../utils/container.js";
+import { getGitCommonDir } from "../utils/gitUtils.js";
+import { pathEncoder } from "../utils/pathEncoder.js";
+import { MEMORY_ENTRYPOINT_NAME } from "../constants/memory.js";
+import { truncateEntrypointContent } from "../utils/memoryEntrypoint.js";
+
+export class MemoryService {
+  private _cachedProjectMemory: string | null = null;
+  private _cachedUserMemory: string | null = null;
+  private _cachedCombinedMemory: string | null = null;
+  private _cachedAutoMemoryContent: string | null = null;
+
+  constructor(private container: Container) {}
+
+  public get cachedProjectMemory(): string {
+    return this._cachedProjectMemory ?? "";
+  }
+
+  public get cachedUserMemory(): string {
+    return this._cachedUserMemory ?? "";
+  }
+
+  public clearCache(): void {
+    this._cachedProjectMemory = null;
+    this._cachedUserMemory = null;
+    this._cachedCombinedMemory = null;
+    this._cachedAutoMemoryContent = null;
+  }
+
+  /**
+   * Get the project-specific auto-memory directory.
+   * Uses the git common directory to ensure worktrees share the same memory.
+   */
+  getAutoMemoryDirectory(workdir: string): string {
+    const commonDir = getGitCommonDir(workdir);
+    // If the common directory is a .git directory, use its parent as the project root
+    // for a cleaner encoded name while maintaining stability across worktrees.
+    const projectRoot =
+      path.basename(commonDir) === ".git" ? path.dirname(commonDir) : commonDir;
+    const encodedName = pathEncoder.encodeSync(projectRoot);
+    return path.join(homedir(), ".wave", "projects", encodedName, "memory");
+  }
+
+  /**
+   * Ensure the auto-memory directory and initial MEMORY.md exist.
+   */
+  async ensureAutoMemoryDirectory(workdir: string): Promise<void> {
+    const memoryDir = this.getAutoMemoryDirectory(workdir);
+    const memoryFile = path.join(memoryDir, "MEMORY.md");
+
+    try {
+      await fs.mkdir(memoryDir, { recursive: true });
+
+      try {
+        await fs.access(memoryFile);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          const initialContent =
+            "# Project Memory\n\nThis file serves as an index for the project's auto-memory. Wave uses this to track knowledge across sessions.\n\n";
+          await atomicWriteFile(memoryFile, initialContent);
+          logger.debug(`Created auto-memory file: ${memoryFile}`);
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      logger.error("Failed to ensure auto-memory directory:", error);
+      throw new Error(
+        `Failed to ensure auto-memory directory: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Get the auto-memory entrypoint (`MEMORY.md`), bounded by both the line and
+   * the character cap. Truncation appends a warning naming the cap that fired,
+   * so the model can tell the index it is reading is incomplete.
+   */
+  async getAutoMemoryContent(workdir: string): Promise<string> {
+    if (this._cachedAutoMemoryContent !== null) {
+      return this._cachedAutoMemoryContent;
+    }
+    const memoryDir = this.getAutoMemoryDirectory(workdir);
+    const memoryFile = path.join(memoryDir, MEMORY_ENTRYPOINT_NAME);
+
+    try {
+      const raw = await fs.readFile(memoryFile, "utf-8");
+      this._cachedAutoMemoryContent = truncateEntrypointContent(raw).content;
+      return this._cachedAutoMemoryContent;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        this._cachedAutoMemoryContent = "";
+        return "";
+      }
+      logger.error("Failed to read auto-memory content:", error);
+      return "";
+    }
+  }
+
+  async ensureUserMemoryFile(): Promise<void> {
+    try {
+      // Ensure data directory exists
+      await fs.mkdir(DATA_DIRECTORY, { recursive: true });
+
+      // Check if user memory file exists
+      try {
+        await fs.access(USER_MEMORY_FILE);
+      } catch (error) {
+        // File does not exist, create new file
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          logger.info("Creating new user memory file", {
+            userMemoryFile: USER_MEMORY_FILE,
+          });
+          const initialContent =
+            "# User Memory\n\nThis is the user-level memory file, recording important information and context across projects.\n\n";
+          await atomicWriteFile(USER_MEMORY_FILE, initialContent);
+          logger.debug(`Created user memory file: ${USER_MEMORY_FILE}`);
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      logger.error("Failed to ensure user memory file:", error);
+      throw new Error(
+        `Failed to ensure user memory file: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  async getUserMemoryContent(): Promise<string> {
+    if (this._cachedUserMemory !== null) {
+      return this._cachedUserMemory;
+    }
+    try {
+      await this.ensureUserMemoryFile();
+      const content = await fs.readFile(USER_MEMORY_FILE, "utf-8");
+      logger.debug("User memory content read successfully", {
+        userMemoryFile: USER_MEMORY_FILE,
+        contentLength: content.length,
+      });
+
+      // If the file is still the default empty template, fallback to ~/.claude/AGENTS.md
+      const defaultTemplate =
+        "# User Memory\n\nThis is the user-level memory file, recording important information and context across projects.\n\n";
+      if (content === defaultTemplate) {
+        const claudeMemoryPath = path.join(homedir(), ".claude", "AGENTS.md");
+        try {
+          const claudeContent = await fs.readFile(claudeMemoryPath, "utf-8");
+          logger.debug(
+            "User memory content read from ~/.claude/AGENTS.md fallback",
+            {
+              claudeMemoryPath,
+              contentLength: claudeContent.length,
+            },
+          );
+          this._cachedUserMemory = claudeContent;
+          return this._cachedUserMemory;
+        } catch {
+          // CLAUDE.md doesn't exist or can't be read, return the default template
+        }
+      }
+
+      this._cachedUserMemory = content;
+      return this._cachedUserMemory;
+    } catch (error) {
+      logger.error("Failed to read user memory:", error);
+      return "";
+    }
+  }
+
+  async readMemoryFile(workdir: string): Promise<string> {
+    if (this._cachedProjectMemory !== null) {
+      return this._cachedProjectMemory;
+    }
+    const memoryFilePath = path.join(workdir, "AGENTS.md");
+    try {
+      const content = await fs.readFile(memoryFilePath, "utf-8");
+      logger.debug("Memory file read successfully via direct file access", {
+        memoryFilePath,
+        contentLength: content.length,
+      });
+      this._cachedProjectMemory = content;
+      return this._cachedProjectMemory;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // Fallback to CLAUDE.md
+        const claudeMemoryPath = path.join(workdir, "CLAUDE.md");
+        try {
+          const content = await fs.readFile(claudeMemoryPath, "utf-8");
+          logger.debug("Memory file read from CLAUDE.md fallback", {
+            memoryFilePath: claudeMemoryPath,
+            contentLength: content.length,
+          });
+          this._cachedProjectMemory = content;
+          return this._cachedProjectMemory;
+        } catch (claudeError) {
+          if ((claudeError as NodeJS.ErrnoException).code === "ENOENT") {
+            logger.debug("Neither AGENTS.md nor CLAUDE.md found", {
+              memoryFilePath,
+            });
+            this._cachedProjectMemory = "";
+            return "";
+          }
+          logger.error("Failed to read CLAUDE.md fallback", {
+            memoryFilePath: claudeMemoryPath,
+            error: claudeError,
+          });
+          return "";
+        }
+      }
+      logger.error("Failed to read memory file", { memoryFilePath, error });
+      return "";
+    }
+  }
+
+  async getCombinedMemoryContent(workdir: string): Promise<string> {
+    if (this._cachedCombinedMemory !== null) {
+      return this._cachedCombinedMemory;
+    }
+    const projectMemory = await this.readMemoryFile(workdir);
+    const userMemory = await this.getUserMemoryContent();
+
+    let combined = "";
+    if (projectMemory.trim()) combined += projectMemory;
+    if (userMemory.trim()) {
+      if (combined) combined += "\n\n";
+      combined += userMemory;
+    }
+    this._cachedCombinedMemory = combined;
+    return combined;
+  }
+
+  /**
+   * Persist the user-level memory file (~/.wave/AGENTS.md), creating it if
+   * missing. Clears the user-memory cache so subsequent reads see the new
+   * content (the default-template fallback to ~/.claude/AGENTS.md is also
+   * bypassed once the user writes real content).
+   */
+  async writeUserMemoryContent(content: string): Promise<void> {
+    await this.ensureUserMemoryFile();
+    await atomicWriteFile(USER_MEMORY_FILE, content);
+    this._cachedUserMemory = null;
+    this._cachedCombinedMemory = null;
+    logger.debug("User memory content written", {
+      userMemoryFile: USER_MEMORY_FILE,
+      contentLength: content.length,
+    });
+  }
+
+  /**
+   * Persist the project-level memory file (<workdir>/AGENTS.md), creating it
+   * if missing. Reads fall back to CLAUDE.md but writes always target
+   * AGENTS.md (the canonical project memory file). Clears the project-memory
+   * cache so subsequent reads see the new content.
+   */
+  async writeProjectMemoryContent(
+    workdir: string,
+    content: string,
+  ): Promise<void> {
+    const memoryFilePath = path.join(workdir, "AGENTS.md");
+    await fs.mkdir(workdir, { recursive: true });
+    await atomicWriteFile(memoryFilePath, content);
+    this._cachedProjectMemory = null;
+    this._cachedCombinedMemory = null;
+    logger.debug("Project memory content written", {
+      memoryFilePath,
+      contentLength: content.length,
+    });
+  }
+}

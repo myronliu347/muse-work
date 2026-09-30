@@ -26,7 +26,7 @@ export type CreateLoggerOptions = {
   defaultMeta?: Record<string, unknown>;
 };
 
-/** SDK `Logger` surface (`wave-agent-sdk`). */
+/** SDK `Logger` surface (`@muse-work/agent`). */
 export type AgentLogger = {
   error: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;

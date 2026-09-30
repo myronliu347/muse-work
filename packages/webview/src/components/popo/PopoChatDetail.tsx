@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Flex, ScrollArea, Spinner, Text } from "@radix-ui/themes";
-import type { Message as SdkMessage } from "wave-agent-sdk";
+import type { Message as SdkMessage } from "@muse-work/agent";
 import type { VsCodeApi } from "../../types";
 import type {
   MuseApiClient,

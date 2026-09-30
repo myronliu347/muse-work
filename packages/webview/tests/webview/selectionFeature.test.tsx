@@ -7,7 +7,7 @@ import {
   act,
   fireInput,
 } from "./test-utils";
-import type { Message, TextBlock } from "wave-agent-sdk";
+import type { Message, TextBlock } from "@muse-work/agent";
 
 /**
  * Helper: append text to contenteditable input without destroying existing child nodes.

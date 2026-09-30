@@ -1,9 +1,9 @@
 import {
   loadSessionFromJsonl,
   type PermissionDecision,
-} from "wave-agent-sdk";
+} from "@muse-work/agent";
 import type { GatewayResolution } from "@muse-work/provider";
-import { AGENT_TOOL_NAME } from "wave-agent-sdk/dist/constants/tools.js";
+import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import { resolveScenarioAgent } from "../agentConfig.js";
 import { planningCodeWriteDecision } from "../issuePlanning.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";

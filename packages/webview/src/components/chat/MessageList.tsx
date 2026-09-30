@@ -14,7 +14,7 @@ import {
   shouldCollapseAssistantGroup,
 } from "../message/AssistantWorkSummary";
 import type { EnrichedFileSnapshot, MessageListProps } from "../../types";
-import type { Message as MessageType } from "wave-agent-sdk";
+import type { Message as MessageType } from "@muse-work/agent";
 import {
   UserMessageNav,
   navEntriesFromMessages,
