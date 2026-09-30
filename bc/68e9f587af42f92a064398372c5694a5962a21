@@ -1,0 +1,55 @@
+packages/webview/src/components/chat/BackgroundTaskList.tsx
+  c8df0f85b58f7a52 32,37-38,47,49,70,76,83-85,95-97,101
+packages/webview/tests/webview/backgroundTaskList.test.tsx
+  c8df0f85b58f7a52 69-73,75-76,78-88,90-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bc68e9f587af42f92a064398372c5694a5962a21",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 37,
+      "total_deletions": 110,
+      "accepted_lines": 44,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/backgroundTasksInitState.test.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/tests/webview/backgroundTaskList.test.tsx": {
+          "additions": 23,
+          "deletions": 22,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/styles/PopoRobotView.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/chat/BackgroundTaskList.tsx": {
+          "additions": 14,
+          "deletions": 87,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
