@@ -37,7 +37,7 @@ describe("toolImagePersistence", () => {
     vi.resetAllMocks();
   });
 
-  it("should persist an image to /tmp/wave-mcp-images with .png extension", () => {
+  it("should persist an image to /tmp/muse-mcp-images with .png extension", () => {
     const result = persistToolImages([
       { data: "aGVsbG8=", mediaType: "image/png" },
     ]);
@@ -46,10 +46,10 @@ describe("toolImagePersistence", () => {
     expect(result[0].data).toBe("aGVsbG8=");
     expect(result[0].mediaType).toBe("image/png");
     expect(result[0].path).toMatch(
-      /[/\\]wave-mcp-images[/\\]mcp-image_\d+_[a-z0-9]+\.png$/,
+      /[/\\]muse-mcp-images[/\\]mcp-image_\d+_[a-z0-9]+\.png$/,
     );
     expect(fs.mkdirSync).toHaveBeenCalledWith(
-      path.join("/tmp", "wave-mcp-images"),
+      path.join("/tmp", "muse-mcp-images"),
       { recursive: true },
     );
   });
@@ -61,7 +61,7 @@ describe("toolImagePersistence", () => {
     expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
     const [filePath, content] = vi.mocked(fs.writeFileSync).mock.calls[0];
     expect(filePath).toMatch(
-      /[/\\]wave-mcp-images[/\\]mcp-image_\d+_[a-z0-9]+\.png$/,
+      /[/\\]muse-mcp-images[/\\]mcp-image_\d+_[a-z0-9]+\.png$/,
     );
     expect(Buffer.isBuffer(content)).toBe(true);
     expect((content as Buffer).toString()).toBe("test image bytes");

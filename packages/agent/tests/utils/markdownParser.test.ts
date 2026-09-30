@@ -261,7 +261,7 @@ describe("markdownParser", () => {
   });
 
   describe("truncateOutput", () => {
-    const tempDir = join(tmpdir(), "wave-skill-bash");
+    const tempDir = join(tmpdir(), "muse-skill-bash");
 
     afterEach(() => {
       // Clean up temp files

@@ -443,7 +443,7 @@ describe("bashTool", () => {
       expect(result.content).toContain("Full output saved to:");
       expect(result.content).toContain("</persisted-output>");
       expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining("wave-tool-results"),
+        expect.stringContaining("muse-tool-results"),
         largeOutput,
         "utf8",
       );
@@ -599,7 +599,7 @@ describe("bashTool", () => {
       expect(result.content).toContain("Full output saved to:");
       expect(result.content).toContain("</persisted-output>");
       expect(fs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining("wave-tool-results"),
+        expect.stringContaining("muse-tool-results"),
         largeOutput,
         "utf8",
       );

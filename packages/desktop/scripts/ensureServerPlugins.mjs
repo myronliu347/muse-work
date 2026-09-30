@@ -6,7 +6,7 @@ export function superpowersManifestPath(pluginsDir) {
 }
 
 /**
- * Ensure `pluginsDest` contains the Superpowers Wave manifest.
+ * Ensure `pluginsDest` contains the Superpowers Muse plugin manifest.
  * Copies from `pluginsSrc` when dest is missing/incomplete, or when `force`.
  */
 export function ensureServerPlugins(pluginsSrc, pluginsDest, opts = {}) {

@@ -107,10 +107,10 @@ function inferGitBashFromGit(): string | undefined {
  * `<()`, causing `eval '<()...'` to fail at parse time.
  */
 function resolveUnixShell(): string | undefined {
-  // 1. MUSE_SHELL / MUSE_SHELL env override
-  const waveShell = envGet(MUSE_ENV.SHELL, process.env);
-  if (waveShell && isSupportedShell(waveShell) && isExecutable(waveShell)) {
-    return waveShell;
+  // 1. MUSE_SHELL / WAVE_SHELL env override
+  const museShell = envGet(MUSE_ENV.SHELL, process.env);
+  if (museShell && isSupportedShell(museShell) && isExecutable(museShell)) {
+    return museShell;
   }
 
   // 2. $SHELL (only bash/zsh)

@@ -192,15 +192,15 @@ describe("Agent Auto-Accept Permissions Integration", () => {
 
   it("should load persistent rules on startup", async () => {
     // 1. Create a settings.local.json file
-    const waveDir = path.join(tempDir, ".muse-work");
-    await fs.mkdir(waveDir, { recursive: true });
+    const configDir = path.join(tempDir, ".muse-work");
+    await fs.mkdir(configDir, { recursive: true });
     const config = {
       permissions: {
         allow: ["Bash(rm -rf /tmp/test)"],
       },
     };
     await fs.writeFile(
-      path.join(waveDir, "settings.local.json"),
+      path.join(configDir, "settings.local.json"),
       JSON.stringify(config),
     );
 

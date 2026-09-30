@@ -401,7 +401,7 @@ export async function reAppendSessionMetadata(
  * Scan all project directories for a session file by ID. Used as a fallback
  * when the session is not found in the given working directory (e.g. resuming
  * a session created in another project or a sibling git worktree via
- * `wave --restore <id>`).
+ * restore-by-id).
  *
  * @param sessionId - UUID session identifier
  * @param sessionType - Type of session ("main" or "subagent")
@@ -464,7 +464,7 @@ export async function loadSessionFromJsonl(
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         // Cross-project fallback: the session may live in a different project
-        // directory (e.g. `wave --restore <id>` run from another cwd).
+        // directory (e.g. restore-by-id run from another cwd).
         const fallbackPath = await findSessionFileAcrossProjects(
           sessionId,
           sessionType,
@@ -704,7 +704,7 @@ export async function listSessionsFromJsonl(
  *
  * When `worktreePaths` is provided, only project directories that match a
  * same-repo git worktree (plus the current working directory's own project
- * dir) are scanned — used by the `wave -r` picker's worktree aggregation
+ * dir) are scanned — used by the session picker's worktree aggregation
  * (`Ctrl+W`). When omitted, every project directory under the sessions dir
  * is scanned (all-projects mode, `Ctrl+A`).
  *

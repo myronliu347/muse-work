@@ -76,13 +76,13 @@ describe("toolResultStorage", () => {
     it("should wrap content in persisted-output XML tags with char count, file path, and preview", () => {
       const result = buildPersistedOutputMessage(
         150000,
-        "/tmp/wave-tool-results/tool_123.txt",
+        "/tmp/muse-tool-results/tool_123.txt",
         "preview text",
       );
 
       expect(result).toBe(
         "<persisted-output>\n" +
-          "Output too large (150,000 characters). Full output saved to: /tmp/wave-tool-results/tool_123.txt\n" +
+          "Output too large (150,000 characters). Full output saved to: /tmp/muse-tool-results/tool_123.txt\n" +
           "Preview (first 2,048 characters):\n" +
           "preview text\n" +
           "</persisted-output>",
@@ -92,7 +92,7 @@ describe("toolResultStorage", () => {
     it("should format char count with locale-specific grouping", () => {
       const result = buildPersistedOutputMessage(
         50000,
-        "/tmp/wave-tool-results/bash_456.txt",
+        "/tmp/muse-tool-results/bash_456.txt",
         "data",
       );
       expect(result).toContain("50,000 characters");
@@ -109,7 +109,7 @@ describe("toolResultStorage", () => {
   describe("getToolResultsDir", () => {
     it("should create directory with mkdirSync recursive", () => {
       const dir = getToolResultsDir();
-      const expected = path.join("/tmp", "wave-tool-results");
+      const expected = path.join("/tmp", "muse-tool-results");
       expect(dir).toBe(expected);
       expect(fs.mkdirSync).toHaveBeenCalledWith(expected, {
         recursive: true,
@@ -119,7 +119,7 @@ describe("toolResultStorage", () => {
     it("should use os.tmpdir() as base path", () => {
       const dir = getToolResultsDir();
       expect(dir.startsWith(path.join("/tmp"))).toBe(true);
-      expect(dir).toContain("wave-tool-results");
+      expect(dir).toContain("muse-tool-results");
     });
   });
 
@@ -129,11 +129,11 @@ describe("toolResultStorage", () => {
       const result = persistToolResult(content, "bash");
 
       expect(result).toMatch(
-        /[/\\]wave-tool-results[/\\]bash_\d+_[a-z0-9]+\.txt$/,
+        /[/\\]muse-tool-results[/\\]bash_\d+_[a-z0-9]+\.txt$/,
       );
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining(
-          path.join("/tmp", "wave-tool-results", "bash_"),
+          path.join("/tmp", "muse-tool-results", "bash_"),
         ),
         content,
         "utf8",
@@ -143,7 +143,7 @@ describe("toolResultStorage", () => {
     it("should use default prefix 'tool' when none provided", () => {
       const result = persistToolResult("content");
       expect(result).toMatch(
-        /[/\\]wave-tool-results[/\\]tool_\d+_[a-z0-9]+\.txt$/,
+        /[/\\]muse-tool-results[/\\]tool_\d+_[a-z0-9]+\.txt$/,
       );
     });
 
@@ -183,7 +183,7 @@ describe("toolResultStorage", () => {
 
       expect(result).toContain("<persisted-output>");
       expect(result).toContain("100 characters");
-      expect(result).toContain(path.join("/tmp", "wave-tool-results", "bash_"));
+      expect(result).toContain(path.join("/tmp", "muse-tool-results", "bash_"));
       expect(result).toContain("</persisted-output>");
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining("bash_"),
@@ -233,7 +233,7 @@ describe("toolResultStorage", () => {
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining(
-          path.join("/tmp", "wave-tool-results", "tool_"),
+          path.join("/tmp", "muse-tool-results", "tool_"),
         ),
         content,
         "utf8",

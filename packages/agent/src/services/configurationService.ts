@@ -908,10 +908,10 @@ export class ConfigurationService {
     const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
 
     // Ensure .muse-work directory exists
-    const waveDir = path.join(workdir, CONFIG_DIR_NAME);
+    const configDir = path.join(workdir, CONFIG_DIR_NAME);
     ensureMuseRuntimeFilesExcluded(workdir);
-    if (!existsSync(waveDir)) {
-      await fs.mkdir(waveDir, { recursive: true });
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
     }
 
     let config: MuseConfiguration = {};
@@ -948,10 +948,10 @@ export class ConfigurationService {
     const localConfigPath = path.join(workdir, CONFIG_DIR_NAME, "settings.local.json");
 
     // Ensure .muse-work directory exists
-    const waveDir = path.join(workdir, CONFIG_DIR_NAME);
+    const configDir = path.join(workdir, CONFIG_DIR_NAME);
     ensureMuseRuntimeFilesExcluded(workdir);
-    if (!existsSync(waveDir)) {
-      await fs.mkdir(waveDir, { recursive: true });
+    if (!existsSync(configDir)) {
+      await fs.mkdir(configDir, { recursive: true });
     }
 
     let config: MuseConfiguration = {};

@@ -2,7 +2,7 @@
  * Shared tool result persistence and truncation logic.
  *
  * When a tool result exceeds a size threshold, the full content is saved to a
- * file in /tmp/wave-tool-results/ and the model receives a <persisted-output>
+ * file in /tmp/muse-tool-results/ and the model receives a <persisted-output>
  * preview with the file path so it can use the Read tool to access the full output.
  */
 
@@ -15,11 +15,11 @@ import {
 } from "../constants/toolLimits.js";
 import { logger } from "./globalLogger.js";
 
-const TOOL_RESULTS_DIR = path.join(os.tmpdir(), "wave-tool-results");
+const TOOL_RESULTS_DIR = path.join(os.tmpdir(), "muse-tool-results");
 
 /**
  * Get (and create if needed) the tool-results directory.
- * Uses /tmp/wave-tool-results/ for simplicity and automatic OS cleanup.
+ * Uses /tmp/muse-tool-results/ for simplicity and automatic OS cleanup.
  */
 export function getToolResultsDir(): string {
   fs.mkdirSync(TOOL_RESULTS_DIR, { recursive: true });
@@ -86,7 +86,7 @@ export function generatePreview(
  *
  * Example output:
  * <persisted-output>
- * Output too large (150,000 characters). Full output saved to: /tmp/wave-tool-results/mcp_server_tool_12345.txt
+ * Output too large (150,000 characters). Full output saved to: /tmp/muse-tool-results/mcp_server_tool_12345.txt
  * Preview (first 2,048 characters):
  * {preview content}
  * ...

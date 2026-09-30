@@ -67,7 +67,7 @@ vi.mock("../../src/utils/toolImagePersistence.js", () => ({
   persistToolImages: vi.fn((images) =>
     images.map((image: { data: string }) => ({
       ...image,
-      path: `/tmp/wave-mcp-images/mcp-image_1_abc123.png`,
+      path: `/tmp/muse-mcp-images/mcp-image_1_abc123.png`,
     })),
   ),
 }));
@@ -219,7 +219,7 @@ describe("AIManager MCP image persistence", () => {
       {
         data: "aGVsbG8=",
         mediaType: "image/png",
-        path: "/tmp/wave-mcp-images/mcp-image_1_abc123.png",
+        path: "/tmp/muse-mcp-images/mcp-image_1_abc123.png",
       },
     ]);
   });

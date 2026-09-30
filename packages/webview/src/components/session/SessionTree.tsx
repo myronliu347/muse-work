@@ -13,7 +13,7 @@ import type { PopoChatSummary } from "../../muse/apiClient";
 import { bodyPortal } from "../../utils/bodyPortal";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
-export const SESSION_DRAG_MIME = "application/x-wave-session";
+export const SESSION_DRAG_MIME = "application/x-muse-session";
 
 const dirName = (workdir: string): string =>
   workdir.split(/[\\/]/).filter(Boolean).pop() ?? workdir;

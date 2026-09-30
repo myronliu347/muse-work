@@ -14,7 +14,7 @@ import * as os from "os";
 import * as path from "path";
 import { logger } from "./globalLogger.js";
 
-const MCP_IMAGES_DIR = path.join(os.tmpdir(), "wave-mcp-images");
+const MCP_IMAGES_DIR = path.join(os.tmpdir(), "muse-mcp-images");
 
 /** Map MCP mimeType to a file extension. Unknown types fall back to .png. */
 const MIME_TO_EXT: Record<string, string> = {
@@ -36,9 +36,9 @@ export interface PersistedToolImage {
 }
 
 /**
- * Persist base64 images to temp files under /tmp/wave-mcp-images/.
+ * Persist base64 images to temp files under /tmp/muse-mcp-images/.
  * Uses the OS tmpdir for simplicity and automatic OS cleanup (same convention
- * as /tmp/wave-tool-results/). Returns each image unchanged (no path) when the
+ * as /tmp/muse-tool-results/). Returns each image unchanged (no path) when the
  * write fails, so the caller degrades to the placeholder-only behavior.
  */
 export function persistToolImages(

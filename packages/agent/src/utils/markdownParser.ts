@@ -163,7 +163,7 @@ export function truncateOutput(output: string): string {
   }
 
   const preview = output.slice(0, PREVIEW_SIZE_BYTES);
-  const tempDir = join(tmpdir(), "wave-skill-bash");
+  const tempDir = join(tmpdir(), "muse-skill-bash");
   mkdirSync(tempDir, { recursive: true });
 
   const tempFile = join(

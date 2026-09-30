@@ -39,13 +39,13 @@
  * each side: exactly 8192 passes, 8193 fails.
  *
  * One caveat to keep in mind when re-testing: the probes above used
- * `stream: true`, which is the path wave itself uses (`createParams.stream`).
+ * `stream: true`, which is the path Muse itself uses (`createParams.stream`).
  * The identical body sent with `stream: false` returned 200 — the two gateway
  * paths do not behave the same, so a non-streaming probe reproduces nothing.
  *
  * ## Why the client has to handle it
  *
- * Neither wave nor the proxy rejects oversized images: the request reaches the
+ * Neither Muse nor the proxy rejects oversized images: the request reaches the
  * model and the whole turn fails with that 400. Outbound images come from
  * paths that cannot all be downsampled (e.g. the model itself reading a long
  * screenshot with the Read tool), so this module is the *detection* half:

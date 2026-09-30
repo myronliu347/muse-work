@@ -967,7 +967,7 @@ describe("convertMessagesForAPI", () => {
                 {
                   data: "base64data",
                   mediaType: "image/png",
-                  path: "/tmp/wave-mcp-images/mcp-image_1_abc123.png",
+                  path: "/tmp/muse-mcp-images/mcp-image_1_abc123.png",
                 },
               ],
             },
@@ -1002,7 +1002,7 @@ describe("convertMessagesForAPI", () => {
       expect(parts).toHaveLength(2);
       expect(parts[1]).toEqual({
         type: "text",
-        text: "[Image source: /tmp/wave-mcp-images/mcp-image_1_abc123.png]",
+        text: "[Image source: /tmp/muse-mcp-images/mcp-image_1_abc123.png]",
       });
 
       // Ensure no image_url parts remain
@@ -1028,12 +1028,12 @@ describe("convertMessagesForAPI", () => {
                 {
                   data: "base64data",
                   mediaType: "image/png",
-                  path: "/tmp/wave-mcp-images/mcp-image_1_abc123.png",
+                  path: "/tmp/muse-mcp-images/mcp-image_1_abc123.png",
                 },
                 {
                   data: "base64data",
                   mediaType: "image/jpeg",
-                  path: "/tmp/wave-mcp-images/mcp-image_2_def456.jpg",
+                  path: "/tmp/muse-mcp-images/mcp-image_2_def456.jpg",
                 },
               ],
             },
@@ -1053,10 +1053,10 @@ describe("convertMessagesForAPI", () => {
       expect(parts).toHaveLength(3);
       expect(parts[0].text).toContain("does not support image recognition");
       expect(parts[1].text).toBe(
-        "[Image source: /tmp/wave-mcp-images/mcp-image_1_abc123.png]",
+        "[Image source: /tmp/muse-mcp-images/mcp-image_1_abc123.png]",
       );
       expect(parts[2].text).toBe(
-        "[Image source: /tmp/wave-mcp-images/mcp-image_2_def456.jpg]",
+        "[Image source: /tmp/muse-mcp-images/mcp-image_2_def456.jpg]",
       );
     });
 
@@ -1078,7 +1078,7 @@ describe("convertMessagesForAPI", () => {
                 {
                   data: "base64data",
                   mediaType: "image/png",
-                  path: "/tmp/wave-mcp-images/mcp-image_1_abc123.png",
+                  path: "/tmp/muse-mcp-images/mcp-image_1_abc123.png",
                 },
               ],
             },
