@@ -28,6 +28,13 @@
   color: var(--gray-12);
 }
 
+.assistant-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
 .assistant-view-switch {
   display: flex;
   flex-shrink: 0;

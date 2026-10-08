@@ -10,7 +10,7 @@ import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import { usePopoUi } from "../popo/popoUi";
 import { AutomationsPage } from "../automation/AutomationsPage";
-import { AssistantPage } from "../assistant/AssistantPage";
+import { ShellSurfaceProvider } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   DesktopHostProps,
@@ -645,6 +645,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   };
 
   return (
+    <ShellSurfaceProvider value={shellView}>
     <div
       className="desktop-layout"
       data-testid="desktop-shell"
@@ -740,8 +741,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           postToHost={postToHost}
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
-      ) : shellView === "assistant" ? (
-        <AssistantPage api={api} vscode={vscode} />
       ) : (
       <div
         className="desktop-pane-rows"
@@ -861,6 +860,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       </div>
       )}
     </div>
+    </ShellSurfaceProvider>
   );
 };
 

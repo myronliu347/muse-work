@@ -30,7 +30,11 @@ import {
   resolveIssuePlanningSessionId,
 } from "../utils/issueGroups";
 import { PopoUiProvider, usePopoUi } from "./popo/popoUi";
-import type { DesktopPanelSlotsProps } from "./desktop/DesktopPanelSlots";
+import {
+  DesktopPanelSlots,
+  type DesktopPanelSlotsProps,
+} from "./desktop/DesktopPanelSlots";
+import { useShellSurface } from "./desktop/shellSurface";
 import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
@@ -173,6 +177,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / POPO 机器人页。
   // 独立于 host 推送的会话状态，任何导航入口显式切换。
   const [view, setView] = useState<MainView>("chat");
+  const shellSurface = useShellSurface();
   const popoUi = usePopoUi();
   const [showNewIssue, setShowNewIssue] = useState(false);
   const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
@@ -230,7 +235,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     const ro = new ResizeObserver(() => apply());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [paneId, host?.panes?.length]);
+  }, [paneId, host?.panes?.length, view, shellSurface]);
 
   useEffect(() => {
     paneIdRef.current = paneId;
@@ -786,6 +791,24 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     openPreviewHandler,
   };
 
+  const assistantFrame = (
+    <div className="chat-container" ref={chatContainerRef} data-testid="assistant-frame">
+      <div className="desktop-chat-body">
+        <div className="desktop-chat-main">
+          <AssistantPage
+            api={popoApi}
+            vscode={vscode}
+            showPanelToggle={checkedPanels.length === 0}
+            onToggleDock={handleToggleDock}
+          />
+        </div>
+        {dock.checked.length > 0 && dock.active ? (
+          <DesktopPanelSlots {...dock} />
+        ) : null}
+      </div>
+    </div>
+  );
+
   const chatContainer = (
     <ChatContainer
       chatContainerRef={chatContainerRef}
@@ -940,10 +963,15 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     }
     // Inside DesktopShell each pane renders only its own chatContainer; the
     // sidebar / preview pane live in the shell / single-pane layout.
+    // 助理占中间栏，右侧面板仍用这个分屏自己的 dock。
+    const showAssistantInPane =
+      paneId !== undefined &&
+      shellSurface === "assistant" &&
+      (host.focusedPaneId ?? paneId) === paneId;
     if (paneId !== undefined) {
       return (
         <>
-          {chatContainer}
+          {showAssistantInPane ? assistantFrame : chatContainer}
           <ChatDialogs {...dialogProps} />
         </>
       );
@@ -1037,18 +1065,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             recentWorkdirs={host.recentWorkdirs ?? []}
           />
         ) : view === "assistant" ? (
-          <AssistantPage
-            api={popoApi}
-            vscode={{
-              postMessage: (msg) => {
-                if (msg && typeof msg === "object") {
-                  postToHost(msg as Record<string, unknown>);
-                }
-              },
-              getState: () => null,
-              setState: () => {},
-            }}
-          />
+          assistantFrame
         ) : (
           chatContainer
         )}

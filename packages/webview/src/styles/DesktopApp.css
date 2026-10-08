@@ -1599,7 +1599,7 @@ body.is-panel-resizing * {
 .desktop-pane-rows,
 .desktop-layout > .chat-container,
 .desktop-layout > .automations-page,
-.desktop-layout > .assistant-page {
+.desktop-layout .assistant-page {
   grid-area: 1 / 1;
   position: relative;
   z-index: 0;
@@ -1879,21 +1879,21 @@ body.is-panel-resizing * {
 
 .desktop-layout > .chat-container .chat-header,
 .desktop-pane-row > .desktop-pane:first-child .chat-header,
-.desktop-layout > .assistant-page .assistant-header {
+.desktop-layout .assistant-page .assistant-header {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
 }
 
-.desktop-layout > .assistant-page .assistant-header {
+.desktop-layout .assistant-page .assistant-header {
   height: var(--desktop-shell-titlebar-height);
   padding-right: 28px;
   -webkit-app-region: no-drag;
 }
 
-.desktop-layout > .assistant-page .assistant-header-title {
+.desktop-layout .assistant-page .assistant-header-title {
   -webkit-app-region: drag;
 }
 
-.desktop-layout > .assistant-page .assistant-header button {
+.desktop-layout .assistant-page .assistant-header button {
   -webkit-app-region: no-drag;
 }
 
@@ -1912,7 +1912,7 @@ body.is-panel-resizing * {
   .desktop-pane-row
   > .desktop-pane:first-child
   .popo-detail-header,
-.desktop-layout[data-sidebar-collapsed="true"] > .assistant-page .assistant-header {
+.desktop-layout[data-sidebar-collapsed="true"] .assistant-page .assistant-header {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
 }
 
@@ -1925,15 +1925,15 @@ body.is-panel-resizing * {
 
 .desktop-layout > .chat-container .messages-container,
 .desktop-pane-row > .desktop-pane:first-child .messages-container,
-.desktop-layout > .assistant-page .assistant-log,
-.desktop-layout > .assistant-page .messages-container {
+.desktop-layout .assistant-page .assistant-log,
+.desktop-layout .assistant-page .messages-container {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
 }
 
 .desktop-layout > .chat-container .input-area-container,
 .desktop-pane-row > .desktop-pane:first-child .input-area-container,
-.desktop-layout > .assistant-page .assistant-composer,
-.desktop-layout > .assistant-page .assistant-error {
+.desktop-layout .assistant-page .assistant-composer,
+.desktop-layout .assistant-page .assistant-error {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
 }
 
@@ -1982,16 +1982,16 @@ body.is-panel-resizing * {
   > .desktop-pane:first-child
   .issue-session-header,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
-  > .assistant-page
+  .assistant-page
   .assistant-header,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
-  > .assistant-page
+  .assistant-page
   .assistant-log,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
-  > .assistant-page
+  .assistant-page
   .messages-container,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
-  > .assistant-page
+  .assistant-page
   .assistant-composer,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   > .chat-container

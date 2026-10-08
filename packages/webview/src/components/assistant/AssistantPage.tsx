@@ -3,6 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { Message as AgentMessage } from "@muse-work/agent";
 import { MessageInput } from "../chat/MessageInput";
+import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
 import { ContextTag } from "../shared/ContextTag";
 import { parseMentions } from "../../utils/messageUtils";
@@ -184,7 +185,9 @@ function UserLine({ line }: { line: AssistantLine }) {
 export const AssistantPage: React.FC<{
   api: AssistantPageApi;
   vscode?: VsCodeApi;
-}> = ({ api, vscode = noopHost }) => {
+  showPanelToggle?: boolean;
+  onToggleDock?: () => void;
+}> = ({ api, vscode = noopHost, showPanelToggle = false, onToggleDock }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [sending, setSending] = useState(false);
@@ -346,21 +349,26 @@ export const AssistantPage: React.FC<{
     <div className="assistant-page">
       <header className="assistant-header">
         <div className="assistant-header-title">Muse Bot</div>
-        <div className="assistant-view-switch" role="group" aria-label="查看内容">
-          <button
-            type="button"
-            aria-pressed={mode === "chat"}
-            onClick={() => setMode("chat")}
-          >
-            对话
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "transcript"}
-            onClick={() => setMode("transcript")}
-          >
-            AI 消息
-          </button>
+        <div className="assistant-header-actions">
+          <div className="assistant-view-switch" role="group" aria-label="查看内容">
+            <button
+              type="button"
+              aria-pressed={mode === "chat"}
+              onClick={() => setMode("chat")}
+            >
+              对话
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === "transcript"}
+              onClick={() => setMode("transcript")}
+            >
+              AI 消息
+            </button>
+          </div>
+          {showPanelToggle && onToggleDock ? (
+            <PanelToggleControl onToggleDock={onToggleDock} />
+          ) : null}
         </div>
       </header>
       {mode === "transcript" ? (
