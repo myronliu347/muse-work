@@ -33,6 +33,7 @@ type CatalogEntry = {
   listeners: Set<SkillCatalogListener>;
   refreshChain: Promise<void>;
   initPromise: Promise<void> | null;
+  closed: boolean;
 };
 
 const catalogs = new Map<string, CatalogEntry>();
@@ -61,8 +62,17 @@ function skillWatchPaths(
   ];
 }
 
+async function teardownCatalogEntry(entry: CatalogEntry): Promise<void> {
+  entry.closed = true;
+  entry.listeners.clear();
+  const watcher = entry.fileWatcher;
+  entry.fileWatcher = null;
+  await watcher?.cleanup();
+}
+
 async function runRefresh(entry: CatalogEntry): Promise<void> {
   const run = entry.refreshChain.then(async () => {
+    if (entry.closed) return;
     entry.snapshot = await discoverDiskSkills({
       workdir: entry.workdir,
       ...entry.discovery,
@@ -89,7 +99,9 @@ async function ensureInitialized(
     return entry.initPromise;
   }
   entry.initPromise = (async () => {
+    if (entry.closed) return;
     await runRefresh(entry);
+    if (entry.closed) return;
     if (watch && !entry.fileWatcher) {
       entry.fileWatcher = new FileWatcherService(logger);
       for (const pathToWatch of skillWatchPaths(entry.workdir, entry.discovery)) {
@@ -126,8 +138,14 @@ export async function acquireSkillCatalog(
       listeners: new Set(),
       refreshChain: Promise.resolve(),
       initPromise: null,
+      closed: false,
     };
     catalogs.set(key, entry);
+  }
+
+  if (entry.closed) {
+    entry.closed = false;
+    entry.initPromise = null;
   }
 
   entry.refCount++;
@@ -143,12 +161,12 @@ export async function acquireSkillCatalog(
     getSnapshot: () => entry!.snapshot,
     unsubscribe: () => {
       const current = catalogs.get(key);
-      if (!current) return;
+      if (!current || !current.listeners.has(listener)) return;
       current.listeners.delete(listener);
-      current.refCount--;
+      current.refCount = Math.max(0, current.refCount - 1);
       if (current.refCount <= 0) {
-        void current.fileWatcher?.cleanup();
         catalogs.delete(key);
+        void teardownCatalogEntry(current);
       }
     },
   };

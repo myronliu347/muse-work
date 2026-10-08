@@ -38,6 +38,7 @@ type ConfigEntry = {
   reloadInProgress: boolean;
   initPromise: Promise<void> | null;
   idleWaiters: Array<() => void>;
+  closed: boolean;
 };
 
 const configs = new Map<string, ConfigEntry>();
@@ -141,7 +142,22 @@ function resolveIdle(entry: ConfigEntry): void {
   }
 }
 
+async function teardownConfigEntry(entry: ConfigEntry): Promise<void> {
+  entry.closed = true;
+  entry.listeners.clear();
+  for (const resolve of entry.idleWaiters) {
+    resolve();
+  }
+  entry.idleWaiters = [];
+  const watcher = entry.fileWatcher;
+  entry.fileWatcher = null;
+  await watcher?.cleanup();
+}
+
 async function runReload(entry: ConfigEntry): Promise<void> {
+  if (entry.closed) {
+    return;
+  }
   if (entry.reloadInProgress) {
     return new Promise((resolve) => {
       entry.idleWaiters.push(resolve);
@@ -162,7 +178,9 @@ async function ensureInitialized(entry: ConfigEntry): Promise<void> {
     return entry.initPromise;
   }
   entry.initPromise = (async () => {
+    if (entry.closed) return;
     await runReload(entry);
+    if (entry.closed) return;
     if (!entry.fileWatcher) {
       entry.fileWatcher = new FileWatcherService(logger);
       entry.fileWatcher.on("watcherError", (error: Error) => {
@@ -223,8 +241,14 @@ export async function acquireLiveConfig(
       reloadInProgress: false,
       initPromise: null,
       idleWaiters: [],
+      closed: false,
     };
     configs.set(key, entry);
+  }
+
+  if (entry.closed) {
+    entry.closed = false;
+    entry.initPromise = null;
   }
 
   entry.refCount++;
@@ -239,12 +263,12 @@ export async function acquireLiveConfig(
     getPayload: () => entry!.payload,
     unsubscribe: () => {
       const current = configs.get(key);
-      if (!current) return;
+      if (!current || !current.listeners.has(listener)) return;
       current.listeners.delete(listener);
-      current.refCount--;
+      current.refCount = Math.max(0, current.refCount - 1);
       if (current.refCount <= 0) {
-        void current.fileWatcher?.cleanup();
         configs.delete(key);
+        void teardownConfigEntry(current);
       }
     },
     whenIdle: () => {

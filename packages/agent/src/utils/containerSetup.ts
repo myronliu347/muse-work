@@ -373,6 +373,7 @@ export function setupAgentContainer(
   const slashCommandManager = new SlashCommandManager(container, { workdir });
   container.register("SlashCommandManager", slashCommandManager);
   slashCommandManager.initialize();
+  teardowns.push(() => slashCommandManager.dispose());
 
   const pluginManager = new PluginManager(container, { workdir });
   container.register("PluginManager", pluginManager);

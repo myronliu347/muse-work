@@ -40,6 +40,7 @@ export class SlashCommandManager {
   private pluginCommandIds = new Set<string>();
   private workdir: string;
   private currentCommandAbortController: AbortController | null = null;
+  private onSkillsRefreshed?: (skills: SkillMetadata[]) => void;
 
   constructor(
     private container: Container,
@@ -54,9 +55,19 @@ export class SlashCommandManager {
     // Listen for skill refreshes and update skill commands
     const skillManager = this.container.get<SkillManager>("SkillManager");
     if (skillManager) {
-      skillManager.on("refreshed", (skills: SkillMetadata[]) => {
+      this.onSkillsRefreshed = (skills: SkillMetadata[]) => {
         this.registerSkillCommands(skills);
-      });
+      };
+      skillManager.on("refreshed", this.onSkillsRefreshed);
+    }
+  }
+
+  /** Drop SkillManager listeners so destroyed agents are collectable. */
+  dispose(): void {
+    const skillManager = this.container.get<SkillManager>("SkillManager");
+    if (skillManager && this.onSkillsRefreshed) {
+      skillManager.off("refreshed", this.onSkillsRefreshed);
+      this.onSkillsRefreshed = undefined;
     }
   }
 
