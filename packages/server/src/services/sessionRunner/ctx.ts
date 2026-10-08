@@ -50,6 +50,8 @@ export type SessionImage = { path: string; mimeType: string };
 
 export interface SessionAgent {
   sendMessage(content: string, images?: SessionImage[]): Promise<void>;
+  /** Persist a transcript note without starting a model turn. */
+  appendSystemNote?(content: string): Promise<void>;
   /** Single-turn non-streaming fork (reuses system prompt / model / memory). */
   askBtw?: (question: string, abortSignal?: AbortSignal) => Promise<string>;
   dispose(): Promise<void>;
@@ -108,6 +110,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
     return {
       sendMessage: (content: string, images?: SessionImage[]) =>
         agent.sendMessage(content, images),
+      appendSystemNote: (content: string) => agent.appendSystemNote(content),
       askBtw: (question: string, signal?: AbortSignal) =>
         agent.askBtw(question, signal),
       abortMessage: () => agent.abortMessage(),
@@ -156,6 +159,8 @@ export interface SessionRunner {
     images?: OutboundImage[],
     source?: "user" | "system-inject",
   ): Promise<{ accepted: true }>;
+  /** Persist a system note on the session transcript without starting a model turn. */
+  appendSystemNote(sessionId: string, content: string): Promise<void>;
   /**
    * 旁路提问（SDK askBtw）：单轮 fork 复用会话的 system prompt/模型/内存注入，
    * 不写消息、不落盘、不广播、不打断主对话、无工具。返回 AI 答案文本。

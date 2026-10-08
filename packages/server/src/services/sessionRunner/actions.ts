@@ -9,6 +9,7 @@ import {
   toSerializableWorkflowRuns,
   userMessageText,
 } from "./serialization.js";
+import { wrapSystemInject } from "./ctx.js";
 import type {
   OutboundImage,
   RunnerContext,
@@ -59,6 +60,22 @@ export function createActions(ctx: RunnerContext): SessionRunner {
   return {
     setOnTurnSettled(cb: (sessionId: string, result: { ok: boolean; error?: string }) => void) {
       ctx.onTurnSettled = cb;
+    },
+
+    async appendSystemNote(sessionId, content) {
+      const session = store.get(sessionId);
+      if (!session) {
+        throw Object.assign(new Error(`session not found: ${sessionId}`), {
+          statusCode: 404,
+        });
+      }
+      const existing = await agent.ensureAgent(sessionId);
+      if (!existing.appendSystemNote) {
+        throw Object.assign(new Error("appendSystemNote unavailable"), {
+          statusCode: 501,
+        });
+      }
+      await existing.appendSystemNote(wrapSystemInject(content));
     },
 
     async sendMessage(sessionId, content, images, source) {

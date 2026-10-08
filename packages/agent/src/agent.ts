@@ -1082,6 +1082,16 @@ export class Agent {
    * ]);
    * ```
    */
+  /**
+   * Write a note into the transcript without starting a model turn.
+   * Caller supplies the stored text (already wrapped when it should render as a system inject).
+   */
+  public async appendSystemNote(content: string): Promise<void> {
+    this.assertNotDestroyed();
+    this.messageManager.addUserMessage({ content });
+    await this.messageManager.saveSession();
+  }
+
   public async sendMessage(
     content: string,
     images?: Array<{ path: string; mimeType: string }>,
