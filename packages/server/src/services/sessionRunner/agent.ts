@@ -386,6 +386,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       ...(session?.allowedTools && session.allowedTools.length > 0
         ? { allowedTools: session.allowedTools }
         : {}),
+      ...(session?.origin === "assistant" && options.getAssistantTools
+        ? { customTools: options.getAssistantTools() }
+        : {}),
       ...(pluginDirs.length > 0
         ? {
             plugins: pluginDirs.map((path) => ({

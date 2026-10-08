@@ -302,6 +302,8 @@ export interface CreateSessionRunnerOptions {
   onTurnSettled?: (sessionId: string, result: { ok: boolean; error?: string }) => void;
   /** True when this session is an Issue planning session (deny source-code writes). */
   isIssuePlanningSession?: (sessionId: string) => boolean;
+  /** Tools injected only into the assistant session. */
+  getAssistantTools?: () => import("@muse-work/agent").ToolPlugin[];
 }
 
 /**

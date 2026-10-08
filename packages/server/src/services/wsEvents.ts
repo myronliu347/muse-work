@@ -108,7 +108,8 @@ export type WsEvent =
   | { type: "tokens:update"; latestTotalTokens: number }
   | { type: "issue:changed" }
   | { type: "automation:changed" }
-  | { type: "popo:changed" };
+  | { type: "popo:changed" }
+  | { type: "assistant:chat"; line: { id: string; at: number; role: "user" | "assistant"; message: string } };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };
 
