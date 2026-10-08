@@ -1,0 +1,92 @@
+packages/server/tests/assistantMessages.test.ts
+  d501b231c2f2dabb 1-79
+packages/server/src/services/assistant/messages.ts
+  d501b231c2f2dabb 1-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b7eabe86f05e9cd82b5750268831d51fe275c2c0",
+  "prompts": {
+    "81f006a362f8c86e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "02b62354-2cd3-4ce1-b5c2-40f6707f900d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 142,
+      "total_deletions": 3,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-10-08-popo-assistant-design.md": {
+          "additions": 142,
+          "deletions": 3
+        }
+      }
+    },
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1110,
+      "total_deletions": 22,
+      "accepted_lines": 1088,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-10-08-assistant.md": {
+          "additions": 650,
+          "deletions": 6,
+          "accepted_lines": 644
+        },
+        "docs/superpowers/specs/2026-10-08-assistant-design.md": {
+          "additions": 193,
+          "deletions": 15,
+          "accepted_lines": 178
+        },
+        "packages/server/src/services/assistant/messages.ts": {
+          "additions": 188,
+          "deletions": 1,
+          "accepted_lines": 187
+        },
+        "packages/server/tests/assistantMessages.test.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        }
+      }
+    }
+  }
+}
