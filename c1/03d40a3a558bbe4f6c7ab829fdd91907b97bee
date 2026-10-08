@@ -1,0 +1,95 @@
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 1-25
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 1-7
+packages/server/src/services/sessionStore.ts
+  d501b231c2f2dabb 54-55,88,228-229,265-268
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 1-33
+packages/server/src/services/sessionRunner/agent.ts
+  d501b231c2f2dabb 128,130,156,163
+packages/server/src/routes/sessions.ts
+  d501b231c2f2dabb 73-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c103d40a3a558bbe4f6c7ab829fdd91907b97bee",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 9,
+      "accepted_lines": 903,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "docs/superpowers/specs/2026-10-08-assistant-design.md": {
+          "accepted_lines": 178
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/sessionStore.ts": {
+          "additions": 9,
+          "deletions": 5,
+          "accepted_lines": 9
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "docs/superpowers/plans/2026-10-08-assistant.md": {
+          "accepted_lines": 644
+        }
+      }
+    }
+  }
+}
