@@ -51,8 +51,8 @@ export interface Session {
   modelExplicit?: boolean;
   /** 会话 systemPrompt 是否由用户显式指定（POST body.systemPrompt，完全接管）。true 时切换 agent 保留。 */
   systemPromptExplicit?: boolean;
-  /** user = 日常会话树；automation = 隐藏的无人值守运行。缺省 user。 */
-  origin?: "user" | "automation";
+  /** user = 日常会话树；automation = 隐藏的无人值守运行；assistant = 长期助理。缺省 user。 */
+  origin?: "user" | "automation" | "assistant";
 }
 
 export type SessionsFile = {
@@ -85,7 +85,7 @@ export interface SessionStore {
     allowedTools?: string[];
     modelExplicit?: boolean;
     systemPromptExplicit?: boolean;
-    origin?: "user" | "automation";
+    origin?: "user" | "automation" | "assistant";
   }): Session;
   get(id: string): Session | undefined;
   list(): Session[];
@@ -225,7 +225,8 @@ export function createSessionStore(
         createdAt: now,
         lastActiveAt: now,
         status: "idle",
-        origin: origin === "automation" ? "automation" : "user",
+        origin:
+          origin === "automation" || origin === "assistant" ? origin : "user",
         ...(worktreeName ? { worktreeName } : {}),
         ...(worktreeBranch ? { worktreeBranch } : {}),
         ...(baseBranch ? { baseBranch } : {}),
@@ -261,7 +262,10 @@ export function createSessionStore(
       // Hide never-started sessions (created but no user message yet).
       // Keep them in the store so create→first-send is not deleted mid-flight.
       const all = this.list().filter(
-        (s) => isStartedSession(s) && s.origin !== "automation",
+        (s) =>
+          isStartedSession(s) &&
+          s.origin !== "automation" &&
+          s.origin !== "assistant",
       );
       const pinned = all
         .filter((s) => s.pinned)

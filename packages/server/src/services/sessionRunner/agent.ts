@@ -125,8 +125,9 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
    */
   function enabledPluginDirs(session?: {
     agentName?: string;
-    origin?: "user" | "automation";
+    origin?: "user" | "automation" | "assistant";
   }): string[] {
+    if (session?.origin === "assistant") return [];
     const plugins = loadMuseSettings(home).plugins;
     const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
@@ -152,14 +153,14 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
   function pluginsFlag(session?: {
     agentName?: string;
-    origin?: "user" | "automation";
+    origin?: "user" | "automation" | "assistant";
   }): string {
     return enabledPluginDirs(session).join(",") || "none";
   }
 
   function gatewayIdentity(
     gateway: GatewayResolution,
-    session?: { agentName?: string; origin?: "user" | "automation" },
+    session?: { agentName?: string; origin?: "user" | "automation" | "assistant" },
   ): string {
     const credential =
       gateway.credentialFingerprint ?? gateway.apiKey ?? "";

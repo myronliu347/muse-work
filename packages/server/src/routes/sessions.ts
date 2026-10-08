@@ -70,7 +70,9 @@ sessionsRoutes.get("/sessions", (c) => {
     });
   }
   return c.json({
-    sessions: ctx.store.list().filter((s) => s.origin !== "automation"),
+    sessions: ctx.store
+      .list()
+      .filter((s) => s.origin !== "automation" && s.origin !== "assistant"),
     activeSessionId: ctx.store.getActiveSessionId(),
   });
 });
