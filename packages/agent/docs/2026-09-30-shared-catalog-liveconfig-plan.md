@@ -51,7 +51,7 @@
 - Produces: `resolveWorkdirKey(workdir: string): string`
 - Produces: `resetSharedCatalogsForTests(): Promise<void>`（Task 2–3 实现体后在此聚合调用）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```typescript
 // packages/agent/tests/shared/pathKey.test.ts
@@ -67,9 +67,9 @@ describe("resolveWorkdirKey", () => {
 });
 ```
 
-- [ ] **Step 2: 运行** `pnpm exec vitest run tests/shared/pathKey.test.ts -v` → FAIL
+- [x] **Step 2: 运行** `pnpm exec vitest run tests/shared/pathKey.test.ts -v` → FAIL
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 ```typescript
 // packages/agent/src/shared/pathKey.ts
@@ -96,9 +96,9 @@ export async function resetSharedCatalogsForTests(): Promise<void> {
 
 （Task 2/3 完成后在对应模块导出 `resetSharedSkillCatalogForTests` / `resetSharedLiveConfigForTests`。）
 
-- [ ] **Step 4: 再跑 pathKey 测试** → PASS
+- [x] **Step 4: 再跑 pathKey 测试** → PASS
 
-- [ ] **Step 5: Commit** `feat(agent): add workdir key helper for shared catalogs`
+- [x] **Step 5: Commit** `feat(agent): add workdir key helper for shared catalogs`
 
 ---
 
@@ -124,15 +124,15 @@ export async function discoverDiskSkills(workdir: string): Promise<DiskSkillSnap
 
 - Consumes: 现有 `discoverSkillCollection` / `scanSkillPath` 逻辑从 `skillManager.ts` **移动**到 `diskSkillDiscovery.ts`（不要复制两套）。
 
-- [ ] **Step 1:** 在 temp 目录写入 `{workdir}/.muse-work/skills/demo-skill/SKILL.md`，写测试断言 `discoverDiskSkills` 含 `demo-skill`、`type: project`。
+- [x] **Step 1:** 在 temp 目录写入 `{workdir}/.muse-work/skills/demo-skill/SKILL.md`，写测试断言 `discoverDiskSkills` 含 `demo-skill`、`type: project`。
 
-- [ ] **Step 2:** 跑测试 → FAIL
+- [x] **Step 2:** 跑测试 → FAIL
 
-- [ ] **Step 3:** 从 `SkillManager` 抽出扫描实现到 `diskSkillDiscovery.ts`；`SkillManager.performRefresh` 内 `discovery = await this.discoverSkills()` 改为 `discoverDiskSkills(this.workdir)` + 合并 plugin maps（逻辑与 today 相同）。
+- [x] **Step 3:** 从 `SkillManager` 抽出扫描实现到 `diskSkillDiscovery.ts`；`SkillManager.performRefresh` 内 `discovery = await this.discoverSkills()` 改为 `discoverDiskSkills(this.workdir)` + 合并 plugin maps（逻辑与 today 相同）。
 
-- [ ] **Step 4:** `pnpm exec vitest run tests/shared/diskSkillDiscovery.test.ts tests/managers/skillManager.test.ts -v` → PASS（skillManager 全量若太慢可只跑相关 describe）
+- [x] **Step 4:** `pnpm exec vitest run tests/shared/diskSkillDiscovery.test.ts tests/managers/skillManager.test.ts -v` → PASS（skillManager 全量若太慢可只跑相关 describe）
 
-- [ ] **Step 5: Commit** `refactor(agent): extract disk skill discovery for shared catalog`
+- [x] **Step 5: Commit** `refactor(agent): extract disk skill discovery for shared catalog`
 
 ---
 
@@ -172,17 +172,17 @@ export async function resetSharedSkillCatalogForTests(): Promise<void>;
 - `requestSkillCatalogRefresh`：合并并发为一次后续 `discoverDiskSkills` + 通知所有 listeners。
 - `resetSharedSkillCatalogForTests`：对所有 entry `cleanup` 并清空 Map。
 
-- [ ] **Step 1:** 测试「双 acquire 同 workdir」：`vi.mock` `FileWatcherService` 构造次数为 1；双 listener 在 mock 触发 change 后均被调用。
+- [x] **Step 1:** 测试「双 acquire 同 workdir」：`vi.mock` `FileWatcherService` 构造次数为 1；双 listener 在 mock 触发 change 后均被调用。
 
-- [ ] **Step 2:** 测试「release 到 0」调用 `cleanup`。
+- [x] **Step 2:** 测试「release 到 0」调用 `cleanup`。
 
-- [ ] **Step 3:** 测试「并发双 acquire」：`discoverDiskSkills` spy 仅 1 次（singleflight）。
+- [x] **Step 3:** 测试「并发双 acquire」：`discoverDiskSkills` spy 仅 1 次（singleflight）。
 
-- [ ] **Step 4:** 实现 `sharedSkillCatalog.ts`
+- [x] **Step 4:** 实现 `sharedSkillCatalog.ts`
 
-- [ ] **Step 5:** `pnpm exec vitest run tests/shared/sharedSkillCatalog.test.ts -v` → PASS
+- [x] **Step 5:** `pnpm exec vitest run tests/shared/sharedSkillCatalog.test.ts -v` → PASS
 
-- [ ] **Step 6: Commit** `feat(agent): shared skill catalog per workdir`
+- [x] **Step 6: Commit** `feat(agent): shared skill catalog per workdir`
 
 ---
 
@@ -227,15 +227,15 @@ export async function resetSharedLiveConfigForTests(): Promise<void>;
 - `requestLiveConfigReload`：供文件变更与显式 `reload()` 使用。
 - `resetSharedLiveConfigForTests`：清空 Map + cleanup watchers。
 
-- [ ] **Step 1:** 测试场景 7：settings 文件不存在时 `watchFile` 仍被调用（父目录存在），路径为 `resolveWatchTarget` 结果（可从 `liveConfigManager.hotReload.test.ts` 迁一条到 shared 层）。
+- [x] **Step 1:** 测试场景 7：settings 文件不存在时 `watchFile` 仍被调用（父目录存在），路径为 `resolveWatchTarget` 结果（可从 `liveConfigManager.hotReload.test.ts` 迁一条到 shared 层）。
 
-- [ ] **Step 2:** 测试 reload 失败保留 `lastValid`。
+- [x] **Step 2:** 测试 reload 失败保留 `lastValid`。
 
-- [ ] **Step 3:** 实现模块。
+- [x] **Step 3:** 实现模块。
 
-- [ ] **Step 4:** `pnpm exec vitest run tests/shared/sharedLiveConfig.test.ts -v` → PASS
+- [x] **Step 4:** `pnpm exec vitest run tests/shared/sharedLiveConfig.test.ts -v` → PASS
 
-- [ ] **Step 5: Commit** `feat(agent): shared live config per workdir`
+- [x] **Step 5: Commit** `feat(agent): shared live config per workdir`
 
 ---
 
@@ -257,15 +257,15 @@ export async function resetSharedLiveConfigForTests(): Promise<void>;
 - `reloadFeatureGatedSkills` → `requestSkillCatalogRefresh(this.workdir)`。
 - `deleteSkill` 删盘后仍 `requestSkillCatalogRefresh` 或本地 `refreshSkills`（与 today 收敛一致）。
 
-- [ ] **Step 1:** `skillManager.sharedCatalog.test.ts`：同 workdir 两个 `SkillManager`，A `registerPluginSkills`，B `getAvailableSkills` 不含插件名。
+- [x] **Step 1:** `skillManager.sharedCatalog.test.ts`：同 workdir 两个 `SkillManager`，A `registerPluginSkills`，B `getAvailableSkills` 不含插件名。
 
-- [ ] **Step 2:** 调整原 `skillManager.test.ts` 里 `FileWatcherService` 断言：改为 mock `acquireSkillCatalog` 或断言 shared 层被调用。
+- [x] **Step 2:** 调整原 `skillManager.test.ts` 里 `FileWatcherService` 断言：改为 mock `acquireSkillCatalog` 或断言 shared 层被调用。
 
-- [ ] **Step 3:** 实现 manager 改动。
+- [x] **Step 3:** 实现 manager 改动。
 
-- [ ] **Step 4:** `pnpm exec vitest run tests/managers/skillManager.test.ts tests/managers/skillManager.sharedCatalog.test.ts -v` → PASS
+- [x] **Step 4:** `pnpm exec vitest run tests/managers/skillManager.test.ts tests/managers/skillManager.sharedCatalog.test.ts -v` → PASS
 
-- [ ] **Step 5: Commit** `refactor(agent): SkillManager subscribes to shared catalog`
+- [x] **Step 5: Commit** `refactor(agent): SkillManager subscribes to shared catalog`
 
 ---
 
@@ -285,15 +285,15 @@ export async function resetSharedLiveConfigForTests(): Promise<void>;
 - `shutdown` → `handle.unsubscribe()`。
 - **保留** `onTurnStart` / `onTurnEnd` / `getTurnSnapshot` 不变。
 
-- [ ] **Step 1:** 新增测试：两个 `LiveConfigManager` 同 workdir，A `onTurnStart`，shared 触发 reload，A `getTurnSnapshot()` 不变，B 无回合则 `getTurnSnapshot()` 为 null。
+- [x] **Step 1:** 新增测试：两个 `LiveConfigManager` 同 workdir，A `onTurnStart`，shared 触发 reload，A `getTurnSnapshot()` 不变，B 无回合则 `getTurnSnapshot()` 为 null。
 
-- [ ] **Step 2:** 跑 `liveConfigManager.hotReload.test.ts` 场景 5/6/7，修 mock（mock `acquireLiveConfig` 或 shared 模块）。
+- [x] **Step 2:** 跑 `liveConfigManager.hotReload.test.ts` 场景 5/6/7，修 mock（mock `acquireLiveConfig` 或 shared 模块）。
 
-- [ ] **Step 3:** 实现。
+- [x] **Step 3:** 实现。
 
-- [ ] **Step 4:** `pnpm exec vitest run tests/managers/liveConfigManager -v` → PASS
+- [x] **Step 4:** `pnpm exec vitest run tests/managers/liveConfigManager -v` → PASS
 
-- [ ] **Step 5: Commit** `refactor(agent): LiveConfigManager subscribes to shared live config`
+- [x] **Step 5: Commit** `refactor(agent): LiveConfigManager subscribes to shared live config`
 
 ---
 
@@ -303,13 +303,13 @@ export async function resetSharedLiveConfigForTests(): Promise<void>;
 - Modify: `packages/agent/docs/2026-09-30-shared-catalog-liveconfig-design.md`（状态 → 已实现）
 - 视需要: `packages/agent/tests/integration/` 一条双 `Agent.create` 同 workdir 的 watcher 计数测（可选，用 mock chokidar）
 
-- [ ] **Step 1:** `pnpm exec vitest run --reporter=dot` in `packages/agent`
+- [x] **Step 1:** `pnpm exec vitest run --reporter=dot` in `packages/agent`
 
-- [ ] **Step 2:** `pnpm exec vitest run --passWithNoTests` in `packages/server`
+- [x] **Step 2:** `pnpm exec vitest run --passWithNoTests` in `packages/server`
 
-- [ ] **Step 3:** 修失败项直至全绿
+- [x] **Step 3:** 修失败项直至全绿
 
-- [ ] **Step 4: Commit** `test(agent): regression for shared skill/live config catalogs`
+- [x] **Step 4: Commit** `test(agent): regression for shared skill/live config catalogs`
 
 ---
 

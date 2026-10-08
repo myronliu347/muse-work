@@ -641,6 +641,34 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("requestSlashCommands during draft newSession uses recent workdir when current is cleared", async () => {
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      getSkills: vi.fn(async () => ({
+        skills: [{ name: "recent-skill", description: "from recent", userInvocable: true }],
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/repo/a",
+    });
+
+    bridge.postMessage({ command: "newSession", workdir: "/repo/recent" });
+    await flush();
+    bridge.postMessage({ command: "newSession" });
+    await flush();
+    vi.mocked(api.getSkills).mockClear();
+    bridge.postMessage({ command: "requestSlashCommands" });
+    await flush();
+
+    expect(api.getSkills).toHaveBeenCalledWith("/repo/recent");
+  });
+
   it("requestSlashCommands during draft newSession loads skills by workdir", async () => {
     const api = stubApi({
       listSessionsGrouped: vi.fn(async () => ({
