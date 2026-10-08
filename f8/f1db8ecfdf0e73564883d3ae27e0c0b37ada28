@@ -1,0 +1,71 @@
+packages/webview/src/muse/hostBridge/chat.ts
+  fcd8d9c5e216aa95 7,324,514
+packages/webview/tests/muse/hostBridge.test.ts
+  fcd8d9c5e216aa95 644-671
+packages/webview/src/muse/hostBridge/utils.ts
+  fcd8d9c5e216aa95 35-45,62-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f8f1db8ecfdf0e73564883d3ae27e0c0b37ada28",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 12,
+      "accepted_lines": 47,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 33,
+          "deletions": 5,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 16,
+          "deletions": 5,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
