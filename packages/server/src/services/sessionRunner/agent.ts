@@ -75,6 +75,27 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     { at: number; skills: unknown[] }
   >();
   const SKILLS_LIST_CACHE_MS = 30_000;
+  const SKILLS_LIST_CACHE_MAX = 64;
+
+  function pruneSkillsListCache(now: number): void {
+    for (const [key, entry] of skillsListCache) {
+      if (now - entry.at >= SKILLS_LIST_CACHE_MS) {
+        skillsListCache.delete(key);
+      }
+    }
+    while (skillsListCache.size > SKILLS_LIST_CACHE_MAX) {
+      let oldestKey: string | undefined;
+      let oldestAt = Infinity;
+      for (const [key, entry] of skillsListCache) {
+        if (entry.at < oldestAt) {
+          oldestAt = entry.at;
+          oldestKey = key;
+        }
+      }
+      if (!oldestKey) break;
+      skillsListCache.delete(oldestKey);
+    }
+  }
 
   async function getSkillsForWorkdir(workdir: string): Promise<unknown[]> {
     const trimmed = workdir.trim();
@@ -82,14 +103,16 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       throw Object.assign(new Error("workdir is required"), { statusCode: 400 });
     }
     const workdirKey = path.resolve(trimmed);
+    const now = Date.now();
     const cacheKey = `${workdirKey}\0${pluginsFlag()}`;
     const cached = skillsListCache.get(cacheKey);
-    if (cached && Date.now() - cached.at < SKILLS_LIST_CACHE_MS) {
+    if (cached && now - cached.at < SKILLS_LIST_CACHE_MS) {
       return cached.skills;
     }
     const pluginDirs = enabledPluginDirs();
     const skills = await listSkillMetadataForWorkdir(workdirKey, pluginDirs);
-    skillsListCache.set(cacheKey, { at: Date.now(), skills });
+    skillsListCache.set(cacheKey, { at: now, skills });
+    pruneSkillsListCache(now);
     return skills;
   }
 

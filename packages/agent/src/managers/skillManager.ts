@@ -182,6 +182,8 @@ export class SkillManager extends EventEmitter {
   async destroy(): Promise<void> {
     this.catalogHandle?.unsubscribe();
     this.catalogHandle = null;
+    this.removeAllListeners();
+    this.initialized = false;
   }
 
   /**

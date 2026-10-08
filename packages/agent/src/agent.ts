@@ -991,6 +991,10 @@ export class Agent {
         `Auto-memory extraction drain failed: ${(error as Error).message}`,
       );
     }
+    // Drop per-module listeners (e.g. SlashCommandManager on SkillManager)
+    // before shared catalog/config unsubscribe so no in-flight refresh pins
+    // the agent graph.
+    this.teardown();
     // Cleanup skill manager
     await this.skillManager.destroy();
     // Cleanup live configuration reload
@@ -1012,11 +1016,6 @@ export class Agent {
       );
     }
 
-    // Unregister module-level listeners (remote settings hot-update, auth
-    // change) so the agent's object graph becomes collectable. Without this,
-    // the module-level callback arrays pin every created agent via the
-    // per-agent closure contexts, even after the host drops its references.
-    this.teardown();
     // Break the DI container's internal references (services/factories) so no
     // per-agent manager is retained through it after destroy.
     this.container.clear();
