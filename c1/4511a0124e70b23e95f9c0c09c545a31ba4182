@@ -1,0 +1,104 @@
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 23,80
+packages/server/src/services/assistant/tools.ts
+  d501b231c2f2dabb 183-213
+packages/webview/src/components/shared/HeaderIcons.tsx
+  d501b231c2f2dabb 7,20,23-41
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 348,397
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  d501b231c2f2dabb 110,238
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 38-39
+packages/server/tests/assistantTools.test.ts
+  d501b231c2f2dabb 133-140,147
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 12,18-19,29-30,35,45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c14511a0124e70b23e95f9c0c09c545a31ba4182",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 77,
+      "total_deletions": 12,
+      "accepted_lines": 77,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/shared/HeaderIcons.tsx": {
+          "additions": 21,
+          "deletions": 3,
+          "accepted_lines": 21
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
