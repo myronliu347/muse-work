@@ -21,11 +21,11 @@ describe("ensureAssistantSession", () => {
     expect(first.tools).toEqual([...ASSISTANT_TOOL_NAMES]);
     expect(store.list().filter((s) => s.origin === "assistant")).toHaveLength(1);
     expect(store.listGrouped().recent.map((s) => s.id)).not.toContain(first.id);
-    expect(first.systemPrompt).toContain("第一件事必须调用 `SendMessage`");
+    expect(first.systemPrompt).toContain("短回复必须用 `SendMessage`");
     store.update(first.id, { systemPrompt: "旧提示", tools: ["ListIssues"] });
     const refreshed = ensureAssistantSession(store, { home, model: "m" });
     expect(refreshed.id).toBe(first.id);
-    expect(refreshed.systemPrompt).toContain("第一件事必须调用 `SendMessage`");
+    expect(refreshed.systemPrompt).toContain("短回复必须用 `SendMessage`");
     expect(refreshed.tools).toEqual([...ASSISTANT_TOOL_NAMES]);
   });
 });

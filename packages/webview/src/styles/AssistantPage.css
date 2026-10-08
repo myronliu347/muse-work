@@ -109,22 +109,26 @@
 
 .assistant-bubble {
   box-sizing: border-box;
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 16px;
+  padding: 8px 12px;
   min-width: 0;
   max-width: 100%;
+  line-height: 1.5;
 }
 
 .assistant-bubble-user {
-  background: var(--accent-3, var(--gray-3));
+  background: var(--gray-4);
   color: var(--gray-12);
+  border-radius: 16px 16px 4px 16px;
 }
 
 .assistant-bubble-assistant {
   width: fit-content;
   max-width: 100%;
-  background: var(--gray-2);
+  background: var(--gray-3);
   color: var(--gray-12);
+  border-radius: 4px 16px 16px 16px;
+  padding: 10px 14px;
 }
 
 .assistant-bubble-time {
@@ -139,6 +143,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  font-size: var(--font-size-1);
+  line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

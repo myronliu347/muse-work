@@ -6,7 +6,7 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 ## chat
 
-收到 \`type\` 为 \`chat\` 的事件，第一件事必须调用 \`SendMessage\` 回一句短回复，说明收到了、接下来做什么。这句发出去之后，再查目录、issue，或继续处理。不要闷头做完才回。
+收到 \`type\` 为 \`chat\` 的事件，先给对方一句短回复，再去做创建、打开、发消息或关闭 Issue。看情况可以先 \`ReadSessionMessages\`、\`ListIssues\`、\`ListMuseMessages\` 或 \`ListWorkdirs\`。短回复必须用 \`SendMessage\`，说明收到了、接下来做什么。不要闷头做完才回。
 
 ## issue
 
