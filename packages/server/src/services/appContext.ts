@@ -28,7 +28,7 @@ import { createAssistantMessageLog } from "./assistant/messages.js";
 import { createAssistantQueue } from "./assistant/queue.js";
 import { createAssistantRuntime } from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
-import { enqueueIssueSessionTurn } from "./assistant/observe.js";
+import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
 import { lastAssistantText } from "./issueDispatch.js";
 
 export { resolveHome };
@@ -218,6 +218,16 @@ export function createAppContext(
         });
       })();
     },
+  });
+  sessions.runner.setOnPermissionRequest((sessionId, request) => {
+    enqueueIssuePermission({
+      issues,
+      enqueue: (event) => assistantRuntime.enqueue(event),
+      sessionId,
+      permissionId: request.permissionId,
+      toolName: request.toolName,
+      description: request.description,
+    });
   });
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);

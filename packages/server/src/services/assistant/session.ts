@@ -10,6 +10,7 @@ export const ASSISTANT_TOOL_NAMES = [
   "OpenIssue",
   "MessageIssue",
   "CloseIssue",
+  "ResolvePermission",
   "SendMessage",
   "ReadSessionMessages",
   "ListMuseMessages",

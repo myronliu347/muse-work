@@ -21,7 +21,7 @@ export type AssistantLine = {
 };
 
 export type AssistantQueueItem = {
-  type: "chat" | "issue" | "automation";
+  type: "chat" | "issue" | "automation" | "permission";
   title: string;
   retry?: true;
 };
@@ -119,7 +119,12 @@ function asLine(value: unknown): AssistantLine | undefined {
 function asQueueItem(value: unknown): AssistantQueueItem | undefined {
   if (!value || typeof value !== "object") return undefined;
   const item = value as { type?: string; title?: string; retry?: unknown };
-  if (item.type !== "chat" && item.type !== "issue" && item.type !== "automation") {
+  if (
+    item.type !== "chat" &&
+    item.type !== "issue" &&
+    item.type !== "automation" &&
+    item.type !== "permission"
+  ) {
     return undefined;
   }
   if (typeof item.title !== "string" || !item.title) return undefined;
@@ -424,7 +429,13 @@ export const AssistantPage: React.FC<{
                   {index === 0 ? "处理中" : "等待"}
                 </span>
                 <span className="assistant-queue-kind">
-                  {item.type === "chat" ? "聊天" : item.type === "issue" ? "Issue" : "自动化"}
+                  {item.type === "chat"
+                    ? "聊天"
+                    : item.type === "issue"
+                      ? "Issue"
+                      : item.type === "permission"
+                        ? "权限"
+                        : "自动化"}
                 </span>
                 <span className="assistant-queue-label">{item.title}</span>
                 {item.retry ? <span className="assistant-queue-retry">重试</span> : null}

@@ -26,6 +26,7 @@ describe("assistant tools", () => {
     const log = createAssistantMessageLog({ home });
     const broadcasts: unknown[] = [];
     const sent: Array<{ receiver: string; content: string }> = [];
+    const decisions: Array<{ sessionId: string; permissionId: string; behavior: string }> = [];
     const opened: OpenIssueBody[] = [];
     const hub = { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub;
     const tools = createAssistantTools({
@@ -37,6 +38,14 @@ describe("assistant tools", () => {
       hub,
       runner: {
         sendMessage: async () => ({ accepted: true as const }),
+        respondPermission: async (
+          sessionId: string,
+          permissionId: string,
+          decision: { behavior: string },
+        ) => {
+          decisions.push({ sessionId, permissionId, behavior: decision.behavior });
+          return { ok: true as const };
+        },
         getMessages: async () => [
           {
             role: "assistant",
@@ -136,6 +145,18 @@ describe("assistant tools", () => {
     );
     expect(closed.success).toBe(true);
     expect(issues.get(issue.id)?.status).toBe("completed");
+    const resolved = await tool(tools, "ResolvePermission").execute(
+      { permissionId: "perm-1", sessionId: "s1", behavior: "allow" },
+      context,
+    );
+    expect(resolved.success).toBe(true);
+    expect(decisions).toEqual([{ sessionId: "s1", permissionId: "perm-1", behavior: "allow" }]);
+    const missingPermission = await tool(tools, "ResolvePermission").execute(
+      { permissionId: "", sessionId: "s1", behavior: "deny" },
+      context,
+    );
+    expect(missingPermission.success).toBe(false);
+
     expect(broadcasts).toContainEqual({ type: "issue:changed" });
 
     expect(tools.map((entry) => entry.name)).toEqual([
@@ -145,6 +166,7 @@ describe("assistant tools", () => {
       "OpenIssue",
       "MessageIssue",
       "CloseIssue",
+      "ResolvePermission",
       "SendMessage",
       "ReadSessionMessages",
       "ListMuseMessages",

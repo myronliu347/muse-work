@@ -191,6 +191,13 @@ export interface SessionRunner {
     permissionId: string,
     decision: PermissionDecision,
   ): Promise<{ ok: true }>;
+  /** Replace the permission-request callback (runner ↔ assistant wiring). */
+  setOnPermissionRequest(
+    cb: (
+      sessionId: string,
+      request: { permissionId: string; toolName: string; description: string },
+    ) => void,
+  ): void;
   /** Replace the turn-settled callback (runner ↔ scheduler wiring). */
   setOnTurnSettled(
     cb: (sessionId: string, result: { ok: boolean; error?: string }) => void,
@@ -376,6 +383,13 @@ export interface RunnerContext {
   onTurnSettled:
     | ((sessionId: string, result: { ok: boolean; error?: string }) => void)
     | undefined;
+  /** Issue-session permission requests, so the assistant can approve them. */
+  onPermissionRequest:
+    | ((
+        sessionId: string,
+        request: { permissionId: string; toolName: string; description: string },
+      ) => void)
+    | undefined;
   agents: Map<string, SessionAgent>;
   /** Last ensure/activity time for LRU live-agent eviction. */
   agentLastUsed: Map<string, number>;
@@ -445,6 +459,7 @@ export function createRunnerContext(
     memoryUsage: options.memoryUsage ?? (() => process.memoryUsage()),
     stallMs: options.stallMs ?? TURN_STALL_MS,
     onTurnSettled: options.onTurnSettled,
+    onPermissionRequest: undefined,
     agents: new Map<string, SessionAgent>(),
     agentLastUsed: new Map<string, number>(),
     agentIdentities: new Map<string, string>(),

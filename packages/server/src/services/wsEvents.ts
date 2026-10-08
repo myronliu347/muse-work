@@ -114,7 +114,7 @@ export type WsEvent =
   | {
       type: "assistant:queue";
       items: Array<{
-        type: "chat" | "issue" | "automation";
+        type: "chat" | "issue" | "automation" | "permission";
         title: string;
         retry?: true;
       }>;

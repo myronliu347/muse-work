@@ -743,6 +743,19 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         });
 
         hub.broadcast(sessionId, request);
+        try {
+          ctx.onPermissionRequest?.(sessionId, {
+            permissionId,
+            toolName: context.toolName,
+            description,
+          });
+        } catch (err: unknown) {
+          getLogger().error("permission request notify failed", {
+            sessionId,
+            permissionId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
 
         const decision = await decisionPromise;
         core.bumpActivity(sessionId);

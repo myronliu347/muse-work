@@ -212,6 +212,44 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
       },
     ),
     tool(
+      "ResolvePermission",
+      "审批 Issue 会话正在等待的权限。behavior 为 allow 或 deny。拿不准不要调用，先问用户。AskUserQuestion 允许时，message 是 JSON 对象字符串：键为 question 原文，单选值是 label 字符串，多选值是 label 数组，不要包 answers。",
+      {
+        type: "object",
+        properties: {
+          permissionId: { type: "string" },
+          sessionId: { type: "string" },
+          behavior: { type: "string", enum: ["allow", "deny"] },
+          message: {
+            type: "string",
+            description:
+              "拒绝原因用普通文本。AskUserQuestion 允许时必须是 JSON 对象字符串，键是 question 原文，单选值为 label，多选值为 label 数组。",
+          },
+        },
+        required: ["permissionId", "sessionId", "behavior"],
+      },
+      async (args) => {
+        const permissionId = text(args.permissionId);
+        const sessionId = text(args.sessionId);
+        const behavior = args.behavior === "allow" || args.behavior === "deny"
+          ? args.behavior
+          : undefined;
+        if (!permissionId || !sessionId || !behavior) {
+          return fail("permissionId, sessionId and behavior required");
+        }
+        const message = typeof args.message === "string" ? args.message : undefined;
+        try {
+          await deps.runner.respondPermission(sessionId, permissionId, {
+            behavior,
+            ...(message ? { message } : behavior === "deny" ? { message: "Denied" } : {}),
+          });
+        } catch (err: unknown) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
+        return ok({ permissionId, behavior });
+      },
+    ),
+    tool(
       "SendMessage",
       "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。",
       {

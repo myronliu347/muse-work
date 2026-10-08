@@ -62,6 +62,10 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       ctx.onTurnSettled = cb;
     },
 
+    setOnPermissionRequest(cb) {
+      ctx.onPermissionRequest = cb;
+    },
+
     async appendSystemNote(sessionId, content) {
       const session = store.get(sessionId);
       if (!session) {

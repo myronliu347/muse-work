@@ -1019,7 +1019,7 @@ export class MuseApiClient {
 
   async listAssistantQueue(): Promise<{
     items: Array<{
-      type: "chat" | "issue" | "automation";
+      type: "chat" | "issue" | "automation" | "permission";
       title: string;
       retry?: true;
     }>;

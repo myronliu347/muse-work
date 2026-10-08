@@ -35,13 +35,28 @@ export type AssistantAutomationEvent = {
   turnError?: string;
 };
 
+export type AssistantPermissionEvent = {
+  type: "permission";
+  permissionId: string;
+  issueId: string;
+  title: string;
+  workdir: string;
+  sessionId: string;
+  toolName: string;
+  description: string;
+  descriptionNote?: string;
+  retry?: 1;
+  turnError?: string;
+};
+
 export type AssistantEvent =
   | AssistantChatEvent
   | AssistantIssueEvent
-  | AssistantAutomationEvent;
+  | AssistantAutomationEvent
+  | AssistantPermissionEvent;
 
 export type AssistantQueueView = {
-  type: "chat" | "issue" | "automation";
+  type: "chat" | "issue" | "automation" | "permission";
   title: string;
   retry?: true;
 };
@@ -63,6 +78,13 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
   if (event.type === "issue") {
     return { type: "issue", title: event.title || event.issueId, ...retry };
   }
+  if (event.type === "permission") {
+    return {
+      type: "permission",
+      title: `${event.title || event.issueId} · ${event.toolName}`,
+      ...retry,
+    };
+  }
   return {
     type: "automation",
     title: `${event.name} · ${event.status}`,
@@ -72,6 +94,9 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
 
 export const ASSISTANT_SUMMARY_NOTE =
   "summary 在这里被截断了，不是对方自己写短了。用 ReadSessionMessages 查看该会话消息，拿到完整内容后再判断。";
+
+export const ASSISTANT_DESCRIPTION_NOTE =
+  "description 在这里被截断了。拿不准就问用户，不要凭被截断的参数做决定。";
 
 function truncateCodePoints(text: string, max: number): { text: string; truncated: boolean } {
   const chars = [...text];
@@ -105,6 +130,22 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["workdir", event.workdir],
       ["summary", summary.text],
       ["summaryNote", summary.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
+    ]);
+  } else if (event.type === "permission") {
+    const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);
+    body = linesOf([
+      ["type", "permission"],
+      ["permissionId", event.permissionId],
+      ["issueId", event.issueId],
+      ["title", event.title],
+      ["workdir", event.workdir],
+      ["sessionId", event.sessionId],
+      ["toolName", event.toolName],
+      ["description", description.text],
+      [
+        "descriptionNote",
+        description.truncated ? ASSISTANT_DESCRIPTION_NOTE : event.descriptionNote,
+      ],
     ]);
   } else {
     const summary =

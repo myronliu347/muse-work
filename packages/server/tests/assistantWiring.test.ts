@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHonoApp } from "../src/app.js";
 import { createAssistantMessageLog } from "../src/services/assistant/messages.js";
-import { enqueueIssueSessionTurn } from "../src/services/assistant/observe.js";
+import { enqueueIssuePermission, enqueueIssueSessionTurn } from "../src/services/assistant/observe.js";
 import type { AssistantEvent } from "../src/services/assistant/events.js";
 import { createIssueStore } from "../src/services/issueStore.js";
 import type { AppContext } from "../src/services/appContext.js";
@@ -116,6 +116,48 @@ describe("assistant wiring", () => {
         title: "修登录",
         workdir: "/tmp/repo",
         summary: "已经修好",
+      },
+    ]);
+  });
+
+  it("enqueues a permission event only for an issue session", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-assistant-perm-"));
+    homes.push(home);
+    const issues = createIssueStore({ home });
+    const issue = issues.create({ title: "修登录" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: "sess-1",
+      workdir: "/tmp/repo",
+      worktreeEnabled: false,
+    });
+    const events: AssistantEvent[] = [];
+    const enqueue = (event: AssistantEvent) => events.push(event);
+    enqueueIssuePermission({
+      issues,
+      enqueue,
+      sessionId: "someone-else",
+      permissionId: "p0",
+      toolName: "Bash",
+      description: "Bash: {}",
+    });
+    enqueueIssuePermission({
+      issues,
+      enqueue,
+      sessionId: "sess-1",
+      permissionId: "p1",
+      toolName: "Bash",
+      description: "Bash: {\"command\":\"rm -rf /\"}",
+    });
+    expect(events).toEqual([
+      {
+        type: "permission",
+        permissionId: "p1",
+        issueId: issue.id,
+        title: "修登录",
+        workdir: "/tmp/repo",
+        sessionId: "sess-1",
+        toolName: "Bash",
+        description: "Bash: {\"command\":\"rm -rf /\"}",
       },
     ]);
   });
