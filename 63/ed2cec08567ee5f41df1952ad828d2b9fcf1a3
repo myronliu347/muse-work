@@ -1,0 +1,79 @@
+packages/server/src/services/assistant/runtime.ts
+  d501b231c2f2dabb 116
+packages/server/src/services/assistant/queue.ts
+  d501b231c2f2dabb 4-5,23-47,60,79-86
+packages/server/tests/assistantQueue.test.ts
+  d501b231c2f2dabb 76-99
+packages/server/tests/assistantRuntime.test.ts
+  d501b231c2f2dabb 48-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "63ed2cec08567ee5f41df1952ad828d2b9fcf1a3",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 3,
+      "accepted_lines": 107,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/queue.ts": {
+          "additions": 37,
+          "deletions": 2,
+          "accepted_lines": 36
+        },
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
