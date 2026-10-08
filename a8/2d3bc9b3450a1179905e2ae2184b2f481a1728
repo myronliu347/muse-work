@@ -1,0 +1,144 @@
+packages/server/tests/assistantQueue.test.ts
+  d501b231c2f2dabb 6,71-89
+packages/server/src/services/appContext.ts
+  d501b231c2f2dabb 154-156
+packages/webview/src/muse/apiClient.ts
+  d501b231c2f2dabb 1020-1030
+packages/webview/src/muse/hostBridge/index.ts
+  d501b231c2f2dabb 164-168
+packages/webview/src/styles/DesktopApp.css
+  d501b231c2f2dabb 1928,1990
+packages/webview/src/muse/wsClient.ts
+  d501b231c2f2dabb 98-106
+packages/server/src/services/assistant/queue.ts
+  d501b231c2f2dabb 4,35,55-57
+packages/webview/src/styles/AssistantPage.css
+  d501b231c2f2dabb 63-125
+packages/server/src/services/wsEvents.ts
+  d501b231c2f2dabb 113-121
+packages/server/src/routes/assistant.ts
+  d501b231c2f2dabb 21-24
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 23-28,30,119-132,221,249-258,312,314-317,412-436
+packages/server/src/services/assistant/events.ts
+  d501b231c2f2dabb 43-72
+packages/server/src/services/assistant/runtime.ts
+  d501b231c2f2dabb 3-7,21,29,38-41,44,107,122
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 40-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "a82d3bc9b3450a1179905e2ae2184b2f481a1728",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 272,
+      "total_deletions": 13,
+      "accepted_lines": 273,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/server/src/services/assistant/queue.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 64,
+          "deletions": 1,
+          "accepted_lines": 63
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 20,
+          "deletions": 1,
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/server/src/routes/assistant.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 70,
+          "deletions": 7,
+          "accepted_lines": 63
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
