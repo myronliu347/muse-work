@@ -87,6 +87,7 @@ export function createAutomationRuntime(options: {
     automation: Automation;
     run: AutomationRun;
   }) => Promise<string | undefined>;
+  onRunSettled?: (run: AutomationRun, automation: Automation) => void;
 }): {
   enqueue(
     automationId: string,
@@ -116,12 +117,13 @@ export function createAutomationRuntime(options: {
       if (store.getRun(args.run.id)?.status !== "running") {
         return undefined;
       }
-      store.patchRun(args.run.id, {
+      const failed = store.patchRun(args.run.id, {
         status: "failed",
         error: "workdir",
         endedAt: now().getTime(),
       });
       broadcast();
+      notifySettled(args.automation, failed);
       return undefined;
     }
     const session = sessions.create({
@@ -166,6 +168,14 @@ export function createAutomationRuntime(options: {
     hub.broadcastAll({ type: "automation:changed" });
   }
 
+  function notifySettled(
+    automation: Automation,
+    run: AutomationRun | undefined,
+  ): void {
+    if (!run || run.status === "running") return;
+    options.onRunSettled?.(run, automation);
+  }
+
   function enqueue(
     automationId: string,
     trigger: AutomationRun["trigger"],
@@ -189,6 +199,7 @@ export function createAutomationRuntime(options: {
         endedAt: startedAt,
       });
       broadcast();
+      notifySettled(automation, run);
       return run;
     }
 
@@ -203,6 +214,7 @@ export function createAutomationRuntime(options: {
         endedAt: startedAt,
       });
       broadcast();
+      notifySettled(automation, run);
       return run;
     }
 
@@ -236,12 +248,13 @@ export function createAutomationRuntime(options: {
         const current = store.getRun(run.id);
         if (!current || current.status !== "running") return;
         const message = err instanceof Error ? err.message : String(err);
-        store.patchRun(run.id, {
+        const failed = store.patchRun(run.id, {
           status: "failed",
           error: message,
           endedAt: now().getTime(),
         });
         broadcast();
+        notifySettled(automation, failed);
       });
     return run;
   }
@@ -262,6 +275,8 @@ export function createAutomationRuntime(options: {
       endedAt: now().getTime(),
     });
     broadcast();
+    const automation = store.get(run.automationId);
+    if (automation) notifySettled(automation, patched);
     return patched;
   }
 
@@ -279,12 +294,13 @@ export function createAutomationRuntime(options: {
         : isInterruptedExecResult(result)
           ? "stopped"
           : "failed";
-      store.patchRun(run.id, {
+      const patched = store.patchRun(run.id, {
         status,
         ...(status === "failed" && result.error ? { error: result.error } : {}),
         endedAt: now().getTime(),
       });
       broadcast();
+      notifySettled(automation, patched);
       return;
     }
   }

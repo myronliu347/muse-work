@@ -100,7 +100,17 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
   });
   runtime.disposeChat = (chatKey) => agentFactory.disposeChat?.(chatKey) ?? Promise.resolve();
   runtime.getLiveMessages = (chatKey) => agentFactory.getLiveMessages?.(chatKey) ?? [];
-  const handler = createPopoHandler({ config, chatStore, sender, agentFactory, logger });
+  if (runtime.sendText) ctx.popoSend.current = runtime.sendText;
+  const handler = createPopoHandler({
+    config,
+    chatStore,
+    sender,
+    agentFactory,
+    logger,
+    onChat: (event) => {
+      ctx.assistantRuntime.enqueue({ type: "chat", ...event });
+    },
+  });
   const app = createCallbackApp({
     config,
     handler,

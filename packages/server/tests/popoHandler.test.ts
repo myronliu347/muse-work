@@ -422,4 +422,38 @@ describe("popo handler", () => {
     });
     expect(sent[0].content).toContain("处理出错：btw boom");
   });
+
+  it("enqueues a master message and skips the robot agent", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const chats: Array<{ from: string; message: string; user?: string; groupId?: string }> = [];
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-assistant" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({ run: async () => "不应被调用" }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+      onChat: (event) => chats.push(event),
+    });
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "帮我看看",
+      sessionType: 1,
+    });
+    await handler.handle("IM_CHAT_TO_ROBOT_AT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "@Muse机器人 看看群里",
+      sessionType: 3,
+      sessionId: "1696900",
+    });
+    expect(sent).toEqual([]);
+    expect(chats).toEqual([
+      { from: "popo", message: "帮我看看", user: "master@corp.netease.com" },
+      {
+        from: "popo-group",
+        message: "看看群里",
+        user: "master@corp.netease.com",
+        groupId: "1696900",
+      },
+    ]);
+  });
 });

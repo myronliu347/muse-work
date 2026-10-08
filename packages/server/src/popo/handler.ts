@@ -24,6 +24,12 @@ export type PopoHandlerOptions = {
   sender: Sender;
   agentFactory: PopoAgentFactory;
   logger: winston.Logger;
+  onChat?: (event: {
+    from: "popo" | "popo-group";
+    message: string;
+    user?: string;
+    groupId?: string;
+  }) => void;
 };
 
 function stripAtMention(notify: string): string {
@@ -157,6 +163,16 @@ export function createPopoHandler(options: PopoHandlerOptions): PopoHandler {
       if (body.trim().startsWith(BTW_COMMAND)) {
         const question = body.trim().slice(BTW_COMMAND.length).trim() || BTW_DEFAULT_QUESTION;
         await handleBtw(chatKey, type, title, receiver, question);
+        return;
+      }
+
+      if (options.onChat) {
+        options.onChat({
+          from: type === "team" ? "popo-group" : "popo",
+          message: body,
+          user: from,
+          ...(type === "team" ? { groupId: receiver } : {}),
+        });
         return;
       }
 

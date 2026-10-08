@@ -2,6 +2,7 @@ import {
   createCodeMakerProvider,
   createOpenAiCompatibleProvider,
   createProviderRegistry,
+  DEFAULT_ACTIVE_MODEL_ID,
   loadProvidersConfig,
   type ProviderRegistry,
 } from "@muse-work/provider";
@@ -23,6 +24,12 @@ import {
   type AutomationStore,
 } from "./automationStore.js";
 import { createAutomationRuntime } from "./automationRuntime.js";
+import { createAssistantMessageLog } from "./assistant/messages.js";
+import { createAssistantQueue } from "./assistant/queue.js";
+import { createAssistantRuntime } from "./assistant/runtime.js";
+import { createAssistantTools } from "./assistant/tools.js";
+import { enqueueIssueSessionTurn } from "./assistant/observe.js";
+import { lastAssistantText } from "./issueDispatch.js";
 
 export { resolveHome };
 
@@ -38,6 +45,11 @@ export interface AppContext {
   automationStore: AutomationStore;
   automationRuntime: ReturnType<typeof createAutomationRuntime>;
   issueDispatcher: ReturnType<typeof createIssueDispatcher>;
+  assistantLog: ReturnType<typeof createAssistantMessageLog>;
+  assistantRuntime: ReturnType<typeof createAssistantRuntime>;
+  popoSend: {
+    current?: (receiver: string, content: string) => Promise<void>;
+  };
   /** POPO 机器人运行时（未启用时为 undefined） */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
@@ -62,6 +74,7 @@ export interface CreateSessionServicesOptions {
   createAgent?: CreateAgent;
   loadSubagentMessages?: CreateAppContextOptions["loadSubagentMessages"];
   isIssuePlanningSession?: (sessionId: string) => boolean;
+  getAssistantTools?: () => import("@muse-work/agent").ToolPlugin[];
 }
 
 export function createSessionServices(
@@ -77,6 +90,7 @@ export function createSessionServices(
     createAgent: options.createAgent,
     loadSubagentMessages: options.loadSubagentMessages,
     isIssuePlanningSession: options.isIssuePlanningSession,
+    getAssistantTools: options.getAssistantTools,
   });
   hub.setSnapshotProvider(() => runner.snapshotEvents());
   return { store, hub, runner };
@@ -113,6 +127,7 @@ export function createAppContext(
   const registry = createProviderRegistry([codemaker, openai], home);
   const issues = createIssueStore({ home });
   const automations = createAutomationStore({ home });
+  let assistantTools: ReturnType<typeof createAssistantTools> | undefined;
   const sessions = createSessionServices({
     home,
     registry,
@@ -121,6 +136,31 @@ export function createAppContext(
     isIssuePlanningSession: (sessionId) => {
       const issue = issues.getByPlanningSession(sessionId);
       return Boolean(issue && issue.agentMode !== "single");
+    },
+    getAssistantTools: () => assistantTools ?? [],
+  });
+  const assistantLog = createAssistantMessageLog({ home });
+  const assistantQueue = createAssistantQueue({ home });
+  const popoSend: AppContext["popoSend"] = {};
+  const assistantRuntime = createAssistantRuntime({
+    home,
+    model: DEFAULT_ACTIVE_MODEL_ID,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    queue: assistantQueue,
+  });
+  assistantTools = createAssistantTools({
+    home,
+    issues,
+    sessions: sessions.store,
+    runner: sessions.runner,
+    automations,
+    log: assistantLog,
+    hub: sessions.hub,
+    sendText: (receiver, content) => {
+      const send = popoSend.current;
+      if (!send) return Promise.reject(new Error("POPO 未配置"));
+      return send(receiver, content);
     },
   });
   const dispatcher = createIssueDispatcher({
@@ -138,12 +178,57 @@ export function createAppContext(
     home,
     now: options?.now,
     issueStore: issues,
+    onRunSettled: (run, automation) => {
+      void (async () => {
+        let summary: string | undefined;
+        if (run.sessionId) {
+          try {
+            const text = lastAssistantText(
+              await sessions.runner.getMessages(run.sessionId),
+            );
+            summary = text || undefined;
+          } catch {
+            summary = undefined;
+          }
+        }
+        if (
+          run.status !== "succeeded" &&
+          run.status !== "failed" &&
+          run.status !== "stopped" &&
+          run.status !== "skipped"
+        ) {
+          return;
+        }
+        assistantRuntime.enqueue({
+          type: "automation",
+          automationId: automation.id,
+          name: automation.name,
+          runId: run.id,
+          workdir: automation.workdir,
+          status: run.status,
+          trigger: run.trigger.type,
+          error: run.error,
+          summary,
+        });
+      })();
+    },
   });
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);
     automationRuntime.handleTurnSettled(sessionId, result);
+    assistantRuntime.onAssistantTurnSettled(sessionId, result);
+    void enqueueIssueSessionTurn({
+      issues,
+      runner: sessions.runner,
+      enqueue: (event) => assistantRuntime.enqueue(event),
+      assistantSessionId: sessions.store
+        .list()
+        .find((session) => session.origin === "assistant")?.id,
+      sessionId,
+    });
   });
   automationRuntime.start();
+  void assistantRuntime.start();
   return {
     ...sessions,
     home,
@@ -152,5 +237,8 @@ export function createAppContext(
     automationStore: automations,
     automationRuntime,
     issueDispatcher: dispatcher,
+    assistantLog,
+    assistantRuntime,
+    popoSend,
   };
 }

@@ -16,6 +16,7 @@ import { skillsRoutes } from "./routes/skills.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { issuesRoutes } from "./routes/issues.js";
 import { automationsRoutes } from "./routes/automations.js";
+import { assistantRoutes } from "./routes/assistant.js";
 import { createPopoRoutes } from "./popo/routes.js";
 
 export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
@@ -34,6 +35,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", skillsRoutes);
   app.route("/", issuesRoutes);
   app.route("/", automationsRoutes);
+  app.route("/", assistantRoutes);
 
   if (ctx.popo) {
     app.route("/", createPopoRoutes(ctx.popo));
