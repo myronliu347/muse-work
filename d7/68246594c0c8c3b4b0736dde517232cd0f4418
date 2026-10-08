@@ -1,0 +1,70 @@
+packages/agent/src/agent.ts
+  fcd8d9c5e216aa95 994-997
+packages/agent/src/managers/skillManager.ts
+  fcd8d9c5e216aa95 185-186
+packages/server/src/services/sessionRunner/agent.ts
+  fcd8d9c5e216aa95 78,80-98,106,109,114-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d768246594c0c8c3b4b0736dde517232cd0f4418",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 31,
+      "total_deletions": 7,
+      "accepted_lines": 31,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/agent.ts": {
+          "additions": 4,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 25,
+          "deletions": 2,
+          "accepted_lines": 25
+        }
+      }
+    }
+  }
+}
