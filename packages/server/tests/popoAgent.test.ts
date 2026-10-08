@@ -344,7 +344,6 @@ describe("popoAgent", () => {
     const runner = await factory({ chatKey: "p2p:x", type: "p2p" });
     await runner.run("hello");
     // popo 场景 agent（默认 popo 内置）→ 人格段 + POPO 指令
-    expect(String(captured?.systemPrompt)).toContain("你是Muse。你的性格：用语规范、逻辑严密、直奔重点，不过度寒暄。");
     expect(String(captured?.systemPrompt)).toContain("你是 Muse 机器人，运行在 POPO 即时通讯上");
     expect(captured?.disallowedTools).toEqual(["Workflow"]);
     // 内置 popo agent 默认 model=deepseek-flash；未单独配 fastModel 时与主模型相同

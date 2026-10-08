@@ -4,6 +4,8 @@
 
 **Goal:** 同一进程内按 `path.resolve(workdir)` 共享技能磁盘快照与 settings 合并结果，各 `SkillManager` / `LiveConfigManager` 订阅后在本会话容器内应用，消除同 workdir 多 Agent 的重复 chokidar 与重复全量扫描。
 
+**Status (2026-10):** 核心实现与 `tests/shared/*`、`skillManager.sharedCatalog.test.ts` 已落地；用户级 skills/settings 路径为进程级单 watch。
+
 **Architecture:** `SharedSkillCatalog` 与 `SharedLiveConfig` 为进程级 `Map<workdirKey, Entry>`，引用计数 + singleflight 初始加载；会话侧 manager 仅持有订阅句柄与会话状态（插件技能、回合快照）。共享层不写任何 `ConfigurationService.setEnvironmentVars`。
 
 **Tech Stack:** TypeScript, Node ≥20, chokidar（经现有 `FileWatcherService`），vitest。

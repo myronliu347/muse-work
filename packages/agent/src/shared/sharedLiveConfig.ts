@@ -33,15 +33,20 @@ type ConfigEntry = {
   workdir: string;
   refCount: number;
   payload: LiveConfigPayload;
+  /** Watches project settings paths only (user paths are global). */
   fileWatcher: FileWatcherService | null;
   listeners: Set<LiveConfigListener>;
   reloadInProgress: boolean;
   initPromise: Promise<void> | null;
   idleWaiters: Array<() => void>;
   closed: boolean;
+  watching: boolean;
 };
 
 const configs = new Map<string, ConfigEntry>();
+
+let globalUserConfigWatcher: FileWatcherService | null = null;
+let globalUserConfigWatchUsers = 0;
 
 function resolveWatchTarget(configPath: string): string {
   let candidate = configPath;
@@ -142,6 +147,53 @@ function resolveIdle(entry: ConfigEntry): void {
   }
 }
 
+async function ensureGlobalUserConfigWatcher(): Promise<void> {
+  if (globalUserConfigWatcher) return;
+  globalUserConfigWatcher = new FileWatcherService(logger);
+  globalUserConfigWatcher.on("watcherError", (error: Error) => {
+    logger?.error(`SharedLiveConfig global watcher error: ${error.message}`);
+  });
+  for (const userPath of getUserConfigPaths()) {
+    await globalUserConfigWatcher.watchFile(
+      resolveWatchTarget(userPath),
+      (event) => {
+        for (const configEntry of configs.values()) {
+          if (!configEntry.closed) {
+            void handleFileEvent(configEntry, event);
+          }
+        }
+      },
+    );
+  }
+}
+
+async function releaseGlobalUserConfigWatcher(): Promise<void> {
+  globalUserConfigWatchUsers = Math.max(0, globalUserConfigWatchUsers - 1);
+  if (globalUserConfigWatchUsers > 0 || !globalUserConfigWatcher) return;
+  await globalUserConfigWatcher.cleanup();
+  globalUserConfigWatcher = null;
+}
+
+async function attachConfigWatchers(entry: ConfigEntry): Promise<void> {
+  if (entry.watching || entry.closed) return;
+  entry.watching = true;
+  globalUserConfigWatchUsers++;
+  await ensureGlobalUserConfigWatcher();
+  if (!entry.fileWatcher) {
+    entry.fileWatcher = new FileWatcherService(logger);
+    entry.fileWatcher.on("watcherError", (error: Error) => {
+      logger?.error(`SharedLiveConfig watcher error: ${error.message}`);
+    });
+    const projectPaths = getProjectConfigPaths(entry.workdir);
+    for (const projectPath of projectPaths) {
+      await entry.fileWatcher.watchFile(
+        resolveWatchTarget(projectPath),
+        (event) => void handleFileEvent(entry, event),
+      );
+    }
+  }
+}
+
 async function teardownConfigEntry(entry: ConfigEntry): Promise<void> {
   entry.closed = true;
   entry.listeners.clear();
@@ -152,6 +204,10 @@ async function teardownConfigEntry(entry: ConfigEntry): Promise<void> {
   const watcher = entry.fileWatcher;
   entry.fileWatcher = null;
   await watcher?.cleanup();
+  if (entry.watching) {
+    entry.watching = false;
+    await releaseGlobalUserConfigWatcher();
+  }
 }
 
 async function runReload(entry: ConfigEntry): Promise<void> {
@@ -180,27 +236,6 @@ async function ensureInitialized(entry: ConfigEntry): Promise<void> {
   entry.initPromise = (async () => {
     if (entry.closed) return;
     await runReload(entry);
-    if (entry.closed) return;
-    if (!entry.fileWatcher) {
-      entry.fileWatcher = new FileWatcherService(logger);
-      entry.fileWatcher.on("watcherError", (error: Error) => {
-        logger?.error(`SharedLiveConfig watcher error: ${error.message}`);
-      });
-      const userPaths = getUserConfigPaths();
-      const projectPaths = getProjectConfigPaths(entry.workdir);
-      for (const userPath of userPaths) {
-        await entry.fileWatcher.watchFile(
-          resolveWatchTarget(userPath),
-          (event) => void handleFileEvent(entry, event),
-        );
-      }
-      for (const projectPath of projectPaths) {
-        await entry.fileWatcher.watchFile(
-          resolveWatchTarget(projectPath),
-          (event) => void handleFileEvent(entry, event),
-        );
-      }
-    }
   })();
   return entry.initPromise;
 }
@@ -242,6 +277,7 @@ export async function acquireLiveConfig(
       initPromise: null,
       idleWaiters: [],
       closed: false,
+      watching: false,
     };
     configs.set(key, entry);
   }
@@ -255,6 +291,7 @@ export async function acquireLiveConfig(
   entry.listeners.add(listener);
   const alreadyInitialized = entry.initPromise !== null;
   await ensureInitialized(entry);
+  await attachConfigWatchers(entry);
   if (alreadyInitialized) {
     await listener(entry.payload);
   }
@@ -295,5 +332,10 @@ export async function resetSharedLiveConfigForTests(): Promise<void> {
   for (const entry of configs.values()) {
     await entry.fileWatcher?.cleanup();
   }
+  if (globalUserConfigWatcher) {
+    await globalUserConfigWatcher.cleanup();
+    globalUserConfigWatcher = null;
+  }
+  globalUserConfigWatchUsers = 0;
   configs.clear();
 }

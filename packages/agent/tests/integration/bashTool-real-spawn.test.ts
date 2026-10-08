@@ -110,6 +110,6 @@ describe("bashTool with real shell spawn", () => {
 
     const result = await bashTool.execute({ command: "cd /tmp" }, context);
     expect(result.success).toBe(true);
-    expect(changedTo).toBe("/tmp");
+    expect(changedTo).toBe(fs.realpathSync("/tmp"));
   });
 });

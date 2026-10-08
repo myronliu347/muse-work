@@ -1,8 +1,8 @@
 # 按 workdir 共享技能目录与 Live 配置 — 设计说明
 
 日期：2026-09-30  
-状态：已实现（2026-09-30）  
-范围：`@muse-work/agent`（server 侧 Agent 会话仅作为宿主，本设计不改 server 路由）
+状态：已实现（2026-09-30；2026-10 补充全局用户路径单 watch、`GET /skills` 轻量列表）  
+范围：`@muse-work/agent`；server `GET /skills?workdir=` 使用 `listSkillMetadataForWorkdir`（不创建 Agent）
 
 ## 问题
 

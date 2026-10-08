@@ -5,6 +5,7 @@ import {
   type DiskSkillDiscoveryOptions,
   type DiskSkillSnapshot,
 } from "./diskSkillDiscovery.js";
+import type { SkillMetadata } from "../types/skills.js";
 import { resolveWorkdirKey } from "./pathKey.js";
 import { FileWatcherService } from "../services/fileWatcher.js";
 import { logger } from "../utils/globalLogger.js";
@@ -29,14 +30,20 @@ type CatalogEntry = {
   discovery: Omit<DiskSkillDiscoveryOptions, "workdir">;
   refCount: number;
   snapshot: DiskSkillSnapshot;
+  /** Watches project-scoped skill dirs only (user dirs are global). */
   fileWatcher: FileWatcherService | null;
   listeners: Set<SkillCatalogListener>;
   refreshChain: Promise<void>;
   initPromise: Promise<void> | null;
   closed: boolean;
+  wantWatch: boolean;
+  watching: boolean;
 };
 
 const catalogs = new Map<string, CatalogEntry>();
+
+let globalPersonalSkillWatcher: FileWatcherService | null = null;
+let globalPersonalSkillWatchUsers = 0;
 
 function emptySnapshot(): DiskSkillSnapshot {
   return {
@@ -46,8 +53,7 @@ function emptySnapshot(): DiskSkillSnapshot {
   };
 }
 
-function skillWatchPaths(
-  workdir: string,
+function personalSkillWatchPaths(
   discovery: Omit<DiskSkillDiscoveryOptions, "workdir">,
 ): string[] {
   return [
@@ -56,10 +62,68 @@ function skillWatchPaths(
       join(homedir(), ".claude", "skills"),
     discovery.personalAgentsSkillsPath ??
       join(homedir(), ".agents", "skills"),
+  ];
+}
+
+function projectSkillWatchPaths(
+  workdir: string,
+): string[] {
+  return [
     join(workdir, CONFIG_DIR_NAME, "skills"),
     join(workdir, ".claude", "skills"),
     join(workdir, ".agents", "skills"),
   ];
+}
+
+function skillWatchEventShouldRefresh(event: {
+  path: string;
+  type: string;
+}): boolean {
+  return (
+    event.path.endsWith("SKILL.md") ||
+    event.type === "delete" ||
+    event.type === "create"
+  );
+}
+
+async function ensureGlobalPersonalSkillWatcher(
+  discovery: Omit<DiskSkillDiscoveryOptions, "workdir">,
+): Promise<void> {
+  if (globalPersonalSkillWatcher) return;
+  globalPersonalSkillWatcher = new FileWatcherService(logger);
+  for (const pathToWatch of personalSkillWatchPaths(discovery)) {
+    await globalPersonalSkillWatcher.watchFile(pathToWatch, async (event) => {
+      if (!skillWatchEventShouldRefresh(event)) return;
+      for (const catalogEntry of catalogs.values()) {
+        if (!catalogEntry.closed) {
+          await requestSkillCatalogRefresh(catalogEntry.workdir);
+        }
+      }
+    });
+  }
+}
+
+async function attachCatalogWatchers(entry: CatalogEntry): Promise<void> {
+  if (entry.watching || entry.closed || !entry.wantWatch) return;
+  entry.watching = true;
+  globalPersonalSkillWatchUsers++;
+  await ensureGlobalPersonalSkillWatcher(entry.discovery);
+  if (!entry.fileWatcher) {
+    entry.fileWatcher = new FileWatcherService(logger);
+    for (const pathToWatch of projectSkillWatchPaths(entry.workdir)) {
+      await entry.fileWatcher.watchFile(pathToWatch, async (event) => {
+        if (!skillWatchEventShouldRefresh(event)) return;
+        await requestSkillCatalogRefresh(entry.workdir);
+      });
+    }
+  }
+}
+
+async function releaseGlobalPersonalSkillWatcher(): Promise<void> {
+  globalPersonalSkillWatchUsers = Math.max(0, globalPersonalSkillWatchUsers - 1);
+  if (globalPersonalSkillWatchUsers > 0 || !globalPersonalSkillWatcher) return;
+  await globalPersonalSkillWatcher.cleanup();
+  globalPersonalSkillWatcher = null;
 }
 
 async function teardownCatalogEntry(entry: CatalogEntry): Promise<void> {
@@ -68,6 +132,10 @@ async function teardownCatalogEntry(entry: CatalogEntry): Promise<void> {
   const watcher = entry.fileWatcher;
   entry.fileWatcher = null;
   await watcher?.cleanup();
+  if (entry.watching) {
+    entry.watching = false;
+    await releaseGlobalPersonalSkillWatcher();
+  }
 }
 
 async function runRefresh(entry: CatalogEntry): Promise<void> {
@@ -91,31 +159,13 @@ async function runRefresh(entry: CatalogEntry): Promise<void> {
   return run;
 }
 
-async function ensureInitialized(
-  entry: CatalogEntry,
-  watch: boolean,
-): Promise<void> {
+async function ensureInitialized(entry: CatalogEntry): Promise<void> {
   if (entry.initPromise) {
     return entry.initPromise;
   }
   entry.initPromise = (async () => {
     if (entry.closed) return;
     await runRefresh(entry);
-    if (entry.closed) return;
-    if (watch && !entry.fileWatcher) {
-      entry.fileWatcher = new FileWatcherService(logger);
-      for (const pathToWatch of skillWatchPaths(entry.workdir, entry.discovery)) {
-        await entry.fileWatcher.watchFile(pathToWatch, async (event) => {
-          if (
-            event.path.endsWith("SKILL.md") ||
-            event.type === "delete" ||
-            event.type === "create"
-          ) {
-            await requestSkillCatalogRefresh(entry.workdir);
-          }
-        });
-      }
-    }
   })();
   return entry.initPromise;
 }
@@ -139,6 +189,8 @@ export async function acquireSkillCatalog(
       refreshChain: Promise.resolve(),
       initPromise: null,
       closed: false,
+      wantWatch: false,
+      watching: false,
     };
     catalogs.set(key, entry);
   }
@@ -148,11 +200,15 @@ export async function acquireSkillCatalog(
     entry.initPromise = null;
   }
 
+  entry.wantWatch = entry.wantWatch || options.watch;
   entry.refCount++;
   entry.listeners.add(listener);
 
   const alreadyInitialized = entry.initPromise !== null;
-  await ensureInitialized(entry, options.watch);
+  await ensureInitialized(entry);
+  if (entry.wantWatch) {
+    await attachCatalogWatchers(entry);
+  }
   if (alreadyInitialized) {
     await listener(entry.snapshot);
   }
@@ -181,9 +237,27 @@ export function requestSkillCatalogRefresh(workdir: string): Promise<void> {
   return runRefresh(entry);
 }
 
+/** Read disk skill metadata without acquire/release (uses live catalog snapshot when present). */
+export async function peekDiskSkillMetadataForWorkdir(
+  workdir: string,
+): Promise<SkillMetadata[]> {
+  const key = resolveWorkdirKey(workdir);
+  const entry = catalogs.get(key);
+  if (entry && !entry.closed) {
+    return Array.from(entry.snapshot.metadata.values());
+  }
+  const snapshot = await discoverDiskSkills({ workdir });
+  return Array.from(snapshot.metadata.values());
+}
+
 export async function resetSharedSkillCatalogForTests(): Promise<void> {
   for (const entry of catalogs.values()) {
     await entry.fileWatcher?.cleanup();
   }
+  if (globalPersonalSkillWatcher) {
+    await globalPersonalSkillWatcher.cleanup();
+    globalPersonalSkillWatcher = null;
+  }
+  globalPersonalSkillWatchUsers = 0;
   catalogs.clear();
 }

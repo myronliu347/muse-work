@@ -65,7 +65,11 @@ export class SlashCommandManager {
   /** Drop SkillManager listeners so destroyed agents are collectable. */
   dispose(): void {
     const skillManager = this.container.get<SkillManager>("SkillManager");
-    if (skillManager && this.onSkillsRefreshed) {
+    if (
+      skillManager &&
+      this.onSkillsRefreshed &&
+      typeof skillManager.off === "function"
+    ) {
       skillManager.off("refreshed", this.onSkillsRefreshed);
       this.onSkillsRefreshed = undefined;
     }

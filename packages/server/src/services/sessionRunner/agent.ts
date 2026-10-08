@@ -70,14 +70,27 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
   } = ctx;
   const core = ctx.core;
 
+  const skillsListCache = new Map<
+    string,
+    { at: number; skills: unknown[] }
+  >();
+  const SKILLS_LIST_CACHE_MS = 30_000;
+
   async function getSkillsForWorkdir(workdir: string): Promise<unknown[]> {
     const trimmed = workdir.trim();
     if (!trimmed) {
       throw Object.assign(new Error("workdir is required"), { statusCode: 400 });
     }
     const workdirKey = path.resolve(trimmed);
+    const cacheKey = `${workdirKey}\0${pluginsFlag()}`;
+    const cached = skillsListCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < SKILLS_LIST_CACHE_MS) {
+      return cached.skills;
+    }
     const pluginDirs = enabledPluginDirs();
-    return listSkillMetadataForWorkdir(workdirKey, pluginDirs);
+    const skills = await listSkillMetadataForWorkdir(workdirKey, pluginDirs);
+    skillsListCache.set(cacheKey, { at: Date.now(), skills });
+    return skills;
   }
 
   /**

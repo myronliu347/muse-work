@@ -1,5 +1,5 @@
 import type { Skill, SkillMetadata } from "../types/skills.js";
-import { discoverDiskSkills } from "./diskSkillDiscovery.js";
+import { peekDiskSkillMetadataForWorkdir } from "./sharedSkillCatalog.js";
 import { PluginLoader } from "../services/pluginLoader.js";
 
 function pluginSkillMetadata(pluginName: string, skill: Skill): SkillMetadata {
@@ -28,11 +28,11 @@ export async function listSkillMetadataForWorkdir(
   workdir: string,
   pluginDirs: string[] = [],
 ): Promise<SkillMetadata[]> {
-  const snapshot = await discoverDiskSkills({ workdir });
+  const disk = await peekDiskSkillMetadataForWorkdir(workdir);
   const merged = new Map<string, SkillMetadata>();
-  snapshot.metadata.forEach((metadata, name) => {
-    merged.set(name, metadata);
-  });
+  for (const metadata of disk) {
+    merged.set(metadata.name, metadata);
+  }
 
   for (const pluginPath of pluginDirs) {
     try {
