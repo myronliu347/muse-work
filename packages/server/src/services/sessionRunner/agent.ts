@@ -2,9 +2,13 @@ import {
   loadSessionFromJsonl,
   type PermissionDecision,
 } from "@muse-work/agent";
-import type { GatewayResolution } from "@muse-work/provider";
+import {
+  DEFAULT_ACTIVE_MODEL_ID,
+  type GatewayResolution,
+} from "@muse-work/provider";
+import path from "node:path";
 import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
-import { resolveScenarioAgent } from "../agentConfig.js";
+import { resolveAgentForScenario, resolveScenarioAgent } from "../agentConfig.js";
 import { planningCodeWriteDecision } from "../issuePlanning.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
 import { MUSE_IDENTITY_REV } from "../museSystemPrompt.js";
@@ -67,6 +71,98 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     options,
   } = ctx;
   const core = ctx.core;
+
+  const workdirPreviewAgents = new Map<
+    string,
+    { agent: SessionAgent; identity: string }
+  >();
+  const MAX_WORKDIR_PREVIEW_AGENTS = 5;
+
+  function normalizeWorkdirKey(workdir: string): string {
+    return path.resolve(workdir);
+  }
+
+  function workdirPreviewIdentity(workdirKey: string): string {
+    return `${workdirKey}\0${pluginsFlag()}\0${MUSE_IDENTITY_REV}`;
+  }
+
+  async function resolveDefaultGateway(): Promise<GatewayResolution> {
+    const scenario = resolveAgentForScenario("session", home);
+    const model = scenario.model ?? DEFAULT_ACTIVE_MODEL_ID;
+    if (!model) {
+      throw Object.assign(new Error("no active model selected"), {
+        statusCode: 400,
+      });
+    }
+    const active = registry.getActive();
+    const provider = registry.get(active.providerId);
+    if (!provider) {
+      throw new Error(`active provider not found: ${active.providerId}`);
+    }
+    return provider.resolveGateway(model);
+  }
+
+  async function evictWorkdirPreviewIfNeeded(): Promise<void> {
+    if (workdirPreviewAgents.size < MAX_WORKDIR_PREVIEW_AGENTS) return;
+    const firstKey = workdirPreviewAgents.keys().next().value as
+      | string
+      | undefined;
+    if (!firstKey) return;
+    const entry = workdirPreviewAgents.get(firstKey);
+    workdirPreviewAgents.delete(firstKey);
+    await entry?.agent.dispose();
+  }
+
+  async function ensureWorkdirPreviewAgent(
+    workdir: string,
+  ): Promise<SessionAgent> {
+    const workdirKey = normalizeWorkdirKey(workdir);
+    const identity = workdirPreviewIdentity(workdirKey);
+    const existing = workdirPreviewAgents.get(workdirKey);
+    if (existing?.identity === identity) {
+      return existing.agent;
+    }
+    if (existing) {
+      await existing.agent.dispose();
+      workdirPreviewAgents.delete(workdirKey);
+    }
+    await evictWorkdirPreviewIfNeeded();
+    const gateway = await resolveDefaultGateway();
+    const pluginDirs = enabledPluginDirs();
+    const previewSessionId = `workdir-preview:${workdirKey}`;
+    const agent = await createAgent({
+      apiKey: gateway.apiKey,
+      baseURL: gateway.baseURL,
+      defaultHeaders: gateway.defaultHeaders,
+      fetch: gateway.fetch,
+      model: gateway.model,
+      fastModel: gateway.fastModel ?? gateway.model,
+      logger: createAgentLogger({ home, sessionId: previewSessionId }),
+      workdir: workdirKey,
+      stream: true,
+      permissionMode: "acceptEdits",
+      ...(pluginDirs.length > 0
+        ? {
+            plugins: pluginDirs.map((pluginPath) => ({
+              type: "local" as const,
+              path: pluginPath,
+            })),
+          }
+        : {}),
+      callbacks: {},
+    });
+    workdirPreviewAgents.set(workdirKey, { agent, identity });
+    return agent;
+  }
+
+  async function getSkillsForWorkdir(workdir: string): Promise<unknown[]> {
+    const trimmed = workdir.trim();
+    if (!trimmed) {
+      throw Object.assign(new Error("workdir is required"), { statusCode: 400 });
+    }
+    const agent = await ensureWorkdirPreviewAgent(trimmed);
+    return agent.getAvailableSkills?.() ?? [];
+  }
 
   /**
    * Paths of built-in plugins whose dirs are present.
@@ -1083,5 +1179,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     attachNestedMessages,
     loadMainSessionFromDisk,
     reconcileBackgroundTasks,
+    getSkillsForWorkdir,
   };
 }

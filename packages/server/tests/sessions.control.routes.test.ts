@@ -205,6 +205,39 @@ describe("session control routes", () => {
     expect(truncatedTo).toBe(0);
   });
 
+  it("GET /skills?workdir= returns serializable skills without a session", async () => {
+    const app = await listen(async () =>
+      stubAgent({
+        getAvailableSkills: () => [
+          {
+            name: "grilling",
+            description: "Grill the user",
+            type: "personal",
+            skillPath: "/tmp/skills/grilling",
+            userInvocable: true,
+          },
+          {
+            name: "hidden",
+            description: "Not invocable",
+            type: "personal",
+            skillPath: "/tmp/skills/hidden",
+            userInvocable: false,
+          },
+        ],
+      }),
+    );
+    const res = await fetch(
+      `${app.baseUrl}/skills?workdir=${encodeURIComponent(app.home)}`,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      skills: Array<{ name: string; userInvocable?: boolean }>;
+    };
+    expect(body.skills).toHaveLength(2);
+    expect(body.skills[0]?.name).toBe("grilling");
+    expect(body.skills[1]?.userInvocable).toBe(false);
+  });
+
   it("GET slash-commands returns the agent's slash commands (handler stripped)", async () => {
     // 斜杠指令来自 agent.getSlashCommands（SDK 内置 /subtask + userInvocable
     // 技能），不返回硬编码系统指令；handler 函数不下发。

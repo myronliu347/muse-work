@@ -12,6 +12,7 @@ import { controlRoutes } from "./routes/control.js";
 import { healthRoutes } from "./routes/health.js";
 import { providersRoutes } from "./routes/providers.js";
 import { sessionsRoutes } from "./routes/sessions.js";
+import { skillsRoutes } from "./routes/skills.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { issuesRoutes } from "./routes/issues.js";
 import { automationsRoutes } from "./routes/automations.js";
@@ -30,6 +31,7 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", authRoutes);
   app.route("/", agentsRoutes);
   app.route("/", sessionsRoutes);
+  app.route("/", skillsRoutes);
   app.route("/", issuesRoutes);
   app.route("/", automationsRoutes);
 

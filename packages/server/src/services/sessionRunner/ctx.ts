@@ -73,6 +73,8 @@ export interface SessionAgent {
   stopWorkflowRun?: (runId: string) => void;
   /** SDK 运行时注册的斜杠命令（内置 /subtask + userInvocable 技能），含 handler 函数。 */
   getSlashCommands?: () => unknown[];
+  /** 当前 workdir + 插件下的技能元数据（不含正文）。 */
+  getAvailableSkills?: () => unknown[];
   latestTotalTokens?: number;
   /** Whether the SDK has messages queued (serialized send dispatch). */
   hasPendingMessages?: () => boolean;
@@ -130,6 +132,7 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       getWorkflowRuns: () => agent.getWorkflowRuns(),
       stopWorkflowRun: (runId) => agent.stopWorkflowRun(runId),
       getSlashCommands: () => agent.getSlashCommands(),
+      getAvailableSkills: () => agent.getSkillMetadata(),
       hasPendingMessages: () => agent.hasPendingMessages,
       removeQueuedMessageById: (id) => agent.removeQueuedMessageById(id),
       updateQueuedMessageById: (id, patch) =>
@@ -242,6 +245,7 @@ export interface SessionRunner {
   getWorkflowRuns(sessionId: string): Promise<unknown[]>;
   stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
   getSlashCommands(sessionId: string): Promise<unknown[]>;
+  getSkillsForWorkdir(workdir: string): Promise<unknown[]>;
 }
 
 export interface PendingPermission {
@@ -340,6 +344,7 @@ export interface AgentLayer {
     workdir: string,
   ): Promise<{ messages: unknown[] } | null>;
   reconcileBackgroundTasks(sessionId: string): Promise<unknown[]>;
+  getSkillsForWorkdir(workdir: string): Promise<unknown[]>;
 }
 
 /**

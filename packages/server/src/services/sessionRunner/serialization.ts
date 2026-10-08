@@ -41,6 +41,25 @@ export function toBackgroundTaskSummary(task: {
   };
 }
 
+/** SkillMetadata 下发前端（不含 SKILL.md 正文）。 */
+export function toSerializableSkill(skill: unknown): Record<string, unknown> {
+  const s = (skill ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {
+    name: String(s.name ?? ""),
+    description: s.description == null ? "" : String(s.description),
+    type: s.type == null ? "project" : String(s.type),
+  };
+  if (s.skillPath != null) out.skillPath = String(s.skillPath);
+  if (s.userInvocable === false) out.userInvocable = false;
+  else if (s.userInvocable === true) out.userInvocable = true;
+  if (s.pluginName != null) out.pluginName = String(s.pluginName);
+  if (s.pluginRoot != null) out.pluginRoot = String(s.pluginRoot);
+  if (s.context != null) out.context = s.context;
+  if (s.model != null) out.model = String(s.model);
+  if (s.agent != null) out.agent = String(s.agent);
+  return out;
+}
+
 /** SDK SlashCommand 剥离 handler/immediate 函数后下发前端（前端只需 id/name/description）。 */
 export function toSerializableSlashCommand(
   command: unknown,

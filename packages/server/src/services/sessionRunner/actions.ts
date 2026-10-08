@@ -5,6 +5,7 @@ import { enrichFileHistory, revertSnapshots } from "../../utils/fileHistoryDiff.
 import {
   isRewindTargetMessage,
   toSerializableSlashCommand,
+  toSerializableSkill,
   toSerializableWorkflowRuns,
   userMessageText,
 } from "./serialization.js";
@@ -578,6 +579,11 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       } catch {
         return [];
       }
+    },
+
+    async getSkillsForWorkdir(workdir) {
+      const skills = await agent.getSkillsForWorkdir(workdir);
+      return skills.map(toSerializableSkill);
     },
 
     invalidateAgentIdentities() {

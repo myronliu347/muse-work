@@ -32,6 +32,49 @@ export function postToWebview(data: Record<string, unknown>): void {
   window.dispatchEvent(new MessageEvent("message", { data }));
 }
 
+/**
+ * Session id used only to fetch slash commands (incl. userInvocable skills).
+ * Draft「新对话」has no session until the first send; skills are workdir-scoped,
+ * so reuse a live agent from another sidebar session when possible.
+ */
+export function skillsToSlashCommands(
+  skills: Array<{
+    name: string;
+    description?: string;
+    userInvocable?: boolean;
+  }>,
+): Array<{ id: string; name: string; description: string }> {
+  return skills
+    .filter((skill) => skill.userInvocable !== false)
+    .map((skill) => ({
+      id: skill.name,
+      name: skill.name,
+      description: skill.description ?? "",
+    }));
+}
+
+export function resolveSlashCommandsSessionId(ctx: {
+  sessionId: string | null;
+  pendingNewSession: boolean;
+  currentWorkdir: string;
+  pinned: TreeSession[];
+  recent: TreeSession[];
+  issueGroups?: Array<{ sessions: TreeSession[] }>;
+  closedIssueGroups?: Array<{ sessions: TreeSession[] }>;
+}): string | null {
+  if (ctx.sessionId && !ctx.pendingNewSession) {
+    return ctx.sessionId;
+  }
+  const wd = ctx.currentWorkdir;
+  if (wd) {
+    for (const s of allTreeSessions(ctx)) {
+      if (s.workdir === wd) return s.id;
+    }
+  }
+  const fallback = ctx.recent[0] ?? ctx.pinned[0];
+  return fallback?.id ?? null;
+}
+
 export function newId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }

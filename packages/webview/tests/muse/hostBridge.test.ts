@@ -641,6 +641,36 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
+  it("requestSlashCommands during draft newSession loads skills by workdir", async () => {
+    const api = stubApi({
+      listSessionsGrouped: vi.fn(async () => ({
+        pinned: [],
+        recent: [],
+        activeSessionId: undefined,
+      })),
+      getSkills: vi.fn(async () => ({
+        skills: [{ name: "my-skill", description: "demo", userInvocable: true }],
+      })),
+    });
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/repo/a",
+    });
+
+    bridge.postMessage({ command: "newSession", workdir: "/repo/a" });
+    await flush();
+    vi.mocked(api.getSkills).mockClear();
+    bridge.postMessage({ command: "requestSlashCommands" });
+    await flush();
+
+    expect(api.getSkills).toHaveBeenCalledWith("/repo/a");
+    expect(messages).toContainEqual({
+      command: "slashCommandsResponse",
+      commands: [{ id: "my-skill", name: "my-skill", description: "demo" }],
+    });
+  });
+
   it("newSession resets permission mode to acceptEdits", async () => {
     const api = stubApi();
     const bridge = createHostBridge({

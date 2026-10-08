@@ -4,6 +4,8 @@ import {
   emitPermissionMode,
   newId,
   postToWebview,
+  resolveSlashCommandsSessionId,
+  skillsToSlashCommands,
 } from "./utils.js";
 import type { BridgeCtx } from "./ctx.js";
 
@@ -495,7 +497,38 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
   }> = [];
 
   async function handleRequestSlashCommands(): Promise<void> {
-    if (!ctx.sessionId || ctx.pendingNewSession) {
+    if (ctx.sessionId && !ctx.pendingNewSession) {
+      try {
+        const { commands } = await ctx.api.getSlashCommands(ctx.sessionId);
+        postToWebview({ command: "slashCommandsResponse", commands });
+      } catch {
+        postToWebview({
+          command: "slashCommandsResponse",
+          commands: FALLBACK_SLASH_COMMANDS,
+        });
+      }
+      return;
+    }
+
+    const workdir = ctx.currentWorkdir?.trim();
+    if (workdir) {
+      try {
+        const { skills } = await ctx.api.getSkills(workdir);
+        postToWebview({
+          command: "slashCommandsResponse",
+          commands: skillsToSlashCommands(skills),
+        });
+      } catch {
+        postToWebview({
+          command: "slashCommandsResponse",
+          commands: FALLBACK_SLASH_COMMANDS,
+        });
+      }
+      return;
+    }
+
+    const borrowedSessionId = resolveSlashCommandsSessionId(ctx);
+    if (!borrowedSessionId) {
       postToWebview({
         command: "slashCommandsResponse",
         commands: FALLBACK_SLASH_COMMANDS,
@@ -503,7 +536,7 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       return;
     }
     try {
-      const { commands } = await ctx.api.getSlashCommands(ctx.sessionId);
+      const { commands } = await ctx.api.getSlashCommands(borrowedSessionId);
       postToWebview({ command: "slashCommandsResponse", commands });
     } catch {
       postToWebview({

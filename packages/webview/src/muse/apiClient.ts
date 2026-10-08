@@ -664,6 +664,19 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getSkills(workdir: string): Promise<{
+    skills: Array<{
+      name: string;
+      description: string;
+      userInvocable?: boolean;
+    }>;
+  }> {
+    const res = await this.request(
+      `/skills?workdir=${encodeURIComponent(workdir)}`,
+    );
+    return parseJson(res);
+  }
+
   async getSessionStatus(sessionId: string): Promise<{
     sessionId: string;
     workdir: string;
