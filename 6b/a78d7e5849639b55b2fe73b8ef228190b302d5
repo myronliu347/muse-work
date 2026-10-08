@@ -1,0 +1,126 @@
+packages/agent/tests/shared/sharedSkillCatalog.test.ts
+  fcd8d9c5e216aa95 1-104
+packages/agent/docs/2026-09-30-shared-catalog-liveconfig-plan.md
+  fcd8d9c5e216aa95 7-8
+packages/server/src/services/sessionRunner/agent.ts
+  fcd8d9c5e216aa95 73-78,85-89,91-93
+packages/agent/tests/integration/bashTool-real-spawn.test.ts
+  fcd8d9c5e216aa95 113
+packages/agent/tests/managers/skillManager.sharedCatalog.test.ts
+  fcd8d9c5e216aa95 1-46
+packages/agent/docs/2026-09-30-shared-catalog-liveconfig-design.md
+  fcd8d9c5e216aa95 4-5
+packages/agent/src/managers/slashCommandManager.ts
+  fcd8d9c5e216aa95 68-72
+packages/agent/src/shared/skillMetadataPreview.ts
+  fcd8d9c5e216aa95 2,31,33-35
+packages/agent/src/shared/sharedSkillCatalog.ts
+  fcd8d9c5e216aa95 8,33,39-40,45-46,56,65-71,78-126,135-138,162,192-193,203,208-211,240-252,257-259,261
+packages/agent/tests/shared/sharedLiveConfig.test.ts
+  fcd8d9c5e216aa95 1-86
+packages/agent/src/shared/sharedLiveConfig.ts
+  fcd8d9c5e216aa95 36,43,48-49,150-196,207-210,280,294,335-339
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6ba78d7e5849639b55b2fe73b8ef228190b302d5",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 424,
+      "total_deletions": 54,
+      "accepted_lines": 424,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/shared/skillMetadataPreview.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/shared/sharedSkillCatalog.ts": {
+          "additions": 96,
+          "deletions": 22,
+          "accepted_lines": 96
+        },
+        "packages/agent/docs/2026-09-30-shared-catalog-liveconfig-design.md": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/agent/src/shared/sharedLiveConfig.ts": {
+          "additions": 63,
+          "deletions": 21,
+          "accepted_lines": 63
+        },
+        "packages/agent/tests/managers/skillManager.sharedCatalog.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/server/tests/popoAgent.test.ts": {
+          "deletions": 1
+        },
+        "packages/agent/tests/integration/bashTool-real-spawn.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/shared/sharedSkillCatalog.test.ts": {
+          "additions": 104,
+          "accepted_lines": 104
+        },
+        "packages/agent/docs/2026-09-30-shared-catalog-liveconfig-plan.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/slashCommandManager.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/agent/tests/shared/sharedLiveConfig.test.ts": {
+          "additions": 86,
+          "accepted_lines": 86
+        }
+      }
+    }
+  }
+}
