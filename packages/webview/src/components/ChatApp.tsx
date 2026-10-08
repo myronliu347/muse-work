@@ -14,6 +14,7 @@ import {
 import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
+import { AssistantPage } from "./assistant/AssistantPage";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
@@ -65,7 +66,7 @@ import "../styles/ChatApp.css";
 export { prunePanelGroupCache } from "../stores";
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-chat" | "automations";
+export type MainView = "newChat" | "chat" | "popo-chat" | "automations" | "assistant";
 
 export const ChatApp: React.FC<ChatAppProps> = (props) => {
   const popoApi = useMemo(
@@ -1015,9 +1016,15 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             popoUi.selectChat(null);
             setView("automations");
           }}
+          onOpenAssistant={() => {
+            popoUi.selectChat(null);
+            setView("assistant");
+          }}
           activeMenu={
             view === "automations"
               ? "automations"
+              : view === "assistant"
+                ? "assistant"
               : view === "newChat" || showNewSessionPage
                 ? "newChat"
                 : undefined
@@ -1029,6 +1036,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             postToHost={postToHost}
             recentWorkdirs={host.recentWorkdirs ?? []}
           />
+        ) : view === "assistant" ? (
+          <AssistantPage api={popoApi} />
         ) : (
           chatContainer
         )}

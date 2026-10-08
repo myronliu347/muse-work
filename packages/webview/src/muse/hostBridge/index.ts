@@ -151,6 +151,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "assistant:chat") {
+      postToWebview({ command: "assistant:chat", line: event.line });
+      return;
+    }
+
     if (event.type === "permission:request") {
       const pending: PendingPermission = {
         permissionId: event.permissionId,

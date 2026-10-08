@@ -1007,6 +1007,42 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async listAssistantMessages(query?: {
+    before?: string;
+    limit?: number;
+  }): Promise<{
+    messages: Array<{
+      id: string;
+      at: number;
+      role: "user" | "assistant";
+      message: string;
+    }>;
+    hasMore: boolean;
+  }> {
+    const params = new URLSearchParams();
+    if (query?.before) params.set("before", query.before);
+    if (query?.limit) params.set("limit", String(query.limit));
+    const qs = params.toString();
+    const res = await this.request(
+      `/assistant/messages${qs ? `?${qs}` : ""}`,
+    );
+    return parseJson(res);
+  }
+
+  async sendAssistantMessage(message: string): Promise<{
+    id: string;
+    at: number;
+    role: "user" | "assistant";
+    message: string;
+  }> {
+    const res = await this.request("/assistant/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    return parseJson(res);
+  }
+
   async deletePopoChat(chatKey: string): Promise<{ ok: true }> {
     const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`, {
       method: "DELETE",

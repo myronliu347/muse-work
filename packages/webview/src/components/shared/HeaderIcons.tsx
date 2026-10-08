@@ -4,6 +4,27 @@ interface IconProps {
   className?: string;
 }
 
+/** 助理：对话气泡。 */
+export const AssistantIcon: React.FC<IconProps> = ({
+  className = "header-icon",
+}) => (
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    className={className}
+    aria-hidden="true"
+  >
+    <path
+      d="M3.2 3.4h9.6a1.2 1.2 0 0 1 1.2 1.2v5.2a1.2 1.2 0 0 1-1.2 1.2H7.1L4.2 13.2V11H3.2A1.2 1.2 0 0 1 2 9.8V4.6a1.2 1.2 0 0 1 1.2-1.2Z"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 /** 自动化：时钟，和「新对话」纸飞机同级的侧栏图标。 */
 export const AutomationsIcon: React.FC<IconProps> = ({
   className = "header-icon",

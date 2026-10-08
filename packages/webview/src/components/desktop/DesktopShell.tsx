@@ -10,6 +10,7 @@ import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import { usePopoUi } from "../popo/popoUi";
 import { AutomationsPage } from "../automation/AutomationsPage";
+import { AssistantPage } from "../assistant/AssistantPage";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   DesktopHostProps,
@@ -90,7 +91,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const popoUi = usePopoUi();
-  const [shellView, setShellView] = useState<"chat" | "automations">("chat");
+  const [shellView, setShellView] = useState<"chat" | "automations" | "assistant">("chat");
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
   // non-empty and at most two rows exist.
@@ -719,9 +720,15 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           popoUi.selectChat(null);
           setShellView("automations");
         }}
+        onOpenAssistant={() => {
+          popoUi.selectChat(null);
+          setShellView("assistant");
+        }}
         activeMenu={
           shellView === "automations"
             ? "automations"
+            : shellView === "assistant"
+              ? "assistant"
             : focusedSessionId == null || focusedSessionId === "__draft__"
               ? "newChat"
               : undefined
@@ -733,6 +740,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           postToHost={postToHost}
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
+      ) : shellView === "assistant" ? (
+        <AssistantPage api={api} />
       ) : (
       <div
         className="desktop-pane-rows"
