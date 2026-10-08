@@ -73,6 +73,30 @@ describe("assistant events and queue", () => {
     ]);
   });
 
+  it("folds a waiting chat from the same person onto the tail", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-q3-"));
+    const q = createAssistantQueue({ home });
+    q.enqueue({ type: "chat", from: "muse", message: "一" });
+    expect(q.absorb({ type: "chat", from: "muse", message: "二" }, true)).toBe(false);
+    expect(q.absorb({ type: "chat", from: "muse", message: "二" }, false)).toBe(true);
+    expect(q.peek()).toMatchObject({ message: "一\n二" });
+    q.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" });
+    expect(q.absorb({ type: "chat", from: "muse", message: "三" }, true)).toBe(false);
+    q.enqueue({ type: "chat", from: "popo", user: "a", message: "4", images: [{ data: "a", mediaType: "image/png" }] });
+    expect(q.absorb({
+      type: "chat",
+      from: "popo",
+      user: "a",
+      message: "5",
+      images: [{ data: "b", mediaType: "image/png" }],
+    }, true)).toBe(true);
+    expect(q.absorb({ type: "chat", from: "popo", user: "b", message: "6" }, true)).toBe(false);
+    const tail = q.list();
+    expect(tail.map((item) => item.title)).toEqual(["Muse：一 二", "登录", "POPO：4 5"]);
+    const again = createAssistantQueue({ home });
+    expect(again.peek()).toMatchObject({ message: "一\n二" });
+  });
+
   it("summarizes queue rows without image payloads", () => {
     expect(viewAssistantEvent({
       type: "chat",

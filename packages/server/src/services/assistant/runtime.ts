@@ -113,7 +113,7 @@ export function createAssistantRuntime(options: {
 
   return {
     enqueue(event) {
-      queue.enqueue(event);
+      if (!queue.absorb(event, inflight)) queue.enqueue(event);
       pump();
       notify();
     },

@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
-import { viewAssistantEvent, type AssistantEvent, type AssistantQueueView } from "./events.js";
+import { viewAssistantEvent, type AssistantChatEvent, type AssistantEvent, type AssistantQueueView } from "./events.js";
+import { normalizeAssistantImages } from "./messages.js";
 
 type QueueFile = {
   version: 1;
@@ -19,6 +20,31 @@ function writeAtomically(filePath: string, content: string): void {
   fs.renameSync(tmpPath, filePath);
 }
 
+function sameChat(tail: AssistantEvent, next: AssistantEvent): tail is AssistantChatEvent {
+  return next.type === "chat"
+    && tail.type === "chat"
+    && tail.retry !== 1
+    && tail.from === next.from
+    && (tail.user ?? "") === (next.user ?? "")
+    && (tail.groupId ?? "") === (next.groupId ?? "");
+}
+
+function mergedChat(tail: AssistantChatEvent, next: AssistantChatEvent): AssistantChatEvent {
+  const message = [tail.message, next.message]
+    .map((part) => part.trim())
+    .filter((part) => part !== "")
+    .join("\n");
+  const images = normalizeAssistantImages([...(tail.images ?? []), ...(next.images ?? [])]);
+  return {
+    type: "chat",
+    from: tail.from,
+    message,
+    ...(tail.user ? { user: tail.user } : {}),
+    ...(tail.groupId ? { groupId: tail.groupId } : {}),
+    ...(images.length > 0 ? { images } : {}),
+  };
+}
+
 function load(filePath: string): AssistantEvent[] {
   if (!fs.existsSync(filePath)) return [];
   try {
@@ -31,6 +57,7 @@ function load(filePath: string): AssistantEvent[] {
 
 export function createAssistantQueue(options: { home: string }): {
   enqueue(event: AssistantEvent): void;
+  absorb(event: AssistantEvent, headLocked: boolean): boolean;
   peek(): AssistantEvent | undefined;
   list(): AssistantQueueView[];
   dropHead(): void;
@@ -48,6 +75,14 @@ export function createAssistantQueue(options: { home: string }): {
     enqueue(event) {
       events.push(event);
       save();
+    },
+    absorb(event, headLocked) {
+      const tail = events[events.length - 1];
+      if (!tail || event.type !== "chat" || !sameChat(tail, event)) return false;
+      if (headLocked && events.length === 1) return false;
+      events[events.length - 1] = mergedChat(tail, event);
+      save();
+      return true;
     },
     peek() {
       return events[0];
