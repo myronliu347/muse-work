@@ -1,0 +1,77 @@
+packages/agent/src/utils/containerSetup.ts
+  fcd8d9c5e216aa95 376
+packages/agent/src/managers/slashCommandManager.ts
+  fcd8d9c5e216aa95 43,58,60-70
+packages/agent/src/shared/sharedSkillCatalog.ts
+  fcd8d9c5e216aa95 36,65-72,75,102,104,141,146-148,164,166,169
+packages/agent/src/shared/sharedLiveConfig.ts
+  fcd8d9c5e216aa95 41,145-156,158-160,181,183,244,249-251,266,268,271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "811c704ef0ba4b7b529caab1521a72a507da277e",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 62,
+      "total_deletions": 8,
+      "accepted_lines": 62,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/shared/sharedLiveConfig.ts": {
+          "additions": 27,
+          "deletions": 3,
+          "accepted_lines": 27
+        },
+        "packages/agent/src/utils/containerSetup.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/shared/sharedSkillCatalog.ts": {
+          "additions": 21,
+          "deletions": 3,
+          "accepted_lines": 21
+        },
+        "packages/agent/src/managers/slashCommandManager.ts": {
+          "additions": 13,
+          "deletions": 2,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
