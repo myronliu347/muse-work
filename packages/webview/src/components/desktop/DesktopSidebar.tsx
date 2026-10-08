@@ -107,7 +107,7 @@ export interface DesktopSidebarProps {
   activeMenu?: "newChat" | "automations" | "assistant";
   /** 侧栏顶部「自动化」独立页 */
   onOpenAutomations?: () => void;
-  /** 侧栏顶部「助理」对话 */
+  /** 侧栏顶部「Muse Bot」对话 */
   onOpenAssistant?: () => void;
   /** 抽屉滑出视口时，避免焦点与读屏进入侧栏。 */
   sidebarAccessHidden?: boolean;
@@ -235,7 +235,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           data-testid="desktop-assistant-menu"
         >
           <AssistantIcon className="app-menu-icon app-menu-icon--16" />
-          <span>助理</span>
+          <span>Muse Bot</span>
         </button>
       </div>
       <div className="divider" />

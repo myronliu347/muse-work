@@ -345,7 +345,7 @@ export const AssistantPage: React.FC<{
   return (
     <div className="assistant-page">
       <header className="assistant-header">
-        <div className="assistant-header-title">助理</div>
+        <div className="assistant-header-title">Muse Bot</div>
         <div className="assistant-view-switch" role="group" aria-label="查看内容">
           <button
             type="button"
@@ -394,7 +394,7 @@ export const AssistantPage: React.FC<{
               <UserLine key={line.id} line={line} />
             ) : (
               <div key={line.id} className="assistant-bubble-row assistant-bubble-row-assistant">
-                <div className="assistant-bubble-name">助理</div>
+                <div className="assistant-bubble-name">Muse Bot</div>
                 <div
                   className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
                   dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}

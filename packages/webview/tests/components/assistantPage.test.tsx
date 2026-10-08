@@ -20,7 +20,7 @@ describe("AssistantPage", () => {
     expect(await screen.findByText("你好")).toBeTruthy();
     expect(screen.getByText("你好").closest(".assistant-bubble-user")).toBeTruthy();
     expect(screen.getByText("在").closest(".assistant-bubble-assistant")).toBeTruthy();
-    expect(screen.getAllByText("助理").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Muse Bot").length).toBeGreaterThan(1);
     expect(document.querySelectorAll(".assistant-bubble-time").length).toBe(2);
     const input = screen.getByTestId("message-input");
     input.textContent = "继续";
@@ -77,7 +77,7 @@ describe("AssistantPage", () => {
       }),
     };
     render(<AssistantPage api={api} />);
-    expect(await screen.findByText("助理")).toBeTruthy();
+    expect(await screen.findByText("Muse Bot")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
     expect(await screen.findByText("工具调用了")).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledWith("asst");

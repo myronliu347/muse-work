@@ -130,12 +130,21 @@ describe("assistant tools", () => {
     expect(read.planning[0]?.text.startsWith("完整结论")).toBe(true);
     expect([...read.planning[0]!.text].length).toBeGreaterThan(8000);
 
+    const closed = await tool(tools, "CloseIssue").execute(
+      { issueId: issue.id, action: "complete" },
+      context,
+    );
+    expect(closed.success).toBe(true);
+    expect(issues.get(issue.id)?.status).toBe("completed");
+    expect(broadcasts).toContainEqual({ type: "issue:changed" });
+
     expect(tools.map((entry) => entry.name)).toEqual([
       "ListIssues",
       "ListWorkdirs",
       "CreateIssue",
       "OpenIssue",
       "MessageIssue",
+      "CloseIssue",
       "SendMessage",
       "ReadSessionMessages",
       "ListMuseMessages",

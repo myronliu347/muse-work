@@ -4,7 +4,7 @@ interface IconProps {
   className?: string;
 }
 
-/** 助理：对话气泡。 */
+/** Muse Bot：机器人。 */
 export const AssistantIcon: React.FC<IconProps> = ({
   className = "header-icon",
 }) => (
@@ -17,10 +17,28 @@ export const AssistantIcon: React.FC<IconProps> = ({
     aria-hidden="true"
   >
     <path
-      d="M3.2 3.4h9.6a1.2 1.2 0 0 1 1.2 1.2v5.2a1.2 1.2 0 0 1-1.2 1.2H7.1L4.2 13.2V11H3.2A1.2 1.2 0 0 1 2 9.8V4.6a1.2 1.2 0 0 1 1.2-1.2Z"
+      d="M8 2.15v1.7"
       stroke="currentColor"
       strokeWidth="1.35"
-      strokeLinejoin="round"
+      strokeLinecap="round"
+    />
+    <circle cx="8" cy="2.05" r="0.7" fill="currentColor" />
+    <rect
+      x="3.15"
+      y="4.15"
+      width="9.7"
+      height="8.15"
+      rx="2.2"
+      stroke="currentColor"
+      strokeWidth="1.35"
+    />
+    <circle cx="6.2" cy="7.7" r="0.75" fill="currentColor" />
+    <circle cx="9.8" cy="7.7" r="0.75" fill="currentColor" />
+    <path
+      d="M6.15 10.15h3.7"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinecap="round"
     />
   </svg>
 );

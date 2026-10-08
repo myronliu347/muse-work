@@ -180,6 +180,38 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
       },
     ),
     tool(
+      "CloseIssue",
+      "关闭 Issue。action 为 complete 表示做完，cancel 表示取消。已完成不能再取消，已取消不能再完成。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+          action: { type: "string", enum: ["complete", "cancel"] },
+        },
+        required: ["issueId", "action"],
+      },
+      async (args) => {
+        const issueId = text(args.issueId);
+        const issue = deps.issues.get(issueId);
+        if (!issue) return fail("not found");
+        if (args.action === "complete") {
+          if (issue.status === "cancelled") return fail("already cancelled");
+          const closed = deps.issues.complete(issueId);
+          if (!closed) return fail("close failed");
+          deps.hub.broadcastAll({ type: "issue:changed" });
+          return ok({ id: closed.id, status: closed.status });
+        }
+        if (args.action === "cancel") {
+          if (issue.status === "completed") return fail("already completed");
+          const closed = deps.issues.cancel(issueId);
+          if (!closed) return fail("close failed");
+          deps.hub.broadcastAll({ type: "issue:changed" });
+          return ok({ id: closed.id, status: closed.status });
+        }
+        return fail("action must be complete or cancel");
+      },
+    ),
+    tool(
       "SendMessage",
       "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。",
       {

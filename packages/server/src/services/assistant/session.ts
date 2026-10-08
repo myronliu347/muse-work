@@ -9,10 +9,13 @@ export const ASSISTANT_TOOL_NAMES = [
   "CreateIssue",
   "OpenIssue",
   "MessageIssue",
+  "CloseIssue",
   "SendMessage",
   "ReadSessionMessages",
   "ListMuseMessages",
 ] as const;
+
+export const ASSISTANT_TITLE = "Muse Bot";
 
 export function ensureAssistantSession(
   store: SessionStore,
@@ -23,11 +26,13 @@ export function ensureAssistantSession(
     const tools = [...ASSISTANT_TOOL_NAMES];
     const promptOk = existing.systemPrompt === ASSISTANT_SYSTEM_PROMPT;
     const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(tools);
-    if (promptOk && toolsOk) return existing;
+    const titleOk = existing.title === ASSISTANT_TITLE;
+    if (promptOk && toolsOk && titleOk) return existing;
     return (
       store.update(existing.id, {
         ...(promptOk ? {} : { systemPrompt: ASSISTANT_SYSTEM_PROMPT }),
         ...(toolsOk ? {} : { tools }),
+        ...(titleOk ? {} : { title: ASSISTANT_TITLE }),
       }) ?? existing
     );
   }
@@ -37,7 +42,7 @@ export function ensureAssistantSession(
     origin: "assistant",
     workdir,
     permissionMode: "bypassPermissions",
-    title: "助理",
+    title: ASSISTANT_TITLE,
     model: args.model,
     systemPrompt: ASSISTANT_SYSTEM_PROMPT,
     tools: [...ASSISTANT_TOOL_NAMES],

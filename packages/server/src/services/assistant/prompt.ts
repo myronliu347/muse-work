@@ -35,7 +35,8 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 # 限制
 
-- 禁止创建清单、dispatch、完成、取消。
+- 禁止创建清单、dispatch。
+- 用户说关掉、做完或完成时，调用 \`CloseIssue\`，\`action\` 为 \`complete\`。用户说取消或不做了时，\`action\` 为 \`cancel\`。
 - \`OpenIssue\` 拿不准模式就用 \`single\`。
 - transcript 压缩后，用 \`ListMuseMessages\` 回查 Muse 对话。
 `;
