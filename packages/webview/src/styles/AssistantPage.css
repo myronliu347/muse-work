@@ -78,23 +78,77 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-3);
+  gap: 18px;
 }
 
-.assistant-column > .message {
-  flex: 0 0 auto;
-  width: 100%;
+.assistant-bubble-row {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  max-width: min(100%, 680px);
 }
 
-.assistant-page .message-content.user-content {
-  max-height: none;
-  overflow: visible;
+.assistant-bubble-row-user {
+  align-self: flex-end;
+  align-items: flex-end;
+  max-width: min(100%, 520px);
+}
+
+.assistant-bubble-row-assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.assistant-bubble-name {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--gray-12);
+}
+
+.assistant-bubble {
+  box-sizing: border-box;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.assistant-bubble-user {
+  background: var(--accent-3, var(--gray-3));
+  color: var(--gray-12);
+}
+
+.assistant-bubble-assistant {
+  width: fit-content;
+  max-width: 100%;
+  background: var(--gray-2);
+  color: var(--gray-12);
+}
+
+.assistant-bubble-time {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--gray-9);
+}
+
+.assistant-user-content {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.assistant-page .assistant-bubble-assistant > :first-child {
+  margin-top: 0;
+}
+
+.assistant-page .assistant-bubble-assistant > :last-child {
+  margin-bottom: 0;
 }
 
 .assistant-user-image {

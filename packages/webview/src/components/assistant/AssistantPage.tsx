@@ -108,6 +108,20 @@ function asLine(value: unknown): AssistantLine | undefined {
   return undefined;
 }
 
+function formatBubbleTime(at: number): string {
+  const date = new Date(at);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function BubbleTime({ at }: { at: number }) {
+  return (
+    <time className="assistant-bubble-time" dateTime={new Date(at).toISOString()}>
+      {formatBubbleTime(at)}
+    </time>
+  );
+}
+
 function UserLine({ line }: { line: AssistantLine }) {
   const parts = parseMentions(
     line.message,
@@ -118,9 +132,9 @@ function UserLine({ line }: { line: AssistantLine }) {
   );
   const referenced = new Set<string>();
   return (
-    <div className="message user">
-      <div className="user-text-block">
-        <div className="message-content user-content assistant-user-content">
+    <div className="assistant-bubble-row assistant-bubble-row-user">
+      <div className="assistant-bubble assistant-bubble-user">
+        <div className="assistant-user-content">
           {parts.map((part, index) => {
             if (part.type === "mention" && part.isImage && part.imageData) {
               referenced.add(part.imageData);
@@ -162,6 +176,7 @@ function UserLine({ line }: { line: AssistantLine }) {
             ))}
         </div>
       </div>
+      <BubbleTime at={line.at} />
     </div>
   );
 }
@@ -378,11 +393,13 @@ export const AssistantPage: React.FC<{
             line.role === "user" ? (
               <UserLine key={line.id} line={line} />
             ) : (
-              <div key={line.id} className="message assistant">
+              <div key={line.id} className="assistant-bubble-row assistant-bubble-row-assistant">
+                <div className="assistant-bubble-name">助理</div>
                 <div
-                  className="message-content markdown-content"
+                  className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
                   dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
                 />
+                <BubbleTime at={line.at} />
               </div>
             ),
           )}
