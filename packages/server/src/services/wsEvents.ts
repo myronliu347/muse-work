@@ -110,7 +110,15 @@ export type WsEvent =
   | { type: "automation:changed" }
   | { type: "popo:changed" }
   | { type: "assistant:chat"; line: { id: string; at: number; role: "user" | "assistant"; message: string } }
-  | { type: "assistant:status"; working: boolean };
+  | { type: "assistant:status"; working: boolean }
+  | {
+      type: "assistant:queue";
+      items: Array<{
+        type: "chat" | "issue" | "automation";
+        title: string;
+        retry?: true;
+      }>;
+    };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };
 

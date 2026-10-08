@@ -1925,6 +1925,7 @@ body.is-panel-resizing * {
 
 .desktop-layout > .chat-container .messages-container,
 .desktop-pane-row > .desktop-pane:first-child .messages-container,
+.desktop-layout .assistant-page .assistant-queue,
 .desktop-layout .assistant-page .assistant-log,
 .desktop-layout .assistant-page .messages-container {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
@@ -1984,6 +1985,9 @@ body.is-panel-resizing * {
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   .assistant-page
   .assistant-header,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .assistant-page
+  .assistant-queue,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   .assistant-page
   .assistant-log,

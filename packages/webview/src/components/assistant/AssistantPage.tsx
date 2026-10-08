@@ -20,7 +20,14 @@ export type AssistantLine = {
   images?: Array<{ data: string; mediaType: string }>;
 };
 
+export type AssistantQueueItem = {
+  type: "chat" | "issue" | "automation";
+  title: string;
+  retry?: true;
+};
+
 export type AssistantPageApi = {
+  listAssistantQueue?: () => Promise<{ items: AssistantQueueItem[] }>;
   listAssistantMessages: (query?: { before?: string; limit?: number }) => Promise<{
     messages: AssistantLine[];
     hasMore: boolean;
@@ -107,6 +114,20 @@ function asLine(value: unknown): AssistantLine | undefined {
     };
   }
   return undefined;
+}
+
+function asQueueItem(value: unknown): AssistantQueueItem | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const item = value as { type?: string; title?: string; retry?: unknown };
+  if (item.type !== "chat" && item.type !== "issue" && item.type !== "automation") {
+    return undefined;
+  }
+  if (typeof item.title !== "string" || !item.title) return undefined;
+  return {
+    type: item.type,
+    title: item.title,
+    ...(item.retry === true ? { retry: true } : {}),
+  };
 }
 
 function formatBubbleTime(at: number): string {
@@ -197,6 +218,7 @@ export const AssistantPage: React.FC<{
   const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
   const [agentError, setAgentError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [queue, setQueue] = useState<AssistantQueueItem[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const atTail = useRef(true);
   const loadingOlder = useRef(false);
@@ -218,6 +240,17 @@ export const AssistantPage: React.FC<{
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  useEffect(() => {
+    if (!api.listAssistantQueue) return;
+    let cancelled = false;
+    void api.listAssistantQueue().then((page) => {
+      if (!cancelled) setQueue(page.items.flatMap((item) => asQueueItem(item) ?? []));
+    }).catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -276,7 +309,12 @@ export const AssistantPage: React.FC<{
         command?: string;
         line?: unknown;
         working?: boolean;
+        items?: unknown;
       };
+      if (data?.command === "assistant:queue" && Array.isArray(data.items)) {
+        setQueue(data.items.flatMap((item) => asQueueItem(item) ?? []));
+        return;
+      }
       if (data?.command === "assistant:status") {
         setWorking(Boolean(data.working));
         if (data.working) atTail.current = true;
@@ -371,6 +409,31 @@ export const AssistantPage: React.FC<{
           ) : null}
         </div>
       </header>
+      <section className="assistant-queue" aria-label="待处理队列">
+        <div className="assistant-queue-card">
+        <div className="assistant-queue-title">
+          待处理{queue.length > 0 ? ` ${queue.length}` : ""}
+        </div>
+        {queue.length === 0 ? (
+          <p className="assistant-queue-empty">没有等待的事件</p>
+        ) : (
+          <ol className="assistant-queue-list">
+            {queue.map((item, index) => (
+              <li key={`${item.type}-${index}`}>
+                <span className="assistant-queue-state">
+                  {index === 0 ? "处理中" : "等待"}
+                </span>
+                <span className="assistant-queue-kind">
+                  {item.type === "chat" ? "聊天" : item.type === "issue" ? "Issue" : "自动化"}
+                </span>
+                <span className="assistant-queue-label">{item.title}</span>
+                {item.retry ? <span className="assistant-queue-retry">重试</span> : null}
+              </li>
+            ))}
+          </ol>
+        )}
+        </div>
+      </section>
       {mode === "transcript" ? (
         <div className="assistant-transcript">
           {agentError ? <p className="assistant-error">{agentError}</p> : null}

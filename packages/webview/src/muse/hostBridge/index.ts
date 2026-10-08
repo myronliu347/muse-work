@@ -161,6 +161,11 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "assistant:queue") {
+      postToWebview({ command: "assistant:queue", items: event.items });
+      return;
+    }
+
     if (event.type === "permission:request") {
       const pending: PendingPermission = {
         permissionId: event.permissionId,

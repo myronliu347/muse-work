@@ -37,6 +37,30 @@ describe("AssistantPage", () => {
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
+  it("shows the waiting queue", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      listAssistantQueue: vi.fn().mockResolvedValue({
+        items: [
+          { type: "chat", title: "Muse：现在可以关了" },
+          { type: "issue", title: "分析 wave-agent" },
+        ],
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("Muse：现在可以关了")).toBeTruthy();
+    expect(screen.getByText("分析 wave-agent")).toBeTruthy();
+    expect(screen.getByText("处理中")).toBeTruthy();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: { command: "assistant:queue", items: [] },
+      }),
+    );
+    expect(await screen.findByText("没有等待的事件")).toBeTruthy();
+  });
+
   it("renders assistant messages as markdown", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({

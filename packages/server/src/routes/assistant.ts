@@ -18,6 +18,10 @@ assistantRoutes.get("/assistant/session", (c) => {
   });
 });
 
+assistantRoutes.get("/assistant/queue", (c) => {
+  return c.json({ items: c.get("ctx").assistantRuntime.queueItems() });
+});
+
 assistantRoutes.get("/assistant/messages", (c) => {
   const before = c.req.query("before") || undefined;
   const limitRaw = Number(c.req.query("limit") ?? "50");

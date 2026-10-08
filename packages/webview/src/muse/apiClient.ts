@@ -1017,6 +1017,17 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async listAssistantQueue(): Promise<{
+    items: Array<{
+      type: "chat" | "issue" | "automation";
+      title: string;
+      retry?: true;
+    }>;
+  }> {
+    const res = await this.request("/assistant/queue");
+    return parseJson(res);
+  }
+
   async listAssistantMessages(query?: {
     before?: string;
     limit?: number;

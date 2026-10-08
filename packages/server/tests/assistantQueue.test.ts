@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
-import { formatAssistantEvent } from "../src/services/assistant/events.js";
+import { formatAssistantEvent, viewAssistantEvent } from "../src/services/assistant/events.js";
 import { createAssistantQueue } from "../src/services/assistant/queue.js";
 
 describe("assistant events and queue", () => {
@@ -68,5 +68,24 @@ describe("assistant events and queue", () => {
     q.enqueue({ type: "chat", from: "muse", message: "1" });
     q.markRetry("boom");
     expect(formatAssistantEvent(q.peek()!)).toContain("retry: 1\nerror: boom");
+    expect(q.list()).toEqual([
+      { type: "chat", title: "Muse：1", retry: true },
+    ]);
+  });
+
+  it("summarizes queue rows without image payloads", () => {
+    expect(viewAssistantEvent({
+      type: "chat",
+      from: "muse",
+      message: "关一下",
+      images: [{ data: "abc", mediaType: "image/png" }],
+    })).toEqual({ type: "chat", title: "Muse：关一下" });
+    expect(viewAssistantEvent({
+      type: "issue",
+      issueId: "i1",
+      title: "分析 wave-agent",
+      workdir: "/repo",
+      summary: "x".repeat(9000),
+    })).toEqual({ type: "issue", title: "分析 wave-agent" });
   });
 });

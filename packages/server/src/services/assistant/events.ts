@@ -40,6 +40,36 @@ export type AssistantEvent =
   | AssistantIssueEvent
   | AssistantAutomationEvent;
 
+export type AssistantQueueView = {
+  type: "chat" | "issue" | "automation";
+  title: string;
+  retry?: true;
+};
+
+function clipQueueText(text: string): string {
+  const chars = [...text.replace(/\s+/g, " ").trim()];
+  if (chars.length <= 80) return chars.join("");
+  return `${chars.slice(0, 80).join("")}…`;
+}
+
+export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
+  const retry = event.retry === 1 ? ({ retry: true } as const) : {};
+  if (event.type === "chat") {
+    const who =
+      event.from === "popo-group" ? "POPO 群" : event.from === "popo" ? "POPO" : "Muse";
+    const body = clipQueueText(event.message) || (event.images?.length ? "图片" : "空消息");
+    return { type: "chat", title: `${who}：${body}`, ...retry };
+  }
+  if (event.type === "issue") {
+    return { type: "issue", title: event.title || event.issueId, ...retry };
+  }
+  return {
+    type: "automation",
+    title: `${event.name} · ${event.status}`,
+    ...retry,
+  };
+}
+
 export const ASSISTANT_SUMMARY_NOTE =
   "summary 在这里被截断了，不是对方自己写短了。用 ReadSessionMessages 查看该会话消息，拿到完整内容后再判断。";
 

@@ -95,7 +95,15 @@ export type MuseWsEventPayload =
         message: string;
       };
     }
-  | { type: "assistant:status"; working: boolean };
+  | { type: "assistant:status"; working: boolean }
+  | {
+      type: "assistant:queue";
+      items: Array<{
+        type: "chat" | "issue" | "automation";
+        title: string;
+        retry?: true;
+      }>;
+    };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

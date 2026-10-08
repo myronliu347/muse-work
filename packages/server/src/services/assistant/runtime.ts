@@ -1,6 +1,10 @@
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { SessionStore } from "../sessionStore.js";
-import { formatAssistantEvent, type AssistantEvent } from "./events.js";
+import {
+  formatAssistantEvent,
+  type AssistantEvent,
+  type AssistantQueueView,
+} from "./events.js";
 import type { createAssistantQueue } from "./queue.js";
 import { ensureAssistantSession } from "./session.js";
 
@@ -14,6 +18,7 @@ export function createAssistantRuntime(options: {
   queue: Queue;
   now?: () => Date;
   onActivity?: (working: boolean) => void;
+  onQueue?: (items: AssistantQueueView[]) => void;
 }): {
   enqueue(event: AssistantEvent): void;
   onAssistantTurnSettled(
@@ -21,6 +26,7 @@ export function createAssistantRuntime(options: {
     result: { ok: boolean; error?: string },
   ): void;
   working(): boolean;
+  queueItems(): AssistantQueueView[];
   start(): void;
   stop(): void;
 } {
@@ -29,8 +35,13 @@ export function createAssistantRuntime(options: {
   let inflight = false;
   let stopped = false;
 
+  function publishQueue(): void {
+    options.onQueue?.(queue.list());
+  }
+
   function notify(): void {
     options.onActivity?.(!stopped && (inflight || queue.peek() !== undefined));
+    publishQueue();
   }
 
   function pump(): void {
@@ -93,6 +104,7 @@ export function createAssistantRuntime(options: {
     });
     assistantId = session.id;
     pump();
+    publishQueue();
   }
 
   function stop(): void {
@@ -107,6 +119,7 @@ export function createAssistantRuntime(options: {
     },
     onAssistantTurnSettled,
     working: () => !stopped && (inflight || queue.peek() !== undefined),
+    queueItems: () => queue.list(),
     start,
     stop,
   };

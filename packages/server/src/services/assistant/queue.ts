@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
-import type { AssistantEvent } from "./events.js";
+import { viewAssistantEvent, type AssistantEvent, type AssistantQueueView } from "./events.js";
 
 type QueueFile = {
   version: 1;
@@ -32,6 +32,7 @@ function load(filePath: string): AssistantEvent[] {
 export function createAssistantQueue(options: { home: string }): {
   enqueue(event: AssistantEvent): void;
   peek(): AssistantEvent | undefined;
+  list(): AssistantQueueView[];
   dropHead(): void;
   markRetry(turnError: string): void;
 } {
@@ -50,6 +51,9 @@ export function createAssistantQueue(options: { home: string }): {
     },
     peek() {
       return events[0];
+    },
+    list() {
+      return events.map((event) => viewAssistantEvent(event));
     },
     dropHead() {
       events.shift();
