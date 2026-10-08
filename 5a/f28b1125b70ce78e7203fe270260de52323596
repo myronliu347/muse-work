@@ -1,0 +1,151 @@
+packages/server/src/services/appContext.ts
+  d501b231c2f2dabb 31,222-231
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 3,23-34
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 24,122-127,432-438
+packages/server/src/services/sessionRunner/agent.ts
+  d501b231c2f2dabb 746-758
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 13
+packages/server/tests/assistantTools.test.ts
+  d501b231c2f2dabb 29,41-48,148-159,169
+packages/server/src/services/assistant/observe.ts
+  d501b231c2f2dabb 3-7,39-72
+packages/server/src/services/assistant/events.ts
+  d501b231c2f2dabb 38-51,55-56,59,81-87,98-100,134-149
+packages/server/src/services/wsEvents.ts
+  d501b231c2f2dabb 117
+packages/webview/src/muse/wsClient.ts
+  d501b231c2f2dabb 102
+packages/webview/src/muse/apiClient.ts
+  d501b231c2f2dabb 1022
+packages/server/tests/assistantWiring.test.ts
+  d501b231c2f2dabb 7,122-163
+packages/server/src/services/sessionRunner/actions.ts
+  d501b231c2f2dabb 65-68
+packages/server/src/services/sessionRunner/ctx.ts
+  d501b231c2f2dabb 194-200,386-392,462
+packages/server/src/services/assistant/tools.ts
+  d501b231c2f2dabb 214-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5af28b1125b70ce78e7203fe270260de52323596",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 267,
+      "total_deletions": 20,
+      "accepted_lines": 268,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 14,
+          "deletions": 3,
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 43,
+          "deletions": 1,
+          "accepted_lines": 43
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 39,
+          "deletions": 1,
+          "accepted_lines": 39
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 14,
+          "deletions": 2,
+          "accepted_lines": 13
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 40,
+          "deletions": 2,
+          "accepted_lines": 47
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 11,
+          "deletions": 1,
+          "accepted_lines": 11
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 43,
+          "deletions": 2,
+          "accepted_lines": 43
+        }
+      }
+    }
+  }
+}
