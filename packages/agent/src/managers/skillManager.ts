@@ -74,6 +74,11 @@ export class SkillManager extends EventEmitter {
   async initialize(): Promise<void> {
     logger?.debug("Initializing SkillManager...");
 
+    if (this.catalogHandle) {
+      await requestSkillCatalogRefresh(this.workdir);
+      return;
+    }
+
     try {
       this.catalogHandle = await acquireSkillCatalog(
         this.workdir,

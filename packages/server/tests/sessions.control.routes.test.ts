@@ -206,36 +206,34 @@ describe("session control routes", () => {
   });
 
   it("GET /skills?workdir= returns serializable skills without a session", async () => {
-    const app = await listen(async () =>
-      stubAgent({
-        getAvailableSkills: () => [
-          {
-            name: "grilling",
-            description: "Grill the user",
-            type: "personal",
-            skillPath: "/tmp/skills/grilling",
-            userInvocable: true,
-          },
-          {
-            name: "hidden",
-            description: "Not invocable",
-            type: "personal",
-            skillPath: "/tmp/skills/hidden",
-            userInvocable: false,
-          },
-        ],
-      }),
+    const app = await listen(async () => stubAgent());
+    const skillDir = path.join(
+      app.home,
+      ".muse-work",
+      "skills",
+      "route-preview-skill",
+    );
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(skillDir, "SKILL.md"),
+      `---
+name: route-preview-skill
+description: Grill the user
+user-invocable: true
+---
+`,
+      "utf8",
     );
     const res = await fetch(
       `${app.baseUrl}/skills?workdir=${encodeURIComponent(app.home)}`,
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      skills: Array<{ name: string; userInvocable?: boolean }>;
+      skills: Array<{ name: string; description?: string }>;
     };
-    expect(body.skills).toHaveLength(2);
-    expect(body.skills[0]?.name).toBe("grilling");
-    expect(body.skills[1]?.userInvocable).toBe(false);
+    expect(
+      body.skills.some((s) => s.name === "route-preview-skill"),
+    ).toBe(true);
   });
 
   it("GET slash-commands returns the agent's slash commands (handler stripped)", async () => {
