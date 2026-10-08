@@ -40,10 +40,13 @@ export type AssistantEvent =
   | AssistantIssueEvent
   | AssistantAutomationEvent;
 
-function truncateCodePoints(text: string, max: number): string {
+export const ASSISTANT_SUMMARY_NOTE =
+  "summary 在这里被截断了，不是对方自己写短了。用 ReadSessionMessages 查看该会话消息，拿到完整内容后再判断。";
+
+function truncateCodePoints(text: string, max: number): { text: string; truncated: boolean } {
   const chars = [...text];
-  if (chars.length <= max) return text;
-  return chars.slice(0, max).join("");
+  if (chars.length <= max) return { text, truncated: false };
+  return { text: chars.slice(0, max).join(""), truncated: true };
 }
 
 function linesOf(fields: Array<[string, string | undefined]>): string {
@@ -64,14 +67,20 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["groupId", event.groupId],
     ]);
   } else if (event.type === "issue") {
+    const summary = truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "issue"],
       ["issueId", event.issueId],
       ["title", event.title],
       ["workdir", event.workdir],
-      ["summary", truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX)],
+      ["summary", summary.text],
+      ["summaryNote", summary.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
     ]);
   } else {
+    const summary =
+      event.summary === undefined
+        ? undefined
+        : truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "automation"],
       ["automationId", event.automationId],
@@ -81,7 +90,8 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["status", event.status],
       ["trigger", event.trigger],
       ["error", event.error],
-      ["summary", event.summary === undefined ? undefined : truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX)],
+      ["summary", summary?.text],
+      ["summaryNote", summary?.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
     ]);
   }
   if (event.retry !== 1) return body;

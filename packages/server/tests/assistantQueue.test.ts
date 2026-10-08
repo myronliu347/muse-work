@@ -29,8 +29,16 @@ describe("assistant events and queue", () => {
       workdir: "/repo",
       summary: "你".repeat(8001),
     });
-    const summary = issue.split("summary: ")[1];
-    expect([...summary].length).toBe(8000);
+    const summaryLine = issue.split("\n").find((line) => line.startsWith("summary: "));
+    expect([...(summaryLine?.slice("summary: ".length) ?? "")].length).toBe(8000);
+    expect(issue).toContain("summaryNote: summary 在这里被截断了");
+    expect(formatAssistantEvent({
+      type: "issue",
+      issueId: "i1",
+      title: "登录",
+      workdir: "/repo",
+      summary: "已经修好",
+    })).not.toContain("summaryNote");
     expect(formatAssistantEvent({
       type: "automation",
       automationId: "a",

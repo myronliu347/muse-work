@@ -94,7 +94,8 @@ export type MuseWsEventPayload =
         role: "user" | "assistant";
         message: string;
       };
-    };
+    }
+  | { type: "assistant:status"; working: boolean };
 
 export type MuseWsEvent = MuseWsEventPayload & { sessionId: string };
 

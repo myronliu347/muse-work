@@ -109,7 +109,8 @@ export type WsEvent =
   | { type: "issue:changed" }
   | { type: "automation:changed" }
   | { type: "popo:changed" }
-  | { type: "assistant:chat"; line: { id: string; at: number; role: "user" | "assistant"; message: string } };
+  | { type: "assistant:chat"; line: { id: string; at: number; role: "user" | "assistant"; message: string } }
+  | { type: "assistant:status"; working: boolean };
 
 export type WsBroadcastEvent = WsEvent & { sessionId: string };
 

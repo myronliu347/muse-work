@@ -14,6 +14,7 @@ assistantRoutes.get("/assistant/session", (c) => {
     sessionId: session.id,
     title: session.title,
     workdir: session.workdir,
+    working: c.get("ctx").assistantRuntime.working(),
   });
 });
 

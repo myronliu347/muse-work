@@ -13,12 +13,14 @@ export function createAssistantRuntime(options: {
   runner: SessionRunner;
   queue: Queue;
   now?: () => Date;
+  onActivity?: (working: boolean) => void;
 }): {
   enqueue(event: AssistantEvent): void;
   onAssistantTurnSettled(
     sessionId: string,
     result: { ok: boolean; error?: string },
   ): void;
+  working(): boolean;
   start(): void;
   stop(): void;
 } {
@@ -27,11 +29,16 @@ export function createAssistantRuntime(options: {
   let inflight = false;
   let stopped = false;
 
+  function notify(): void {
+    options.onActivity?.(!stopped && (inflight || queue.peek() !== undefined));
+  }
+
   function pump(): void {
     if (stopped || inflight || !assistantId) return;
     const head = queue.peek();
     if (!head) return;
     inflight = true;
+    notify();
     const images =
       head.type === "chat" && head.images && head.images.length > 0
         ? head.images
@@ -52,15 +59,20 @@ export function createAssistantRuntime(options: {
     if (!assistantId || sessionId !== assistantId) return;
     inflight = false;
     const head = queue.peek();
-    if (!head) return;
+    if (!head) {
+      notify();
+      return;
+    }
     if (result.ok) {
       queue.dropHead();
       pump();
+      notify();
       return;
     }
     if (head.retry !== 1) {
       queue.markRetry(result.error ?? "failed");
       pump();
+      notify();
       return;
     }
     const reason = head.turnError ?? result.error ?? "failed";
@@ -70,6 +82,7 @@ export function createAssistantRuntime(options: {
       `type: failure\nerror: ${reason}`,
     );
     pump();
+    notify();
   }
 
   function start(): void {
@@ -90,8 +103,10 @@ export function createAssistantRuntime(options: {
     enqueue(event) {
       queue.enqueue(event);
       pump();
+      notify();
     },
     onAssistantTurnSettled,
+    working: () => !stopped && (inflight || queue.peek() !== undefined),
     start,
     stop,
   };

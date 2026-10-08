@@ -148,6 +148,9 @@ export function createAppContext(
     sessions: sessions.store,
     runner: sessions.runner,
     queue: assistantQueue,
+    onActivity: (working) => {
+      sessions.hub.broadcastAll({ type: "assistant:status", working });
+    },
   });
   assistantTools = createAssistantTools({
     home,

@@ -37,6 +37,12 @@ describe("assistant tools", () => {
       hub,
       runner: {
         sendMessage: async () => ({ accepted: true as const }),
+        getMessages: async () => [
+          {
+            role: "assistant",
+            blocks: [{ type: "text", content: `完整结论${"你".repeat(9000)}` }],
+          },
+        ],
       } as never,
       sendText: async (receiver, content) => {
         sent.push({ receiver, content });
@@ -113,6 +119,17 @@ describe("assistant tools", () => {
     expect(long).toBeTruthy();
     expect([...(long?.message ?? "")].length).toBe(8000);
 
+    const full = await tool(tools, "ReadSessionMessages").execute(
+      { issueId: issue.id },
+      context,
+    );
+    const read = JSON.parse(full.content) as {
+      planning: Array<{ role: string; text: string }>;
+    };
+    expect(read.planning[0]?.role).toBe("assistant");
+    expect(read.planning[0]?.text.startsWith("完整结论")).toBe(true);
+    expect([...read.planning[0]!.text].length).toBeGreaterThan(8000);
+
     expect(tools.map((entry) => entry.name)).toEqual([
       "ListIssues",
       "ListWorkdirs",
@@ -120,6 +137,7 @@ describe("assistant tools", () => {
       "OpenIssue",
       "MessageIssue",
       "SendMessage",
+      "ReadSessionMessages",
       "ListMuseMessages",
     ]);
   });

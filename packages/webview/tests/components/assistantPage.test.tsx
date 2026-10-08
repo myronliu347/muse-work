@@ -24,6 +24,14 @@ describe("AssistantPage", () => {
     fireEvent.input(input);
     fireEvent.click(screen.getByTestId("send-btn"));
     expect(api.sendAssistantMessage).toHaveBeenCalledWith("继续", undefined);
+    expect(await screen.findByTestId("thinking-hint")).toBeTruthy();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: { command: "assistant:status", working: false },
+      }),
+    );
+    expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
   it("renders assistant messages as markdown", async () => {

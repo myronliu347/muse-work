@@ -32,6 +32,7 @@ export type AssistantPageApi = {
     sessionId: string;
     title?: string;
     workdir?: string;
+    working?: boolean;
   }>;
   getMessages?: (sessionId: string) => Promise<{ messages: unknown[] }>;
 };
@@ -177,6 +178,7 @@ export const AssistantPage: React.FC<{
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const atTail = useRef(true);
   const loadingOlder = useRef(false);
@@ -207,7 +209,9 @@ export const AssistantPage: React.FC<{
     if (!api.getAssistantSession) return;
     let cancelled = false;
     void api.getAssistantSession().then((info) => {
-      if (!cancelled && info.workdir) setAgentWorkdir(info.workdir);
+      if (cancelled) return;
+      if (info.workdir) setAgentWorkdir(info.workdir);
+      if (info.working) setWorking(true);
     }).catch(() => undefined);
     return () => {
       cancelled = true;
@@ -246,11 +250,20 @@ export const AssistantPage: React.FC<{
   useLayoutEffect(() => {
     const el = scroller.current;
     if (el && atTail.current) el.scrollTop = el.scrollHeight;
-  }, [lines]);
+  }, [lines, working]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { command?: string; line?: unknown };
+      const data = event.data as {
+        command?: string;
+        line?: unknown;
+        working?: boolean;
+      };
+      if (data?.command === "assistant:status") {
+        setWorking(Boolean(data.working));
+        if (data.working) atTail.current = true;
+        return;
+      }
       if (data?.command !== "assistant:chat") return;
       const line = asLine(data.line);
       if (!line) return;
@@ -294,6 +307,8 @@ export const AssistantPage: React.FC<{
     const attached = (images ?? []).filter((img) => img.data);
     if ((!message && attached.length === 0) || sending) return;
     setSending(true);
+    setWorking(true);
+    atTail.current = true;
     setError(null);
     try {
       const line = asLine(
@@ -305,6 +320,7 @@ export const AssistantPage: React.FC<{
       atTail.current = true;
       if (line) appendLine(line);
     } catch (err) {
+      setWorking(false);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSending(false);
@@ -370,6 +386,12 @@ export const AssistantPage: React.FC<{
               </div>
             ),
           )}
+          {working ? (
+            <div className="message-list-status-hint" data-testid="thinking-hint">
+              <span className="message-list-status-dot" aria-hidden="true" />
+              <span className="message-list-status-label text-shimmer">工作中....</span>
+            </div>
+          ) : null}
         </div>
       </div>
       {error ? <p className="assistant-error">{error}</p> : null}

@@ -7,6 +7,7 @@ import type { AutomationStore } from "../automationStore.js";
 import type { WsHub } from "../wsHub.js";
 import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog } from "./messages.js";
 import { openIssueSession, type OpenIssueBody } from "../issueOpen.js";
+import { userMessageText } from "../sessionRunner/serialization.js";
 
 type Log = ReturnType<typeof createAssistantMessageLog>;
 
@@ -206,6 +207,55 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         if (!receiver || !deps.sendText) return fail("popo recipient required");
         await deps.sendText(receiver, message);
         return ok({ sent: true, receiver });
+      },
+    ),
+    tool(
+      "ReadSessionMessages",
+      "查看 Issue 或自动化运行对应会话的消息全文。summary 被截断时用它拿完整内容。issueId 与 runId 至少给一个。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+          runId: { type: "string" },
+        },
+      },
+      async (args) => {
+        const issueId = text(args.issueId);
+        const runId = text(args.runId);
+        if (!issueId && !runId) return fail("issueId or runId required");
+        const readTexts = async (sessionId: string) => {
+          const messages = await deps.runner.getMessages(sessionId);
+          const lines: Array<{ role: string; text: string }> = [];
+          for (const message of messages) {
+            if (!message || typeof message !== "object") continue;
+            const role = (message as { role?: string }).role;
+            if (role !== "user" && role !== "assistant") continue;
+            const content = userMessageText(message);
+            if (!content) continue;
+            lines.push({ role, text: content });
+          }
+          return lines;
+        };
+        const result: Record<string, unknown> = {};
+        if (issueId) {
+          const issue = deps.issues.get(issueId);
+          if (!issue) return fail("not found");
+          if (!issue.planningSessionId && !issue.executionSessionId) {
+            return fail("session not open");
+          }
+          if (issue.planningSessionId) {
+            result.planning = await readTexts(issue.planningSessionId);
+          }
+          if (issue.executionSessionId) {
+            result.execution = await readTexts(issue.executionSessionId);
+          }
+        }
+        if (runId) {
+          const run = deps.automations.getRun(runId);
+          if (!run) return fail("not found");
+          result.messages = run.sessionId ? await readTexts(run.sessionId) : [];
+        }
+        return ok(result);
       },
     ),
     tool(
