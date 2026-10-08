@@ -1007,6 +1007,15 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getAssistantSession(): Promise<{
+    sessionId: string;
+    title: string;
+    workdir: string;
+  }> {
+    const res = await this.request("/assistant/session");
+    return parseJson(res);
+  }
+
   async listAssistantMessages(query?: {
     before?: string;
     limit?: number;
@@ -1029,16 +1038,23 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async sendAssistantMessage(message: string): Promise<{
+  async sendAssistantMessage(
+    message: string,
+    images?: Array<{ data: string; mediaType: string }>,
+  ): Promise<{
     id: string;
     at: number;
     role: "user" | "assistant";
     message: string;
+    images?: Array<{ data: string; mediaType: string }>;
   }> {
     const res = await this.request("/assistant/messages", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        message,
+        ...(images && images.length > 0 ? { images } : {}),
+      }),
     });
     return parseJson(res);
   }

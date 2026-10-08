@@ -1,4 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import type { Message as AgentMessage } from "@muse-work/agent";
+import { MessageInput } from "../chat/MessageInput";
+import { MessageList } from "../chat/MessageList";
+import { ContextTag } from "../shared/ContextTag";
+import { parseMentions } from "../../utils/messageUtils";
+import type { VsCodeApi } from "../../types";
+import "../../styles/Message.css";
+import "../../styles/MessageInput.css";
 import "../../styles/AssistantPage.css";
 
 export type AssistantLine = {
@@ -6,6 +16,7 @@ export type AssistantLine = {
   at: number;
   role: "user" | "assistant";
   message: string;
+  images?: Array<{ data: string; mediaType: string }>;
 };
 
 export type AssistantPageApi = {
@@ -13,8 +24,49 @@ export type AssistantPageApi = {
     messages: AssistantLine[];
     hasMore: boolean;
   }>;
-  sendAssistantMessage: (message: string) => Promise<unknown>;
+  sendAssistantMessage: (
+    message: string,
+    images?: Array<{ data: string; mediaType: string }>,
+  ) => Promise<unknown>;
+  getAssistantSession?: () => Promise<{
+    sessionId: string;
+    title?: string;
+    workdir?: string;
+  }>;
+  getMessages?: (sessionId: string) => Promise<{ messages: unknown[] }>;
 };
+
+const noopHost: VsCodeApi = {
+  postMessage: () => {},
+  getState: () => null,
+  setState: () => {},
+};
+
+function markdownHtml(text: string): string {
+  const html = marked.parse(text, { gfm: true, breaks: true });
+  return DOMPurify.sanitize(typeof html === "string" ? html : "", {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "code",
+      "pre",
+      "ul",
+      "ol",
+      "li",
+      "a",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "blockquote",
+    ],
+    ALLOWED_ATTR: ["href"],
+  });
+}
 
 function asLine(value: unknown): AssistantLine | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -30,17 +82,101 @@ function asLine(value: unknown): AssistantLine | undefined {
       at: typeof line.at === "number" ? line.at : Date.now(),
       role: line.role,
       message: line.message,
+      ...(Array.isArray((line as { images?: unknown }).images)
+        ? {
+            images: (
+              (line as { images: Array<{ data?: string; mediaType?: string }> })
+                .images
+            ).flatMap((img) =>
+              img && typeof img.data === "string" && img.data
+                ? [
+                    {
+                      data: img.data,
+                      mediaType:
+                        typeof img.mediaType === "string" && img.mediaType
+                          ? img.mediaType
+                          : "image/png",
+                    },
+                  ]
+                : [],
+            ),
+          }
+        : {}),
     };
   }
   return undefined;
 }
 
-export const AssistantPage: React.FC<{ api: AssistantPageApi }> = ({ api }) => {
+function UserLine({ line }: { line: AssistantLine }) {
+  const parts = parseMentions(
+    line.message,
+    line.images?.map((img, index) => ({
+      data: img.data,
+      filename: `图片 ${index + 1}`,
+    })),
+  );
+  const referenced = new Set<string>();
+  return (
+    <div className="message user">
+      <div className="user-text-block">
+        <div className="message-content user-content assistant-user-content">
+          {parts.map((part, index) => {
+            if (part.type === "mention" && part.isImage && part.imageData) {
+              referenced.add(part.imageData);
+              return (
+                <img
+                  key={index}
+                  className="assistant-user-image"
+                  src={part.imageData}
+                  alt=""
+                />
+              );
+            }
+            if (part.type === "mention" || part.type === "selection") {
+              const name =
+                (part.path || part.fileName || "文件")
+                  .replace(/[/\\]$/, "")
+                  .split(/[/\\]/)
+                  .pop() || "文件";
+              return (
+                <ContextTag
+                  key={index}
+                  name={name}
+                  path={part.path || part.fileName || ""}
+                />
+              );
+            }
+            if (!part.content) return null;
+            return <span key={index}>{part.content}</span>;
+          })}
+          {line.images
+            ?.filter((img) => !referenced.has(img.data))
+            .map((img, index) => (
+              <img
+                key={`extra-${index}`}
+                className="assistant-user-image"
+                src={img.data}
+                alt=""
+              />
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const AssistantPage: React.FC<{
+  api: AssistantPageApi;
+  vscode?: VsCodeApi;
+}> = ({ api, vscode = noopHost }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
-  const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"chat" | "transcript">("chat");
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
+  const [agentError, setAgentError] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const atTail = useRef(true);
   const loadingOlder = useRef(false);
@@ -66,6 +202,46 @@ export const AssistantPage: React.FC<{ api: AssistantPageApi }> = ({ api }) => {
       cancelled = true;
     };
   }, [api]);
+
+  useEffect(() => {
+    if (!api.getAssistantSession) return;
+    let cancelled = false;
+    void api.getAssistantSession().then((info) => {
+      if (!cancelled && info.workdir) setAgentWorkdir(info.workdir);
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  useEffect(() => {
+    if (mode !== "transcript" || !api.getAssistantSession || !api.getMessages) {
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      void api
+        .getAssistantSession!()
+        .then(async (info) => {
+          const page = await api.getMessages!(info.sessionId);
+          if (cancelled) return;
+          setAgentWorkdir(info.workdir);
+          setAgentMessages(page.messages as AgentMessage[]);
+          setAgentError(null);
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) {
+            setAgentError(err instanceof Error ? err.message : String(err));
+          }
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [api, mode]);
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -110,14 +286,22 @@ export const AssistantPage: React.FC<{ api: AssistantPageApi }> = ({ api }) => {
     }
   }, [api, hasMore, lines]);
 
-  async function send() {
-    const message = draft.trim();
-    if (!message || sending) return;
+  async function send(
+    text: string,
+    images?: Array<{ data: string; mediaType: string }>,
+  ) {
+    const message = text.replace(/\u00A0/g, " ").trim();
+    const attached = (images ?? []).filter((img) => img.data);
+    if ((!message && attached.length === 0) || sending) return;
     setSending(true);
     setError(null);
     try {
-      const line = asLine(await api.sendAssistantMessage(message));
-      setDraft("");
+      const line = asLine(
+        await api.sendAssistantMessage(
+          message,
+          attached.length > 0 ? attached : undefined,
+        ),
+      );
       atTail.current = true;
       if (line) appendLine(line);
     } catch (err) {
@@ -129,6 +313,40 @@ export const AssistantPage: React.FC<{ api: AssistantPageApi }> = ({ api }) => {
 
   return (
     <div className="assistant-page">
+      <header className="assistant-header">
+        <div className="assistant-header-title">助理</div>
+        <div className="assistant-view-switch" role="group" aria-label="查看内容">
+          <button
+            type="button"
+            aria-pressed={mode === "chat"}
+            onClick={() => setMode("chat")}
+          >
+            对话
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "transcript"}
+            onClick={() => setMode("transcript")}
+          >
+            AI 消息
+          </button>
+        </div>
+      </header>
+      {mode === "transcript" ? (
+        <div className="assistant-transcript">
+          {agentError ? <p className="assistant-error">{agentError}</p> : null}
+          {agentMessages.length === 0 && !agentError ? (
+            <p className="assistant-empty">还没有消息</p>
+          ) : (
+            <MessageList
+              messages={agentMessages}
+              vscode={vscode}
+              workdir={agentWorkdir}
+            />
+          )}
+        </div>
+      ) : (
+      <>
       <div
         className="assistant-log"
         ref={scroller}
@@ -138,38 +356,37 @@ export const AssistantPage: React.FC<{ api: AssistantPageApi }> = ({ api }) => {
           if (el.scrollTop < 24) void loadOlder();
         }}
       >
-        {lines.length === 0 ? <p className="assistant-empty">还没有消息</p> : null}
-        {lines.map((line) => (
-          <div key={line.id} className={`assistant-bubble assistant-bubble--${line.role}`}>
-            <div className="assistant-bubble-role">{line.role === "user" ? "我" : "助理"}</div>
-            <div className="assistant-bubble-text">{line.message}</div>
-          </div>
-        ))}
+        <div className="assistant-column">
+          {lines.length === 0 ? <p className="assistant-empty">还没有消息</p> : null}
+          {lines.map((line) =>
+            line.role === "user" ? (
+              <UserLine key={line.id} line={line} />
+            ) : (
+              <div key={line.id} className="message assistant">
+                <div
+                  className="message-content markdown-content"
+                  dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
+                />
+              </div>
+            ),
+          )}
+        </div>
       </div>
       {error ? <p className="assistant-error">{error}</p> : null}
-      <form
-        className="assistant-composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send();
-        }}
-      >
-        <textarea
-          value={draft}
-          rows={2}
-          placeholder="给助理发消息"
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void send();
-            }
+      <div className="assistant-composer">
+        <MessageInput
+          vscode={vscode}
+          isStreaming={false}
+          disabled={sending}
+          workdir={agentWorkdir}
+          onAbortMessage={() => {}}
+          onSendMessage={(text, images) => {
+            void send(text, images);
           }}
         />
-        <button type="submit" disabled={sending || !draft.trim()}>
-          发送
-        </button>
-      </form>
+      </div>
+      </>
+      )}
     </div>
   );
 };

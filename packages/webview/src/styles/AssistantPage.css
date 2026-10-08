@@ -1,99 +1,146 @@
 .assistant-page {
-  flex: 1;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--color-background, var(--gray-2));
+  overflow: hidden;
+  background: var(--color-background, #111111);
   color: var(--gray-12);
 }
 
-.assistant-log {
-  flex: 1;
+.assistant-header {
+  flex: 0 0 auto;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 28px 0 var(--space-4);
+}
+
+.assistant-header-title {
+  min-width: 0;
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  line-height: var(--line-height-1);
+  color: var(--gray-12);
+}
+
+.assistant-view-switch {
+  display: flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--gray-3);
+}
+
+.assistant-view-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.assistant-view-switch button[aria-pressed="true"] {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.assistant-transcript {
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px 24px;
+}
+
+.assistant-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--space-4) 28px 36px var(--space-4);
+}
+
+.assistant-column {
+  box-sizing: border-box;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.assistant-column > .message {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.assistant-page .message-content.user-content {
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  white-space: pre-wrap;
+}
+
+.assistant-user-image {
+  flex: 1 0 100%;
+  display: block;
+  max-width: min(100%, 280px);
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.assistant-page .markdown-content {
+  overflow-wrap: anywhere;
+}
+
+.assistant-page .markdown-content pre {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .assistant-empty,
 .assistant-error {
   margin: 0;
   color: var(--gray-11);
-  font-size: 13px;
+  font-size: var(--font-size-1);
 }
 
 .assistant-error {
-  padding: 0 24px 8px;
+  flex: 0 0 auto;
+  padding: 0 28px 8px var(--space-4);
   color: var(--red-11, #c00);
 }
 
-.assistant-bubble {
-  max-width: 720px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.assistant-bubble--user {
-  align-self: flex-end;
-  align-items: flex-end;
-}
-
-.assistant-bubble--assistant {
-  align-self: flex-start;
-}
-
-.assistant-bubble-role {
-  font-size: 12px;
-  color: var(--gray-11);
-}
-
-.assistant-bubble-text {
-  white-space: pre-wrap;
-  line-height: 1.5;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--gray-3);
-}
-
-.assistant-bubble--user .assistant-bubble-text {
-  background: var(--accent-3, var(--gray-4));
-}
-
 .assistant-composer {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  padding: 12px 24px 16px;
-  border-top: 1px solid var(--gray-5);
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  background-color: var(--color-background, #111111);
+  padding: 0 28px var(--space-3) var(--space-4);
 }
 
-.assistant-composer textarea {
-  flex: 1;
+.assistant-composer-input {
+  width: 100%;
+  border: none;
   resize: none;
-  min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--gray-6);
-  background: var(--color-background);
+  background: transparent;
   color: inherit;
-  font: inherit;
-}
-
-.assistant-composer button {
-  height: 36px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--accent-9, #111);
-  color: var(--accent-contrast, #fff);
-  cursor: pointer;
-}
-
-.assistant-composer button:disabled {
-  opacity: 0.5;
-  cursor: default;
+  outline: none;
+  box-shadow: none;
 }

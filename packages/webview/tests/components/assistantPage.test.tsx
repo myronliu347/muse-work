@@ -19,8 +19,56 @@ describe("AssistantPage", () => {
     render(<AssistantPage api={api} />);
     expect(await screen.findByText("你好")).toBeTruthy();
     expect(screen.getByText("在")).toBeTruthy();
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "继续" } });
-    fireEvent.click(screen.getByRole("button", { name: "发送" }));
-    expect(api.sendAssistantMessage).toHaveBeenCalledWith("继续");
+    const input = screen.getByTestId("message-input");
+    input.textContent = "继续";
+    fireEvent.input(input);
+    fireEvent.click(screen.getByTestId("send-btn"));
+    expect(api.sendAssistantMessage).toHaveBeenCalledWith("继续", undefined);
+  });
+
+  it("renders assistant messages as markdown", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          { id: "1", at: 1, role: "assistant", message: "- 读代码\n- 改代码" },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    const item = await screen.findByText("读代码");
+    expect(item.closest("li")).toBeTruthy();
+    expect(screen.getByText("改代码").closest("ul")).toBeTruthy();
+  });
+
+  it("switches to the assistant session transcript", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        title: "助理",
+        workdir: "/tmp/assistant-chat",
+      }),
+      getMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "m1",
+            role: "assistant",
+            timestamp: "2026-10-08T00:00:00.000Z",
+            blocks: [{ type: "text", content: "工具调用了" }],
+          },
+        ],
+      }),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("助理")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+    expect(await screen.findByText("工具调用了")).toBeTruthy();
+    expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
 });

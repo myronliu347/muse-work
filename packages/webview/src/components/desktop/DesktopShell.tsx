@@ -741,7 +741,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
       ) : shellView === "assistant" ? (
-        <AssistantPage api={api} />
+        <AssistantPage api={api} vscode={vscode} />
       ) : (
       <div
         className="desktop-pane-rows"

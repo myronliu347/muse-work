@@ -1,7 +1,21 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
+import { normalizeAssistantImages } from "../services/assistant/messages.js";
 
 export const assistantRoutes = new Hono<HonoEnv>();
+
+assistantRoutes.get("/assistant/session", (c) => {
+  const session = c
+    .get("ctx")
+    .store.list()
+    .find((item) => item.origin === "assistant");
+  if (!session) return c.json({ error: "assistant session not found" }, 404);
+  return c.json({
+    sessionId: session.id,
+    title: session.title,
+    workdir: session.workdir,
+  });
+});
 
 assistantRoutes.get("/assistant/messages", (c) => {
   const before = c.req.query("before") || undefined;
@@ -22,9 +36,23 @@ assistantRoutes.post("/assistant/messages", async (c) => {
     body = {};
   }
   const message = typeof body.message === "string" ? body.message.trim() : "";
-  if (!message) return c.json({ error: "message required" }, 400);
-  const line = ctx.assistantLog.append("user", message);
+  const images = normalizeAssistantImages(
+    (body as { images?: unknown }).images,
+  );
+  if (!message && images.length === 0) {
+    return c.json({ error: "message required" }, 400);
+  }
+  const line = ctx.assistantLog.append(
+    "user",
+    message,
+    images.length > 0 ? images : undefined,
+  );
   ctx.hub.broadcastAll({ type: "assistant:chat", line });
-  ctx.assistantRuntime.enqueue({ type: "chat", from: "muse", message });
+  ctx.assistantRuntime.enqueue({
+    type: "chat",
+    from: "muse",
+    message,
+    ...(images.length > 0 ? { images } : {}),
+  });
   return c.json(line);
 });

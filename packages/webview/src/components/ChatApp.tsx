@@ -1037,7 +1037,18 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             recentWorkdirs={host.recentWorkdirs ?? []}
           />
         ) : view === "assistant" ? (
-          <AssistantPage api={popoApi} />
+          <AssistantPage
+            api={popoApi}
+            vscode={{
+              postMessage: (msg) => {
+                if (msg && typeof msg === "object") {
+                  postToHost(msg as Record<string, unknown>);
+                }
+              },
+              getState: () => null,
+              setState: () => {},
+            }}
+          />
         ) : (
           chatContainer
         )}

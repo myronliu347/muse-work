@@ -11,11 +11,17 @@ export const ASSISTANT_TEXT_MAX = 8000;
 
 export type MuseChatRole = "user" | "assistant";
 
+export interface MuseChatImage {
+  data: string;
+  mediaType: string;
+}
+
 export interface MuseChatLine {
   id: string;
   at: number;
   role: MuseChatRole;
   message: string;
+  images?: MuseChatImage[];
 }
 
 export interface MuseChatPage {
@@ -45,6 +51,24 @@ function listSliceNames(dir: string): string[] {
     .sort();
 }
 
+export function normalizeAssistantImages(raw: unknown): MuseChatImage[] {
+  if (!Array.isArray(raw)) return [];
+  const images: MuseChatImage[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const data = (item as { data?: unknown }).data;
+    const mediaType = (item as { mediaType?: unknown }).mediaType;
+    if (typeof data !== "string" || !data) continue;
+    images.push({
+      data,
+      mediaType:
+        typeof mediaType === "string" && mediaType ? mediaType : "image/png",
+    });
+    if (images.length >= 20) break;
+  }
+  return images;
+}
+
 function parseLine(raw: string): MuseChatLine | undefined {
   const trimmed = raw.trim();
   if (!trimmed) return undefined;
@@ -53,6 +77,11 @@ function parseLine(raw: string): MuseChatLine | undefined {
     if (!record || typeof record.id !== "string" || !record.id) return undefined;
     if (record.role !== "user" && record.role !== "assistant") return undefined;
     if (typeof record.message !== "string") return undefined;
+    const images = normalizeAssistantImages(
+      (record as { images?: unknown }).images,
+    );
+    if (images.length > 0) record.images = images;
+    else delete record.images;
     return record;
   } catch {
     return undefined;
@@ -96,7 +125,11 @@ export function createAssistantMessageLog(options: {
   now?: () => number;
   newId?: () => string;
 }): {
-  append(role: MuseChatRole, message: string): MuseChatLine;
+  append(
+    role: MuseChatRole,
+    message: string,
+    images?: MuseChatImage[],
+  ): MuseChatLine;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
   search(args: { q: string; before?: string; limit?: number }): MuseChatSearchPage;
 } {
@@ -104,7 +137,11 @@ export function createAssistantMessageLog(options: {
   const newId = () => options.newId?.() ?? crypto.randomUUID();
   const dir = messagesDir(options.home);
 
-  function append(role: MuseChatRole, message: string): MuseChatLine {
+  function append(
+    role: MuseChatRole,
+    message: string,
+    images?: MuseChatImage[],
+  ): MuseChatLine {
     fs.mkdirSync(dir, { recursive: true });
     const names = listSliceNames(dir);
     let name = names.at(-1) ?? "000001.jsonl";
@@ -115,7 +152,14 @@ export function createAssistantMessageLog(options: {
       filePath = path.join(dir, name);
     }
     const at = now();
-    const line: MuseChatLine = { id: newId(), at, role, message };
+    const kept = normalizeAssistantImages(images);
+    const line: MuseChatLine = {
+      id: newId(),
+      at,
+      role,
+      message,
+      ...(kept.length > 0 ? { images: kept } : {}),
+    };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;
   }

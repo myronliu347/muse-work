@@ -76,4 +76,19 @@ describe("assistant message log", () => {
     expect([...found.messages[0].message].length).toBe(8000);
     expect(found.messages[0].truncated).toBe(true);
   });
+
+  it("keeps images on the stored line", () => {
+    const log = createAssistantMessageLog({
+      home: home(),
+      now: () => 1,
+      newId: () => "img",
+    });
+    const line = log.append("user", "[image1]", [
+      { data: "data:image/png;base64,a", mediaType: "image/png" },
+    ]);
+    expect(line.images).toEqual([
+      { data: "data:image/png;base64,a", mediaType: "image/png" },
+    ]);
+    expect(log.page().messages[0].images).toEqual(line.images);
+  });
 });

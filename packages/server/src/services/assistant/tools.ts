@@ -223,16 +223,24 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const before = text(args.before) || undefined;
         const limit = typeof args.limit === "number" ? args.limit : undefined;
         const q = text(args.q);
-        if (q) return ok(deps.log.search({ q, before, limit }));
-        const page = deps.log.page({ before, limit });
+        const page = q
+          ? deps.log.search({ q, before, limit })
+          : deps.log.page({ before, limit });
         return ok({
+          ...page,
           messages: page.messages.map((line) => {
             const clipped = truncateCodePoints(line.message, ASSISTANT_TEXT_MAX);
-            return clipped.truncated
-              ? { ...line, message: clipped.text, truncated: true }
-              : line;
+            const truncated =
+              clipped.truncated ||
+              ("truncated" in line && line.truncated === true);
+            return {
+              id: line.id,
+              at: line.at,
+              role: line.role,
+              message: clipped.text,
+              ...(truncated ? { truncated: true } : {}),
+            };
           }),
-          hasMore: page.hasMore,
         });
       },
     ),

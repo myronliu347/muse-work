@@ -6,6 +6,7 @@ export type AssistantChatEvent = {
   message: string;
   user?: string;
   groupId?: string;
+  images?: Array<{ data: string; mediaType: string }>;
   retry?: 1;
   turnError?: string;
 };

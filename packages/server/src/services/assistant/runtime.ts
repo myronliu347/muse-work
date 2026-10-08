@@ -32,8 +32,12 @@ export function createAssistantRuntime(options: {
     const head = queue.peek();
     if (!head) return;
     inflight = true;
+    const images =
+      head.type === "chat" && head.images && head.images.length > 0
+        ? head.images
+        : undefined;
     void runner
-      .sendMessage(assistantId, formatAssistantEvent(head), undefined, "system-inject")
+      .sendMessage(assistantId, formatAssistantEvent(head), images, "system-inject")
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         inflight = false;

@@ -55,6 +55,26 @@ describe("assistant wiring", () => {
     const page = await listed.json();
     expect(page.messages).toEqual([line]);
     expect(page.hasMore).toBe(false);
+
+    const withImage = await app.request("/assistant/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: "[@file:src/app.ts] [image1]",
+        images: [{ data: "data:image/png;base64,a", mediaType: "image/png" }],
+      }),
+    });
+    expect(withImage.status).toBe(200);
+    const imageLine = await withImage.json();
+    expect(imageLine.images).toEqual([
+      { data: "data:image/png;base64,a", mediaType: "image/png" },
+    ]);
+    expect(events[1]).toMatchObject({
+      type: "chat",
+      from: "muse",
+      message: "[@file:src/app.ts] [image1]",
+      images: [{ data: "data:image/png;base64,a", mediaType: "image/png" }],
+    });
   });
 
   it("enqueues an issue event when that issue's session settles", async () => {
