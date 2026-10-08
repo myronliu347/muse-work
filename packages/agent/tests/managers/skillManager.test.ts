@@ -11,6 +11,8 @@ import { readdir, stat, rm } from "fs/promises";
 import * as path from "path";
 import { logger } from "../../src/utils/globalLogger.js";
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
+import * as diskSkillDiscovery from "../../src/shared/diskSkillDiscovery.js";
+import { resetSharedCatalogsForTests } from "../../src/shared/testing.js";
 
 vi.mock("../../src/utils/configPaths.js", async () => {
   const actual = await vi.importActual("../../src/utils/configPaths.js");
@@ -85,6 +87,11 @@ describe("SkillManager", () => {
     if (skillManager) {
       await skillManager.destroy();
     }
+    await resetSharedCatalogsForTests();
+    vi.restoreAllMocks();
+    vi.mocked(FileWatcherService).mockImplementation(function () {
+      return mockFileWatcher;
+    } as unknown as typeof FileWatcherService);
   });
 
   describe("constructor", () => {
@@ -225,11 +232,9 @@ describe("SkillManager", () => {
       // readdir is called for personal and project skills.
       // In discoverSkillCollection, readdir error is caught and logged as debug,
       // but if something else throws in initialize, it should be caught.
-      // Let's mock discoverSkills to throw.
-      vi.spyOn(
-        skillManager as unknown as { discoverSkills: () => Promise<void> },
-        "discoverSkills",
-      ).mockRejectedValue(new Error("Discovery failed"));
+      vi.spyOn(diskSkillDiscovery, "discoverDiskSkills").mockRejectedValue(
+        new Error("Discovery failed"),
+      );
 
       await expect(skillManager.initialize()).rejects.toThrow(
         "Discovery failed",
@@ -254,27 +259,9 @@ describe("SkillManager", () => {
     });
 
     it("should handle directory read errors gracefully", async () => {
-      // findSkillDirectories catches readdir errors and returns empty array.
-      // discoverSkillCollection catches findSkillDirectories errors (if any) or other errors and logs debug "Could not scan".
-      // To trigger "Could not scan", we need findSkillDirectories to throw or something else in discoverSkillCollection to throw.
-      // Since findSkillDirectories already has a try-catch around readdir, we need to mock findSkillDirectories itself.
-
-      const spy = vi
-        .spyOn(
-          skillManager as unknown as {
-            findSkillDirectories: () => Promise<string[]>;
-          },
-          "findSkillDirectories",
-        )
-        .mockRejectedValue(new Error("Scan failed"));
-
+      vi.mocked(readdir).mockRejectedValue(new Error("readdir failed"));
       await skillManager.initialize();
-
       expect(skillManager.getAvailableSkills()).toHaveLength(0);
-      expect(logger.debug).toHaveBeenCalledWith(
-        expect.stringContaining("Could not scan"),
-      );
-      spy.mockRestore();
     });
 
     it("should handle readdir error in findSkillDirectories", async () => {

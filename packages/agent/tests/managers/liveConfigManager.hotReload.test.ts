@@ -11,7 +11,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LiveConfigManager } from "../../src/managers/liveConfigManager.js";
 import { Container } from "../../src/utils/container.js";
 import type { HookManager } from "../../src/managers/hookManager.js";
-import { ConfigurationService } from "../../src/services/configurationService.js";
+import {
+  ConfigurationService,
+  loadMergedMuseConfig,
+} from "../../src/services/configurationService.js";
+import { resetSharedCatalogsForTests } from "../../src/shared/testing.js";
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import { PermissionManager } from "../../src/managers/permissionManager.js";
 import * as configPaths from "../../src/utils/configPaths.js";
@@ -22,7 +26,16 @@ vi.mock("../../src/utils/globalLogger.js", () => ({
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 vi.mock("../../src/services/fileWatcher.js");
-vi.mock("../../src/services/configurationService.js");
+vi.mock("../../src/services/configurationService.js", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("../../src/services/configurationService.js")
+  >();
+  return {
+    ...actual,
+    ConfigurationService: vi.fn(),
+    loadMergedMuseConfig: vi.fn(),
+  };
+});
 vi.mock("../../src/utils/configPaths.js");
 // fs 由每个用例按需给 existsSync 装实现（监视目标解析依赖它）。
 vi.mock("fs", () => ({ existsSync: vi.fn() }));
@@ -70,12 +83,10 @@ describe("LiveConfigManager 热重载边界", () => {
       getAllWatcherStatuses: vi.fn().mockReturnValue([]),
     } as Partial<FileWatcherService> as FileWatcherService;
 
+    vi.mocked(loadMergedMuseConfig).mockImplementation(() => currentConfig);
+
     mockConfigurationService = {
-      loadMergedConfiguration: vi.fn(async () => ({
-        configuration: currentConfig,
-        success: true,
-        warnings: [],
-      })),
+      loadMergedConfiguration: vi.fn(),
       setEnvironmentVars: vi.fn(),
       setOptions: vi.fn(),
       resolveAutoMemoryEnabledNow: vi.fn().mockReturnValue(true),
@@ -115,7 +126,9 @@ describe("LiveConfigManager 热重载边界", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await liveConfigManager.shutdown().catch(() => {});
+    await resetSharedCatalogsForTests();
     vi.resetAllMocks();
   });
 
@@ -176,11 +189,7 @@ describe("LiveConfigManager 热重载边界", () => {
 
       // 轮中落地一次新配置（模拟 settings.json 被保存后 watcher 回读）
       currentConfig = { language: "Chinese", autoMemoryFrequency: 9 };
-      await (
-        liveConfigManager as unknown as {
-          reloadConfiguration(): Promise<unknown>;
-        }
-      ).reloadConfiguration();
+      await liveConfigManager.reload();
 
       expect(
         liveConfigManager.getCurrentConfiguration()?.autoMemoryFrequency,
@@ -237,11 +246,7 @@ describe("LiveConfigManager 热重载边界", () => {
         mockConfigurationService.resolveAutoMemoryEnabledNow,
       ).mockReturnValue(true);
       await liveConfigManager.initialize();
-      await (
-        liveConfigManager as unknown as {
-          reloadConfiguration(): Promise<unknown>;
-        }
-      ).reloadConfiguration();
+      await liveConfigManager.reload();
 
       expect(
         vi

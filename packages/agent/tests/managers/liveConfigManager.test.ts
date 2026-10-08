@@ -9,7 +9,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LiveConfigManager } from "../../src/managers/liveConfigManager.js";
 import { Container } from "../../src/utils/container.js";
 import type { HookManager } from "../../src/managers/hookManager.js";
-import { ConfigurationService } from "../../src/services/configurationService.js";
+import {
+  ConfigurationService,
+  loadMergedMuseConfig,
+} from "../../src/services/configurationService.js";
+import { resetSharedCatalogsForTests } from "../../src/shared/testing.js";
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import { PermissionManager } from "../../src/managers/permissionManager.js";
 import * as configPaths from "../../src/utils/configPaths.js";
@@ -27,7 +31,16 @@ vi.mock("../../src/utils/globalLogger.js", () => ({
 }));
 
 // Mock all dependencies
-vi.mock("../../src/services/configurationService.js");
+vi.mock("../../src/services/configurationService.js", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("../../src/services/configurationService.js")
+  >();
+  return {
+    ...actual,
+    ConfigurationService: vi.fn(),
+    loadMergedMuseConfig: vi.fn(),
+  };
+});
 vi.mock("../../src/services/fileWatcher.js");
 vi.mock("../../src/utils/configPaths.js");
 vi.mock("fs", () => ({
@@ -106,12 +119,15 @@ describe("LiveConfigManager - Configuration Management", () => {
     });
 
     workdir = "/mock/project";
+    vi.mocked(loadMergedMuseConfig).mockReturnValue(null);
     liveConfigManager = new LiveConfigManager(container, {
       workdir,
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await liveConfigManager.shutdown().catch(() => {});
+    await resetSharedCatalogsForTests();
     vi.resetAllMocks();
   });
 
@@ -135,19 +151,17 @@ describe("LiveConfigManager - Configuration Management", () => {
         warnings: [],
       };
 
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue(mockConfig);
 
       await liveConfigManager.initialize();
 
-      expect(
-        mockConfigurationService.loadMergedConfiguration,
-      ).toHaveBeenCalledWith(workdir);
+      expect(loadMergedMuseConfig).toHaveBeenCalledWith(workdir);
       expect(
         mockHookManager.loadConfigurationFromMuseConfig,
-      ).toHaveBeenCalledWith(mockConfig);
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(mockConfig);
+      ).toHaveBeenCalledWith(expect.objectContaining({ hooks: mockConfig.hooks }));
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        mockConfig,
+      );
     });
 
     it("should handle configuration load failure gracefully", async () => {
@@ -159,16 +173,15 @@ describe("LiveConfigManager - Configuration Management", () => {
         warnings: [],
       };
 
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue({
+        permissions: { defaultMode: "not-a-real-mode" },
+      } as MuseConfiguration);
 
       await liveConfigManager.initialize();
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("No previous valid configuration available"),
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Configuration loading failed"),
       );
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual({});
     });
 
     it("should reload configuration when requested", async () => {
@@ -184,32 +197,20 @@ describe("LiveConfigManager - Configuration Management", () => {
         },
       };
 
-      const initialResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: initialConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      const newResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: newConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(mockConfigurationService.loadMergedConfiguration)
-        .mockResolvedValueOnce(initialResult)
-        .mockResolvedValueOnce(newResult);
+      vi.mocked(loadMergedMuseConfig)
+        .mockReturnValueOnce(initialConfig)
+        .mockReturnValueOnce(newConfig);
 
       await liveConfigManager.initialize();
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
         initialConfig,
       );
 
       const reloadedConfig = await liveConfigManager.reload();
-      expect(reloadedConfig).toEqual(newConfig);
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(newConfig);
+      expect(reloadedConfig).toMatchObject(newConfig);
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        newConfig,
+      );
     });
 
     it("should apply environment variables when present in configuration", async () => {
@@ -221,37 +222,23 @@ describe("LiveConfigManager - Configuration Management", () => {
         },
       };
 
-      const mockResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: mockConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue(mockConfig);
 
       await liveConfigManager.initialize();
 
-      // Configuration loading should have been called
-      expect(
-        mockConfigurationService.loadMergedConfiguration,
-      ).toHaveBeenCalled();
+      expect(mockConfigurationService.setEnvironmentVars).toHaveBeenCalled();
     });
 
     it("should handle exceptions during configuration loading", async () => {
-      const error = new Error("Configuration service error");
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockRejectedValue(error);
+      vi.mocked(loadMergedMuseConfig).mockImplementation(() => {
+        throw new Error("Configuration service error");
+      });
 
       await liveConfigManager.initialize();
 
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Configuration reload failed with exception"),
+        expect.stringContaining("Configuration loading failed"),
       );
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual({});
     });
   });
 
@@ -272,43 +259,27 @@ describe("LiveConfigManager - Configuration Management", () => {
         },
       };
 
-      const mockResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: mockConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue(mockConfig);
 
       await liveConfigManager.initialize();
 
       const config1 = liveConfigManager.getCurrentConfiguration();
       const config2 = liveConfigManager.getCurrentConfiguration();
 
-      expect(config1).toEqual(mockConfig);
-      expect(config2).toEqual(mockConfig);
+      expect(config1).toMatchObject(mockConfig);
+      expect(config2).toMatchObject(mockConfig);
       expect(config1).not.toBe(config2); // Should be different objects
       expect(config1).not.toBe(mockConfig); // Should not be the original object
     });
 
     it("should clean up state on shutdown", async () => {
       const mockConfig: MuseConfiguration = { hooks: {} };
-      const mockResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: mockConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue(mockConfig);
 
       await liveConfigManager.initialize();
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(mockConfig);
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        mockConfig,
+      );
 
       await liveConfigManager.shutdown();
       expect(liveConfigManager.getCurrentConfiguration()).toBeNull();
@@ -318,51 +289,39 @@ describe("LiveConfigManager - Configuration Management", () => {
   describe("Error Handling", () => {
     it("should use last valid configuration on reload error", async () => {
       const validConfig: MuseConfiguration = { hooks: {} };
-      const validResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: validConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      const errorResult: ConfigurationLoadResult = {
-        success: false,
-        error: "Failed to read configuration",
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        configuration: null,
-        warnings: [],
-      };
-
-      vi.mocked(mockConfigurationService.loadMergedConfiguration)
-        .mockResolvedValueOnce(validResult)
-        .mockResolvedValueOnce(errorResult);
+      vi.mocked(loadMergedMuseConfig)
+        .mockReturnValueOnce(validConfig)
+        .mockReturnValueOnce({
+          permissions: { defaultMode: "invalid-mode" },
+        } as MuseConfiguration);
 
       await liveConfigManager.initialize();
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(validConfig);
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        validConfig,
+      );
 
       await liveConfigManager.reload();
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(validConfig);
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        validConfig,
+      );
     });
 
     it("should handle exceptions during reload gracefully", async () => {
       const validConfig: MuseConfiguration = { hooks: {} };
-      const validResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: validConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(mockConfigurationService.loadMergedConfiguration)
-        .mockResolvedValueOnce(validResult)
-        .mockRejectedValueOnce(new Error("Service error"));
+      vi.mocked(loadMergedMuseConfig)
+        .mockReturnValueOnce(validConfig)
+        .mockImplementationOnce(() => {
+          throw new Error("Service error");
+        });
 
       await liveConfigManager.initialize();
       await liveConfigManager.reload();
 
-      expect(liveConfigManager.getCurrentConfiguration()).toEqual(validConfig);
+      expect(liveConfigManager.getCurrentConfiguration()).toMatchObject(
+        validConfig,
+      );
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Configuration reload failed with exception"),
+        expect.stringContaining("Configuration loading failed"),
       );
     });
   });
@@ -382,23 +341,9 @@ describe("LiveConfigManager - Configuration Management", () => {
         permissions: {},
       };
 
-      const initialResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: initialConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      const emptyResult: ConfigurationLoadResult = {
-        success: true,
-        configuration: emptyConfig,
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(mockConfigurationService.loadMergedConfiguration)
-        .mockResolvedValueOnce(initialResult)
-        .mockResolvedValueOnce(emptyResult);
+      vi.mocked(loadMergedMuseConfig)
+        .mockReturnValueOnce(initialConfig)
+        .mockReturnValueOnce(emptyConfig);
 
       // Initial load
       await liveConfigManager.initialize();

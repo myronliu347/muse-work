@@ -1,25 +1,28 @@
-import { readdir, stat, rm } from "fs/promises";
+import { rm } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { EventEmitter } from "events";
-import { FileWatcherService } from "../services/fileWatcher.js";
+import type { DiskSkillSnapshot } from "../shared/diskSkillDiscovery.js";
+import { discoverDiskSkills } from "../shared/diskSkillDiscovery.js";
+import {
+  acquireSkillCatalog,
+  requestSkillCatalogRefresh,
+  type SkillCatalogHandle,
+} from "../shared/sharedSkillCatalog.js";
 import type {
   SkillManagerOptions,
   SkillMetadata,
   Skill,
-  SkillCollection,
-  SkillDiscoveryResult,
   SkillToolArgs,
   SkillInvocationContext,
 } from "../types/index.js";
-import { parseSkillFile, formatSkillError } from "../utils/skillParser.js";
+import { formatSkillError } from "../utils/skillParser.js";
 import { substituteCommandParameters } from "../utils/commandArgumentParser.js";
 import {
   parseBashCommands,
   replaceBashCommandsWithOutput,
   executeBashCommands,
 } from "../utils/markdownParser.js";
-import { getBuiltinSkillsDir } from "../utils/configPaths.js";
 import { substitutePluginRoot, substituteSkillDir } from "../utils/museEnv.js";
 
 import { Container } from "../utils/container.js";
@@ -46,7 +49,7 @@ export class SkillManager extends EventEmitter {
    *  chaining them keeps the last completed scan in sync with the newest disk
    *  state instead of letting an older snapshot win a race. */
   private refreshChain: Promise<void> = Promise.resolve();
-  private fileWatcher: FileWatcherService | null = null;
+  private catalogHandle: SkillCatalogHandle | null = null;
   private watchEnabled: boolean;
 
   constructor(
@@ -72,11 +75,20 @@ export class SkillManager extends EventEmitter {
     logger?.debug("Initializing SkillManager...");
 
     try {
-      await this.refreshSkills();
-
-      if (this.watchEnabled && !this.fileWatcher) {
-        await this.setupWatcher();
-      }
+      this.catalogHandle = await acquireSkillCatalog(
+        this.workdir,
+        {
+          watch: this.watchEnabled,
+          discovery: {
+            personalSkillsPath: this.personalSkillsPath,
+            personalClaudeSkillsPath: this.personalClaudeSkillsPath,
+            personalAgentsSkillsPath: this.personalAgentsSkillsPath,
+          },
+        },
+        async (snapshot) => {
+          await this.applyDiskSnapshot(snapshot, { direct: true });
+        },
+      );
 
       this.initialized = true;
       logger?.debug(
@@ -102,40 +114,44 @@ export class SkillManager extends EventEmitter {
   }
 
   private async performRefresh(): Promise<void> {
-    // Route this scan's incremental skill-content writes into a scratch map
-    // (processSkillDirs writes to this.skillContent) and rebuild both caches
-    // fully before swapping them in — readers must never observe a
-    // half-refreshed (e.g. momentarily empty) skill list mid-scan.
-    const scratchContent = new Map<string, Skill>();
-    const previousContent = this.skillContent;
-    this.skillContent = scratchContent;
-
-    let discovery: SkillDiscoveryResult;
-    try {
-      discovery = await this.discoverSkills();
-    } catch (error) {
-      this.skillContent = previousContent;
-      throw error;
+    if (this.catalogHandle) {
+      await requestSkillCatalogRefresh(this.workdir);
+      return;
     }
 
+    const snapshot = await discoverDiskSkills({
+      workdir: this.workdir,
+      personalSkillsPath: this.personalSkillsPath,
+      personalClaudeSkillsPath: this.personalClaudeSkillsPath,
+      personalAgentsSkillsPath: this.personalAgentsSkillsPath,
+    });
+    await this.applyDiskSnapshot(snapshot);
+  }
+
+  private async applyDiskSnapshot(
+    snapshot: DiskSkillSnapshot,
+    options?: { direct?: boolean },
+  ): Promise<void> {
+    if (options?.direct) {
+      this.swapDiskSnapshot(snapshot);
+      return;
+    }
+    const run = this.refreshChain.then(() => this.swapDiskSnapshot(snapshot));
+    this.refreshChain = run.catch(() => {});
+    return run;
+  }
+
+  private swapDiskSnapshot(snapshot: DiskSkillSnapshot): void {
     const nextMetadata = new Map<string, SkillMetadata>();
     const nextContent = new Map<string, Skill>();
 
-    // Store discovered skills (builtin/personal/project)
-    discovery.builtinSkills.forEach((skill, name) => {
+    snapshot.metadata.forEach((skill, name) => {
       nextMetadata.set(name, skill);
     });
-    discovery.personalSkills.forEach((skill, name) => {
-      nextMetadata.set(name, skill);
-    });
-    discovery.projectSkills.forEach((skill, name) => {
-      nextMetadata.set(name, skill);
-    });
-    scratchContent.forEach((skill, name) => {
+    snapshot.content.forEach((skill, name) => {
       nextContent.set(name, skill);
     });
 
-    // Restore plugin skills
     this.pluginSkillMetadata.forEach((metadata, name) => {
       nextMetadata.set(name, metadata);
     });
@@ -143,70 +159,24 @@ export class SkillManager extends EventEmitter {
       nextContent.set(name, skill);
     });
 
-    // Log any discovery errors
-    if (discovery.errors.length > 0) {
-      logger?.warn(`Found ${discovery.errors.length} skill discovery errors`);
-      discovery.errors.forEach((error) => {
+    if (snapshot.errors.length > 0) {
+      logger?.warn(`Found ${snapshot.errors.length} skill discovery errors`);
+      snapshot.errors.forEach((error) => {
         logger?.warn(`Skill error in ${error.skillPath}: ${error.message}`);
       });
     }
 
-    // Atomic swap: from this point on readers see the complete new snapshot
     this.skillMetadata = nextMetadata;
     this.skillContent = nextContent;
-
     this.emit("refreshed", Array.from(this.skillMetadata.values()));
-  }
-
-  /**
-   * Setup file watcher for skill directories
-   */
-  private async setupWatcher(): Promise<void> {
-    if (this.fileWatcher) {
-      await this.fileWatcher.cleanup();
-    }
-
-    this.fileWatcher = new FileWatcherService(logger);
-
-    const pathsToWatch = [
-      this.personalSkillsPath,
-      this.personalClaudeSkillsPath,
-      this.personalAgentsSkillsPath,
-      join(this.workdir, CONFIG_DIR_NAME, "skills"),
-      join(this.workdir, ".claude", "skills"),
-      join(this.workdir, ".agents", "skills"),
-    ];
-
-    logger?.debug(`Setting up skill watcher for: ${pathsToWatch.join(", ")}`);
-
-    for (const pathToWatch of pathsToWatch) {
-      await this.fileWatcher.watchFile(pathToWatch, async (event) => {
-        if (
-          event.path.endsWith("SKILL.md") ||
-          event.type === "delete" ||
-          event.type === "create"
-        ) {
-          logger?.debug(
-            `Skill change detected (${event.type}): ${event.path}. Refreshing skills...`,
-          );
-          try {
-            await this.refreshSkills();
-          } catch (error) {
-            logger?.error("Failed to refresh skills after change:", error);
-          }
-        }
-      });
-    }
   }
 
   /**
    * Cleanup resources
    */
   async destroy(): Promise<void> {
-    if (this.fileWatcher) {
-      await this.fileWatcher.cleanup();
-      this.fileWatcher = null;
-    }
+    this.catalogHandle?.unsubscribe();
+    this.catalogHandle = null;
   }
 
   /**
@@ -259,189 +229,14 @@ export class SkillManager extends EventEmitter {
   }
 
   /**
-   * Discover skills in builtin, personal and project directories
-   */
-  private async discoverSkills(): Promise<SkillDiscoveryResult> {
-    const builtinCollection = await this.discoverSkillCollection(
-      getBuiltinSkillsDir(),
-      "builtin",
-    );
-
-    const personalAgentsCollection = await this.discoverSkillCollection(
-      this.personalAgentsSkillsPath,
-      "personal",
-    );
-
-    const personalClaudeCollection = await this.discoverSkillCollection(
-      this.personalClaudeSkillsPath,
-      "personal",
-    );
-
-    const personalCollection = await this.discoverSkillCollection(
-      this.personalSkillsPath,
-      "personal",
-    );
-
-    const projectCollection = await this.discoverSkillCollection(
-      this.workdir,
-      "project",
-    );
-
-    return {
-      builtinSkills: builtinCollection.skills,
-      personalSkills: new Map([
-        ...personalAgentsCollection.skills, // lowest priority
-        ...personalClaudeCollection.skills, // overrides .agents
-        ...personalCollection.skills, // .muse-work overrides .claude
-      ]),
-      projectSkills: projectCollection.skills,
-      errors: [
-        ...builtinCollection.errors,
-        ...personalAgentsCollection.errors,
-        ...personalClaudeCollection.errors,
-        ...personalCollection.errors,
-        ...projectCollection.errors,
-      ],
-    };
-  }
-
-  /**
-   * Discover skills in a specific directory
-   */
-  private async discoverSkillCollection(
-    basePath: string,
-    type: "personal" | "project" | "builtin",
-  ): Promise<SkillCollection> {
-    const collection: SkillCollection = {
-      type,
-      basePath,
-      skills: new Map(),
-      errors: [],
-    };
-
-    if (type === "project") {
-      // Scan .agents/skills first, then .claude/skills, then .muse-work/skills
-      // (.muse-work overrides)
-      const agentsPath = join(basePath, ".agents", "skills");
-      const claudePath = join(basePath, ".claude", "skills");
-      const museSkillsPath = join(basePath, CONFIG_DIR_NAME, "skills");
-      await this.scanSkillPath(agentsPath, collection);
-      await this.scanSkillPath(claudePath, collection);
-      await this.scanSkillPath(museSkillsPath, collection);
-    } else {
-      await this.scanSkillPath(basePath, collection);
-    }
-
-    return collection;
-  }
-
-  private async scanSkillPath(
-    skillsPath: string,
-    collection: SkillCollection,
-  ): Promise<void> {
-    try {
-      const skillDirs = await this.findSkillDirectories(skillsPath);
-      logger?.debug(
-        `Found ${skillDirs.length} potential skill directories in ${skillsPath}`,
-      );
-      await this.processSkillDirs(skillDirs, collection);
-    } catch (error) {
-      logger?.debug(
-        `Could not scan ${skillsPath}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  private async processSkillDirs(
-    skillDirs: string[],
-    collection: SkillCollection,
-  ): Promise<void> {
-    for (const skillDir of skillDirs) {
-      try {
-        const skillFilePath = join(skillDir, "SKILL.md");
-
-        // Check if SKILL.md exists
-        try {
-          await stat(skillFilePath);
-        } catch {
-          continue; // Skip directories without SKILL.md
-        }
-
-        const parsed = parseSkillFile(skillFilePath, {
-          basePath: skillDir,
-          validateMetadata: true,
-        });
-
-        if (parsed.isValid) {
-          // Override the skill type with the collection type
-          const skillMetadata: SkillMetadata = {
-            ...parsed.skillMetadata,
-            type: collection.type,
-          };
-
-          // Create full skill object with content
-          const skill: Skill = {
-            ...skillMetadata,
-            content: parsed.content,
-            frontmatter: parsed.frontmatter,
-            isValid: parsed.isValid,
-            errors: parsed.validationErrors,
-          };
-
-          collection.skills.set(skillMetadata.name, skillMetadata);
-          // Store the full skill content in the manager's skillContent map
-          this.skillContent.set(skillMetadata.name, skill);
-        } else {
-          collection.errors.push({
-            skillPath: skillDir,
-            message: parsed.validationErrors.join("; "),
-          });
-        }
-      } catch (error) {
-        collection.errors.push({
-          skillPath: skillDir,
-          message: `Failed to process skill: ${error instanceof Error ? error.message : String(error)}`,
-        });
-      }
-    }
-  }
-
-  /**
-   * Find all directories that could contain skills
-   */
-  private async findSkillDirectories(skillsPath: string): Promise<string[]> {
-    const directories: string[] = [];
-
-    try {
-      const entries = await readdir(skillsPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(skillsPath, entry.name);
-        if (entry.isDirectory()) {
-          directories.push(fullPath);
-        } else if (entry.isSymbolicLink()) {
-          try {
-            const s = await stat(fullPath);
-            if (s.isDirectory()) {
-              directories.push(fullPath);
-            }
-          } catch {
-            // Ignore broken symlinks or other errors
-          }
-        }
-      }
-    } catch {
-      // Directory doesn't exist - return empty array
-    }
-
-    return directories;
-  }
-
-  /**
    * Re-scan skill directories after a live configuration reload so slash
    * commands stay in sync with files on disk.
    */
   async reloadFeatureGatedSkills(): Promise<void> {
+    if (this.catalogHandle) {
+      await requestSkillCatalogRefresh(this.workdir);
+      return;
+    }
     await this.refreshSkills();
   }
 

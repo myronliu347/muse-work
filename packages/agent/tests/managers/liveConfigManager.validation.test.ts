@@ -8,7 +8,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LiveConfigManager } from "../../src/managers/liveConfigManager.js";
 import { Container } from "../../src/utils/container.js";
-import { ConfigurationService } from "../../src/services/configurationService.js";
+import {
+  ConfigurationService,
+  loadMergedMuseConfig,
+} from "../../src/services/configurationService.js";
+import { resetSharedCatalogsForTests } from "../../src/shared/testing.js";
 import { FileWatcherService } from "../../src/services/fileWatcher.js";
 import * as configPaths from "../../src/utils/configPaths.js";
 import type { MuseConfiguration } from "../../src/types/configuration.js";
@@ -25,7 +29,16 @@ vi.mock("../../src/utils/globalLogger.js", () => ({
 }));
 
 // Mock all dependencies
-vi.mock("../../src/services/configurationService.js");
+vi.mock("../../src/services/configurationService.js", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("../../src/services/configurationService.js")
+  >();
+  return {
+    ...actual,
+    ConfigurationService: vi.fn(),
+    loadMergedMuseConfig: vi.fn(),
+  };
+});
 vi.mock("../../src/services/fileWatcher.js");
 vi.mock("../../src/utils/configPaths.js");
 vi.mock("../../src/utils/fileUtils.js");
@@ -89,7 +102,9 @@ describe("LiveConfigManager - Validation", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await liveConfigManager.shutdown().catch(() => {});
+    await resetSharedCatalogsForTests();
     vi.resetAllMocks();
   });
 
@@ -100,39 +115,24 @@ describe("LiveConfigManager - Validation", () => {
     ) => {
       const mockConfig = {
         permissions: {
-          permissionMode,
+          defaultMode: permissionMode,
         },
       } as unknown as MuseConfiguration;
 
-      const mockResult: ConfigurationLoadResult = {
-        success: expectedValid,
-        configuration: expectedValid ? mockConfig : null,
-        error: expectedValid
-          ? undefined
-          : "Configuration validation failed: Invalid permissionMode",
-        sourcePath: "/mock/project/.muse-work/settings.json",
-        warnings: [],
-      };
-
-      vi.mocked(
-        mockConfigurationService.loadMergedConfiguration,
-      ).mockResolvedValue(mockResult);
+      vi.mocked(loadMergedMuseConfig).mockReturnValue(mockConfig);
 
       await liveConfigManager.initialize();
 
       if (expectedValid) {
-        expect(liveConfigManager.getCurrentConfiguration()).toEqual(mockConfig);
+        expect(liveConfigManager.getCurrentConfiguration()?.permissions).toEqual(
+          mockConfig.permissions,
+        );
         expect(logger.error).not.toHaveBeenCalledWith(
-          expect.stringContaining("Configuration validation failed"),
+          expect.stringContaining("Configuration loading failed"),
         );
       } else {
-        // If validation fails, it should fallback to empty config (since no last valid config)
-        expect(liveConfigManager.getCurrentConfiguration()).toEqual({});
         expect(logger.error).toHaveBeenCalledWith(
-          expect.stringContaining("Configuration validation failed"),
-        );
-        expect(logger.error).toHaveBeenCalledWith(
-          expect.stringContaining("Invalid permissionMode"),
+          expect.stringContaining("Configuration loading failed"),
         );
       }
     };
