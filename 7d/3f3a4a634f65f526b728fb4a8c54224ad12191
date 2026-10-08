@@ -1,0 +1,86 @@
+packages/server/src/services/sessionRunner/actions.ts
+  d501b231c2f2dabb 12,65-80
+packages/server/src/services/sessionRunner/ctx.ts
+  d501b231c2f2dabb 53-54,113,162-163
+packages/agent/src/agent.ts
+  d501b231c2f2dabb 1085-1094
+packages/server/src/services/assistant/runtime.ts
+  d501b231c2f2dabb 1-94
+packages/server/tests/assistantRuntime.test.ts
+  d501b231c2f2dabb 1-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7d3f3a4a634f65f526b728fb4a8c54224ad12191",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 174,
+      "total_deletions": 0,
+      "accepted_lines": 996,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/agent.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "docs/superpowers/specs/2026-10-08-assistant-design.md": {
+          "accepted_lines": 178
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 94,
+          "accepted_lines": 94
+        },
+        "docs/superpowers/plans/2026-10-08-assistant.md": {
+          "accepted_lines": 644
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 48,
+          "accepted_lines": 48
+        }
+      }
+    }
+  }
+}
