@@ -1,0 +1,172 @@
+packages/agent/src/shared/pathKey.ts
+  fcd8d9c5e216aa95 1-5
+packages/agent/docs/2026-09-30-shared-catalog-liveconfig-plan.md
+  fcd8d9c5e216aa95 1-338
+packages/agent/src/managers/skillManager.ts
+  fcd8d9c5e216aa95 1,5-11,19,52,78-91,117-120,122-129,131-137,139-142,144,148,151,162-164,178-179,236-239
+packages/agent/src/shared/testing.ts
+  fcd8d9c5e216aa95 1-7
+packages/agent/src/shared/sharedSkillCatalog.ts
+  fcd8d9c5e216aa95 1-171
+packages/agent/tests/managers/liveConfigManager.validation.test.ts
+  fcd8d9c5e216aa95 11-15,32-41,105-107,118,122,127-129,131,135
+packages/agent/src/shared/sharedLiveConfig.ts
+  fcd8d9c5e216aa95 1-275
+packages/agent/tests/managers/liveConfigManager.test.ts
+  fcd8d9c5e216aa95 12-16,34-43,122,128-130,154,158,161-164,176-178,182-183,200-202,205,210-213,225,229,233-235,240,262,269-270,277,280-282,292-296,299-301,304-306,311-315,320-322,324,344-346
+packages/agent/tests/managers/skillManager.test.ts
+  fcd8d9c5e216aa95 14-15,90-94,235-237,262
+packages/agent/src/managers/liveConfigManager.ts
+  fcd8d9c5e216aa95 11-15,25,50,122-128,147-148,199,202-206,208,210,214-216,223-224,227,229-231,234,236-239,241-247,249-251,253-266,274-278,297
+packages/agent/src/shared/diskSkillDiscovery.ts
+  fcd8d9c5e216aa95 1-218
+packages/agent/docs/2026-09-30-shared-catalog-liveconfig-design.md
+  fcd8d9c5e216aa95 1-165
+packages/agent/tests/managers/liveConfigManager.hotReload.test.ts
+  fcd8d9c5e216aa95 14-18,29-38,86-87,89,129-131,192,249
+packages/agent/tests/shared/pathKey.test.ts
+  fcd8d9c5e216aa95 1-10
+packages/agent/tests/shared/diskSkillDiscovery.test.ts
+  fcd8d9c5e216aa95 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "db61d70df1f081d0f24e217df9be01745e0a134f",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1692,
+      "total_deletions": 779,
+      "accepted_lines": 1487,
+      "overriden_lines": 6,
+      "per_file_stats": {
+        "packages/agent/src/index.ts": {
+          "additions": 1
+        },
+        "packages/agent/src/shared/diskSkillDiscovery.ts": {
+          "additions": 218,
+          "accepted_lines": 218
+        },
+        "packages/agent/src/shared/sharedSkillCatalog.ts": {
+          "additions": 185,
+          "deletions": 14,
+          "accepted_lines": 171
+        },
+        "packages/agent/docs/2026-09-30-shared-catalog-liveconfig-design.md": {
+          "additions": 167,
+          "deletions": 2,
+          "accepted_lines": 165
+        },
+        "packages/server/src/routes/skills.ts": {
+          "additions": 29
+        },
+        "packages/agent/src/managers/liveConfigManager.ts": {
+          "additions": 68,
+          "deletions": 267,
+          "accepted_lines": 68
+        },
+        "packages/agent/tests/shared/diskSkillDiscovery.test.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "packages/server/tests/skills.routes.test.ts": {
+          "additions": 67
+        },
+        "packages/agent/tests/managers/liveConfigManager.hotReload.test.ts": {
+          "additions": 23,
+          "deletions": 18,
+          "accepted_lines": 23
+        },
+        "packages/agent/docs/2026-09-30-shared-catalog-liveconfig-plan.md": {
+          "additions": 338,
+          "accepted_lines": 338
+        },
+        "packages/agent/tests/managers/liveConfigManager.test.ts": {
+          "additions": 74,
+          "deletions": 129,
+          "accepted_lines": 74
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 69,
+          "deletions": 274,
+          "accepted_lines": 62
+        },
+        "packages/agent/src/shared/pathKey.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 2,
+          "deletions": 23,
+          "overriden_lines": 6
+        },
+        "packages/agent/src/shared/sharedLiveConfig.ts": {
+          "additions": 278,
+          "deletions": 3,
+          "accepted_lines": 275
+        },
+        "packages/agent/tests/shared/pathKey.test.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/agent/tests/managers/skillManager.test.ts": {
+          "additions": 11,
+          "deletions": 24,
+          "accepted_lines": 11
+        },
+        "packages/server/src/services/pluginDirs.ts": {
+          "additions": 38
+        },
+        "packages/agent/src/skills/listSkills.ts": {
+          "additions": 40
+        },
+        "packages/server/src/app.ts": {
+          "additions": 2
+        },
+        "packages/agent/src/shared/testing.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/agent/tests/managers/liveConfigManager.validation.test.ts": {
+          "additions": 25,
+          "deletions": 25,
+          "accepted_lines": 25
+        }
+      }
+    }
+  }
+}
