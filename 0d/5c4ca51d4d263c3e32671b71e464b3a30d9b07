@@ -1,0 +1,88 @@
+packages/agent/tests/shared/skillMetadataPreview.test.ts
+  fcd8d9c5e216aa95 1-36
+packages/server/tests/sessions.control.routes.test.ts
+  fcd8d9c5e216aa95 209-214,216-225,232,234-236
+packages/agent/src/index.ts
+  fcd8d9c5e216aa95 72
+packages/agent/src/managers/skillManager.ts
+  fcd8d9c5e216aa95 77-81
+packages/agent/src/shared/skillMetadataPreview.ts
+  fcd8d9c5e216aa95 1-52
+packages/server/src/services/sessionRunner/agent.ts
+  fcd8d9c5e216aa95 2,6,9,78-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0d5c4ca51d4d263c3e32671b71e464b3a30d9b07",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "fcd8d9c5e216aa95": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5b2649c7-6a3e-4479-bd08-8aac8d31df06",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 123,
+      "total_deletions": 115,
+      "accepted_lines": 121,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 6,
+          "deletions": 90,
+          "accepted_lines": 6
+        },
+        "packages/agent/tests/shared/skillMetadataPreview.test.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/agent/src/managers/skillManager.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/sessions.control.routes.test.ts": {
+          "additions": 23,
+          "deletions": 25,
+          "accepted_lines": 21
+        },
+        "packages/agent/src/shared/skillMetadataPreview.ts": {
+          "additions": 52,
+          "accepted_lines": 52
+        }
+      }
+    }
+  }
+}
