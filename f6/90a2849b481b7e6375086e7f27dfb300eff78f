@@ -1,0 +1,92 @@
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 24,28
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 9
+packages/webview/src/styles/AssistantPage.css
+  d501b231c2f2dabb 112-113,116,120,122,128,130-131,146-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f690a2849b481b7e6375086e7f27dfb300eff78f",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 95,
+      "total_deletions": 60,
+      "accepted_lines": 23,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "additions": 3,
+          "deletions": 2
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 42,
+          "deletions": 41,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 13,
+          "deletions": 7,
+          "accepted_lines": 11
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 12,
+          "deletions": 3
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 16,
+          "deletions": 2
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 5,
+          "deletions": 1
+        }
+      }
+    }
+  }
+}
