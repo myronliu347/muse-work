@@ -131,7 +131,8 @@ export function createAutomationRuntime(options: {
       workdir,
       permissionMode: "bypassPermissions",
       title: `自动化 · ${args.automation.name}`,
-      disallowedTools: ["Workflow"],
+      // AskUserQuestion 在 bypassPermissions 下仍会等人回答，无人值守会一直停在执行中。
+      disallowedTools: ["Workflow", "AskUserQuestion"],
       agentName: args.automation.agentName,
       model: args.automation.model ?? DEFAULT_ACTIVE_MODEL_ID,
     });

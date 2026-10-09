@@ -484,7 +484,7 @@ describe("automationRuntime", () => {
     const session = sessions.get(store.getRun(manual!.id)!.sessionId!);
     expect(session?.origin).toBe("automation");
     expect(session?.permissionMode).toBe("bypassPermissions");
-    expect(session?.disallowedTools).toEqual(["Workflow"]);
+    expect(session?.disallowedTools).toEqual(["Workflow", "AskUserQuestion"]);
     expect(session?.title).toBe("自动化 · 巡检");
     expect(sent[0]?.text).toContain("触发：手动");
     expect(sent[0]?.text).toContain("查 changelog");
