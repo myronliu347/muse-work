@@ -1,0 +1,77 @@
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 6,17-20,22,26-27,41
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 6,18-19,23-27,31-32
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 17-18
+packages/server/src/services/sessionRunner/agent.ts
+  d501b231c2f2dabb 124,131-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "5111079feceef527dd8b2ddfe428d2ab172c2f05",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 31,
+      "total_deletions": 30,
+      "accepted_lines": 26,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 12,
+          "deletions": 9,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 12,
+          "deletions": 20,
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
