@@ -1,0 +1,92 @@
+packages/webview/tests/muse/hostBridge.test.ts
+  d501b231c2f2dabb 1894-1958
+packages/webview/src/muse/hostBridge/index.ts
+  d501b231c2f2dabb 169-180
+packages/server/src/services/wsEvents.ts
+  d501b231c2f2dabb 54
+packages/server/src/services/sessionRunner/actions.ts
+  d501b231c2f2dabb 207
+packages/webview/src/muse/wsClient.ts
+  d501b231c2f2dabb 37
+packages/server/tests/sessions.ws.test.ts
+  d501b231c2f2dabb 611-620,630-634
+packages/webview/src/muse/messageRouter.ts
+  d501b231c2f2dabb 304-309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9cd351d9c527c69ac70eaecaf1eca7b30537d34d",
+  "prompts": {
+    "c8df0f85b58f7a52": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "16776b07-30a9-4667-873f-a320dd607db5",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AppearanceSettings.css": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "accepted_lines": 1
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 101,
+      "total_deletions": 0,
+      "accepted_lines": 101,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
