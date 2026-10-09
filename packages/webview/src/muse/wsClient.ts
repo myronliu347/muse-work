@@ -34,6 +34,7 @@ export type MuseWsEventPayload =
       permissionMode?: string;
       toolCallId?: string;
     }
+  | { type: "permission:resolved"; permissionId: string }
   | { type: "session:status"; status: string; error?: string }
   | { type: "auth:changed"; status: unknown }
   | { type: "compaction:state"; isCompacting: boolean }

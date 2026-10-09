@@ -51,6 +51,7 @@ export type WsEvent =
       permissionMode?: string;
       toolCallId?: string;
     }
+  | { type: "permission:resolved"; permissionId: string }
   | {
       type: "session:status";
       status: SessionStatus | string;

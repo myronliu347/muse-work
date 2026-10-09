@@ -204,6 +204,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         newPermissionMode: decision.newPermissionMode,
         newPermissionRule: decision.newPermissionRule,
       });
+      hub.broadcast(sessionId, { type: "permission:resolved", permissionId });
       return { ok: true };
     },
 

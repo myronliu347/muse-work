@@ -1891,6 +1891,71 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     });
   });
 
+  it("permission:resolved closes the confirmation the assistant already answered", async () => {
+    let handler: ((e: unknown) => void) | undefined;
+    const ws = {
+      onEvent: vi.fn((h: (e: unknown) => void) => {
+        handler = h;
+        return () => {};
+      }),
+      connect: vi.fn(async () => {}),
+    } as unknown as MuseWsClient;
+    const bridge = createHostBridge({
+      api: stubApi(),
+      ws,
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    handler!({
+      type: "permission:request",
+      sessionId: "sess-active",
+      permissionId: "perm-done",
+      toolName: "Bash",
+      description: "git status",
+    });
+    await flush();
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        command: "showConfirmation",
+        confirmationId: "perm-done",
+      }),
+    );
+
+    messages.length = 0;
+    handler!({
+      type: "permission:resolved",
+      sessionId: "sess-active",
+      permissionId: "perm-done",
+    });
+    await flush();
+    expect(messages).toContainEqual({
+      command: "hideConfirmation",
+      confirmationId: "perm-done",
+    });
+    const tree = messages
+      .filter(
+        (m) =>
+          typeof m === "object" &&
+          m !== null &&
+          (m as { command?: string }).command === "desktopSessionTree",
+      )
+      .at(-1) as
+      | {
+          groups?: Array<{
+            sessions: Array<{ sessionId: string; waitingConfirmation?: boolean }>;
+          }>;
+        }
+      | undefined;
+    expect(
+      tree?.groups
+        ?.flatMap((g) => g.sessions)
+        .find((s) => s.sessionId === "sess-active")?.waitingConfirmation,
+    ).toBe(false);
+  });
+
   it("permission:request shows structured AskUserQuestion toolInput", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

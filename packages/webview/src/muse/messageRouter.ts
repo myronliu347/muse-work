@@ -301,6 +301,12 @@ export function createMessageHandler({
         if (!forThisPane(message)) break;
         dispatch({ type: "SET_CURRENT_SESSION", payload: message.session });
         break;
+      case "hideConfirmation":
+        if (!forThisPane(message)) break;
+        if (typeof message.confirmationId === "string") {
+          dispatch({ type: "HIDE_CONFIRMATION", payload: message.confirmationId });
+        }
+        break;
       case "showConfirmation":
         if (!forThisPane(message)) break;
         dispatch({

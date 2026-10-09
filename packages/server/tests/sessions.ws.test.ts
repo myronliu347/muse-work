@@ -608,6 +608,16 @@ describe("sessions + websocket streaming", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(settled).toBe(false);
 
+    const { ready: resolvedReady, events: resolvedEvents } = openWsCollector(
+      app.baseUrl,
+      session.id,
+      {
+        minCount: 1,
+        filter: (e) => e.type === "permission:resolved",
+      },
+    );
+    await resolvedReady;
+
     const allowRes = await fetch(
       `${app.baseUrl}/sessions/${session.id}/permissions/${String(permissionEvent.permissionId)}`,
       {
@@ -617,6 +627,11 @@ describe("sessions + websocket streaming", () => {
       },
     );
     expect(allowRes.status).toBe(200);
+    const [resolvedEvent] = await resolvedEvents;
+    expect(resolvedEvent).toMatchObject({
+      type: "permission:resolved",
+      permissionId: permissionEvent.permissionId,
+    });
 
     await sendDone;
     expect(settled).toBe(true);

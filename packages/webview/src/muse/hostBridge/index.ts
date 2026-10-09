@@ -166,6 +166,18 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
+    if (event.type === "permission:resolved") {
+      const pending = ctx.pendingPermissions.get(event.sessionId);
+      if (pending?.permissionId === event.permissionId) {
+        ctx.clearPendingPermission(event.sessionId);
+      }
+      postToWebview({
+        command: "hideConfirmation",
+        confirmationId: event.permissionId,
+      });
+      return;
+    }
+
     if (event.type === "permission:request") {
       const pending: PendingPermission = {
         permissionId: event.permissionId,
