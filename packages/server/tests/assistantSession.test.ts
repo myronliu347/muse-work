@@ -21,6 +21,7 @@ describe("ensureAssistantSession", () => {
     expect(store.listGrouped().recent.map((s) => s.id)).not.toContain(first.id);
     expect(first.systemPrompt).toContain("短回复必须用 `SendMessage`");
     expect(first.systemPrompt).toContain("按先后处理每一段");
+    expect(first.systemPrompt).toContain("必须把 `worktree` 设为 true");
     store.update(first.id, {
       systemPrompt: "旧提示",
       tools: ["ListIssues"],

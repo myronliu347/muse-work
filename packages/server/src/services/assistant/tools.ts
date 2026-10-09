@@ -127,13 +127,14 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "OpenIssue",
-      "给尚未打开会话的 Issue 打开会话。模式默认 single，不启用 worktree。",
+      "给尚未打开会话的 Issue 打开 single 会话。修 bug、改代码时 worktree 必须为 true，会话建在单独的 worktree 里。baseBranch 不填则用该仓库的主分支。只读、不改代码不要开 worktree。",
       {
         type: "object",
         properties: {
           issueId: { type: "string" },
           workdir: { type: "string" },
-          agentMode: { type: "string", enum: ["single", "split"] },
+          worktree: { type: "boolean" },
+          baseBranch: { type: "string" },
         },
         required: ["issueId", "workdir"],
       },
@@ -147,10 +148,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           return ok({ sessionId: issue.planningSessionId, workdir: issue.workdir });
         }
         if (!fs.existsSync(workdir)) return fail("workdir not found");
+        const baseBranch = text(args.baseBranch);
         const body: OpenIssueBody = {
           workdir,
-          agentMode: args.agentMode === "split" ? "split" : "single",
-          worktreeEnabled: false,
+          agentMode: "single",
+          worktreeEnabled: args.worktree === true,
+          ...(args.worktree === true && baseBranch ? { baseBranch } : {}),
         };
         const opened = open(ctx, issueId, body);
         if (opened.status >= 400) {

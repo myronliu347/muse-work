@@ -172,4 +172,64 @@ describe("assistant tools", () => {
       "ListMuseMessages",
     ]);
   });
+
+  it("passes worktree and baseBranch through to the existing issue open", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-wt-"));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-repo-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const opened: OpenIssueBody[] = [];
+    const hub = { broadcastAll: () => {} } as WsHub;
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub,
+      runner: {} as never,
+      openIssue: (ctx, issueId, body) => {
+        opened.push(body);
+        ctx.issueStore.setPlanning(issueId, {
+          planningSessionId: `s-${issueId}`,
+          workdir: body.workdir ?? "",
+          worktreeEnabled: Boolean(body.worktreeEnabled),
+          baseBranch: body.baseBranch,
+          agentMode: body.agentMode === "single" ? "single" : "split",
+        });
+        ctx.hub.broadcastAll({ type: "issue:changed" });
+        return { status: 200, json: { sessionId: `s-${issueId}`, workdir: body.workdir } };
+      },
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const issue = issues.create({ title: "修一下" });
+
+    const onMain = await tool(tools, "OpenIssue").execute(
+      { issueId: issue.id, workdir, worktree: true },
+      context,
+    );
+    expect(onMain.success).toBe(true);
+    expect(opened[0]).toEqual({
+      workdir,
+      agentMode: "single",
+      worktreeEnabled: true,
+    });
+    expect(issues.get(issue.id)?.worktreeEnabled).toBe(true);
+    expect(issues.get(issue.id)?.baseBranch).toBeUndefined();
+
+    const other = issues.create({ title: "改分支" });
+    const onDev = await tool(tools, "OpenIssue").execute(
+      { issueId: other.id, workdir, worktree: true, baseBranch: "dev" },
+      context,
+    );
+    expect(onDev.success).toBe(true);
+    expect(opened[1]).toEqual({
+      workdir,
+      agentMode: "single",
+      worktreeEnabled: true,
+      baseBranch: "dev",
+    });
+  });
 });
