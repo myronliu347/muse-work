@@ -29,6 +29,7 @@ import { createAssistantQueue } from "./assistant/queue.js";
 import { createAssistantRuntime } from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
+import { loadPopoConfig } from "../popo/popoConfig.js";
 import { lastAssistantText } from "./issueDispatch.js";
 
 export { resolveHome };
@@ -167,6 +168,14 @@ export function createAppContext(
       const send = popoSend.current;
       if (!send) return Promise.reject(new Error("POPO 未配置"));
       return send(receiver, content);
+    },
+    popoMasterUid: () => {
+      try {
+        const uid = loadPopoConfig(home).masterUid.trim();
+        return uid || undefined;
+      } catch {
+        return undefined;
+      }
     },
   });
   const dispatcher = createIssueDispatcher({

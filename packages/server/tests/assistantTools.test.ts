@@ -304,4 +304,48 @@ describe("assistant tools", () => {
       `send:${running.id}:先停，改做这个`,
     ]);
   });
+
+  it("records the master's POPO private chat and skips groups", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-popo-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const sent: string[] = [];
+    const broadcasts: unknown[] = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub: { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub,
+      runner: {} as never,
+      sendText: async (receiver, content) => {
+        sent.push(`${receiver}:${content}`);
+      },
+      popoMasterUid: () => "master",
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const direct = await tool(tools, "SendMessage").execute(
+      { app: "popo", user: "master", message: "私聊回复" },
+      context,
+    );
+    expect(direct.success).toBe(true);
+    const group = await tool(tools, "SendMessage").execute(
+      { app: "popo", user: "master", groupId: "g1", message: "群回复" },
+      context,
+    );
+    expect(group.success).toBe(true);
+    const other = await tool(tools, "SendMessage").execute(
+      { app: "popo", user: "someone", message: "别人" },
+      context,
+    );
+    expect(other.success).toBe(true);
+    expect(sent).toEqual(["master:私聊回复", "g1:群回复", "someone:别人"]);
+    expect(log.page().messages).toEqual([
+      expect.objectContaining({ role: "assistant", message: "私聊回复", app: "popo" }),
+    ]);
+    expect(broadcasts).toHaveLength(1);
+  });
 });

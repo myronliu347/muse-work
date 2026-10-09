@@ -22,6 +22,8 @@ export interface MuseChatLine {
   role: MuseChatRole;
   message: string;
   images?: MuseChatImage[];
+  /** 主人与机器人的 POPO 私聊。缺省表示 Muse 里的对话。 */
+  app?: "popo";
 }
 
 export interface MuseChatPage {
@@ -82,6 +84,8 @@ function parseLine(raw: string): MuseChatLine | undefined {
     );
     if (images.length > 0) record.images = images;
     else delete record.images;
+    if ((record as { app?: unknown }).app === "popo") record.app = "popo";
+    else delete record.app;
     return record;
   } catch {
     return undefined;
@@ -129,6 +133,7 @@ export function createAssistantMessageLog(options: {
     role: MuseChatRole,
     message: string,
     images?: MuseChatImage[],
+    app?: "popo",
   ): MuseChatLine;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
   search(args: { q: string; before?: string; limit?: number }): MuseChatSearchPage;
@@ -141,6 +146,7 @@ export function createAssistantMessageLog(options: {
     role: MuseChatRole,
     message: string,
     images?: MuseChatImage[],
+    app?: "popo",
   ): MuseChatLine {
     fs.mkdirSync(dir, { recursive: true });
     const names = listSliceNames(dir);
@@ -159,6 +165,7 @@ export function createAssistantMessageLog(options: {
       role,
       message,
       ...(kept.length > 0 ? { images: kept } : {}),
+      ...(app === "popo" ? { app: "popo" as const } : {}),
     };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;

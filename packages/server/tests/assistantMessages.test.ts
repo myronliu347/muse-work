@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { createAssistantMessageLog } from "../src/services/assistant/messages.js";
+import { recordPopoMasterInbound } from "../src/services/assistant/popoTranscript.js";
 
 function home() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-"));
@@ -19,9 +20,12 @@ describe("assistant message log", () => {
     });
     log.append("user", "你好");
     log.append("assistant", "在");
+    log.append("user", "私聊", undefined, "popo");
     const page = log.page();
-    expect(page.messages.map((m) => m.role)).toEqual(["user", "assistant"]);
+    expect(page.messages.map((m) => m.role)).toEqual(["user", "assistant", "user"]);
     expect(page.messages[0]).toMatchObject({ id: "id-1", message: "你好" });
+    expect(page.messages[0]?.app).toBeUndefined();
+    expect(page.messages[2]).toMatchObject({ message: "私聊", app: "popo" });
     expect(page.hasMore).toBe(false);
   });
 
@@ -90,5 +94,22 @@ describe("assistant message log", () => {
       { data: "data:image/png;base64,a", mediaType: "image/png" },
     ]);
     expect(log.page().messages[0].images).toEqual(line.images);
+  });
+
+  it("records the master's POPO private message and skips groups", () => {
+    const log = createAssistantMessageLog({
+      home: home(),
+      now: () => 1,
+      newId: () => "popo",
+    });
+    const broadcasts: unknown[] = [];
+    const hub = { broadcastAll: (event: unknown) => broadcasts.push(event) };
+    recordPopoMasterInbound(log, hub, { from: "popo", message: "  在吗  " });
+    recordPopoMasterInbound(log, hub, { from: "popo-group", message: "群里" });
+    recordPopoMasterInbound(log, hub, { from: "popo", message: "   " });
+    expect(log.page().messages).toEqual([
+      expect.objectContaining({ role: "user", message: "  在吗  ", app: "popo" }),
+    ]);
+    expect(broadcasts).toHaveLength(1);
   });
 });

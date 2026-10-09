@@ -9,6 +9,7 @@ import { createCallbackApp } from "./callbackApp.js";
 import { createChatStore, type ChatStore } from "./chatStore.js";
 import { createPopoHandler } from "./handler.js";
 import { createPopoAgentFactory } from "./popoAgent.js";
+import { recordPopoMasterInbound } from "../services/assistant/popoTranscript.js";
 import { loadMuseSettings } from "../services/museSettings.js";
 import { loadPopoConfig, type PopoConfig } from "./popoConfig.js";
 import { createSender, type Sender } from "./sender.js";
@@ -109,6 +110,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     agentFactory,
     logger,
     onChat: (event) => {
+      recordPopoMasterInbound(ctx.assistantLog, ctx.hub, event);
       ctx.assistantRuntime.enqueue({ type: "chat", ...event });
     },
     groupAssistantEnabled: () => loadMuseSettings(ctx.home).popo.groupAssistant,

@@ -110,6 +110,23 @@ describe("AssistantPage", () => {
     expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
 
+  it("labels the master's POPO private messages", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          { id: "1", at: 1, role: "user", message: "私聊过来", app: "popo" },
+          { id: "2", at: 2, role: "assistant", message: "私聊回去", app: "popo" },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("私聊过来")).toBeTruthy();
+    expect(screen.getByText("私聊回去")).toBeTruthy();
+    expect(screen.getAllByText("POPO")).toHaveLength(2);
+  });
+
   it("scrolls the chat log to the bottom when switching back from AI messages", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({

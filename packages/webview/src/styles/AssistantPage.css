@@ -177,6 +177,18 @@
   color: var(--gray-12);
 }
 
+.assistant-bubble-source {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--gray-9);
+}
+
+.assistant-bubble-name .assistant-bubble-source {
+  margin: 0 0 0 8px;
+}
+
 .assistant-bubble {
   box-sizing: border-box;
   border-radius: 16px;

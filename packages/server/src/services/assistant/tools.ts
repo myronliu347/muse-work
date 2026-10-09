@@ -20,6 +20,8 @@ export type AssistantToolDeps = {
   log: Log;
   hub: WsHub;
   sendText?: (receiver: string, content: string) => Promise<void>;
+  /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
+  popoMasterUid?: () => string | undefined;
   openIssue?: typeof openIssueSession;
 };
 
@@ -313,6 +315,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const receiver = groupId || user;
         if (!receiver || !deps.sendText) return fail("popo recipient required");
         await deps.sendText(receiver, message);
+        const master = deps.popoMasterUid?.()?.trim();
+        if (!groupId && master && user === master) {
+          const line = deps.log.append("assistant", message, undefined, "popo");
+          deps.hub.broadcastAll({ type: "assistant:chat", line });
+          return ok({ sent: true, receiver, line });
+        }
         return ok({ sent: true, receiver });
       },
     ),
@@ -367,7 +375,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "ListMuseMessages",
-      "从最新一片往前查询 Muse 对话记录。",
+      "从最新一片往前查询对话记录。没有 app 的是 Muse 里的对话，app 为 popo 的是主人跟机器人的私聊。",
       {
         type: "object",
         properties: {
@@ -394,6 +402,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
               id: line.id,
               at: line.at,
               role: line.role,
+              ...(line.app === "popo" ? { app: "popo" as const } : {}),
               message: clipped.text,
               ...(truncated ? { truncated: true } : {}),
             };

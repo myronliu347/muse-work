@@ -94,6 +94,7 @@ export type MuseWsEventPayload =
         at: number;
         role: "user" | "assistant";
         message: string;
+        app?: "popo";
       };
     }
   | { type: "assistant:status"; working: boolean }

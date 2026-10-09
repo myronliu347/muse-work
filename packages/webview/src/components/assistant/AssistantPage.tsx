@@ -18,6 +18,7 @@ export type AssistantLine = {
   role: "user" | "assistant";
   message: string;
   images?: Array<{ data: string; mediaType: string }>;
+  app?: "popo";
 };
 
 export type AssistantQueueItem = {
@@ -92,6 +93,7 @@ function asLine(value: unknown): AssistantLine | undefined {
       at: typeof line.at === "number" ? line.at : Date.now(),
       role: line.role,
       message: line.message,
+      ...((line as { app?: unknown }).app === "popo" ? { app: "popo" as const } : {}),
       ...(Array.isArray((line as { images?: unknown }).images)
         ? {
             images: (
@@ -162,6 +164,7 @@ function UserLine({ line }: { line: AssistantLine }) {
   const referenced = new Set<string>();
   return (
     <div className="assistant-bubble-row assistant-bubble-row-user">
+      {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
       <div className="assistant-bubble assistant-bubble-user">
         <div className="assistant-user-content">
           {parts.map((part, index) => {
@@ -486,7 +489,12 @@ export const AssistantPage: React.FC<{
               <UserLine key={line.id} line={line} />
             ) : (
               <div key={line.id} className="assistant-bubble-row assistant-bubble-row-assistant">
-                <div className="assistant-bubble-name">Muse Bot</div>
+                <div className="assistant-bubble-name">
+                  Muse Bot
+                  {line.app === "popo" ? (
+                    <span className="assistant-bubble-source">POPO</span>
+                  ) : null}
+                </div>
                 <div
                   className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
                   dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
