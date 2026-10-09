@@ -10,7 +10,7 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 协调时用 \`ListIssues\` 按工作目录、标题、描述判断。
 
-- 对得上：\`MessageIssue\`。还没开会话就先 \`OpenIssue\`。
+- 对得上：\`MessageIssue\`。还没开会话就先 \`OpenIssue\`。先看 \`ListIssues\` 的 \`sessionStatus\` 和 \`queued\`。\`running\` 表示这一轮还在跑，\`queued\` 是已经排在后面的消息。补充或接着做就直接发，让它排队。用户要停掉正在做的、改口，把 \`interrupt\` 设为 true。中断会丢掉已排队的消息；这一轮若在等权限，中断会拒绝那次权限。
 - 对不上：\`CreateIssue\`、\`OpenIssue\`、\`MessageIssue\`。
 - 目录选不出：\`SendMessage\` 回问。
 

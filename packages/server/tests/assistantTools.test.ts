@@ -232,4 +232,76 @@ describe("assistant tools", () => {
       baseBranch: "dev",
     });
   });
+
+  it("shows a running issue session and interrupts only when asked", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-"));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-wd-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const order: string[] = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub: { broadcastAll: () => {} } as WsHub,
+      runner: {
+        abortMessage: async (sessionId: string) => {
+          order.push(`abort:${sessionId}`);
+          return { ok: true as const };
+        },
+        sendMessage: async (sessionId: string, content: string) => {
+          order.push(`send:${sessionId}:${content}`);
+          return { accepted: true as const };
+        },
+        getRuntimeState: async () => ({
+          loading: true,
+          queuedMessages: [
+            { content: "先看日志" },
+            { type: "notification", content: "后台任务结束" },
+          ],
+        }),
+      } as never,
+    });
+    const running = sessions.create({ workdir, model: "m" });
+    sessions.updateStatus(running.id, "running");
+    const busy = issues.create({ title: "正在做", description: "修登录" });
+    issues.setPlanning(busy.id, {
+      planningSessionId: running.id,
+      workdir,
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const listed = await tool(tools, "ListIssues").execute({}, context);
+    const rows = JSON.parse(listed.content) as Array<{
+      id: string;
+      sessionStatus?: string;
+      queued?: string[];
+    }>;
+    expect(rows.find((row) => row.id === busy.id)).toMatchObject({
+      sessionStatus: "running",
+      queued: ["先看日志"],
+    });
+
+    const queued = await tool(tools, "MessageIssue").execute(
+      { issueId: busy.id, message: "再看一下配置" },
+      context,
+    );
+    expect(JSON.parse(queued.content)).toEqual({ accepted: true });
+
+    const interrupted = await tool(tools, "MessageIssue").execute(
+      { issueId: busy.id, message: "先停，改做这个", interrupt: true },
+      context,
+    );
+    expect(JSON.parse(interrupted.content)).toEqual({ accepted: true, interrupted: true });
+    expect(order).toEqual([
+      `send:${running.id}:再看一下配置`,
+      `abort:${running.id}`,
+      `send:${running.id}:先停，改做这个`,
+    ]);
+  });
 });

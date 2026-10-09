@@ -35,6 +35,16 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function queuedPreview(item: unknown): string | undefined {
+  if (!item || typeof item !== "object") return undefined;
+  const msg = item as { type?: string; content?: string };
+  if (msg.type === "notification") return undefined;
+  const content = typeof msg.content === "string" ? msg.content.replace(/\s+/g, " ").trim() : "";
+  if (!content) return undefined;
+  const chars = [...content];
+  return chars.length <= 80 ? content : `${chars.slice(0, 80).join("")}…`;
+}
+
 function truncateCodePoints(input: string, max: number): { text: string; truncated?: true } {
   const chars = [...input];
   if (chars.length <= max) return { text: input };
@@ -69,17 +79,36 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
   return [
     tool(
       "ListIssues",
-      "列出未完成 Issue：id、标题、描述、工作目录、会话是否已打开。",
+      "列出未完成 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（排在当前轮后面的消息摘要）。",
       { type: "object", properties: {} },
       async () =>
         ok(
-          deps.issues.listActive().map((issue) => ({
-            id: issue.id,
-            title: issue.title,
-            description: issue.description,
-            workdir: issue.workdir,
-            sessionOpen: Boolean(issue.planningSessionId),
-          })),
+          await Promise.all(
+            deps.issues.listActive().map(async (issue) => {
+              const sessionId = issue.planningSessionId;
+              const session = sessionId ? deps.sessions.get(sessionId) : undefined;
+              let queued: string[] = [];
+              if (sessionId) {
+                try {
+                  const runtime = await deps.runner.getRuntimeState(sessionId);
+                  queued = runtime.queuedMessages.flatMap((item) => {
+                    const preview = queuedPreview(item);
+                    return preview ? [preview] : [];
+                  });
+                } catch {
+                  queued = [];
+                }
+              }
+              return {
+                id: issue.id,
+                title: issue.title,
+                description: issue.description,
+                workdir: issue.workdir,
+                sessionOpen: Boolean(sessionId),
+                ...(session ? { sessionStatus: session.status, queued } : {}),
+              };
+            }),
+          ),
         ),
     ),
     tool(
@@ -164,12 +193,13 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "MessageIssue",
-      "往 Issue 打开时创建的会话发送一条用户消息。",
+      "往 Issue 打开时创建的会话发送一条用户消息。默认排在当前轮后面。interrupt 为 true 时先中断当前轮再发，已排队的消息会被丢掉；这一轮如果正在等权限，中断会拒绝那次权限。",
       {
         type: "object",
         properties: {
           issueId: { type: "string" },
           message: { type: "string" },
+          interrupt: { type: "boolean" },
         },
         required: ["issueId", "message"],
       },
@@ -178,8 +208,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const message = text(args.message);
         if (!issue?.planningSessionId) return fail("session not open");
         if (!message) return fail("message required");
-        await deps.runner.sendMessage(issue.planningSessionId, message);
-        return ok({ accepted: true });
+        const sessionId = issue.planningSessionId;
+        const interrupt =
+          args.interrupt === true && deps.sessions.get(sessionId)?.status === "running";
+        if (interrupt) await deps.runner.abortMessage(sessionId);
+        await deps.runner.sendMessage(sessionId, message);
+        return ok({ accepted: true, ...(interrupt ? { interrupted: true } : {}) });
       },
     ),
     tool(
