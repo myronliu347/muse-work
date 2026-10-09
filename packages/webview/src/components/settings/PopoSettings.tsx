@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Flex, Text } from "@radix-ui/themes";
 import type { MuseApiClient, PopoConfigInfo } from "../../muse/apiClient";
 import { MuseApiClient as Client } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
+import { Field } from "../../ui/Field";
 import "../../styles/PopoRobotView.css";
 
 const ConfigRow: React.FC<{ label: string; value: string; copyable?: boolean }> = ({
@@ -41,22 +42,61 @@ const ConfigRow: React.FC<{ label: string; value: string; copyable?: boolean }> 
 };
 
 export const PopoSettings: React.FC<{ api?: MuseApiClient }> = ({ api }) => {
+  const client = useMemo(
+    () => api ?? new Client({ baseUrl: resolveMuseServerUrl() }),
+    [api],
+  );
   const [config, setConfig] = useState<PopoConfigInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [groupAssistant, setGroupAssistant] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    const client = api ?? new Client({ baseUrl: resolveMuseServerUrl() });
+    let cancelled = false;
     client
       .getPopoConfig()
       .then((cfg) => {
+        if (cancelled) return;
         setConfig(cfg);
         setError(null);
       })
       .catch((err) => {
+        if (cancelled) return;
         setConfig(null);
         setError(err instanceof Error ? err.message : String(err));
       });
-  }, [api]);
+    if (typeof client.getSettings === "function") {
+      void client.getSettings().then(
+        (settings) => {
+          if (cancelled) return;
+          setGroupAssistant(settings.popo?.groupAssistant !== false);
+        },
+        () => {
+          if (!cancelled) setGroupAssistant(true);
+        },
+      );
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  const onToggleGroupAssistant = async (next: boolean) => {
+    const prev = groupAssistant;
+    setGroupAssistant(next);
+    setSettingsError(null);
+    setPending(true);
+    try {
+      const settings = await client.updateSettings({ popo: { groupAssistant: next } });
+      setGroupAssistant(settings.popo?.groupAssistant !== false);
+    } catch (err) {
+      setGroupAssistant(prev);
+      setSettingsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
 
   if (error) {
     return (
@@ -72,16 +112,42 @@ export const PopoSettings: React.FC<{ api?: MuseApiClient }> = ({ api }) => {
       </Text>
     );
   }
+
+  const groupSwitch = (
+    <Field
+      label="群聊交给 Muse Bot"
+      hint="打开后，POPO 群里 @ 机器人的消息交给 Muse Bot。关闭后，仍由原来的 POPO 机器人直接回复。"
+      error={settingsError}
+    >
+      <label className="switch">
+        <input
+          type="checkbox"
+          data-testid="popo-group-assistant-toggle"
+          checked={groupAssistant}
+          disabled={pending}
+          onChange={(event) => {
+            void onToggleGroupAssistant(event.target.checked);
+          }}
+        />
+        <span className="slider round" />
+      </label>
+    </Field>
+  );
+
   if (!config.configured) {
     return (
-      <Text size="2" color="gray">
-        未找到 ~/.popo-config.json，配置后可在侧栏查看 POPO 会话。
-      </Text>
+      <Flex direction="column" gap="2" data-testid="popo-settings">
+        {groupSwitch}
+        <Text size="2" color="gray">
+          未找到 ~/.popo-config.json，配置后可在侧栏查看 POPO 会话。
+        </Text>
+      </Flex>
     );
   }
 
   return (
     <Flex direction="column" gap="2" data-testid="popo-settings">
+      {groupSwitch}
       <Flex align="center" justify="between">
         <Text size="2" weight="bold">
           回调配置

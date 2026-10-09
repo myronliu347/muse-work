@@ -1,10 +1,11 @@
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { SessionStore } from "../sessionStore.js";
 import {
-  formatAssistantEvent,
+  formatAssistantEvents,
   type AssistantEvent,
   type AssistantQueueView,
 } from "./events.js";
+import { normalizeAssistantImages } from "./messages.js";
 import type { createAssistantQueue } from "./queue.js";
 import { ensureAssistantSession } from "./session.js";
 
@@ -46,16 +47,20 @@ export function createAssistantRuntime(options: {
 
   function pump(): void {
     if (stopped || inflight || !assistantId) return;
-    const head = queue.peek();
-    if (!head) return;
+    const batch = queue.claimBatch();
+    if (batch.length === 0) return;
     inflight = true;
     notify();
-    const images =
-      head.type === "chat" && head.images && head.images.length > 0
-        ? head.images
-        : undefined;
+    const images = normalizeAssistantImages(
+      batch.flatMap((event) => (event.type === "chat" ? event.images ?? [] : [])),
+    );
     void runner
-      .sendMessage(assistantId, formatAssistantEvent(head), images, "system-inject")
+      .sendMessage(
+        assistantId,
+        formatAssistantEvents(batch),
+        images.length > 0 ? images : undefined,
+        "system-inject",
+      )
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         inflight = false;
@@ -75,19 +80,19 @@ export function createAssistantRuntime(options: {
       return;
     }
     if (result.ok) {
-      queue.dropHead();
+      queue.dropBatch();
       pump();
       notify();
       return;
     }
     if (head.retry !== 1) {
-      queue.markRetry(result.error ?? "failed");
+      queue.markBatchRetry(result.error ?? "failed");
       pump();
       notify();
       return;
     }
     const reason = head.turnError ?? result.error ?? "failed";
-    queue.dropHead();
+    queue.dropBatch();
     void runner.appendSystemNote(
       assistantId,
       `type: failure\nerror: ${reason}`,

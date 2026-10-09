@@ -30,6 +30,8 @@ export type PopoHandlerOptions = {
     user?: string;
     groupId?: string;
   }) => void;
+  /** 群聊是否交给 AI 助理。缺省为打开。私聊不受这个开关影响。 */
+  groupAssistantEnabled?: () => boolean;
 };
 
 function stripAtMention(notify: string): string {
@@ -166,7 +168,8 @@ export function createPopoHandler(options: PopoHandlerOptions): PopoHandler {
         return;
       }
 
-      if (options.onChat) {
+      const groupToAssistant = options.groupAssistantEnabled?.() !== false;
+      if (options.onChat && (type !== "team" || groupToAssistant)) {
         options.onChat({
           from: type === "team" ? "popo-group" : "popo",
           message: body,

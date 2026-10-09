@@ -456,4 +456,41 @@ describe("popo handler", () => {
       },
     ]);
   });
+
+  it("runs the robot agent for group chats when the assistant switch is off", async () => {
+    const sent: Array<{ receiver: string; content: string }> = [];
+    const chats: Array<{ from: string; message: string }> = [];
+    const fed: string[] = [];
+    const handler = createPopoHandler({
+      config,
+      chatStore: createChatStore({ home: "/tmp/popo-handler-test-group-off" }),
+      sender: makeSender(sent) as never,
+      agentFactory: async () => ({
+        run: async (content: string) => {
+          fed.push(content);
+          return "机器人回复";
+        },
+      }),
+      logger: { info: () => undefined, warn: () => undefined, error: () => undefined } as never,
+      onChat: (event) => chats.push(event),
+      groupAssistantEnabled: () => false,
+    });
+    await handler.handle("IM_CHAT_TO_ROBOT_AT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "@Muse机器人 看看群里",
+      sessionType: 3,
+      sessionId: "1696900",
+    });
+    expect(chats).toEqual([]);
+    expect(sent.map((item) => item.content)).toEqual([ACK_MESSAGE, "机器人回复"]);
+    expect(fed[0]).toContain("看看群里");
+    await handler.handle("IM_P2P_TO_ROBOT_MSG", {
+      from: "master@corp.netease.com",
+      notify: "私聊还是助理",
+      sessionType: 1,
+    });
+    expect(chats).toEqual([
+      { from: "popo", message: "私聊还是助理", user: "master@corp.netease.com" },
+    ]);
+  });
 });

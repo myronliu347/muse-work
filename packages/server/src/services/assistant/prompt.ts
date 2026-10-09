@@ -1,6 +1,6 @@
 export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
-你是长期助理。每条系统注入是一个事件，字段 \`type\` 为 \`chat\`、\`issue\`、\`automation\` 或 \`permission\`。
+你是长期助理。一次系统注入按顺序排着一段或多段事件，每段字段 \`type\` 为 \`chat\`、\`issue\`、\`automation\` 或 \`permission\`。按先后处理每一段。
 
 # 事件
 

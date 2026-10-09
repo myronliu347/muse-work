@@ -117,6 +117,7 @@ export type WsEvent =
         type: "chat" | "issue" | "automation" | "permission";
         title: string;
         retry?: true;
+        active?: true;
       }>;
     };
 

@@ -59,32 +59,52 @@ settingsRoutes.patch("/settings", async (c) => {
   const ctx = c.get("ctx");
   let body: {
     plugins?: { superpowers?: unknown; mattpocock?: unknown };
+    popo?: { groupAssistant?: unknown };
   } | undefined;
   try {
     body = await c.req.json<{
       plugins?: { superpowers?: unknown; mattpocock?: unknown };
+      popo?: { groupAssistant?: unknown };
     }>();
   } catch {
     body = undefined;
   }
   const plugins = body?.plugins;
-  if (!plugins) {
-    return c.json({ error: "plugins is required" }, 400);
+  const groupAssistant = body?.popo?.groupAssistant;
+  if (!plugins && groupAssistant === undefined) {
+    return c.json({ error: "plugins or popo.groupAssistant is required" }, 400);
   }
-  const { superpowers, mattpocock } = plugins;
-  if (
-    (superpowers !== undefined && typeof superpowers !== "boolean") ||
-    (mattpocock !== undefined && typeof mattpocock !== "boolean")
-  ) {
-    return c.json(
-      { error: "plugins fields must be boolean" },
-      400,
-    );
+  if (plugins) {
+    const { superpowers, mattpocock } = plugins;
+    if (
+      (superpowers !== undefined && typeof superpowers !== "boolean") ||
+      (mattpocock !== undefined && typeof mattpocock !== "boolean")
+    ) {
+      return c.json(
+        { error: "plugins fields must be boolean" },
+        400,
+      );
+    }
+  }
+  if (groupAssistant !== undefined && typeof groupAssistant !== "boolean") {
+    return c.json({ error: "popo.groupAssistant must be boolean" }, 400);
   }
   const settings = patchMuseSettings(
-    { plugins: { superpowers, mattpocock } },
+    {
+      ...(plugins
+        ? {
+            plugins: {
+              superpowers: plugins.superpowers as boolean | undefined,
+              mattpocock: plugins.mattpocock as boolean | undefined,
+            },
+          }
+        : {}),
+      ...(typeof groupAssistant === "boolean"
+        ? { popo: { groupAssistant } }
+        : {}),
+    },
     ctx.home,
   );
-  ctx.runner.invalidateAgentIdentities();
+  if (plugins) ctx.runner.invalidateAgentIdentities();
   return c.json(settings);
 });

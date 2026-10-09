@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
-import { formatAssistantEvent, viewAssistantEvent } from "../src/services/assistant/events.js";
+import { formatAssistantEvent, formatAssistantEvents, viewAssistantEvent } from "../src/services/assistant/events.js";
 import { createAssistantQueue } from "../src/services/assistant/queue.js";
 
 describe("assistant events and queue", () => {
@@ -15,6 +15,12 @@ describe("assistant events and queue", () => {
       user: "a@corp",
       groupId: "g1",
     })).toBe("type: chat\nfrom: popo-group\nmessage: 你好\nuser: a@corp\ngroupId: g1");
+    expect(formatAssistantEvents([
+      { type: "chat", from: "muse", message: "一" },
+      { type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" },
+    ])).toBe(
+      "type: chat\nfrom: muse\nmessage: 一\n\ntype: issue\nissueId: i1\ntitle: 登录\nworkdir: /repo\nsummary: s",
+    );
     expect(formatAssistantEvent({
       type: "issue",
       issueId: "i1",
@@ -93,6 +99,22 @@ describe("assistant events and queue", () => {
     expect(q.absorb({ type: "chat", from: "popo", user: "b", message: "6" }, true)).toBe(false);
     const tail = q.list();
     expect(tail.map((item) => item.title)).toEqual(["Muse：一 二", "登录", "POPO：4 5"]);
+    const homeBatch = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-q4-"));
+    const batch = createAssistantQueue({ home: homeBatch });
+    batch.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" });
+    batch.enqueue({ type: "chat", from: "muse", message: "一" });
+    expect(batch.claimBatch()).toHaveLength(2);
+    expect(batch.absorb({ type: "chat", from: "muse", message: "二" }, true)).toBe(false);
+    batch.enqueue({ type: "chat", from: "muse", message: "二" });
+    expect(batch.claimBatch()).toHaveLength(2);
+    expect(batch.list().map((item) => item.title)).toEqual(["登录", "Muse：一", "Muse：二"]);
+    expect(batch.list().map((item) => item.active ?? false)).toEqual([true, true, false]);
+    const reloaded = createAssistantQueue({ home: homeBatch });
+    expect(reloaded.claimBatch()).toHaveLength(2);
+    reloaded.markBatchRetry("boom");
+    expect(reloaded.claimBatch().every((event) => event.retry === 1)).toBe(true);
+    reloaded.dropBatch();
+    expect(reloaded.peek()).toMatchObject({ message: "二" });
     const again = createAssistantQueue({ home });
     expect(again.peek()).toMatchObject({ message: "一\n二" });
   });

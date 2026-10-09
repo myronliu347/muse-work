@@ -14,6 +14,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
         body: JSON.stringify({
           version: 1,
           plugins: { superpowers: false, mattpocock: true },
+          popo: { groupAssistant: true },
         }),
       });
       return;
@@ -21,6 +22,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
     if (route.request().method() === "PUT" || route.request().method() === "PATCH") {
       const body = route.request().postDataJSON() as {
         plugins?: { superpowers?: boolean; mattpocock?: boolean };
+        popo?: { groupAssistant?: boolean };
       };
       await route.fulfill({
         status: 200,
@@ -31,6 +33,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
             superpowers: body?.plugins?.superpowers ?? false,
             mattpocock: body?.plugins?.mattpocock ?? true,
           },
+          popo: { groupAssistant: body?.popo?.groupAssistant ?? true },
         }),
       });
       return;

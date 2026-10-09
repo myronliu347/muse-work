@@ -7,7 +7,11 @@ import { MuseTheme } from "../../src/ui/theme";
 import type { MuseApiClient } from "../../src/muse/apiClient";
 
 function mockClient(opts: {
-  get?: { version: 1; plugins: { superpowers: boolean; mattpocock: boolean } };
+  get?: {
+    version: 1;
+    plugins: { superpowers: boolean; mattpocock: boolean };
+    popo: { groupAssistant: boolean };
+  };
   updateError?: string;
 }): MuseApiClient {
   return {
@@ -16,20 +20,22 @@ function mockClient(opts: {
         opts.get ?? {
           version: 1,
           plugins: { superpowers: false, mattpocock: true },
+          popo: { groupAssistant: true },
         }
       );
     }),
     updateSettings: vi.fn(
       async (patch: {
-        plugins: { superpowers?: boolean; mattpocock?: boolean };
+        plugins?: { superpowers?: boolean; mattpocock?: boolean };
       }) => {
         if (opts.updateError) throw new Error(opts.updateError);
         return {
           version: 1 as const,
           plugins: {
-            superpowers: patch.plugins.superpowers ?? false,
-            mattpocock: patch.plugins.mattpocock ?? true,
+            superpowers: patch.plugins?.superpowers ?? false,
+            mattpocock: patch.plugins?.mattpocock ?? true,
           },
+          popo: { groupAssistant: true },
         };
       },
     ),

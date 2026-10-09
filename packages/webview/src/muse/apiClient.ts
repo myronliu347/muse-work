@@ -60,6 +60,7 @@ export interface MuseOpenAiCompatibleConfigPatch {
 export interface MuseSettings {
   version: 1;
   plugins: { superpowers: boolean; mattpocock: boolean };
+  popo: { groupAssistant: boolean };
 }
 
 export interface MuseAuthStatus {
@@ -343,7 +344,8 @@ export class MuseApiClient {
   }
 
   async updateSettings(patch: {
-    plugins: { superpowers?: boolean; mattpocock?: boolean };
+    plugins?: { superpowers?: boolean; mattpocock?: boolean };
+    popo?: { groupAssistant?: boolean };
   }): Promise<MuseSettings> {
     const res = await this.request("/settings", {
       method: "PATCH",
@@ -1022,6 +1024,7 @@ export class MuseApiClient {
       type: "chat" | "issue" | "automation" | "permission";
       title: string;
       retry?: true;
+      active?: true;
     }>;
   }> {
     const res = await this.request("/assistant/queue");

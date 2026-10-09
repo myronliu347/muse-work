@@ -59,6 +59,7 @@ export type AssistantQueueView = {
   type: "chat" | "issue" | "automation" | "permission";
   title: string;
   retry?: true;
+  active?: true;
 };
 
 function clipQueueText(text: string): string {
@@ -120,6 +121,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["message", event.message],
       ["user", event.user],
       ["groupId", event.groupId],
+      ["images", event.images && event.images.length > 0 ? String(event.images.length) : undefined],
     ]);
   } else if (event.type === "issue") {
     const summary = truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
@@ -167,4 +169,8 @@ export function formatAssistantEvent(event: AssistantEvent): string {
   }
   if (event.retry !== 1) return body;
   return `${body}\nretry: 1\nerror: ${event.turnError ?? ""}`;
+}
+
+export function formatAssistantEvents(events: AssistantEvent[]): string {
+  return events.map((event) => formatAssistantEvent(event)).join("\n\n");
 }

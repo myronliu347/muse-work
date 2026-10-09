@@ -20,6 +20,7 @@ describe("ensureAssistantSession", () => {
     expect(store.list().filter((s) => s.origin === "assistant")).toHaveLength(1);
     expect(store.listGrouped().recent.map((s) => s.id)).not.toContain(first.id);
     expect(first.systemPrompt).toContain("短回复必须用 `SendMessage`");
+    expect(first.systemPrompt).toContain("按先后处理每一段");
     store.update(first.id, {
       systemPrompt: "旧提示",
       tools: ["ListIssues"],

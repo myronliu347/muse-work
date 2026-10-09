@@ -29,6 +29,7 @@ describe("museSettings", () => {
     expect(loadMuseSettings(home)).toEqual({
       version: 1,
       plugins: { superpowers: false, mattpocock: true },
+      popo: { groupAssistant: true },
     });
     expect(fs.existsSync(getSettingsPath(home))).toBe(false);
   });
@@ -52,9 +53,11 @@ describe("museSettings", () => {
       {
         version: 1,
         plugins: { superpowers: false, mattpocock: true },
+        popo: { groupAssistant: false },
       },
       home,
     );
+    expect(loadMuseSettings(home).popo).toEqual({ groupAssistant: false });
     expect(loadMuseSettings(home).plugins).toEqual({
       superpowers: false,
       mattpocock: true,
@@ -79,6 +82,15 @@ describe("museSettings", () => {
       superpowers: true,
       mattpocock: false,
     });
+    expect(onlyMattpocock.popo).toEqual({ groupAssistant: false });
+    fs.writeFileSync(
+      getSettingsPath(home),
+      JSON.stringify({
+        version: 1,
+        plugins: { superpowers: true, mattpocock: false },
+      }),
+    );
+    expect(loadMuseSettings(home).popo.groupAssistant).toBe(true);
   });
 
   it("walks up from a nested path to the @muse-work/server package root", () => {

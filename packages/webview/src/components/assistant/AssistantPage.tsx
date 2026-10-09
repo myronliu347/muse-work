@@ -24,6 +24,7 @@ export type AssistantQueueItem = {
   type: "chat" | "issue" | "automation" | "permission";
   title: string;
   retry?: true;
+  active?: true;
 };
 
 export type AssistantPageApi = {
@@ -118,7 +119,7 @@ function asLine(value: unknown): AssistantLine | undefined {
 
 function asQueueItem(value: unknown): AssistantQueueItem | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const item = value as { type?: string; title?: string; retry?: unknown };
+  const item = value as { type?: string; title?: string; retry?: unknown; active?: unknown };
   if (
     item.type !== "chat" &&
     item.type !== "issue" &&
@@ -132,6 +133,7 @@ function asQueueItem(value: unknown): AssistantQueueItem | undefined {
     type: item.type,
     title: item.title,
     ...(item.retry === true ? { retry: true } : {}),
+    ...(item.active === true ? { active: true } : {}),
   };
 }
 
@@ -426,7 +428,7 @@ export const AssistantPage: React.FC<{
             {queue.map((item, index) => (
               <li key={`${item.type}-${index}`}>
                 <span className="assistant-queue-state">
-                  {index === 0 ? "处理中" : "等待"}
+                  {item.active ? "处理中" : "等待"}
                 </span>
                 <span className="assistant-queue-kind">
                   {item.type === "chat"
