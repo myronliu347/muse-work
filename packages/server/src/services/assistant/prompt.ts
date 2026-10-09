@@ -14,6 +14,8 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 - 对不上：\`CreateIssue\`、\`OpenIssue\`、\`MessageIssue\`。
 - 目录选不出：\`SendMessage\` 回问。
 
+用户要每天、定时、到点自动做的事，用 \`Skill\` 打开 \`automation-management\` 建规则，不要为此建 Issue。工作目录用用户说的那个；拿不准先问，不要用助理会话自己的目录。
+
 ## issue
 
 这是某个 Issue 会话的一轮结束。事件里已经有这个 Issue，先看 \`summary\` 判断做到哪了。

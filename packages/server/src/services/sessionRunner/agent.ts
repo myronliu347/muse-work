@@ -121,13 +121,17 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
    * Settings gate superpowers/mattpocock; issue and automation mount for
    * all sessions except issue-exec and origin=automation (unattended runs
    * and execution turns cannot manage issues or nested automations).
+   * The assistant mounts automation only, so it can schedule rules.
    * popo-notify mounts on user + automation sessions, not issue-exec.
    */
   function enabledPluginDirs(session?: {
     agentName?: string;
     origin?: "user" | "automation" | "assistant";
   }): string[] {
-    if (session?.origin === "assistant") return [];
+    if (session?.origin === "assistant") {
+      const automation = pluginDirIfPresent("automation");
+      return automation ? [automation] : [];
+    }
     const plugins = loadMuseSettings(home).plugins;
     const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
       if (!plugins[name as keyof typeof plugins]) return [];
