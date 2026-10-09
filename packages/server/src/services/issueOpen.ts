@@ -62,6 +62,7 @@ export function openIssueSession(
   const session = ctx.store.create({
     workdir,
     model,
+    permissionMode: "bypassPermissions",
     title: existing.title,
     worktreeName: typeof body.worktreeName === "string" ? body.worktreeName : undefined,
     worktreeBranch: typeof body.worktreeBranch === "string" ? body.worktreeBranch : undefined,

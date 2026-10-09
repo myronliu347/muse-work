@@ -75,6 +75,7 @@ describe("issues HTTP", () => {
     expect(res.status).toBe(200);
     const first = await res.json();
     const session = app.ctx.store.get(first.sessionId);
+    expect(session?.permissionMode).toBe("bypassPermissions");
     expect(session?.agentName).toBe("plan");
     expect(session?.systemPrompt).toContain(`Issue ID：${issue.id}`);
     expect(session?.systemPrompt).toContain("不要修改产品实现");
@@ -108,6 +109,7 @@ describe("issues HTTP", () => {
     expect(res.status).toBe(200);
     const first = await res.json();
     const session = app.ctx.store.get(first.sessionId);
+    expect(session?.permissionMode).toBe("bypassPermissions");
     expect(session?.agentName).toBe("default");
     expect(session?.systemPrompt).toContain("单 agent");
     expect(session?.systemPrompt).toContain("不要 dispatch");
