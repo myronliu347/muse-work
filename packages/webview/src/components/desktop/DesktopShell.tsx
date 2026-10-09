@@ -635,6 +635,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const visibleSessionIds = panes
     .map((p) => p.sessionId)
     .filter((id): id is string => id != null);
+  // 顶栏菜单占住选中时，会话和待办不再同时亮着。
+  const menuOwnsSelection =
+    shellView === "assistant" ||
+    shellView === "automations" ||
+    Boolean(popoUi.selectedChatKey);
 
   const rowStyle = (row: number): React.CSSProperties | undefined => {
     if (!hasTwoRows) return undefined;
@@ -683,10 +688,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onSelectIssue={onSelectIssue}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
-        currentSessionId={
-          popoUi.selectedChatKey ? undefined : focusedSessionId
-        }
-        visibleSessionIds={visibleSessionIds}
+        currentSessionId={menuOwnsSelection ? undefined : focusedSessionId}
+        visibleSessionIds={menuOwnsSelection ? [] : visibleSessionIds}
         onSelectSession={(workdir, sessionId) => {
           popoUi.selectChat(null);
           setShellView("chat");
