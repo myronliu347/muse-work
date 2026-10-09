@@ -109,4 +109,38 @@ describe("AssistantPage", () => {
     expect(await screen.findByText("工具调用了")).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
+
+  it("scrolls the chat log to the bottom when switching back from AI messages", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        title: "Muse Bot",
+        workdir: "/tmp/assistant-chat",
+      }),
+      getMessages: vi.fn().mockResolvedValue({ messages: [] }),
+    };
+    const scrollHeight = Object.getOwnPropertyDescriptor(Element.prototype, "scrollHeight");
+    Object.defineProperty(Element.prototype, "scrollHeight", {
+      configurable: true,
+      get() {
+        return (this as Element).classList?.contains("assistant-log") ? 900 : 0;
+      },
+    });
+    try {
+      render(<AssistantPage api={api} />);
+      expect(await screen.findByText("你好")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+      expect(document.querySelector(".assistant-log")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "对话" }));
+      const log = document.querySelector(".assistant-log") as HTMLDivElement;
+      expect(log.scrollTop).toBe(900);
+    } finally {
+      if (scrollHeight) Object.defineProperty(Element.prototype, "scrollHeight", scrollHeight);
+    }
+  });
 });

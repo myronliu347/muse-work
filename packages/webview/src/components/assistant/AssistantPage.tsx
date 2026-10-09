@@ -306,6 +306,14 @@ export const AssistantPage: React.FC<{
   }, [api, mode]);
 
   useLayoutEffect(() => {
+    if (mode !== "chat") return;
+    const el = scroller.current;
+    if (!el) return;
+    atTail.current = true;
+    el.scrollTop = el.scrollHeight;
+  }, [mode]);
+
+  useLayoutEffect(() => {
     const el = scroller.current;
     if (el && atTail.current) el.scrollTop = el.scrollHeight;
   }, [lines, working]);
