@@ -28,7 +28,8 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("干活的是 Issue 会话");
     expect(first.systemPrompt).toContain("`Agent` 只做跟项目无关的杂事");
     expect(first.systemPrompt).toContain("谁在哪个频道问");
-    expect(first.systemPrompt).toContain("语气温和可爱");
+    expect(first.systemPrompt).toContain("每条发给人的话都要温和可爱");
+    expect(first.systemPrompt).toContain("把标准念出来算失败");
     expect(first.systemPrompt).toContain("派活前先弄清这件事要做什么");
     expect(first.systemPrompt).not.toContain("讲清缺陷");
     expect(first.systemPrompt).toContain("只写查数据和出报告");
