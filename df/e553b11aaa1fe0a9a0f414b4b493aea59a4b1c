@@ -1,0 +1,86 @@
+packages/server/tests/gitWorktree.test.ts
+  d501b231c2f2dabb 1-48
+packages/server/src/services/gitWorktree.ts
+  d501b231c2f2dabb 1-102
+packages/server/src/services/assistant/tools.ts
+  d501b231c2f2dabb 10,27-28,164,186,189,191-211
+packages/server/tests/assistantTools.test.ts
+  d501b231c2f2dabb 176,184,194-204,226,228,231-238,247-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "dfe553b11aaa1fe0a9a0f414b4b493aea59a4b1c",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 515,
+      "total_deletions": 34,
+      "accepted_lines": 213,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/worktreeRelay.ts": {
+          "additions": 76,
+          "deletions": 4
+        },
+        "packages/webview/src/muse/hostBridge/desktop.ts": {
+          "additions": 19
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 65
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 5,
+          "deletions": 4
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 34,
+          "deletions": 11,
+          "accepted_lines": 27
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 3,
+          "deletions": 2
+        },
+        "packages/server/src/routes/assistant.ts": {
+          "additions": 34
+        },
+        "packages/server/tests/gitWorktree.test.ts": {
+          "additions": 50,
+          "deletions": 2,
+          "accepted_lines": 48
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 17
+        },
+        "packages/server/src/services/gitWorktree.ts": {
+          "additions": 102,
+          "accepted_lines": 102
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 12
+        },
+        "packages/server/tests/worktreeRelay.test.ts": {
+          "additions": 59
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 37,
+          "deletions": 11,
+          "accepted_lines": 36
+        }
+      }
+    }
+  }
+}
