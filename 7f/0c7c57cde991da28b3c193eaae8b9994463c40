@@ -1,0 +1,304 @@
+packages/agent/src/services/configurationService.ts
+  05412be0e8d72bcb 185-193,1250-1251,1402-1407,1439
+packages/agent/src/tools/globTool.ts
+  05412be0e8d72bcb 51
+packages/agent/src/managers/toolManager.ts
+  05412be0e8d72bcb 37-38,304,306,312,318-329,359,376-384
+packages/agent/src/tools/grepTool.ts
+  05412be0e8d72bcb 123-129
+packages/agent/docs/2026-10-10-wave-sdk-sync.md
+  05412be0e8d72bcb 1-70
+packages/agent/src/utils/memoryIndex.ts
+  05412be0e8d72bcb 4-6,8,104-167
+packages/agent/src/tools/bashTool.ts
+  05412be0e8d72bcb 101-107
+packages/agent/tests/tools/writeTool.test.ts
+  05412be0e8d72bcb 39-42,544-545,554-555
+packages/agent/src/tools/editTool.ts
+  05412be0e8d72bcb 11-18,48-52,145-153,166-179,319-321
+packages/agent/src/tools/agentTool.ts
+  05412be0e8d72bcb 73-97
+packages/agent/tests/services/autoMemory.test.ts
+  05412be0e8d72bcb 84,90-98,114-115,120-126,128-131,134,142,162-168
+packages/agent/src/tools/taskStopTool.ts
+  05412be0e8d72bcb 29
+packages/agent/src/managers/aiManager.ts
+  05412be0e8d72bcb 57,750
+packages/agent/src/tools/readTool.ts
+  05412be0e8d72bcb 167-173
+packages/agent/src/tools/skillTool.ts
+  05412be0e8d72bcb 41-68
+packages/agent/tests/services/leanPrompt.test.ts
+  05412be0e8d72bcb 1-42
+packages/agent/tests/prompts/memoryPrompt.test.ts
+  05412be0e8d72bcb 56-57
+packages/agent/src/services/memory.ts
+  05412be0e8d72bcb 12-15,55-64,68,73-81,90-95
+packages/agent/src/services/leanPrompt.ts
+  05412be0e8d72bcb 1-34
+packages/agent/src/managers/permissionManager.ts
+  05412be0e8d72bcb 555
+packages/agent/tests/managers/toolManager.autoMemory.test.ts
+  05412be0e8d72bcb 1-2,16-17,83-86,102-133
+packages/agent/src/managers/messageManager.ts
+  05412be0e8d72bcb 53
+packages/agent/src/tools/webFetchTool.ts
+  05412be0e8d72bcb 101-106
+packages/agent/tests/tools/leanPrompt.test.ts
+  05412be0e8d72bcb 1-105
+packages/agent/tests/prompts/leanSystemPrompt.test.ts
+  05412be0e8d72bcb 1-27
+packages/agent/src/utils/memoryEntrypoint.ts
+  05412be0e8d72bcb 5,13-17,24,26-29,36-39,55,80-94,99,102
+packages/agent/tests/utils/memoryIndex.test.ts
+  05412be0e8d72bcb 4,9-14,203-289
+packages/agent/src/prompts/memoryTypes.ts
+  05412be0e8d72bcb 17-19,202,205
+packages/agent/src/tools/writeTool.ts
+  05412be0e8d72bcb 48-50,93-99,102-107
+packages/agent/src/constants/memory.ts
+  05412be0e8d72bcb 21-44
+packages/agent/tests/services/memory.test.ts
+  05412be0e8d72bcb 114-123,125-134,138-140,142-143,145-150,152-168,185-188
+packages/agent/tests/tools/editToolSerialization.test.ts
+  05412be0e8d72bcb 80,95-100
+packages/agent/src/tools/types.ts
+  05412be0e8d72bcb 16-17,63-76
+packages/agent/src/types/configuration.ts
+  05412be0e8d72bcb 54-62
+packages/agent/src/tools/lspTool.ts
+  05412be0e8d72bcb 729-733
+packages/agent/src/tools/workflowTool.ts
+  05412be0e8d72bcb 84-94
+packages/agent/tests/services/configurationService.test.ts
+  05412be0e8d72bcb 1429-1466
+packages/agent/src/tools/askUserQuestion.ts
+  05412be0e8d72bcb 100-104
+packages/agent/docs/slimdown.md
+  05412be0e8d72bcb 54-57
+packages/agent/src/prompts/index.ts
+  05412be0e8d72bcb 73-90,325,329-330,332-337,339-341,343-344
+packages/agent/tests/utils/memoryEntrypoint.test.ts
+  05412be0e8d72bcb 6,29-33,40-64,72,76-91
+packages/agent/src/tools/taskManagementTools.ts
+  05412be0e8d72bcb 78-83,169,281-283,524
+packages/agent/tests/tools/editTool.test.ts
+  05412be0e8d72bcb 47-50,577-580,584-585,593-594,665,693,704-753,844,847,849-850,882-889,982,996
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7f0c7c57cde991da28b3c193eaae8b9994463c40",
+  "prompts": {
+    "05412be0e8d72bcb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c4fb04a7-f8fb-42d6-abee-a2314fc0bfd3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1146,
+      "total_deletions": 149,
+      "accepted_lines": 1132,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/types/configuration.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/agent/tests/prompts/memoryPrompt.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/tests/services/autoMemory.test.ts": {
+          "additions": 35,
+          "deletions": 9,
+          "accepted_lines": 35
+        },
+        "packages/agent/src/managers/permissionManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/constants/memory.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/agent/src/tools/taskManagementTools.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/agent/src/tools/agentTool.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/tools/readTool.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/agent/tests/services/configurationService.test.ts": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/agent/src/managers/toolManager.ts": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 27
+        },
+        "packages/agent/src/tools/taskStopTool.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/tools/editTool.test.ts": {
+          "additions": 80,
+          "deletions": 21,
+          "accepted_lines": 80
+        },
+        "packages/agent/tests/tools/leanPrompt.test.ts": {
+          "additions": 106,
+          "deletions": 1,
+          "accepted_lines": 105
+        },
+        "packages/agent/src/managers/messageManager.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/prompts/memoryTypes.ts": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/tools/lspTool.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/tools/skillTool.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/agent/tests/services/memory.test.ts": {
+          "additions": 52,
+          "deletions": 12,
+          "accepted_lines": 52
+        },
+        "packages/agent/docs/2026-10-10-wave-sdk-sync.md": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/agent/tests/prompts/leanSystemPrompt.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/agent/src/tools/bashTool.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/utils/memoryIndex.ts": {
+          "additions": 68,
+          "accepted_lines": 68
+        },
+        "packages/agent/src/tools/workflowTool.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/agent/tests/utils/memoryIndex.test.ts": {
+          "additions": 94,
+          "accepted_lines": 94
+        },
+        "packages/agent/tests/managers/toolManager.autoMemory.test.ts": {
+          "additions": 40,
+          "deletions": 1,
+          "accepted_lines": 40
+        },
+        "packages/agent/src/tools/webFetchTool.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/agent/src/utils/memoryEntrypoint.ts": {
+          "additions": 35,
+          "deletions": 3,
+          "accepted_lines": 35
+        },
+        "packages/agent/src/tools/grepTool.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/agent/tests/utils/memoryEntrypoint.test.ts": {
+          "additions": 51,
+          "deletions": 4,
+          "accepted_lines": 51
+        },
+        "packages/agent/tests/tools/writeTool.test.ts": {
+          "additions": 8,
+          "deletions": 9,
+          "accepted_lines": 8
+        },
+        "packages/agent/src/services/configurationService.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/agent/tests/tools/editToolSerialization.test.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/tools/types.ts": {
+          "additions": 17,
+          "deletions": 2,
+          "accepted_lines": 17
+        },
+        "packages/agent/src/tools/globTool.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/src/prompts/index.ts": {
+          "additions": 33,
+          "deletions": 7,
+          "accepted_lines": 33
+        },
+        "packages/agent/src/tools/writeTool.ts": {
+          "additions": 17,
+          "deletions": 18,
+          "accepted_lines": 16
+        },
+        "packages/agent/tests/services/leanPrompt.test.ts": {
+          "additions": 47,
+          "deletions": 5,
+          "accepted_lines": 42
+        },
+        "packages/agent/src/services/leanPrompt.ts": {
+          "additions": 38,
+          "deletions": 4,
+          "accepted_lines": 34
+        },
+        "packages/agent/src/tools/askUserQuestion.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/agent/src/tools/editTool.ts": {
+          "additions": 41,
+          "deletions": 23,
+          "accepted_lines": 40
+        },
+        "packages/agent/src/services/memory.ts": {
+          "additions": 33,
+          "deletions": 14,
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
