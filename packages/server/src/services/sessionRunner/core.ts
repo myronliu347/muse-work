@@ -65,7 +65,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     turnHadOutput.set(sessionId, true);
   }
 
-  /** Push the full SDK transcript, enriched with file_history diff stats. */
+  /** Push the UI transcript (pre-compact history included), enriched with file_history diff stats. */
   function broadcastMessages(sessionId: string): void {
     const session = store.get(sessionId);
     const messages = agents.get(sessionId)?.getMessages?.();

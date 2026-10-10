@@ -575,7 +575,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
         onCompactBlockAdded: () => {
           if (disposed.has(sessionId)) return;
-          // Compaction truncates the SDK transcript; push the post-compact list.
+          // Compaction folds the API context but keeps the UI transcript.
+          // Push that full list so pre-compact messages stay on screen.
           if (!agents.get(sessionId)?.getMessages) return;
           core.broadcastMessages(sessionId);
           hub.broadcast(sessionId, {

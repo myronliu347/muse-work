@@ -57,7 +57,10 @@ export interface SessionAgent {
   dispose(): Promise<void>;
   /** Interrupt in-flight AI / tools / bash (SDK abortMessage). */
   abortMessage?: () => void;
-  /** Optional SDK message snapshot (used after compaction). */
+  /**
+   * Full UI transcript, including messages before the latest compact boundary.
+   * The folded API context stays on the SDK and is not what hosts render.
+   */
   getMessages?: () => unknown[];
   /** SDK session id when available (Agent.create or a test stub). */
   sessionId?: string;
@@ -116,7 +119,9 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       abortMessage: () => agent.abortMessage(),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
-      getMessages: () => agent.messages,
+      // Hosts render displayMessages. agent.messages is the folded API
+      // context ([compact, ...last rounds]) and would hide pre-compact history.
+      getMessages: () => agent.displayMessages,
       sessionId: agent.sessionId,
       compact: (instructions) => agent.compact(instructions),
       clearMessages: () => agent.clearMessages(),
