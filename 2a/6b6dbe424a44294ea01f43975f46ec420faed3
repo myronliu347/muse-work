@@ -1,0 +1,30 @@
+packages/server/src/services/assistant/runtime.ts
+  d501b231c2f2dabb 158-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2a6b6dbe424a44294ea01f43975f46ec420faed3",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 5,
+      "accepted_lines": 7,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
