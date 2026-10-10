@@ -3,7 +3,28 @@ import path from "node:path";
 import type { Session, SessionStore } from "../sessionStore.js";
 import { ASSISTANT_SYSTEM_PROMPT } from "./prompt.js";
 
-export const ASSISTANT_DISALLOWED_TOOLS = ["Workflow", "AskUserQuestion"] as const;
+/** 协调工具，加上查改文件、子代理、抓网页，以及建自动化需要的 Skill 和 Bash。 */
+export const ASSISTANT_TOOLS = [
+  "ListIssues",
+  "ListWorkdirs",
+  "CreateIssue",
+  "OpenIssue",
+  "MessageIssue",
+  "CloseIssue",
+  "ResolvePermission",
+  "SendMessage",
+  "ReadSessionMessages",
+  "ListMuseMessages",
+  "Skill",
+  "Bash",
+  "Read",
+  "Glob",
+  "Grep",
+  "Edit",
+  "Write",
+  "Agent",
+  "WebFetch",
+] as const;
 
 export const ASSISTANT_TITLE = "Muse Bot";
 
@@ -14,17 +35,15 @@ export function ensureAssistantSession(
   const existing = store.list().find((session) => session.origin === "assistant");
   if (existing) {
     const promptOk = existing.systemPrompt === ASSISTANT_SYSTEM_PROMPT;
-    const toolsOk = !existing.tools || existing.tools.length === 0;
-    const denyOk =
-      JSON.stringify(existing.disallowedTools ?? []) ===
-      JSON.stringify(ASSISTANT_DISALLOWED_TOOLS);
+    const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(ASSISTANT_TOOLS);
+    const denyOk = !existing.disallowedTools?.length;
     const titleOk = existing.title === ASSISTANT_TITLE;
     if (promptOk && toolsOk && denyOk && titleOk) return existing;
     return (
       store.update(existing.id, {
         ...(promptOk ? {} : { systemPrompt: ASSISTANT_SYSTEM_PROMPT }),
-        ...(toolsOk ? {} : { tools: undefined }),
-        ...(denyOk ? {} : { disallowedTools: [...ASSISTANT_DISALLOWED_TOOLS] }),
+        ...(toolsOk ? {} : { tools: [...ASSISTANT_TOOLS] }),
+        ...(denyOk ? {} : { disallowedTools: undefined }),
         ...(titleOk ? {} : { title: ASSISTANT_TITLE }),
       }) ?? existing
     );
@@ -38,6 +57,6 @@ export function ensureAssistantSession(
     title: ASSISTANT_TITLE,
     model: args.model,
     systemPrompt: ASSISTANT_SYSTEM_PROMPT,
-    disallowedTools: [...ASSISTANT_DISALLOWED_TOOLS],
+    tools: [...ASSISTANT_TOOLS],
   });
 }
