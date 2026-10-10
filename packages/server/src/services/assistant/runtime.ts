@@ -2,6 +2,7 @@ import type { SessionRunner } from "../sessionRunner/index.js";
 import type { SessionStore } from "../sessionStore.js";
 import {
   formatAssistantEvents,
+  type AssistantChatEvent,
   type AssistantEvent,
   type AssistantQueueView,
 } from "./events.js";
@@ -34,7 +35,41 @@ export function createAssistantRuntime(options: {
   const { sessions, runner, queue } = options;
   let assistantId: string | undefined;
   let inflight = false;
+  let inflightSources = new Set<string>();
   let stopped = false;
+
+  function chatSource(event: AssistantEvent): string | undefined {
+    if (event.type !== "chat") return undefined;
+    return `${event.from}\0${event.user ?? ""}\0${event.groupId ?? ""}`;
+  }
+
+  function rememberSources(batch: AssistantEvent[]): void {
+    inflightSources = new Set(
+      batch.flatMap((event) => {
+        const source = chatSource(event);
+        return source ? [source] : [];
+      }),
+    );
+  }
+
+  function deliverNow(event: AssistantChatEvent): void {
+    if (!assistantId) {
+      if (!queue.absorb(event, inflight)) queue.enqueue(event);
+      return;
+    }
+    const images = normalizeAssistantImages(event.images ?? []);
+    void runner
+      .sendMessage(
+        assistantId,
+        formatAssistantEvents([event]),
+        images.length > 0 ? images : undefined,
+        "system-inject",
+      )
+      .catch(() => {
+        if (!queue.absorb(event, true)) queue.enqueue(event);
+        notify();
+      });
+  }
 
   function publishQueue(): void {
     options.onQueue?.(queue.list());
@@ -50,6 +85,7 @@ export function createAssistantRuntime(options: {
     const batch = queue.claimBatch();
     if (batch.length === 0) return;
     inflight = true;
+    rememberSources(batch);
     notify();
     const images = normalizeAssistantImages(
       batch.flatMap((event) => (event.type === "chat" ? event.images ?? [] : [])),
@@ -74,6 +110,7 @@ export function createAssistantRuntime(options: {
   ): void {
     if (!assistantId || sessionId !== assistantId) return;
     inflight = false;
+    inflightSources = new Set();
     const head = queue.peek();
     if (!head) {
       notify();
@@ -118,6 +155,12 @@ export function createAssistantRuntime(options: {
 
   return {
     enqueue(event) {
+      const source = chatSource(event);
+      if (inflight && source && inflightSources.has(source)) {
+        deliverNow(event);
+        notify();
+        return;
+      }
       if (!queue.absorb(event, inflight)) queue.enqueue(event);
       pump();
       notify();
