@@ -29,7 +29,6 @@ import {
   issueGroupSessionWorkdir,
   resolveIssuePlanningSessionId,
 } from "../utils/issueGroups";
-import { PopoUiProvider, usePopoUi } from "./popo/popoUi";
 import {
   DesktopPanelSlots,
   type DesktopPanelSlotsProps,
@@ -70,29 +69,21 @@ import "../styles/ChatApp.css";
 export { prunePanelGroupCache } from "../stores";
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "popo-chat" | "automations" | "assistant";
+export type MainView = "newChat" | "chat" | "automations" | "assistant";
 
 export const ChatApp: React.FC<ChatAppProps> = (props) => {
-  const popoApi = useMemo(
-    () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
-    [],
-  );
-  if (props.paneId !== undefined) {
-    return <ChatAppInner {...props} popoApi={popoApi} />;
-  }
-  return (
-    <PopoUiProvider api={popoApi}>
-      <ChatAppInner {...props} popoApi={popoApi} />
-    </PopoUiProvider>
-  );
+  return <ChatAppInner {...props} />;
 };
 
-const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
+const ChatAppInner: React.FC<ChatAppProps> = ({
   vscode,
   host,
   paneId,
-  popoApi,
 }) => {
+  const museApi = useMemo(
+    () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
+    [],
+  );
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const paneUi = usePaneUi(paneId);
   const {
@@ -174,17 +165,16 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
   );
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
-  // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / POPO 机器人页。
+  // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / 自动化 / Muse Bot。
   // 独立于 host 推送的会话状态，任何导航入口显式切换。
   const [view, setView] = useState<MainView>("chat");
   const shellSurface = useShellSurface();
-  const popoUi = usePopoUi();
   const [showNewIssue, setShowNewIssue] = useState(false);
   const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
   // 初始化 agent store（GET /agents + /agents/scenarios），用于草稿默认模型解析与设置页
   useEffect(() => {
-    useScenarioModelsStore.getState().init(popoApi);
-  }, [popoApi]);
+    useScenarioModelsStore.getState().init(museApi);
+  }, [museApi]);
   // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
   // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
   // state.currentSession 对应的会话（sessionId 即 currentSession.id）。
@@ -393,7 +383,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     updatePanelGroup,
     tryOpenPanel,
     handleOpenPreview,
-    popoApi,
+    api: museApi,
     currentSession: state.currentSession,
     effectiveHost,
     effectiveWorkdir,
@@ -796,7 +786,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
           <AssistantPage
-            api={popoApi}
+            api={museApi}
             vscode={vscode}
             showPanelToggle={checkedPanels.length === 0}
             onToggleDock={handleToggleDock}
@@ -815,10 +805,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       queueEditWarning={queueEditWarning}
       onDismissQueueEditWarning={() => patchPane({ queueEditWarning: null })}
       view={view}
-      popoChatKey={popoUi.selectedChatKey}
       postToHost={postToHost}
       patchPane={patchPane}
-      popoApi={popoApi}
       currentSession={state.currentSession}
       initialized={state.initialized}
       effectiveWorkdir={effectiveWorkdir}
@@ -887,13 +875,12 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
       issueGroups: host.issueGroups,
       onNewIssue: () => setShowNewIssue(true),
       onSelectIssue: (issueId: string) => {
-        popoUi.selectChat(null);
         setView("chat");
         handleSelectIssue(issueId);
       },
       onOpenPlanning: (issueId: string) => setPlanningIssueId(issueId),
       onCompleteIssue: (issueId: string) => {
-        void popoApi
+        void museApi
           .completeIssue(issueId)
           .then(refreshSessionTree)
           .catch((err) => {
@@ -903,7 +890,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
           });
       },
       onCancelIssue: (issueId: string) => {
-        void popoApi
+        void museApi
           .cancelIssue(issueId)
           .then(refreshSessionTree)
           .catch((err) => {
@@ -915,7 +902,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     };
     const newIssueDialog = showNewIssue ? (
       <NewIssueDialog
-        api={popoApi}
+        api={museApi}
         onCancel={() => setShowNewIssue(false)}
         onCreated={() => {
           setShowNewIssue(false);
@@ -926,7 +913,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
     const openPlanningDialog = planningIssueId ? (
       <OpenPlanningDialog
         issueId={planningIssueId}
-        api={popoApi}
+        api={museApi}
         postToHost={postToHost}
         recentWorkdirs={host.recentWorkdirs}
         onCancel={() => setPlanningIssueId(null)}
@@ -951,7 +938,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
             onOpenSettings={handleOpenSettings}
             onLogin={handleLogin}
             isAuthenticated={state.isAuthenticated}
-            api={popoApi}
+            api={museApi}
             postToHost={postToHost}
             {...issueSidebarProps}
           />
@@ -991,7 +978,6 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
         <DesktopSidebar
           sidebarAccessHidden={sidebarCollapsed}
           onNewSession={() => {
-            popoUi.selectChat(null);
             setView("chat");
             handleDesktopNewSession();
           }}
@@ -1007,11 +993,8 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
           isAuthenticated={state.isAuthenticated}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           {...issueSidebarProps}
-          currentSessionId={
-            popoUi.selectedChatKey ? undefined : state.currentSession?.id
-          }
+          currentSessionId={state.currentSession?.id}
           onSelectSession={(workdir, sessionId) => {
-            popoUi.selectChat(null);
             setView("chat");
             host.onSelectSession(workdir, sessionId);
           }}
@@ -1028,24 +1011,10 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
           onRevealInFinder={(workdir) =>
             postToHost({ command: "revealInFinder", path: workdir })
           }
-          popoEnabled={popoUi.enabled}
-          popoChats={popoUi.chats}
-          selectedPopoChatKey={popoUi.selectedChatKey}
-          onSelectPopoChat={(chatKey) => {
-            popoUi.selectChat(chatKey);
-            setView("popo-chat");
-          }}
-          onDeletePopoChat={(chatKey) => {
-            void popoUi.deleteChat(chatKey).catch((err) => {
-              window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
-            });
-          }}
           onOpenAutomations={() => {
-            popoUi.selectChat(null);
             setView("automations");
           }}
           onOpenAssistant={() => {
-            popoUi.selectChat(null);
             setView("assistant");
           }}
           activeMenu={
@@ -1060,7 +1029,7 @@ const ChatAppInner: React.FC<ChatAppProps & { popoApi: MuseApiClient }> = ({
         />
         {view === "automations" ? (
           <AutomationsPage
-            api={popoApi}
+            api={museApi}
             postToHost={postToHost}
             recentWorkdirs={host.recentWorkdirs ?? []}
           />

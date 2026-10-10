@@ -10,7 +10,6 @@ function mockClient(opts: {
   get?: {
     version: 1;
     plugins: { superpowers: boolean; mattpocock: boolean };
-    popo: { groupAssistant: boolean };
   };
   updateError?: string;
 }): MuseApiClient {
@@ -20,7 +19,6 @@ function mockClient(opts: {
         opts.get ?? {
           version: 1,
           plugins: { superpowers: false, mattpocock: true },
-          popo: { groupAssistant: true },
         }
       );
     }),
@@ -35,7 +33,6 @@ function mockClient(opts: {
             superpowers: patch.plugins?.superpowers ?? false,
             mattpocock: patch.plugins?.mattpocock ?? true,
           },
-          popo: { groupAssistant: true },
         };
       },
     ),

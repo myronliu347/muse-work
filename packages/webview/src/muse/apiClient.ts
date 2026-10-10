@@ -3,8 +3,6 @@ export type MuseFetch = (
   init?: RequestInit,
 ) => Promise<Response>;
 
-import type { Message } from "@muse-work/agent/types";
-
 export interface MuseApiClientOptions {
   baseUrl: string;
   fetch?: MuseFetch;
@@ -30,7 +28,10 @@ export interface MuseProvidersResponse {
 
 /** 各场景默认 model id（GET /scenarios/models）。 */
 export interface MuseScenarioModels {
-  models: Record<"session" | "popo" | "issue-plan" | "issue-exec", string>;
+  models: Record<
+    "session" | "issue-plan" | "issue-exec" | "assistant",
+    string
+  >;
 }
 
 export interface MuseCodeMakerQuota {
@@ -60,7 +61,6 @@ export interface MuseOpenAiCompatibleConfigPatch {
 export interface MuseSettings {
   version: 1;
   plugins: { superpowers: boolean; mattpocock: boolean };
-  popo: { groupAssistant: boolean };
 }
 
 export interface MuseAuthStatus {
@@ -249,43 +249,6 @@ export interface PopoConfigInfo {
   error: string | null;
 }
 
-export interface PopoChatSummary {
-  chatKey: string;
-  type: "p2p" | "team";
-  title: string;
-  lastMessage: string;
-  /** agent 正在处理该会话的消息时为 true */
-  processing: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface PopoChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  at: string;
-  from?: string;
-  to?: string;
-  msgId?: string;
-}
-
-export interface PopoChatDetail {
-  chatKey: string;
-  type: "p2p" | "team";
-  title: string;
-  museSessionId?: string;
-  processing: boolean;
-  messages: PopoChatMessage[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-/** 详情接口：chat 元信息 + 完整处理过程消息（SDK Message 形状，含 reasoning/tool/text 块）。 */
-export interface PopoChatDetailResponse {
-  chat: PopoChatDetail;
-  messages: Message[];
-}
-
 function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
@@ -345,7 +308,6 @@ export class MuseApiClient {
 
   async updateSettings(patch: {
     plugins?: { superpowers?: boolean; mattpocock?: boolean };
-    popo?: { groupAssistant?: boolean };
   }): Promise<MuseSettings> {
     const res = await this.request("/settings", {
       method: "PATCH",
@@ -999,16 +961,6 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async listPopoChats(): Promise<{ chats: PopoChatSummary[] }> {
-    const res = await this.request("/popo/chats");
-    return parseJson(res);
-  }
-
-  async getPopoChat(chatKey: string): Promise<PopoChatDetailResponse> {
-    const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`);
-    return parseJson(res);
-  }
-
   async getAssistantSession(): Promise<{
     sessionId: string;
     title: string;
@@ -1070,13 +1022,6 @@ export class MuseApiClient {
         message,
         ...(images && images.length > 0 ? { images } : {}),
       }),
-    });
-    return parseJson(res);
-  }
-
-  async deletePopoChat(chatKey: string): Promise<{ ok: true }> {
-    const res = await this.request(`/popo/chats/${encodeURIComponent(chatKey)}`, {
-      method: "DELETE",
     });
     return parseJson(res);
   }

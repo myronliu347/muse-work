@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { createApp } from "./app.js";
-import type { ChatStore } from "./popo/chatStore.js";
 import { loadPopoConfig, type PopoConfig } from "./popo/popoConfig.js";
 import { getLanIPv4, setupPopoRuntime, type PopoRuntime } from "./popo/setup.js";
 import { createAppContext } from "./services/appContext.js";
@@ -58,12 +57,10 @@ if (port !== 0 && port === callbackPort) {
   });
   popo = {
     config: null as unknown as PopoConfig,
-    chatStore: null as unknown as ChatStore,
     callbackPort,
     ready: false,
     error: `popo 回调端口与主 server 端口冲突（${callbackPort}），已跳过`,
     url: `http://${getLanIPv4() ?? "127.0.0.1"}:${callbackPort}/popo/callback`,
-    workdir: path.join(ctx.home, "popo-chat"),
     configured: configFileExists(),
   };
 } else {

@@ -525,7 +525,7 @@ describe("sessionRunner concurrency / dispose", () => {
       home,
     );
     saveMuseSettings(
-      { version: 1, plugins: { superpowers: true, mattpocock: true }, popo: { groupAssistant: true } },
+      { version: 1, plugins: { superpowers: true, mattpocock: true } },
       home,
     );
 
@@ -614,7 +614,7 @@ describe("sessionRunner concurrency / dispose", () => {
       home,
     );
     saveMuseSettings(
-      { version: 1, plugins: { superpowers: true, mattpocock: true }, popo: { groupAssistant: true } },
+      { version: 1, plugins: { superpowers: true, mattpocock: true } },
       home,
     );
 
@@ -675,7 +675,7 @@ describe("sessionRunner concurrency / dispose", () => {
     expect(pluginSnapshots[0]).toBeDefined();
 
     saveMuseSettings(
-      { version: 1, plugins: { superpowers: false, mattpocock: false }, popo: { groupAssistant: true } },
+      { version: 1, plugins: { superpowers: false, mattpocock: false } },
       home,
     );
     runner.invalidateAgentIdentities();

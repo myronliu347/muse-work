@@ -31,7 +31,6 @@ describe("settings routes", () => {
     expect(await res.json()).toEqual({
       version: 1,
       plugins: { superpowers: false, mattpocock: true },
-      popo: { groupAssistant: true },
     });
   });
 
@@ -103,7 +102,6 @@ describe("settings routes", () => {
     expect(await res.json()).toEqual({
       version: 1,
       plugins: { superpowers: true, mattpocock: true },
-      popo: { groupAssistant: true },
     });
     expect(invalidated).toBe(true);
     expect(
@@ -114,7 +112,6 @@ describe("settings routes", () => {
     expect(await again.json()).toEqual({
       version: 1,
       plugins: { superpowers: true, mattpocock: true },
-      popo: { groupAssistant: true },
     });
 
     const off = await fetch(`${app.baseUrl}/settings`, {
@@ -126,22 +123,8 @@ describe("settings routes", () => {
     expect(await off.json()).toEqual({
       version: 1,
       plugins: { superpowers: true, mattpocock: false },
-      popo: { groupAssistant: true },
     });
 
-    invalidated = false;
-    const groupOff = await fetch(`${app.baseUrl}/settings`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ popo: { groupAssistant: false } }),
-    });
-    expect(groupOff.status).toBe(200);
-    expect(await groupOff.json()).toEqual({
-      version: 1,
-      plugins: { superpowers: true, mattpocock: false },
-      popo: { groupAssistant: false },
-    });
-    expect(invalidated).toBe(false);
   });
 
   it("PATCH /settings rejects missing or non-boolean fields", async () => {

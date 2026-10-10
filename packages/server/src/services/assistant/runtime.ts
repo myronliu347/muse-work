@@ -14,7 +14,6 @@ type Queue = ReturnType<typeof createAssistantQueue>;
 
 export function createAssistantRuntime(options: {
   home: string;
-  model: string;
   sessions: SessionStore;
   runner: SessionRunner;
   queue: Queue;
@@ -52,11 +51,17 @@ export function createAssistantRuntime(options: {
     );
   }
 
+  function syncAssistant(): void {
+    const session = ensureAssistantSession(sessions, { home: options.home });
+    assistantId = session.id;
+  }
+
   function deliverNow(event: AssistantChatEvent): void {
     if (!assistantId) {
       if (!queue.absorb(event, inflight)) queue.enqueue(event);
       return;
     }
+    syncAssistant();
     const images = normalizeAssistantImages(event.images ?? []);
     void runner
       .sendMessage(
@@ -86,6 +91,7 @@ export function createAssistantRuntime(options: {
     if (batch.length === 0) return;
     inflight = true;
     rememberSources(batch);
+    syncAssistant();
     notify();
     const images = normalizeAssistantImages(
       batch.flatMap((event) => (event.type === "chat" ? event.images ?? [] : [])),
@@ -140,11 +146,7 @@ export function createAssistantRuntime(options: {
 
   function start(): void {
     stopped = false;
-    const session = ensureAssistantSession(sessions, {
-      home: options.home,
-      model: options.model,
-    });
-    assistantId = session.id;
+    syncAssistant();
     pump();
     publishQueue();
   }

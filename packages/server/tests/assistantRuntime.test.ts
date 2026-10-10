@@ -25,7 +25,6 @@ describe("assistant runtime", () => {
     const queue = createAssistantQueue({ home });
     const runtime = createAssistantRuntime({
       home,
-      model: "m",
       sessions,
       runner: runner as never,
       queue,
@@ -64,7 +63,6 @@ describe("assistant runtime", () => {
     const queue = createAssistantQueue({ home });
     const runtime = createAssistantRuntime({
       home,
-      model: "m",
       sessions,
       runner: runner as never,
       queue,
@@ -129,7 +127,6 @@ describe("assistant runtime", () => {
     const queue = createAssistantQueue({ home });
     const runtime = createAssistantRuntime({
       home,
-      model: "m",
       sessions,
       runner: runner as never,
       queue,

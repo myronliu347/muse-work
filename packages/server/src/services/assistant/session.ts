@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { resolveScenarioModel } from "../agentConfig.js";
 import type { Session, SessionStore } from "../sessionStore.js";
 import { ASSISTANT_SYSTEM_PROMPT } from "./prompt.js";
 
@@ -30,21 +31,24 @@ export const ASSISTANT_TITLE = "Muse Bot";
 
 export function ensureAssistantSession(
   store: SessionStore,
-  args: { home: string; model: string },
+  args: { home: string },
 ): Session {
+  const model = resolveScenarioModel("assistant", args.home);
   const existing = store.list().find((session) => session.origin === "assistant");
   if (existing) {
     const promptOk = existing.systemPrompt === ASSISTANT_SYSTEM_PROMPT;
     const toolsOk = JSON.stringify(existing.tools ?? []) === JSON.stringify(ASSISTANT_TOOLS);
     const denyOk = !existing.disallowedTools?.length;
     const titleOk = existing.title === ASSISTANT_TITLE;
-    if (promptOk && toolsOk && denyOk && titleOk) return existing;
+    const modelOk = existing.model === model;
+    if (promptOk && toolsOk && denyOk && titleOk && modelOk) return existing;
     return (
       store.update(existing.id, {
         ...(promptOk ? {} : { systemPrompt: ASSISTANT_SYSTEM_PROMPT }),
         ...(toolsOk ? {} : { tools: [...ASSISTANT_TOOLS] }),
         ...(denyOk ? {} : { disallowedTools: undefined }),
         ...(titleOk ? {} : { title: ASSISTANT_TITLE }),
+        ...(modelOk ? {} : { model }),
       }) ?? existing
     );
   }
@@ -55,7 +59,7 @@ export function ensureAssistantSession(
     workdir,
     permissionMode: "bypassPermissions",
     title: ASSISTANT_TITLE,
-    model: args.model,
+    model,
     systemPrompt: ASSISTANT_SYSTEM_PROMPT,
     tools: [...ASSISTANT_TOOLS],
   });

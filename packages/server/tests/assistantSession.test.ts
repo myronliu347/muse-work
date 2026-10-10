@@ -3,14 +3,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createSessionStore } from "../src/services/sessionStore.js";
+import {
+  defaultScenarioModels,
+  saveScenarioModelsFile,
+} from "../src/services/agentConfig.js";
 import { ASSISTANT_TOOLS, ensureAssistantSession } from "../src/services/assistant/session.js";
 
 describe("ensureAssistantSession", () => {
   it("creates one assistant session and reuses it", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-sess-"));
     const store = createSessionStore({ home });
-    const first = ensureAssistantSession(store, { home, model: "m" });
-    const second = ensureAssistantSession(store, { home, model: "m" });
+    const first = ensureAssistantSession(store, { home });
+    expect(first.model).toBe(defaultScenarioModels().assistant);
+    const second = ensureAssistantSession(store, { home });
     expect(second.id).toBe(first.id);
     expect(first.origin).toBe("assistant");
     expect(first.workdir).toBe(path.join(home, "assistant-chat"));
@@ -39,7 +44,12 @@ describe("ensureAssistantSession", () => {
       tools: ["ListIssues"],
       disallowedTools: ["Bash"],
     });
-    const refreshed = ensureAssistantSession(store, { home, model: "m" });
+    const refreshed = ensureAssistantSession(store, { home });
+    expect(refreshed.model).toBe(defaultScenarioModels().assistant);
+    saveScenarioModelsFile({ version: 1, models: { assistant: "bot-model" } }, home);
+    const switched = ensureAssistantSession(store, { home });
+    expect(switched.id).toBe(first.id);
+    expect(switched.model).toBe("bot-model");
     expect(refreshed.id).toBe(first.id);
     expect(refreshed.systemPrompt).toContain("短回复必须用 `SendMessage`");
     expect(refreshed.tools).toEqual([...ASSISTANT_TOOLS]);

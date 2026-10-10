@@ -1,5 +1,5 @@
 /**
- * 内置场景角色（default/plan/execute/popo）+ 用户可配置的「场景默认模型」。
+ * 内置场景角色（default/plan/execute）+ 用户可配置的「场景默认模型」。
  *
  * 配置文件（`<museHome>/.muse-work/scenario-models.json`）仅保存各场景的 model id；
  * 场景 → 内置角色的映射固定于代码，不再支持自定义 agent / 数字人配置。
@@ -10,18 +10,21 @@ import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import { getLogger } from "../utils/logger.js";
-import { POPO_SYSTEM_PROMPT } from "../popo/popoPrompt.js";
 import { MUSE_BASE_SYSTEM_PROMPT } from "../constants/musePrompt.js";
 
 export const SCENARIO_MODELS_FILE = "scenario-models.json";
 
-export type AgentScenarioKey = "session" | "popo" | "issue-plan" | "issue-exec";
+export type AgentScenarioKey =
+  | "session"
+  | "issue-plan"
+  | "issue-exec"
+  | "assistant";
 
 export const AGENT_SCENARIO_KEYS: AgentScenarioKey[] = [
   "session",
-  "popo",
   "issue-plan",
   "issue-exec",
+  "assistant",
 ];
 
 export type PersonalityKey = string;
@@ -66,13 +69,6 @@ export function defaultAgents(): Record<string, Agent> {
       systemPrompt: MUSE_BASE_SYSTEM_PROMPT,
       model: "deepseek-flash",
     },
-    popo: {
-      key: "popo",
-      name: "Muse",
-      personality: "professional",
-      systemPrompt: POPO_SYSTEM_PROMPT,
-      model: "deepseek-flash",
-    },
   };
 }
 
@@ -80,9 +76,9 @@ export function defaultAgents(): Record<string, Agent> {
 export function defaultScenarios(): Record<AgentScenarioKey, string> {
   return {
     session: "default",
-    popo: "popo",
     "issue-plan": "plan",
     "issue-exec": "execute",
+    assistant: "default",
   };
 }
 
@@ -179,8 +175,6 @@ export function defaultSystemPromptFor(key: string): string | undefined {
     case "plan":
     case "execute":
       return MUSE_BASE_SYSTEM_PROMPT;
-    case "popo":
-      return POPO_SYSTEM_PROMPT;
     default:
       return undefined;
   }

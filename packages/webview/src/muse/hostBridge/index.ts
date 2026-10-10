@@ -146,11 +146,6 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       return;
     }
 
-    if (event.type === "popo:changed") {
-      postToWebview({ command: "popo:changed" });
-      return;
-    }
-
     if (event.type === "assistant:chat") {
       postToWebview({ command: "assistant:chat", line: event.line });
       return;

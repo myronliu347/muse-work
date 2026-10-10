@@ -37,15 +37,16 @@ describe("agentConfig", () => {
     expect(parsed.models).toEqual(defaultScenarioModels());
   });
 
-  it("loadAgents 仅返回 4 个内置角色", () => {
+  it("loadAgents 仅返回 3 个内置角色", () => {
     const loaded = loadAgents(home);
-    expect(loaded.size).toBe(4);
+    expect(loaded.size).toBe(3);
     expect(loaded.get("default")?.name).toBe("Muse");
   });
 
   it("resolveScenarioAgent 固定映射", () => {
     expect(resolveScenarioAgent("session", home)).toBe("default");
     expect(resolveScenarioAgent("issue-plan", home)).toBe("plan");
+    expect(resolveScenarioAgent("assistant", home)).toBe("default");
   });
 
   it("resolveAgentForScenario 应用 scenario-models 覆盖 model", () => {

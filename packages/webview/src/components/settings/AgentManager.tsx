@@ -14,13 +14,13 @@ import { MuseModelSelect } from "../shared/MuseModelSelect";
 import "../../styles/AgentManager.css";
 
 const SCENARIO_LABELS: Array<{
-  key: "session" | "popo" | "issue-plan" | "issue-exec";
+  key: "session" | "issue-plan" | "issue-exec" | "assistant";
   label: string;
 }> = [
   { key: "session", label: "普通会话" },
-  { key: "popo", label: "POPO 机器人" },
   { key: "issue-plan", label: "Issue 规划" },
   { key: "issue-exec", label: "Issue 执行" },
+  { key: "assistant", label: "AI 助手" },
 ];
 
 export interface AgentManagerHandle {
@@ -72,9 +72,9 @@ export const AgentManager = forwardRef<
         version: 1,
         models: {
           session: models.session!,
-          popo: models.popo!,
           "issue-plan": models["issue-plan"]!,
           "issue-exec": models["issue-exec"]!,
+          assistant: models.assistant!,
         },
       });
       setModels(res.models);
@@ -99,7 +99,7 @@ export const AgentManager = forwardRef<
           <h4>场景默认模型</h4>
         </div>
         <Text as="p" size="2" color="gray" mb="3">
-          为不同使用场景指定默认模型；新会话与对应 Issue 流程会优先使用该模型（仍可在输入框单独切换）。
+          为不同使用场景指定默认模型。普通会话和 Issue 仍可在输入框单独切换；AI 助手用这里的模型。
         </Text>
         <div className="agent-manager-scenarios">
           {SCENARIO_LABELS.map((s) => (

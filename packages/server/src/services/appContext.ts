@@ -2,7 +2,6 @@ import {
   createCodeMakerProvider,
   createOpenAiCompatibleProvider,
   createProviderRegistry,
-  DEFAULT_ACTIVE_MODEL_ID,
   loadProvidersConfig,
   type ProviderRegistry,
 } from "@muse-work/provider";
@@ -51,7 +50,7 @@ export interface AppContext {
   popoSend: {
     current?: (receiver: string, content: string) => Promise<void>;
   };
-  /** POPO 机器人运行时（未启用时为 undefined） */
+  /** POPO 回调运行时（未配置时为未就绪的 runtime，而不是 undefined）。 */
   popo?: import("../popo/setup.js").PopoRuntime;
 }
 
@@ -145,7 +144,6 @@ export function createAppContext(
   const popoSend: AppContext["popoSend"] = {};
   const assistantRuntime = createAssistantRuntime({
     home,
-    model: DEFAULT_ACTIVE_MODEL_ID,
     sessions: sessions.store,
     runner: sessions.runner,
     queue: assistantQueue,

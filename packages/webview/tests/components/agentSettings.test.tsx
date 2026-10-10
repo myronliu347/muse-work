@@ -38,6 +38,7 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
         popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
+        assistant: "deepseek-v4-flash",
       },
     }),
     putScenarioModels: vi.fn().mockResolvedValue({
@@ -46,6 +47,7 @@ function baseApi(): Record<string, ReturnType<typeof vi.fn>> {
         popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
+        assistant: "deepseek-v4-flash",
       },
     }),
     // MuseModelSelect 挂载时拉取 providers
@@ -136,9 +138,10 @@ describe("AgentSettings", () => {
       expect(screen.getByTestId("scenario-model-session")).toBeInTheDocument();
     });
     expect(screen.getByText("场景默认模型")).toBeInTheDocument();
-    expect(screen.getByTestId("scenario-model-popo")).toBeInTheDocument();
     expect(screen.getByTestId("scenario-model-issue-plan")).toBeInTheDocument();
     expect(screen.getByTestId("scenario-model-issue-exec")).toBeInTheDocument();
+    expect(screen.getByTestId("scenario-model-assistant")).toBeInTheDocument();
+    expect(screen.getByText("AI 助手")).toBeInTheDocument();
   });
 
   it("saves scenario default models via PUT /scenarios/models", async () => {
@@ -148,6 +151,7 @@ describe("AgentSettings", () => {
         popo: "deepseek-v4-flash",
         "issue-plan": "deepseek-v4-flash",
         "issue-exec": "deepseek-v4-flash",
+        assistant: "deepseek-v4-flash",
       },
     });
     const api = {

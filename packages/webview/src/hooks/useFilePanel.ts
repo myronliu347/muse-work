@@ -46,7 +46,7 @@ interface UseFilePanelParams {
   updatePanelGroup: ChatAppCore["updatePanelGroup"];
   tryOpenPanel: PanelHandlers["tryOpenPanel"];
   handleOpenPreview: PreviewHandlers["handleOpenPreview"];
-  popoApi: MuseApiClient;
+  api: MuseApiClient;
   currentSession: SessionMetadata | undefined;
   effectiveHost: string;
   effectiveWorkdir?: string;
@@ -59,7 +59,7 @@ export function useFilePanel({
   updatePanelGroup,
   tryOpenPanel,
   handleOpenPreview,
-  popoApi,
+  api,
   currentSession,
   effectiveHost,
   effectiveWorkdir,
@@ -331,7 +331,7 @@ export function useFilePanel({
       setRevertingFileHistory(true);
       void (async () => {
         try {
-          await popoApi.revertFileHistory(
+          await api.revertFileHistory(
             currentSession!.id,
             messageIds,
           );
@@ -343,7 +343,7 @@ export function useFilePanel({
         }
       })();
     },
-    [currentSession, popoApi],
+    [currentSession, api],
   );
 
   const handleFileTreeChange = useCallback(

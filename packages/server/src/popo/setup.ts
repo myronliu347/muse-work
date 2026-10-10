@@ -3,35 +3,24 @@ import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 import type { AppContext } from "../services/appContext.js";
-import type { CreateAgent } from "../services/sessionRunner/index.js";
 import { getLogger } from "../utils/logger.js";
 import { createCallbackApp } from "./callbackApp.js";
-import { createChatStore, type ChatStore } from "./chatStore.js";
 import { createPopoHandler } from "./handler.js";
-import { createPopoAgentFactory } from "./popoAgent.js";
 import { recordPopoMasterInbound } from "../services/assistant/popoTranscript.js";
-import { loadMuseSettings } from "../services/museSettings.js";
 import { loadPopoConfig, type PopoConfig } from "./popoConfig.js";
 import { createSender, type Sender } from "./sender.js";
 import { createTokenStore } from "./tokenStore.js";
 
 export type PopoRuntime = {
   config: PopoConfig;
-  chatStore: ChatStore;
   callbackPort: number;
   ready: boolean;
   error?: string;
   url: string;
-  /** 机器人 agent 工作目录（session 文件即存在该目录下，详情路由据此读取完整消息） */
-  workdir: string;
-  /** 本地是否存在 popo 配置（~/.popo-config.json）；缺失时前端不显示机器人入口 */
+  /** 本地是否存在 popo 配置（~/.popo-config.json）；缺失时前端不显示回调配置 */
   configured: boolean;
-  /** 主动发文本（定时任务通知等）；未配置时缺省。 */
+  /** 主动发文本（定时任务通知、助理回复）；未配置时缺省。 */
   sendText?: Sender["sendText"];
-  /** 删除侧栏会话时释放常驻 agent。 */
-  disposeChat?: (chatKey: string) => Promise<void>;
-  /** 正在处理时读 agent 内存消息，供详情页展示思考/工具进度。 */
-  getLiveMessages?: (chatKey: string) => unknown[];
 };
 
 export function getLanIPv4(): string | undefined {
@@ -46,18 +35,11 @@ export function getLanIPv4(): string | undefined {
   return undefined;
 }
 
-export type SetupPopoOptions = {
-  callbackPort?: number;
-  createAgent?: CreateAgent;
-};
-
-export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): PopoRuntime {
+export function setupPopoRuntime(ctx: AppContext, options?: { callbackPort?: number }): PopoRuntime {
   const logger = getLogger();
   const callbackPort = options?.callbackPort ?? Number(process.env.POPO_CALLBACK_PORT ?? 3100);
   const ip = getLanIPv4() ?? "127.0.0.1";
   const url = `http://${ip}:${callbackPort}/popo/callback`;
-  // 机器人 agent 工作目录（popoAgent 与详情路由共用，须保持一致）
-  const popoWorkdir = path.join(ctx.home, "popo-chat");
 
   let config: PopoConfig;
   try {
@@ -66,23 +48,21 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
     logger.error("popo disabled: config unavailable", { error: String(error) });
     return {
       config: null as unknown as PopoConfig,
-      chatStore: null as unknown as ChatStore,
       callbackPort,
       ready: false,
       error: String(error),
       url,
-      workdir: popoWorkdir,
       configured: false,
     };
   }
 
-  const chatStore = createChatStore({
-    home: ctx.home,
-    onChange: () => {
-      ctx.hub.broadcastAll({ type: "popo:changed" });
-    },
-  });
-  const runtime: PopoRuntime = { config, chatStore, callbackPort, ready: false, url, workdir: popoWorkdir, configured: true };
+  const runtime: PopoRuntime = {
+    config,
+    callbackPort,
+    ready: false,
+    url,
+    configured: true,
+  };
 
   const tokenStore = createTokenStore({
     home: ctx.home,
@@ -91,41 +71,25 @@ export function setupPopoRuntime(ctx: AppContext, options?: SetupPopoOptions): P
   });
   const sender = createSender({ tokenStore });
   runtime.sendText = (receiver, content) => sender.sendText(receiver, content);
-  const agentFactory = createPopoAgentFactory({
-    home: ctx.home,
-    workdir: popoWorkdir,
-    registry: ctx.registry,
-    createAgent: options?.createAgent,
-    onMuseSessionId: (chatKey, museSessionId) => {
-      chatStore.setMuseSessionId(chatKey, museSessionId);
-    },
-  });
-  runtime.disposeChat = (chatKey) => agentFactory.disposeChat?.(chatKey) ?? Promise.resolve();
-  runtime.getLiveMessages = (chatKey) => agentFactory.getLiveMessages?.(chatKey) ?? [];
   if (runtime.sendText) ctx.popoSend.current = runtime.sendText;
   const handler = createPopoHandler({
     config,
-    chatStore,
     sender,
-    agentFactory,
     logger,
     onChat: (event) => {
       recordPopoMasterInbound(ctx.assistantLog, ctx.hub, event);
       ctx.assistantRuntime.enqueue({ type: "chat", ...event });
     },
-    groupAssistantEnabled: () => loadMuseSettings(ctx.home).popo.groupAssistant,
   });
   const app = createCallbackApp({
     config,
     handler,
     logger,
-    // 调试落盘默认关闭（原始请求含消息内容与鉴权 token）；设 POPO_DEBUG_DUMP=1 开启
     ...(process.env.POPO_DEBUG_DUMP === "1"
       ? { debugFile: path.join(getMuseHomeDir(ctx.home), "popo-callback-debug.jsonl") }
       : {}),
   });
 
-  // 隔离性硬约束：回调监听失败只降级，不影响主 server。
   try {
     const server = serve(
       { fetch: app.fetch, hostname: "0.0.0.0", port: callbackPort },

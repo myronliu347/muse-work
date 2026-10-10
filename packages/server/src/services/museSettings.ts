@@ -10,13 +10,11 @@ import {
 export type MuseSettings = {
   version: 1;
   plugins: { superpowers: boolean; mattpocock: boolean };
-  popo: { groupAssistant: boolean };
 };
 
 const DEFAULT_SETTINGS: MuseSettings = {
   version: 1,
   plugins: { superpowers: false, mattpocock: true },
-  popo: { groupAssistant: true },
 };
 
 function isSettings(value: unknown): value is MuseSettings {
@@ -33,14 +31,6 @@ function isSettings(value: unknown): value is MuseSettings {
   );
 }
 
-function readGroupAssistant(value: unknown): boolean {
-  if (!value || typeof value !== "object") return true;
-  const popo = (value as { popo?: unknown }).popo;
-  if (!popo || typeof popo !== "object") return true;
-  const flag = (popo as { groupAssistant?: unknown }).groupAssistant;
-  return typeof flag === "boolean" ? flag : true;
-}
-
 export function loadMuseSettings(home = os.homedir()): MuseSettings {
   const file = getSettingsPath(home);
   try {
@@ -50,7 +40,6 @@ export function loadMuseSettings(home = os.homedir()): MuseSettings {
       return {
         ...DEFAULT_SETTINGS,
         plugins: { ...DEFAULT_SETTINGS.plugins },
-        popo: { ...DEFAULT_SETTINGS.popo },
       };
     }
     return {
@@ -59,7 +48,6 @@ export function loadMuseSettings(home = os.homedir()): MuseSettings {
         superpowers: raw.plugins.superpowers ?? false,
         mattpocock: raw.plugins.mattpocock ?? true,
       },
-      popo: { groupAssistant: readGroupAssistant(raw) },
     };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
@@ -71,7 +59,6 @@ export function loadMuseSettings(home = os.homedir()): MuseSettings {
     return {
       ...DEFAULT_SETTINGS,
       plugins: { ...DEFAULT_SETTINGS.plugins },
-      popo: { ...DEFAULT_SETTINGS.popo },
     };
   }
 }
@@ -91,7 +78,6 @@ export function saveMuseSettings(
 export function patchMuseSettings(
   patch: {
     plugins?: { superpowers?: boolean; mattpocock?: boolean };
-    popo?: { groupAssistant?: boolean };
   },
   home = os.homedir(),
 ): MuseSettings {
@@ -102,9 +88,6 @@ export function patchMuseSettings(
       ...current.plugins,
       superpowers: patch.plugins?.superpowers ?? current.plugins.superpowers,
       mattpocock: patch.plugins?.mattpocock ?? current.plugins.mattpocock,
-    },
-    popo: {
-      groupAssistant: patch.popo?.groupAssistant ?? current.popo.groupAssistant,
     },
   };
   saveMuseSettings(next, home);

@@ -5,7 +5,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createChatStore } from "../src/popo/chatStore.js";
 import type { PopoConfig } from "../src/popo/popoConfig.js";
 import type { PopoRuntime } from "../src/popo/setup.js";
 import { createAppContext } from "../src/services/appContext.js";
@@ -49,10 +48,7 @@ async function runScript(
   }
 }
 
-function popoRuntime(
-  home: string,
-  sendText: PopoRuntime["sendText"],
-): PopoRuntime {
+function popoRuntime(sendText: PopoRuntime["sendText"]): PopoRuntime {
   const config: PopoConfig = {
     appId: "id",
     appKey: "key",
@@ -63,11 +59,9 @@ function popoRuntime(
   };
   return {
     config,
-    chatStore: createChatStore({ home }),
     callbackPort: 3100,
     ready: true,
     url: "http://127.0.0.1:3100/popo/callback",
-    workdir: path.join(home, "popo-chat"),
     configured: true,
     sendText,
   };
@@ -87,7 +81,7 @@ describe("popo-notify plugin script", () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-popo-notify-script-"));
     const ctx = createAppContext({ home });
     const sent: Array<{ receiver: string; content: string }> = [];
-    ctx.popo = popoRuntime(home, async (receiver, content) => {
+    ctx.popo = popoRuntime(async (receiver, content) => {
       sent.push({ receiver, content });
     });
     const app = await listenTestApp({ home, ctx });

@@ -16,7 +16,6 @@ import type {
   DesktopSessionEntry,
   DesktopIssueGroup,
 } from "../../types";
-import type { PopoChatSummary } from "../../muse/apiClient";
 import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
 import {
   DESKTOP_SIDEBAR_MAX_WIDTH,
@@ -97,12 +96,6 @@ export interface DesktopSidebarProps {
   onCompleteIssue?: (issueId: string) => void;
   /** 分组行更多菜单 → 取消 Issue。 */
   onCancelIssue?: (issueId: string) => void;
-  /** 本地已配置 POPO（~/.popo-config.json）；false 时不显示 POPO 会话栏 */
-  popoEnabled?: boolean;
-  popoChats?: PopoChatSummary[];
-  selectedPopoChatKey?: string | null;
-  onSelectPopoChat?: (chatKey: string) => void;
-  onDeletePopoChat?: (chatKey: string) => void;
   /** 当前高亮的菜单项（选中态） */
   activeMenu?: "newChat" | "automations" | "assistant";
   /** 侧栏顶部「自动化」独立页 */
@@ -144,11 +137,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onSelectIssue,
   onCompleteIssue,
   onCancelIssue,
-  popoEnabled,
-  popoChats,
-  selectedPopoChatKey,
-  onSelectPopoChat,
-  onDeletePopoChat,
   activeMenu,
   onOpenAutomations,
   onOpenAssistant,
@@ -261,11 +249,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         onSelectIssue={onSelectIssue}
         onCompleteIssue={onCompleteIssue}
         onCancelIssue={onCancelIssue}
-        popoEnabled={popoEnabled}
-        popoChats={popoChats}
-        selectedPopoChatKey={selectedPopoChatKey}
-        onSelectPopoChat={onSelectPopoChat}
-        onDeletePopoChat={onDeletePopoChat}
       />
       <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
         <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">

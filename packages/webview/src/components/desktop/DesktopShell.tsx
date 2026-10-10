@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
-import { usePopoUi } from "../popo/popoUi";
 import { AutomationsPage } from "../automation/AutomationsPage";
 import { ShellSurfaceProvider } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
@@ -90,7 +89,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const { width: sidebarWidth } = useDesktopSidebarWidth();
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
-  const popoUi = usePopoUi();
   const [shellView, setShellView] = useState<"chat" | "automations" | "assistant">("chat");
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
@@ -638,8 +636,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   // 顶栏菜单占住选中时，会话和待办不再同时亮着。
   const menuOwnsSelection =
     shellView === "assistant" ||
-    shellView === "automations" ||
-    Boolean(popoUi.selectedChatKey);
+    shellView === "automations";
 
   const rowStyle = (row: number): React.CSSProperties | undefined => {
     if (!hasTwoRows) return undefined;
@@ -666,7 +663,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       <DesktopSidebar
         sidebarAccessHidden={sidebarCollapsed}
         onNewSession={() => {
-          popoUi.selectChat(null);
           setShellView("chat");
           vscode.postMessage({ command: "newSession" });
         }}
@@ -691,7 +687,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         currentSessionId={menuOwnsSelection ? undefined : focusedSessionId}
         visibleSessionIds={menuOwnsSelection ? [] : visibleSessionIds}
         onSelectSession={(workdir, sessionId) => {
-          popoUi.selectChat(null);
           setShellView("chat");
           host.onSelectSession(workdir, sessionId);
         }}
@@ -708,24 +703,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onRevealInFinder={(workdir) =>
           vscode.postMessage({ command: "revealInFinder", path: workdir })
         }
-        popoEnabled={popoUi.enabled}
-        popoChats={popoUi.chats}
-        selectedPopoChatKey={popoUi.selectedChatKey}
-        onSelectPopoChat={(chatKey) => {
-          setShellView("chat");
-          popoUi.selectChat(chatKey);
-        }}
-        onDeletePopoChat={(chatKey) => {
-          void popoUi.deleteChat(chatKey).catch((err) => {
-            window.alert(err instanceof Error ? err.message : "删除 POPO 会话失败");
-          });
-        }}
         onOpenAutomations={() => {
-          popoUi.selectChat(null);
           setShellView("automations");
         }}
         onOpenAssistant={() => {
-          popoUi.selectChat(null);
           setShellView("assistant");
         }}
         activeMenu={

@@ -59,20 +59,17 @@ settingsRoutes.patch("/settings", async (c) => {
   const ctx = c.get("ctx");
   let body: {
     plugins?: { superpowers?: unknown; mattpocock?: unknown };
-    popo?: { groupAssistant?: unknown };
   } | undefined;
   try {
     body = await c.req.json<{
       plugins?: { superpowers?: unknown; mattpocock?: unknown };
-      popo?: { groupAssistant?: unknown };
     }>();
   } catch {
     body = undefined;
   }
   const plugins = body?.plugins;
-  const groupAssistant = body?.popo?.groupAssistant;
-  if (!plugins && groupAssistant === undefined) {
-    return c.json({ error: "plugins or popo.groupAssistant is required" }, 400);
+  if (!plugins) {
+    return c.json({ error: "plugins is required" }, 400);
   }
   if (plugins) {
     const { superpowers, mattpocock } = plugins;
@@ -86,25 +83,15 @@ settingsRoutes.patch("/settings", async (c) => {
       );
     }
   }
-  if (groupAssistant !== undefined && typeof groupAssistant !== "boolean") {
-    return c.json({ error: "popo.groupAssistant must be boolean" }, 400);
-  }
   const settings = patchMuseSettings(
     {
-      ...(plugins
-        ? {
-            plugins: {
-              superpowers: plugins.superpowers as boolean | undefined,
-              mattpocock: plugins.mattpocock as boolean | undefined,
-            },
-          }
-        : {}),
-      ...(typeof groupAssistant === "boolean"
-        ? { popo: { groupAssistant } }
-        : {}),
+      plugins: {
+        superpowers: plugins.superpowers as boolean | undefined,
+        mattpocock: plugins.mattpocock as boolean | undefined,
+      },
     },
     ctx.home,
   );
-  if (plugins) ctx.runner.invalidateAgentIdentities();
+  ctx.runner.invalidateAgentIdentities();
   return c.json(settings);
 });
