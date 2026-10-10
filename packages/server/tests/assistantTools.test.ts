@@ -173,7 +173,7 @@ describe("assistant tools", () => {
     ]);
   });
 
-  it("passes worktree and baseBranch through to the existing issue open", async () => {
+  it("opens a code issue on the worktree the server created", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-wt-"));
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-repo-"));
     const issues = createIssueStore({ home });
@@ -181,6 +181,7 @@ describe("assistant tools", () => {
     const automations = createAutomationStore({ home });
     const log = createAssistantMessageLog({ home });
     const opened: OpenIssueBody[] = [];
+    const asked: Array<{ workdir: string; baseBranch?: string }> = [];
     const hub = { broadcastAll: () => {} } as WsHub;
     const tools = createAssistantTools({
       home,
@@ -190,6 +191,17 @@ describe("assistant tools", () => {
       log,
       hub,
       runner: {} as never,
+      createWorktree: async (args) => {
+        asked.push(args);
+        if (args.baseBranch === "missing") throw new Error("branch not found");
+        return {
+          path: `/trees/${args.baseBranch ?? "main"}`,
+          name: "gentle-pike",
+          branch: "worktree-gentle-pike",
+          baseBranch: args.baseBranch ?? "origin/main",
+          repoRoot: args.workdir,
+        };
+      },
       openIssue: (ctx, issueId, body) => {
         opened.push(body);
         ctx.issueStore.setPlanning(issueId, {
@@ -211,13 +223,20 @@ describe("assistant tools", () => {
       context,
     );
     expect(onMain.success).toBe(true);
+    expect(asked[0]).toEqual({ workdir });
     expect(opened[0]).toEqual({
-      workdir,
+      workdir: "/trees/main",
       agentMode: "single",
       worktreeEnabled: true,
+      baseBranch: "origin/main",
+      worktreeName: "gentle-pike",
+      worktreeBranch: "worktree-gentle-pike",
+      worktreeRepoRoot: workdir,
     });
-    expect(issues.get(issue.id)?.worktreeEnabled).toBe(true);
-    expect(issues.get(issue.id)?.baseBranch).toBeUndefined();
+    expect(JSON.parse(onMain.content)).toEqual({
+      sessionId: `s-${issue.id}`,
+      workdir: "/trees/main",
+    });
 
     const other = issues.create({ title: "改分支" });
     const onDev = await tool(tools, "OpenIssue").execute(
@@ -225,12 +244,19 @@ describe("assistant tools", () => {
       context,
     );
     expect(onDev.success).toBe(true);
-    expect(opened[1]).toEqual({
-      workdir,
-      agentMode: "single",
-      worktreeEnabled: true,
-      baseBranch: "dev",
-    });
+    expect(asked[1]).toEqual({ workdir, baseBranch: "dev" });
+    expect(opened[1]?.workdir).toBe("/trees/dev");
+    expect(opened[1]?.baseBranch).toBe("dev");
+
+    const blocked = issues.create({ title: "建失败" });
+    const failed = await tool(tools, "OpenIssue").execute(
+      { issueId: blocked.id, workdir, worktree: true, baseBranch: "missing" },
+      context,
+    );
+    expect(failed.success).toBe(false);
+    expect(failed.error).toContain("branch not found");
+    expect(opened).toHaveLength(2);
+    expect(issues.get(blocked.id)?.planningSessionId).toBeUndefined();
   });
 
   it("joins a running issue session without interrupting it", async () => {

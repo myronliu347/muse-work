@@ -7,6 +7,7 @@ import type { AutomationStore } from "../automationStore.js";
 import type { WsHub } from "../wsHub.js";
 import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog } from "./messages.js";
 import { openIssueSession, type OpenIssueBody } from "../issueOpen.js";
+import { createServerWorktree, type ServerWorktree } from "../gitWorktree.js";
 import { userMessageText } from "../sessionRunner/serialization.js";
 
 type Log = ReturnType<typeof createAssistantMessageLog>;
@@ -23,6 +24,8 @@ export type AssistantToolDeps = {
   /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
   popoMasterUid?: () => string | undefined;
   openIssue?: typeof openIssueSession;
+  /** 测试可替换。缺省时服务器自己执行 git worktree add。 */
+  createWorktree?: (args: { workdir: string; baseBranch?: string }) => Promise<ServerWorktree>;
 };
 
 function fail(error: string): ToolResult {
@@ -158,7 +161,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "OpenIssue",
-      "给尚未打开会话的 Issue 打开 single 会话。修 bug、改代码时 worktree 必须为 true，会话建在单独的 worktree 里。baseBranch 不填则用该仓库的主分支。只读、不改代码不要开 worktree。",
+      "给尚未打开会话的 Issue 打开 single 会话。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。",
       {
         type: "object",
         properties: {
@@ -180,12 +183,32 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         }
         if (!fs.existsSync(workdir)) return fail("workdir not found");
         const baseBranch = text(args.baseBranch);
-        const body: OpenIssueBody = {
+        let body: OpenIssueBody = {
           workdir,
           agentMode: "single",
-          worktreeEnabled: args.worktree === true,
-          ...(args.worktree === true && baseBranch ? { baseBranch } : {}),
+          worktreeEnabled: false,
         };
+        if (args.worktree === true) {
+          const create = deps.createWorktree ?? ((input) => createServerWorktree({ home: deps.home, ...input }));
+          let created: ServerWorktree;
+          try {
+            created = await create({
+              workdir,
+              ...(baseBranch ? { baseBranch } : {}),
+            });
+          } catch (err: unknown) {
+            return fail(err instanceof Error ? err.message : String(err));
+          }
+          body = {
+            workdir: created.path,
+            agentMode: "single",
+            worktreeEnabled: true,
+            baseBranch: created.baseBranch,
+            worktreeName: created.name,
+            worktreeBranch: created.branch,
+            worktreeRepoRoot: created.repoRoot,
+          };
+        }
         const opened = open(ctx, issueId, body);
         if (opened.status >= 400) {
           return fail(String(opened.json.error ?? "open failed"));
