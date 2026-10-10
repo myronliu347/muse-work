@@ -1,0 +1,91 @@
+packages/agent/src/managers/foregroundTaskManager.ts
+  f94483bca9704708 3,28-57
+packages/agent/src/agent.ts
+  f94483bca9704708 1117-1120
+packages/webview/tests/webview/backgroundCurrentTask.test.tsx
+  f94483bca9704708 11-13,15,20,32,37
+packages/agent/src/types/processes.ts
+  f94483bca9704708 94-98,104-108
+packages/agent/src/managers/aiManager.ts
+  f94483bca9704708 57,139
+packages/agent/tests/managers/foregroundTaskManager.test.ts
+  f94483bca9704708 3,73-149
+packages/agent/tests/agent/agent.foreground.test.ts
+  f94483bca9704708 63-88
+packages/agent/tests/tools/agentTool.test.ts
+  f94483bca9704708 11-12,98-228
+packages/agent/src/managers/messageQueue.ts
+  f94483bca9704708 145-148
+packages/agent/src/tools/agentTool.ts
+  f94483bca9704708 246-257,260-262,265-278,280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "676cd97ad6f83b9be0fa3045701e43333dce9a7a",
+  "prompts": {
+    "f94483bca9704708": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "73649ecc-8ea7-4e5f-86bf-952652853505",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 329,
+      "total_deletions": 58,
+      "accepted_lines": 326,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/src/managers/foregroundTaskManager.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/agent/tests/tools/agentTool.test.ts": {
+          "additions": 134,
+          "deletions": 1,
+          "accepted_lines": 133
+        },
+        "packages/agent/src/types/processes.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/agent/src/tools/agentTool.ts": {
+          "additions": 30,
+          "deletions": 13,
+          "accepted_lines": 30
+        },
+        "packages/agent/src/agent.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/agent/agent.foreground.test.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/agent/src/managers/aiManager.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/managers/messageQueue.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/agent/tests/managers/foregroundTaskManager.test.ts": {
+          "additions": 81,
+          "deletions": 2,
+          "accepted_lines": 79
+        },
+        "packages/webview/tests/webview/backgroundCurrentTask.test.tsx": {
+          "additions": 7,
+          "deletions": 25,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "deletions": 16
+        }
+      }
+    }
+  }
+}
