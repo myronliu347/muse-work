@@ -1,0 +1,76 @@
+packages/webview/src/styles/MessageList.css
+  05412be0e8d72bcb 95-122
+packages/webview/src/styles/AssistantPage.css
+  05412be0e8d72bcb 154-173
+packages/webview/tests/webview/autoScrollFollow.test.tsx
+  05412be0e8d72bcb 56-58,63,80-81,116,165
+packages/webview/tests/webview/initialLoadScroll.test.tsx
+  05412be0e8d72bcb 14
+packages/webview/src/components/assistant/AssistantPage.tsx
+  05412be0e8d72bcb 4,51-57,244-282,406-407,520,530-560,562-563
+packages/webview/src/components/chat/MessageList.tsx
+  05412be0e8d72bcb 10-14,30-128,180-270,295,302-305,314,316-395,400-407,409,412-424,426,428-429,435-443,449-461,463-468,473,476,479-481,502,506,514-516,518,520-521,535-536,540,561,563-564,576-583,585-594,596-599,602-630,632-668,675,678-687,690,692-702,704-708,710-711,713-736,739
+packages/webview/tests/components/assistantPage.test.tsx
+  05412be0e8d72bcb 130-155
+packages/webview/tests/webview/stickyUserMessage.test.tsx
+  05412be0e8d72bcb 1,76-84,88-105,186-190,194-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7bb45ee7efaa34b892589ae82321a924fdd5a55b",
+  "prompts": {
+    "05412be0e8d72bcb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c4fb04a7-f8fb-42d6-abee-a2314fc0bfd3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 720,
+      "total_deletions": 464,
+      "accepted_lines": 705,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 506,
+          "deletions": 414,
+          "accepted_lines": 503
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 44,
+          "deletions": 14,
+          "accepted_lines": 36
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/webview/autoScrollFollow.test.tsx": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 87,
+          "deletions": 29,
+          "accepted_lines": 83
+        },
+        "packages/webview/tests/webview/initialLoadScroll.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 20,
+          "accepted_lines": 20
+        }
+      }
+    }
+  }
+}
