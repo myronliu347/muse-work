@@ -1,0 +1,254 @@
+README.md
+  d501b231c2f2dabb 21,59,61,82,84
+packages/server/src/popo/routes.ts
+  d501b231c2f2dabb 4
+packages/webview/src/components/session/SessionTree.tsx
+  d501b231c2f2dabb 225,275
+packages/webview/tests/components/settings/PopoSettings.test.tsx
+  d501b231c2f2dabb 1,6,18
+packages/server/src/popo/handler.ts
+  d501b231c2f2dabb 11-17,22,30,34-62,73-74
+packages/webview/src/components/ChatApp.tsx
+  d501b231c2f2dabb 72,75,78,83-86,168,176-177,386,789,883,893,905,916,941,996,1032
+packages/server/tests/sessionRunner.test.ts
+  d501b231c2f2dabb 528,617,678
+packages/webview/tests/components/agentSettings.test.tsx
+  d501b231c2f2dabb 41,50,143-144,154
+packages/server/src/services/assistant/runtime.ts
+  d501b231c2f2dabb 54-58,64,94,149
+packages/server/src/services/appContext.ts
+  d501b231c2f2dabb 53
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  d501b231c2f2dabb 988-990
+packages/webview/src/components/chat/ChatContainer.tsx
+  d501b231c2f2dabb 29-30,74
+packages/server/tests/museSettings.test.ts
+  d501b231c2f2dabb 87,90-93
+packages/server/tests/popoNotifyPluginScript.test.ts
+  d501b231c2f2dabb 51,84
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 3,34,36,43-44,51,62
+packages/server/src/routes/settings.ts
+  d501b231c2f2dabb 71-72,88-91,95
+packages/server/tests/agentConfig.test.ts
+  d501b231c2f2dabb 40,42,49
+packages/webview/src/muse/apiClient.ts
+  d501b231c2f2dabb 31-34
+docs/popo-robot-integration.md
+  d501b231c2f2dabb 3,15-17,70,72-75,101,103-105
+packages/server/src/services/agentConfig.ts
+  d501b231c2f2dabb 2,17-21,27,81
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 6-9,16-18,47-52
+packages/webview/src/components/settings/AgentManager.tsx
+  d501b231c2f2dabb 17,23,77,102
+packages/webview/src/components/desktop/DesktopShell.tsx
+  d501b231c2f2dabb 639
+packages/server/tests/popoHandler.test.ts
+  d501b231c2f2dabb 2-3,5,12,16,18-31,33,37-39,41,44-45,47-48,50-51,53,56-57,60,62-65,68-69,72-73,79,81,86-87,90-91,93
+packages/webview/src/hooks/useFilePanel.ts
+  d501b231c2f2dabb 49,62,334,346
+packages/server/src/popo/setup.ts
+  d501b231c2f2dabb 20,22,38,59-65
+packages/server/tests/popoRoutes.test.ts
+  d501b231c2f2dabb 37
+packages/webview/src/components/settings/PopoSettings.tsx
+  d501b231c2f2dabb 89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c36a0cde6f93c666b794dc5b42571331ca96a5b1",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 233,
+      "total_deletions": 1511,
+      "accepted_lines": 228,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "additions": 3,
+          "deletions": 14,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 1,
+          "deletions": 3,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "deletions": 17
+        },
+        "packages/server/src/services/agentConfig.ts": {
+          "additions": 9,
+          "deletions": 15,
+          "accepted_lines": 8
+        },
+        "packages/server/src/popo/handler.ts": {
+          "additions": 40,
+          "deletions": 179,
+          "accepted_lines": 40
+        },
+        "packages/server/tests/settings.routes.test.ts": {
+          "deletions": 17
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 1,
+          "deletions": 20,
+          "accepted_lines": 1
+        },
+        "packages/webview/e2e/utils/museApiMock.ts": {
+          "deletions": 3
+        },
+        "packages/webview/src/components/settings/AgentManager.tsx": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/popoNotifyPluginScript.test.ts": {
+          "additions": 2,
+          "deletions": 8,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/agentSettings.test.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/server/src/popo/setup.ts": {
+          "additions": 10,
+          "deletions": 46,
+          "accepted_lines": 10
+        },
+        "README.md": {
+          "additions": 5,
+          "deletions": 7,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 3,
+          "deletions": 84,
+          "accepted_lines": 3
+        },
+        "packages/server/tests/popoHandler.test.ts": {
+          "additions": 51,
+          "deletions": 451,
+          "accepted_lines": 51
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 5,
+          "deletions": 60,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 8
+        },
+        "packages/server/tests/museSettings.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/settings/PopoSettings.tsx": {
+          "additions": 1,
+          "deletions": 55,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/settings/PopoSettings.test.tsx": {
+          "additions": 3,
+          "deletions": 24,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/src/index.ts": {
+          "additions": 1,
+          "deletions": 4,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 7,
+          "deletions": 20,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "deletions": 17
+        },
+        "packages/server/tests/popoRoutes.test.ts": {
+          "additions": 1,
+          "deletions": 141,
+          "accepted_lines": 1
+        },
+        "packages/server/src/popo/routes.ts": {
+          "additions": 1,
+          "deletions": 75,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "deletions": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "deletions": 3
+        },
+        "packages/webview/tests/components/pluginSettings.test.tsx": {
+          "deletions": 3
+        },
+        "packages/server/tests/agentConfig.test.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 21,
+          "deletions": 52,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 2,
+          "deletions": 110,
+          "accepted_lines": 2
+        },
+        "docs/popo-robot-integration.md": {
+          "additions": 13,
+          "deletions": 20,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "deletions": 24
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "deletions": 5
+        }
+      }
+    }
+  }
+}
