@@ -552,7 +552,7 @@ export class PermissionManager {
     }
 
     // Check worktree safety for Write and Edit tools — unconditional safety
-    // check, applied regardless of permission mode (same as read-before-edit).
+    // check, applied regardless of permission mode.
     const effectiveWorktreeName = this.worktreeName;
     const effectiveWorkdir = this.workdir;
     const effectiveMainRepoRoot = this.mainRepoRoot;

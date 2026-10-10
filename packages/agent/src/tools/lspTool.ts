@@ -726,6 +726,11 @@ export const lspTool: ToolPlugin = {
       },
     },
   },
+  leanPrompt: `Interact with Language Server Protocol (LSP) servers for code intelligence.
+
+Operations: \`goToDefinition\`, \`findReferences\`, \`hover\`, \`documentSymbol\`, \`workspaceSymbol\`, \`goToImplementation\`, \`prepareCallHierarchy\`, \`incomingCalls\`, \`outgoingCalls\`.
+
+All operations require \`filePath\`, plus \`line\` and \`character\` (both 1-based, as shown in editors). An LSP server must be configured for the file type, or an error is returned.`,
   prompt:
     () => `Interact with Language Server Protocol (LSP) servers to get code intelligence features.
 

@@ -13,8 +13,8 @@ import type { SkillMetadata } from "../types/skills.js";
 
 /**
  * Read state recorded for a file by the Read/Write/Edit tools. Used for
- * read-before-write enforcement, staleness detection, Read dedup, and the
- * external-change notification (diffing `content` against the disk).
+ * staleness detection, Read dedup, and the external-change notification
+ * (diffing `content` against the disk).
  */
 export interface ReadFileStateEntry {
   /** File mtime (ms) observed when this entry was recorded. */
@@ -59,6 +59,21 @@ export interface ToolPlugin {
     workdir?: string;
     isSubagent?: boolean;
   }) => string;
+  /**
+   * Condensed replacement for the description, sent instead of `prompt` while
+   * the lean prompt set is on (`leanPrompt` in settings). Same shape as
+   * `prompt`, so a description that depends on session context can stay a
+   * function. A tool that declares nothing here keeps its full description
+   * under lean mode — the fallback is never an empty description.
+   */
+  leanPrompt?:
+    | string
+    | ((args?: {
+        availableSubagents?: SubagentConfiguration[];
+        availableSkills?: SkillMetadata[];
+        workdir?: string;
+        isSubagent?: boolean;
+      }) => string);
   /**
    * Whether this tool is safe to run in parallel with other tools.
    * Default (undefined) = true (parallel). Set to false for tools that

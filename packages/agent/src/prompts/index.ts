@@ -70,6 +70,24 @@ Focus text output on:
 
 If you can say it in one sentence, don't use three. Prefer short, direct sentences over long explanations. This does not apply to code or tool calls.`;
 
+/**
+ * Safety note used by the lean tier only. The full prompt is unchanged when
+ * `leanPrompt` is off.
+ */
+export const SECURITY_NOTE = `IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.`;
+
+/**
+ * The lean static block: the identity line and the safety note stay, and this
+ * replaces the other sections. Kept byte-for-byte stable per session so the
+ * cached prefix survives.
+ */
+export const LEAN_SYSTEM_PROMPT = `# Harness
+ - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.
+ - Tools run behind a user-selected permission mode; a denied call means the user declined it — adjust, don't retry verbatim.
+ - \`<system-reminder>\` tags in messages and tool results are injected by the harness, not the user. Hooks may intercept tool calls; treat hook output as user feedback.
+ - Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.
+ - Reference code as \`file_path:line_number\` — it's clickable.`;
+
 export const TONE_AND_STYLE_PROMPT = `# Tone and style
 
 - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
@@ -304,19 +322,27 @@ export function buildSystemPrompt(
       directory: string;
       content: string;
     };
+    leanPrompt?: boolean;
   } = {},
 ): SystemPromptBlock[] {
   // --- Static block (cacheable) ---
+  // Lean mode swaps the full sections for the harness block. The default path
+  // stays the existing full prompt, byte for byte.
   let staticText = basePrompt || DEFAULT_SYSTEM_PROMPT;
-  staticText += `\n\n${DOING_TASKS_PROMPT}`;
-  staticText += `\n\n${EXECUTING_ACTIONS_PROMPT}`;
+  if (options.leanPrompt) {
+    staticText += `\n\n${SECURITY_NOTE}`;
+    staticText += `\n\n${LEAN_SYSTEM_PROMPT}`;
+  } else {
+    staticText += `\n\n${DOING_TASKS_PROMPT}`;
+    staticText += `\n\n${EXECUTING_ACTIONS_PROMPT}`;
 
-  if (tools.length > 0) {
-    staticText += `\n\n${TOOL_POLICY}`;
+    if (tools.length > 0) {
+      staticText += `\n\n${TOOL_POLICY}`;
+    }
+
+    staticText += `\n\n${OUTPUT_EFFICIENCY_PROMPT}`;
+    staticText += `\n\n${TONE_AND_STYLE_PROMPT}`;
   }
-
-  staticText += `\n\n${OUTPUT_EFFICIENCY_PROMPT}`;
-  staticText += `\n\n${TONE_AND_STYLE_PROMPT}`;
 
   const blocks: SystemPromptBlock[] = [{ text: staticText, cacheable: true }];
 

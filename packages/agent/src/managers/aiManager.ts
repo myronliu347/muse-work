@@ -54,6 +54,7 @@ import { Container } from "../utils/container.js";
 import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
 import { recoverTruncatedJson } from "../utils/stringUtils.js";
 import { ConfigurationService } from "../services/configurationService.js";
+import { isLeanPromptEnabled } from "../services/leanPrompt.js";
 import type { MessageQueue, QueuedMessage } from "./messageQueue.js";
 import { logger } from "../utils/globalLogger.js";
 import type { BackgroundTask } from "../types/processes.js";
@@ -746,6 +747,7 @@ export class AIManager {
       additionalWorkingDirectories:
         this.permissionManager?.getEffectiveAdditionalDirectories?.() ?? [],
       autoMemory: autoMemoryOptions,
+      leanPrompt: isLeanPromptEnabled(this.getWorkdir()),
     });
   }
 

@@ -182,6 +182,15 @@ export function validateConfigurationObject(
     );
   }
 
+  // Validate leanPrompt if present
+  if (
+    config.leanPrompt !== undefined &&
+    typeof config.leanPrompt !== "boolean"
+  ) {
+    result.isValid = false;
+    result.errors.push("leanPrompt configuration must be a boolean");
+  }
+
   // Validate cleanupPeriodDays if present
   if (
     config.cleanupPeriodDays !== undefined &&
@@ -1238,6 +1247,8 @@ export function loadMuseConfigFromFile(
         config.cleanupPeriodDays !== undefined
           ? config.cleanupPeriodDays
           : undefined,
+      leanPrompt:
+        config.leanPrompt !== undefined ? config.leanPrompt : undefined,
       models: config.models || undefined,
     };
   } catch (error) {
@@ -1388,6 +1399,12 @@ export function loadMergedMuseConfig(
       mergedConfig.cleanupPeriodDays = config.cleanupPeriodDays;
     }
 
+    // Merge leanPrompt (last one wins). `false` is an explicit opt-out and
+    // must survive the merge, so this is not a truthiness check.
+    if (config.leanPrompt !== undefined) {
+      mergedConfig.leanPrompt = config.leanPrompt;
+    }
+
     // Merge models
     if (config.models) {
       if (!mergedConfig.models) mergedConfig.models = {};
@@ -1419,6 +1436,7 @@ export function loadMergedMuseConfig(
     autoMemoryEnabled: mergedConfig.autoMemoryEnabled,
     autoMemoryFrequency: mergedConfig.autoMemoryFrequency,
     cleanupPeriodDays: mergedConfig.cleanupPeriodDays,
+    leanPrompt: mergedConfig.leanPrompt,
     models:
       mergedConfig.models && Object.keys(mergedConfig.models).length > 0
         ? mergedConfig.models

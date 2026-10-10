@@ -45,6 +45,9 @@ Usage:
 - NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 - Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
 - IMPORTANT: Always provide file_path parameter before content parameter when calling this tool.`,
+  leanPrompt: `Writes a file to the local filesystem, overwriting if one exists.
+
+When to use: creating a new file, or fully replacing one. Prefer ${READ_TOOL_NAME} before overwriting a file you have not seen. If the file was read and then changed on disk, the write is refused until you read it again. For partial changes, use Edit instead.`,
   execute: async (
     args: Record<string, unknown>,
     context: ToolContext,
@@ -87,25 +90,21 @@ Usage:
         isExistingFile = false;
       }
 
-      // Read-before-write + staleness guards (aligned with Claude Code).
-      // Only enforced for existing files when readFileState is available
-      // (production always injects it; new-file creation always bypasses).
-      // Grep does not register a file as read, so Grep-then-Write on an
-      // existing file is still rejected. Staleness uses the same `>` + full-
-      // read content-hash fallback as editTool to avoid false positives from
-      // git checkout / editor round-trip save / cloud sync / antivirus.
+      // Staleness check, shared with editTool. It only applies to an existing
+      // file this session read: an unread file has no state to compare
+      // against, so it is overwritten straight through. Unlike Edit, Write has
+      // no "applies cleanly" escape hatch — it replaces the whole file, so a
+      // read state that no longer matches the disk content is still refused.
+      // The full-read content-hash fallback avoids false positives from git
+      // checkout / editor round-trip save / cloud sync / antivirus.
       if (isExistingFile && context.readFileState) {
         const state = context.readFileState.get(resolvedPath);
-        if (!state) {
-          return {
-            success: false,
-            content: "",
-            error:
-              "File has not been read yet. Read it first before writing to it.",
-          };
-        }
-        const currentStats = await stat(resolvedPath);
-        if (currentStats.mtime.getTime() > state.mtime) {
+        const currentStats = state ? await stat(resolvedPath) : undefined;
+        if (
+          state &&
+          currentStats &&
+          currentStats.mtime.getTime() > state.mtime
+        ) {
           const isFullRead =
             state.offset === undefined && state.limit === undefined;
           const contentUnchanged =

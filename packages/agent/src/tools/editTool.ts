@@ -8,6 +8,15 @@ import { escapeRegExp, analyzeEditMismatch } from "../utils/editUtils.js";
 import { EDIT_TOOL_NAME, READ_TOOL_NAME } from "../constants/tools.js";
 
 /**
+ * Prepended to the result of an edit that applied to a file which changed on
+ * disk after this session read it (`staleRecovered`). The edit itself was
+ * clean, but everything else in the file may now differ from what the model
+ * holds in context — wording follows Claude Code's note.
+ */
+const STALE_RECOVERED_NOTE =
+  "Note: the file had been modified on disk since you last read it — the edit applied cleanly, but the file contains other changes not in your context. Read it before edits that depend on surrounding content.";
+
+/**
  * Format compact parameter display
  */
 function formatCompactParams(
@@ -36,6 +45,11 @@ Usage:
 - Use the smallest \`old_string\` that's clearly unique — usually 2-4 adjacent lines is sufficient. Avoid including 10+ lines of context when less uniquely identifies the target. Shorter matches are less likely to contain reproduction errors.
 - The edit will FAIL if \`old_string\` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use \`replace_all\` to change every instance of \`old_string\`. 
 - Use \`replace_all\` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.`,
+  leanPrompt: `Performs exact string replacement in a file.
+
+- Read the file first when the edit depends on surrounding content. An unread file still edits if \`old_string\` matches what's on disk.
+- \`old_string\` must match the file exactly, including indentation, and be unique — the edit fails otherwise. Strip the Read line prefix (spaces + line number + tab) before matching.
+- \`replace_all: true\` replaces every occurrence instead.`,
   config: {
     type: "function",
     function: {
@@ -113,17 +127,7 @@ Usage:
     // Trigger conditional rule loading for this file
     context.messageManager?.triggerFileRead(filePath);
 
-    // Enforce read-before-edit: the file must have been read or written first.
-    // readFileState is populated by Read, Write, and Edit tools — single source
-    // of truth, aligned with Claude Code's readFileState approach.
     const resolvedPath = resolvePath(filePath, context.workdir);
-    if (!context.readFileState?.has(resolvedPath)) {
-      return {
-        success: false,
-        content: "",
-        error: `You must read the file with the ${READ_TOOL_NAME} tool before editing it. Use ${READ_TOOL_NAME} on ${filePath} first.`,
-      };
-    }
 
     try {
       // Read file content
@@ -138,11 +142,15 @@ Usage:
         };
       }
 
-      // Staleness check (aligned with Claude Code): only flag when the file got
-      // newer since last read. For full reads, a content-hash fallback avoids
-      // false positives when mtime changed but content didn't (git checkout,
-      // editor round-trip save, cloud sync, antivirus). Partial reads get no
-      // fallback since only a slice was cached.
+      // Staleness check, only for a file this session actually read (an unread
+      // file has no state to compare against, so it edits straight through).
+      // A stale read is no longer an automatic failure: when old_string still
+      // matches the content on disk the edit applies, and the result tells the
+      // model the file holds changes it has not seen. Only an edit that no
+      // longer matches is rejected. Full reads keep the content-hash fallback,
+      // which avoids false positives when mtime moved but the content did not
+      // (git checkout, editor round-trip save, cloud sync, antivirus).
+      let staleRecovered = false;
       if (context.readFileState) {
         const state = context.readFileState.get(resolvedPath);
         if (state) {
@@ -155,12 +163,20 @@ Usage:
               createHash("sha256").update(originalContent).digest("hex") ===
                 state.hash;
             if (!contentUnchanged) {
-              return {
-                success: false,
-                content: "",
-                error:
-                  "File has been unexpectedly modified since last read. Read it again before editing it.",
-              };
+              const normalizedCurrent = originalContent.replace(/\r\n/g, "\n");
+              const normalizedCandidate = oldString.replace(/\r\n/g, "\n");
+              const appliesCleanly = replaceAll
+                ? normalizedCurrent.includes(normalizedCandidate)
+                : normalizedCurrent.split(normalizedCandidate).length - 1 === 1;
+              if (!appliesCleanly) {
+                return {
+                  success: false,
+                  content: "",
+                  error:
+                    "File has been unexpectedly modified since last read. Read it again before editing it.",
+                };
+              }
+              staleRecovered = true;
             }
           }
         }
@@ -300,7 +316,9 @@ Usage:
 
       return {
         success: true,
-        content: shortResult,
+        content: staleRecovered
+          ? `${STALE_RECOVERED_NOTE}\n\n${shortResult}`
+          : shortResult,
         shortResult,
         filePath: resolvedPath,
         startLineNumber,

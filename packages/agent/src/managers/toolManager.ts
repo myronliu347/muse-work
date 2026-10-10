@@ -34,6 +34,8 @@ import { ReversionManager } from "./reversionManager.js";
 import * as aiService from "../services/aiService.js";
 
 import { Container } from "../utils/container.js";
+import { appendMemoryCapNotice } from "../utils/memoryCapNotices.js";
+import { isLeanPromptEnabled } from "../services/leanPrompt.js";
 
 import { logger } from "../utils/globalLogger.js";
 
@@ -299,20 +301,32 @@ class ToolManager {
     // Check built-in tools
     const plugin = this.toolsRegistry.get(name);
     if (plugin) {
+      let result: ToolResult;
       try {
-        const result = await plugin.execute(args, enhancedContext);
-        return result;
+        result = await plugin.execute(args, enhancedContext);
       } catch (error) {
         logger?.error("Tool execution failed", {
           toolName: name,
           error: error instanceof Error ? error.message : String(error),
         });
-        return {
+        result = {
           success: false,
           content: "",
           error: error instanceof Error ? error.message : String(error),
         };
       }
+
+      // A memory write that left the file over its cap is worth saying out loud
+      // in the result: unlike the load-time warning, this reaches the model
+      // while it still has the file in hand.
+      await appendMemoryCapNotice(
+        name,
+        args,
+        result,
+        enhancedContext.workdir,
+        enhancedContext.autoMemoryDir,
+      );
+      return result;
     }
 
     logger?.warn("Tool not found", { toolName: name });
@@ -342,6 +356,7 @@ class ToolManager {
     isSubagent?: boolean;
   }): ChatCompletionFunctionTool[] {
     const permissionManager = this.getPermissionManager();
+    const leanPromptEnabled = isLeanPromptEnabled(options?.workdir);
 
     const builtInToolsConfig = Array.from(this.toolsRegistry.values())
       .filter((tool) => {
@@ -358,8 +373,15 @@ class ToolManager {
             ...tool.config.function,
           },
         };
-        // Override description with prompt if available
-        if (tool.prompt) {
+        // Lean mode sends the tool's condensed variant when it declares one; a
+        // tool without one keeps its full description, so lean never yields an
+        // empty description. Only text changes — schemas, the tool set and
+        // permission decisions are untouched.
+        const lean = leanPromptEnabled ? tool.leanPrompt : undefined;
+        if (lean !== undefined) {
+          config.function.description =
+            typeof lean === "function" ? lean({ ...options }) : lean;
+        } else if (tool.prompt) {
           config.function.description = tool.prompt({ ...options });
         }
         return config;

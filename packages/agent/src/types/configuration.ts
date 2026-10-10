@@ -51,6 +51,15 @@ export interface MuseConfiguration {
    * Default: 30. 0 disables cleanup entirely.
    */
   cleanupPeriodDays?: number;
+  /**
+   * Whether to send the lean (condensed) prompt set: the static system prompt
+   * collapses to the identity line, a safety note, and the harness notes, and
+   * every built-in tool that declares `leanPrompt` sends that text instead of
+   * its full description. Text only — the tool set, parameter schemas,
+   * permission decisions and every runtime behaviour stay identical.
+   * Unset follows the code default (on). Set `false` to send the full prompt.
+   */
+  leanPrompt?: boolean;
 }
 
 /**

@@ -51,6 +51,10 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 - 收掉 `isCommandRunning` getter 与 skill Artifact 空门控
 - webview 不再传死掉的项目插件开关
 
+## 后续同步
+
+见 [2026-10-10-wave-sdk-sync.md](./2026-10-10-wave-sdk-sync.md)。
+
 ## 刻意未动
 
 - **Workflow**：等产品评估

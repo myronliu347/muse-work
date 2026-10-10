@@ -97,6 +97,11 @@ Usage notes:
 - Use multiSelect: true to allow multiple answers to be selected for a question
 - If you recommend a specific option, make that the first option in the list and add "(Recommended)" at the end of the label
 `,
+  leanPrompt: `Use this tool when you need to ask the user questions during execution: preferences, clarifications, decisions on implementation choices, or a choice of direction.
+
+- Users can always select "Other" to provide custom text input.
+- \`multiSelect: true\` allows multiple answers to be selected for a question.
+- If you recommend an option, put it first and append "(Recommended)" to its label.`,
   execute: async (args, context) => {
     const {
       questions,

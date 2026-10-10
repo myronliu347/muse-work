@@ -1426,6 +1426,44 @@ describe("ConfigurationService", () => {
     });
   });
 
+  describe("loadMergedMuseConfig — leanPrompt", () => {
+    it("keeps an explicit false instead of dropping it", () => {
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      mockExistsSync.mockImplementation((p) => p.toString().includes(userSettingsPath));
+      mockReadFileSync.mockImplementation((p) => {
+        if (p.toString().includes(userSettingsPath)) {
+          return JSON.stringify({ leanPrompt: false });
+        }
+        return "";
+      });
+
+      expect(loadMergedMuseConfig(tempDir)?.leanPrompt).toBe(false);
+    });
+
+    it("lets the project setting override the user setting", () => {
+      const userSettingsPath = path.join(userHome, ".muse-work", "settings.json");
+      const projectSettingsPath = path.join(tempDir, ".muse-work", "settings.json");
+      mockExistsSync.mockImplementation((p) => {
+        const pathStr = p.toString();
+        return [userSettingsPath, projectSettingsPath].some((expected) =>
+          pathStr.includes(expected),
+        );
+      });
+      mockReadFileSync.mockImplementation((p) => {
+        const pathStr = p.toString();
+        if (pathStr.includes(userSettingsPath)) {
+          return JSON.stringify({ leanPrompt: false });
+        }
+        if (pathStr.includes(projectSettingsPath)) {
+          return JSON.stringify({ leanPrompt: true });
+        }
+        return "";
+      });
+
+      expect(loadMergedMuseConfig(tempDir)?.leanPrompt).toBe(true);
+    });
+  });
+
 
   describe("loadMuseConfigFromFile — read tolerance", () => {
     it("should return null for empty file (not throw)", () => {
