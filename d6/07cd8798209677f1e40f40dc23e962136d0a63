@@ -1,0 +1,50 @@
+packages/server/src/services/sessionRunner/agent.ts
+  05412be0e8d72bcb 578-579
+packages/server/src/services/sessionRunner/core.ts
+  05412be0e8d72bcb 68
+packages/server/tests/defaultCreateAgent.displayMessages.test.ts
+  05412be0e8d72bcb 1-28
+packages/server/src/services/sessionRunner/ctx.ts
+  05412be0e8d72bcb 60-63,122-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d607cd8798209677f1e40f40dc23e962136d0a63",
+  "prompts": {
+    "05412be0e8d72bcb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c4fb04a7-f8fb-42d6-abee-a2314fc0bfd3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 4,
+      "accepted_lines": 38,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/core.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 7,
+          "deletions": 2,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/defaultCreateAgent.displayMessages.test.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
