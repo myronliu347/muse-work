@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   renderChatApp,
   screen,
@@ -73,9 +73,36 @@ function fakeGeometryAndScroll(scrollTop: number) {
   });
 }
 
+const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "offsetHeight",
+);
+const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "offsetWidth",
+);
+
 describe("sticky user message", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Row offsets come from the virtualizer's measurements, which read offsetHeight.
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      value: 800,
+    });
+  });
+
+  afterEach(() => {
+    if (originalOffsetHeight) {
+      Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight);
+    }
+    if (originalOffsetWidth) {
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
+    }
   });
 
   it("has no sticky header before scrolling", async () => {
@@ -156,14 +183,17 @@ describe("sticky user message", () => {
       expect(screen.getByTestId("sticky-user-message")).toBeInTheDocument(),
     );
 
-    const target = screen
-      .getByTestId("messages-container")
-      .querySelector('[data-message-id="u2"]') as HTMLElement;
-    const spy = vi.spyOn(target, "scrollIntoView").mockImplementation(() => {});
+    const container = screen.getByTestId("messages-container");
+    if (!HTMLElement.prototype.scrollTo) {
+      HTMLElement.prototype.scrollTo = function scrollTo() {};
+    }
+    const spy = vi.spyOn(container, "scrollTo").mockImplementation(() => {});
     act(() => {
       fireEvent.click(screen.getByTestId("sticky-user-message"));
     });
-    expect(spy).toHaveBeenCalledWith({ behavior: "auto", block: "center" });
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: "auto" }),
+    );
   });
 
   it("renders sticky content with the 3-line clamp class", async () => {

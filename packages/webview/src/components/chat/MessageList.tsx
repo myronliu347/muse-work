@@ -7,6 +7,11 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import {
+  useVirtualizer,
+  elementScroll,
+  observeElementRect,
+} from "@tanstack/react-virtual";
 import { Message } from "../message/Message";
 import { FileHistoryCard } from "../message/FileHistoryCard";
 import {
@@ -21,6 +26,106 @@ import {
   pickActiveUserMessageId,
 } from "../message/UserMessageNav";
 import "../../styles/MessageList.css";
+
+/** Matches --space-4 / --space-3 so virtual offsets line up with the column. */
+const COLUMN_PAD = 16;
+const ROW_GAP = 12;
+
+type FoldState = "plain" | "open" | "collapsed";
+
+interface MeasuredEntry {
+  height: number;
+  fold: FoldState;
+}
+
+type UserRow = { kind: "user"; key: string; message: MessageType };
+type AssistantRow = {
+  kind: "assistant";
+  key: string;
+  messages: MessageType[];
+  collapsed: boolean;
+  single: boolean;
+  finalText: { messageId: string; blockIndex: number } | null;
+};
+type ListRow = UserRow | AssistantRow;
+
+const measuredHeights = new Map<string, MeasuredEntry>();
+const MEASURED_HEIGHTS_LIMIT = 2000;
+const HEIGHTS_STORAGE_KEY = "muse-webview:measured-heights:v1";
+let measuredSum = 0;
+let measuredCount = 0;
+let avgMeasuredHeight = 200;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
+function loadMeasuredHeights() {
+  try {
+    const raw = localStorage.getItem(HEIGHTS_STORAGE_KEY);
+    if (!raw) return;
+    const entries = JSON.parse(raw) as Array<[string, { h: number; f?: FoldState }]>;
+    for (const [id, entry] of entries) {
+      if (measuredHeights.size >= MEASURED_HEIGHTS_LIMIT) break;
+      if (typeof id !== "string" || typeof entry?.h !== "number" || entry.h <= 0) {
+        continue;
+      }
+      const fold =
+        entry.f === "open" || entry.f === "collapsed" || entry.f === "plain"
+          ? entry.f
+          : "plain";
+      measuredHeights.set(id, { height: entry.h, fold });
+      measuredSum += entry.h;
+      measuredCount++;
+    }
+    if (measuredCount > 0) avgMeasuredHeight = measuredSum / measuredCount;
+  } catch {
+    measuredHeights.clear();
+    measuredSum = 0;
+    measuredCount = 0;
+    avgMeasuredHeight = 200;
+  }
+}
+
+loadMeasuredHeights();
+
+function scheduleSaveMeasuredHeights() {
+  if (saveTimer !== undefined) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = undefined;
+    try {
+      const payload: Array<[string, { h: number; f: FoldState }]> = [];
+      measuredHeights.forEach((entry, id) => {
+        payload.push([id, { h: entry.height, f: entry.fold }]);
+      });
+      localStorage.setItem(HEIGHTS_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // Quota exceeded or storage unavailable — keep the in-memory cache.
+    }
+  }, 400);
+}
+
+function recordMeasuredHeight(id: string, height: number, fold: FoldState) {
+  if (height <= 0) return;
+  const prev = measuredHeights.get(id);
+  if (prev) {
+    measuredSum += height - prev.height;
+  } else {
+    if (measuredHeights.size >= MEASURED_HEIGHTS_LIMIT) {
+      const oldest = measuredHeights.keys().next().value;
+      if (oldest !== undefined) {
+        const evicted = measuredHeights.get(oldest);
+        measuredHeights.delete(oldest);
+        if (evicted) {
+          measuredSum -= evicted.height;
+          measuredCount = Math.max(0, measuredCount - 1);
+        }
+      }
+    }
+    measuredSum += height;
+    measuredCount++;
+  }
+  if (measuredCount > 0) avgMeasuredHeight = measuredSum / measuredCount;
+  measuredHeights.set(id, { height, fold });
+  scheduleSaveMeasuredHeights();
+}
 
 /** Locate the last non-empty text block in an assistant group. */
 function findFinalTextBlock(
@@ -39,10 +144,6 @@ function findFinalTextBlock(
   return null;
 }
 
-// Count the blocks in an assistant message that Message.tsx wraps in a `.timeline-row`
-// (i.e. that carry a timeline dot): non-empty text/compact, tool, and reasoning blocks.
-// Mirrors the `wrap` logic in Message.renderBlock so the group can decide whether it has
-// a single lone dot (no connecting line) or multiple dots (draw the line).
 /** True when the latest assistant turn already shows an in-progress reasoning block. */
 function hasInProgressReasoning(messages: MessageType[]): boolean {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -76,6 +177,99 @@ function countTimelineBlocks(message: MessageType): number {
   return count;
 }
 
+function userRowText(message: MessageType): string {
+  return (message.blocks ?? [])
+    .filter((block) => block.type === "text")
+    .map((block) => block.content || "")
+    .join(" ")
+    .trim();
+}
+
+function defaultFoldState(row: ListRow): FoldState {
+  if (row.kind === "user") return "plain";
+  return row.collapsed ? "collapsed" : "open";
+}
+
+function detectFoldState(node: HTMLElement): FoldState {
+  if (node.querySelector('[data-testid="assistant-group-collapsed"]')) {
+    return "collapsed";
+  }
+  if (node.querySelector(".assistant-group")) return "open";
+  return "plain";
+}
+
+function buildRows(messages: MessageType[], isStreaming: boolean | undefined): ListRow[] {
+  const visible: MessageType[] = [];
+  for (const message of messages) {
+    if (message.role === "user" && message.isMeta) continue;
+    visible.push(message);
+  }
+  const rows: ListRow[] = [];
+  let group: MessageType[] = [];
+  const lastVisibleId = visible[visible.length - 1]?.id;
+  const flushGroup = () => {
+    if (group.length === 0) return;
+    const groupMessages = group;
+    const isLiveGroup =
+      Boolean(isStreaming) && groupMessages.some((message) => message.id === lastVisibleId);
+    const finalText = findFinalTextBlock(groupMessages);
+    const collapsed = !isLiveGroup && Boolean(finalText) && shouldCollapseAssistantGroup(groupMessages);
+    const dotCount = groupMessages.reduce((sum, message) => sum + countTimelineBlocks(message), 0);
+    rows.push({
+      kind: "assistant",
+      key: `g:${groupMessages[0].id}`,
+      messages: groupMessages,
+      collapsed,
+      single: dotCount <= 1,
+      finalText,
+    });
+    group = [];
+  };
+  for (const message of visible) {
+    if (message.role === "assistant") {
+      group.push(message);
+    } else {
+      flushGroup();
+      rows.push({ kind: "user", key: message.id, message });
+    }
+  }
+  flushGroup();
+  return rows;
+}
+
+function latestTurnFileHistory(
+  messages: MessageType[],
+  workdir: string | undefined,
+): { messageIds: string[]; snapshots: EnrichedFileSnapshot[] } | null {
+  const visible: MessageType[] = [];
+  for (const message of messages) {
+    if (message.role === "user" && message.isMeta) continue;
+    visible.push(message);
+  }
+  const mergedSnapshots: EnrichedFileSnapshot[] = [];
+  const turnMessageIds: string[] = [];
+  let inTurn = false;
+  for (let i = visible.length - 1; i >= 0; i--) {
+    const message = visible[i];
+    if (message.role === "user" && !message.isMeta) break;
+    if (message.role !== "assistant") continue;
+    inTurn = true;
+    turnMessageIds.push(message.id);
+    const historyBlock = (message.blocks ?? []).find((block) => block.type === "file_history") as
+      | { type: "file_history"; snapshots: unknown[] }
+      | undefined;
+    if (historyBlock && Array.isArray(historyBlock.snapshots) && historyBlock.snapshots.length > 0) {
+      mergedSnapshots.push(
+        ...(historyBlock.snapshots as unknown as EnrichedFileSnapshot[]).filter(
+          (snapshot) => !workdir || (snapshot.filePath ?? "").startsWith(workdir),
+        ),
+      );
+    }
+  }
+  if (!inTurn || mergedSnapshots.length === 0 || turnMessageIds.length === 0) return null;
+  return { messageIds: turnMessageIds, snapshots: mergedSnapshots };
+}
+
 export const MessageList = forwardRef<
   { scrollToBottom: (behavior?: ScrollBehavior) => void },
   MessageListProps
@@ -97,164 +291,194 @@ export const MessageList = forwardRef<
   },
   ref,
 ) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement | null>(null);
 
   const prevMessagesLengthRef = useRef(messages.length);
   const prevQueuedLengthRef = useRef(queuedMessages?.length || 0);
-  // True until the first effect run after mount. MessageList only renders once
-  // messages exist (empty state shows LoadingLogo/WelcomeView), so the first run
-  // IS the initial session load and must force-scroll to the bottom.
   const isFirstEffectRef = useRef(true);
-  // Detect session / history replacement so we jump instantly, not smoothly.
   const prevListHeadRef = useRef<string | undefined>(messages[0]?.id);
-  // True when the user has scrolled up away from the bottom. While set,
-  // auto-scroll-to-bottom is suspended so the user can read history undisturbed
-  // during streaming. Set by ANY upward scroll (even a few px) — detected by
-  // comparing scrollTop direction in the scroll handler — so a light upward
-  // nudge is respected instead of being overridden because the user is still
-  // "within the bottom threshold". Cleared only when the user scrolls back down
-  // to the bottom region.
   const userScrolledUpRef = useRef(false);
-  // Briefly true around our own scrollIntoView calls so the scroll handler can
-  // ignore those as user intent. Streaming uses 'auto' (instant, single fire),
-  // so a one-frame reset via requestAnimationFrame is sufficient.
-  const isProgrammaticScrollRef = useRef(false);
-  // Last seen scrollTop, used to detect scroll direction (up vs down).
+  const pendingProgrammaticScrollsRef = useRef(0);
+  const programmaticClearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const prevScrollTopRef = useRef(0);
-  // Last seen scrollHeight, used to tell a content-shrink clamp apart from a
-  // genuine user scroll-up. When content above the viewport shrinks (reasoning
-  // auto-collapse, streaming-end reflow, image load, etc.) the browser clamps
-  // scrollTop downward to keep it within bounds, which otherwise looks identical
-  // to an upward user gesture and would wrongly suspend auto-follow.
   const prevScrollHeightRef = useRef(0);
-  // Last seen clientHeight, used the same way for a viewport-GROWTH clamp: when
-  // the container gets taller (confirmation dialog closes, input area shrinks,
-  // window/panel grows) while parked at the bottom, the browser clamps scrollTop
-  // downward with scrollHeight UNCHANGED — which passes the contentShrank check
-  // and would likewise suspend auto-follow without a user gesture.
   const prevClientHeightRef = useRef(0);
 
-  // The most-recent user message that has scrolled above the viewport top; pinned
-  // at the top of the list as a context hint (设计稿 2236-3792).
   const [stickyMessage, setStickyMessage] = useState<{
     id: string;
     text: string;
   } | null>(null);
+  const stickyRef = useRef<{ id: string; text: string } | null>(null);
   const [activeNavId, setActiveNavId] = useState<string | undefined>();
-  const navEntries = useMemo(
-    () => navEntriesFromMessages(messages),
-    [messages],
+  const navEntries = useMemo(() => navEntriesFromMessages(messages), [messages]);
+
+  const rows = useMemo(() => buildRows(messages, isStreaming), [messages, isStreaming]);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const fileHistory = useMemo(
+    () => (isStreaming ? null : latestTurnFileHistory(messages, workdir)),
+    [messages, isStreaming, workdir],
+  );
+
+  const markProgrammaticScroll = useCallback(() => {
+    pendingProgrammaticScrollsRef.current++;
+    if (programmaticClearTimerRef.current === undefined) {
+      programmaticClearTimerRef.current = setTimeout(() => {
+        programmaticClearTimerRef.current = undefined;
+        pendingProgrammaticScrollsRef.current = 0;
+      }, 100);
+    }
+  }, []);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: (index) => {
+      const row = rows[index];
+      if (!row) return avgMeasuredHeight;
+      const cached = measuredHeights.get(row.key);
+      if (cached && cached.fold === defaultFoldState(row)) return cached.height;
+      return avgMeasuredHeight;
+    },
+    measureElement: (node, entry) => {
+      const element = node as HTMLElement;
+      const box = entry?.borderBoxSize?.[0]?.blockSize;
+      const measured = typeof box === "number" ? box : element.offsetHeight;
+      const height = measured > 0 ? Math.round(measured) : 0;
+      const id = element.getAttribute("data-measured-row-key");
+      if (id && height > 0) recordMeasuredHeight(id, height, detectFoldState(element));
+      if (height > 0) return height;
+      const index = Number(element.getAttribute("data-index"));
+      const row = rows[index];
+      if (!row) return avgMeasuredHeight;
+      const cached = measuredHeights.get(row.key);
+      if (cached && cached.fold === defaultFoldState(row)) return cached.height;
+      return avgMeasuredHeight;
+    },
+    overscan: 20,
+    gap: ROW_GAP,
+    paddingStart: COLUMN_PAD,
+    paddingEnd: COLUMN_PAD,
+    anchorTo: "end",
+    followOnAppend: true,
+    getItemKey: (index) => rows[index]?.key ?? index,
+    directDomUpdates: true,
+    directDomUpdatesMode: "position",
+    useFlushSync: false,
+    useAnimationFrameWithResizeObserver: true,
+    // jsdom reports a 0×0 scrollport, which would mount zero rows. A real
+    // layout replaces this on the first non-zero measurement.
+    observeElementRect: (instance, cb) =>
+      observeElementRect(instance, (rect) => {
+        cb(
+          rect.height > 0
+            ? rect
+            : { width: rect.width || 800, height: 100_000 },
+        );
+      }),
+    scrollToFn: (offset, opts, instance) => {
+      if (spacerRef.current) {
+        spacerRef.current.style.height = `${instance.getTotalSize()}px`;
+      }
+      markProgrammaticScroll();
+      elementScroll(offset, opts, instance);
+    },
+  });
+
+  const measureRow = useCallback(
+    (node: HTMLDivElement | null) => {
+      virtualizer.measureElement(node);
+    },
+    [virtualizer],
   );
 
   const computeSticky = useCallback(() => {
     const container = containerRef.current;
+    const setSticky = (next: { id: string; text: string } | null) => {
+      const prev = stickyRef.current;
+      const same =
+        prev === null
+          ? next === null
+          : next !== null && prev.id === next.id && prev.text === next.text;
+      if (!same) setStickyMessage(next);
+    };
     if (!container) {
-      setStickyMessage(null);
+      setSticky(null);
       return;
     }
-    const containerRect = container.getBoundingClientRect();
-    const viewportTop = containerRect.top;
-    const nodes = container.querySelectorAll<HTMLElement>(
-      '[data-role="user"][data-message-id]',
-    );
-    let candidate: HTMLElement | null = null;
-    // Last user message fully scrolled above the scrollport top (avoid duplicate
-    // overlap while the bubble is still partly visible).
-    for (const node of nodes) {
-      const rect = node.getBoundingClientRect();
-      const aboveViewport =
-        rect.height > 0
-          ? rect.bottom <= viewportTop + 1
-          : node.offsetTop < container.scrollTop;
-      if (aboveViewport) {
-        candidate = node;
-      } else {
-        break;
+    const at = virtualizer.getVirtualItemForOffset(container.scrollTop);
+    let index = at ? at.index : -1;
+    if (at && at.start >= container.scrollTop) index = at.index - 1;
+    const list = rowsRef.current;
+    let candidate: { id: string; text: string } | null = null;
+    while (index >= 0) {
+      const row = list[index];
+      if (row?.kind === "user") {
+        const text = userRowText(row.message);
+        if (text && row.message.id) {
+          candidate = { id: row.message.id, text };
+          break;
+        }
       }
+      index--;
     }
-    if (!candidate) {
-      setStickyMessage(null);
-      return;
-    }
-    const id = candidate.getAttribute("data-message-id") || "";
-    const text =
-      candidate.querySelector(".user-content")?.textContent?.trim() || "";
-    if (!id || !text) {
-      setStickyMessage(null);
-      return;
-    }
-    setStickyMessage((prev) =>
-      prev && prev.id === id && prev.text === text ? prev : { id, text },
-    );
-  }, []);
+    setSticky(candidate);
+  }, [virtualizer]);
 
   const computeActiveNav = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
-    const nodes = container.querySelectorAll<HTMLElement>(
-      '[data-role="user"][data-message-id]',
-    );
     const items: Array<{ id: string; top: number }> = [];
-    nodes.forEach((node) => {
-      const id = node.getAttribute("data-message-id") || "";
-      if (id) items.push({ id, top: node.offsetTop });
-    });
+    const list = rowsRef.current;
+    const measurements = virtualizer.measurementsCache;
+    for (let index = 0; index < list.length; index++) {
+      const row = list[index];
+      if (row.kind !== "user" || !row.message.id) continue;
+      const top = measurements[index]?.start;
+      if (typeof top !== "number") continue;
+      items.push({ id: row.message.id, top });
+    }
     const next = pickActiveUserMessageId(items, {
       scrollTop: container.scrollTop,
       clientHeight: container.clientHeight,
     });
     setActiveNavId((prev) => (prev === next ? prev : next));
-  }, []);
+  }, [virtualizer]);
 
-  const scrollToMessage = useCallback((id: string) => {
-    const container = containerRef.current;
-    const node = container?.querySelector<HTMLElement>(
-      `[data-message-id="${id}"]`,
-    );
-    node?.scrollIntoView({ behavior: "auto", block: "center" });
-  }, []);
+  const scrollToMessage = useCallback(
+    (id: string) => {
+      const index = rowsRef.current.findIndex(
+        (row) => row.kind === "user" && row.message.id === id,
+      );
+      if (index >= 0) {
+        virtualizer.scrollToIndex(index, { align: "center", behavior: "auto" });
+      }
+    },
+    [virtualizer],
+  );
 
-  // Perform a programmatic scroll-to-bottom, guarding it with the
-  // isProgrammaticScroll flag so the scroll handler treats the resulting
-  // 'scroll' event as ours (not the user's) and leaves userScrolledUp alone.
-  const doScrollToBottom = useCallback((behavior: ScrollBehavior) => {
-    const messagesEnd = messagesEndRef.current;
-    if (!messagesEnd) return;
-    isProgrammaticScrollRef.current = true;
-    messagesEnd.scrollIntoView({ behavior });
-    // 'auto' is instant (single 'scroll' fire); reset on the next frame.
-    requestAnimationFrame(() => {
-      isProgrammaticScrollRef.current = false;
-    });
-  }, []);
+  const doScrollToBottom = useCallback(
+    (behavior: ScrollBehavior) => {
+      virtualizer.scrollToEnd({ behavior });
+    },
+    [virtualizer],
+  );
 
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = "smooth", force = false) => {
       const container = containerRef.current;
-      const messagesEnd = messagesEndRef.current;
-      if (!container || !messagesEnd) return;
+      if (!container) return;
 
       const isNearBottom =
-        container.scrollTop + container.clientHeight >=
-        container.scrollHeight - 300;
-
+        container.scrollTop + container.clientHeight >= container.scrollHeight - 300;
       const isUserMessage =
         messages.length > 0 && messages[messages.length - 1].role === "user";
-      // Force scroll if it's a new message AND (it's from user OR user is already at bottom)
-      const shouldForce =
-        force && (isUserMessage || !userScrolledUpRef.current);
+      const shouldForce = force && (isUserMessage || !userScrolledUpRef.current);
 
-      // Always scroll if:
-      // 1. It's a brand new message that should be forced
-      // 2. We are currently streaming content AND user hasn't scrolled up
-      // 3. The user is already near the bottom AND hasn't scrolled up
-      if (
-        shouldForce ||
-        ((isStreaming || isNearBottom) && !userScrolledUpRef.current)
-      ) {
-        // A new user message means the user wants to follow the upcoming reply:
-        // clear any prior opt-out so streaming auto-scrolls into view.
+      if (shouldForce || ((isStreaming || isNearBottom) && !userScrolledUpRef.current)) {
         if (shouldForce && isUserMessage) {
           userScrolledUpRef.current = false;
         }
@@ -264,64 +488,37 @@ export const MessageList = forwardRef<
     [messages, isStreaming, doScrollToBottom],
   );
 
-  // Expose scrollToBottom method to parent component
   useImperativeHandle(ref, () => ({
     scrollToBottom: (behavior: ScrollBehavior = "smooth") => {
       doScrollToBottom(behavior);
     },
   }));
 
-  // Auto-scroll to bottom when messages change, streaming updates, or subagent messages update
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Initial load / session switch scrolls instantly ('auto') — a smooth
-    // animation would compute its target once and land short while async
-    // content (images, webfonts, mermaid) is still loading.
     const listHead = messages[0]?.id;
-    const isSessionSwap =
-      Boolean(listHead) && listHead !== prevListHeadRef.current;
+    const isSessionSwap = Boolean(listHead) && listHead !== prevListHeadRef.current;
     prevListHeadRef.current = listHead;
     const isInitialLoad = isFirstEffectRef.current && messages.length > 0;
     isFirstEffectRef.current = false;
-    if (isSessionSwap) {
-      userScrolledUpRef.current = false;
-    }
+    if (isSessionSwap) userScrolledUpRef.current = false;
     const isNewMessage =
       messages.length > prevMessagesLengthRef.current ||
       (queuedMessages?.length || 0) > prevQueuedLengthRef.current;
     prevMessagesLengthRef.current = messages.length;
     prevQueuedLengthRef.current = queuedMessages?.length || 0;
 
-    // The scroll event fires for user scrolling (wheel, trackpad, keyboard,
-    // scrollbar drag) AND our own programmatic scrollIntoView. We distinguish
-    // them with isProgrammaticScroll: ignore 'scroll' events we caused, so they
-    // can't reset userScrolledUp and yank the user back to the bottom. For real
-    // user scrolling, we use DIRECTION to decide intent — any upward scroll
-    // (even a few px) suspends following, so a light nudge up is respected
-    // instead of being overridden by the bottom-threshold check. Only scrolling
-    // back down to the bottom region resumes following.
     const handleScroll = () => {
-      if (!isProgrammaticScrollRef.current) {
+      if (pendingProgrammaticScrollsRef.current > 0) {
+        pendingProgrammaticScrollsRef.current--;
+      } else {
         const isNearBottom =
-          container.scrollTop + container.clientHeight >=
-          container.scrollHeight - 300;
+          container.scrollTop + container.clientHeight >= container.scrollHeight - 300;
         const scrolledUp = container.scrollTop < prevScrollTopRef.current;
-        // A clamp from a content-shrink reflow (scrollHeight decreased) moves
-        // scrollTop downward but is NOT user intent — ignore it so auto-follow
-        // survives reasoning collapse / streaming-end reflow / image load.
-        const contentShrank =
-          container.scrollHeight < prevScrollHeightRef.current;
-        // Same for a viewport-growth clamp (clientHeight increased, scrollHeight
-        // unchanged): the container got taller under the user's parked position,
-        // e.g. when the confirmation dialog closes and the input area comes back
-        // shorter than the dialog.
-        const viewportGrew =
-          container.clientHeight > prevClientHeightRef.current;
-        // An upward gesture always opts out of following (covers the "slight
-        // nudge up then stop" case that the distance threshold alone missed).
-        // A downward gesture to the bottom region opts back in.
+        const contentShrank = container.scrollHeight < prevScrollHeightRef.current;
+        const viewportGrew = container.clientHeight > prevClientHeightRef.current;
         if (scrolledUp && !contentShrank && !viewportGrew) {
           userScrolledUpRef.current = true;
         } else if (isNearBottom) {
@@ -335,30 +532,22 @@ export const MessageList = forwardRef<
       computeActiveNav();
     };
 
-    container.addEventListener("scroll", handleScroll);
+    const handleWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && event.deltaY < 0) userScrolledUpRef.current = true;
+    };
 
-    // Use ResizeObserver to recompute sticky state on content height changes
-    // (images, diffs, etc.). Auto-scroll itself is driven by the messages
-    // dependency below, not by the observer.
+    container.addEventListener("scroll", handleScroll);
+    container.addEventListener("wheel", handleWheel, { passive: true });
+
     const resizeObserver = new ResizeObserver(() => {
-      // Re-baseline the geometry refs on container resizes. A resize that
-      // produces no scroll event (user not at the bottom → no clamp) would
-      // otherwise leave prevClientHeight stale, and the NEXT genuine scroll-up
-      // would be misread as a viewport-growth clamp and fail to suspend
-      // following. If a clamp's scroll event hasn't been dispatched yet,
-      // re-baselining here also neutralizes it (scrollTop no longer "decreased").
       prevScrollTopRef.current = container.scrollTop;
       prevScrollHeightRef.current = container.scrollHeight;
       prevClientHeightRef.current = container.clientHeight;
       computeSticky();
       computeActiveNav();
     });
-
     resizeObserver.observe(container);
 
-    // Follow new content: scroll on every messages change (incl. streaming text
-    // chunks so streamed text stays visible), gated by userScrolledUp inside
-    // scrollToBottom. A brand-new message forces the scroll.
     scrollToBottom(
       isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
       isNewMessage || isInitialLoad || isSessionSwap,
@@ -369,19 +558,10 @@ export const MessageList = forwardRef<
     return () => {
       resizeObserver.disconnect();
       container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("wheel", handleWheel);
     };
-  }, [
-    messages,
-    queuedMessages,
-    isStreaming,
-    scrollToBottom,
-    computeSticky,
-    computeActiveNav,
-  ]);
+  }, [messages, queuedMessages, isStreaming, scrollToBottom, computeSticky, computeActiveNav]);
 
-  // Re-pin to the true bottom after async content finishes loading (image
-  // decode, webfont reflow, mermaid render). 'load' doesn't bubble, so listen in
-  // capture phase; re-pin with 'auto' — a smooth re-pin would miss again.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -393,258 +573,170 @@ export const MessageList = forwardRef<
     return () => container.removeEventListener("load", repin, true);
   }, [doScrollToBottom]);
 
-  // Re-pin once the sticky user message renders. The sticky bar is a normal
-  // in-flow child (position: sticky keeps its space), inserted as the first
-  // element AFTER the initial load's scroll ran — so it grows scrollHeight by
-  // its own height and pushes the true bottom ~30-70px below the parked
-  // viewport. That happens after the main effect (stickyMessage isn't one of
-  // its deps) and often before fonts.ready/load fire, leaving the viewport
-  // short of the real bottom. Re-pin here, gated on being near the bottom
-  // (the push is far smaller than the 300px threshold) and on the user not
-  // having scrolled up, so a sticky change while reading history is ignored.
+  useEffect(() => {
+    const spacer = spacerRef.current;
+    if (!spacer) return;
+    const observer = new ResizeObserver(() => {
+      if (!userScrolledUpRef.current) doScrollToBottom("auto");
+    });
+    observer.observe(spacer);
+    return () => observer.disconnect();
+  }, [doScrollToBottom]);
+
+  useEffect(
+    () => () => {
+      if (programmaticClearTimerRef.current !== undefined) {
+        clearTimeout(programmaticClearTimerRef.current);
+        programmaticClearTimerRef.current = undefined;
+      }
+    },
+    [],
+  );
+
+  const showThinkingHint = isStreaming && !isCompacting && !hasInProgressReasoning(messages);
+
+  // Hints and the file-change card sit after the virtual spacer, so scrollToEnd
+  // stops short of them. Re-pin to the real bottom while the user is following.
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !stickyMessage) return;
-    const isNearBottom =
-      container.scrollTop + container.clientHeight >=
-      container.scrollHeight - 300;
-    if (isNearBottom && !userScrolledUpRef.current) {
-      doScrollToBottom("auto");
-    }
-  }, [stickyMessage, doScrollToBottom]);
+    if (!container || userScrolledUpRef.current) return;
+    if (!showThinkingHint && !isCompacting && !fileHistory) return;
+    markProgrammaticScroll();
+    container.scrollTop = container.scrollHeight;
+  }, [showThinkingHint, isCompacting, fileHistory, markProgrammaticScroll]);
 
-  const showThinkingHint =
-    isStreaming &&
-    !isCompacting &&
-    !hasInProgressReasoning(messages);
+  stickyRef.current = stickyMessage;
+
+  const renderMessage = (
+    message: MessageType,
+    extras?: {
+      blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
+      finalTextBlockIndex?: number;
+      keySuffix?: string;
+    },
+  ) => (
+    <Message
+      key={`${message.id}${extras?.keySuffix ?? ""}`}
+      message={message}
+      vscode={vscode}
+      onRewindToMessage={onRewindToMessage}
+      workdir={workdir}
+      onOpenPreview={onOpenPreview}
+      onOpenFile={onOpenFile}
+      onOpenAgentTranscript={onOpenAgentTranscript}
+      blockRenderMode={extras?.blockRenderMode}
+      finalTextBlockIndex={extras?.finalTextBlockIndex}
+    />
+  );
+
+  const renderRow = (row: ListRow) => {
+    if (row.kind === "user") return renderMessage(row.message);
+    const singleClass = row.single ? " assistant-group--single" : "";
+    if (row.collapsed && row.finalText) {
+      const finalText = row.finalText;
+      return (
+        <div
+          className={`assistant-group${singleClass}`}
+          data-testid="assistant-group-collapsed"
+        >
+          <AssistantWorkSummary messages={row.messages}>
+            {row.messages.map((message) =>
+              renderMessage(message, {
+                blockRenderMode: message.id === finalText.messageId ? "omitFinalText" : "all",
+                finalTextBlockIndex:
+                  message.id === finalText.messageId ? finalText.blockIndex : undefined,
+                keySuffix: "-work",
+              }),
+            )}
+          </AssistantWorkSummary>
+          {renderMessage(
+            row.messages.find((message) => message.id === finalText.messageId)!,
+            {
+              blockRenderMode: "finalTextOnly",
+              finalTextBlockIndex: finalText.blockIndex,
+              keySuffix: "-final",
+            },
+          )}
+        </div>
+      );
+    }
+    return (
+      <div className={`assistant-group${singleClass}`}>
+        {row.messages.map((message) => renderMessage(message))}
+      </div>
+    );
+  };
 
   return (
     <div className="messages-shell">
       <div
         ref={containerRef}
         id="messagesContainer"
-        className={`messages-container${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
+        className={`messages-container messages-container--virtual${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
         data-testid="messages-container"
       >
-      {stickyMessage && (
-        <div className="sticky-user-wrapper">
-          <div className="sticky-user-dock">
-            <div
-              className="sticky-user-message"
-              data-testid="sticky-user-message"
-              onClick={() => scrollToMessage(stickyMessage.id)}
-            >
-              <div className="sticky-user-content">{stickyMessage.text}</div>
+        {stickyMessage && (
+          <div className="sticky-user-wrapper">
+            <div className="sticky-user-dock">
+              <div
+                className="sticky-user-message"
+                data-testid="sticky-user-message"
+                onClick={() => scrollToMessage(stickyMessage.id)}
+              >
+                <div className="sticky-user-content">{stickyMessage.text}</div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
         <div className="messages-column">
-      {/* Chat messages - filter out user meta messages */}
-      {useMemo(() => {
-        // Filter out user messages with isMeta (hidden from the list)
-        const visibleMessages: MessageType[] = [];
-        for (const msg of messages) {
-          if (msg.role === "user" && msg.isMeta) continue;
-          visibleMessages.push(msg);
-        }
-
-        const renderMessage = (
-          message: MessageType,
-          extras?: {
-            blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
-            finalTextBlockIndex?: number;
-            keySuffix?: string;
-          },
-        ) => {
-          return (
-            <Message
-              key={`${message.id}${extras?.keySuffix ?? ""}`}
-              message={message}
-              vscode={vscode}
-              onRewindToMessage={onRewindToMessage}
+          <div
+            ref={(node) => {
+              virtualizer.containerRef(node);
+              spacerRef.current = node;
+            }}
+            className="virtual-spacer"
+          />
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            if (!row) return null;
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                data-measured-row-key={row.key}
+                ref={measureRow}
+                className="virtual-row"
+              >
+                {renderRow(row)}
+              </div>
+            );
+          })}
+          {fileHistory && (
+            <FileHistoryCard
+              key={`file-history-${fileHistory.messageIds.join(",")}`}
+              messageIds={fileHistory.messageIds}
+              snapshots={fileHistory.snapshots}
               workdir={workdir}
-              onOpenPreview={onOpenPreview}
-              onOpenFile={onOpenFile}
-              onOpenAgentTranscript={onOpenAgentTranscript}
-              blockRenderMode={extras?.blockRenderMode}
-              finalTextBlockIndex={extras?.finalTextBlockIndex}
+              onOpenFile={onOpenFileHistoryFile}
+              onRevert={onRevertFileHistory}
+              reverting={revertingFileHistory}
             />
-          );
-        };
-
-        // Group consecutive assistant messages into a single .assistant-group wrapper so
-        // the timeline vertical line runs continuously through all their dots. User
-        // messages break the timeline (rendered as bare bubbles outside any group).
-        const rendered: React.ReactNode[] = [];
-        let group: { message: MessageType }[] = [];
-        const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
-
-        const flushGroup = () => {
-          if (group.length === 0) return;
-          const groupMessages = group.map((g) => g.message);
-          const isLiveGroup =
-            Boolean(isStreaming) &&
-            groupMessages.some((m) => m.id === lastVisibleId);
-          const finalText = findFinalTextBlock(groupMessages);
-          const collapse =
-            !isLiveGroup &&
-            finalText &&
-            shouldCollapseAssistantGroup(groupMessages);
-
-          const dotCount = groupMessages.reduce(
-            (sum, m) => sum + countTimelineBlocks(m),
-            0,
-          );
-          const single = dotCount <= 1;
-
-          if (collapse && finalText) {
-            rendered.push(
-              <div
-                key={groupMessages[0].id}
-                className={`assistant-group${single ? " assistant-group--single" : ""}`}
-                data-testid="assistant-group-collapsed"
-              >
-                <AssistantWorkSummary messages={groupMessages}>
-                  {groupMessages.map((m) =>
-                    renderMessage(m, {
-                      blockRenderMode:
-                        m.id === finalText.messageId
-                          ? "omitFinalText"
-                          : "all",
-                      finalTextBlockIndex:
-                        m.id === finalText.messageId
-                          ? finalText.blockIndex
-                          : undefined,
-                      keySuffix: "-work",
-                    }),
-                  )}
-                </AssistantWorkSummary>
-                {renderMessage(
-                  groupMessages.find((m) => m.id === finalText.messageId)!,
-                  {
-                    blockRenderMode: "finalTextOnly",
-                    finalTextBlockIndex: finalText.blockIndex,
-                    keySuffix: "-final",
-                  },
-                )}
-              </div>,
-            );
-          } else {
-            rendered.push(
-              <div
-                key={groupMessages[0].id}
-                className={`assistant-group${single ? " assistant-group--single" : ""}`}
-              >
-                {groupMessages.map((m) => renderMessage(m))}
-              </div>,
-            );
-          }
-          group = [];
-        };
-
-        visibleMessages.forEach((message) => {
-          if (message.role === "assistant") {
-            group.push({ message });
-          } else {
-            flushGroup();
-            rendered.push(renderMessage(message));
-          }
-        });
-        flushGroup();
-
-        // "N 个文件已更改" card: render the NEWEST turn's file_history blocks
-        // below the list once streaming has settled. A turn starts at a real
-        // user message (role=user, not isMeta) and runs to the next one; a
-        // plain question with no changes shows nothing (no fallback to earlier
-        // turns).
-        if (!isStreaming) {
-          const mergedSnapshots: EnrichedFileSnapshot[] = [];
-          const turnMessageIds: string[] = [];
-          let inTurn = false;
-          for (let i = visibleMessages.length - 1; i >= 0; i--) {
-            const m = visibleMessages[i];
-            if (m.role === "user" && !m.isMeta) {
-              // The newest turn ends here; do not look further back.
-              break;
-            }
-            if (m.role !== "assistant") continue;
-            inTurn = true;
-            turnMessageIds.push(m.id);
-            const historyBlock = (m.blocks ?? []).find(
-              (b) => b.type === "file_history",
-            ) as
-              | { type: "file_history"; snapshots: unknown[] }
-              | undefined;
-            if (
-              historyBlock &&
-              Array.isArray(historyBlock.snapshots) &&
-              historyBlock.snapshots.length > 0
-            ) {
-              mergedSnapshots.push(
-                ...(historyBlock.snapshots as unknown as EnrichedFileSnapshot[]).filter(
-                  (s) => !workdir || (s.filePath ?? "").startsWith(workdir),
-                ),
-              );
-            }
-          }
-          // Show the card only when the turn actually produced workdir-visible
-          // changes — snapshots filtered out by the workdir check (or zero-diff
-          // ones the server dropped) must not render an empty "0 个文件" card.
-          if (inTurn && mergedSnapshots.length > 0 && turnMessageIds.length > 0) {
-            const snapshots = mergedSnapshots;
-            rendered.push(
-              <FileHistoryCard
-                key={`file-history-${turnMessageIds.join(",")}`}
-                messageIds={turnMessageIds}
-                snapshots={snapshots}
-                workdir={workdir}
-                onOpenFile={onOpenFileHistoryFile}
-                onRevert={onRevertFileHistory}
-                reverting={revertingFileHistory}
-              />,
-            );
-          }
-        }
-
-        return rendered;
-      }, [
-        messages,
-        isStreaming,
-        vscode,
-        onRewindToMessage,
-        workdir,
-        onOpenPreview,
-        onOpenFile,
-        onOpenAgentTranscript,
-        onRevertFileHistory,
-        revertingFileHistory,
-        onOpenFileHistoryFile,
-      ])}
-
-      {showThinkingHint && (
-        <div className="message-list-status-hint" data-testid="thinking-hint">
-          <span className="message-list-status-dot" aria-hidden="true" />
-          <span className="message-list-status-label text-shimmer">正在处理…</span>
-        </div>
-      )}
-
-      {isCompacting && (
-        <div className="message-list-status-hint" data-testid="compaction-hint">
-          <span className="message-list-status-dot" aria-hidden="true" />
-          <span className="message-list-status-label">正在压缩对话…</span>
-        </div>
-      )}
-
-        {/* Invisible div to scroll to */}
-        <div ref={messagesEndRef} />
+          )}
+          {showThinkingHint && (
+            <div className="message-list-status-hint" data-testid="thinking-hint">
+              <span className="message-list-status-dot" aria-hidden="true" />
+              <span className="message-list-status-label text-shimmer">正在处理…</span>
+            </div>
+          )}
+          {isCompacting && (
+            <div className="message-list-status-hint" data-testid="compaction-hint">
+              <span className="message-list-status-dot" aria-hidden="true" />
+              <span className="message-list-status-label">正在压缩对话…</span>
+            </div>
+          )}
         </div>
       </div>
-      <UserMessageNav
-        entries={navEntries}
-        activeId={activeNavId}
-        onSelect={scrollToMessage}
-      />
+      <UserMessageNav entries={navEntries} activeId={activeNavId} onSelect={scrollToMessage} />
     </div>
   );
 });

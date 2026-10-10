@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { observeElementRect, useVirtualizer } from "@tanstack/react-virtual";
 import type { Message as AgentMessage } from "@muse-work/agent";
 import { MessageInput } from "../chat/MessageInput";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
@@ -46,6 +47,13 @@ export type AssistantPageApi = {
   }>;
   getMessages?: (sessionId: string) => Promise<{ messages: unknown[] }>;
 };
+
+/** Matches .assistant-log padding-top (--space-4) and .assistant-column gap. */
+const LOG_SCROLL_MARGIN = 16;
+const LOG_ROW_GAP = 18;
+const LOG_ROW_ESTIMATE = 96;
+
+const logRowHeights = new Map<string, number>();
 
 const noopHost: VsCodeApi = {
   postMessage: () => {},
@@ -233,6 +241,45 @@ export const AssistantPage: React.FC<{
   const atTail = useRef(true);
   const loadingOlder = useRef(false);
 
+  const virtualizer = useVirtualizer({
+    count: lines.length,
+    getScrollElement: () => scroller.current,
+    estimateSize: (index) => logRowHeights.get(lines[index]?.id ?? "") ?? LOG_ROW_ESTIMATE,
+    measureElement: (node, entry) => {
+      const element = node as HTMLElement;
+      const box = entry?.borderBoxSize?.[0]?.blockSize;
+      const measured = typeof box === "number" ? box : element.offsetHeight;
+      const height = measured > 0 ? Math.round(measured) : 0;
+      const id = lines[Number(element.getAttribute("data-index"))]?.id;
+      if (id && height > 0) logRowHeights.set(id, height);
+      if (height > 0) return height;
+      return (id && logRowHeights.get(id)) || LOG_ROW_ESTIMATE;
+    },
+    overscan: 8,
+    gap: LOG_ROW_GAP,
+    scrollMargin: LOG_SCROLL_MARGIN,
+    // anchorTo "end" keeps the visible row in place when older lines are
+    // prepended, and follows new lines only while already at the bottom.
+    anchorTo: "end",
+    followOnAppend: true,
+    getItemKey: (index) => lines[index]?.id ?? index,
+    directDomUpdates: true,
+    directDomUpdatesMode: "position",
+    useFlushSync: false,
+    useAnimationFrameWithResizeObserver: true,
+    observeElementRect: (instance, cb) =>
+      observeElementRect(instance, (rect) => {
+        cb(rect.height > 0 ? rect : { width: rect.width || 800, height: 100_000 });
+      }),
+  });
+
+  const measureRow = useCallback(
+    (node: HTMLDivElement | null) => {
+      virtualizer.measureElement(node);
+    },
+    [virtualizer],
+  );
+
   const appendLine = useCallback((line: AssistantLine) => {
     setLines((prev) => (prev.some((item) => item.id === line.id) ? prev : [...prev, line]));
   }, []);
@@ -351,20 +398,16 @@ export const AssistantPage: React.FC<{
 
   const loadOlder = useCallback(async () => {
     const first = lines[0];
-    const el = scroller.current;
     if (!first || !hasMore || loadingOlder.current) return;
     loadingOlder.current = true;
-    const prevHeight = el?.scrollHeight ?? 0;
     try {
       const page = await api.listAssistantMessages({ before: first.id, limit: 50 });
       setHasMore(page.hasMore);
+      // Line ids are the virtualizer keys, so inserting older rows keeps the
+      // row that was on screen in place.
       setLines((prev) => {
         const ids = new Set(prev.map((line) => line.id));
         return [...page.messages.filter((line) => !ids.has(line.id)), ...prev];
-      });
-      requestAnimationFrame(() => {
-        if (!el) return;
-        el.scrollTop += el.scrollHeight - prevHeight;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -474,7 +517,7 @@ export const AssistantPage: React.FC<{
       ) : (
       <>
       <div
-        className="assistant-log"
+        className="assistant-log assistant-log--virtual"
         ref={scroller}
         onScroll={(event) => {
           const el = event.currentTarget;
@@ -484,25 +527,40 @@ export const AssistantPage: React.FC<{
       >
         <div className="assistant-column">
           {lines.length === 0 ? <p className="assistant-empty">还没有消息</p> : null}
-          {lines.map((line) =>
-            line.role === "user" ? (
-              <UserLine key={line.id} line={line} />
-            ) : (
-              <div key={line.id} className="assistant-bubble-row assistant-bubble-row-assistant">
-                <div className="assistant-bubble-name">
-                  Muse Bot
-                  {line.app === "popo" ? (
-                    <span className="assistant-bubble-source">POPO</span>
-                  ) : null}
-                </div>
-                <div
-                  className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
-                  dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
-                />
-                <BubbleTime at={line.at} />
+          <div
+            ref={virtualizer.containerRef}
+            className="virtual-spacer"
+          />
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const line = lines[virtualRow.index];
+            if (!line) return null;
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={measureRow}
+                className="virtual-row"
+              >
+                {line.role === "user" ? (
+                  <UserLine line={line} />
+                ) : (
+                  <div className="assistant-bubble-row assistant-bubble-row-assistant">
+                    <div className="assistant-bubble-name">
+                      Muse Bot
+                      {line.app === "popo" ? (
+                        <span className="assistant-bubble-source">POPO</span>
+                      ) : null}
+                    </div>
+                    <div
+                      className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
+                      dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
+                    />
+                    <BubbleTime at={line.at} />
+                  </div>
+                )}
               </div>
-            ),
-          )}
+            );
+          })}
           {working ? (
             <div className="message-list-status-hint" data-testid="thinking-hint">
               <span className="message-list-status-dot" aria-hidden="true" />

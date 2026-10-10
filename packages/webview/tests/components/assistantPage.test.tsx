@@ -127,6 +127,32 @@ describe("AssistantPage", () => {
     expect(screen.getAllByText("POPO")).toHaveLength(2);
   });
 
+  it("prepends older lines when the log is scrolled to the top", async () => {
+    const api = {
+      listAssistantMessages: vi.fn(async (query?: { before?: string }) => {
+        if (query?.before === "2") {
+          return {
+            messages: [{ id: "1", at: 1, role: "user" as const, message: "更早" }],
+            hasMore: false,
+          };
+        }
+        return {
+          messages: [{ id: "2", at: 2, role: "user" as const, message: "新的" }],
+          hasMore: true,
+        };
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("新的")).toBeTruthy();
+    const log = document.querySelector(".assistant-log") as HTMLDivElement;
+    Object.defineProperty(log, "scrollTop", { configurable: true, writable: true, value: 0 });
+    fireEvent.scroll(log);
+    expect(await screen.findByText("更早")).toBeTruthy();
+    expect(screen.getByText("新的")).toBeTruthy();
+    expect(api.listAssistantMessages).toHaveBeenCalledWith({ before: "2", limit: 50 });
+  });
+
   it("scrolls the chat log to the bottom when switching back from AI messages", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({

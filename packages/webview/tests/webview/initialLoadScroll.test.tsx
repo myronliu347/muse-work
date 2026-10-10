@@ -11,7 +11,7 @@ import {
 /**
  * Initial-load scrolling + async-content re-pin.
  * jsdom does no layout (scrollTop/clientHeight/scrollHeight are 0), and the
- * list now scrolls via a sentinel node's scrollIntoView — behavior that is
+ * list now scrolls via the virtualizer's scrollToEnd — behavior that is
  * hard to assert deterministically without a full layout engine.
  */
 describe.skip("initial load scroll + async-content re-pin", () => {

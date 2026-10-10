@@ -53,11 +53,14 @@ function setGeometryAndScroll(
 describe("auto-scroll follow during streaming", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    if (!HTMLElement.prototype.scrollTo) {
+      HTMLElement.prototype.scrollTo = function scrollTo() {};
+    }
   });
 
   it("keeps following when content above the viewport shrinks (e.g. reasoning collapse) without a user scroll-up", async () => {
     const scrollIntoView = vi
-      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .spyOn(HTMLElement.prototype, "scrollTo")
       .mockImplementation(() => {});
 
     renderChatApp();
@@ -74,9 +77,8 @@ describe("auto-scroll follow during streaming", () => {
     act(() => {
       sendCommand("startStreaming");
     });
-    // Let the programmatic-scroll flag (reset via requestAnimationFrame in
-    // doScrollToBottom) clear so the subsequent manual scroll events are evaluated
-    // as user/layout intent rather than ignored as our own scroll.
+    // Let the programmatic-scroll counter clear so the subsequent manual scroll
+    // events are evaluated as user/layout intent rather than ignored as our own scroll.
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
@@ -111,7 +113,7 @@ describe("auto-scroll follow during streaming", () => {
 
   it("keeps following when the viewport grows (e.g. confirmation dialog closes) without a user scroll-up", async () => {
     const scrollIntoView = vi
-      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .spyOn(HTMLElement.prototype, "scrollTo")
       .mockImplementation(() => {});
 
     renderChatApp();
@@ -160,7 +162,7 @@ describe("auto-scroll follow during streaming", () => {
 
   it("stops following after a genuine user scroll-up (geometry unchanged)", async () => {
     const scrollIntoView = vi
-      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .spyOn(HTMLElement.prototype, "scrollTo")
       .mockImplementation(() => {});
 
     renderChatApp();
