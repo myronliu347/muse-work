@@ -81,7 +81,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
   return [
     tool(
       "ListIssues",
-      "列出未完成 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（排在当前轮后面的消息摘要）。",
+      "列出未完成 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。",
       { type: "object", properties: {} },
       async () =>
         ok(
@@ -195,13 +195,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "MessageIssue",
-      "往 Issue 打开时创建的会话发送一条用户消息。默认排在当前轮后面。interrupt 为 true 时先中断当前轮再发，已排队的消息会被丢掉；这一轮如果正在等权限，中断会拒绝那次权限。",
+      "往 Issue 打开时创建的会话发送一条用户消息。会话正在跑时，消息会在当前这一步结束后进入同一轮，不中断正在进行的请求或工具，返回 joinedTurn。",
       {
         type: "object",
         properties: {
           issueId: { type: "string" },
           message: { type: "string" },
-          interrupt: { type: "boolean" },
         },
         required: ["issueId", "message"],
       },
@@ -211,11 +210,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         if (!issue?.planningSessionId) return fail("session not open");
         if (!message) return fail("message required");
         const sessionId = issue.planningSessionId;
-        const interrupt =
-          args.interrupt === true && deps.sessions.get(sessionId)?.status === "running";
-        if (interrupt) await deps.runner.abortMessage(sessionId);
+        const running = deps.sessions.get(sessionId)?.status === "running";
         await deps.runner.sendMessage(sessionId, message);
-        return ok({ accepted: true, ...(interrupt ? { interrupted: true } : {}) });
+        return ok({
+          accepted: true,
+          ...(running ? { joinedTurn: true } : {}),
+        });
       },
     ),
     tool(

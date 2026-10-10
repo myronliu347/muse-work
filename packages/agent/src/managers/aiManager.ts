@@ -1967,9 +1967,34 @@ ${question}`;
                   break inner;
                 }
 
+                await this.absorbQueuedUserMessages();
+
                 turnDepth++;
                 continue inner;
               }
+            }
+          }
+
+          // The model stopped. A user message that arrived during this step
+          // joins the same turn and is sampled before the turn ends.
+          if (
+            toolCalls.length === 0 &&
+            result.finish_reason !== "length" &&
+            !abortController.signal.aborted &&
+            !toolAbortController.signal.aborted &&
+            !(this.maxTurns && turnDepth + 1 >= this.maxTurns)
+          ) {
+            const steered = await this.absorbQueuedUserMessages();
+            if (steered) {
+              await new Promise((resolve) => setImmediate(resolve));
+              if (
+                abortController.signal.aborted ||
+                toolAbortController.signal.aborted
+              ) {
+                break inner;
+              }
+              turnDepth++;
+              continue inner;
             }
           }
 
@@ -2101,6 +2126,83 @@ ${question}`;
         }
         break outer;
       }
+    }
+  }
+
+  /**
+   * Pull queued user text into this turn. Returns true when at least one
+   * message was recorded and a UserPromptSubmit hook did not block it.
+   * Slash commands and background notifications stay in the queue.
+   */
+  private async absorbQueuedUserMessages(): Promise<boolean> {
+    if (
+      this.abortController?.signal.aborted ||
+      this.toolAbortController?.signal.aborted
+    ) {
+      return false;
+    }
+    const messageQueue = this.container.has("MessageQueue")
+      ? this.container.get<MessageQueue>("MessageQueue")
+      : undefined;
+    if (!messageQueue) return false;
+
+    const pending = messageQueue.takeSteerableUserMessages();
+    if (pending.length === 0) return false;
+
+    let accepted = false;
+    for (const message of pending) {
+      this.messageManager.addUserMessage({
+        content: message.content,
+        ...(message.images?.length
+          ? {
+              images: message.images.map((image) => ({
+                path: image.path,
+                mimeType: image.mimeType,
+              })),
+            }
+          : {}),
+      });
+      const blocked = await this.runQueuedUserPromptHook(message.content);
+      if (!blocked) accepted = true;
+    }
+    this.callbacks?.onQueuedMessagesChange?.(
+      messageQueue
+        .getQueue()
+        .filter((item) => item.type !== "notification"),
+    );
+    return accepted;
+  }
+
+  /** @returns true when the hook blocked the prompt */
+  private async runQueuedUserPromptHook(content: string): Promise<boolean> {
+    if (!this.hookManager) return false;
+    try {
+      const hookResults = await this.hookManager.executeHooks(
+        "UserPromptSubmit",
+        {
+          event: "UserPromptSubmit",
+          projectDir: this.getWorkdir(),
+          timestamp: new Date(),
+          sessionId: this.messageManager.getSessionId(),
+          transcriptPath: this.messageManager.getTranscriptPath(),
+          cwd: this.getWorkdir(),
+          userPrompt: content,
+          env: Object.fromEntries(
+            Object.entries(this.mergedEnv).filter(
+              (entry) => entry[1] !== undefined,
+            ),
+          ) as Record<string, string>,
+        },
+      );
+      const processResult = this.hookManager.processHookResults(
+        "UserPromptSubmit",
+        hookResults,
+        this.messageManager,
+      );
+      return processResult.shouldBlock;
+    } catch (error) {
+      logger?.warn("UserPromptSubmit hooks execution failed:", error);
+      return false;
     }
   }
 

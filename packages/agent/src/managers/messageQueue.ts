@@ -138,6 +138,31 @@ export class MessageQueue {
   }
 
   /**
+   * Take user messages that can join the active turn at the next model step.
+   * Notifications stay queued for the end of the turn. Slash commands stay
+   * queued so they still run through the idle dispatch path.
+   */
+  takeSteerableUserMessages(): QueuedMessage[] {
+    const taken: QueuedMessage[] = [];
+    const remaining: QueuedMessage[] = [];
+    for (const message of this.queue) {
+      if (this.isSteerableUserMessage(message)) {
+        taken.push(message);
+      } else {
+        remaining.push(message);
+      }
+    }
+    this.queue = remaining;
+    return taken;
+  }
+
+  private isSteerableUserMessage(message: QueuedMessage): boolean {
+    if (message.type === "notification") return false;
+    const trimmed = message.content.trim();
+    return !(trimmed.startsWith("/") && trimmed !== "/");
+  }
+
+  /**
    * Drain all notification items, returning their XML content. Non-notification
    * items (messages) are preserved in the queue.
    */

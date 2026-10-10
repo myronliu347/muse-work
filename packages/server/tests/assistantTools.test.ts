@@ -233,7 +233,7 @@ describe("assistant tools", () => {
     });
   });
 
-  it("shows a running issue session and interrupts only when asked", async () => {
+  it("joins a running issue session without interrupting it", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-"));
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-msg-wd-"));
     const issues = createIssueStore({ home });
@@ -249,10 +249,6 @@ describe("assistant tools", () => {
       log,
       hub: { broadcastAll: () => {} } as WsHub,
       runner: {
-        abortMessage: async (sessionId: string) => {
-          order.push(`abort:${sessionId}`);
-          return { ok: true as const };
-        },
         sendMessage: async (sessionId: string, content: string) => {
           order.push(`send:${sessionId}:${content}`);
           return { accepted: true as const };
@@ -291,18 +287,22 @@ describe("assistant tools", () => {
       { issueId: busy.id, message: "再看一下配置" },
       context,
     );
-    expect(JSON.parse(queued.content)).toEqual({ accepted: true });
+    expect(JSON.parse(queued.content)).toEqual({
+      accepted: true,
+      joinedTurn: true,
+    });
 
-    const interrupted = await tool(tools, "MessageIssue").execute(
-      { issueId: busy.id, message: "先停，改做这个", interrupt: true },
-      context,
-    );
-    expect(JSON.parse(interrupted.content)).toEqual({ accepted: true, interrupted: true });
-    expect(order).toEqual([
-      `send:${running.id}:再看一下配置`,
-      `abort:${running.id}`,
-      `send:${running.id}:先停，改做这个`,
-    ]);
+    expect(order).toEqual([`send:${running.id}:再看一下配置`]);
+    const messageIssue = tools.find((entry) => entry.name === "MessageIssue");
+    expect(messageIssue?.config.function.parameters).toEqual({
+      type: "object",
+      properties: {
+        issueId: { type: "string" },
+        message: { type: "string" },
+      },
+      required: ["issueId", "message"],
+    });
+    expect(messageIssue?.config.function.description).not.toContain("interrupt");
   });
 
   it("records the master's POPO private chat and skips groups", async () => {

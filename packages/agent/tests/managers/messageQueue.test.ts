@@ -523,4 +523,33 @@ describe("MessageQueue", () => {
       expect(queue.state).toBe("idle");
     });
   });
+
+  describe("takeSteerableUserMessages", () => {
+    it("takes user messages and leaves notifications and slash commands", () => {
+      const queue = new MessageQueue();
+      queue.enqueue({ content: "看一下配置" });
+      queue.enqueueNotification(
+        "<task-notification><task-id>bg-1</task-id></task-notification>",
+      );
+      queue.enqueue({ content: "/compact" });
+      queue.enqueue({
+        content: "带图",
+        images: [{ path: "/tmp/a.png", mimeType: "image/png" }],
+      });
+
+      const taken = queue.takeSteerableUserMessages();
+
+      expect(taken.map((message) => message.content)).toEqual([
+        "看一下配置",
+        "带图",
+      ]);
+      expect(taken[1]?.images).toEqual([
+        { path: "/tmp/a.png", mimeType: "image/png" },
+      ]);
+      expect(queue.getQueue().map((message) => message.content)).toEqual([
+        "<task-notification><task-id>bg-1</task-id></task-notification>",
+        "/compact",
+      ]);
+    });
+  });
 });
