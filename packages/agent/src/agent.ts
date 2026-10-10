@@ -1114,6 +1114,10 @@ export class Agent {
           images,
         });
         this.options.callbacks?.onQueuedMessagesChange?.(this.queuedMessages);
+        const isSlash = trimmed.startsWith("/") && trimmed !== "/";
+        if (!isSlash) {
+          await this.foregroundTaskManager.yieldRunningSubagents();
+        }
         return;
       }
       // Immediate slash command: fall through to InteractionService

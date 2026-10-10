@@ -91,9 +91,19 @@ export interface BackgroundTaskOutput {
 export interface ForegroundTask {
   id: string;
   backgroundHandler: () => Promise<void>;
+  /**
+   * Present on a foreground subagent. A follow-up user message calls this so
+   * the parent turn can continue while the subagent keeps running.
+   */
+  yieldForFollowUp?: () => Promise<void>;
 }
 
 export interface IForegroundTaskManager {
   registerForegroundTask(task: ForegroundTask): void;
   unregisterForegroundTask(id: string): void;
+  /**
+   * If a follow-up is already queued, move registered subagents to the
+   * background. Used when the follow-up arrived before the subagent started.
+   */
+  yieldIfQueuedFollowUp?(): Promise<void>;
 }

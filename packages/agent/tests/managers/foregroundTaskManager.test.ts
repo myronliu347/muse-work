@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { ForegroundTaskManager } from "../../src/managers/foregroundTaskManager.js";
+import { MessageQueue } from "../../src/managers/messageQueue.js";
 import { ForegroundTask } from "../../src/types/processes.js";
 import { Container } from "../../src/utils/container.js";
 
@@ -67,6 +68,84 @@ describe("ForegroundTaskManager", () => {
     const container = new Container();
     const manager = new ForegroundTaskManager(container);
     await expect(manager.backgroundCurrentTask()).resolves.not.toThrow();
+  });
+
+  it("yields only subagent tasks and leaves shell tasks in the foreground", async () => {
+    const container = new Container();
+    const manager = new ForegroundTaskManager(container);
+    const shellHandler = vi.fn().mockResolvedValue(undefined);
+    const subagentHandler = vi.fn().mockResolvedValue(undefined);
+    const yieldForFollowUp = vi.fn().mockResolvedValue(undefined);
+
+    manager.registerForegroundTask({
+      id: "bash_1",
+      backgroundHandler: shellHandler,
+    });
+    manager.registerForegroundTask({
+      id: "subagent-1",
+      backgroundHandler: subagentHandler,
+      yieldForFollowUp,
+    });
+
+    await manager.yieldRunningSubagents();
+
+    expect(yieldForFollowUp).toHaveBeenCalledTimes(1);
+    expect(subagentHandler).not.toHaveBeenCalled();
+    expect(shellHandler).not.toHaveBeenCalled();
+
+    await manager.backgroundCurrentTask();
+    expect(shellHandler).toHaveBeenCalledTimes(1);
+    expect(yieldForFollowUp).toHaveBeenCalledTimes(1);
+  });
+
+  it("yields a subagent that starts while a follow-up is already queued", async () => {
+    const container = new Container();
+    const queue = new MessageQueue();
+    queue.enqueue({ content: "快一点" });
+    container.register("MessageQueue", queue);
+    const manager = new ForegroundTaskManager(container);
+    const yieldForFollowUp = vi.fn().mockResolvedValue(undefined);
+    const shellHandler = vi.fn().mockResolvedValue(undefined);
+
+    manager.registerForegroundTask({
+      id: "bash_1",
+      backgroundHandler: shellHandler,
+    });
+    manager.registerForegroundTask({
+      id: "subagent-1",
+      backgroundHandler: vi.fn().mockResolvedValue(undefined),
+      yieldForFollowUp,
+    });
+
+    await manager.yieldIfQueuedFollowUp();
+
+    expect(yieldForFollowUp).toHaveBeenCalledTimes(1);
+    expect(shellHandler).not.toHaveBeenCalled();
+    expect(queue.getQueue().map((message) => message.content)).toEqual([
+      "快一点",
+    ]);
+  });
+
+  it("leaves the subagent in the foreground when the queue has no follow-up", async () => {
+    const container = new Container();
+    const queue = new MessageQueue();
+    queue.enqueue({ content: "/compact" });
+    queue.enqueueNotification("<task-notification/>");
+    container.register("MessageQueue", queue);
+    const manager = new ForegroundTaskManager(container);
+    const yieldForFollowUp = vi.fn().mockResolvedValue(undefined);
+
+    manager.registerForegroundTask({
+      id: "subagent-1",
+      backgroundHandler: vi.fn().mockResolvedValue(undefined),
+      yieldForFollowUp,
+    });
+
+    await manager.yieldIfQueuedFollowUp();
+    expect(yieldForFollowUp).not.toHaveBeenCalled();
+
+    await manager.backgroundCurrentTask();
+    expect(yieldForFollowUp).not.toHaveBeenCalled();
   });
 
   it("should not fail when unregistering non-existent task", () => {

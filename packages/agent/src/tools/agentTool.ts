@@ -243,24 +243,41 @@ When using the Agent tool, you must specify a subagent_type parameter to select 
         (async () => {
           // Register for backgrounding if not already in background
           if (!run_in_background && context.foregroundTaskManager) {
-            context.foregroundTaskManager.registerForegroundTask({
-              id: instance.subagentId,
-              backgroundHandler: async () => {
-                isBackgrounded = true;
-                const taskId = await subagentManager.backgroundInstance(
-                  instance.subagentId,
-                );
-                const task = context.backgroundTaskManager?.getTask(taskId);
-                const outputPath = task?.outputPath;
+            const moveToBackground = async (reason: "user" | "followUp") => {
+              if (isBackgrounded) return;
+              isBackgrounded = true;
+              const taskId = await subagentManager.backgroundInstance(
+                instance.subagentId,
+              );
+              const task = context.backgroundTaskManager?.getTask(taskId);
+              const outputPath = task?.outputPath;
+              const outputNote = outputPath
+                ? ` Real-time output: ${outputPath}`
+                : "";
+              if (reason === "followUp") {
                 resolve({
                   success: true,
-                  content: `Agent backgrounded with ID: ${taskId}.${outputPath ? ` Real-time output: ${outputPath}` : ""}`,
-                  shortResult: "Agent backgrounded",
-                  backgroundedByUser: true,
+                  content: `Agent moved to the background with ID: ${taskId} because the user sent a new message. It is still running — you will be notified when it completes.${outputNote}`,
+                  shortResult: "Agent moved to background",
+                  assistantAutoBackgrounded: true,
                   backgroundTaskId: taskId,
                 });
-              },
+                return;
+              }
+              resolve({
+                success: true,
+                content: `Agent backgrounded with ID: ${taskId}.${outputNote}`,
+                shortResult: "Agent backgrounded",
+                backgroundedByUser: true,
+                backgroundTaskId: taskId,
+              });
+            };
+            context.foregroundTaskManager.registerForegroundTask({
+              id: instance.subagentId,
+              backgroundHandler: () => moveToBackground("user"),
+              yieldForFollowUp: () => moveToBackground("followUp"),
             });
+            await context.foregroundTaskManager.yieldIfQueuedFollowUp?.();
           }
 
           try {

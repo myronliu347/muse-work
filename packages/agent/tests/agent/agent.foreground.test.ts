@@ -60,4 +60,30 @@ describe("Agent Foreground Task Management", () => {
     await agent.backgroundCurrentTask();
     expect(onBackgroundCurrentTask).toHaveBeenCalledTimes(1);
   });
+
+  it("yields a running subagent when a follow-up is queued, and leaves slash commands queued", async () => {
+    const agent = await Agent.create({ workdir });
+    activeAgent = agent;
+    (agent as unknown as { aiManager: { isLoading: boolean } }).aiManager.isLoading =
+      true;
+
+    const yieldForFollowUp = vi.fn().mockResolvedValue(undefined);
+    const shellHandler = vi.fn().mockResolvedValue(undefined);
+    agent.registerForegroundTask({
+      id: "bash_1",
+      backgroundHandler: shellHandler,
+    });
+    agent.registerForegroundTask({
+      id: "subagent-1",
+      backgroundHandler: vi.fn().mockResolvedValue(undefined),
+      yieldForFollowUp,
+    });
+
+    await agent.sendMessage("快一点");
+    expect(yieldForFollowUp).toHaveBeenCalledTimes(1);
+    expect(shellHandler).not.toHaveBeenCalled();
+
+    await agent.sendMessage("/compact");
+    expect(yieldForFollowUp).toHaveBeenCalledTimes(1);
+  });
 });

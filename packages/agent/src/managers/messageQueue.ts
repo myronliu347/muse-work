@@ -142,6 +142,10 @@ export class MessageQueue {
    * Notifications stay queued for the end of the turn. Slash commands stay
    * queued so they still run through the idle dispatch path.
    */
+  hasSteerableUserMessages(): boolean {
+    return this.queue.some((message) => this.isSteerableUserMessage(message));
+  }
+
   takeSteerableUserMessages(): QueuedMessage[] {
     const taken: QueuedMessage[] = [];
     const remaining: QueuedMessage[] = [];

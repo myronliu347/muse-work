@@ -1045,22 +1045,6 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           return;
         }
 
-        // Handle Ctrl+B to background the current foreground task (same as CLI).
-        // Only intercepted while a turn is running — when idle the key falls
-        // through so the host keeps its own Ctrl+B binding.
-        if (
-          event.key === "b" &&
-          (event.ctrlKey || event.metaKey) &&
-          !isComposing
-        ) {
-          if (isStreaming) {
-            event.preventDefault();
-            event.stopPropagation();
-            vscode.postMessage({ command: "backgroundCurrentTask" });
-            return;
-          }
-        }
-
         if (slashCommand.isActive && filteredSlashCommands.length > 0) {
           const orderedCommands = orderSlashCommands(filteredSlashCommands);
           switch (event.key) {

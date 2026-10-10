@@ -54,7 +54,7 @@ import { Container } from "../utils/container.js";
 import { AsyncWorkRegistry } from "../utils/asyncWorkRegistry.js";
 import { recoverTruncatedJson } from "../utils/stringUtils.js";
 import { ConfigurationService } from "../services/configurationService.js";
-import type { MessageQueue } from "./messageQueue.js";
+import type { MessageQueue, QueuedMessage } from "./messageQueue.js";
 import { logger } from "../utils/globalLogger.js";
 import type { BackgroundTask } from "../types/processes.js";
 
@@ -136,6 +136,7 @@ export interface AIManagerCallbacks {
   onCompactionReasoningUpdate?: (content: string) => void;
   onUsageAdded?: (usage: Usage) => void;
   onCwdChange?: (newCwd: string) => void;
+  onQueuedMessagesChange?: (messages: QueuedMessage[]) => void;
 }
 
 export interface AIManagerOptions {

@@ -8,6 +8,8 @@ import {
 import type { SubagentConfiguration } from "../../src/utils/subagentParser.js";
 import type { ToolContext } from "../../src/tools/types.js";
 import { Container } from "../../src/utils/container.js";
+import { ForegroundTaskManager } from "../../src/managers/foregroundTaskManager.js";
+import { MessageQueue } from "../../src/managers/messageQueue.js";
 
 // Mock the subagent manager
 vi.mock("../../src/managers/subagentManager.js");
@@ -91,6 +93,137 @@ describe("Agent Tool Background Execution", () => {
     expect(result.content).toContain("Agent started in background");
     expect(result.content).toContain("task_12345");
     expect(result.shortResult).toBe("Agent started in background: task_12345");
+  });
+
+  it("yields a foreground agent when a follow-up arrives without ending the turn", async () => {
+    const mockInstance = {
+      subagentId: "gp-test-id",
+      usedTools: [],
+      messageManager: {
+        getMessages: vi.fn(() => []),
+        getLatestTotalTokens: vi.fn(() => 0),
+      },
+    };
+    vi.mocked(mockSubagentManager.findSubagent).mockResolvedValue(gpConfig);
+    vi.mocked(mockSubagentManager.createInstance).mockResolvedValue(
+      mockInstance as unknown as SubagentInstance,
+    );
+    let releaseAgent: (value: string) => void = () => {};
+    vi.mocked(mockSubagentManager.executeAgent).mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          releaseAgent = resolve;
+        }),
+    );
+    vi.mocked(mockSubagentManager.backgroundInstance).mockResolvedValue(
+      "task_followup",
+    );
+
+    const foregroundTasks: Array<{
+      yieldForFollowUp?: () => Promise<void>;
+    }> = [];
+    const context: ToolContext = {
+      ...mockToolContext,
+      foregroundTaskManager: {
+        registerForegroundTask: (task) => {
+          foregroundTasks.push(task);
+        },
+        unregisterForegroundTask: () => {},
+      },
+      backgroundTaskManager: {
+        getTask: () => ({ outputPath: "/tmp/agent.log" }),
+      } as unknown as ToolContext["backgroundTaskManager"],
+    };
+
+    const pending = agentTool.execute(
+      {
+        description: "Explore the project",
+        prompt: "梳理项目架构",
+        subagent_type: "general-purpose",
+        run_in_background: false,
+      },
+      context,
+    );
+
+    await vi.waitFor(() => {
+      expect(foregroundTasks[0]?.yieldForFollowUp).toEqual(expect.any(Function));
+    });
+    await foregroundTasks[0].yieldForFollowUp!();
+    const result = await pending;
+
+    expect(mockSubagentManager.backgroundInstance).toHaveBeenCalledWith(
+      "gp-test-id",
+    );
+    expect(result.assistantAutoBackgrounded).toBe(true);
+    expect(result.backgroundedByUser).toBeUndefined();
+    expect(result.backgroundTaskId).toBe("task_followup");
+    expect(result.content).toContain("task_followup");
+    expect(result.content).toContain("still running");
+
+    releaseAgent("done");
+  });
+
+  it("yields a subagent that starts after a follow-up was queued during the model response", async () => {
+    const mockInstance = {
+      subagentId: "gp-test-id",
+      usedTools: [],
+      messageManager: {
+        getMessages: vi.fn(() => []),
+        getLatestTotalTokens: vi.fn(() => 0),
+      },
+    };
+    vi.mocked(mockSubagentManager.findSubagent).mockResolvedValue(gpConfig);
+    vi.mocked(mockSubagentManager.createInstance).mockResolvedValue(
+      mockInstance as unknown as SubagentInstance,
+    );
+    let releaseAgent: (value: string) => void = () => {};
+    vi.mocked(mockSubagentManager.executeAgent).mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          releaseAgent = resolve;
+        }),
+    );
+    vi.mocked(mockSubagentManager.backgroundInstance).mockResolvedValue(
+      "task_queued",
+    );
+
+    const container = new Container();
+    const queue = new MessageQueue();
+    queue.enqueue({ content: "快一点" });
+    container.register("MessageQueue", queue);
+    const foregroundTaskManager = new ForegroundTaskManager(container);
+    const context: ToolContext = {
+      ...mockToolContext,
+      foregroundTaskManager,
+      backgroundTaskManager: {
+        getTask: () => ({ outputPath: "/tmp/agent.log" }),
+      } as unknown as ToolContext["backgroundTaskManager"],
+    };
+
+    const result = await agentTool.execute(
+      {
+        description: "Explore the project",
+        prompt: "梳理项目架构",
+        subagent_type: "general-purpose",
+        run_in_background: false,
+      },
+      context,
+    );
+
+    expect(result.assistantAutoBackgrounded).toBe(true);
+    expect(result.backgroundedByUser).toBeUndefined();
+    expect(result.backgroundTaskId).toBe("task_queued");
+    expect(mockSubagentManager.backgroundInstance).toHaveBeenCalledWith(
+      "gp-test-id",
+    );
+    await vi.waitFor(() => {
+      expect(mockSubagentManager.executeAgent).toHaveBeenCalled();
+    });
+    expect(queue.getQueue().map((message) => message.content)).toEqual([
+      "快一点",
+    ]);
+
+    releaseAgent("done");
   });
 
   it("should add '...' to shortResult when toolCount > 2", async () => {

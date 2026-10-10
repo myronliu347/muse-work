@@ -8,19 +8,16 @@ import {
 } from "./test-utils";
 
 /**
- * Ctrl+B backgrounds the current foreground task (same behavior as the CLI).
- * The webview forwards it to the host via `backgroundCurrentTask`; the host
- * (vsce/desktop) then tells the underlying agent to move the running task to
- * the background task manager. Like Esc-abort, the key is only intercepted
- * while a turn is running so the host keeps its own Ctrl+B binding when idle
- * (e.g. VS Code's Toggle Sidebar).
+ * Composer Ctrl+B / ⌘B used to post `backgroundCurrentTask`. That shortcut is
+ * gone: a follow-up message backgrounds a running subagent instead, and idle
+ * Ctrl+B stays with the host (sidebar toggle).
  */
-describe("Background Current Task (Ctrl+B)", () => {
+describe("Composer Ctrl+B", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should post backgroundCurrentTask on Ctrl+B while streaming", async () => {
+  it("does not post backgroundCurrentTask on Ctrl+B while streaming", async () => {
     const { vscode } = renderChatApp();
 
     sendCommand("startStreaming");
@@ -32,12 +29,12 @@ describe("Background Current Task (Ctrl+B)", () => {
       fireEvent.keyDown(messageInput, { key: "b", ctrlKey: true });
     });
 
-    expect(vscode.postMessage).toHaveBeenCalledWith({
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
       command: "backgroundCurrentTask",
     });
   });
 
-  it("should post backgroundCurrentTask on Cmd+B while streaming (macOS convention)", async () => {
+  it("does not post backgroundCurrentTask on Cmd+B while streaming", async () => {
     const { vscode } = renderChatApp();
 
     sendCommand("startStreaming");
@@ -47,21 +44,6 @@ describe("Background Current Task (Ctrl+B)", () => {
 
     await act(async () => {
       fireEvent.keyDown(messageInput, { key: "b", metaKey: true });
-    });
-
-    expect(vscode.postMessage).toHaveBeenCalledWith({
-      command: "backgroundCurrentTask",
-    });
-  });
-
-  it("should not intercept Ctrl+B when idle (falls through to host binding)", async () => {
-    const { vscode } = renderChatApp();
-
-    const messageInput = screen.getByTestId("message-input");
-    messageInput.focus();
-
-    await act(async () => {
-      fireEvent.keyDown(messageInput, { key: "b", ctrlKey: true });
     });
 
     expect(vscode.postMessage).not.toHaveBeenCalledWith({
