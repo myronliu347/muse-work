@@ -155,11 +155,13 @@ export function createAssistantRuntime(options: {
 
   return {
     enqueue(event) {
-      const source = chatSource(event);
-      if (inflight && source && inflightSources.has(source)) {
-        deliverNow(event);
-        notify();
-        return;
+      if (inflight && event.type === "chat") {
+        const source = chatSource(event);
+        if (source && inflightSources.has(source)) {
+          deliverNow(event);
+          notify();
+          return;
+        }
       }
       if (!queue.absorb(event, inflight)) queue.enqueue(event);
       pump();
