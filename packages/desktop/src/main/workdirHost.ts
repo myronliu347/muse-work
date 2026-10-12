@@ -153,6 +153,30 @@ function decodeUriPath(filePath: string): string {
   }
 }
 
+/**
+ * True when a clicked path would open a file or the quick-open list.
+ * A path that misses on disk and has no workdir hit stays plain text.
+ */
+export function clickedFileWillOpen(
+  workdir: string | undefined,
+  requested: string,
+  home = os.homedir(),
+): boolean {
+  const filePath = decodeUriPath(requested);
+  if (!filePath) return false;
+  const expanded = filePath.startsWith("~/")
+    ? path.join(home, filePath.slice(2))
+    : filePath;
+  const absPath =
+    workdir && !path.isAbsolute(expanded)
+      ? path.resolve(workdir, expanded)
+      : expanded;
+  if (fs.existsSync(absPath)) return true;
+  const searchQuery = pathQueryForMissingOpen(workdir, filePath, absPath);
+  const hits = workdir ? findFilesByPathQuery(workdir, searchQuery) : [];
+  return hits.length > 0;
+}
+
 /** Query used to search the workdir when a clicked path is not on disk. */
 function pathQueryForMissingOpen(
   workdir: string | undefined,
@@ -502,6 +526,20 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         totalMatches: out.totalMatches,
         truncated: out.truncated,
         error: out.error,
+      });
+      return;
+    }
+
+    if (command === "probeFileLinks") {
+      const workdir =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const paths = Array.isArray(msg.paths)
+        ? msg.paths.filter((item): item is string => typeof item === "string" && item.length > 0)
+        : [];
+      pushToWebview(win, {
+        command: "probeFileLinksResult",
+        requestId: msg.requestId,
+        openable: paths.filter((item) => clickedFileWillOpen(workdir, item)),
       });
       return;
     }

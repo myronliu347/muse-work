@@ -1,4 +1,5 @@
 import { decodeFileHref } from "../../utils/filePathDisplay";
+import { linkifyFilePaths } from "../../utils/messageUtils";
 
 export type AssistantLinkTarget =
   | { kind: "file"; path: string; startLine?: number; endLine?: number }
@@ -34,4 +35,38 @@ export function classifyAssistantHref(href: string): AssistantLinkTarget | null 
     };
   }
   return { kind: "file", path: decoded };
+}
+
+/** File paths linkify would turn into file-panel links, without the :line suffix. */
+export function collectAssistantFilePaths(markdown: string): string[] {
+  const linked = linkifyFilePaths(markdown);
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  const re = /\]\(([^)\s]+)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(linked))) {
+    const target = classifyAssistantHref(match[1]);
+    if (target?.kind !== "file" || seen.has(target.path)) continue;
+    seen.add(target.path);
+    paths.push(target.path);
+  }
+  return paths;
+}
+
+/** Drop file links the host says cannot be opened. The label stays as text. */
+export function stripClosedFileLinks(
+  html: string,
+  closed: ReadonlySet<string>,
+): string {
+  if (!html || closed.size === 0) return html;
+  return html.replace(
+    /<a\b([^>]*)>([\s\S]*?)<\/a>/g,
+    (whole, attrs: string, inner: string) => {
+      const href = /href="([^"]*)"/.exec(attrs)?.[1];
+      if (!href) return whole;
+      const target = classifyAssistantHref(href);
+      if (target?.kind === "file" && closed.has(target.path)) return inner;
+      return whole;
+    },
+  );
 }

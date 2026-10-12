@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type MouseEvent,
@@ -18,7 +19,11 @@ import { ContextTag } from "../shared/ContextTag";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import type { VsCodeApi } from "../../types";
-import { classifyAssistantHref } from "./assistantLinks";
+import {
+  classifyAssistantHref,
+  collectAssistantFilePaths,
+  stripClosedFileLinks,
+} from "./assistantLinks";
 import { openImagePreview } from "../message/imagePreview";
 import "../../styles/Message.css";
 import "../../styles/MessageInput.css";
@@ -72,9 +77,9 @@ const noopHost: VsCodeApi = {
   setState: () => {},
 };
 
-function markdownHtml(text: string): string {
+function markdownHtml(text: string, closed: ReadonlySet<string> = new Set()): string {
   const html = marked.parse(linkifyFilePaths(text), { gfm: true, breaks: true });
-  return DOMPurify.sanitize(typeof html === "string" ? html : "", {
+  const safe = DOMPurify.sanitize(typeof html === "string" ? html : "", {
     ALLOWED_TAGS: [
       "p",
       "br",
@@ -96,6 +101,7 @@ function markdownHtml(text: string): string {
     ],
     ALLOWED_ATTR: ["href"],
   });
+  return stripClosedFileLinks(safe, closed);
 }
 
 function asLine(value: unknown): AssistantLine | undefined {
@@ -194,11 +200,13 @@ function UserShot({
 
 function UserLine({
   line,
+  closedFilePaths,
   onOpenFile,
   onLinkClick,
   onPreviewImage,
 }: {
   line: AssistantLine;
+  closedFilePaths: ReadonlySet<string>;
   onOpenFile?: (path: string) => void;
   onLinkClick: (event: MouseEvent) => void;
   onPreviewImage: (src: string, alt: string) => void;
@@ -245,7 +253,7 @@ function UserLine({
       <span
         key={index}
         className="assistant-user-text"
-        dangerouslySetInnerHTML={{ __html: markdownHtml(part.content) }}
+        dangerouslySetInnerHTML={{ __html: markdownHtml(part.content, closedFilePaths) }}
       />
     );
   });
@@ -305,6 +313,10 @@ export const AssistantPage: React.FC<{
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
+  const [openableFilePaths, setOpenableFilePaths] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const probedFilePaths = useRef<Set<string>>(new Set());
   const [agentError, setAgentError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [queue, setQueue] = useState<AssistantQueueItem[]>([]);
@@ -361,6 +373,71 @@ export const AssistantPage: React.FC<{
     },
     [virtualizer],
   );
+
+  const filePathKey = lines
+    .flatMap((line) => collectAssistantFilePaths(line.message))
+    .join("\n");
+
+  const closedFilePaths = useMemo(() => {
+    const closed = new Set<string>();
+    if (!agentWorkdir || !filePathKey) return closed;
+    for (const filePath of new Set(filePathKey.split("\n"))) {
+      if (!openableFilePaths.has(`${agentWorkdir}\0${filePath}`)) closed.add(filePath);
+    }
+    return closed;
+  }, [agentWorkdir, filePathKey, openableFilePaths]);
+
+  useEffect(() => {
+    probedFilePaths.current = new Set();
+    setOpenableFilePaths(new Set());
+  }, [agentWorkdir]);
+
+  useEffect(() => {
+    if (!agentWorkdir || !filePathKey) return;
+    const pending = [...new Set(filePathKey.split("\n"))].filter(
+      (filePath) => !probedFilePaths.current.has(`${agentWorkdir}\0${filePath}`),
+    );
+    if (pending.length === 0) return;
+    const requestId = `probe-${Date.now()}-${pending.length}`;
+    let cancelled = false;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as {
+        command?: string;
+        requestId?: string;
+        openable?: unknown;
+      } | null;
+      if (!data || data.command !== "probeFileLinksResult" || data.requestId !== requestId) {
+        return;
+      }
+      if (cancelled) return;
+      const openable = new Set(
+        Array.isArray(data.openable)
+          ? data.openable.filter((item): item is string => typeof item === "string")
+          : [],
+      );
+      for (const filePath of pending) {
+        probedFilePaths.current.add(`${agentWorkdir}\0${filePath}`);
+      }
+      const found = pending.filter((filePath) => openable.has(filePath));
+      if (found.length === 0) return;
+      setOpenableFilePaths((prev) => {
+        const next = new Set(prev);
+        for (const filePath of found) next.add(`${agentWorkdir}\0${filePath}`);
+        return next;
+      });
+    };
+    window.addEventListener("message", onMessage);
+    vscode.postMessage({
+      command: "probeFileLinks",
+      requestId,
+      workdir: agentWorkdir,
+      paths: pending,
+    });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("message", onMessage);
+    };
+  }, [agentWorkdir, filePathKey, vscode]);
 
   const appendLine = useCallback((line: AssistantLine) => {
     setLines((prev) => (prev.some((item) => item.id === line.id) ? prev : [...prev, line]));
@@ -502,6 +579,7 @@ export const AssistantPage: React.FC<{
     const target = classifyAssistantHref(href);
     if (!target) return;
     if (target.kind === "file") {
+      if (closedFilePaths.has(target.path)) return;
       onOpenFile?.(
         resolveWorkspaceFilePath(target.path, agentWorkdir),
         target.startLine,
@@ -661,6 +739,7 @@ export const AssistantPage: React.FC<{
                 {line.role === "user" ? (
                   <UserLine
                     line={line}
+                    closedFilePaths={closedFilePaths}
                     onOpenFile={(path) =>
                       onOpenFile?.(resolveWorkspaceFilePath(path, agentWorkdir))
                     }
@@ -678,7 +757,9 @@ export const AssistantPage: React.FC<{
                     <div
                       className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
                       onClick={handleLinkClick}
-                      dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
+                      dangerouslySetInnerHTML={{
+                        __html: markdownHtml(line.message, closedFilePaths),
+                      }}
                     />
                     <BubbleTime at={line.at} />
                   </div>

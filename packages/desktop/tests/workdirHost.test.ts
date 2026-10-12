@@ -111,6 +111,58 @@ describe("isTransientWorkdir", () => {
 });
 
 describe("installWorkdirHost", () => {
+  it("probeFileLinks keeps only paths that exist in the workdir", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-probe-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-probe-open-"));
+    fs.mkdirSync(path.join(dir, "packages", "sdk", "src"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "packages", "sdk", "src", "real.ts"), "export {}\n");
+
+    const sent: unknown[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: {
+        send: (channel: string, data: unknown) => {
+          if (channel === TO_WEBVIEW) sent.push(data);
+        },
+      },
+    };
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      defaultWorkdir: dir,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    });
+
+    await handler!(
+      { sender: {} },
+      {
+        command: "probeFileLinks",
+        requestId: "probe-1",
+        workdir: dir,
+        paths: ["packages/sdk/src/real.ts", "packages/sdk/src/client.ts"],
+      },
+    );
+    expect(sent).toContainEqual({
+      command: "probeFileLinksResult",
+      requestId: "probe-1",
+      openable: ["packages/sdk/src/real.ts"],
+    });
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("desktopReady pushes default workdir via injectable ipc", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-host-"));
     const sent: unknown[] = [];

@@ -1,9 +1,13 @@
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { MessageInputHandle } from "../../src/components/chat/MessageInput";
 import { AssistantPage } from "../../src/components/assistant/AssistantPage";
-import { classifyAssistantHref } from "../../src/components/assistant/assistantLinks";
+import {
+  classifyAssistantHref,
+  collectAssistantFilePaths,
+  stripClosedFileLinks,
+} from "../../src/components/assistant/assistantLinks";
 
 describe("AssistantPage", () => {
   it("renders jsonl roles and sends a user line", async () => {
@@ -218,6 +222,71 @@ describe("AssistantPage", () => {
     expect(onOpenFile).toHaveBeenCalledTimes(1);
   });
 
+  it("does not link a file until the workdir confirms it exists", async () => {
+    const onOpenFile = vi.fn();
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    };
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message:
+              "看 [client.ts](packages/sdk/src/client.ts:12) 和 [文档](https://example.com/docs)",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        workdir: "/Users/liuyuyang/assistant-chat",
+      }),
+    };
+    render(
+      <AssistantPage api={api} vscode={vscode} onOpenFile={onOpenFile} />,
+    );
+    await waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "probeFileLinks",
+          workdir: "/Users/liuyuyang/assistant-chat",
+          paths: ["packages/sdk/src/client.ts"],
+        }),
+      );
+    });
+    expect(screen.queryByRole("link", { name: "client.ts" })).toBeNull();
+    expect(screen.getByText(/client\.ts/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "文档" })).toBeTruthy();
+    fireEvent.click(screen.getByText(/看 client\.ts/));
+    expect(onOpenFile).not.toHaveBeenCalled();
+
+    const requestId = vscode.postMessage.mock.calls.find(
+      (call) => call[0].command === "probeFileLinks",
+    )?.[0].requestId;
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "probeFileLinksResult",
+          requestId,
+          openable: ["packages/sdk/src/client.ts"],
+        },
+      }),
+    );
+    fireEvent.click(await screen.findByRole("link", { name: "client.ts" }));
+    expect(onOpenFile).toHaveBeenCalledWith(
+      "/Users/liuyuyang/assistant-chat/packages/sdk/src/client.ts",
+      12,
+      undefined,
+    );
+  });
+
   it("appends a browser comment into the assistant input", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
@@ -282,5 +351,18 @@ describe("classifyAssistantHref", () => {
       kind: "browser",
       url: "https://example.com/docs",
     });
+  });
+
+  it("collects file paths and drops links the host cannot open", () => {
+    expect(collectAssistantFilePaths("见 packages/sdk/src/client.ts:12")).toEqual([
+      "packages/sdk/src/client.ts",
+    ]);
+    const html =
+      '<p>看 <a href="packages/sdk/src/client.ts:12">client.ts</a> 和 <a href="https://example.com/docs">文档</a></p>';
+    expect(
+      stripClosedFileLinks(html, new Set(["packages/sdk/src/client.ts"])),
+    ).toBe(
+      '<p>看 client.ts 和 <a href="https://example.com/docs">文档</a></p>',
+    );
   });
 });
