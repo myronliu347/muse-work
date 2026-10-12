@@ -1020,7 +1020,11 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           isAuthenticated={state.isAuthenticated}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           {...issueSidebarProps}
-          currentSessionId={state.currentSession?.id}
+          currentSessionId={
+            view === "assistant" || view === "automations"
+              ? undefined
+              : state.currentSession?.id
+          }
           onSelectSession={(workdir, sessionId) => {
             setView("chat");
             host.onSelectSession(workdir, sessionId);
