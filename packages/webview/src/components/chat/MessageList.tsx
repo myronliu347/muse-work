@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useLayoutEffect,
   useRef,
   useImperativeHandle,
   forwardRef,
@@ -7,6 +8,7 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   useVirtualizer,
   elementScroll,
@@ -298,7 +300,12 @@ export const MessageList = forwardRef<
   const prevMessagesLengthRef = useRef(messages.length);
   const prevQueuedLengthRef = useRef(queuedMessages?.length || 0);
   const isFirstEffectRef = useRef(true);
+  const isFirstLayoutRef = useRef(true);
   const prevListHeadRef = useRef<string | undefined>(messages[0]?.id);
+  const stickyHeadRef = useRef<string | undefined>(messages[0]?.id);
+  // Session-swap pin happens before paint. The follow effect must not scroll
+  // again afterwards, or the list jumps a second time once the frame is visible.
+  const skipFollowRef = useRef(false);
   const userScrolledUpRef = useRef(false);
   const pendingProgrammaticScrollsRef = useRef(0);
   const programmaticClearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -314,6 +321,12 @@ export const MessageList = forwardRef<
   } | null>(null);
   const stickyRef = useRef<{ id: string; text: string } | null>(null);
   const [activeNavId, setActiveNavId] = useState<string | undefined>();
+  const listHead = messages[0]?.id;
+  if (listHead !== stickyHeadRef.current) {
+    stickyHeadRef.current = listHead;
+    if (stickyMessage !== null) setStickyMessage(null);
+    if (activeNavId !== undefined) setActiveNavId(undefined);
+  }
   const navEntries = useMemo(() => navEntriesFromMessages(messages), [messages]);
 
   const rows = useMemo(() => buildRows(messages, isStreaming), [messages, isStreaming]);
@@ -495,6 +508,25 @@ export const MessageList = forwardRef<
     },
   }));
 
+  // Pin before paint. The previous session's scroll offset otherwise stays
+  // on the new transcript for a frame, then the follow effect jumps to the end.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || messages.length === 0) return;
+    const head = messages[0]?.id;
+    const isSessionSwap = Boolean(head) && head !== prevListHeadRef.current;
+    const isInitialLoad = isFirstLayoutRef.current;
+    isFirstLayoutRef.current = false;
+    if (!isSessionSwap && !isInitialLoad) return;
+    prevListHeadRef.current = head;
+    userScrolledUpRef.current = false;
+    skipFollowRef.current = true;
+    flushSync(() => {
+      virtualizer.scrollToEnd({ behavior: "auto" });
+    });
+    container.scrollTop = container.scrollHeight;
+  }, [messages, virtualizer]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -549,10 +581,14 @@ export const MessageList = forwardRef<
     });
     resizeObserver.observe(container);
 
-    scrollToBottom(
-      isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
-      isNewMessage || isInitialLoad || isSessionSwap,
-    );
+    const skipFollow = skipFollowRef.current;
+    if (skipFollow) skipFollowRef.current = false;
+    if (!skipFollow) {
+      scrollToBottom(
+        isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
+        isNewMessage || isInitialLoad || isSessionSwap,
+      );
+    }
     computeSticky();
     computeActiveNav();
 
