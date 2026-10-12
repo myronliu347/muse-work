@@ -11,6 +11,7 @@ import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import type { VsCodeApi } from "../../types";
 import { classifyAssistantHref } from "./assistantLinks";
+import { openImagePreview } from "../message/imagePreview";
 import "../../styles/Message.css";
 import "../../styles/MessageInput.css";
 import "../../styles/AssistantPage.css";
@@ -167,10 +168,12 @@ function UserLine({
   line,
   onOpenFile,
   onLinkClick,
+  onPreviewImage,
 }: {
   line: AssistantLine;
   onOpenFile?: (path: string) => void;
   onLinkClick: (event: MouseEvent) => void;
+  onPreviewImage: (src: string, alt: string) => void;
 }) {
   const parts = parseMentions(
     line.message,
@@ -188,12 +191,21 @@ function UserLine({
           {parts.map((part, index) => {
             if (part.type === "mention" && part.isImage && part.imageData) {
               referenced.add(part.imageData);
+              const alt = part.path || `图片 ${index + 1}`;
               return (
                 <img
                   key={index}
                   className="assistant-user-image"
                   src={part.imageData}
-                  alt=""
+                  alt={alt}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onPreviewImage(part.imageData!, alt)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    onPreviewImage(part.imageData!, alt);
+                  }}
                 />
               );
             }
@@ -227,14 +239,25 @@ function UserLine({
           })}
           {line.images
             ?.filter((img) => !referenced.has(img.data))
-            .map((img, index) => (
-              <img
-                key={`extra-${index}`}
-                className="assistant-user-image"
-                src={img.data}
-                alt=""
-              />
-            ))}
+            .map((img, index) => {
+              const alt = `图片 ${index + 1}`;
+              return (
+                <img
+                  key={`extra-${index}`}
+                  className="assistant-user-image"
+                  src={img.data}
+                  alt={alt}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onPreviewImage(img.data, alt)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    onPreviewImage(img.data, alt);
+                  }}
+                />
+              );
+            })}
         </div>
       </div>
       <BubbleTime at={line.at} />
@@ -270,6 +293,17 @@ export const AssistantPage: React.FC<{
   const scroller = useRef<HTMLDivElement>(null);
   const atTail = useRef(true);
   const loadingOlder = useRef(false);
+  const previewClosers = useRef<Set<() => void>>(new Set());
+  useEffect(() => {
+    const closers = previewClosers.current;
+    return () => {
+      for (const close of closers) close();
+      closers.clear();
+    };
+  }, []);
+  const previewImage = useCallback((src: string, alt: string) => {
+    previewClosers.current.add(openImagePreview(src, alt));
+  }, []);
 
   const virtualizer = useVirtualizer({
     count: lines.length,
@@ -613,6 +647,7 @@ export const AssistantPage: React.FC<{
                       onOpenFile?.(resolveWorkspaceFilePath(path, agentWorkdir))
                     }
                     onLinkClick={handleLinkClick}
+                    onPreviewImage={previewImage}
                   />
                 ) : (
                   <div className="assistant-bubble-row assistant-bubble-row-assistant">

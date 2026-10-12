@@ -32,6 +32,7 @@ import { ReasoningBlockView } from "./ReasoningBlockView";
 import { CompactBlockView } from "./CompactBlockView";
 import { WriteToolPreview } from "./WriteToolPreview";
 import { FileToolHeader } from "./FileToolHeader";
+import { openImagePreview } from "./imagePreview";
 import { ToolError } from "./ToolError";
 import "../../styles/Message.css";
 
@@ -222,58 +223,18 @@ export const Message: React.FC<MessageProps> = React.memo(
     // switch / clear) releases both the document keydown listener and the
     // modal DOM (which pins the image data via its closure) instead of leaking
     // them until the next explicit close.
-    const previewModalsRef = useRef<
-      Set<{ modal: HTMLElement; onKeyDown: (e: KeyboardEvent) => void }>
-    >(new Set());
+    const previewClosersRef = useRef<Set<() => void>>(new Set());
     useEffect(() => {
+      const closers = previewClosersRef.current;
       return () => {
-        for (const { modal, onKeyDown } of previewModalsRef.current) {
-          document.removeEventListener("keydown", onKeyDown, true);
-          modal.remove();
-        }
-        previewModalsRef.current.clear();
+        for (const close of closers) close();
+        closers.clear();
       };
     }, []);
 
     const handleImagePreview = (url: string, name: string) => {
-      const modal = document.createElement("div");
-      modal.className = "image-preview-modal";
-
-      const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key !== "Escape") return;
-        e.preventDefault();
-        e.stopPropagation();
-        close();
-      };
-
-      const close = () => {
-        document.removeEventListener("keydown", onKeyDown, true);
-        previewModalsRef.current.delete(entry);
-        modal.remove();
-      };
-
-      const entry = { modal, onKeyDown };
-      previewModalsRef.current.add(entry);
-
-      modal.onclick = close;
-
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = name;
-      img.onclick = (e) => e.stopPropagation();
-
-      const closeBtn = document.createElement("div");
-      closeBtn.className = "image-preview-close";
-      closeBtn.innerHTML = '<i class="codicon codicon-close"></i>';
-      closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        close();
-      };
-
-      modal.appendChild(img);
-      modal.appendChild(closeBtn);
-      document.body.appendChild(modal);
-      document.addEventListener("keydown", onKeyDown, true);
+      const close = openImagePreview(url, name);
+      previewClosersRef.current.add(close);
     };
 
     const getAttachedImages = () => {

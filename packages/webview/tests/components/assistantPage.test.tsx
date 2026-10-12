@@ -215,6 +215,33 @@ describe("AssistantPage", () => {
     expect(onOpenUrl).toHaveBeenCalledWith("https://example.com/docs");
     expect(onOpenFile).toHaveBeenCalledTimes(1);
   });
+
+  it("opens a preview when a message image is clicked", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "user",
+            message: "看这个",
+            images: [{ data: "data:image/png;base64,abc", mediaType: "image/png" }],
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    const { unmount } = render(<AssistantPage api={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: "图片 1" }));
+    const modal = document.querySelector(".image-preview-modal");
+    expect(modal?.querySelector("img")?.getAttribute("src")).toBe(
+      "data:image/png;base64,abc",
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".image-preview-modal")).toBeNull();
+    unmount();
+  });
 });
 
 describe("classifyAssistantHref", () => {
