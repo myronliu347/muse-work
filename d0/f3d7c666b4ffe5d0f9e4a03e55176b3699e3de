@@ -1,0 +1,124 @@
+packages/webview/src/muse/panelTabs.ts
+  d501b231c2f2dabb 32-40
+packages/webview/src/components/message/Message.tsx
+  d501b231c2f2dabb 326-330
+packages/webview/src/components/chat/MessageList.tsx
+  d501b231c2f2dabb 287,627
+packages/webview/tests/components/DesktopApp.test.tsx
+  d501b231c2f2dabb 6-9,35-64
+packages/webview/src/components/DesktopApp.tsx
+  d501b231c2f2dabb 5-9,46
+packages/webview/src/hooks/usePanels.ts
+  d501b231c2f2dabb 21,68-71,93-94,285-286,409-410,412-420
+packages/webview/src/styles/AssistantPage.css
+  d501b231c2f2dabb 254-260
+packages/webview/src/stores/panelGroupStore.ts
+  d501b231c2f2dabb 167-169
+packages/webview/src/types/index.ts
+  d501b231c2f2dabb 395-396,425-426
+packages/webview/tests/webview/messageLinkRouting.test.tsx
+  d501b231c2f2dabb 17,30,153-165
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 1,10-11,13,67,166-174,187,206,211-212,217-226,250-259,449-474,570-578,610-616,627
+packages/webview/src/components/assistant/assistantLinks.ts
+  d501b231c2f2dabb 1-37
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 4,190-236
+packages/webview/tests/muse/panelTabs.test.ts
+  d501b231c2f2dabb 3,54-67
+packages/webview/src/stores/index.ts
+  d501b231c2f2dabb 5
+packages/webview/src/components/ChatApp.tsx
+  d501b231c2f2dabb 55,129-151,154-162,376-377,414,778,818-819,980
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d0f3d7c666b4ffe5d0f9e4a03e55176b3699e3de",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 331,
+      "total_deletions": 34,
+      "accepted_lines": 328,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 41,
+          "deletions": 14,
+          "accepted_lines": 40
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 20,
+          "deletions": 5,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/webview/messageLinkRouting.test.tsx": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 83,
+          "deletions": 11,
+          "accepted_lines": 81
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/panelTabs.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/assistant/assistantLinks.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 48,
+          "accepted_lines": 48
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
