@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type Ref,
+} from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { observeElementRect, useVirtualizer } from "@tanstack/react-virtual";
 import type { Message as AgentMessage } from "@muse-work/agent";
-import { MessageInput } from "../chat/MessageInput";
+import { MessageInput, type MessageInputHandle } from "../chat/MessageInput";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
 import { ContextTag } from "../shared/ContextTag";
@@ -164,6 +172,26 @@ function BubbleTime({ at }: { at: number }) {
   );
 }
 
+function UserShot({
+  src,
+  alt,
+  onPreviewImage,
+}: {
+  src: string;
+  alt: string;
+  onPreviewImage: (src: string, alt: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="assistant-user-shot"
+      onClick={() => onPreviewImage(src, alt)}
+    >
+      <img src={src} alt={alt} draggable={false} />
+    </button>
+  );
+}
+
 function UserLine({
   line,
   onOpenFile,
@@ -183,81 +211,68 @@ function UserLine({
     })),
   );
   const referenced = new Set<string>();
+  const shots: Array<{ src: string; alt: string }> = [];
+  const body = parts.map((part, index) => {
+    if (part.type === "mention" && part.isImage && part.imageData) {
+      referenced.add(part.imageData);
+      shots.push({
+        src: part.imageData,
+        alt: part.path || `图片 ${shots.length + 1}`,
+      });
+      return null;
+    }
+    if (part.type === "mention" || part.type === "selection") {
+      const name =
+        (part.path || part.fileName || "文件")
+          .replace(/[/\\]$/, "")
+          .split(/[/\\]/)
+          .pop() || "文件";
+      const path = part.path || part.fileName || "";
+      return (
+        <ContextTag
+          key={index}
+          name={name}
+          path={path}
+          onClick={path && onOpenFile ? () => onOpenFile(path) : undefined}
+        />
+      );
+    }
+    if (!part.content) return null;
+    const linked = linkifyFilePaths(part.content);
+    const hasLink = linked !== part.content || /https?:\/\//.test(part.content);
+    if (!hasLink) return <span key={index}>{part.content}</span>;
+    return (
+      <span
+        key={index}
+        className="assistant-user-text"
+        dangerouslySetInnerHTML={{ __html: markdownHtml(part.content) }}
+      />
+    );
+  });
+  line.images
+    ?.filter((img) => !referenced.has(img.data))
+    .forEach((img) => {
+      shots.push({ src: img.data, alt: `图片 ${shots.length + 1}` });
+    });
+  const hasBody = body.some(Boolean);
   return (
     <div className="assistant-bubble-row assistant-bubble-row-user">
       {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
       <div className="assistant-bubble assistant-bubble-user">
         <div className="assistant-user-content" onClick={onLinkClick}>
-          {parts.map((part, index) => {
-            if (part.type === "mention" && part.isImage && part.imageData) {
-              referenced.add(part.imageData);
-              const alt = part.path || `图片 ${index + 1}`;
-              return (
-                <img
-                  key={index}
-                  className="assistant-user-image"
-                  src={part.imageData}
-                  alt={alt}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onPreviewImage(part.imageData!, alt)}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    onPreviewImage(part.imageData!, alt);
-                  }}
+          {hasBody ? <div className="assistant-user-body">{body}</div> : null}
+          {shots.length > 0 ? (
+            <div className="assistant-user-images">
+              {shots.map((shot, index) => (
+                <UserShot
+                  key={`${index}:${shot.alt}`}
+                  src={shot.src}
+                  alt={shot.alt}
+                  onPreviewImage={onPreviewImage}
                 />
-              );
-            }
-            if (part.type === "mention" || part.type === "selection") {
-              const name =
-                (part.path || part.fileName || "文件")
-                  .replace(/[/\\]$/, "")
-                  .split(/[/\\]/)
-                  .pop() || "文件";
-              const path = part.path || part.fileName || "";
-              return (
-                <ContextTag
-                  key={index}
-                  name={name}
-                  path={path}
-                  onClick={path && onOpenFile ? () => onOpenFile(path) : undefined}
-                />
-              );
-            }
-            if (!part.content) return null;
-            const linked = linkifyFilePaths(part.content);
-            const hasLink = linked !== part.content || /https?:\/\//.test(part.content);
-            if (!hasLink) return <span key={index}>{part.content}</span>;
-            return (
-              <span
-                key={index}
-                className="assistant-user-text"
-                dangerouslySetInnerHTML={{ __html: markdownHtml(part.content) }}
-              />
-            );
-          })}
-          {line.images
-            ?.filter((img) => !referenced.has(img.data))
-            .map((img, index) => {
-              const alt = `图片 ${index + 1}`;
-              return (
-                <img
-                  key={`extra-${index}`}
-                  className="assistant-user-image"
-                  src={img.data}
-                  alt={alt}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onPreviewImage(img.data, alt)}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    onPreviewImage(img.data, alt);
-                  }}
-                />
-              );
-            })}
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
       <BubbleTime at={line.at} />
@@ -272,6 +287,8 @@ export const AssistantPage: React.FC<{
   onToggleDock?: () => void;
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
   onOpenUrl?: (url: string) => void;
+  /** 浏览器元素评论、diff 评论写进这个输入框。 */
+  inputRef?: Ref<MessageInputHandle>;
 }> = ({
   api,
   vscode = noopHost,
@@ -279,6 +296,7 @@ export const AssistantPage: React.FC<{
   onToggleDock,
   onOpenFile,
   onOpenUrl,
+  inputRef,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -679,6 +697,7 @@ export const AssistantPage: React.FC<{
       {error ? <p className="assistant-error">{error}</p> : null}
       <div className="assistant-composer">
         <MessageInput
+          ref={inputRef}
           vscode={vscode}
           isStreaming={false}
           disabled={sending}

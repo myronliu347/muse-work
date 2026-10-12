@@ -817,6 +817,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             onToggleDock={handleToggleDock}
             onOpenFile={handleOpenFile}
             onOpenUrl={handleOpenPreview}
+            inputRef={messageInputRef}
           />
         </div>
         {dock.checked.length > 0 && dock.active ? (

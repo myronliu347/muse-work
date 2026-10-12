@@ -1,5 +1,7 @@
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import type { MessageInputHandle } from "../../src/components/chat/MessageInput";
 import { AssistantPage } from "../../src/components/assistant/AssistantPage";
 import { classifyAssistantHref } from "../../src/components/assistant/assistantLinks";
 
@@ -216,6 +218,23 @@ describe("AssistantPage", () => {
     expect(onOpenFile).toHaveBeenCalledTimes(1);
   });
 
+  it("appends a browser comment into the assistant input", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    const inputRef = createRef<MessageInputHandle>();
+    render(<AssistantPage api={api} inputRef={inputRef} />);
+    expect(await screen.findByTestId("message-input")).toBeTruthy();
+    inputRef.current?.appendText("div.shared\n这条元素的评论");
+    expect(screen.getByTestId("message-input").textContent).toContain(
+      "这条元素的评论",
+    );
+  });
+
   it("opens a preview when a message image is clicked", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
@@ -233,7 +252,10 @@ describe("AssistantPage", () => {
       sendAssistantMessage: vi.fn(),
     };
     const { unmount } = render(<AssistantPage api={api} />);
-    fireEvent.click(await screen.findByRole("button", { name: "图片 1" }));
+    const shot = await screen.findByRole("button", { name: "图片 1" });
+    expect(shot.closest(".assistant-user-images")).toBeTruthy();
+    expect(screen.getByText("看这个").closest(".assistant-user-body")).toBeTruthy();
+    fireEvent.click(shot);
     const modal = document.querySelector(".image-preview-modal");
     expect(modal?.querySelector("img")?.getAttribute("src")).toBe(
       "data:image/png;base64,abc",
