@@ -20,6 +20,7 @@ import {
   type MuseModelInfo,
   type MuseOpenAiCompatibleConfig,
   type MuseProvidersResponse,
+  type MuseTavilyConfig,
 } from "../../muse/apiClient";
 import { resolveMuseServerUrl } from "../../muse/hostBridge";
 import { notifyProvidersChanged } from "../../muse/providersEvents";
@@ -94,6 +95,8 @@ export const MuseProviderSettings = forwardRef<
   );
   const [baseURL, setBaseURL] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [tavilyKey, setTavilyKey] = useState("");
+  const [tavilyStatus, setTavilyStatus] = useState<MuseTavilyConfig | null>(null);
   const [modelsText, setModelsText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -180,6 +183,14 @@ export const MuseProviderSettings = forwardRef<
 
   useEffect(() => {
     let cancelled = false;
+    void client
+      .getTavilyConfig()
+      .then((status) => {
+        if (!cancelled) setTavilyStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setTavilyStatus(null);
+      });
     void (async () => {
       try {
         const body = await client.listProviders();
@@ -222,8 +233,9 @@ export const MuseProviderSettings = forwardRef<
       if (modelsText !== baseline.modelsText) return true;
       if (apiKey.trim() !== "") return true;
     }
+    if (tavilyKey.trim() !== "") return true;
     return false;
-  }, [apiKey, baseURL, draftProviderId, modelsText]);
+  }, [apiKey, baseURL, draftProviderId, modelsText, tavilyKey]);
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!data || !draftProviderId) return false;
@@ -265,6 +277,11 @@ export const MuseProviderSettings = forwardRef<
         await client.updateOpenAiCompatibleConfig(patch);
       }
       await client.setActive(draftProviderId, modelId);
+      if (tavilyKey.trim()) {
+        const status = await client.updateTavilyConfig({ apiKey: tavilyKey.trim() });
+        setTavilyStatus(status);
+        setTavilyKey("");
+      }
       const body = await client.listProviders();
       setData(body);
       setDraftProviderId(body.active.providerId);
@@ -290,6 +307,7 @@ export const MuseProviderSettings = forwardRef<
     draftProviderId,
     modelsText,
     setSavingState,
+    tavilyKey,
   ]);
 
   useImperativeHandle(ref, () => ({ save, isDirty }), [save, isDirty]);
@@ -407,6 +425,29 @@ export const MuseProviderSettings = forwardRef<
           </Field>
         </div>
       )}
+
+      <Field
+        label="Tavily API Key"
+        htmlFor="muse-tavily-api-key"
+        hint="Muse Bot 用它搜索网页。留空则保持不变。"
+      >
+        <TextField.Root
+          id="muse-tavily-api-key"
+          data-testid="muse-tavily-api-key"
+          type="password"
+          value={tavilyKey}
+          onChange={(e) => setTavilyKey(e.target.value)}
+          disabled={saving}
+          placeholder={
+            tavilyStatus?.source === "stored"
+              ? "已配置（留空则保持不变）"
+              : tavilyStatus?.source === "env"
+                ? "已使用环境变量（填写后改用这里的）"
+                : "请输入 Tavily API Key"
+          }
+          autoComplete="off"
+        />
+      </Field>
 
       {error && (
         <div className="configuration-error" style={{ marginTop: 8 }}>

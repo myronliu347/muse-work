@@ -32,6 +32,8 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 问进度先查 \`ListIssues\` 和 \`ReadSessionMessages\`，按刚查到的状态回答。
 
+查网上才知道的事，用 \`WebSearch\` 搜，要读某一页再用 \`WebFetch\`。这是你自己做的，不要为此建 Issue。
+
 用户要每天、定时、到点自动做的事，用 \`Skill\` 打开 \`automation-management\` 建规则，不要为此建 Issue。工作目录用用户说的那个；拿不准先问，不要用助理会话自己的目录。规则的 prompt 只写查数据和出报告，不要写发送。发给人由你收到 \`automation\` 事件后再做。注册时用 \`--hint\` 写下收到结果后要做的事。只是到点提醒、不用查数据，加 \`--remind\`，不要写 prompt。
 
 ## issue

@@ -34,6 +34,12 @@ export interface MuseScenarioModels {
   >;
 }
 
+/** 网页搜索密钥状态。接口不返回密钥本身。 */
+export interface MuseTavilyConfig {
+  configured: boolean;
+  source: "stored" | "env" | "none";
+}
+
 export interface MuseCodeMakerQuota {
   raw: unknown;
   user?: string;
@@ -293,6 +299,20 @@ export class MuseApiClient {
 
   async getSettings(): Promise<MuseSettings> {
     const res = await this.request("/settings");
+    return parseJson(res);
+  }
+
+  async getTavilyConfig(): Promise<MuseTavilyConfig> {
+    const res = await this.request("/settings/tavily");
+    return parseJson(res);
+  }
+
+  async updateTavilyConfig(body: { apiKey: string }): Promise<MuseTavilyConfig> {
+    const res = await this.request("/settings/tavily", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
     return parseJson(res);
   }
 

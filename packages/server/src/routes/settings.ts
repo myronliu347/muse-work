@@ -6,6 +6,11 @@ import {
   MuseSettingsJsonError,
   writeMuseUserSettingsText,
 } from "../services/museAgentSettings.js";
+import {
+  clearStoredTavilyApiKey,
+  saveTavilyApiKey,
+  tavilyKeyStatus,
+} from "../services/tavilyConfig.js";
 
 export const settingsRoutes = new Hono<HonoEnv>();
 
@@ -94,4 +99,26 @@ settingsRoutes.patch("/settings", async (c) => {
   );
   ctx.runner.invalidateAgentIdentities();
   return c.json(settings);
+});
+
+/** 不回传密钥本身，只说明有没有、从哪来。 */
+settingsRoutes.get("/settings/tavily", (c) => {
+  return c.json(tavilyKeyStatus(c.get("ctx").home));
+});
+
+settingsRoutes.put("/settings/tavily", async (c) => {
+  const ctx = c.get("ctx");
+  let body: { apiKey?: unknown } | undefined;
+  try {
+    body = await c.req.json<{ apiKey?: unknown }>();
+  } catch {
+    body = undefined;
+  }
+  if (typeof body?.apiKey !== "string") {
+    return c.json({ error: "apiKey is required" }, 400);
+  }
+  const apiKey = body.apiKey.trim();
+  if (apiKey) saveTavilyApiKey(ctx.home, apiKey);
+  else clearStoredTavilyApiKey(ctx.home);
+  return c.json(tavilyKeyStatus(ctx.home));
 });

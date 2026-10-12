@@ -42,6 +42,8 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("只写查数据和出报告");
     expect(first.systemPrompt).toContain("instruction");
     expect(first.systemPrompt).toContain("--remind");
+    expect(first.systemPrompt).toContain("WebSearch");
+    expect(first.systemPrompt).toContain("WebFetch");
     expect(first.systemPrompt).not.toContain("线上");
     store.update(first.id, {
       systemPrompt: "旧提示",

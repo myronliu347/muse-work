@@ -75,6 +75,14 @@ function createApi(overrides?: Partial<MuseApiClient>): MuseApiClient {
       ok: true as const,
       active: { providerId: "openai-compatible", modelId: "gpt-4.1" },
     })),
+    getTavilyConfig: vi.fn(async () => ({
+      configured: false,
+      source: "none" as const,
+    })),
+    updateTavilyConfig: vi.fn(async () => ({
+      configured: true,
+      source: "stored" as const,
+    })),
     ...overrides,
   };
   return api as unknown as MuseApiClient;
@@ -214,5 +222,27 @@ describe("MuseProviderSettings", () => {
       "codemaker",
       "deepseek-flash",
     );
+  });
+
+  it("saves a Tavily key from the provider tab and keeps a blank field", async () => {
+    const api = createApi({
+      getTavilyConfig: vi.fn(async () => ({
+        configured: true,
+        source: "stored" as const,
+      })),
+    });
+    const ref = createRef<MuseProviderSettingsHandle>();
+    const user = userEvent.setup();
+    renderProviderSettings({ ref, api });
+
+    await screen.findByTestId("muse-codemaker-quota");
+    const input = await screen.findByLabelText("Tavily API Key");
+    expect(input).toHaveAttribute("placeholder", "已配置（留空则保持不变）");
+    expect(ref.current!.isDirty()).toBe(false);
+    await user.type(input, "tvly-from-ui");
+    expect(ref.current!.isDirty()).toBe(true);
+    expect(await ref.current!.save()).toBe(true);
+    expect(api.updateTavilyConfig).toHaveBeenCalledWith({ apiKey: "tvly-from-ui" });
+    expect(input).toHaveValue("");
   });
 });

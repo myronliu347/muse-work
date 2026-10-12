@@ -81,6 +81,14 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
     });
   });
 
+  await page.route("**/settings/tavily", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ configured: false, source: "none" }),
+    });
+  });
+
   await page.route("**/providers/openai-compatible", async (route) => {
     await route.fulfill({
       status: 200,

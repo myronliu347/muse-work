@@ -4,7 +4,7 @@ import { resolveScenarioModel } from "../agentConfig.js";
 import type { Session, SessionStore } from "../sessionStore.js";
 import { ASSISTANT_SYSTEM_PROMPT } from "./prompt.js";
 
-/** 协调工具，加上查改文件、子代理、抓网页，以及建自动化需要的 Skill 和 Bash。 */
+/** 协调工具，加上查改文件、子代理、抓网页、Tavily 搜索，以及建自动化需要的 Skill 和 Bash。 */
 export const ASSISTANT_TOOLS = [
   "ListIssues",
   "ListWorkdirs",
@@ -25,6 +25,7 @@ export const ASSISTANT_TOOLS = [
   "Write",
   "Agent",
   "WebFetch",
+  "WebSearch",
 ] as const;
 
 export const ASSISTANT_TITLE = "Muse Bot";
