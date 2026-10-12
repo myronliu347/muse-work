@@ -983,12 +983,14 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
 
   return (
     <div className="desktop-session-tree" data-testid="desktop-session-tree">
-      {renderFlatSection({
-        sectionId: "pin",
-        title: "置顶",
-        testId: "desktop-session-section-pin",
-        sessions: pinnedSessions,
-      })}
+      {pinnedSessions.length > 0
+        ? renderFlatSection({
+            sectionId: "pin",
+            title: "置顶",
+            testId: "desktop-session-section-pin",
+            sessions: pinnedSessions,
+          })
+        : null}
       {renderIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}

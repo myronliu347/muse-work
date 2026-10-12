@@ -133,6 +133,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeTruthy();
   });
 
+  it("hides the 置顶 section when there are no pinned sessions", () => {
+    renderSidebar({ pinnedSessions: [] });
+    expect(screen.queryByTestId("desktop-session-section-pin")).toBeNull();
+  });
+
   it("renders 置顶 flat and splits 工作空间 vs 任务 by workdir", () => {
     renderSidebar({
       pinnedSessions: [
