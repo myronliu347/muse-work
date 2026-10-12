@@ -68,11 +68,16 @@
   position: relative;
   z-index: 20;
   pointer-events: auto;
-  /* Match .user-text-block so the sticky bar keeps the bubble background. */
+  box-sizing: border-box;
+  /* Match .user-text-block so the sticky bar keeps the bubble background.
+     Cap the card at three lines so a long prompt cannot spill down the list. */
   background-color: var(--gray-3);
   border: 1px solid var(--gray-6);
   border-radius: var(--radius-3);
   padding: var(--space-2) var(--space-3);
+  max-height: calc(1.45em * 3 + var(--space-2) * 2 + 2px);
+  overflow: hidden;
+  contain: paint;
   cursor: pointer;
   transition: background-color 0.2s ease;
   box-shadow: 0 6px 16px color-mix(in srgb, var(--gray-1) 40%, transparent);
@@ -86,11 +91,13 @@
   font-size: var(--font-size-1);
   line-height: 1.45;
   color: var(--gray-12);
+  white-space: pre-wrap;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: break-word;
+  max-height: calc(1.45em * 3);
 }
 
 /* Virtualized list: the spacer carries the total height; rows are absolute. */
