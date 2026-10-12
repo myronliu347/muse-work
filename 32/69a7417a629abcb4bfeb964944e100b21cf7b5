@@ -1,0 +1,145 @@
+packages/webview/tests/components/automationsPage.test.tsx
+  d501b231c2f2dabb 196,215-217
+packages/webview/src/components/automation/AutomationEditor.tsx
+  d501b231c2f2dabb 166,168,175,177,311,338-340,343,364,366,374-377,415,417,425-433,442,447-452,632-653,677-698,769-779,801
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 41-42
+packages/server/src/services/appContext.ts
+  d501b231c2f2dabb 223-224
+packages/webview/src/components/automation/automationDraft.ts
+  d501b231c2f2dabb 15,17
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 35,68-70
+packages/webview/src/styles/AutomationsPage.css
+  d501b231c2f2dabb 439-443
+packages/server/plugins/automation/skills/automation-management/SKILL.md
+  d501b231c2f2dabb 3,38-40,51-52,55
+packages/server/plugins/automation/skills/automation-management/scripts/automation.mjs
+  d501b231c2f2dabb 39,42,121-123,168-173,177-183,185-188
+packages/server/src/services/automationStore.ts
+  d501b231c2f2dabb 7-8,32-33,35-36,141-142,217,219,255-257,259
+packages/server/src/routes/automations.ts
+  d501b231c2f2dabb 5,23-37,128,130,173-174,179,181,192,194,227-228,232,234
+packages/server/src/services/automationRuntime.ts
+  d501b231c2f2dabb 192-205
+packages/server/tests/assistantQueue.test.ts
+  d501b231c2f2dabb 56,58-68
+packages/webview/src/components/automation/AutomationsPage.tsx
+  d501b231c2f2dabb 18,72-74
+packages/server/src/services/assistant/events.ts
+  d501b231c2f2dabb 32-35,169-170
+packages/webview/src/muse/apiClient.ts
+  d501b231c2f2dabb 185-186,188-189,235,237
+packages/server/tests/automationRuntime.test.ts
+  d501b231c2f2dabb 30-33,49,55-86
+packages/server/tests/automations.routes.test.ts
+  d501b231c2f2dabb 37-59
+packages/server/tests/automationPluginScript.test.ts
+  d501b231c2f2dabb 188-218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3269a7417a629abcb4bfeb964944e100b21cf7b5",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 318,
+      "total_deletions": 52,
+      "accepted_lines": 314,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/automations.routes.test.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/server/src/services/automationRuntime.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/server/src/routes/automations.ts": {
+          "additions": 28,
+          "deletions": 5,
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 8,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/plugins/automation/skills/automation-management/scripts/automation.mjs": {
+          "additions": 22,
+          "deletions": 11,
+          "accepted_lines": 22
+        },
+        "packages/server/src/services/automationStore.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/automation/AutomationEditor.tsx": {
+          "additions": 91,
+          "deletions": 24,
+          "accepted_lines": 91
+        },
+        "packages/server/plugins/automation/skills/automation-management/SKILL.md": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "packages/server/tests/automationRuntime.test.ts": {
+          "additions": 37,
+          "deletions": 1,
+          "accepted_lines": 37
+        },
+        "packages/webview/src/components/automation/automationDraft.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/automationPluginScript.test.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        }
+      }
+    }
+  }
+}
