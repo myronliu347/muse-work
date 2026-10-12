@@ -1,0 +1,55 @@
+packages/webview/src/components/message/imagePreview.ts
+  d501b231c2f2dabb 1-41
+packages/webview/src/components/message/Message.tsx
+  d501b231c2f2dabb 35,226,228,230-231,236-237
+packages/webview/src/styles/AssistantPage.css
+  d501b231c2f2dabb 277
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 218-244
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 14,171,176,194,200-208,242-260,296-306,650
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ff0c0a83b1e45dd24bb08c49570f16187693a40b",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 120,
+      "total_deletions": 55,
+      "accepted_lines": 120,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 7,
+          "deletions": 46,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/message/imagePreview.ts": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 44,
+          "deletions": 9,
+          "accepted_lines": 44
+        }
+      }
+    }
+  }
+}
