@@ -14,6 +14,7 @@ const CONTENT =
 function renderMessage(options?: {
   onOpenPreview?: (url: string) => void;
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  openHttpInBrowser?: boolean;
   content?: string;
 }) {
   const vscode = createMockVscode();
@@ -26,6 +27,7 @@ function renderMessage(options?: {
       vscode={vscode}
       onOpenPreview={options?.onOpenPreview}
       onOpenFile={options?.onOpenFile}
+      openHttpInBrowser={options?.openHttpInBrowser}
     />,
   );
   const links = result.container.querySelectorAll(
@@ -146,6 +148,19 @@ describe("Message link routing", () => {
     fireEvent.click(link);
 
     expect(onOpenFile).toHaveBeenCalledWith("认证指引.md", undefined, undefined);
+  });
+
+  it("assistant transcript: every http link opens the browser panel", () => {
+    const onOpenPreview = vi.fn();
+    const { vscode, externalLink } = renderMessage({
+      onOpenPreview,
+      openHttpInBrowser: true,
+    });
+
+    fireEvent.click(externalLink);
+
+    expect(onOpenPreview).toHaveBeenCalledWith("https://example.com/docs");
+    expect(vscode.postMessage).not.toHaveBeenCalled();
   });
 
   it("keeps http links on the openExternal path", () => {

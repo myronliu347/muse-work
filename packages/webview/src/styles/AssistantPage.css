@@ -251,6 +251,14 @@
   overflow-wrap: anywhere;
 }
 
+.assistant-user-text > :first-child {
+  margin-top: 0;
+}
+
+.assistant-user-text > :last-child {
+  margin-bottom: 0;
+}
+
 .assistant-page .assistant-bubble-assistant > :first-child {
   margin-top: 0;
 }

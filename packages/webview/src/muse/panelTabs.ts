@@ -29,6 +29,15 @@ export const PANEL_ADD_ORDER: DesktopPanelKind[] = [
   "diff",
 ];
 
+/** First panel the dock toggle opens. Sessions open 变更; a dock that hides
+ * 变更 opens the first remaining add-menu item. */
+export function defaultDockKind(
+  disabled: readonly DesktopPanelKind[] = [],
+): DesktopPanelKind | null {
+  if (!disabled.includes("diff")) return "diff";
+  return PANEL_ADD_ORDER.find((kind) => !disabled.includes(kind)) ?? null;
+}
+
 export type CollapsedTabs = {
   checked: DesktopPanelKind[];
   active: DesktopPanelKind | null;

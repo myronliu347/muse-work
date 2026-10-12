@@ -2,6 +2,7 @@ export { useDesktopStore, useDesktopShell } from "./desktopStore";
 export {
   usePanelGroupStore,
   usePanelGroup,
+  ASSISTANT_PANEL_GROUP_KEY,
   prunePanelGroupCache,
   workdirTermId,
   emptyPanelGroup,

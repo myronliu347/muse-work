@@ -164,6 +164,9 @@ export function workdirTermId(workdir: string): string {
   return `term-wd-${encodeURIComponent(workdir.trim())}`;
 }
 
+/** Assistant dock is not a workdir, so session-tree pruning must keep this key. */
+export const ASSISTANT_PANEL_GROUP_KEY = "assistant";
+
 export function isDraftGroupKey(groupKey: string | undefined): boolean {
   if (!groupKey) return true;
   return groupKey === "__draft__" || groupKey.startsWith("new:");

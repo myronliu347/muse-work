@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { observeElementRect, useVirtualizer } from "@tanstack/react-virtual";
@@ -7,8 +7,10 @@ import { MessageInput } from "../chat/MessageInput";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
 import { ContextTag } from "../shared/ContextTag";
-import { parseMentions } from "../../utils/messageUtils";
+import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
+import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
 import type { VsCodeApi } from "../../types";
+import { classifyAssistantHref } from "./assistantLinks";
 import "../../styles/Message.css";
 import "../../styles/MessageInput.css";
 import "../../styles/AssistantPage.css";
@@ -62,7 +64,7 @@ const noopHost: VsCodeApi = {
 };
 
 function markdownHtml(text: string): string {
-  const html = marked.parse(text, { gfm: true, breaks: true });
+  const html = marked.parse(linkifyFilePaths(text), { gfm: true, breaks: true });
   return DOMPurify.sanitize(typeof html === "string" ? html : "", {
     ALLOWED_TAGS: [
       "p",
@@ -161,7 +163,15 @@ function BubbleTime({ at }: { at: number }) {
   );
 }
 
-function UserLine({ line }: { line: AssistantLine }) {
+function UserLine({
+  line,
+  onOpenFile,
+  onLinkClick,
+}: {
+  line: AssistantLine;
+  onOpenFile?: (path: string) => void;
+  onLinkClick: (event: MouseEvent) => void;
+}) {
   const parts = parseMentions(
     line.message,
     line.images?.map((img, index) => ({
@@ -174,7 +184,7 @@ function UserLine({ line }: { line: AssistantLine }) {
     <div className="assistant-bubble-row assistant-bubble-row-user">
       {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
       <div className="assistant-bubble assistant-bubble-user">
-        <div className="assistant-user-content">
+        <div className="assistant-user-content" onClick={onLinkClick}>
           {parts.map((part, index) => {
             if (part.type === "mention" && part.isImage && part.imageData) {
               referenced.add(part.imageData);
@@ -193,16 +203,27 @@ function UserLine({ line }: { line: AssistantLine }) {
                   .replace(/[/\\]$/, "")
                   .split(/[/\\]/)
                   .pop() || "文件";
+              const path = part.path || part.fileName || "";
               return (
                 <ContextTag
                   key={index}
                   name={name}
-                  path={part.path || part.fileName || ""}
+                  path={path}
+                  onClick={path && onOpenFile ? () => onOpenFile(path) : undefined}
                 />
               );
             }
             if (!part.content) return null;
-            return <span key={index}>{part.content}</span>;
+            const linked = linkifyFilePaths(part.content);
+            const hasLink = linked !== part.content || /https?:\/\//.test(part.content);
+            if (!hasLink) return <span key={index}>{part.content}</span>;
+            return (
+              <span
+                key={index}
+                className="assistant-user-text"
+                dangerouslySetInnerHTML={{ __html: markdownHtml(part.content) }}
+              />
+            );
           })}
           {line.images
             ?.filter((img) => !referenced.has(img.data))
@@ -226,7 +247,16 @@ export const AssistantPage: React.FC<{
   vscode?: VsCodeApi;
   showPanelToggle?: boolean;
   onToggleDock?: () => void;
-}> = ({ api, vscode = noopHost, showPanelToggle = false, onToggleDock }) => {
+  onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  onOpenUrl?: (url: string) => void;
+}> = ({
+  api,
+  vscode = noopHost,
+  showPanelToggle = false,
+  onToggleDock,
+  onOpenFile,
+  onOpenUrl,
+}) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [sending, setSending] = useState(false);
@@ -416,6 +446,32 @@ export const AssistantPage: React.FC<{
     }
   }, [api, hasMore, lines]);
 
+  const openHref = (href: string) => {
+    const target = classifyAssistantHref(href);
+    if (!target) return;
+    if (target.kind === "file") {
+      onOpenFile?.(
+        resolveWorkspaceFilePath(target.path, agentWorkdir),
+        target.startLine,
+        target.endLine,
+      );
+      return;
+    }
+    if (target.kind === "browser") {
+      onOpenUrl?.(target.url);
+      return;
+    }
+    vscode.postMessage({ command: "openExternal", url: target.url });
+  };
+
+  const handleLinkClick = (event: MouseEvent) => {
+    const anchor = (event.target as Element | null)?.closest?.("a");
+    const href = anchor?.getAttribute("href");
+    if (!href) return;
+    event.preventDefault();
+    openHref(href);
+  };
+
   async function send(
     text: string,
     images?: Array<{ data: string; mediaType: string }>,
@@ -511,6 +567,15 @@ export const AssistantPage: React.FC<{
               messages={agentMessages}
               vscode={vscode}
               workdir={agentWorkdir}
+              onOpenFile={(path, startLine, endLine) =>
+                onOpenFile?.(
+                  resolveWorkspaceFilePath(path, agentWorkdir),
+                  startLine,
+                  endLine,
+                )
+              }
+              onOpenPreview={onOpenUrl}
+              openHttpInBrowser
             />
           )}
         </div>
@@ -542,7 +607,13 @@ export const AssistantPage: React.FC<{
                 className="virtual-row"
               >
                 {line.role === "user" ? (
-                  <UserLine line={line} />
+                  <UserLine
+                    line={line}
+                    onOpenFile={(path) =>
+                      onOpenFile?.(resolveWorkspaceFilePath(path, agentWorkdir))
+                    }
+                    onLinkClick={handleLinkClick}
+                  />
                 ) : (
                   <div className="assistant-bubble-row assistant-bubble-row-assistant">
                     <div className="assistant-bubble-name">
@@ -553,6 +624,7 @@ export const AssistantPage: React.FC<{
                     </div>
                     <div
                       className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
+                      onClick={handleLinkClick}
                       dangerouslySetInnerHTML={{ __html: markdownHtml(line.message) }}
                     />
                     <BubbleTime at={line.at} />

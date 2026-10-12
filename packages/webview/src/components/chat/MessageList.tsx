@@ -284,6 +284,7 @@ export const MessageList = forwardRef<
     workdir,
     onOpenPreview,
     onOpenFile,
+    openHttpInBrowser,
     onOpenAgentTranscript,
     onRevertFileHistory,
     revertingFileHistory,
@@ -623,6 +624,7 @@ export const MessageList = forwardRef<
       workdir={workdir}
       onOpenPreview={onOpenPreview}
       onOpenFile={onOpenFile}
+      openHttpInBrowser={openHttpInBrowser}
       onOpenAgentTranscript={onOpenAgentTranscript}
       blockRenderMode={extras?.blockRenderMode}
       finalTextBlockIndex={extras?.finalTextBlockIndex}

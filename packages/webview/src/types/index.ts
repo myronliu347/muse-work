@@ -392,6 +392,8 @@ export interface MessageListProps {
   onOpenPreview?: (url: string) => void;
   /** Desktop host only: open a file in the file panel instead of the OS. */
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  /** Assistant transcript: every http(s) link opens the browser panel. */
+  openHttpInBrowser?: boolean;
   /** Open the nested Agent tool transcript popup. */
   onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
   /** Undo the newest turn's file changes (file_history card). */
@@ -420,6 +422,8 @@ export interface MessageProps {
   onOpenPreview?: (url: string) => void;
   /** Desktop host only: open a file in the file panel instead of the OS. */
   onOpenFile?: (path: string, startLine?: number, endLine?: number) => void;
+  /** Assistant transcript: every http(s) link opens the browser panel. */
+  openHttpInBrowser?: boolean;
   /** Open the nested Agent tool transcript popup. */
   onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
   /**

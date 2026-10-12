@@ -323,8 +323,11 @@ export const Message: React.FC<MessageProps> = React.memo(
         openFile(fileLink.path, fileLink.startLine, fileLink.endLine);
         return;
       }
-      if (isLocalhostUrl(href) && props.onOpenPreview) {
-        props.onOpenPreview(href);
+      const openInBrowser =
+        props.onOpenPreview &&
+        (props.openHttpInBrowser ? /^https?:/i.test(href) : isLocalhostUrl(href));
+      if (openInBrowser) {
+        props.onOpenPreview?.(href);
       } else {
         props.vscode.postMessage({ command: "openExternal", url: href });
       }

@@ -52,7 +52,7 @@ import type {
   DesktopPanelKind,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { usePanelGroup, usePaneUi } from "../stores";
+import { ASSISTANT_PANEL_GROUP_KEY, usePanelGroup, usePaneUi } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
 import { useChatAppCore } from "../hooks/useChatAppCore";
@@ -126,13 +126,40 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           workdir: effectiveWorkdir,
         }
       : undefined;
+  // 主内容区视图：聊天 / 新会话页 / 自动化 / Muse Bot。
+  const [view, setView] = useState<MainView>("chat");
+  const shellSurface = useShellSurface();
+  const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
+  const assistantVisible =
+    host?.type === "desktop" &&
+    (paneId !== undefined
+      ? shellSurface === "assistant" &&
+        (host.focusedPaneId ?? paneId) === paneId
+      : (host.panes?.length ?? 0) === 0 && view === "assistant");
+  useEffect(() => {
+    if (!assistantVisible) return;
+    let cancelled = false;
+    void museApi
+      .getAssistantSession()
+      .then((info) => {
+        if (!cancelled && info.workdir) setAssistantWorkdir(info.workdir);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [assistantVisible, museApi]);
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory.
-  const panelWorkdir =
-    effectiveWorkdir ?? host?.workdir ?? undefined;
-  const groupKey =
-    panelWorkdir ? panelWorkdir : undefined;
+  // the same dock as sessions in that directory. The assistant keeps its own
+  // dock: 文件、终端、浏览器，工作目录是助手会话目录。
+  const sessionPanelWorkdir = effectiveWorkdir ?? host?.workdir ?? undefined;
+  const panelWorkdir = assistantVisible ? assistantWorkdir : sessionPanelWorkdir;
+  const groupKey = assistantVisible
+    ? ASSISTANT_PANEL_GROUP_KEY
+    : panelWorkdir
+      ? panelWorkdir
+      : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
   const {
@@ -165,10 +192,6 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   );
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
-  // 主内容区视图：聊天（展示 state.currentSession 对应会话）/ 新会话页 / 自动化 / Muse Bot。
-  // 独立于 host 推送的会话状态，任何导航入口显式切换。
-  const [view, setView] = useState<MainView>("chat");
-  const shellSurface = useShellSurface();
   const [showNewIssue, setShowNewIssue] = useState(false);
   const [planningIssueId, setPlanningIssueId] = useState<string | null>(null);
   // 初始化 agent store（GET /agents + /agents/scenarios），用于草稿默认模型解析与设置页
@@ -350,6 +373,8 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     panelWidths,
     dockMaxWidth,
     chatMinWidth,
+    hideDiff: assistantVisible,
+    previewWithoutWorkdir: assistantVisible,
   });
   const {
     tryOpenPanel,
@@ -386,7 +411,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     api: museApi,
     currentSession: state.currentSession,
     effectiveHost,
-    effectiveWorkdir,
+    effectiveWorkdir: assistantVisible ? assistantWorkdir : effectiveWorkdir,
     groupKey,
     contentSearch,
   });
@@ -750,7 +775,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     paneId,
     isStreaming: state.isStreaming,
     sessionId: state.currentSession?.id,
-    workdir: effectiveWorkdir,
+    workdir: assistantVisible ? assistantWorkdir : effectiveWorkdir,
     previewEpoch,
     previewUrl,
     currentForward,
@@ -790,6 +815,8 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             vscode={vscode}
             showPanelToggle={checkedPanels.length === 0}
             onToggleDock={handleToggleDock}
+            onOpenFile={handleOpenFile}
+            onOpenUrl={handleOpenPreview}
           />
         </div>
         {dock.checked.length > 0 && dock.active ? (
@@ -950,7 +977,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     }
     // Inside DesktopShell each pane renders only its own chatContainer; the
     // sidebar / preview pane live in the shell / single-pane layout.
-    // 助理占中间栏，右侧面板仍用这个分屏自己的 dock。
+    // 助理占中间栏，右侧是助手自己的文件、终端和浏览器。
     const showAssistantInPane =
       paneId !== undefined &&
       shellSurface === "assistant" &&

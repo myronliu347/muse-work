@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { ChatApp } from "./ChatApp";
 import { VsCodeApi, OpenPaneOptions } from "../types";
 import { useDesktopShell } from "../stores/desktopStore";
-import { prunePanelGroupCache, workdirTermId } from "../stores/panelGroupStore";
+import {
+  ASSISTANT_PANEL_GROUP_KEY,
+  prunePanelGroupCache,
+  workdirTermId,
+} from "../stores/panelGroupStore";
 import { useDesktopStore } from "../stores/desktopStore";
 import "../styles/DesktopApp.css";
 
@@ -39,7 +43,7 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
 
   useEffect(() => {
     const prunePanels = () => {
-      const keep = new Set<string>();
+      const keep = new Set<string>([ASSISTANT_PANEL_GROUP_KEY]);
       const currentWd =
         useDesktopStore.getState().workdirState?.workdir?.trim();
       if (currentWd) keep.add(currentWd);

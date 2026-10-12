@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  defaultDockKind,
   nextActivePanel,
   PANEL_ADD_ORDER,
   PANEL_TAB_ICONS,
@@ -47,6 +48,20 @@ describe("nextActivePanel", () => {
 describe("PANEL_ADD_ORDER", () => {
   it("lists 文件、终端、浏览器、变更", () => {
     expect(PANEL_ADD_ORDER).toEqual(["file", "terminal", "preview", "diff"]);
+  });
+});
+
+describe("defaultDockKind", () => {
+  it("opens 变更 for a session dock", () => {
+    expect(defaultDockKind([])).toBe("diff");
+  });
+
+  it("opens 文件 when 变更 is hidden and a workdir exists", () => {
+    expect(defaultDockKind(["diff"])).toBe("file");
+  });
+
+  it("opens 浏览器 when only the browser is available", () => {
+    expect(defaultDockKind(["diff", "file", "terminal"])).toBe("preview");
   });
 });
 

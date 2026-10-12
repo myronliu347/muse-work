@@ -18,7 +18,7 @@ import {
 } from "../muse/panelShortcuts";
 import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
 import { PANEL_MIN_WIDTH, clampDockWidth } from "../muse/layout";
-import { PANEL_TAB_ORDER } from "../muse/panelTabs";
+import { defaultDockKind, PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
 import {
   usePanelGroupStore,
@@ -65,6 +65,10 @@ interface UsePanelsParams {
   dockMaxWidth: number;
   /** Conversation min width for this pane (includes overlay-sidebar padding when inset). */
   chatMinWidth: number;
+  /** Assistant dock keeps 文件 / 终端 / 浏览器 and drops 变更. */
+  hideDiff?: boolean;
+  /** Browser can open before a workdir exists (assistant page). */
+  previewWithoutWorkdir?: boolean;
 }
 
 export function usePanels({
@@ -86,6 +90,8 @@ export function usePanels({
   panelWidths,
   dockMaxWidth,
   chatMinWidth,
+  hideDiff = false,
+  previewWithoutWorkdir = false,
 }: UsePanelsParams): PanelHandlers {
   // Mirrors so the stable message listener / shortcut handler can reach the
   // panel toggle logic without re-subscribing.
@@ -276,7 +282,8 @@ export function usePanels({
       });
       return;
     }
-    tryOpenPanel("diff");
+    const kind = defaultDockKind(panelDisabledRef.current);
+    if (kind) tryOpenPanel(kind);
   }, [groupKey, tryOpenPanel, updatePanelGroup]);
 
   const toggleDockRef = useRef(handleToggleDock);
@@ -399,10 +406,18 @@ export function usePanels({
 
   // No workdir: all panels disabled. With a workdir (incl. draft + host
   // folder): all panel kinds available; state is shared per workdir.
+  // The assistant dock always hides 变更, and can open the browser before
+  // its workdir has loaded.
   const panelDisabled: DesktopPanelKind[] = useMemo(() => {
-    if (!panelWorkdir) return [...PANEL_ORDER];
-    return [];
-  }, [panelWorkdir]);
+    const hidden = new Set<DesktopPanelKind>(hideDiff ? ["diff"] : []);
+    if (!panelWorkdir) {
+      for (const kind of PANEL_ORDER) {
+        if (kind === "preview" && previewWithoutWorkdir) continue;
+        hidden.add(kind);
+      }
+    }
+    return PANEL_ORDER.filter((kind) => hidden.has(kind));
+  }, [panelWorkdir, hideDiff, previewWithoutWorkdir]);
 
   useEffect(() => {
     panelDisabledRef.current = panelDisabled;

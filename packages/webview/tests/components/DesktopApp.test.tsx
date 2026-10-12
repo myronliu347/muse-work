@@ -3,6 +3,10 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
+import {
+  ASSISTANT_PANEL_GROUP_KEY,
+  usePanelGroupStore,
+} from "../../src/stores/panelGroupStore";
 import type { DesktopSessionEntry, VsCodeApi } from "../../src/types";
 
 function mockVscode(): VsCodeApi {
@@ -28,6 +32,36 @@ function postToWindow(data: unknown): void {
 }
 
 describe("DesktopApp host → sidebar 会话树", () => {
+  it("keeps the assistant dock open across a session-tree refresh", () => {
+    usePanelGroupStore.getState().reset();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "terminal"],
+      mounted: ["file", "terminal"],
+      active: "file",
+    });
+    const vscode = mockVscode();
+    render(<DesktopApp vscode={vscode} />);
+    postToWindow({
+      command: "desktopSessionTree",
+      groups: [
+        {
+          host: "local",
+          workdir: "recent",
+          sessions: [entry("sess-1")],
+        },
+      ],
+      issueGroups: [],
+      closedIssueGroups: [],
+    });
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.checked,
+    ).toEqual(["file", "terminal"]);
+    expect(vscode.postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ command: "desktopTerminalKill" }),
+    );
+    usePanelGroupStore.getState().reset();
+  });
+
   it("desktopSessionTree 推送后渲染工作空间会话", () => {
     const vscode = mockVscode();
     render(<DesktopApp vscode={vscode} />);

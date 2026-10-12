@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { AssistantPage } from "../../src/components/assistant/AssistantPage";
+import { classifyAssistantHref } from "../../src/components/assistant/assistantLinks";
 
 describe("AssistantPage", () => {
   it("renders jsonl roles and sends a user line", async () => {
@@ -185,5 +186,52 @@ describe("AssistantPage", () => {
     } finally {
       if (scrollHeight) Object.defineProperty(Element.prototype, "scrollHeight", scrollHeight);
     }
+  });
+
+  it("opens file links in the file panel and urls in the browser", async () => {
+    const onOpenFile = vi.fn();
+    const onOpenUrl = vi.fn();
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message:
+              "看 [App.tsx](/tmp/proj/App.tsx:8) 和 [文档](https://example.com/docs)",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(
+      <AssistantPage api={api} onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} />,
+    );
+    fireEvent.click(await screen.findByRole("link", { name: "App.tsx" }));
+    expect(onOpenFile).toHaveBeenCalledWith("/tmp/proj/App.tsx", 8, undefined);
+    fireEvent.click(screen.getByRole("link", { name: "文档" }));
+    expect(onOpenUrl).toHaveBeenCalledWith("https://example.com/docs");
+    expect(onOpenFile).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("classifyAssistantHref", () => {
+  it("sends files to the file panel and http links to the browser", () => {
+    expect(classifyAssistantHref("/tmp/proj/App.tsx:8")).toEqual({
+      kind: "file",
+      path: "/tmp/proj/App.tsx",
+      startLine: 8,
+      endLine: undefined,
+    });
+    expect(classifyAssistantHref("file:///tmp/proj/App.tsx")).toEqual({
+      kind: "file",
+      path: "/tmp/proj/App.tsx",
+    });
+    expect(classifyAssistantHref("https://example.com/docs")).toEqual({
+      kind: "browser",
+      url: "https://example.com/docs",
+    });
   });
 });
