@@ -1,0 +1,50 @@
+packages/webview/src/components/ChatApp.tsx
+  d501b231c2f2dabb 820
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 1-9,14,175-194,214-257,263-271,273-275,290-291,299,700
+packages/webview/src/styles/AssistantPage.css
+  d501b231c2f2dabb 245-248,251-253,258-261,280,282-289,291-300
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 1,4,221-237,255-258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6e1d36394909aa53e8b0b917367a4eb9557160cb",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 149,
+      "total_deletions": 84,
+      "accepted_lines": 146,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 24,
+          "deletions": 2,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 32,
+          "deletions": 9,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 92,
+          "deletions": 73,
+          "accepted_lines": 90
+        }
+      }
+    }
+  }
+}
