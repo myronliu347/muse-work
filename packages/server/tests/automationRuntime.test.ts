@@ -27,7 +27,10 @@ describe("automationRuntime", () => {
     homes.length = 0;
   });
 
-  function setup(now: () => Date) {
+  function setup(
+    now: () => Date,
+    extra: Partial<Parameters<typeof createAutomationRuntime>[0]> = {},
+  ) {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
     homes.push(home);
     const store = createAutomationStore({ home });
@@ -43,10 +46,43 @@ describe("automationRuntime", () => {
       now,
       issueStore,
       startSession: async () => "sess-1",
+      ...extra,
     });
     runtimes.push(runtime);
     return { home, store, runtime, hub, issueStore };
   }
+
+  it("remind notifies without starting a session", () => {
+    const now = () => new Date(2026, 8, 16, 9, 0, 0);
+    const settled: string[] = [];
+    const { store, runtime } = setup(now, {
+      startSession: async () => {
+        throw new Error("remind should not start a session");
+      },
+      onRunSettled: (_run, automation) => {
+        settled.push(automation.assistantHint);
+      },
+    });
+    const automation = store.create({
+      name: "站会",
+      mode: "remind",
+      assistantHint: "提醒用户开站会",
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = runtime.enqueue(automation.id, {
+      type: "cron",
+      firedAt: now().getTime(),
+    });
+    expect(run?.status).toBe("succeeded");
+    expect(run?.sessionId).toBeUndefined();
+    expect(settled).toEqual(["提醒用户开站会"]);
+    const again = runtime.enqueue(automation.id, {
+      type: "cron",
+      firedAt: now().getTime(),
+    });
+    expect(again?.status).toBe("succeeded");
+  });
 
   it("second enqueue of the same rule is skipped as rule_running", () => {
     const now = () => new Date(2026, 8, 16, 9, 0, 0);

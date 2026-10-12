@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
 import type {
   Automation,
+  AutomationMode,
   AutomationPermission,
   AutomationTrigger,
 } from "../services/automationStore.js";
@@ -19,11 +20,21 @@ function broadcastAutomationChanged(ctx: {
 }
 
 function isIncomplete(automation: Automation): boolean {
-  return (
-    !automation.prompt.trim() ||
-    !automation.workdir.trim() ||
-    automation.triggers.length === 0
-  );
+  if (automation.triggers.length === 0) return true;
+  if (automation.mode === "remind") return !automation.assistantHint.trim();
+  return !automation.prompt.trim() || !automation.workdir.trim();
+}
+
+function parseMode(value: unknown): AutomationMode | undefined {
+  if (value === undefined) return undefined;
+  if (value !== "agent" && value !== "remind") throw new Error("invalid mode");
+  return value;
+}
+
+function parseHint(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new Error("invalid hint");
+  return value;
 }
 
 function isScheduleUi(value: unknown): value is ScheduleUi {
@@ -114,7 +125,9 @@ type AutomationBody = {
   name?: string;
   description?: string;
   enabled?: boolean;
+  mode?: unknown;
   prompt?: string;
+  assistantHint?: unknown;
   workdir?: string;
   agentName?: string;
   model?: string;
@@ -157,11 +170,15 @@ automationsRoutes.post("/automations", async (c) => {
   try {
     const triggers = parseTriggers(body) ?? [];
     const permission = parsePermission(body.permission);
+    const mode = parseMode(body.mode) ?? "agent";
+    const assistantHint = parseHint(body.assistantHint) ?? "";
     const enabled = body.enabled === true;
     if (
       enabled &&
       isIncomplete({
+        mode,
         prompt: body.prompt ?? "",
+        assistantHint,
         workdir: body.workdir ?? "",
         triggers,
       } as Automation)
@@ -172,7 +189,9 @@ automationsRoutes.post("/automations", async (c) => {
       name: body.name,
       description: body.description,
       enabled,
+      mode,
       prompt: body.prompt,
+      assistantHint,
       workdir: body.workdir,
       agentName: body.agentName,
       model: body.model,
@@ -205,10 +224,14 @@ automationsRoutes.patch("/automations/:id", async (c) => {
   try {
     const triggers = parseTriggers(body);
     const permission = parsePermission(body.permission);
+    const mode = parseMode(body.mode);
+    const assistantHint = parseHint(body.assistantHint);
     const patch: Partial<Omit<Automation, "id" | "createdAt">> = {};
     if (body.name !== undefined) patch.name = body.name;
     if (body.description !== undefined) patch.description = body.description;
+    if (mode !== undefined) patch.mode = mode;
     if (body.prompt !== undefined) patch.prompt = body.prompt;
+    if (assistantHint !== undefined) patch.assistantHint = assistantHint;
     if (body.workdir !== undefined) patch.workdir = body.workdir;
     if (body.agentName !== undefined) patch.agentName = body.agentName;
     if (body.model !== undefined) patch.model = body.model;

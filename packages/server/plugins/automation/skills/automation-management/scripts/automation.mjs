@@ -36,10 +36,10 @@ function usage() {
   console.log(`automation.mjs — 自动化管理 CLI（${BASE}）
 
 用法：
-  node automation.mjs create --name <名称> --prompt <指令> --workdir <路径> [--cron EXPR]* [--issue-events created,review] [--tags a,b] [--priority p0|p1|p2] [--description D] [--model M] [--agent A]
+  node automation.mjs create --name <名称> (--prompt <指令> --workdir <路径> | --remind --hint <提示助手>) [--hint <提示助手>] [--cron EXPR]* [--issue-events created,review] [--tags a,b] [--priority p0|p1|p2] [--description D] [--model M] [--agent A]
   node automation.mjs list
   node automation.mjs get --id <ID>
-  node automation.mjs update --id <ID> [--name N] [--prompt P] [--workdir W] [--description D] [--model M] [--agent A] [--cron EXPR]* [--issue-events E] [--tags a,b] [--priority p0|p1|p2]
+  node automation.mjs update --id <ID> [--name N] [--prompt P] [--workdir W] [--hint <提示助手>] [--remind] [--description D] [--model M] [--agent A] [--cron EXPR]* [--issue-events E] [--tags a,b] [--priority p0|p1|p2]
   node automation.mjs enable --id <ID>
   node automation.mjs disable --id <ID>
   node automation.mjs run --id <ID>
@@ -118,6 +118,9 @@ function assignOptional(body, argv) {
   if (model != null) body.model = model;
   const agent = arg(argv, "--agent");
   if (agent != null) body.agentName = agent;
+  const hint = arg(argv, "--hint");
+  if (hint != null) body.assistantHint = hint;
+  if (argv.includes("--remind")) body.mode = "remind";
 }
 
 async function request(method, urlPath, body) {
@@ -162,19 +165,27 @@ async function main() {
       const name = arg(argv, "--name");
       const prompt = arg(argv, "--prompt");
       const workdir = arg(argv, "--workdir");
-      if (!name || !prompt || !workdir) {
+      const hint = arg(argv, "--hint");
+      const remind = argv.includes("--remind");
+      if (!name) throw new Error("create 需要 --name");
+      if (remind) {
+        if (!hint) throw new Error("create --remind 需要 --hint");
+      } else if (!prompt || !workdir) {
         throw new Error("create 需要 --name --prompt --workdir");
       }
       const triggers = parseTriggers(argv);
-      const body = { name, prompt, workdir, triggers };
+      const body = {
+        name,
+        prompt: prompt ?? "",
+        workdir: workdir ?? "",
+        triggers,
+        ...(remind ? { mode: "remind" } : {}),
+      };
       assignOptional(body, argv);
-      if (
-        prompt.trim() &&
-        workdir.trim() &&
-        triggers.length > 0
-      ) {
-        body.enabled = true;
-      }
+      const ready = remind
+        ? Boolean(hint?.trim()) && triggers.length > 0
+        : Boolean(prompt?.trim()) && Boolean(workdir?.trim()) && triggers.length > 0;
+      if (ready) body.enabled = true;
       const { automation } = await request("POST", "/automations", body);
       printJson(automation);
       return;

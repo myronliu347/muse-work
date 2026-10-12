@@ -53,7 +53,19 @@ describe("assistant events and queue", () => {
       workdir: "/repo",
       status: "skipped",
       trigger: "cron",
+      mode: "agent",
     })).not.toContain("error:");
+    expect(formatAssistantEvent({
+      type: "automation",
+      automationId: "a",
+      name: "站会",
+      runId: "r",
+      workdir: "",
+      status: "succeeded",
+      trigger: "cron",
+      mode: "remind",
+      instruction: "提醒用户开站会",
+    })).toContain("instruction: 提醒用户开站会");
   });
 
   it("persists fifo order and reloads", () => {

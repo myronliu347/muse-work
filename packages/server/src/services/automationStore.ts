@@ -4,6 +4,8 @@ import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
 
 export type AutomationPermission = "workspace";
+/** agent 跑一轮再把结果交给助手；remind 不跑 Agent，只把提示交给助手。 */
+export type AutomationMode = "agent" | "remind";
 export type AutomationRunStatus =
   | "running"
   | "succeeded"
@@ -27,7 +29,11 @@ export interface Automation {
   name: string;
   description: string;
   enabled: boolean;
+  /** 默认 agent。旧文件没有这个字段时按 agent 读。 */
+  mode: AutomationMode;
   prompt: string;
+  /** 助手收到这次结果后要做的事。remind 时这就是全部内容。 */
+  assistantHint: string;
   workdir: string;
   agentName?: string;
   model?: string;
@@ -132,6 +138,8 @@ function hydrateAutomation(record: Automation): Automation {
   return {
     ...record,
     description: record.description ?? "",
+    mode: record.mode === "remind" ? "remind" : "agent",
+    assistantHint: record.assistantHint ?? "",
     permission: record.permission ?? "workspace",
     triggers: record.triggers ?? [],
   };
@@ -206,7 +214,9 @@ export function createAutomationStore(options?: { home?: string }) {
         name: input.name ?? "",
         description: input.description ?? "",
         enabled: input.enabled ?? false,
+        mode: input.mode === "remind" ? "remind" : "agent",
         prompt: input.prompt ?? "",
+        assistantHint: input.assistantHint ?? "",
         workdir: input.workdir ?? "",
         agentName: input.agentName,
         model: input.model,
@@ -242,7 +252,11 @@ export function createAutomationStore(options?: { home?: string }) {
       if (patch.name !== undefined) automation.name = patch.name;
       if (patch.description !== undefined) automation.description = patch.description;
       if (patch.enabled !== undefined) automation.enabled = patch.enabled;
+      if (patch.mode !== undefined) {
+        automation.mode = patch.mode === "remind" ? "remind" : "agent";
+      }
       if (patch.prompt !== undefined) automation.prompt = patch.prompt;
+      if (patch.assistantHint !== undefined) automation.assistantHint = patch.assistantHint;
       if (patch.workdir !== undefined) automation.workdir = patch.workdir;
       if (patch.agentName !== undefined) automation.agentName = patch.agentName;
       if (patch.model !== undefined) automation.model = patch.model;

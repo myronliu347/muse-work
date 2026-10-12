@@ -15,6 +15,7 @@ export interface AutomationsPageProps {
 }
 
 function lastMeta(automation: MuseAutomation): string {
+  if (automation.mode === "remind") return "提醒助手";
   if (!automation.workdir) return "未选工作目录";
   return (
     automation.workdir.split(/[\\/]/).filter(Boolean).pop() || automation.workdir
@@ -68,7 +69,9 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
       const raw = err instanceof Error ? err.message : "无法切换启用状态";
       setError(
         raw.includes("incomplete")
-          ? "启用前需要指令、工作目录和至少一个触发器。"
+          ? automation.mode === "remind"
+            ? "启用前需要写给助手的话，和至少一个触发器。"
+            : "启用前需要指令、工作目录和至少一个触发器。"
           : raw.replace(/^Muse API \d+:\s*/, ""),
       );
     }

@@ -220,6 +220,8 @@ export function createAppContext(
           workdir: automation.workdir,
           status: run.status,
           trigger: run.trigger.type,
+          mode: automation.mode === "remind" ? "remind" : "agent",
+          instruction: automation.assistantHint.trim() || undefined,
           error: run.error,
           summary,
         });

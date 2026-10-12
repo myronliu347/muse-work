@@ -182,7 +182,11 @@ export interface MuseAutomation {
   name: string;
   description: string;
   enabled: boolean;
+  /** 缺省按 agent。remind 不跑 Agent，只把 assistantHint 交给助手。 */
+  mode?: "agent" | "remind";
   prompt: string;
+  /** 助手收到这次结果后要做的事。 */
+  assistantHint?: string;
   workdir: string;
   agentName?: string;
   model?: string;
@@ -228,7 +232,9 @@ export type MuseAutomationPatch = {
   name?: string;
   description?: string;
   enabled?: boolean;
+  mode?: "agent" | "remind";
   prompt?: string;
+  assistantHint?: string;
   workdir?: string;
   agentName?: string;
   model?: string;

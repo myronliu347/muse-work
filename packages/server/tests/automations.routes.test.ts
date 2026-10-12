@@ -34,6 +34,29 @@ describe("automations HTTP", () => {
     expect((await fetch(`${app.baseUrl}/automations/${automation.id}/enable`, { method: "POST" })).status).toBe(200);
   });
 
+  it("remind enables with a hint and a trigger, without a prompt", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const created = await fetch(`${app.baseUrl}/automations`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "站会",
+        mode: "remind",
+        assistantHint: "提醒用户开站会",
+        enabled: true,
+        schedule: { mode: "cycle", cycle: "weekday", time: "09:30" },
+      }),
+    });
+    expect(created.status).toBe(201);
+    const { automation } = await created.json();
+    expect(automation.mode).toBe("remind");
+    expect(automation.assistantHint).toBe("提醒用户开站会");
+    expect(automation.enabled).toBe(true);
+    expect(automation.prompt).toBe("");
+  });
+
   it("enable returns incomplete until prompt, workdir, and triggers exist", async () => {
     const app = await listenTestApp();
     server = app.server;

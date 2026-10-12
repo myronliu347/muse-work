@@ -185,6 +185,37 @@ describe("automation plugin script (automation.mjs)", () => {
     expect(runs.runs).toHaveLength(1);
   });
 
+  it("create --remind --hint 不需要 prompt 和 workdir", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+    const env = { ...process.env, MUSE_SERVER_URL: app.baseUrl };
+
+    const { stdout } = await runScript(
+      [
+        "create",
+        "--remind",
+        "--name",
+        "站会",
+        "--hint",
+        "提醒用户开站会",
+        "--cron",
+        "30 9 * * 1-5",
+      ],
+      env,
+    );
+    const parsed = JSON.parse(stdout) as {
+      mode?: string;
+      assistantHint?: string;
+      enabled?: boolean;
+      prompt?: string;
+    };
+    expect(parsed.mode).toBe("remind");
+    expect(parsed.assistantHint).toBe("提醒用户开站会");
+    expect(parsed.enabled).toBe(true);
+    expect(parsed.prompt).toBe("");
+  });
+
   it("create --issue-events review --tags auth --priority p0 持久化 issue 过滤字段", async () => {
     const app = await listenTestApp();
     server = app.server;

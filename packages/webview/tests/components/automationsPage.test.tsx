@@ -193,6 +193,7 @@ describe("automations dedicated page", () => {
     await user.click(screen.getByText("工作日 changelog 巡检"));
     expect(await screen.findByTestId("automation-editor")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /添加触发器/ })).toBeInTheDocument();
+    expect(screen.getByTestId("automation-hint")).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: /cron/i })).toBeNull();
     expect(screen.queryByPlaceholderText(/cron/i)).toBeNull();
     const cronInputs = screen.queryAllByDisplayValue(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/);
@@ -211,6 +212,9 @@ describe("automations dedicated page", () => {
     await user.click(screen.getByPlaceholderText(/输入指令/));
     await user.keyboard("更新 changelog");
     expect(screen.getByTestId("automation-save")).not.toBeDisabled();
+    await user.click(screen.getByTestId("automation-mode-remind"));
+    expect(screen.queryByPlaceholderText(/输入指令/)).toBeNull();
+    expect(screen.queryByTestId("automation-workdir")).toBeNull();
   });
 
   it("empty list shows a centered create prompt", async () => {

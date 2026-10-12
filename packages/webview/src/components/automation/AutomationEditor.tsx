@@ -163,14 +163,18 @@ function compileEditorTriggers(triggers: EditorTrigger[]): MuseAutomationTrigger
 
 function draftKey(input: {
   name: string;
+  mode: "agent" | "remind";
   prompt: string;
+  assistantHint: string;
   workdir: string;
   model: string;
   triggers: EditorTrigger[];
 }): string {
   return JSON.stringify({
     name: input.name,
+    mode: input.mode,
     prompt: input.prompt,
+    assistantHint: input.assistantHint,
     workdir: input.workdir,
     model: input.model,
     triggers: compileEditorTriggers(input.triggers),
@@ -304,7 +308,7 @@ function yearItems(current: string): Array<{ value: string; label: string }> {
 function explainAutomationError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
   if (raw.includes("incomplete")) {
-    return "启用前需要指令、工作目录和至少一个触发器。";
+    return "启用前还没填完。";
   }
   if (raw.includes("disabled")) {
     return "停用时不能测试，请先启用。";
@@ -331,8 +335,12 @@ export const AutomationEditor: FC<{
 }) => {
   const [name, setName] = useState(automation.name);
   const [enabled, setEnabled] = useState(automation.enabled);
+  const [mode, setMode] = useState<"agent" | "remind">(
+    automation.mode === "remind" ? "remind" : "agent",
+  );
   const [workdir, setWorkdir] = useState(automation.workdir);
   const [prompt, setPrompt] = useState(automation.prompt);
+  const [assistantHint, setAssistantHint] = useState(automation.assistantHint ?? "");
   const [model, setModel] = useState(automation.model ?? "");
   const [triggers, setTriggers] = useState<EditorTrigger[]>(() =>
     fromServer(automation.triggers),
@@ -353,7 +361,9 @@ export const AutomationEditor: FC<{
   const baseline = useRef(
     draftKey({
       name: automation.name,
+      mode: automation.mode === "remind" ? "remind" : "agent",
       prompt: automation.prompt,
+      assistantHint: automation.assistantHint ?? "",
       workdir: automation.workdir,
       model: automation.model ?? "",
       triggers: fromServer(automation.triggers),
@@ -361,8 +371,10 @@ export const AutomationEditor: FC<{
   );
 
   const dirty = useMemo(
-    () => draftKey({ name, prompt, workdir, model, triggers }) !== baseline.current,
-    [name, prompt, workdir, model, triggers],
+    () =>
+      draftKey({ name, mode, prompt, assistantHint, workdir, model, triggers }) !==
+      baseline.current,
+    [name, mode, prompt, assistantHint, workdir, model, triggers],
   );
 
   const loadRuns = useCallback(async () => {
@@ -400,7 +412,9 @@ export const AutomationEditor: FC<{
       const compiled = compileEditorTriggers(triggers);
       const patch = {
         name,
+        mode,
         prompt,
+        assistantHint,
         workdir,
         model: model || undefined,
         triggers: compiled,
@@ -408,7 +422,15 @@ export const AutomationEditor: FC<{
       const { automation: saved } = isNewAutomation(automation.id)
         ? await api.createAutomation(patch)
         : await api.patchAutomation(automation.id, patch);
-      baseline.current = draftKey({ name, prompt, workdir, model, triggers });
+      baseline.current = draftKey({
+        name,
+        mode,
+        prompt,
+        assistantHint,
+        workdir,
+        model,
+        triggers,
+      });
       onChanged(saved);
       return saved;
     } catch (err) {
@@ -417,12 +439,17 @@ export const AutomationEditor: FC<{
     } finally {
       setSaving(false);
     }
-  }, [api, automation.id, model, name, onChanged, prompt, triggers, workdir]);
+  }, [api, assistantHint, automation.id, mode, model, name, onChanged, prompt, triggers, workdir]);
 
   const toggleEnabled = async () => {
     if (!enabled) {
       const compiled = compileEditorTriggers(triggers);
-      if (!prompt.trim() || !workdir.trim() || compiled.length === 0) {
+      if (mode === "remind") {
+        if (!assistantHint.trim() || compiled.length === 0) {
+          setError("启用前需要写给助手的话，和至少一个触发器。");
+          return;
+        }
+      } else if (!prompt.trim() || !workdir.trim() || compiled.length === 0) {
         setError("启用前需要指令、工作目录和至少一个触发器。");
         return;
       }
@@ -602,24 +629,28 @@ export const AutomationEditor: FC<{
               <i />
             </button>
             <span>{enabled ? "已启用" : "已停用"}</span>
-            <span className="div" />
-            <DesktopWorkdirSelector
-              workdir={workdir || undefined}
-              recentWorkdirs={dirs}
-              menuPlacement="down"
-              variant="ghost"
-              testId="automation-workdir"
-              onSelectWorkdir={() => void pickDir()}
-              onSelectRecentWorkdir={(path) => {
-                setDirs((prev) => (prev.includes(path) ? prev : [path, ...prev]));
-                setWorkdir(path);
-              }}
-              onRemoveRecentWorkdir={(path) => {
-                setDirs((prev) => prev.filter((dir) => dir !== path));
-              }}
-            />
-            <span className="div" />
-            <span>工作区</span>
+            {mode === "agent" ? (
+              <>
+                <span className="div" />
+                <DesktopWorkdirSelector
+                  workdir={workdir || undefined}
+                  recentWorkdirs={dirs}
+                  menuPlacement="down"
+                  variant="ghost"
+                  testId="automation-workdir"
+                  onSelectWorkdir={() => void pickDir()}
+                  onSelectRecentWorkdir={(path) => {
+                    setDirs((prev) => (prev.includes(path) ? prev : [path, ...prev]));
+                    setWorkdir(path);
+                  }}
+                  onRemoveRecentWorkdir={(path) => {
+                    setDirs((prev) => prev.filter((dir) => dir !== path));
+                  }}
+                />
+                <span className="div" />
+                <span>工作区</span>
+              </>
+            ) : null}
           </div>
           <div className="automations-tabs">
             <button
@@ -642,6 +673,29 @@ export const AutomationEditor: FC<{
           </div>
           {tab === "settings" ? (
             <div className="automations-settings">
+              <div className="automations-block">
+                <div className="automations-sec-label">执行</div>
+                <div className="automations-mode" role="group" aria-label="执行方式">
+                  <button
+                    type="button"
+                    className={`automations-tab${mode === "agent" ? " on" : ""}`}
+                    aria-pressed={mode === "agent"}
+                    data-testid="automation-mode-agent"
+                    onClick={() => setMode("agent")}
+                  >
+                    跑 Agent
+                  </button>
+                  <button
+                    type="button"
+                    className={`automations-tab${mode === "remind" ? " on" : ""}`}
+                    aria-pressed={mode === "remind"}
+                    data-testid="automation-mode-remind"
+                    onClick={() => setMode("remind")}
+                  >
+                    只提醒助手
+                  </button>
+                </div>
+              </div>
               <div className="automations-block">
                 <div className="automations-sec-label">触发器</div>
                 <div className="automations-trig-stack">
@@ -712,6 +766,18 @@ export const AutomationEditor: FC<{
                 </div>
               </div>
               <div className="automations-block">
+                <div className="automations-sec-label">提示助手</div>
+                <div className="automations-instr">
+                  <textarea
+                    data-testid="automation-hint"
+                    value={assistantHint}
+                    placeholder="收到这次结果后要做什么。例如：把结论发回提问的频道。"
+                    onChange={(e) => setAssistantHint(e.target.value)}
+                  />
+                </div>
+              </div>
+              {mode === "agent" ? (
+              <div className="automations-block">
                 <div className="automations-sec-label">Agent 指令</div>
                 <div className="automations-instr">
                   <textarea
@@ -732,6 +798,7 @@ export const AutomationEditor: FC<{
                   </div>
                 </div>
               </div>
+              ) : null}
             </div>
           ) : openRun ? (
             <AutomationTranscript

@@ -189,6 +189,20 @@ export function createAutomationRuntime(options: {
     const startedAt = now().getTime();
     const id = crypto.randomUUID();
 
+    if (automation.mode === "remind") {
+      const run = store.addRun({
+        id,
+        automationId,
+        status: "succeeded",
+        trigger: { ...trigger },
+        startedAt,
+        endedAt: startedAt,
+      });
+      broadcast();
+      notifySettled(automation, run);
+      return run;
+    }
+
     if (store.hasRunning(automationId)) {
       const run = store.addRun({
         id,

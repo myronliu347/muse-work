@@ -29,6 +29,10 @@ export type AssistantAutomationEvent = {
   workdir: string;
   status: "succeeded" | "failed" | "stopped" | "skipped";
   trigger: "cron" | "once" | "issue" | "manual";
+  /** agent 有执行会话；remind 只是到点把 instruction 交给助手。 */
+  mode: "agent" | "remind";
+  /** 注册规则时留给助手的话。 */
+  instruction?: string;
   error?: string;
   summary?: string;
   retry?: 1;
@@ -162,6 +166,8 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["workdir", event.workdir],
       ["status", event.status],
       ["trigger", event.trigger],
+      ["mode", event.mode],
+      ["instruction", event.instruction],
       ["error", event.error],
       ["summary", summary?.text],
       ["summaryNote", summary?.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
