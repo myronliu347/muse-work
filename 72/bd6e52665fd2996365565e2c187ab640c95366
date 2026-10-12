@@ -1,0 +1,108 @@
+packages/server/tests/assistantTavily.test.ts
+  d501b231c2f2dabb 1-83
+packages/webview/tests/muse/museProviderSettings.test.tsx
+  d501b231c2f2dabb 78-85,226-247
+packages/webview/src/muse/apiClient.ts
+  d501b231c2f2dabb 37-42,305-318
+packages/webview/src/components/settings/MuseProviderSettings.tsx
+  d501b231c2f2dabb 23,98-99,186-193,236,238,280-284,310,429-451
+packages/server/tests/tavilyConfig.test.ts
+  d501b231c2f2dabb 1-79
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 45-46
+packages/server/src/services/assistant/session.ts
+  d501b231c2f2dabb 7,28
+packages/webview/e2e/utils/museApiMock.ts
+  d501b231c2f2dabb 84-91
+packages/server/src/services/assistant/tools.ts
+  d501b231c2f2dabb 12,30-31,46-54,448-493
+packages/server/src/services/assistant/tavily.ts
+  d501b231c2f2dabb 1-101
+packages/server/src/services/tavilyConfig.ts
+  d501b231c2f2dabb 1-64
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 35-36
+packages/server/src/routes/settings.ts
+  d501b231c2f2dabb 9-13,103-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "72bd6e52665fd2996365565e2c187ab640c95366",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 631,
+      "total_deletions": 115,
+      "accepted_lines": 518,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantTavily.test.ts": {
+          "additions": 110,
+          "deletions": 27,
+          "accepted_lines": 83
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/muse/museProviderSettings.test.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/server/src/services/tavilyConfig.ts": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/components/settings/MuseProviderSettings.tsx": {
+          "additions": 42,
+          "deletions": 1,
+          "accepted_lines": 42
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 104,
+          "deletions": 46,
+          "accepted_lines": 58
+        },
+        "packages/webview/e2e/utils/museApiMock.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/tavily.ts": {
+          "additions": 138,
+          "deletions": 37,
+          "accepted_lines": 101
+        },
+        "packages/server/tests/tavilyConfig.test.ts": {
+          "additions": 79,
+          "accepted_lines": 79
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        }
+      }
+    }
+  }
+}
