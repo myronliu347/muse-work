@@ -1,0 +1,30 @@
+packages/webview/src/components/chat/MessageList.tsx
+  05412be0e8d72bcb 3,11,303,305-308,324-329,511-529,584-591
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d15c0fef4d073b6305ab9ad0e5df7461c7aa9a25",
+  "prompts": {
+    "05412be0e8d72bcb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c4fb04a7-f8fb-42d6-abee-a2314fc0bfd3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 42,
+      "total_deletions": 6,
+      "accepted_lines": 42,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 42,
+          "deletions": 6,
+          "accepted_lines": 42
+        }
+      }
+    }
+  }
+}
