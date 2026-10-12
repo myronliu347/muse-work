@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Tooltip } from "../shared/Tooltip";
 import { NewSessionIcon, AutomationsIcon, AssistantIcon } from "../shared/HeaderIcons";
 import museM from "../../assets/muse-m.png";
@@ -144,6 +144,21 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 }) => {
   const { width, setWidth } = useDesktopSidebarWidth();
   const sidebarRef = React.useRef<HTMLDivElement>(null);
+  const [assistantUnread, setAssistantUnread] = useState(false);
+  useEffect(() => {
+    if (activeMenu === "assistant") setAssistantUnread(false);
+  }, [activeMenu]);
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { command?: string } | null;
+      if (!data || data.command !== "assistant:chat") return;
+      if (activeMenu === "assistant") return;
+      setAssistantUnread(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [activeMenu]);
+  const showAssistantUnread = assistantUnread && activeMenu !== "assistant";
 
   const onResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -224,6 +239,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         >
           <AssistantIcon className="app-menu-icon app-menu-icon--16" />
           <span>Muse Bot</span>
+          {showAssistantUnread ? (
+            <span
+              className="desktop-session-unread-dot app-menu-unread"
+              data-testid="assistant-unread-dot"
+            />
+          ) : null}
         </button>
       </div>
       <div className="divider" />

@@ -80,6 +80,41 @@ function renderSidebar(
 }
 
 describe("DesktopSidebar pin/recent sessions", () => {
+  it("marks Muse Bot unread until it is opened", () => {
+    const { rerender } = renderSidebar();
+    expect(screen.queryByTestId("assistant-unread-dot")).toBeNull();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "assistant:chat",
+          line: { id: "1", role: "assistant", message: "好了" },
+        },
+      }),
+    );
+    expect(screen.getByTestId("assistant-unread-dot")).toBeTruthy();
+
+    rerender(
+      <DesktopSidebar
+        onNewSession={noop}
+        onNewSessionInPane={noop}
+        onNewSessionInWorkdir={noop}
+        isStreaming={false}
+        disabled={false}
+        onOpenSettings={noop}
+        sessionTree={[]}
+        pinnedSessions={[]}
+        recentSessions={[]}
+        onSelectSession={noop}
+        onOpenPane={noop}
+        onDeleteSession={noop}
+        onTogglePin={noop}
+        activeMenu="assistant"
+      />,
+    );
+    expect(screen.queryByTestId("assistant-unread-dot")).toBeNull();
+  });
+
   it("shows spinner while running and unread dot when unreadDone", () => {
     renderSidebar({
       pinnedSessions: [entry({ sessionId: "a", running: true })],

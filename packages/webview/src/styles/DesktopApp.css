@@ -279,6 +279,10 @@
   cursor: not-allowed;
 }
 
+.app-menu-unread {
+  margin-left: auto;
+}
+
 /* ---- Sidebar session list (pin / 最近) ---- */
 
 .desktop-session-tree {
