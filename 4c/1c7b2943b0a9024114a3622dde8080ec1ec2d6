@@ -1,0 +1,36 @@
+packages/webview/tests/components/assistantSidebarSelection.test.tsx
+  d501b231c2f2dabb 1-55
+packages/webview/src/components/ChatApp.tsx
+  d501b231c2f2dabb 1023-1027
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4c1c7b2943b0a9024114a3622dde8080ec1ec2d6",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 60,
+      "total_deletions": 1,
+      "accepted_lines": 60,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/assistantSidebarSelection.test.tsx": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
