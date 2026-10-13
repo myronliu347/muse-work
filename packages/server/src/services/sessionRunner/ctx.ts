@@ -9,10 +9,7 @@ import {
 } from "@muse-work/provider";
 import type { SessionStore } from "../sessionStore.js";
 import type { WsBroadcastEvent, WsEvent, WsHub } from "../wsHub.js";
-import {
-  AGENT_MAX_LIVE,
-  TURN_STALL_MS,
-} from "../../constants/agent.js";
+import { AGENT_MAX_LIVE } from "../../constants/agent.js";
 import {
   patchAgentSystemPrompt,
   MUSE_BASE_SYSTEM_PROMPT,
@@ -286,8 +283,6 @@ export interface CreateSessionRunnerOptions {
   heapEvictBytes?: number;
   /** Injectable heap sampler for tests. Defaults to process.memoryUsage. */
   memoryUsage?: () => { heapUsed: number };
-  /** Abort a running turn after this long with no SDK callbacks. Default 5min. */
-  stallMs?: number;
   /**
    * Load a subagent transcript for historical nesting (defaults to reading the
    * SDK's `subagent-<id>.jsonl` from disk). Returns frontend-format messages.
@@ -323,8 +318,6 @@ export interface CreateSessionRunnerOptions {
  * reach them via ctx.core so core never imports upward.
  */
 export interface CoreLayer {
-  clearStallTimer(sessionId: string): void;
-  bumpActivity(sessionId: string): void;
   markTurnOutput(sessionId: string): void;
   broadcastMessages(sessionId: string): void;
   broadcastFileHistory(sessionId: string): void;
@@ -382,7 +375,6 @@ export interface RunnerContext {
   maxLiveAgents: number;
   heapEvictBytes: number;
   memoryUsage: () => { heapUsed: number };
-  stallMs: number;
   // --- shared mutable state ---
   /** Turn-settled callback (runner ↔ scheduler wiring; settable after creation). */
   onTurnSettled:
@@ -432,7 +424,6 @@ export interface RunnerContext {
    * turn shows a bogus "模型没有产生输出" error block.
    */
   loadingSeen: Map<string, boolean>;
-  stallTimers: Map<string, ReturnType<typeof setTimeout>>;
   agentToolBinds: Map<string, Map<string, string>>;
   pendingAgentToolIds: Map<string, string[]>;
   unboundSubagentIds: Map<string, string[]>;
@@ -462,7 +453,6 @@ export function createRunnerContext(
     maxLiveAgents: options.maxLiveAgents ?? AGENT_MAX_LIVE,
     heapEvictBytes: options.heapEvictBytes ?? 0,
     memoryUsage: options.memoryUsage ?? (() => process.memoryUsage()),
-    stallMs: options.stallMs ?? TURN_STALL_MS,
     onTurnSettled: options.onTurnSettled,
     onPermissionRequest: undefined,
     agents: new Map<string, SessionAgent>(),
@@ -478,7 +468,6 @@ export function createRunnerContext(
     aborting: new Set<string>(),
     agentLoading: new Map<string, boolean>(),
     loadingSeen: new Map<string, boolean>(),
-    stallTimers: new Map<string, ReturnType<typeof setTimeout>>(),
     agentToolBinds: new Map<string, Map<string, string>>(),
     pendingAgentToolIds: new Map<string, string[]>(),
     unboundSubagentIds: new Map<string, string[]>(),

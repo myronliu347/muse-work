@@ -406,43 +406,46 @@ The working directory persists between commands. Try to maintain your current wo
       let timeoutHandle: NodeJS.Timeout | undefined;
       const shouldAutoBackground =
         !!context.backgroundTaskManager && isAutobackgroundingAllowed(command);
+
+      // Timeout only. A cancelled turn must kill the command, not leave it running.
+      const backgroundOnTimeout = (): boolean => {
+        if (isAborted || isBackgrounded || isFinished || !shouldAutoBackground) {
+          return false;
+        }
+        isBackgrounded = true;
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (context.foregroundTaskManager) {
+          context.foregroundTaskManager.unregisterForegroundTask(
+            foregroundTaskId,
+          );
+        }
+        const backgroundTaskManager = context.backgroundTaskManager!;
+        const taskId = backgroundTaskManager.adoptProcess(
+          child,
+          command,
+          outputBuffer,
+          errorBuffer,
+        );
+        const outputPath = backgroundTaskManager.getTask(taskId)?.outputPath;
+        logger.info(
+          `[Bash] Command timed out after ${timeout}ms, auto-backgrounded as ${taskId}`,
+        );
+        resolve({
+          success: true,
+          content: `Command exceeded the timeout (${(timeout ?? 0) / 1000}s) and was moved to the background with ID: ${taskId}. It is still running — you will be notified when it completes.${outputPath ? ` Output is being written to: ${outputPath}` : ""}`,
+          shortResult: `Process ${taskId} auto-backgrounded`,
+          assistantAutoBackgrounded: true,
+          backgroundTaskId: taskId,
+        });
+        return true;
+      };
+
       if (timeout && timeout > 0) {
         timeoutHandle = setTimeout(() => {
           if (!isAborted && !isBackgrounded) {
-            if (shouldAutoBackground) {
-              // Auto-background: move the process to background task manager instead of killing it
-              isBackgrounded = true;
-              if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-              }
-
-              // Unregister foreground task since it's now backgrounded
-              if (context.foregroundTaskManager) {
-                context.foregroundTaskManager.unregisterForegroundTask(
-                  foregroundTaskId,
-                );
-              }
-
-              const backgroundTaskManager = context.backgroundTaskManager!;
-              const taskId = backgroundTaskManager.adoptProcess(
-                child,
-                command,
-                outputBuffer,
-                errorBuffer,
-              );
-              const task = backgroundTaskManager.getTask(taskId);
-              const outputPath = task?.outputPath;
-              logger.info(
-                `[Bash] Command timed out after ${timeout}ms, auto-backgrounded as ${taskId}`,
-              );
-              resolve({
-                success: true,
-                content: `Command exceeded the timeout (${timeout / 1000}s) and was moved to the background with ID: ${taskId}. It is still running — you will be notified when it completes.${outputPath ? ` Output is being written to: ${outputPath}` : ""}`,
-                shortResult: `Process ${taskId} auto-backgrounded`,
-                assistantAutoBackgrounded: true,
-                backgroundTaskId: taskId,
-              });
-            } else {
+            if (!backgroundOnTimeout()) {
               handleAbort("Command timed out");
             }
           }
@@ -451,6 +454,9 @@ The working directory persists between commands. Try to maintain your current wo
 
       // Handle abort signal
       const handleAbort = (reason = "Command execution was aborted") => {
+        if (isFinished) {
+          return;
+        }
         if (!isAborted) {
           isAborted = true;
 

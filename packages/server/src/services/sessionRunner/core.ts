@@ -5,9 +5,9 @@ import { enrichFileHistory } from "../../utils/fileHistoryDiff.js";
 import type { CoreLayer, RunnerContext } from "./ctx.js";
 
 /**
- * Lifecycle cross-cutting functions (stall timers, interrupt, LRU destroy,
- * turn-end bookkeeping). Mutual callers live here so core never imports
- * agent/actions; upper layers reach them via ctx.core.
+ * Lifecycle cross-cutting functions (interrupt, LRU destroy, turn-end
+ * bookkeeping). Mutual callers live here so core never imports agent/actions;
+ * upper layers reach them via ctx.core.
  */
 export function createCore(ctx: RunnerContext): CoreLayer {
   const {
@@ -19,7 +19,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     agentLoading,
     aborting,
     disposed,
-    stallTimers,
     loadingSeen,
     titleGenerating,
     latestTokens,
@@ -31,35 +30,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     turnHadOutput,
     pending,
   } = ctx;
-
-  function clearStallTimer(sessionId: string): void {
-    const timer = stallTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      stallTimers.delete(sessionId);
-    }
-  }
-
-  function bumpActivity(sessionId: string): void {
-    touchAgent(sessionId);
-    clearStallTimer(sessionId);
-    if (!ctx.stallMs || ctx.stallMs <= 0) return;
-    if (disposed.has(sessionId) || store.get(sessionId)?.status !== "running") {
-      return;
-    }
-    if (hasPendingPermission(sessionId)) return;
-    const timer = setTimeout(() => {
-      stallTimers.delete(sessionId);
-      if (disposed.has(sessionId) || store.get(sessionId)?.status !== "running") {
-        return;
-      }
-      if (hasPendingPermission(sessionId)) return;
-      interruptTurn(sessionId, {
-        error: `Turn stalled after ${ctx.stallMs}ms with no activity`,
-      });
-    }, ctx.stallMs);
-    stallTimers.set(sessionId, timer);
-  }
 
   function markTurnOutput(sessionId: string): void {
     turnHadOutput.set(sessionId, true);
@@ -140,11 +110,10 @@ export function createCore(ctx: RunnerContext): CoreLayer {
         sessionId,
         opts.denyMessage ?? opts.error ?? "Aborted",
       );
-      clearStallTimer(sessionId);
       agents.get(sessionId)?.abortMessage?.();
       agentLoading.set(sessionId, false);
       hub.broadcast(sessionId, { type: "loading", loading: false });
-      // 中断（abort/stall/权限拒绝）时清空 sender 任务列表：任务进度只在
+      // 中断（abort/权限拒绝）时清空 sender 任务列表：任务进度只在
       // 会话执行中展示。不删除 latestTasks 缓存，后续轮次仍可复用。
       hub.broadcast(sessionId, { type: "tasks:update", tasks: [] });
       if (!turnEnded.get(sessionId)) {
@@ -199,7 +168,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     if (!canIdleDestroy(sessionId)) {
       return;
     }
-    clearStallTimer(sessionId);
     turnEnded.delete(sessionId);
     turnHadOutput.delete(sessionId);
     aborting.delete(sessionId);
@@ -241,7 +209,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
   }
 
   function markIdle(sessionId: string): void {
-    clearStallTimer(sessionId);
     if (disposed.has(sessionId) || !store.get(sessionId)) {
       return;
     }
@@ -337,8 +304,6 @@ export function createCore(ctx: RunnerContext): CoreLayer {
   }
 
   return {
-    clearStallTimer,
-    bumpActivity,
     markTurnOutput,
     broadcastMessages,
     broadcastFileHistory,

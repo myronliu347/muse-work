@@ -449,6 +449,43 @@ describe("bashTool", () => {
       );
     });
 
+    it("kills a cancelled command instead of leaving it in the background", async () => {
+      const mockProcess = {
+        pid: 1234,
+        stdout: { on: vi.fn() },
+        stderr: { on: vi.fn() },
+        on: vi.fn(),
+        kill: vi.fn(),
+        killed: false,
+      };
+      mockSpawn.mockReturnValue(mockProcess as unknown as ChildProcess);
+      const killGroup = vi
+        .spyOn(process, "kill")
+        .mockImplementation(() => true);
+
+      const abortController = new AbortController();
+      const testContext: ToolContext = {
+        abortSignal: abortController.signal,
+        backgroundTaskManager,
+        workdir: "/test/workdir",
+        taskManager: createMockTaskManager(),
+      };
+
+      const promise = bashTool.execute(
+        { command: "node download-logs.mjs" },
+        testContext,
+      );
+      abortController.abort();
+      const result = await promise;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Command execution was aborted");
+      expect(result.assistantAutoBackgrounded).toBeUndefined();
+      expect(backgroundTaskManager.getAllTasks()).toHaveLength(0);
+      expect(killGroup).toHaveBeenCalledWith(-1234, "SIGTERM");
+      killGroup.mockRestore();
+    });
+
     it("should format compact params correctly", () => {
       const params1 = { command: "echo hello" };
       const result1 = bashTool.formatCompactParams?.(params1, context);

@@ -407,7 +407,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
         onLoadingChange: (loading) => {
           if (disposed.has(sessionId)) return;
-          core.bumpActivity(sessionId);
+          core.touchAgent(sessionId);
           const wasLoading = agentLoading.get(sessionId) === true;
           agentLoading.set(sessionId, loading);
           loadingSeen.set(sessionId, true);
@@ -458,7 +458,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         onAssistantMessageAdded: (messageId) => {
           if (disposed.has(sessionId)) return;
           core.markTurnOutput(sessionId);
-          core.bumpActivity(sessionId);
+          core.touchAgent(sessionId);
           hub.broadcast(sessionId, { type: "assistant:message", messageId });
         },
         onUserMessageAdded: (params) => {
@@ -510,7 +510,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
             return;
           }
           core.markTurnOutput(sessionId);
-          core.bumpActivity(sessionId);
+          core.touchAgent(sessionId);
           hub.broadcast(sessionId, {
             type: "message:delta",
             messageId,
@@ -539,7 +539,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         onToolBlockUpdated: (params) => {
           if (disposed.has(sessionId)) return;
           core.markTurnOutput(sessionId);
-          core.bumpActivity(sessionId);
+          core.touchAgent(sessionId);
           rememberAgentTool(sessionId, params as Record<string, unknown>);
           hub.broadcast(sessionId, { type: "tool:update", params });
         },
@@ -721,7 +721,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         ) {
           return { behavior: "allow" as const };
         }
-        core.clearStallTimer(sessionId);
         const permissionId = crypto.randomUUID();
         const toolInput =
           context.toolInput && typeof context.toolInput === "object"
@@ -763,7 +762,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         }
 
         const decision = await decisionPromise;
-        core.bumpActivity(sessionId);
+        core.touchAgent(sessionId);
         return decision;
       },
     });
@@ -1003,7 +1002,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     } else {
       queuedDispatch.add(sessionId);
     }
-    core.bumpActivity(sessionId);
+    core.touchAgent(sessionId);
     getLogger().info("turn started", {
       sessionId,
       model: session.model,

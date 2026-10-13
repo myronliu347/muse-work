@@ -820,44 +820,6 @@ describe("sessionRunner lifecycle", () => {
     });
   });
 
-  it("stall timer errors a hung turn and returns the session to idle", async () => {
-    const { store, hub, registry, home } = setup();
-    const session = store.create({ workdir: "/tmp", model: "m1" });
-    const events: Array<{ type: string; status?: string; error?: string }> = [];
-    const original = hub.broadcast.bind(hub);
-    hub.broadcast = (sessionId, event) => {
-      events.push(event as { type: string; status?: string; error?: string });
-      return original(sessionId, event);
-    };
-
-    const runner = createSessionRunner({
-      store,
-      hub,
-      registry,
-      home,
-      stallMs: 40,
-      createAgent: async () => ({
-        sendMessage: async () => new Promise(() => {}),
-        abortMessage: () => {},
-        dispose: async () => {},
-        sessionId: "wave-stall",
-      }),
-    });
-
-    void runner.sendMessage(session.id, "hang");
-    await expect.poll(() => store.get(session.id)?.status).toBe("running");
-    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
-    expect(
-      events.some(
-        (e) =>
-          e.type === "session:status" &&
-          e.status === "error" &&
-          typeof e.error === "string" &&
-          /stalled/i.test(e.error),
-      ),
-    ).toBe(true);
-  });
-
   it("abortRunningTurns stops in-flight sessions except permission waiters", async () => {
     const { store, hub, registry, home } = setup();
     const waiting = store.create({ workdir: "/tmp/wait", model: "m1" });
@@ -877,7 +839,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      stallMs: 60_000,
       createAgent: async (opts) => {
         agentsCreated += 1;
         const isWaiting = agentsCreated === 1;
@@ -929,7 +890,6 @@ describe("sessionRunner lifecycle", () => {
       hub,
       registry,
       home,
-      stallMs: 60_000,
       createAgent: async (opts) => {
         agentsCreated += 1;
         const isWaiting = agentsCreated === 1;

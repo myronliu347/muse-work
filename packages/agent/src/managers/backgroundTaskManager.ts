@@ -389,7 +389,10 @@ export class BackgroundTaskManager {
       this.notifyTasksChange();
     });
 
-    child.on("exit", (code) => {
+    let settled = false;
+    const onExit = (code: number | null) => {
+      if (settled) return;
+      settled = true;
       // Decode any bytes still held at stream end
       if (stdoutDecoder) {
         const rest = stdoutDecoder.flush();
@@ -434,7 +437,15 @@ export class BackgroundTaskManager {
           );
         }
       }
-    });
+    };
+
+    child.on("exit", onExit);
+    // `exit` does not replay. A process that already finished before we
+    // subscribed would stay "running" and never notify. Missing fields
+    // (mocks, or a live child) are not an exit — only a real code or signal.
+    if (typeof child.exitCode === "number" || typeof child.signalCode === "string") {
+      onExit(child.exitCode);
+    }
 
     child.on("error", (error) => {
       const stripped = `\nProcess error: ${stripAnsiColors(error.message)}`;

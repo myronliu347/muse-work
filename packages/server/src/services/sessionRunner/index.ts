@@ -38,7 +38,4 @@ export type {
   SessionRunner,
   CreateSessionRunnerOptions,
 } from "./ctx.js";
-export type {
-  EMPTY_TURN_ERROR,
-  TURN_STALL_MS,
-} from "../../constants/agent.js";
+export type { EMPTY_TURN_ERROR } from "../../constants/agent.js";

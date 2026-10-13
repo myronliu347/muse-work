@@ -210,7 +210,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
 
     async disposeSession(sessionId) {
       disposed.add(sessionId);
-      core.clearStallTimer(sessionId);
       turnEnded.delete(sessionId);
       turnHadOutput.delete(sessionId);
       aborting.delete(sessionId);
@@ -252,7 +251,6 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       agents.delete(sessionId);
       agentLastUsed.delete(sessionId);
       agentIdentities.delete(sessionId);
-      core.clearStallTimer(sessionId);
       if (existing) {
         await existing.dispose();
       }
