@@ -1,0 +1,29 @@
+packages/webview/src/styles/ContextPanel.css
+  c607abbb52d49ad8 4-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1037bdcf765197911a878ab7149dd77802f1b31a",
+  "prompts": {
+    "c607abbb52d49ad8": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a8b36029-9f60-4c5b-bec5-bdecea89645c",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/ContextPanel.css": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
