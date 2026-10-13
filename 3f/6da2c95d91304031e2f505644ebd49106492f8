@@ -1,0 +1,30 @@
+packages/webview/tests/webview/panelWorkdirScope.test.tsx
+  8e3754d5f74a166e 83,137-138,143-144,156,176,178,192,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3f6da2c95d91304031e2f505644ebd49106492f8",
+  "prompts": {
+    "8e3754d5f74a166e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d0790d91-f248-4db1-8701-515152f8a7b8",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 10,
+      "accepted_lines": 10,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/panelWorkdirScope.test.tsx": {
+          "additions": 10,
+          "deletions": 10,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
