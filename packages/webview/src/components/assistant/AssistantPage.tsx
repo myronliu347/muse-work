@@ -748,12 +748,9 @@ export const AssistantPage: React.FC<{
                   />
                 ) : (
                   <div className="assistant-bubble-row assistant-bubble-row-assistant">
-                    <div className="assistant-bubble-name">
-                      Muse Bot
-                      {line.app === "popo" ? (
-                        <span className="assistant-bubble-source">POPO</span>
-                      ) : null}
-                    </div>
+                    {line.app === "popo" ? (
+                      <div className="assistant-bubble-source">POPO</div>
+                    ) : null}
                     <div
                       className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
                       onClick={handleLinkClick}

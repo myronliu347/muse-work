@@ -27,7 +27,7 @@ describe("AssistantPage", () => {
     expect(await screen.findByText("你好")).toBeTruthy();
     expect(screen.getByText("你好").closest(".assistant-bubble-user")).toBeTruthy();
     expect(screen.getByText("在").closest(".assistant-bubble-assistant")).toBeTruthy();
-    expect(screen.getAllByText("Muse Bot").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Muse Bot")).toHaveLength(1);
     expect(document.querySelectorAll(".assistant-bubble-time").length).toBe(2);
     const input = screen.getByTestId("message-input");
     input.textContent = "继续";
