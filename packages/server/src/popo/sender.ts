@@ -25,6 +25,15 @@ export function popoMsgTypeForPath(filePath: string): "image" | "file" {
   return IMAGE_EXTS.has(ext) ? "image" : "file";
 }
 
+function contentTypeFor(filePath: string): string {
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "gif") return "image/gif";
+  if (ext === "png") return "image/png";
+  if (ext === "bmp") return "image/bmp";
+  return "application/octet-stream";
+}
+
 function popoFileType(filePath: string): string {
   const ext = path.extname(filePath).slice(1).toLowerCase();
   if (ext === "jpeg") return "jpg";
@@ -55,7 +64,7 @@ type PopoData = {
   fileKey?: string;
   uploadUrl?: string;
   msgId?: string;
-  msgInfo?: { msgId?: string };
+  msgInfo?: Record<string, string>;
 };
 
 type SendResponse = {
@@ -67,13 +76,19 @@ type SendResponse = {
   msgId?: string;
 };
 
-function readMsgId(body: SendResponse): string {
+function readMsgId(body: SendResponse, receiver?: string): string {
   const data = body.data;
   if (typeof data === "string" && data.trim()) return data.trim();
   if (data && typeof data === "object") {
     if (typeof data.msgId === "string" && data.msgId.trim()) return data.msgId.trim();
-    const nested = data.msgInfo?.msgId;
-    if (typeof nested === "string" && nested.trim()) return nested.trim();
+    const info = data.msgInfo;
+    if (info && typeof info === "object") {
+      const preferred = receiver ? info[receiver] : undefined;
+      if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+      for (const value of Object.values(info)) {
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
   }
   if (typeof body.msgId === "string" && body.msgId.trim()) return body.msgId.trim();
   return "";
@@ -120,6 +135,37 @@ export function createSender(options: SenderOptions): Sender {
     return result;
   }
 
+  async function uploadBytes(
+    uploadUrl: string,
+    fileName: string,
+    bytes: Buffer,
+    contentType: string,
+  ): Promise<void> {
+    async function once(token: string): Promise<SendResponse> {
+      const form = new FormData();
+      form.append(
+        "file",
+        new Blob([new Uint8Array(bytes)], { type: contentType }),
+        fileName,
+      );
+      const res = await fetchImpl(uploadUrl, {
+        method: "POST",
+        headers: { "open-access-token": token },
+        body: form,
+      });
+      if (!res.ok) throw new Error(`POPO 文件上传 ${res.status}`);
+      return (await res.json()) as SendResponse;
+    }
+    const token = await options.tokenStore.getAccessToken();
+    let result = await once(token);
+    if (result.errcode === 42001) {
+      result = await once(await options.tokenStore.forceRefresh());
+    }
+    if (result.errcode !== 0 && result.errcode !== undefined) {
+      throw new Error(`POPO 文件上传失败: ${result.errcode} ${result.errmsg ?? ""}`);
+    }
+  }
+
   return {
     async sendText(receiver, content) {
       const msgIds: string[] = [];
@@ -129,7 +175,7 @@ export function createSender(options: SenderOptions): Sender {
           message: { content: chunk },
           msgType: "text",
         });
-        const msgId = readMsgId(result);
+        const msgId = readMsgId(result, receiver);
         if (msgId) msgIds.push(msgId);
       }
       return msgIds;
@@ -145,18 +191,13 @@ export function createSender(options: SenderOptions): Sender {
       if (!fileKey || !uploadUrl) {
         throw new Error("POPO 文件上传没有返回 fileKey 或 uploadUrl");
       }
-      const uploaded = await fetchImpl(uploadUrl, {
-        method: "PUT",
-        headers: { "content-type": "application/octet-stream" },
-        body: new Uint8Array(bytes),
-      });
-      if (!uploaded.ok) throw new Error(`POPO 文件上传 ${uploaded.status}`);
+      await uploadBytes(uploadUrl, path.basename(filePath), bytes, contentTypeFor(filePath));
       const sent = await authed(SEND_API, {
         receiver,
         message: { fileKey },
         msgType: popoMsgTypeForPath(filePath),
       });
-      return readMsgId(sent);
+      return readMsgId(sent, receiver);
     },
     async recall(args) {
       const msgId = args.msgId.trim();

@@ -81,13 +81,19 @@ describe("popo sender", () => {
     const filePath = path.join(dir, "shot.png");
     const bytes = Buffer.from("png-bytes");
     fs.writeFileSync(filePath, bytes);
-    const seen: Array<{ url: string; method: string; body: string }> = [];
+    const seen: Array<{
+      url: string;
+      method: string;
+      headers: Record<string, string>;
+      body: string | FormData;
+    }> = [];
     const fetchImpl = (async (url: string, init?: RequestInit) => {
       const raw = init?.body;
       seen.push({
         url: String(url),
         method: init?.method ?? "GET",
-        body: typeof raw === "string" ? raw : Buffer.from(raw as Uint8Array).toString(),
+        headers: Object.fromEntries(new Headers(init?.headers).entries()),
+        body: typeof raw === "string" ? raw : raw as FormData,
       });
       if (String(url).endsWith("/im/file")) {
         return new Response(JSON.stringify({
@@ -96,26 +102,55 @@ describe("popo sender", () => {
         }), { status: 200 });
       }
       if (String(url) === "https://upload.example/p") {
-        return new Response(null, { status: 200 });
+        return new Response(JSON.stringify({ errcode: 0, errmsg: "upload success" }), { status: 200 });
       }
-      return new Response(JSON.stringify({ errcode: 0, data: { msgId: "img-1" } }), { status: 200 });
+      return new Response(JSON.stringify({
+        errcode: 0,
+        data: { msgInfo: { "user@corp.netease.com": "img-1" } },
+      }), { status: 200 });
     }) as typeof fetch;
     const sender = createSender({
       tokenStore: { getAccessToken: async () => "tk", forceRefresh: async () => "tk" },
       fetchImpl,
     });
     await expect(sender.sendLocalFile("user@corp.netease.com", filePath)).resolves.toBe("img-1");
-    expect(JSON.parse(seen[0].body)).toEqual({
+    expect(JSON.parse(seen[0].body as string)).toEqual({
       fileType: "png",
       fileName: "shot.png",
       fileMd5: crypto.createHash("md5").update(bytes).digest("hex"),
     });
-    expect(seen[1]).toMatchObject({ url: "https://upload.example/p", method: "PUT", body: "png-bytes" });
-    expect(JSON.parse(seen[2].body)).toEqual({
+    expect(seen[1].method).toBe("POST");
+    expect(seen[1].headers["open-access-token"]).toBe("tk");
+    expect(seen[1].headers["content-type"]).toBeUndefined();
+    const uploaded = seen[1].body as FormData;
+    const file = uploaded.get("file");
+    expect(file).toBeInstanceOf(Blob);
+    expect(Buffer.from(await (file as Blob).arrayBuffer()).toString()).toBe("png-bytes");
+    expect(JSON.parse(seen[2].body as string)).toEqual({
       receiver: "user@corp.netease.com",
       message: { fileKey: "fk-1" },
       msgType: "image",
     });
+  });
+
+  it("rejects an upload that returns errcode even when HTTP is 200", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "popo-bad-upload-"));
+    const filePath = path.join(dir, "shot.png");
+    fs.writeFileSync(filePath, "png");
+    const fetchImpl = (async (url: string) => {
+      if (String(url).endsWith("/im/file")) {
+        return new Response(JSON.stringify({
+          errcode: 0,
+          data: { fileKey: "fk-1", uploadUrl: "https://upload.example/p" },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ errcode: -1, errmsg: "access token expired" }), { status: 200 });
+    }) as typeof fetch;
+    const sender = createSender({
+      tokenStore: { getAccessToken: async () => "tk", forceRefresh: async () => "tk" },
+      fetchImpl,
+    });
+    await expect(sender.sendLocalFile("user@corp.netease.com", filePath)).rejects.toThrow(/文件上传失败/);
   });
 
   it("sends other local files as file messages", async () => {
@@ -131,7 +166,9 @@ describe("popo sender", () => {
           data: { fileKey: "fk-2", uploadUrl: "https://upload.example/f" },
         }), { status: 200 });
       }
-      if (String(url) === "https://upload.example/f") return new Response(null, { status: 200 });
+      if (String(url) === "https://upload.example/f") {
+        return new Response(JSON.stringify({ errcode: 0, errmsg: "upload success" }), { status: 200 });
+      }
       return new Response(JSON.stringify({ errcode: 0, data: { msgId: "file-1" } }), { status: 200 });
     }) as typeof fetch;
     const sender = createSender({
