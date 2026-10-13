@@ -1,0 +1,101 @@
+packages/webview/src/types/index.ts
+  aeda335d3133946e 526-531
+packages/webview/tests/muse/panelFit.test.ts
+  aeda335d3133946e 9
+packages/webview/src/stores/panelGroupStore.ts
+  aeda335d3133946e 142
+packages/webview/tests/muse/panelTabs.test.ts
+  aeda335d3133946e 8,20-24,59-62,64,66-73,89,91-94,101
+packages/webview/src/muse/dockActions.ts
+  aeda335d3133946e 3-7,41-69
+packages/webview/src/hooks/usePanels.ts
+  aeda335d3133946e 189,399,443
+packages/webview/tests/muse/dockActions.test.ts
+  aeda335d3133946e 2,4-20,22,24-26,31-34
+packages/webview/src/muse/panelTabs.ts
+  aeda335d3133946e 4,12,20,35,37-39,57-60,65,67,69,71-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "0583f90c4a323c28bec69f541b9a9c4a8d662930",
+  "prompts": {
+    "aeda335d3133946e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e51cdec-5021-45a3-8e38-ad4d3bfacbca",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 112,
+      "total_deletions": 47,
+      "accepted_lines": 112,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelTabs.ts": {
+          "additions": 16,
+          "deletions": 10,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/muse/dockActions.test.ts": {
+          "additions": 26,
+          "deletions": 11,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/muse/panelFit.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/dockActions.ts": {
+          "additions": 34,
+          "deletions": 1,
+          "accepted_lines": 34
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "additions": 25,
+          "deletions": 24,
+          "accepted_lines": 25
+        }
+      }
+    },
+    "eb7e89d5c2abdb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b340f02-db7c-4604-b068-3cec103df4dd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 914,
+      "total_deletions": 47,
+      "accepted_lines": 867,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-10-13-context-panel-design.md": {
+          "additions": 87,
+          "deletions": 1,
+          "accepted_lines": 86
+        },
+        "docs/superpowers/plans/2026-10-13-context-panel.md": {
+          "additions": 827,
+          "deletions": 46,
+          "accepted_lines": 781
+        }
+      }
+    }
+  }
+}
