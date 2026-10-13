@@ -1,0 +1,56 @@
+packages/webview/tests/muse/contextPanel.test.ts
+  43d8b2da8893493a 1-62
+packages/webview/src/muse/contextPanel.ts
+  43d8b2da8893493a 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "74fe62814eb319a81989c50bb6262a7b31f8f772",
+  "prompts": {
+    "43d8b2da8893493a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9f891062-08cb-488f-bc02-53407ff91293",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 147,
+      "total_deletions": 0,
+      "accepted_lines": 147,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/contextPanel.test.ts": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "packages/webview/src/muse/contextPanel.ts": {
+          "additions": 85,
+          "accepted_lines": 85
+        }
+      }
+    },
+    "eb7e89d5c2abdb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b340f02-db7c-4604-b068-3cec103df4dd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 867,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-10-13-context-panel.md": {
+          "accepted_lines": 781
+        },
+        "docs/superpowers/specs/2026-10-13-context-panel-design.md": {
+          "accepted_lines": 86
+        }
+      }
+    }
+  }
+}
