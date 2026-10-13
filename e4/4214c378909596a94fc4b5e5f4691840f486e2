@@ -1,0 +1,46 @@
+packages/server/tests/popoSender.test.ts
+  d501b231c2f2dabb 84-89,95-96,105,107-110,117,122-129,136-153,169-171
+packages/server/src/popo/sender.ts
+  d501b231c2f2dabb 28-36,67,79,84-91,138-168,178,194,200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e44214c378909596a94fc4b5e5f4691840f486e2",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 230,
+      "total_deletions": 75,
+      "accepted_lines": 198,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 99,
+          "deletions": 54,
+          "accepted_lines": 67
+        },
+        "packages/server/tests/popoSender.test.ts": {
+          "additions": 45,
+          "deletions": 8,
+          "accepted_lines": 45
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/server/src/popo/sender.ts": {
+          "additions": 54,
+          "deletions": 13,
+          "accepted_lines": 54
+        }
+      }
+    }
+  }
+}
