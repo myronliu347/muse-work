@@ -134,6 +134,38 @@ describe("AssistantPage", () => {
     expect(screen.getAllByText("POPO")).toHaveLength(2);
   });
 
+  it("renders a POPO image tag as a picture", async () => {
+    const src = "https://popofp.vipfp.ps.netease.com/file/abc";
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "user",
+            app: "popo",
+            message: `[img]${src}[/img]`,
+          },
+          {
+            id: "2",
+            at: 2,
+            role: "assistant",
+            message: `图在这\n[img]${src}[/img]`,
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    const shots = await screen.findAllByRole("button", { name: "图片 1" });
+    expect(shots).toHaveLength(2);
+    expect(shots[0].querySelector("img")?.getAttribute("src")).toBe(src);
+    expect(shots[1].querySelector("img")?.getAttribute("src")).toBe(src);
+    expect(screen.queryByText(/\[img\]/)).toBeNull();
+    expect(screen.getByText("图在这")).toBeTruthy();
+  });
+
   it("prepends older lines when the log is scrolled to the top", async () => {
     const api = {
       listAssistantMessages: vi.fn(async (query?: { before?: string }) => {

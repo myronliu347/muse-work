@@ -77,6 +77,22 @@ const noopHost: VsCodeApi = {
   setState: () => {},
 };
 
+const POPO_IMAGE_TAG = /\[img\](https?:\/\/[^\s[\]]+)\[\/img\]/gi;
+
+/** POPO 把图片写成 `[img]url[/img]`。抽出来单独显示，正文里不再留这串标记。 */
+function popoImageUrls(message: string): { text: string; urls: string[] } {
+  const urls: string[] = [];
+  const text = message
+    .replace(POPO_IMAGE_TAG, (_match, url: string) => {
+      urls.push(url);
+      return "";
+    })
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { text, urls };
+}
+
 function markdownHtml(text: string, closed: ReadonlySet<string> = new Set()): string {
   const html = marked.parse(linkifyFilePaths(text), { gfm: true, breaks: true });
   const safe = DOMPurify.sanitize(typeof html === "string" ? html : "", {
@@ -211,8 +227,9 @@ function UserLine({
   onLinkClick: (event: MouseEvent) => void;
   onPreviewImage: (src: string, alt: string) => void;
 }) {
+  const { text, urls } = popoImageUrls(line.message);
   const parts = parseMentions(
-    line.message,
+    text,
     line.images?.map((img, index) => ({
       data: img.data,
       filename: `图片 ${index + 1}`,
@@ -257,6 +274,9 @@ function UserLine({
       />
     );
   });
+  for (const url of urls) {
+    shots.push({ src: url, alt: `图片 ${shots.length + 1}` });
+  }
   line.images
     ?.filter((img) => !referenced.has(img.data))
     .forEach((img) => {
@@ -285,6 +305,46 @@ function UserLine({
       </div>
       <BubbleTime at={line.at} />
     </div>
+  );
+}
+
+function AssistantBubbleBody({
+  line,
+  closedFilePaths,
+  onLinkClick,
+  onPreviewImage,
+}: {
+  line: AssistantLine;
+  closedFilePaths: ReadonlySet<string>;
+  onLinkClick: (event: MouseEvent) => void;
+  onPreviewImage: (src: string, alt: string) => void;
+}) {
+  const { text, urls } = popoImageUrls(line.message);
+  const shots = [...urls, ...(line.images ?? []).map((img) => img.data)];
+  return (
+    <>
+      {text ? (
+        <div
+          className="message-content markdown-content"
+          onClick={onLinkClick}
+          dangerouslySetInnerHTML={{
+            __html: markdownHtml(text, closedFilePaths),
+          }}
+        />
+      ) : null}
+      {shots.length > 0 ? (
+        <div className="assistant-user-images">
+          {shots.map((src, index) => (
+            <UserShot
+              key={`${line.id}:${index}`}
+              src={src}
+              alt={`图片 ${index + 1}`}
+              onPreviewImage={onPreviewImage}
+            />
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -752,27 +812,12 @@ export const AssistantPage: React.FC<{
                       <div className="assistant-bubble-source">POPO</div>
                     ) : null}
                     <div className="assistant-bubble assistant-bubble-assistant">
-                      {line.message.trim() ? (
-                        <div
-                          className="message-content markdown-content"
-                          onClick={handleLinkClick}
-                          dangerouslySetInnerHTML={{
-                            __html: markdownHtml(line.message, closedFilePaths),
-                          }}
-                        />
-                      ) : null}
-                      {line.images && line.images.length > 0 ? (
-                        <div className="assistant-user-images">
-                          {line.images.map((img, index) => (
-                            <UserShot
-                              key={`${line.id}:${index}`}
-                              src={img.data}
-                              alt={`图片 ${index + 1}`}
-                              onPreviewImage={previewImage}
-                            />
-                          ))}
-                        </div>
-                      ) : null}
+                      <AssistantBubbleBody
+                        line={line}
+                        closedFilePaths={closedFilePaths}
+                        onLinkClick={handleLinkClick}
+                        onPreviewImage={previewImage}
+                      />
                     </div>
                     <BubbleTime at={line.at} />
                   </div>
