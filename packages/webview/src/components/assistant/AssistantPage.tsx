@@ -751,13 +751,29 @@ export const AssistantPage: React.FC<{
                     {line.app === "popo" ? (
                       <div className="assistant-bubble-source">POPO</div>
                     ) : null}
-                    <div
-                      className="assistant-bubble assistant-bubble-assistant message-content markdown-content"
-                      onClick={handleLinkClick}
-                      dangerouslySetInnerHTML={{
-                        __html: markdownHtml(line.message, closedFilePaths),
-                      }}
-                    />
+                    <div className="assistant-bubble assistant-bubble-assistant">
+                      {line.message.trim() ? (
+                        <div
+                          className="message-content markdown-content"
+                          onClick={handleLinkClick}
+                          dangerouslySetInnerHTML={{
+                            __html: markdownHtml(line.message, closedFilePaths),
+                          }}
+                        />
+                      ) : null}
+                      {line.images && line.images.length > 0 ? (
+                        <div className="assistant-user-images">
+                          {line.images.map((img, index) => (
+                            <UserShot
+                              key={`${line.id}:${index}`}
+                              src={img.data}
+                              alt={`图片 ${index + 1}`}
+                              onPreviewImage={previewImage}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                     <BubbleTime at={line.at} />
                   </div>
                 )}

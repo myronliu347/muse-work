@@ -24,6 +24,8 @@ export interface MuseChatLine {
   images?: MuseChatImage[];
   /** 主人与机器人的 POPO 私聊。缺省表示 Muse 里的对话。 */
   app?: "popo";
+  /** POPO 发出去的消息 id，用来撤回。 */
+  msgIds?: string[];
 }
 
 export interface MuseChatPage {
@@ -71,6 +73,17 @@ export function normalizeAssistantImages(raw: unknown): MuseChatImage[] {
   return images;
 }
 
+function normalizeMsgIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string" || !item.trim()) continue;
+    ids.push(item.trim());
+    if (ids.length >= 20) break;
+  }
+  return ids;
+}
+
 function parseLine(raw: string): MuseChatLine | undefined {
   const trimmed = raw.trim();
   if (!trimmed) return undefined;
@@ -86,6 +99,9 @@ function parseLine(raw: string): MuseChatLine | undefined {
     else delete record.images;
     if ((record as { app?: unknown }).app === "popo") record.app = "popo";
     else delete record.app;
+    const msgIds = normalizeMsgIds((record as { msgIds?: unknown }).msgIds);
+    if (msgIds.length > 0) record.msgIds = msgIds;
+    else delete record.msgIds;
     return record;
   } catch {
     return undefined;
@@ -134,6 +150,7 @@ export function createAssistantMessageLog(options: {
     message: string,
     images?: MuseChatImage[],
     app?: "popo",
+    msgIds?: string[],
   ): MuseChatLine;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
   search(args: { q: string; before?: string; limit?: number }): MuseChatSearchPage;
@@ -147,6 +164,7 @@ export function createAssistantMessageLog(options: {
     message: string,
     images?: MuseChatImage[],
     app?: "popo",
+    msgIds?: string[],
   ): MuseChatLine {
     fs.mkdirSync(dir, { recursive: true });
     const names = listSliceNames(dir);
@@ -159,6 +177,7 @@ export function createAssistantMessageLog(options: {
     }
     const at = now();
     const kept = normalizeAssistantImages(images);
+    const keptIds = normalizeMsgIds(msgIds);
     const line: MuseChatLine = {
       id: newId(),
       at,
@@ -166,6 +185,7 @@ export function createAssistantMessageLog(options: {
       message,
       ...(kept.length > 0 ? { images: kept } : {}),
       ...(app === "popo" ? { app: "popo" as const } : {}),
+      ...(keptIds.length > 0 ? { msgIds: keptIds } : {}),
     };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;

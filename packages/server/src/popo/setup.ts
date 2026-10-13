@@ -21,6 +21,9 @@ export type PopoRuntime = {
   configured: boolean;
   /** 主动发文本（定时任务通知、助理回复）；未配置时缺省。 */
   sendText?: Sender["sendText"];
+  /** 上传本地文件或图片后发给接收人。 */
+  sendLocalFile?: Sender["sendLocalFile"];
+  recall?: Sender["recall"];
 };
 
 export function getLanIPv4(): string | undefined {
@@ -71,7 +74,11 @@ export function setupPopoRuntime(ctx: AppContext, options?: { callbackPort?: num
   });
   const sender = createSender({ tokenStore });
   runtime.sendText = (receiver, content) => sender.sendText(receiver, content);
+  runtime.sendLocalFile = (receiver, filePath) => sender.sendLocalFile(receiver, filePath);
+  runtime.recall = (args) => sender.recall(args);
   if (runtime.sendText) ctx.popoSend.current = runtime.sendText;
+  if (runtime.sendLocalFile) ctx.popoSend.sendLocalFile = runtime.sendLocalFile;
+  if (runtime.recall) ctx.popoSend.recall = runtime.recall;
   const handler = createPopoHandler({
     config,
     sender,

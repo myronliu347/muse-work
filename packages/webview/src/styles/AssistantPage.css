@@ -257,12 +257,18 @@
   margin-bottom: 0;
 }
 
-.assistant-page .assistant-bubble-assistant > :first-child {
+.assistant-page .assistant-bubble-assistant > :first-child,
+.assistant-page .assistant-bubble-assistant .markdown-content > :first-child {
   margin-top: 0;
 }
 
-.assistant-page .assistant-bubble-assistant > :last-child {
+.assistant-page .assistant-bubble-assistant > :last-child,
+.assistant-page .assistant-bubble-assistant .markdown-content > :last-child {
   margin-bottom: 0;
+}
+
+.assistant-bubble-assistant .markdown-content + .assistant-user-images {
+  margin-top: 8px;
 }
 
 .assistant-user-shot {

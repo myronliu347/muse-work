@@ -1,11 +1,12 @@
 import fs from "node:fs";
+import path from "node:path";
 import type { ToolPlugin, ToolResult } from "@muse-work/agent";
 import type { IssueStore } from "../issueStore.js";
 import type { SessionStore } from "../sessionStore.js";
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { AutomationStore } from "../automationStore.js";
 import type { WsHub } from "../wsHub.js";
-import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog } from "./messages.js";
+import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog, type MuseChatImage } from "./messages.js";
 import { openIssueSession, type OpenIssueBody } from "../issueOpen.js";
 import { createServerWorktree, type ServerWorktree } from "../gitWorktree.js";
 import { userMessageText } from "../sessionRunner/serialization.js";
@@ -21,7 +22,9 @@ export type AssistantToolDeps = {
   automations: AutomationStore;
   log: Log;
   hub: WsHub;
-  sendText?: (receiver: string, content: string) => Promise<void>;
+  sendText?: (receiver: string, content: string) => Promise<string[] | void>;
+  sendLocalFile?: (receiver: string, filePath: string) => Promise<string | void>;
+  recallPopo?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
   popoMasterUid?: () => string | undefined;
   openIssue?: typeof openIssueSession;
@@ -41,6 +44,77 @@ function ok(value: unknown): ToolResult {
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function messageIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim() !== "");
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const items: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (trimmed) items.push(trimmed);
+  }
+  return items;
+}
+
+const IMAGE_EXTS = new Set(["jpg", "jpeg", "gif", "png", "bmp"]);
+const IMAGE_INLINE_MAX = 4_000_000;
+
+function isImagePath(filePath: string): boolean {
+  return IMAGE_EXTS.has(path.extname(filePath).slice(1).toLowerCase());
+}
+
+function imageMediaType(filePath: string): string {
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "gif") return "image/gif";
+  if (ext === "bmp") return "image/bmp";
+  return "image/png";
+}
+
+function localFile(filePath: string): string | undefined {
+  if (!path.isAbsolute(filePath)) return `need an absolute path: ${filePath}`;
+  try {
+    if (!fs.statSync(filePath).isFile()) return `file not found: ${filePath}`;
+  } catch {
+    return `file not found: ${filePath}`;
+  }
+  return undefined;
+}
+
+function inlineImages(files: string[]): { images: MuseChatImage[]; overflow: string[] } {
+  const images: MuseChatImage[] = [];
+  const overflow: string[] = [];
+  for (const filePath of files) {
+    if (!isImagePath(filePath)) continue;
+    const bytes = fs.readFileSync(filePath);
+    if (bytes.length > IMAGE_INLINE_MAX || images.length >= 20) {
+      overflow.push(filePath);
+      continue;
+    }
+    const mediaType = imageMediaType(filePath);
+    images.push({
+      data: `data:${mediaType};base64,${bytes.toString("base64")}`,
+      mediaType,
+    });
+  }
+  return { images, overflow };
+}
+
+function composeOutbound(message: string, files: string[], links: string[], overflow: string[]): string {
+  const extras: string[] = [];
+  for (const link of links) {
+    if (!message.includes(link)) extras.push(link);
+  }
+  for (const filePath of [...files.filter((filePath) => !isImagePath(filePath)), ...overflow]) {
+    if (!message.includes(filePath)) extras.push(filePath);
+  }
+  return [message, ...extras].filter(Boolean).join("\n");
 }
 
 function clampInt(value: unknown, fallback: number, min: number, max: number): number {
@@ -325,7 +399,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "SendMessage",
-      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。",
+      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。本地图片和文件用 files 传绝对路径，链接用 links。",
       {
         type: "object",
         properties: {
@@ -333,14 +407,24 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           app: { type: "string", enum: ["muse", "popo"] },
           user: { type: "string" },
           groupId: { type: "string" },
+          files: { type: "array", items: { type: "string" } },
+          links: { type: "array", items: { type: "string" } },
         },
         required: ["message", "app"],
       },
       async (args) => {
-        const message = typeof args.message === "string" ? args.message : "";
-        if (!message.trim()) return fail("message required");
+        const message = typeof args.message === "string" ? args.message.trim() : "";
+        const files = stringList(args.files);
+        const links = stringList(args.links);
+        if (!message && files.length === 0 && links.length === 0) return fail("message required");
+        for (const filePath of files) {
+          const problem = localFile(filePath);
+          if (problem) return fail(problem);
+        }
+        const { images, overflow } = inlineImages(files);
+        const body = composeOutbound(message, files, links, overflow);
         if (args.app === "muse") {
-          const line = deps.log.append("assistant", message);
+          const line = deps.log.append("assistant", body, images.length > 0 ? images : undefined);
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ line });
         }
@@ -349,14 +433,61 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const user = text(args.user);
         const receiver = groupId || user;
         if (!receiver || !deps.sendText) return fail("popo recipient required");
-        await deps.sendText(receiver, message);
+        if (files.length > 0 && !deps.sendLocalFile) return fail("popo file send unavailable");
+        const msgIds: string[] = [];
+        try {
+          if (body) msgIds.push(...messageIds(await deps.sendText(receiver, body)));
+          for (const filePath of files) {
+            const msgId = await deps.sendLocalFile!(receiver, filePath);
+            if (typeof msgId === "string" && msgId.trim()) msgIds.push(msgId.trim());
+          }
+        } catch (err: unknown) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
         const master = deps.popoMasterUid?.()?.trim();
         if (!groupId && master && user === master) {
-          const line = deps.log.append("assistant", message, undefined, "popo");
+          const line = deps.log.append(
+            "assistant",
+            body,
+            images.length > 0 ? images : undefined,
+            "popo",
+            msgIds,
+          );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
-          return ok({ sent: true, receiver, line });
+          return ok({ sent: true, receiver, msgIds, line });
         }
-        return ok({ sent: true, receiver });
+        return ok({ sent: true, receiver, msgIds });
+      },
+    ),
+    tool(
+      "RecallMessage",
+      "撤回一条已经发出的 POPO 消息。msgId 用 SendMessage 返回的。有 groupId 撤回群消息，否则用 user 撤回私聊。",
+      {
+        type: "object",
+        properties: {
+          msgId: { type: "string" },
+          user: { type: "string" },
+          groupId: { type: "string" },
+        },
+        required: ["msgId"],
+      },
+      async (args) => {
+        const msgId = text(args.msgId);
+        const groupId = text(args.groupId);
+        const user = text(args.user);
+        const sessionId = groupId || user;
+        if (!msgId || !sessionId) return fail("msgId and recipient required");
+        if (!deps.recallPopo) return fail("popo recall unavailable");
+        try {
+          await deps.recallPopo({
+            msgId,
+            sessionId,
+            sessionType: groupId ? 3 : 1,
+          });
+        } catch (err: unknown) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
+        return ok({ recalled: true, msgId, sessionId });
       },
     ),
     tool(
@@ -438,6 +569,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
               at: line.at,
               role: line.role,
               ...(line.app === "popo" ? { app: "popo" as const } : {}),
+              ...(line.msgIds && line.msgIds.length > 0 ? { msgIds: line.msgIds } : {}),
               message: clipped.text,
               ...(truncated ? { truncated: true } : {}),
             };

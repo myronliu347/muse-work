@@ -1,8 +1,10 @@
 import { lastAssistantText } from "../issueDispatch.js";
 import type { IssueStore } from "../issueStore.js";
+import { userMessageText } from "../sessionRunner/serialization.js";
 import { ASSISTANT_TEXT_MAX } from "./messages.js";
 import {
   ASSISTANT_DESCRIPTION_NOTE,
+  ASSISTANT_REQUEST_NOTE,
   type AssistantEvent,
 } from "./events.js";
 
@@ -22,19 +24,55 @@ export async function enqueueIssueSessionTurn(args: {
       item.executionSessionId === args.sessionId,
   );
   if (!issue?.workdir) return;
-  let summary = "";
+  let messages: unknown[] = [];
   try {
-    summary = lastAssistantText(await args.runner.getMessages(args.sessionId));
+    messages = await args.runner.getMessages(args.sessionId);
   } catch {
-    summary = "";
+    messages = [];
   }
+  const request = truncateCodePoints(turnUserRequest(messages), ASSISTANT_TEXT_MAX);
   args.enqueue({
     type: "issue",
     issueId: issue.id,
     title: issue.title,
     workdir: issue.workdir,
-    summary,
+    ...(request.text ? { request: request.text } : {}),
+    ...(request.truncated ? { requestNote: ASSISTANT_REQUEST_NOTE } : {}),
+    summary: lastAssistantText(messages),
   });
+}
+
+/** 这一轮用户发出的正文。往前走到上一轮的助手回复为止，跳过系统注入。 */
+export function turnUserRequest(messages: unknown[]): string {
+  const texts: string[] = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (!message || typeof message !== "object") continue;
+    const role = (message as { role?: string }).role;
+    if (role === "assistant") {
+      if (texts.length > 0) break;
+      continue;
+    }
+    if (role !== "user") continue;
+    const text = conversationUserText(message);
+    if (!text) continue;
+    texts.unshift(text);
+  }
+  return texts.join("\n\n");
+}
+
+function conversationUserText(message: object): string {
+  if ((message as { isMeta?: boolean }).isMeta) return "";
+  const blocks = (message as { blocks?: Array<{ type?: string; content?: string; source?: string }> }).blocks;
+  if (!Array.isArray(blocks)) return userMessageText(message);
+  if (blocks.some((block) => block.type === "bang" || block.type === "task_notification")) {
+    return "";
+  }
+  return blocks
+    .filter((block) => (block.type === "text" || block.type === "compact") && block.source !== "hook")
+    .map((block) => block.content || "")
+    .join("")
+    .trim();
 }
 
 function truncateCodePoints(text: string, max: number): { text: string; truncated: boolean } {

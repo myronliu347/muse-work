@@ -168,8 +168,10 @@ describe("assistant tools", () => {
       "CloseIssue",
       "ResolvePermission",
       "SendMessage",
+      "RecallMessage",
       "ReadSessionMessages",
       "ListMuseMessages",
+      "WebSearch",
     ]);
   });
 
@@ -373,5 +375,88 @@ describe("assistant tools", () => {
       expect.objectContaining({ role: "assistant", message: "私聊回复", app: "popo" }),
     ]);
     expect(broadcasts).toHaveLength(1);
+  });
+
+  it("sends local files and links, and recalls the POPO message", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-file-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-attach-"));
+    const png = path.join(dir, "shot.png");
+    const note = path.join(dir, "note.txt");
+    fs.writeFileSync(png, Buffer.from("png-bytes"));
+    fs.writeFileSync(note, "hello");
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const files: string[] = [];
+    const recalls: Array<{ msgId: string; sessionId: string; sessionType: number }> = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+      sendText: async () => ["text-1"],
+      sendLocalFile: async (_receiver, filePath) => {
+        files.push(filePath);
+        return "file-1";
+      },
+      recallPopo: async (args) => {
+        recalls.push(args);
+      },
+      popoMasterUid: () => "master",
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const muse = await tool(tools, "SendMessage").execute(
+      {
+        app: "muse",
+        message: "看这个",
+        files: [png, note],
+        links: ["https://example.com/a"],
+      },
+      context,
+    );
+    expect(muse.success).toBe(true);
+    const museLine = log.page().messages[0];
+    expect(museLine?.message).toContain("https://example.com/a");
+    expect(museLine?.message).toContain(note);
+    expect(museLine?.images?.[0]?.data.startsWith("data:image/png;base64,")).toBe(true);
+
+    const popo = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        user: "master",
+        message: "",
+        files: [png],
+      },
+      context,
+    );
+    expect(popo.success).toBe(true);
+    expect(files).toEqual([png]);
+    expect(JSON.parse(popo.content)).toMatchObject({ msgIds: ["file-1"] });
+    expect(log.page().messages[1]?.msgIds).toEqual(["file-1"]);
+
+    const recalled = await tool(tools, "RecallMessage").execute(
+      { msgId: "file-1", user: "master" },
+      context,
+    );
+    const group = await tool(tools, "RecallMessage").execute(
+      { msgId: "file-1", groupId: "g1" },
+      context,
+    );
+    expect(recalled.success).toBe(true);
+    expect(group.success).toBe(true);
+    expect(recalls).toEqual([
+      { msgId: "file-1", sessionId: "master", sessionType: 1 },
+      { msgId: "file-1", sessionId: "g1", sessionType: 3 },
+    ]);
+
+    const missing = await tool(tools, "SendMessage").execute(
+      { app: "muse", message: "", files: ["relative.png"] },
+      context,
+    );
+    expect(missing.success).toBe(false);
   });
 });

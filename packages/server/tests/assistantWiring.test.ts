@@ -93,6 +93,27 @@ describe("assistant wiring", () => {
       runner: {
         getMessages: async () => [
           {
+            role: "user",
+            blocks: [{ type: "text", content: "上一轮" }],
+          },
+          {
+            role: "assistant",
+            blocks: [{ type: "text", content: "先这样" }],
+          },
+          {
+            role: "user",
+            isMeta: true,
+            blocks: [{ type: "text", content: "系统提示" }],
+          },
+          {
+            role: "user",
+            blocks: [{ type: "text", content: "登录失败" }],
+          },
+          {
+            role: "user",
+            blocks: [{ type: "text", content: "还有验证码", source: "hook" }, { type: "text", content: "还有验证码" }],
+          },
+          {
             role: "assistant",
             blocks: [{ type: "text", content: "已经修好" }],
           },
@@ -116,6 +137,7 @@ describe("assistant wiring", () => {
         title: "修登录",
         workdir: "/tmp/repo",
         summary: "已经修好",
+        request: "登录失败\n\n还有验证码",
       },
     ]);
   });

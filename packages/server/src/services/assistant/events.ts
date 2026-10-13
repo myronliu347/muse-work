@@ -16,6 +16,9 @@ export type AssistantIssueEvent = {
   issueId: string;
   title: string;
   workdir: string;
+  /** 这一轮用户发出的消息。一轮里有多条时按时间接在一起。 */
+  request?: string;
+  requestNote?: string;
   summary: string;
   retry?: 1;
   turnError?: string;
@@ -100,6 +103,9 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
 export const ASSISTANT_SUMMARY_NOTE =
   "summary 在这里被截断了，不是对方自己写短了。用 ReadSessionMessages 查看该会话消息，拿到完整内容后再判断。";
 
+export const ASSISTANT_REQUEST_NOTE =
+  "request 在这里被截断了。用 ReadSessionMessages 查看该会话消息，拿到完整的用户消息后再判断。";
+
 export const ASSISTANT_DESCRIPTION_NOTE =
   "description 在这里被截断了。拿不准就问用户，不要凭被截断的参数做决定。";
 
@@ -128,12 +134,21 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["images", event.images && event.images.length > 0 ? String(event.images.length) : undefined],
     ]);
   } else if (event.type === "issue") {
+    const request =
+      event.request === undefined
+        ? undefined
+        : truncateCodePoints(event.request, ASSISTANT_TEXT_MAX);
     const summary = truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "issue"],
       ["issueId", event.issueId],
       ["title", event.title],
       ["workdir", event.workdir],
+      ["request", request?.text],
+      [
+        "requestNote",
+        request?.truncated ? ASSISTANT_REQUEST_NOTE : event.requestNote,
+      ],
       ["summary", summary.text],
       ["summaryNote", summary.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
     ]);

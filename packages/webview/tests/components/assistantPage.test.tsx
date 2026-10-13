@@ -333,6 +333,31 @@ describe("AssistantPage", () => {
     expect(document.querySelector(".image-preview-modal")).toBeNull();
     unmount();
   });
+
+  it("opens a preview when an assistant image is clicked", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "2",
+            at: 2,
+            role: "assistant",
+            message: "截图在这",
+            images: [{ data: "data:image/png;base64,abc", mediaType: "image/png" }],
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    const shot = await screen.findByRole("button", { name: "图片 1" });
+    expect(shot.closest(".assistant-bubble-assistant")).toBeTruthy();
+    fireEvent.click(shot);
+    expect(document.querySelector(".image-preview-modal img")?.getAttribute("src")).toBe(
+      "data:image/png;base64,abc",
+    );
+  });
 });
 
 describe("classifyAssistantHref", () => {

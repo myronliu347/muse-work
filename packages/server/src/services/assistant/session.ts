@@ -14,6 +14,7 @@ export const ASSISTANT_TOOLS = [
   "CloseIssue",
   "ResolvePermission",
   "SendMessage",
+  "RecallMessage",
   "ReadSessionMessages",
   "ListMuseMessages",
   "Skill",

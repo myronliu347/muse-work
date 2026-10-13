@@ -48,7 +48,9 @@ export interface AppContext {
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
   popoSend: {
-    current?: (receiver: string, content: string) => Promise<void>;
+    current?: (receiver: string, content: string) => Promise<string[]>;
+    sendLocalFile?: (receiver: string, filePath: string) => Promise<string>;
+    recall?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   };
   /** POPO 回调运行时（未配置时为未就绪的 runtime，而不是 undefined）。 */
   popo?: import("../popo/setup.js").PopoRuntime;
@@ -166,6 +168,16 @@ export function createAppContext(
       const send = popoSend.current;
       if (!send) return Promise.reject(new Error("POPO 未配置"));
       return send(receiver, content);
+    },
+    sendLocalFile: (receiver, filePath) => {
+      const send = popoSend.sendLocalFile;
+      if (!send) return Promise.reject(new Error("POPO 未配置"));
+      return send(receiver, filePath);
+    },
+    recallPopo: (args) => {
+      const recall = popoSend.recall;
+      if (!recall) return Promise.reject(new Error("POPO 未配置"));
+      return recall(args);
     },
     popoMasterUid: () => {
       try {

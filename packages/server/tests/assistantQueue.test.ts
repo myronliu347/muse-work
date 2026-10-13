@@ -43,6 +43,16 @@ describe("assistant events and queue", () => {
       issueId: "i1",
       title: "登录",
       workdir: "/repo",
+      request: "修登录",
+      summary: "已经修好",
+    })).toBe(
+      "type: issue\nissueId: i1\ntitle: 登录\nworkdir: /repo\nrequest: 修登录\nsummary: 已经修好",
+    );
+    expect(formatAssistantEvent({
+      type: "issue",
+      issueId: "i1",
+      title: "登录",
+      workdir: "/repo",
       summary: "已经修好",
     })).not.toContain("summaryNote");
     expect(formatAssistantEvent({
