@@ -1,0 +1,74 @@
+packages/webview/src/components/panels/ContextPane.tsx
+  8e3a2fa34dbfb00c 1-100
+packages/webview/tests/components/contextPanel.test.tsx
+  8e3a2fa34dbfb00c 1-82
+packages/webview/src/components/panels/ContextFloatCard.tsx
+  8e3a2fa34dbfb00c 1-41
+packages/webview/src/styles/ContextPanel.css
+  8e3a2fa34dbfb00c 1-72
+packages/webview/src/components/panels/ContextDockOverlay.tsx
+  8e3a2fa34dbfb00c 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b9ab81bf7a81190ddeca7aa2fba2382bac9de141",
+  "prompts": {
+    "8e3a2fa34dbfb00c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3518b8b6-3f42-4c83-8961-03555d44356d",
+        "model": "composer-2.5"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 307,
+      "total_deletions": 0,
+      "accepted_lines": 307,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/ContextDockOverlay.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/contextPanel.test.tsx": {
+          "additions": 82,
+          "accepted_lines": 82
+        },
+        "packages/webview/src/components/panels/ContextPane.tsx": {
+          "additions": 100,
+          "accepted_lines": 100
+        },
+        "packages/webview/src/styles/ContextPanel.css": {
+          "additions": 72,
+          "accepted_lines": 72
+        },
+        "packages/webview/src/components/panels/ContextFloatCard.tsx": {
+          "additions": 41,
+          "accepted_lines": 41
+        }
+      }
+    },
+    "eb7e89d5c2abdb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b340f02-db7c-4604-b068-3cec103df4dd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 867,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-10-13-context-panel-design.md": {
+          "accepted_lines": 86
+        },
+        "docs/superpowers/plans/2026-10-13-context-panel.md": {
+          "accepted_lines": 781
+        }
+      }
+    }
+  }
+}
