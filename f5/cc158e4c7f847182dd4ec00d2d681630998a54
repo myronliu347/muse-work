@@ -1,0 +1,50 @@
+packages/webview/src/muse/panelShortcuts.ts
+  aeda335d3133946e 120-121,133-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "f5cc158e4c7f847182dd4ec00d2d681630998a54",
+  "prompts": {
+    "aeda335d3133946e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e51cdec-5021-45a3-8e38-ad4d3bfacbca",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    },
+    "eb7e89d5c2abdb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6b340f02-db7c-4604-b068-3cec103df4dd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 867,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/specs/2026-10-13-context-panel-design.md": {
+          "accepted_lines": 86
+        },
+        "docs/superpowers/plans/2026-10-13-context-panel.md": {
+          "accepted_lines": 781
+        }
+      }
+    }
+  }
+}
