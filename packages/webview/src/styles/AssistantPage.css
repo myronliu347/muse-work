@@ -207,7 +207,7 @@
 }
 
 .assistant-bubble-user {
-  background: var(--gray-4);
+  background: var(--gray-6);
   color: var(--gray-12);
   border-radius: 16px 16px 4px 16px;
 }
