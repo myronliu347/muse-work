@@ -1,0 +1,49 @@
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 30-31
+packages/server/tests/assistantTools.test.ts
+  d501b231c2f2dabb 101-118
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 95
+packages/server/src/services/assistant/tools.ts
+  d501b231c2f2dabb 250,258-263,271-276,286,302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b043830e896538275a89c58f79841eba04fb396f",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 42,
+      "total_deletions": 9,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 19,
+          "deletions": 7,
+          "accepted_lines": 15
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        }
+      }
+    }
+  }
+}
