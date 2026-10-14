@@ -349,11 +349,13 @@ describe("DesktopSidebar pin/recent sessions", () => {
   it("formatRelativeActiveAt covers minute/day buckets", () => {
     const now = Date.parse("2026-08-14T00:00:00.000Z");
     expect(formatRelativeActiveAt(now - 30_000, now)).toBe("now");
-    expect(formatRelativeActiveAt(now - 5 * 60_000, now)).toBe("5min");
+    expect(formatRelativeActiveAt(now - 5 * 60_000, now)).toBe("5m");
     expect(formatRelativeActiveAt(now - 23 * 60 * 60_000, now)).toBe("23h");
     expect(formatRelativeActiveAt(now - 10 * 24 * 60 * 60_000, now)).toBe(
       "10d",
     );
+    expect(formatRelativeActiveAt(now - 40 * 24 * 60 * 60_000, now)).toBe("1mo");
+    expect(formatRelativeActiveAt(now - 400 * 24 * 60 * 60_000, now)).toBe("1y");
   });
 
   it("isTaskProjectWorkdir detects .muse-work/projects paths", () => {

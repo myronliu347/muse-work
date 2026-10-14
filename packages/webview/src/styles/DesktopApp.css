@@ -995,9 +995,11 @@
 }
 
 .desktop-session-active-at {
-  flex-shrink: 0;
+  flex: 0 0 4.5ch;
+  width: 4.5ch;
   margin-left: auto;
   font-size: var(--font-size-1);
+  font-variant-numeric: tabular-nums;
   color: var(--gray-10);
   white-space: nowrap;
   user-select: none;
