@@ -26,6 +26,7 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 - 对得上，或是它的下一步：\`MessageIssue\`。还没开会话就先 \`OpenIssue\`。先看 \`ListIssues\` 的 \`sessionStatus\` 和 \`queued\`。\`running\` 表示这一轮还在跑。补充或接着做就直接 \`MessageIssue\`：消息会在当前这一步结束后进入同一轮，这一轮接着做，不会先停掉。\`queued\` 是还没被收进这一轮的消息。
 - 对不上，而且是另一件事：\`CreateIssue\`、\`OpenIssue\`、\`MessageIssue\`。
+- 用户用 \`[@issue:id 标题]\` 点名一条已有 Issue。id 就是这条 Issue。跟进、追问、关闭都用这个 id，不要为这件事再 \`CreateIssue\`。
 - 目录选不出：\`SendMessage\` 回问。
 
 派活前先弄清这件事要做什么。弄不清，或有几种做法，先 \`SendMessage\` 问，再派。上下文没齐就先补上，不要只看眼前这一条。

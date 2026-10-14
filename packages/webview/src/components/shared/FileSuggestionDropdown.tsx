@@ -16,6 +16,8 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
   browsePath = "",
   onEnterDirectory,
   onBrowseTo,
+  issues = [],
+  onSelectIssue,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isBrowse = filterText === "";
@@ -77,7 +79,7 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
         left: `${position.left}px`,
       }}
     >
-      {isBrowse && (
+      {isBrowse && !(issues.length > 0 && browsePath === "") && (
         <div className="suggestion-breadcrumb" data-testid="suggestion-breadcrumb">
           {breadcrumbCrumbs(browsePath).map((crumb, i) => (
             <span key={`${crumb.path}-${i}`} className="suggestion-crumb">
@@ -97,11 +99,29 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
         </div>
       )}
 
+      {issues.map((issue, index) => (
+        <div
+          key={issue.id}
+          className={`suggestion-item${
+            index === selectedIndex ? " selected" : ""
+          }`}
+          data-testid={`suggestion-issue-${issue.id}`}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => onSelectIssue?.(issue)}
+        >
+          <div className="suggestion-content">
+            <div className="suggestion-name">
+              {highlightMatch(issue.title, filterText)}
+            </div>
+          </div>
+        </div>
+      ))}
+
       {suggestions.map((file: FileItem, index: number) => (
         <div
           key={file.path}
           className={`suggestion-item${isBrowse ? "" : " search-row"}${
-            index === selectedIndex ? " selected" : ""
+            index + issues.length === selectedIndex ? " selected" : ""
           }`}
           onClick={() => onSelect(file)}
         >
@@ -143,7 +163,7 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
           </div>
         </div>
       )}
-      {!isLoading && suggestions.length === 0 && !isBrowse && (
+      {!isLoading && suggestions.length === 0 && issues.length === 0 && !isBrowse && (
         <div className="suggestion-item suggestion-empty">
           <span className="codicon codicon-search"></span>
           <div className="suggestion-content">
@@ -151,7 +171,7 @@ export const FileSuggestionDropdown: React.FC<FileSuggestionDropdownProps> = ({
           </div>
         </div>
       )}
-      {!isLoading && suggestions.length === 0 && isBrowse && (
+      {!isLoading && suggestions.length === 0 && issues.length === 0 && isBrowse && (
         <div className="suggestion-item suggestion-empty">
           <span className="codicon codicon-folder"></span>
           <div className="suggestion-content">

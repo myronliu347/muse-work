@@ -8,7 +8,12 @@ import React, {
   forwardRef,
   KeyboardEvent,
 } from "react";
-import { convertToMarkdown } from "../../utils/messageUtils";
+import {
+  convertToMarkdown,
+  filterMentionIssues,
+  issueMentionToken,
+  type MentionIssue,
+} from "../../utils/messageUtils";
 import { ContextTag } from "../shared/ContextTag";
 import { Tooltip } from "../shared/Tooltip";
 import {
@@ -127,6 +132,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       onModelChange,
       modelSelectApi,
       workdir,
+      mentionIssues,
     } = props;
     const [message, setMessage] = useState("");
 
@@ -169,6 +175,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       startPos: 0,
       endPos: 0,
     });
+    const issueHits = useMemo(
+      () =>
+        atMention.isActive
+          ? filterMentionIssues(mentionIssues ?? [], atMention.filterText)
+          : [],
+      [mentionIssues, atMention.isActive, atMention.filterText],
+    );
     const [suggestions, setSuggestions] = useState<FileItem[]>([]);
     const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -911,6 +924,46 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       [closeDropdown, vscode],
     );
 
+    const insertIssueMention = useCallback(
+      (issue: MentionIssue) => {
+        if (!textareaRef.current) return;
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        const range = selection.getRangeAt(0);
+        const title = issue.title;
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "context-tag-container";
+        tagSpan.contentEditable = "false";
+        tagSpan.setAttribute("data-issue-id", issue.id);
+        tagSpan.setAttribute("data-name", title);
+        tagSpan.innerText = issueMentionToken(issue);
+        renderInEditorHost(
+          tagSpan,
+          <ContextTag name={title || issue.id} path={issue.id} />,
+        );
+        const textNode = range.startContainer;
+        if (textNode.nodeType === Node.TEXT_NODE) {
+          const text = textNode.textContent || "";
+          const lastAtIndex = text.lastIndexOf("@", range.startOffset - 1);
+          if (lastAtIndex !== -1) {
+            range.setStart(textNode, lastAtIndex);
+            range.deleteContents();
+            range.insertNode(tagSpan);
+            const space = document.createTextNode(" ");
+            range.setStartAfter(tagSpan);
+            range.insertNode(space);
+            range.setStartAfter(space);
+            range.setEndAfter(space);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textareaRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        closeDropdown();
+      },
+      [closeDropdown],
+    );
+
     const handleSlashCommandSelect = useCallback(
       (command: SlashCommand) => {
         if (!textareaRef.current) return;
@@ -1075,11 +1128,15 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // Handle dropdown navigation from the live caret, not debounced state.
         const liveMention = readLiveAtMention();
         if (liveMention?.isActive) {
+          const mentionRows = [
+            ...issueHits.map(() => ({ isDirectory: false })),
+            ...suggestions,
+          ];
           const action = resolveFileMentionKey({
             key: event.key,
             filterText: liveMention.filterText,
             browsePath: liveMention.filterText ? "" : browsePathRef.current,
-            suggestions,
+            suggestions: mentionRows,
             selectedIndex,
           });
 
@@ -1087,20 +1144,22 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             event.preventDefault();
             switch (action.type) {
               case "move": {
-                const maxIndex = suggestions.length - 1;
+                const maxIndex = mentionRows.length - 1;
                 setSelectedIndex((prev: number) =>
                   Math.max(0, Math.min(maxIndex, prev + action.delta)),
                 );
                 break;
               }
               case "select":
-                if (suggestions[action.index]) {
-                  handleFileSelect(suggestions[action.index]);
+                if (action.index < issueHits.length) {
+                  insertIssueMention(issueHits[action.index]);
+                } else if (suggestions[action.index - issueHits.length]) {
+                  handleFileSelect(suggestions[action.index - issueHits.length]);
                 }
                 break;
               case "enterDir":
-                if (suggestions[action.index]) {
-                  enterDirectory(suggestions[action.index]);
+                if (suggestions[action.index - issueHits.length]) {
+                  enterDirectory(suggestions[action.index - issueHits.length]);
                 }
                 break;
               case "goUp":
@@ -1133,8 +1192,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         handleSlashCommandSelect,
         closeSlashCommandPopup,
         suggestions,
+        issueHits,
         selectedIndex,
         handleFileSelect,
+        insertIssueMention,
         closeDropdown,
         enterDirectory,
         goUpDirectory,
@@ -1532,7 +1593,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               data-testid="message-input"
-              data-placeholder="@提及文件，粘贴图片，Enter发送..."
+              data-placeholder={
+                mentionIssues
+                  ? "@提及 Issue 或文件，粘贴图片，Enter发送..."
+                  : "@提及文件，粘贴图片，Enter发送..."
+              }
             />
 
             <div className="input-buttons-row">
@@ -1664,6 +1729,8 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             onClose={closeDropdown}
             position={dropdownPosition}
             filterText={atMention.filterText}
+            issues={issueHits}
+            onSelectIssue={insertIssueMention}
             isLoading={isLoadingSuggestions}
             browsePath={browsePath}
             onEnterDirectory={enterDirectory}

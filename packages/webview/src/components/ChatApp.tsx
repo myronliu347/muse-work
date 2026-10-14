@@ -818,6 +818,10 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             onOpenFile={handleOpenFile}
             onOpenUrl={handleOpenPreview}
             inputRef={messageInputRef}
+            mentionIssues={(host?.issueGroups ?? []).map((group) => ({
+              id: group.issueId,
+              title: group.title,
+            }))}
           />
         </div>
         {dock.checked.length > 0 && dock.active ? (

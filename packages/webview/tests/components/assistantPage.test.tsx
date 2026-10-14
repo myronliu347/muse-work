@@ -166,6 +166,26 @@ describe("AssistantPage", () => {
     expect(screen.getByText("图在这")).toBeTruthy();
   });
 
+  it("renders an issue mention as a tag", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "user",
+            message: "接着做 [@issue:abc123 登录失败]",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByText("登录失败")).toBeTruthy();
+    expect(screen.queryByText(/\[@issue:/)).toBeNull();
+  });
+
   it("prepends older lines when the log is scrolled to the top", async () => {
     const api = {
       listAssistantMessages: vi.fn(async (query?: { before?: string }) => {

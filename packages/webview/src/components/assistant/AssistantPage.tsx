@@ -246,6 +246,15 @@ function UserLine({
       });
       return null;
     }
+    if (part.issueId) {
+      return (
+        <ContextTag
+          key={index}
+          name={part.fileName || part.issueId}
+          path={part.issueId}
+        />
+      );
+    }
     if (part.type === "mention" || part.type === "selection") {
       const name =
         (part.path || part.fileName || "文件")
@@ -357,6 +366,8 @@ export const AssistantPage: React.FC<{
   onOpenUrl?: (url: string) => void;
   /** 浏览器元素评论、diff 评论写进这个输入框。 */
   inputRef?: Ref<MessageInputHandle>;
+  /** 输入框 @ 可以点名这些进行中的 Issue。 */
+  mentionIssues?: Array<{ id: string; title: string }>;
 }> = ({
   api,
   vscode = noopHost,
@@ -365,6 +376,7 @@ export const AssistantPage: React.FC<{
   onOpenFile,
   onOpenUrl,
   inputRef,
+  mentionIssues,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -841,6 +853,7 @@ export const AssistantPage: React.FC<{
           isStreaming={false}
           disabled={sending}
           workdir={agentWorkdir}
+          mentionIssues={mentionIssues}
           onAbortMessage={() => {}}
           onSendMessage={(text, images) => {
             void send(text, images);

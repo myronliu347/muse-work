@@ -1,5 +1,31 @@
 import { AttachedImage } from "../types";
 
+export type MentionIssue = { id: string; title: string };
+
+export function issueMentionLabel(title: string): string {
+  const cleaned = title.replace(/[\[\]\r\n]/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned || "Issue";
+}
+
+export function issueMentionToken(issue: MentionIssue): string {
+  return `[@issue:${issue.id} ${issueMentionLabel(issue.title)}]`;
+}
+
+export function filterMentionIssues(
+  issues: MentionIssue[],
+  filter: string,
+): MentionIssue[] {
+  const query = filter.trim().toLowerCase();
+  const matched = query
+    ? issues.filter(
+        (issue) =>
+          issue.title.toLowerCase().includes(query) ||
+          issue.id.toLowerCase().includes(query),
+      )
+    : issues;
+  return matched.slice(0, 20);
+}
+
 /**
  * 将 contenteditable 的内容转换为 Markdown 格式，并提取图片。
  *
@@ -31,6 +57,15 @@ export const convertToMarkdown = (
         const isSelection =
           element.getAttribute("data-is-selection") === "true";
         const imageUrl = element.getAttribute("data-image-url");
+
+        const issueId = element.getAttribute("data-issue-id");
+        if (issueId) {
+          markdown += issueMentionToken({
+            id: issueId,
+            title: element.getAttribute("data-name") || "",
+          });
+          return;
+        }
 
         if (isImage && imageUrl) {
           const placeholder = `[image${images.length + 1}]`;
@@ -104,7 +139,7 @@ export const normalizeUserTextForDedupe = (text: string): string =>
   text.trim().replace(/\s+/g, " ");
 
 /**
- * 解析 Markdown 中的标签语法 [@file:path], [Selection: fileName#start-end] 和 [imageN]
+ * 解析 Markdown 中的标签语法 [@issue:id 标题]、[@file:path]、[Selection: fileName#start-end] 和 [imageN]
  */
 export const parseMentions = (
   text: string,
@@ -118,6 +153,7 @@ export const parseMentions = (
   startLine?: string;
   endLine?: string;
   imageData?: string;
+  issueId?: string;
 }> => {
   text = stripImageSourceMarkers(text);
   const parts: Array<{
@@ -129,10 +165,10 @@ export const parseMentions = (
     startLine?: string;
     endLine?: string;
     imageData?: string;
+    issueId?: string;
   }> = [];
-  // Updated regex to handle [Selection: path|fileName#start-end] or [Selection: fileName#start-end]
   const regex =
-    /\[@file:(.*?)\]|\[Selection: (?:(.*?)\|)?(.*?)#(\d+)-(\d+)\]|\[image(\d+)\]/g;
+    /\[@issue:([^\s\]]+)(?:\s+([^\]]*))?\]|\[@file:(.*?)\]|\[Selection: (?:(.*?)\|)?(.*?)#(\d+)-(\d+)\]|\[image(\d+)\]/g;
   let lastIndex = 0;
   let match;
 
@@ -145,15 +181,20 @@ export const parseMentions = (
     }
 
     if (match[1]) {
-      // @file mention
-      const path = match[1];
+      parts.push({
+        type: "mention",
+        content: match[0],
+        issueId: match[1],
+        fileName: match[2]?.trim() || match[1],
+      });
+    } else if (match[3]) {
+      const path = match[3];
       const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(path);
       parts.push({ type: "mention", content: match[0], path, isImage });
-    } else if (match[6]) {
-      // [imageN] placeholder
-      const index = parseInt(match[6]) - 1;
+    } else if (match[8]) {
+      const index = parseInt(match[8]) - 1;
       const attachedImage = attachedImages?.[index];
-      const displayName = `图片 ${match[6]}`;
+      const displayName = `图片 ${match[8]}`;
       parts.push({
         type: "mention",
         content: match[0],
@@ -161,16 +202,14 @@ export const parseMentions = (
         isImage: true,
         imageData: attachedImage?.data,
       });
-    } else if (match[3]) {
-      // Selection
-      // match[2] is path (optional), match[3] is fileName, match[4] is startLine, match[5] is endLine
+    } else if (match[5]) {
       parts.push({
         type: "selection",
         content: match[0],
-        path: match[2],
-        fileName: match[3],
-        startLine: match[4],
-        endLine: match[5],
+        path: match[4],
+        fileName: match[5],
+        startLine: match[6],
+        endLine: match[7],
       });
     }
 

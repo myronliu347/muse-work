@@ -83,6 +83,30 @@ describe("FileSuggestionDropdown", () => {
     expect(screen.queryByTestId("suggestion-enter-hello.ts")).not.toBeInTheDocument();
   });
 
+  it("lists issue titles without the workspace crumb, id, or icon", () => {
+    render(
+      <FileSuggestionDropdown
+        suggestions={[]}
+        issues={[{ id: "f81736aa-4ec9-41dd-9858-023397efc92b", title: "test ui" }]}
+        isVisible
+        selectedIndex={0}
+        onSelect={() => {}}
+        onSelectIssue={() => {}}
+        onClose={() => {}}
+        position={position}
+        filterText=""
+        browsePath=""
+      />,
+    );
+
+    expect(screen.queryByTestId("suggestion-breadcrumb")).not.toBeInTheDocument();
+    expect(screen.getByText("test ui")).toBeInTheDocument();
+    expect(screen.queryByText("f81736aa-4ec9-41dd-9858-023397efc92b")).not.toBeInTheDocument();
+    expect(
+      document.querySelector("[data-testid='suggestion-issue-f81736aa-4ec9-41dd-9858-023397efc92b'] .codicon"),
+    ).toBeNull();
+  });
+
   it("shows empty-search copy when visible with filter and no suggestions", () => {
     render(
       <FileSuggestionDropdown

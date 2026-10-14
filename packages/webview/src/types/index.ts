@@ -495,6 +495,8 @@ export interface MessageInputProps {
   modelSelectApi?: import("../muse/apiClient").MuseApiClient;
   /** Absolute workdir for @ file mentions (desktop). */
   workdir?: string;
+  /** When set, @ in this composer also lists these issues. */
+  mentionIssues?: Array<{ id: string; title: string }>;
 }
 
 /**
@@ -520,6 +522,8 @@ export interface FileSuggestionDropdownProps {
   browsePath?: string;
   onEnterDirectory?: (file: FileItem) => void;
   onBrowseTo?: (path: string) => void;
+  issues?: Array<{ id: string; title: string }>;
+  onSelectIssue?: (issue: { id: string; title: string }) => void;
 }
 
 /** Desktop conversation-level side panels (desktop-only). */
