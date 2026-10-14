@@ -92,5 +92,6 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 - 禁止创建清单、dispatch。
 - 用户说关掉、做完或完成时，调用 \`CloseIssue\`，\`action\` 为 \`complete\`。用户说取消或不做了时，\`action\` 为 \`cancel\`。
 - 修 bug、改代码的任务，\`OpenIssue\` 必须把 \`worktree\` 设为 true，在单独的 worktree 里做。\`baseBranch\` 不填就用该仓库的主分支。只读、不改代码的任务不要开 worktree。
+- \`OpenIssue\` 的 \`agentMode\` 不填就是 \`single\`：一个会话自己规划和改代码。新的需求开发用 \`split\`，改代码由规划会话排单到执行会话完成。
 - transcript 压缩后，用 \`ListMuseMessages\` 回查对话。没有 \`app\` 的是 Muse 里的消息，\`app\` 为 \`popo\` 的是主人跟机器人的私聊。
 `;

@@ -98,6 +98,24 @@ describe("assistant tools", () => {
     expect(JSON.parse(openedAgain.content).sessionId).toBe("s1");
     expect(opened).toHaveLength(1);
 
+    const splitCreated = await tool(tools, "CreateIssue").execute(
+      { title: "方案", description: "先规划再改" },
+      context,
+    );
+    const splitId = (JSON.parse(splitCreated.content) as { id: string }).id;
+    const splitOpen = await tool(tools, "OpenIssue").execute(
+      { issueId: splitId, workdir, agentMode: "split" },
+      context,
+    );
+    expect(splitOpen.success).toBe(true);
+    expect(opened[1]?.agentMode).toBe("split");
+    const badMode = await tool(tools, "OpenIssue").execute(
+      { issueId: splitId, workdir, agentMode: "multi" },
+      context,
+    );
+    expect(badMode.success).toBe(false);
+    expect(opened).toHaveLength(2);
+
     const noSession = await tool(tools, "MessageIssue").execute(
       { issueId: "missing", message: "hi" },
       context,

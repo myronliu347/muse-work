@@ -247,7 +247,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "OpenIssue",
-      "给尚未打开会话的 Issue 打开 single 会话。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。",
+      "给尚未打开会话的 Issue 打开会话。agentMode 不填或为 single 时是单会话，这个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。修 bug、改代码时 worktree 必须为 true，服务器会建出 worktree，会话工作目录换成那个路径。baseBranch 不填则用该仓库的主分支。建不出来就不会开会话。只读、不改代码不要开 worktree。",
       {
         type: "object",
         properties: {
@@ -255,6 +255,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           workdir: { type: "string" },
           worktree: { type: "boolean" },
           baseBranch: { type: "string" },
+          agentMode: {
+            type: "string",
+            enum: ["single", "split"],
+            description:
+              "默认 single：一个会话自己规划和改代码。新的需求开发用 split：改代码由规划会话排单到执行会话完成。",
+          },
         },
         required: ["issueId", "workdir"],
       },
@@ -262,6 +268,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const issueId = text(args.issueId);
         const workdir = text(args.workdir);
         if (!issueId || !workdir) return fail("issueId and workdir required");
+        const agentMode = args.agentMode === undefined || args.agentMode === "single"
+          ? "single"
+          : args.agentMode === "split"
+            ? "split"
+            : undefined;
+        if (!agentMode) return fail("agentMode must be single or split");
         const issue = deps.issues.get(issueId);
         if (!issue) return fail("not found");
         if (issue.planningSessionId) {
@@ -271,7 +283,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const baseBranch = text(args.baseBranch);
         let body: OpenIssueBody = {
           workdir,
-          agentMode: "single",
+          agentMode,
           worktreeEnabled: false,
         };
         if (args.worktree === true) {
@@ -287,7 +299,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           }
           body = {
             workdir: created.path,
-            agentMode: "single",
+            agentMode,
             worktreeEnabled: true,
             baseBranch: created.baseBranch,
             worktreeName: created.name,
