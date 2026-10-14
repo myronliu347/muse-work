@@ -19,7 +19,7 @@
   );
   max-width: calc(100% - min(100%, var(--chat-main-min-width, 520px)));
   height: 100%;
-  border-left: 1px solid var(--gray-6);
+  border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
   overflow: hidden;
 }
@@ -27,7 +27,7 @@
 .desktop-panel-dock-header {
   height: var(--desktop-shell-titlebar-height, 38px);
   padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   display: flex;
   align-items: center;
   gap: var(--space-2);

@@ -20,7 +20,7 @@
 }
 
 .diff-file {
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
 }
 
 .diff-file-header-row {
@@ -136,7 +136,7 @@
 }
 
 .diff-file-body {
-  border-top: 1px solid var(--gray-6);
+  border-top: var(--hairline) solid var(--gray-6);
   overflow-x: auto;
   padding: var(--space-1) 0;
   font-family: Menlo, Monaco, 'Courier New', monospace;
@@ -383,7 +383,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-left: 1px solid var(--gray-6);
+  border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
 }
 
@@ -407,7 +407,7 @@
   font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--gray-12);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
 }
 
 .diff-pane-tree-scroll {

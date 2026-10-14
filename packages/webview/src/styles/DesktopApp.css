@@ -40,7 +40,7 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--gray-6);
+  border-right: var(--hairline) solid var(--gray-6);
   background: var(--gray-2);
   box-shadow: none;
   overflow: hidden;
@@ -105,7 +105,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid color-mix(in srgb, var(--gray-6) 70%, transparent);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--gray-6) 70%, transparent);
   background: var(--gray-2);
   position: relative;
   flex-shrink: 0;
@@ -209,7 +209,7 @@
 
 /* 菜单区与会话树之间的分隔线 */
 .divider {
-  height: 1px;
+  height: var(--hairline);
   margin: 0 var(--space-2);
   background: var(--gray-5);
 }
@@ -1418,7 +1418,7 @@
 }
 
 .desktop-workdir-menu-separator {
-  height: 1px;
+  height: var(--hairline);
   margin: var(--space-1) 0;
   background: var(--gray-6);
 }
@@ -1428,7 +1428,7 @@
 .preview-pane {
   position: relative;
   flex-shrink: 0;
-  border-left: 1px solid var(--gray-6);
+  border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
   overflow: hidden;
   min-width: 0;
@@ -1475,7 +1475,7 @@ body.is-panel-resizing * {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-1);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   flex-shrink: 0;
 }
 
@@ -1483,7 +1483,7 @@ body.is-panel-resizing * {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-1);
   color: var(--gray-11);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   flex-shrink: 0;
 }
 
@@ -1741,7 +1741,7 @@ body.is-panel-resizing * {
   --chat-main-min-width: var(--chat-content-min-width);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--gray-6);
+  border-right: var(--hairline) solid var(--gray-6);
 }
 
 .desktop-pane-row > .desktop-pane:first-child {

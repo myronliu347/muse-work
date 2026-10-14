@@ -226,7 +226,7 @@
   padding: 12px 14px;
   margin: 0;
   border: none;
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   border-radius: 0;
   cursor: pointer;
   background: transparent;
@@ -358,7 +358,7 @@
 }
 
 .automations-ed-meta .div {
-  width: 1px;
+  width: var(--hairline);
   height: 14px;
   background: var(--gray-6);
 }

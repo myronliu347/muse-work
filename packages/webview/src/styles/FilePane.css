@@ -30,7 +30,7 @@
   gap: var(--space-2);
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
 }
 
@@ -273,7 +273,7 @@
   align-self: stretch;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--gray-6);
+  border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
   min-height: 0;
 }
@@ -294,7 +294,7 @@
   padding: var(--space-1) var(--space-2);
   min-height: 32px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   flex-shrink: 0;
 }
 
@@ -473,7 +473,7 @@
   align-items: stretch;
   gap: var(--space-2);
   padding: var(--space-2);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   flex-shrink: 0;
 }
 
@@ -525,7 +525,7 @@
   font-size: var(--font-size-1);
   color: var(--gray-9);
   flex-shrink: 0;
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
 }
 
 .file-content-search-results {
@@ -687,7 +687,7 @@
   min-height: 44px;
   padding: 0 var(--space-3);
   border: none;
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   border-radius: 0;
   background: transparent;
   color: var(--gray-12);

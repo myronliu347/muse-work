@@ -2,7 +2,7 @@
 
 .popo-config-row {
   padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--gray-3);
+  border-bottom: var(--hairline) solid var(--gray-3);
 }
 
 .popo-config-row:last-child {

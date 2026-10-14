@@ -1,5 +1,16 @@
 /* Muse webview global styles */
 
+/* A CSS pixel is two device pixels on a 2x display, so layout dividers use a hairline. */
+:root {
+  --hairline: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --hairline: 0.5px;
+  }
+}
+
 /* Keep in sync with packages/desktop windowBackgroundFor. Hex fallbacks
    paint before Radix --color-background exists, so the first frame is not white. */
 html,

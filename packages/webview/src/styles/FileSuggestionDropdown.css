@@ -20,7 +20,7 @@
   align-items: center;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  border-bottom: 1px solid var(--gray-4);
+  border-bottom: var(--hairline) solid var(--gray-4);
   transition: background-color 0.1s ease;
 }
 
@@ -141,7 +141,7 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
-  border-bottom: 1px solid var(--gray-6);
+  border-bottom: var(--hairline) solid var(--gray-6);
   background: var(--gray-3);
   font-size: var(--font-size-1);
 }

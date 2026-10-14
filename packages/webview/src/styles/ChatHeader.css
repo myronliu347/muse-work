@@ -2,7 +2,6 @@
 .chat-header {
   height: 36px;
   padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--gray-6);
   background-color: var(--color-background);
   display: flex;
   justify-content: space-between;
