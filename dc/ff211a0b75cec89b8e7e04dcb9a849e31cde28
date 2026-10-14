@@ -1,0 +1,103 @@
+packages/webview/src/components/chat/MessageInput.tsx
+  d501b231c2f2dabb 11-16,135,178-184,927-966,1131-1134,1139,1147,1154-1157,1161-1162,1195,1198,1596-1600,1732-1733
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 169-188
+packages/webview/src/types/index.ts
+  d501b231c2f2dabb 498-499,525-526
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 249-257,369-370,379,856
+packages/webview/tests/components/messageInput.issueMention.test.tsx
+  d501b231c2f2dabb 1-65
+packages/webview/tests/webview/messageUtils.imageSource.test.ts
+  d501b231c2f2dabb 3,45-73
+packages/webview/src/components/ChatApp.tsx
+  d501b231c2f2dabb 821-824
+packages/webview/tests/components/fileSuggestionDropdown.test.tsx
+  d501b231c2f2dabb 86-109
+packages/server/tests/assistantSession.test.ts
+  d501b231c2f2dabb 40
+packages/webview/src/components/shared/FileSuggestionDropdown.tsx
+  d501b231c2f2dabb 19-20,82,102-119,124,166,174
+packages/webview/src/utils/messageUtils.ts
+  d501b231c2f2dabb 3-28,61-69,142,156,168,171,184-191,194-195,197,205,209-212
+packages/server/src/services/assistant/prompt.ts
+  d501b231c2f2dabb 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "dcff211a0b75cec89b8e7e04dcb9a849e31cde28",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 344,
+      "total_deletions": 56,
+      "accepted_lines": 316,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 80,
+          "deletions": 13,
+          "accepted_lines": 75
+        },
+        "packages/webview/tests/webview/messageUtils.imageSource.test.ts": {
+          "additions": 44,
+          "deletions": 14,
+          "accepted_lines": 30
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/components/messageInput.issueMention.test.tsx": {
+          "additions": 68,
+          "deletions": 3,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/utils/messageUtils.ts": {
+          "additions": 55,
+          "deletions": 16,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/shared/FileSuggestionDropdown.tsx": {
+          "additions": 27,
+          "deletions": 7,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/fileSuggestionDropdown.test.tsx": {
+          "additions": 25,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}
