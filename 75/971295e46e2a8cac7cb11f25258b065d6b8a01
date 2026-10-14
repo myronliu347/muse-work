@@ -1,0 +1,49 @@
+packages/webview/src/styles/globals.css
+  d501b231c2f2dabb 3-13
+packages/webview/src/styles/AutomationsPage.css
+  d501b231c2f2dabb 361
+packages/webview/src/styles/DesktopApp.css
+  d501b231c2f2dabb 212,1421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "75971295e46e2a8cac7cb11f25258b065d6b8a01",
+  "prompts": {
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 14,
+      "total_deletions": 5,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/styles/globals.css": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "deletions": 1
+        },
+        "packages/webview/src/styles/ChatHeader.css": {
+          "deletions": 1
+        }
+      }
+    }
+  }
+}
