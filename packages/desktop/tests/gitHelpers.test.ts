@@ -5,9 +5,8 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { listGitBranches } from "../src/main/gitBranches.js";
 import {
-  getCommitDiff,
+  getBranchDiff,
   getWorkspaceDiff,
-  listRecentCommits,
   revertWorkspaceDiff,
 } from "../src/main/gitDiff.js";
 
@@ -56,81 +55,12 @@ describe("getWorkspaceDiff", () => {
   });
 });
 
-function revParse(dir: string, args: string[] = ["HEAD"]): string {
-  return execFileSync("git", ["rev-parse", ...args], {
-    cwd: dir,
-    encoding: "utf8",
-  }).trim();
-}
-
-describe("listRecentCommits", () => {
-  it("returns newest commits first with hash, subject, author, and date", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-log-"));
+describe("getBranchDiff", () => {
+  it("includes commits on the branch plus uncommitted and untracked files", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-"));
     initRepo(dir);
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
-    execFileSync("git", ["add", "a.txt"], { cwd: dir });
-    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
-      cwd: dir,
-    });
-
-    const result = await listRecentCommits(dir);
-    expect(result.kind).toBe("ok");
-    if (result.kind !== "ok") return;
-    expect(result.commits.map((c) => c.subject)).toEqual(["second", "init"]);
-    expect(result.commits[0]?.hash).toBe(revParse(dir));
-    expect(result.commits[0]?.shortHash).toBe(revParse(dir, ["--short", "HEAD"]));
-    expect(result.commits[0]?.author).toBe("Test");
-    expect(result.commits[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    fs.rmSync(dir, { recursive: true, force: true });
-  });
-
-  it("returns not-a-repo outside a work tree", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-log-nr-"));
-    expect(await listRecentCommits(dir)).toEqual({ kind: "not-a-repo" });
-    fs.rmSync(dir, { recursive: true, force: true });
-  });
-});
-
-describe("getCommitDiff", () => {
-  it("shows the commit's own changes against its parent", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-patch-"));
-    initRepo(dir);
-    const root = revParse(dir);
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
-    execFileSync("git", ["add", "a.txt"], { cwd: dir });
-    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
-      cwd: dir,
-    });
-    const head = revParse(dir);
-
-    const patch = await getCommitDiff(dir, head, "patch");
-    expect(patch.kind).toBe("ok");
-    if (patch.kind === "ok") {
-      expect(patch.files).toEqual([
-        expect.objectContaining({
-          path: "a.txt",
-          status: "modified",
-        }),
-      ]);
-      expect(patch.files[0]?.hunks).toContain("+world");
-      expect(patch.files[0]?.additions).toBe(1);
-    }
-
-    const rootPatch = await getCommitDiff(dir, root, "patch");
-    expect(rootPatch.kind).toBe("ok");
-    if (rootPatch.kind === "ok") {
-      expect(rootPatch.files[0]).toEqual(
-        expect.objectContaining({ path: "a.txt", status: "added" }),
-      );
-      expect(rootPatch.files[0]?.hunks).toContain("+hello");
-    }
-    fs.rmSync(dir, { recursive: true, force: true });
-  });
-
-  it("diffs a commit against HEAD without uncommitted changes", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-head-"));
-    initRepo(dir);
-    const root = revParse(dir);
+    execFileSync("git", ["branch", "-M", "main"], { cwd: dir });
+    execFileSync("git", ["checkout", "-b", "feature"], { cwd: dir });
     fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
     execFileSync("git", ["add", "a.txt"], { cwd: dir });
     execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
@@ -139,29 +69,7 @@ describe("getCommitDiff", () => {
     fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\nextra\n");
     fs.writeFileSync(path.join(dir, "b.txt"), "new\n");
 
-    const result = await getCommitDiff(dir, root, "head");
-    expect(result.kind).toBe("ok");
-    if (result.kind === "ok") {
-      expect(result.files.map((f) => f.path)).toEqual(["a.txt"]);
-      expect(result.files[0]?.hunks).toContain("+world");
-      expect(result.files[0]?.hunks).not.toContain("+extra");
-    }
-    fs.rmSync(dir, { recursive: true, force: true });
-  });
-
-  it("diffs the worktree, including untracked files, against a commit", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-wt-"));
-    initRepo(dir);
-    const root = revParse(dir);
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
-    execFileSync("git", ["add", "a.txt"], { cwd: dir });
-    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
-      cwd: dir,
-    });
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\nextra\n");
-    fs.writeFileSync(path.join(dir, "b.txt"), "new\n");
-
-    const result = await getCommitDiff(dir, root, "worktree");
+    const result = await getBranchDiff(dir);
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
       const byPath = Object.fromEntries(result.files.map((f) => [f.path, f]));
@@ -173,19 +81,9 @@ describe("getCommitDiff", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("rejects a missing or unsafe revision", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-bad-"));
-    initRepo(dir);
-    expect((await getCommitDiff(dir, "deadbeef", "patch")).kind).toBe("error");
-    expect((await getCommitDiff(dir, "--version", "patch")).kind).toBe("error");
-    fs.rmSync(dir, { recursive: true, force: true });
-  });
-
   it("returns not-a-repo outside a work tree", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-nr-"));
-    expect(await getCommitDiff(dir, "HEAD", "patch")).toEqual({
-      kind: "not-a-repo",
-    });
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-nr-"));
+    expect(await getBranchDiff(dir)).toEqual({ kind: "not-a-repo" });
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

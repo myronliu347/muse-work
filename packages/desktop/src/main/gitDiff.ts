@@ -6,6 +6,7 @@ import { execFile } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
+import { getDefaultRemoteBranch } from "./worktree.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -31,24 +32,6 @@ export type WorkspaceDiffResult =
   | { kind: "not-a-repo" }
   | { kind: "error"; message: string }
   | { kind: "ok"; files: WorkspaceDiffFile[] };
-
-export type CommitCompare = "patch" | "head" | "worktree";
-
-export interface GitCommitSummary {
-  hash: string;
-  shortHash: string;
-  subject: string;
-  author: string;
-  date: string;
-}
-
-export type ListCommitsResult =
-  | { kind: "not-a-repo" }
-  | { kind: "ok"; commits: GitCommitSummary[] };
-
-/** Well-known hash of the empty tree; used to diff a root commit. */
-const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-const RECENT_COMMIT_LIMIT = 50;
 
 export const MAX_DIFF_LINES = 2000;
 const MAX_UNTRACKED_BYTES = 2 * 1024 * 1024;
@@ -244,100 +227,56 @@ export async function getWorkspaceDiff(cwd: string): Promise<WorkspaceDiffResult
   return { kind: "ok", files };
 }
 
-export async function listRecentCommits(
-  cwd: string,
-  limit = RECENT_COMMIT_LIMIT,
-): Promise<ListCommitsResult> {
-  try {
-    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
-  } catch {
-    return { kind: "not-a-repo" };
+async function resolveBranchBase(cwd: string): Promise<string | null> {
+  const candidates = [
+    getDefaultRemoteBranch(cwd),
+    "origin/main",
+    "origin/master",
+    "main",
+    "master",
+  ];
+  const seen = new Set<string>();
+  for (const ref of candidates) {
+    if (!ref || seen.has(ref) || !isSafeRev(ref)) continue;
+    seen.add(ref);
+    try {
+      await git(cwd, [
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        `${ref}^{commit}`,
+      ]);
+      return ref;
+    } catch {
+      // Try the next candidate.
+    }
   }
-
-  const n = Math.min(Math.max(Math.floor(limit), 1), 100);
-  let out = "";
-  try {
-    out = await git(cwd, [
-      "log",
-      "-z",
-      "-n",
-      String(n),
-      "--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%cI",
-    ]);
-  } catch {
-    return { kind: "ok", commits: [] };
-  }
-
-  const commits: GitCommitSummary[] = [];
-  for (const rec of out.split("\0")) {
-    if (!rec) continue;
-    const [hash, shortHash, subject, author, date] = rec.split("\x1f");
-    if (!hash || !shortHash) continue;
-    commits.push({
-      hash,
-      shortHash,
-      subject: subject ?? "",
-      author: author ?? "",
-      date: date ?? "",
-    });
-  }
-  return { kind: "ok", commits };
+  return null;
 }
 
-export async function getCommitDiff(
-  cwd: string,
-  rev: string,
-  compare: CommitCompare,
-): Promise<WorkspaceDiffResult> {
+/** Worktree vs the fork point of the current branch (committed + uncommitted). */
+export async function getBranchDiff(cwd: string): Promise<WorkspaceDiffResult> {
   try {
     await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
   } catch {
     return { kind: "not-a-repo" };
-  }
-  if (
-    !isSafeRev(rev) ||
-    (compare !== "patch" && compare !== "head" && compare !== "worktree")
-  ) {
-    return { kind: "error", message: "找不到该提交" };
   }
 
   const root =
     (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
     cwd;
+  const baseRef = await resolveBranchBase(cwd);
+  if (!baseRef) return { kind: "error", message: "找不到基准分支" };
 
-  let resolved: string;
+  let mergeBase = "";
   try {
-    resolved = (
-      await git(cwd, [
-        "rev-parse",
-        "--verify",
-        "--end-of-options",
-        `${rev}^{commit}`,
-      ])
-    ).trim();
+    mergeBase = (await git(cwd, ["merge-base", "HEAD", baseRef])).trim();
   } catch {
-    return { kind: "error", message: "找不到该提交" };
+    return { kind: "error", message: "找不到基准分支" };
   }
+  if (!isSafeRev(mergeBase)) return { kind: "error", message: "找不到基准分支" };
 
-  // patch: parent..commit (root commits diff against the empty tree).
-  // head: commit..HEAD. worktree: commit..worktree.
-  let parent = resolved;
-  if (compare === "patch") {
-    try {
-      parent = (
-        await git(cwd, ["rev-parse", "--verify", "--end-of-options", `${resolved}^`])
-      ).trim();
-    } catch {
-      parent = EMPTY_TREE;
-    }
-  }
-  const diffBase =
-    compare === "patch"
-      ? ["-M", parent, resolved]
-      : compare === "head"
-        ? ["-M", resolved, "HEAD"]
-        : ["-M", resolved];
-
+  const diffBase = ["-M", mergeBase];
   let nameStatus = "";
   try {
     nameStatus = await git(root, ["diff", "--name-status", "-z", ...diffBase]);
@@ -349,16 +288,14 @@ export async function getCommitDiff(
   }
 
   const entries = parseNameStatusZ(nameStatus);
-  if (compare === "worktree") {
-    const status = await git(root, [
-      "status",
-      "--porcelain=v1",
-      "-z",
-      "--untracked-files=all",
-    ]).catch(() => "");
-    for (const entry of parsePorcelain(status)) {
-      if (entry.status === "untracked") entries.push(entry);
-    }
+  const status = await git(root, [
+    "status",
+    "--porcelain=v1",
+    "-z",
+    "--untracked-files=all",
+  ]).catch(() => "");
+  for (const entry of parsePorcelain(status)) {
+    if (entry.status === "untracked") entries.push(entry);
   }
 
   const files: WorkspaceDiffFile[] = [];

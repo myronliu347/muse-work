@@ -614,19 +614,33 @@ describe("DiffPane", () => {
     ).toBeNull();
   });
 
-  it("resets to recent mode when the session context changes", () => {
-    const { rerenderWith } = renderPane({
+  it("restores the session diff mode after switching away and back", () => {
+    const { vscode, rerenderWith } = renderPane({
       initialMode: "unstaged",
       sessionId: "s1",
       workdir: "/w/a",
-      recentFiles: [makeFile()],
+      recentFiles: [makeFile({ path: "recent.ts" })],
     });
     expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
-    rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    // Switching sessions defaults back to 最近一次修改, showing the new
-    // session's reloaded file_history data instead of the old git diff.
+    rerenderWith({
+      sessionId: "s2",
+      workdir: "/w/b",
+      recentFiles: [makeFile({ path: "other.ts" })],
+    });
+    // A session that has not picked a range yet still opens on 最近一次修改.
     expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
-    expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
+    expect(screen.getByTestId("diff-pane")).toHaveTextContent("other.ts");
+
+    rerenderWith({
+      sessionId: "s1",
+      workdir: "/w/a",
+      recentFiles: [makeFile({ path: "recent.ts" })],
+    });
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
+    const requests = lastDiffRequest(vscode);
+    expect(requests.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ workdir: "/w/a" }),
+    );
   });
 
   it("does not refresh on generation end while hidden", () => {
@@ -980,87 +994,41 @@ describe("DiffPane", () => {
     });
   });
 
-  describe("commit diff (指定提交)", () => {
-    const commits = [
-      {
-        hash: "abc111",
-        shortHash: "abc111",
-        subject: "second",
-        author: "Ada",
-        date: "2026-10-15T01:02:03Z",
-      },
-      {
-        hash: "abc000",
-        shortHash: "abc000",
-        subject: "init",
-        author: "Ada",
-        date: "2026-10-14T01:02:03Z",
-      },
-    ];
-
-    function switchToPatch() {
-      return pickMode("某次提交的改动");
+  describe("branch diff (当前分支所有改动)", () => {
+    function switchToBranch() {
+      return pickMode("当前分支所有改动");
     }
 
-    function switchToSince() {
-      return pickMode("自该提交至今");
-    }
-
-    function lastCommitDiffRequest(vscode: ReturnType<typeof createMockVscode>) {
+    function lastBranchRequest(vscode: ReturnType<typeof createMockVscode>) {
       return vscode.postMessage.mock.calls
         .map(([msg]) => msg)
-        .filter((msg) => msg.command === "desktopGetCommitDiff")
+        .filter((msg) => msg.command === "desktopGetBranchDiff")
         .at(-1);
     }
 
-    it("lists commits and requests that commit's own patch", async () => {
+    it("requests the branch diff and hides commit and discard actions", async () => {
       const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
       vscode.postMessage.mockClear();
-      await switchToPatch();
-      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("某次提交的改动");
+      await switchToBranch();
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("当前分支所有改动");
       const user = userEvent.setup();
       await user.click(screen.getByTestId("diff-mode-select"));
       expect(await screen.findByRole("option", { name: "对比 HEAD" })).toBeInTheDocument();
-      expect(screen.getByRole("option", { name: "自该提交至今" })).toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: "某次提交的改动" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: "自该提交至今" })).not.toBeInTheDocument();
       await user.keyboard("{Escape}");
-      expect(screen.queryByTestId("diff-compare-select")).not.toBeInTheDocument();
       expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();
       expect(screen.queryByTestId("diff-revert-all")).not.toBeInTheDocument();
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "desktopListCommits",
-        paneId: "p1",
-        workdir: "/repo",
-      });
-      expect(
-        vscode.postMessage.mock.calls.some(
-          ([msg]) => msg.command === "desktopGetWorkspaceDiff",
-        ),
-      ).toBe(false);
 
-      sendCommand("desktopCommits", {
-        paneId: "p1",
-        result: { kind: "ok", commits },
-      });
-
-      const select = screen.getByTestId("diff-commit-select");
-      expect(select).toHaveTextContent("abc111");
-      expect(select).toHaveTextContent("second");
-      expect(select).toHaveTextContent("Ada");
-      expect(select).toHaveTextContent("2026-10-15");
-      expect(screen.queryByTestId("diff-compare-select")).not.toBeInTheDocument();
-
-      const diffReq = lastCommitDiffRequest(vscode);
+      const diffReq = lastBranchRequest(vscode);
       expect(diffReq).toEqual(
         expect.objectContaining({
-          command: "desktopGetCommitDiff",
+          command: "desktopGetBranchDiff",
           paneId: "p1",
           workdir: "/repo",
-          rev: "abc111",
-          compare: "patch",
         }),
       );
       expect(typeof diffReq.requestId).toBe("string");
-
       sendCommand("desktopWorkspaceDiff", {
         paneId: "p1",
         requestId: diffReq.requestId,
@@ -1070,20 +1038,12 @@ describe("DiffPane", () => {
       expect(screen.queryByTestId("diff-revert-file")).not.toBeInTheDocument();
     });
 
-    it("switches to since-this-commit and ignores a stale diff reply", async () => {
+    it("ignores a stale branch diff reply", async () => {
       const { vscode } = renderPane({ paneId: "p1" });
-      await switchToPatch();
-      sendCommand("desktopCommits", {
-        paneId: "p1",
-        result: { kind: "ok", commits },
-      });
-      const first = lastCommitDiffRequest(vscode);
-
-      await switchToSince();
-      const second = lastCommitDiffRequest(vscode);
-      expect(second).toEqual(
-        expect.objectContaining({ rev: "abc111", compare: "worktree" }),
-      );
+      await switchToBranch();
+      const first = lastBranchRequest(vscode);
+      fireEvent.click(screen.getByTestId("diff-refresh"));
+      const second = lastBranchRequest(vscode);
       expect(second.requestId).not.toBe(first.requestId);
 
       sendCommand("desktopWorkspaceDiff", {
@@ -1092,71 +1052,42 @@ describe("DiffPane", () => {
         result: { kind: "ok", files: [makeFile({ path: "stale.ts" })] },
       });
       expect(screen.queryByText("stale.ts")).not.toBeInTheDocument();
-
       sendCommand("desktopWorkspaceDiff", {
         paneId: "p1",
         requestId: second.requestId,
-        result: { kind: "ok", files: [makeFile({ path: "head.ts" })] },
+        result: { kind: "ok", files: [makeFile({ path: "branch.ts" })] },
       });
-      expect(screen.getByTestId("diff-pane")).toHaveTextContent("head.ts");
-
-      const user = userEvent.setup();
-      await user.click(screen.getByTestId("diff-commit-select"));
-      await user.click(await screen.findByTestId("diff-commit-option-abc000"));
-      expect(lastCommitDiffRequest(vscode)).toEqual(
-        expect.objectContaining({ rev: "abc000", compare: "worktree" }),
-      );
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("branch.ts");
     });
 
-    it("shows a host error and returns to recent mode when the session changes", async () => {
+    it("restores the branch view when switching back to the session", async () => {
       const { vscode, rerenderWith } = renderPane({
         paneId: "p1",
         sessionId: "s1",
+        workdir: "/repo",
         recentFiles: [makeFile({ path: "recent.ts" })],
       });
-      await switchToPatch();
-      sendCommand("desktopCommits", {
-        paneId: "p1",
-        result: { kind: "ok", commits },
-      });
-      const req = lastCommitDiffRequest(vscode);
-      sendCommand("desktopWorkspaceDiff", {
-        paneId: "p1",
-        requestId: req.requestId,
-        result: { kind: "error", message: "找不到该提交" },
-      });
-      expect(screen.getByTestId("diff-pane")).toHaveTextContent("找不到该提交");
-
+      await switchToBranch();
       rerenderWith({
         sessionId: "s2",
-        recentFiles: [makeFile({ path: "recent.ts" })],
+        workdir: "/other",
+        recentFiles: [makeFile({ path: "other.ts" })],
       });
       expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
-      expect(screen.queryByTestId("diff-commit-select")).not.toBeInTheDocument();
-      expect(screen.getByTestId("diff-pane")).toHaveTextContent("recent.ts");
-    });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("other.ts");
 
-    it("shows 没有提交 when the repository has no commits", async () => {
-      renderPane({ paneId: "p1" });
-      await switchToPatch();
-      sendCommand("desktopCommits", {
-        paneId: "p1",
-        result: { kind: "ok", commits: [] },
-      });
-      expect(screen.getByTestId("diff-pane")).toHaveTextContent("没有提交");
-      expect(screen.queryByText("无改动")).not.toBeInTheDocument();
-    });
-
-    it("refresh reloads the commit list", async () => {
-      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
-      await switchToPatch();
-      vscode.postMessage.mockClear();
-      fireEvent.click(screen.getByTestId("diff-refresh"));
-      expect(vscode.postMessage).toHaveBeenCalledWith({
-        command: "desktopListCommits",
-        paneId: "p1",
+      rerenderWith({
+        sessionId: "s1",
         workdir: "/repo",
+        recentFiles: [makeFile({ path: "recent.ts" })],
       });
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("当前分支所有改动");
+      expect(lastBranchRequest(vscode)).toEqual(
+        expect.objectContaining({
+          command: "desktopGetBranchDiff",
+          workdir: "/repo",
+        }),
+      );
     });
   });
 

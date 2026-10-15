@@ -1383,7 +1383,7 @@ describe("installWorkdirHost", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("desktopListCommits and desktopGetCommitDiff reply", async () => {
+  it("desktopGetBranchDiff replies with the branch's changes", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-cmt-"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cmt-host-"));
     const { execFileSync } = await import("node:child_process");
@@ -1395,15 +1395,13 @@ describe("installWorkdirHost", () => {
     execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "init"], {
       cwd: dir,
     });
+    execFileSync("git", ["branch", "-M", "main"], { cwd: dir });
+    execFileSync("git", ["checkout", "-b", "feature"], { cwd: dir });
     fs.writeFileSync(path.join(dir, "x.txt"), "1\n2\n");
     execFileSync("git", ["add", "x.txt"], { cwd: dir });
     execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
       cwd: dir,
     });
-    const head = execFileSync("git", ["rev-parse", "HEAD"], {
-      cwd: dir,
-      encoding: "utf8",
-    }).trim();
 
     const sent: unknown[] = [];
     let handler:
@@ -1435,30 +1433,10 @@ describe("installWorkdirHost", () => {
 
     await handler!(
       { sender: {} },
-      { command: "desktopListCommits", paneId: "p1", workdir: dir },
-    );
-    expect(sent).toContainEqual(
-      expect.objectContaining({
-        command: "desktopCommits",
-        paneId: "p1",
-        result: expect.objectContaining({
-          kind: "ok",
-          commits: expect.arrayContaining([
-            expect.objectContaining({ hash: head, subject: "second" }),
-          ]),
-        }),
-      }),
-    );
-
-    sent.length = 0;
-    await handler!(
-      { sender: {} },
       {
-        command: "desktopGetCommitDiff",
+        command: "desktopGetBranchDiff",
         paneId: "p1",
         workdir: dir,
-        rev: head,
-        compare: "patch",
         requestId: "r1",
       },
     );
