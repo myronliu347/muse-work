@@ -43,7 +43,7 @@ export interface WorkspaceDiffFile {
   binary: boolean;
 }
 
-type DiffMode = "recent" | "unstaged" | "branch";
+type DiffMode = "recent" | "unstaged" | "patch" | "branch";
 
 type DiffState =
   | { kind: "loading" }
@@ -109,9 +109,30 @@ function DiffSelect({
 
 const DIFF_MODE_OPTIONS: { value: DiffMode; label: string; testId: string }[] = [
   { value: "recent", label: "最近一次修改", testId: "diff-mode-recent" },
-  { value: "unstaged", label: "对比 HEAD", testId: "diff-mode-unstaged" },
+  { value: "unstaged", label: "未提交", testId: "diff-mode-unstaged" },
+  { value: "patch", label: "某次提交的改动", testId: "diff-mode-patch" },
   { value: "branch", label: "当前分支所有改动", testId: "diff-mode-branch" },
 ];
+
+interface GitCommitSummary {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  date: string;
+}
+
+function CommitOptionLabel({ commit }: { commit: GitCommitSummary }) {
+  const day = commit.date.slice(0, 10);
+  const meta = [commit.author, day].filter(Boolean).join(" · ");
+  return (
+    <span className="diff-commit-option">
+      <span className="diff-commit-hash">{commit.shortHash}</span>
+      <span className="diff-commit-subject">{commit.subject}</span>
+      {meta ? <span className="diff-commit-meta">{meta}</span> : null}
+    </span>
+  );
+}
 
 const STATUS_LABEL: Record<WorkspaceFileStatus, string> = {
   added: "新增",
@@ -231,11 +252,14 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   recentFiles,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
-  // recent: last assistant turn. unstaged: worktree vs HEAD (`git diff HEAD`).
-  // branch: worktree vs the fork point of the current branch.
+  // recent: last assistant turn. unstaged: uncommitted worktree vs HEAD.
+  // patch: one commit's own change. branch: worktree vs the branch fork point.
   const [mode, setMode] = useState<DiffMode>(
     diffView?.mode === "unstaged" ? "unstaged" : "recent",
   );
+  const [commits, setCommits] = useState<GitCommitSummary[]>([]);
+  const [selectedHash, setSelectedHash] = useState<string | null>(null);
+  const [commitListReady, setCommitListReady] = useState(false);
   // Mutual-exclusion accordion: at most one file is expanded at a time, so the
   // DOM holds every file header but only one file's hunks (bounded rendering
   // for large workspace diffs — data is still loaded once for all files).
@@ -306,9 +330,13 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const latestRequestRef = useRef<string | null>(null);
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  const selectedHashRef = useRef(selectedHash);
+  selectedHashRef.current = selectedHash;
   // The pane is shared across sessions. Remember each session's range so
   // switching away and back does not fall back to 最近一次修改.
-  const sessionViewRef = useRef(new Map<string, { mode: DiffMode }>());
+  const sessionViewRef = useRef(
+    new Map<string, { mode: DiffMode; hash: string | null }>(),
+  );
 
   const nextRequestId = useCallback(() => {
     const requestId = String(++requestSeq.current);
@@ -347,6 +375,34 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     [vscode, paneId, workdir, clearComment, nextRequestId],
   );
 
+  const requestCommitDiff = useCallback(
+    (rev: string, hard = false) => {
+      if (hard) setState({ kind: "loading" });
+      setRefreshing(true);
+      clearComment();
+      vscode.postMessage({
+        command: "desktopGetCommitDiff",
+        requestId: nextRequestId(),
+        rev,
+        ...(paneId ? { paneId } : {}),
+        ...(workdir ? { workdir } : {}),
+      });
+    },
+    [vscode, paneId, workdir, clearComment, nextRequestId],
+  );
+
+  const loadCommits = useCallback(() => {
+    setCommitListReady(false);
+    setState({ kind: "loading" });
+    setRefreshing(true);
+    clearComment();
+    vscode.postMessage({
+      command: "desktopListCommits",
+      ...(paneId ? { paneId } : {}),
+      ...(workdir ? { workdir } : {}),
+    });
+  }, [vscode, paneId, workdir, clearComment]);
+
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const msg = event.data;
@@ -358,6 +414,32 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         } else {
           setRevertError(msg.error ?? "丢弃失败");
         }
+        return;
+      }
+      if (msg?.command === "desktopCommits") {
+        if (modeRef.current !== "patch") return;
+        setRefreshing(false);
+        setCommitListReady(true);
+        if (msg.result?.kind !== "ok") {
+          setCommits([]);
+          setSelectedHash(null);
+          selectedHashRef.current = null;
+          setState({ kind: "not-a-repo" });
+          return;
+        }
+        const list: GitCommitSummary[] = Array.isArray(msg.result.commits)
+          ? msg.result.commits
+          : [];
+        setCommits(list);
+        const prevHash = selectedHashRef.current;
+        const hash =
+          prevHash && list.some((c) => c.hash === prevHash)
+            ? prevHash
+            : (list[0]?.hash ?? null);
+        setSelectedHash(hash);
+        selectedHashRef.current = hash;
+        if (hash) requestCommitDiff(hash, true);
+        else setState({ kind: "ok", files: [] });
         return;
       }
       if (msg?.command !== "desktopWorkspaceDiff") return;
@@ -382,7 +464,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [paneId, refresh]);
+  }, [paneId, refresh, requestCommitDiff]);
 
   // Refresh triggers: first mount (prev.visible starts false), re-show,
   // session/workdir change while visible, generation end while visible.
@@ -404,6 +486,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       if (sessionChanged && prev.sessionId) {
         sessionViewRef.current.set(prev.sessionId, {
           mode: modeRef.current,
+          hash: selectedHashRef.current,
         });
       }
       if (!sessionChanged && workdirChanged && sessionId) {
@@ -414,12 +497,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           ? sessionViewRef.current.get(sessionId)
           : undefined;
       const nextMode = saved?.mode ?? "recent";
+      const nextHash = saved?.hash ?? null;
       setMode(nextMode);
       modeRef.current = nextMode;
+      setSelectedHash(nextHash);
+      selectedHashRef.current = nextHash;
+      setCommits([]);
+      setCommitListReady(false);
       if (nextMode === "unstaged") {
         refresh(true);
       } else if (nextMode === "branch") {
         requestBranchDiff(true);
+      } else if (nextMode === "patch") {
+        loadCommits();
       } else {
         const files = recentFiles ?? [];
         setState({ kind: "ok", files });
@@ -437,6 +527,8 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         refresh();
       } else if (mode === "branch") {
         requestBranchDiff();
+      } else if (mode === "patch") {
+        loadCommits();
       } else {
         const files = recentFiles ?? [];
         setState({ kind: "ok", files });
@@ -458,6 +550,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     mode,
     recentFiles,
     requestBranchDiff,
+    loadCommits,
   ]);
 
   // Recent mode renders the live recentFiles prop; keep state in sync when the
@@ -517,9 +610,17 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       if (files.length > 0) setExpandedPath(files[0].path);
     } else if (next === "branch") {
       requestBranchDiff(true);
+    } else if (next === "patch") {
+      loadCommits();
     } else {
       refresh(true);
     }
+  };
+
+  const onCommitChange = (hash: string) => {
+    setSelectedHash(hash);
+    selectedHashRef.current = hash;
+    requestCommitDiff(hash, true);
   };
 
   const confirmRevert = () => {
@@ -812,7 +913,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         ) : (
           <div className="diff-file-header">{headerContent}</div>
         )}
-        {mode === "branch" ? null : (
+        {mode === "branch" || mode === "patch" ? null : (
           <button
             type="button"
             className="diff-file-revert preview-pane-button"
@@ -975,6 +1076,23 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           options={DIFF_MODE_OPTIONS}
           onChange={(value) => switchMode(value as DiffMode)}
         />
+        {mode === "patch" && (
+          <DiffSelect
+            label="提交"
+            testId="diff-commit-select"
+            className="diff-pane-mode-select diff-pane-commit-select"
+            contentClassName="diff-pane-commit-content"
+            value={selectedHash ?? ""}
+            disabled={commits.length === 0}
+            placeholder={commitListReady ? "没有提交" : "加载中"}
+            options={commits.map((commit) => ({
+              value: commit.hash,
+              label: <CommitOptionLabel commit={commit} />,
+              testId: `diff-commit-option-${commit.hash}`,
+            }))}
+            onChange={onCommitChange}
+          />
+        )}
         <div className="diff-pane-toolbar-actions">
         {state.kind === "ok" && state.files.length > 0 && (
           <button
@@ -1031,6 +1149,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           data-testid="diff-refresh"
           onClick={() => {
             if (mode === "branch") requestBranchDiff();
+            else if (mode === "patch") loadCommits();
             else if (mode === "recent") switchMode("recent");
             else refresh();
           }}
@@ -1067,9 +1186,17 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           {state.kind === "ok" && mode === "recent" && isStreaming && (
             <div className="desktop-panel-placeholder">响应中…</div>
           )}
-          {state.kind === "ok" && state.files.length === 0 && (
-            <div className="desktop-panel-placeholder">无改动</div>
-          )}
+          {state.kind === "ok" &&
+            mode === "patch" &&
+            commitListReady &&
+            commits.length === 0 && (
+              <div className="desktop-panel-placeholder">没有提交</div>
+            )}
+          {state.kind === "ok" &&
+            state.files.length === 0 &&
+            !(mode === "patch" && commitListReady && commits.length === 0) && (
+              <div className="desktop-panel-placeholder">无改动</div>
+            )}
           {state.kind === "ok" &&
             !(mode === "recent" && isStreaming) &&
             (viewMode === "tree" ? renderTreeView() : state.files.map(renderFile))}

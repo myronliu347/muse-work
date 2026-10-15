@@ -173,7 +173,7 @@ async function pickMode(label: string) {
 
 /** Switch the toolbar dropdown to workspace-vs-HEAD. */
 function switchToUnstaged() {
-  return pickMode("对比 HEAD");
+  return pickMode("未提交");
 }
 
 function sendDiffResult(files: WorkspaceDiffFile[], paneId?: string) {
@@ -621,7 +621,7 @@ describe("DiffPane", () => {
       workdir: "/w/a",
       recentFiles: [makeFile({ path: "recent.ts" })],
     });
-    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("未提交");
     rerenderWith({
       sessionId: "s2",
       workdir: "/w/b",
@@ -636,7 +636,7 @@ describe("DiffPane", () => {
       workdir: "/w/a",
       recentFiles: [makeFile({ path: "recent.ts" })],
     });
-    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("未提交");
     const requests = lastDiffRequest(vscode);
     expect(requests.at(-1)?.[0]).toEqual(
       expect.objectContaining({ workdir: "/w/a" }),
@@ -669,7 +669,7 @@ describe("DiffPane", () => {
       workdir: "/w/b",
       diffView: { mode: "unstaged" },
     });
-    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("未提交");
     expect(lastDiffRequest(vscode).length).toBeGreaterThan(1);
   });
 
@@ -985,12 +985,61 @@ describe("DiffPane", () => {
       const { vscode } = renderPane();
       vscode.postMessage.mockClear();
       await switchToUnstaged();
-      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("未提交");
       expect(
         vscode.postMessage.mock.calls.some(
           ([msg]) => msg.command === "desktopGetWorkspaceDiff",
         ),
       ).toBe(true);
+    });
+  });
+
+  describe("commit patch (某次提交的改动)", () => {
+    const commits = [
+      {
+        hash: "abc111",
+        shortHash: "abc111",
+        subject: "second",
+        author: "Ada",
+        date: "2026-10-15T01:02:03Z",
+      },
+    ];
+
+    it("lists commits and shows that commit's own patch", async () => {
+      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
+      vscode.postMessage.mockClear();
+      await pickMode("某次提交的改动");
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("某次提交的改动");
+      expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopListCommits",
+        paneId: "p1",
+        workdir: "/repo",
+      });
+      sendCommand("desktopCommits", {
+        paneId: "p1",
+        result: { kind: "ok", commits },
+      });
+      expect(screen.getByTestId("diff-commit-select")).toHaveTextContent("abc111");
+      const diffReq = vscode.postMessage.mock.calls
+        .map(([msg]) => msg)
+        .filter((msg) => msg.command === "desktopGetCommitDiff")
+        .at(-1);
+      expect(diffReq).toEqual(
+        expect.objectContaining({
+          command: "desktopGetCommitDiff",
+          paneId: "p1",
+          workdir: "/repo",
+          rev: "abc111",
+        }),
+      );
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: diffReq.requestId,
+        result: { kind: "ok", files: [makeFile()] },
+      });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
+      expect(screen.queryByTestId("diff-revert-file")).not.toBeInTheDocument();
     });
   });
 
@@ -1013,8 +1062,9 @@ describe("DiffPane", () => {
       expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("当前分支所有改动");
       const user = userEvent.setup();
       await user.click(screen.getByTestId("diff-mode-select"));
-      expect(await screen.findByRole("option", { name: "对比 HEAD" })).toBeInTheDocument();
-      expect(screen.queryByRole("option", { name: "某次提交的改动" })).not.toBeInTheDocument();
+      expect(await screen.findByRole("option", { name: "未提交" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "某次提交的改动" })).toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: "对比 HEAD" })).not.toBeInTheDocument();
       expect(screen.queryByRole("option", { name: "自该提交至今" })).not.toBeInTheDocument();
       await user.keyboard("{Escape}");
       expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();

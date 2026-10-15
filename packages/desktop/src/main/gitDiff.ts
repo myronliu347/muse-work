@@ -33,6 +33,22 @@ export type WorkspaceDiffResult =
   | { kind: "error"; message: string }
   | { kind: "ok"; files: WorkspaceDiffFile[] };
 
+export interface GitCommitSummary {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  date: string;
+}
+
+export type ListCommitsResult =
+  | { kind: "not-a-repo" }
+  | { kind: "ok"; commits: GitCommitSummary[] };
+
+/** Well-known hash of the empty tree; used to diff a root commit. */
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+const RECENT_COMMIT_LIMIT = 50;
+
 export const MAX_DIFF_LINES = 2000;
 const MAX_UNTRACKED_BYTES = 2 * 1024 * 1024;
 const GIT_BUFFER = 16 * 1024 * 1024;
@@ -305,6 +321,104 @@ export async function getBranchDiff(cwd: string): Promise<WorkspaceDiffResult> {
         ? await diffForUntracked(root, entry)
         : await diffForTracked(root, diffBase, entry),
     );
+  }
+  return { kind: "ok", files };
+}
+
+export async function listRecentCommits(
+  cwd: string,
+  limit = RECENT_COMMIT_LIMIT,
+): Promise<ListCommitsResult> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { kind: "not-a-repo" };
+  }
+
+  const n = Math.min(Math.max(Math.floor(limit), 1), 100);
+  let out = "";
+  try {
+    out = await git(cwd, [
+      "log",
+      "-z",
+      "-n",
+      String(n),
+      "--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%cI",
+    ]);
+  } catch {
+    return { kind: "ok", commits: [] };
+  }
+
+  const commits: GitCommitSummary[] = [];
+  for (const rec of out.split("\0")) {
+    if (!rec) continue;
+    const [hash, shortHash, subject, author, date] = rec.split("\x1f");
+    if (!hash || !shortHash) continue;
+    commits.push({
+      hash,
+      shortHash,
+      subject: subject ?? "",
+      author: author ?? "",
+      date: date ?? "",
+    });
+  }
+  return { kind: "ok", commits };
+}
+
+/** One commit's own patch against its parent. Root commits diff the empty tree. */
+export async function getCommitDiff(
+  cwd: string,
+  rev: string,
+): Promise<WorkspaceDiffResult> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { kind: "not-a-repo" };
+  }
+  if (!isSafeRev(rev)) return { kind: "error", message: "找不到该提交" };
+
+  const root =
+    (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
+    cwd;
+
+  let resolved: string;
+  try {
+    resolved = (
+      await git(cwd, [
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        `${rev}^{commit}`,
+      ])
+    ).trim();
+  } catch {
+    return { kind: "error", message: "找不到该提交" };
+  }
+
+  let parent = resolved;
+  try {
+    parent = (
+      await git(cwd, ["rev-parse", "--verify", "--end-of-options", `${resolved}^`])
+    ).trim();
+  } catch {
+    parent = EMPTY_TREE;
+  }
+  const diffBase = ["-M", parent, resolved];
+
+  let nameStatus = "";
+  try {
+    nameStatus = await git(root, ["diff", "--name-status", "-z", ...diffBase]);
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "无法读取差异",
+    };
+  }
+
+  const entries = parseNameStatusZ(nameStatus);
+  const files: WorkspaceDiffFile[] = [];
+  for (const entry of entries) {
+    files.push(await diffForTracked(root, diffBase, entry));
   }
   return { kind: "ok", files };
 }

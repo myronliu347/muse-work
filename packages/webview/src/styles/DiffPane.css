@@ -327,8 +327,122 @@
   max-width: 220px;
 }
 
+.diff-pane-commit-select.rt-SelectTrigger {
+  flex: 0 1 240px;
+  max-width: 240px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.diff-pane-commit-select .rt-SelectTriggerInner {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-pane-commit-select .diff-commit-option {
+  display: inline;
+  width: auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-pane-commit-select .diff-commit-hash,
+.diff-pane-commit-select .diff-commit-subject {
+  display: inline;
+  white-space: nowrap;
+}
+
+.diff-pane-commit-select .diff-commit-hash {
+  margin-right: var(--space-1);
+}
+
+.diff-pane-commit-select .diff-commit-meta {
+  display: none;
+}
+
 .diff-pane-select-content.rt-SelectContent {
   max-height: 360px;
+}
+
+.diff-pane-commit-content.rt-SelectContent,
+[data-radix-popper-content-wrapper]:has(.diff-pane-commit-content) {
+  width: min(560px, calc(100vw - 32px)) !important;
+  min-width: min(560px, calc(100vw - 32px)) !important;
+  max-width: min(560px, calc(100vw - 32px)) !important;
+}
+
+.diff-pane-commit-content .rt-SelectItem {
+  height: auto;
+  align-items: flex-start;
+  white-space: normal;
+  overflow: visible;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.diff-pane-commit-content .rt-SelectItemIndicator {
+  top: var(--space-2);
+  height: 1.4em;
+  align-items: center;
+}
+
+.diff-pane-commit-content .rt-SelectItem > span:not(.rt-SelectItemIndicator) {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+  white-space: normal;
+}
+
+.diff-commit-option {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+}
+
+.diff-commit-hash {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 8ch;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-11);
+}
+
+.diff-commit-subject {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: unset;
+  line-height: 1.4;
+}
+
+.diff-commit-meta {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: unset;
+  color: var(--gray-10);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 [data-radix-popper-content-wrapper]:has(.diff-pane-select-content) {

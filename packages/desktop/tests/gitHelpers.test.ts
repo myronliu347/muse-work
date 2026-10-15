@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { listGitBranches } from "../src/main/gitBranches.js";
 import {
   getBranchDiff,
+  getCommitDiff,
   getWorkspaceDiff,
   revertWorkspaceDiff,
 } from "../src/main/gitDiff.js";
@@ -50,6 +51,32 @@ describe("getWorkspaceDiff", () => {
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
       expect(result.files.some((f) => f.path === "a.txt")).toBe(true);
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("getCommitDiff", () => {
+  it("shows that commit's own changes against its parent", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-cd-patch-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    execFileSync("git", ["add", "a.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "second"], {
+      cwd: dir,
+    });
+    const head = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: dir,
+      encoding: "utf8",
+    }).trim();
+
+    const patch = await getCommitDiff(dir, head);
+    expect(patch.kind).toBe("ok");
+    if (patch.kind === "ok") {
+      expect(patch.files[0]).toEqual(
+        expect.objectContaining({ path: "a.txt", status: "modified" }),
+      );
+      expect(patch.files[0]?.hunks).toContain("+world");
     }
     fs.rmSync(dir, { recursive: true, force: true });
   });
