@@ -1,0 +1,81 @@
+packages/webview/tests/components/userMessageImages.test.tsx
+  d501b231c2f2dabb 128-157
+packages/webview/tests/components/assistantPage.test.tsx
+  d501b231c2f2dabb 413-442
+packages/webview/src/components/message/imagePreview.ts
+  d501b231c2f2dabb 1-13,18-23,31-37,39-46,49,64-84
+packages/webview/src/styles/MessageInput.css
+  d501b231c2f2dabb 595-634
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d501b231c2f2dabb 27,200-201,206-213,219,237-242,309,323-324,346-351,355,374-375,431-437
+packages/webview/src/components/message/Message.tsx
+  d501b231c2f2dabb 35,235-241,245-253,778-783,798,965-968,972-973
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2ba0bb51ced9e7e3ddd12d794c13f9c4fd1d4bc8",
+  "prompts": {
+    "aa09dc525df5f072": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0ff23669-e263-49bf-8e07-1a7c70ed2d39",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 70,
+      "accepted_lines": 24,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 13,
+          "deletions": 22,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 11,
+          "deletions": 18,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "deletions": 30
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 225,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/message/imagePreview.ts": {
+          "accepted_lines": 56
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "accepted_lines": 30
+        },
+        "packages/webview/src/styles/MessageInput.css": {
+          "accepted_lines": 40
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "accepted_lines": 32
+        },
+        "packages/webview/tests/components/userMessageImages.test.tsx": {
+          "accepted_lines": 30
+        }
+      }
+    }
+  }
+}
