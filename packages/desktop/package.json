@@ -42,7 +42,7 @@
       "target": [
         "dmg"
       ],
-      "identity": "Muse Work"
+      "identity": null
     },
     "asar": true
   },
