@@ -1,0 +1,49 @@
+packages/webview/src/stores/panelGroupStore.ts
+  aa09dc525df5f072 4-5,303-335
+packages/webview/src/hooks/useFilePanel.ts
+  aa09dc525df5f072 15,270
+packages/webview/tests/stores/panelGroupStore.test.ts
+  aa09dc525df5f072 8,79-131
+packages/webview/src/styles/DesktopPanelDock.css
+  aa09dc525df5f072 122,211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c4ab8f6beedcfe6828aafda3da96b5c75ac3d6f3",
+  "prompts": {
+    "aa09dc525df5f072": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0ff23669-e263-49bf-8e07-1a7c70ed2d39",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 93,
+      "total_deletions": 11,
+      "accepted_lines": 93,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/stores/panelGroupStore.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 2,
+          "deletions": 10,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 35,
+          "deletions": 1,
+          "accepted_lines": 35
+        }
+      }
+    }
+  }
+}
