@@ -1,0 +1,37 @@
+packages/desktop/scripts/afterPack.cjs
+  9f0cdeaf4a2dfafb 2-5,10-16,21-27
+packages/desktop/package.json
+  9f0cdeaf4a2dfafb 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "66a04dcb6b0043d2bb6c6d17c6eeb2b973ab707d",
+  "prompts": {
+    "9f0cdeaf4a2dfafb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c82ca141-641e-47d3-92f5-8b1ce1abd3f1",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 40,
+      "total_deletions": 29,
+      "accepted_lines": 19,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/scripts/afterPack.cjs": {
+          "additions": 37,
+          "deletions": 26,
+          "accepted_lines": 18
+        },
+        "packages/desktop/package.json": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
