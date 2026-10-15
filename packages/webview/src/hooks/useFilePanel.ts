@@ -7,12 +7,12 @@ import type {
 } from "../types";
 import type { MuseApiClient } from "../muse/apiClient";
 import {
-  closeFileTab,
   openFileTab,
   pinFileTab,
   selectFileTab,
 } from "../muse/fileTabs";
 import { emptyContentSearchState } from "../stores";
+import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
 import type { ChatAppCore } from "./useChatAppCore";
 import type { PanelHandlers } from "./usePanels";
@@ -267,15 +267,7 @@ export function useFilePanel({
   const handleCloseFileTab = useCallback(
     (path: string) => {
       if (!path) return;
-      updatePanelGroup((group) =>
-        closeFileTab(
-          {
-            fileTabs: group.fileTabs ?? [],
-            activeFilePath: group.activeFilePath ?? null,
-          },
-          path,
-        ),
-      );
+      updatePanelGroup((group) => applyCloseFileTab(group, path));
     },
     [updatePanelGroup],
   );

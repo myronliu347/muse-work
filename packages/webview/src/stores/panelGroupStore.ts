@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { firstPanelTab, type CollapsedTabs } from "../muse/panelTabs";
-import { emptyFileTabsState } from "../muse/fileTabs";
+import { closeFileTab, emptyFileTabsState } from "../muse/fileTabs";
+import { collapseDockState } from "../muse/dockActions";
 import type {
   DesktopPanelKind,
   FileSidebarMode,
@@ -297,6 +298,39 @@ export function nextActivePanelAfterClose(
 ): DesktopPanelKind | null {
   if (active !== closed) return active;
   return firstPanelTab(checked.filter((k) => k !== closed));
+}
+
+/** Close one file tab. The last tab also closes the file panel, so the
+ * "文件" kind tab does not appear in its place and need a second click. */
+export function applyCloseFileTab(
+  group: PanelGroupState,
+  path: string,
+): Partial<PanelGroupState> {
+  const next = closeFileTab(
+    {
+      fileTabs: group.fileTabs,
+      activeFilePath: group.activeFilePath,
+    },
+    path,
+  );
+  if (next.fileTabs.length > 0) return next;
+  const released = releasePanelContent(group, "file");
+  if (!group.checked.includes("file")) return released;
+  const nextChecked = group.checked.filter((k) => k !== "file");
+  if (nextChecked.length === 0) {
+    return {
+      ...collapseDockState({
+        checked: group.checked,
+        active: group.active,
+      }),
+      ...released,
+    };
+  }
+  return {
+    ...released,
+    checked: nextChecked,
+    active: nextActivePanelAfterClose(group.checked, "file", group.active),
+  };
 }
 
 export interface PanelGroupView extends PanelGroupState {

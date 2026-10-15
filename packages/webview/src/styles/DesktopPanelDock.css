@@ -119,6 +119,7 @@
   background: var(--gray-4);
 }
 
+.desktop-panel-tab--active .desktop-panel-tab-close,
 .desktop-panel-tab:hover .desktop-panel-tab-close,
 .desktop-panel-tab-close:focus-visible {
   opacity: 1;
@@ -207,6 +208,7 @@
   background: var(--gray-4);
 }
 
+.file-tab--active .file-tab-close,
 .file-tab:hover .file-tab-close,
 .file-tab-close:focus-visible {
   opacity: 1;

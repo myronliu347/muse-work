@@ -5,6 +5,7 @@ import {
   workdirTermId,
   prunePanelGroupCache,
   releasePanelContent,
+  applyCloseFileTab,
   emptyPanelGroup,
   emptyContentSearchState,
 } from "../../src/stores/panelGroupStore";
@@ -73,5 +74,58 @@ describe("releasePanelContent", () => {
     expect(patch.activeFilePath).toBeUndefined();
     expect(patch.diffView).toBeUndefined();
     expect(patch.contentSearch).toBeUndefined();
+  });
+});
+
+describe("applyCloseFileTab", () => {
+  const tab = (path: string) => ({ path, host: "local" as const });
+
+  it("closes one file and keeps the panel when another file stays open", () => {
+    const patch = applyCloseFileTab(
+      {
+        ...emptyPanelGroup(),
+        checked: ["file"],
+        active: "file",
+        fileTabs: [tab("/w/a.ts"), tab("/w/b.ts")],
+        activeFilePath: "/w/b.ts",
+      },
+      "/w/b.ts",
+    );
+    expect(patch.fileTabs?.map((t) => t.path)).toEqual(["/w/a.ts"]);
+    expect(patch.activeFilePath).toBe("/w/a.ts");
+    expect(patch.checked).toBeUndefined();
+  });
+
+  it("closes the file panel together with the last file tab", () => {
+    const patch = applyCloseFileTab(
+      {
+        ...emptyPanelGroup(),
+        checked: ["diff", "file"],
+        active: "file",
+        fileTabs: [tab("/w/a.ts")],
+        activeFilePath: "/w/a.ts",
+      },
+      "/w/a.ts",
+    );
+    expect(patch.fileTabs).toEqual([]);
+    expect(patch.activeFilePath).toBeNull();
+    expect(patch.checked).toEqual(["diff"]);
+    expect(patch.active).toBe("diff");
+  });
+
+  it("collapses the dock when the last file was the only panel", () => {
+    const patch = applyCloseFileTab(
+      {
+        ...emptyPanelGroup(),
+        checked: ["file"],
+        active: "file",
+        fileTabs: [tab("/w/a.ts")],
+        activeFilePath: "/w/a.ts",
+      },
+      "/w/a.ts",
+    );
+    expect(patch.checked).toEqual([]);
+    expect(patch.active).toBeNull();
+    expect(patch.fileTabs).toEqual([]);
   });
 });
