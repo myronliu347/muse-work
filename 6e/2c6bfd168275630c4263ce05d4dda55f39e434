@@ -1,0 +1,40 @@
+packages/webview/tests/muse/hostBridge.test.ts
+  36621f45161c31ec 620-627,634-635,651,654-655,657-660
+packages/webview/src/muse/hostBridge/chat.ts
+  36621f45161c31ec 323,513
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6e2c6bfd168275630c4263ce05d4dda55f39e434",
+  "prompts": {
+    "36621f45161c31ec": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "867d5497-6319-4437-af2a-7e385105505c",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 19,
+      "total_deletions": 16,
+      "accepted_lines": 19,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "deletions": 11
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 17,
+          "deletions": 2,
+          "accepted_lines": 17
+        }
+      }
+    }
+  }
+}
