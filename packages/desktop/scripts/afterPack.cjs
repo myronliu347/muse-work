@@ -1,6 +1,7 @@
 /**
- * Ad-hoc sign the macOS .app so Launch Services can open it locally
- * (electron-builder skips signing when identity is null).
+ * Ad-hoc sign so the .app can still be opened when the Muse Work
+ * certificate is missing. electron-builder replaces this signature
+ * when that identity is present.
  */
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
