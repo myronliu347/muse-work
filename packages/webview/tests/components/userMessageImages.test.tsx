@@ -125,4 +125,34 @@ describe("user message images", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(document.querySelector(".image-preview-modal")).toBeNull();
   });
+
+  it("steps through every image in the same message", () => {
+    const second = "data:image/png;base64,two";
+    const message: MessageType = {
+      id: "u5",
+      role: "user",
+      timestamp: "2024-01-01T00:00:00.000Z",
+      blocks: [{ type: "image", imageUrls: [TINY, second] }],
+    };
+
+    render(
+      <Message
+        message={message}
+        vscode={{ postMessage: () => {}, getState: () => null, setState: () => {} }}
+      />,
+    );
+
+    const buttons = screen.getByTestId("user-image-block").querySelectorAll("button");
+    fireEvent.click(buttons[0]);
+    const img = () => document.querySelector(".image-preview-modal img");
+    expect(img()?.getAttribute("src")).toBe(TINY);
+    expect(document.querySelector(".image-preview-count")?.textContent).toBe("1 / 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "下一张" }));
+    expect(img()?.getAttribute("src")).toBe(second);
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(img()?.getAttribute("src")).toBe(TINY);
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(img()?.getAttribute("src")).toBe(second);
+  });
 });

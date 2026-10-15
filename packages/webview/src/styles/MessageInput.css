@@ -592,6 +592,46 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+.image-preview-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: var(--font-size-5);
+  cursor: pointer;
+}
+
+.image-preview-nav--prev {
+  left: 20px;
+}
+
+.image-preview-nav--next {
+  right: 20px;
+}
+
+.image-preview-nav:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.image-preview-count {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: var(--font-size-1);
+  user-select: none;
+}
+
 .queued-edit-chip {
   color: var(--accent-11);
   font-size: var(--font-size-1);

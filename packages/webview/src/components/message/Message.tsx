@@ -32,7 +32,7 @@ import { ReasoningBlockView } from "./ReasoningBlockView";
 import { CompactBlockView } from "./CompactBlockView";
 import { WriteToolPreview } from "./WriteToolPreview";
 import { FileToolHeader } from "./FileToolHeader";
-import { openImagePreview } from "./imagePreview";
+import { openImagePreview, type PreviewImage } from "./imagePreview";
 import { ToolError } from "./ToolError";
 import "../../styles/Message.css";
 
@@ -232,9 +232,25 @@ export const Message: React.FC<MessageProps> = React.memo(
       };
     }, []);
 
-    const handleImagePreview = (url: string, name: string) => {
-      const close = openImagePreview(url, name);
+    const handleImagePreview = (
+      url: string,
+      name: string,
+      gallery?: PreviewImage[],
+      index?: number,
+    ) => {
+      const close = openImagePreview(url, name, gallery, index);
       previewClosersRef.current.add(close);
+    };
+
+    const imageGallery = (): PreviewImage[] => {
+      const images: PreviewImage[] = [];
+      for (const block of message.blocks ?? []) {
+        if (block.type !== "image" || !block.imageUrls) continue;
+        for (const imageUrl of block.imageUrls) {
+          images.push({ url: imageUrl, alt: `图片 ${images.length + 1}` });
+        }
+      }
+      return images;
     };
 
     const getAttachedImages = () => {
@@ -759,6 +775,12 @@ export const Message: React.FC<MessageProps> = React.memo(
       // User paste/send path stores data URLs in image blocks (no [imageN] text
       // placeholders). Show real thumbnails; click opens the preview modal.
       if (message.role === "user") {
+        const gallery = imageGallery();
+        const offset = (message.blocks ?? []).slice(0, index).reduce(
+          (count, block) =>
+            count + (block.type === "image" ? block.imageUrls?.length ?? 0 : 0),
+          0,
+        );
         return (
           <div
             key={`image-${index}`}
@@ -773,7 +795,7 @@ export const Message: React.FC<MessageProps> = React.memo(
                   type="button"
                   className="user-image-thumb"
                   title={name}
-                  onClick={() => handleImagePreview(imageUrl, name)}
+                  onClick={() => handleImagePreview(imageUrl, name, gallery, offset + imgIndex)}
                 >
                   <img src={imageUrl} alt={name} draggable={false} />
                 </button>
@@ -940,9 +962,15 @@ export const Message: React.FC<MessageProps> = React.memo(
                       const onClick = part.isImage
                         ? () => {
                             if (part.imageData) {
+                              const attached = getAttachedImages().map((img) => ({
+                                url: img.data,
+                                alt: img.filename || "image",
+                              }));
                               handleImagePreview(
                                 part.imageData,
                                 part.path || "image",
+                                attached,
+                                attached.findIndex((img) => img.url === part.imageData),
                               );
                             } else {
                               openFile(part.path || "");

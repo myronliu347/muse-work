@@ -410,6 +410,36 @@ describe("AssistantPage", () => {
       "data:image/png;base64,abc",
     );
   });
+
+  it("steps through the images in one assistant message", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "3",
+            at: 3,
+            role: "user",
+            message: "两张",
+            images: [
+              { data: "data:image/png;base64,one", mediaType: "image/png" },
+              { data: "data:image/png;base64,two", mediaType: "image/png" },
+            ],
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: "图片 2" }));
+    expect(document.querySelector(".image-preview-modal img")?.getAttribute("src")).toBe(
+      "data:image/png;base64,two",
+    );
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(document.querySelector(".image-preview-modal img")?.getAttribute("src")).toBe(
+      "data:image/png;base64,one",
+    );
+  });
 });
 
 describe("classifyAssistantHref", () => {

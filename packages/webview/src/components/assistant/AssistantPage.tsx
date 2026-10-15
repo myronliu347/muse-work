@@ -24,7 +24,7 @@ import {
   collectAssistantFilePaths,
   stripClosedFileLinks,
 } from "./assistantLinks";
-import { openImagePreview } from "../message/imagePreview";
+import { openImagePreview, type PreviewImage } from "../message/imagePreview";
 import "../../styles/Message.css";
 import "../../styles/MessageInput.css";
 import "../../styles/AssistantPage.css";
@@ -197,17 +197,26 @@ function BubbleTime({ at }: { at: number }) {
 function UserShot({
   src,
   alt,
+  gallery,
+  index,
   onPreviewImage,
 }: {
   src: string;
   alt: string;
-  onPreviewImage: (src: string, alt: string) => void;
+  gallery: PreviewImage[];
+  index: number;
+  onPreviewImage: (
+    src: string,
+    alt: string,
+    gallery: PreviewImage[],
+    index: number,
+  ) => void;
 }) {
   return (
     <button
       type="button"
       className="assistant-user-shot"
-      onClick={() => onPreviewImage(src, alt)}
+      onClick={() => onPreviewImage(src, alt, gallery, index)}
     >
       <img src={src} alt={alt} draggable={false} />
     </button>
@@ -225,7 +234,12 @@ function UserLine({
   closedFilePaths: ReadonlySet<string>;
   onOpenFile?: (path: string) => void;
   onLinkClick: (event: MouseEvent) => void;
-  onPreviewImage: (src: string, alt: string) => void;
+  onPreviewImage: (
+    src: string,
+    alt: string,
+    gallery: PreviewImage[],
+    index: number,
+  ) => void;
 }) {
   const { text, urls } = popoImageUrls(line.message);
   const parts = parseMentions(
@@ -292,6 +306,7 @@ function UserLine({
       shots.push({ src: img.data, alt: `图片 ${shots.length + 1}` });
     });
   const hasBody = body.some(Boolean);
+  const gallery = shots.map((shot) => ({ url: shot.src, alt: shot.alt }));
   return (
     <div className="assistant-bubble-row assistant-bubble-row-user">
       {line.app === "popo" ? <div className="assistant-bubble-source">POPO</div> : null}
@@ -305,6 +320,8 @@ function UserLine({
                   key={`${index}:${shot.alt}`}
                   src={shot.src}
                   alt={shot.alt}
+                  gallery={gallery}
+                  index={index}
                   onPreviewImage={onPreviewImage}
                 />
               ))}
@@ -326,10 +343,16 @@ function AssistantBubbleBody({
   line: AssistantLine;
   closedFilePaths: ReadonlySet<string>;
   onLinkClick: (event: MouseEvent) => void;
-  onPreviewImage: (src: string, alt: string) => void;
+  onPreviewImage: (
+    src: string,
+    alt: string,
+    gallery: PreviewImage[],
+    index: number,
+  ) => void;
 }) {
   const { text, urls } = popoImageUrls(line.message);
   const shots = [...urls, ...(line.images ?? []).map((img) => img.data)];
+  const gallery = shots.map((src, index) => ({ url: src, alt: `图片 ${index + 1}` }));
   return (
     <>
       {text ? (
@@ -348,6 +371,8 @@ function AssistantBubbleBody({
               key={`${line.id}:${index}`}
               src={src}
               alt={`图片 ${index + 1}`}
+              gallery={gallery}
+              index={index}
               onPreviewImage={onPreviewImage}
             />
           ))}
@@ -403,8 +428,13 @@ export const AssistantPage: React.FC<{
       closers.clear();
     };
   }, []);
-  const previewImage = useCallback((src: string, alt: string) => {
-    previewClosers.current.add(openImagePreview(src, alt));
+  const previewImage = useCallback((
+    src: string,
+    alt: string,
+    gallery?: PreviewImage[],
+    index?: number,
+  ) => {
+    previewClosers.current.add(openImagePreview(src, alt, gallery, index));
   }, []);
 
   const virtualizer = useVirtualizer({
