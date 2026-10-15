@@ -1,0 +1,114 @@
+packages/desktop/src/main/gitDiff.ts
+  aa09dc525df5f072 32,35-51,71-98,247-374
+packages/webview/src/styles/DiffPane.css
+  aa09dc525df5f072 302-308,316-321,323,326-449,452-453
+packages/desktop/src/main/workdirHost.ts
+  aa09dc525df5f072 18-23,367-368,636-668
+packages/desktop/tests/gitHelpers.test.ts
+  aa09dc525df5f072 7-12,59-192
+packages/webview/tests/webview/diffPane.test.tsx
+  aa09dc525df5f072 4-5,8-10,102,124-125,144,161-162,167-174,176,201,218-219,225,242-243,255,263,265,533-538,624,628,652,658,666,675-676,958,970,973-974,983-1162
+packages/desktop/tests/workdirHost.test.ts
+  aa09dc525df5f072 1386-1477
+packages/webview/src/components/panels/DiffPane.tsx
+  aa09dc525df5f072 2,22,46-65,69,72-138,140-146,265-267,270-272,339-351,360,365,367-377,382,385-395,410-435,437-442,448-450,458,479,493-494,504-505,507-518,551,555,567,570,575-580,586-589,882-895,1019-1025,1037-1039,1042-1061,1125-1129,1157-1159,1163-1173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "80cccdf3a53097d41b10953b22ceb9e73881d9e9",
+  "prompts": {
+    "aa09dc525df5f072": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0ff23669-e263-49bf-8e07-1a7c70ed2d39",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1398,
+      "total_deletions": 383,
+      "accepted_lines": 1107,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 236,
+          "deletions": 114,
+          "accepted_lines": 145
+        },
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 183,
+          "deletions": 8,
+          "accepted_lines": 175
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 423,
+          "deletions": 185,
+          "accepted_lines": 280
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 273,
+          "deletions": 70,
+          "accepted_lines": 228
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 41,
+          "deletions": 1,
+          "accepted_lines": 41
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 144,
+          "deletions": 5,
+          "accepted_lines": 140
+        }
+      }
+    },
+    "d501b231c2f2dabb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3bea38ba-6be4-4998-9601-9a04787518e3",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 230,
+      "total_deletions": 25,
+      "accepted_lines": 225,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageInput.css": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/message/imagePreview.ts": {
+          "additions": 60,
+          "deletions": 13,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 32,
+          "deletions": 4,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 37,
+          "deletions": 7,
+          "accepted_lines": 37
+        },
+        "packages/webview/tests/components/userMessageImages.test.tsx": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 30
+        }
+      }
+    }
+  }
+}
