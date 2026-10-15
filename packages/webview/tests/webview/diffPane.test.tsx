@@ -1164,16 +1164,9 @@ describe("DiffPane", () => {
     it("shows the view toggle icons and defaults to list view", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
-      expect(screen.getByTestId("diff-view-list")).toBeInTheDocument();
-      expect(screen.getByTestId("diff-view-tree")).toBeInTheDocument();
-      expect(screen.getByTestId("diff-view-list")).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-      expect(screen.getByTestId("diff-view-tree")).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
+      const toggle = screen.getByTestId("diff-view-toggle");
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      expect(toggle).toHaveAttribute("title", "树视图");
       // List view still renders the accordion file blocks, no tree nav.
       expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
       expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
@@ -1185,8 +1178,8 @@ describe("DiffPane", () => {
         makeFile({ path: "src/a.ts" }),
         makeFile({ path: "lib/c.ts" }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
-      expect(screen.getByTestId("diff-view-tree")).toHaveAttribute(
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
+      expect(screen.getByTestId("diff-view-toggle")).toHaveAttribute(
         "aria-pressed",
         "true",
       );
@@ -1205,7 +1198,7 @@ describe("DiffPane", () => {
     it("resizes the change-tree column by dragging the left edge", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       const nav = screen.getByTestId("diff-tree-nav");
       expect(nav).toHaveStyle({ width: "240px" });
       const handle = screen.getByTestId("diff-tree-resize");
@@ -1222,7 +1215,7 @@ describe("DiffPane", () => {
         makeFile({ path: "src/a.ts" }),
         makeFile({ path: "lib/c.ts" }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       expect(screen.getAllByTestId("diff-tree-file-modified")).toHaveLength(2);
       const srcDir = screen.getByTestId("diff-tree-dir-src");
       expect(srcDir).toHaveAttribute("aria-expanded", "true");
@@ -1248,7 +1241,7 @@ describe("DiffPane", () => {
           hunks: "@@ -1,1 +1,2 @@\n-old\n+second-file",
         }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // Default selection is the first file (src/a.ts).
       expect(screen.getByText("first-file")).toBeInTheDocument();
       const cNode = screen
@@ -1270,7 +1263,7 @@ describe("DiffPane", () => {
         onAddComment,
       });
       sendDiffResult([makeFile()]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // Open-file: clicking the path in the left detail resolves against workdir.
       fireEvent.click(screen.getByTestId("diff-file-path"));
       expect(onOpenFile).toHaveBeenCalledWith("/repo/src/a.ts");
@@ -1295,7 +1288,7 @@ describe("DiffPane", () => {
           hunks: "@@ -1 +1 @@\n-old\n+new-readme",
         }),
       ]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // The tree starts at the workdir root, not the filesystem root.
       expect(screen.getByTestId("diff-tree-dir-frontend")).toBeInTheDocument();
       expect(
@@ -1311,7 +1304,7 @@ describe("DiffPane", () => {
     it("merges multi-level single-child directory chains into one node", () => {
       renderPane({ initialMode: "unstaged" });
       sendDiffResult([makeFile({ path: "a/b/c/file.ts" })]);
-      fireEvent.click(screen.getByTestId("diff-view-tree"));
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
       // The whole a/b/c chain collapses into a single directory row.
       const dirNode = screen.getByTestId("diff-tree-dir-a/b/c");
       expect(dirNode).toHaveTextContent("a/b/c");

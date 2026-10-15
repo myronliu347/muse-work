@@ -453,36 +453,6 @@
   z-index: 3100 !important;
 }
 
-/* 列表/树视图切换按钮（工具栏左侧，紧贴变更范围下拉框） */
-.diff-view-mode-toggle {
-  display: inline-flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.diff-view-mode-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-1);
-  background: transparent;
-  color: var(--gray-11);
-  cursor: pointer;
-}
-
-.diff-view-mode-btn:hover {
-  background: var(--gray-4);
-}
-
-.diff-view-mode-btn[aria-pressed="true"] {
-  background: var(--gray-5);
-  color: var(--gray-12);
-}
-
 /* 树视图：左侧 = 选中文件的 diff 内容区，右侧 = 变更文件树导航。
    `.diff-pane-body` 本身是外层滚动容器，这里改为内部各自滚动。 */
 .diff-pane-tree-view {

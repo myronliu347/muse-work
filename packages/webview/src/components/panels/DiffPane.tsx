@@ -1061,28 +1061,19 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         )}
         <div className="diff-pane-toolbar-actions">
         {state.kind === "ok" && state.files.length > 0 && (
-          <div className="diff-view-mode-toggle" role="group" aria-label="视图切换">
-            <button
-              type="button"
-              className="diff-view-mode-btn"
-              data-testid="diff-view-list"
-              aria-pressed={viewMode === "list"}
-              title="列表视图"
-              onClick={() => setViewMode("list")}
-            >
-              <i className="codicon codicon-list-flat" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="diff-view-mode-btn"
-              data-testid="diff-view-tree"
-              aria-pressed={viewMode === "tree"}
-              title="树视图"
-              onClick={() => setViewMode("tree")}
-            >
-              <i className="codicon codicon-list-tree" aria-hidden />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="preview-pane-button"
+            data-testid="diff-view-toggle"
+            aria-pressed={viewMode === "tree"}
+            title={viewMode === "tree" ? "列表视图" : "树视图"}
+            onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+          >
+            <i
+              className={`codicon ${viewMode === "tree" ? "codicon-list-flat" : "codicon-list-tree"}`}
+              aria-hidden
+            />
+          </button>
         )}
         {mode === "unstaged" && (
           <>
