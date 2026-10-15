@@ -32,17 +32,6 @@ export function postToWebview(data: Record<string, unknown>): void {
   window.dispatchEvent(new MessageEvent("message", { data }));
 }
 
-/** Workdir used to preview skills in draft「新对话」（无 session 时 UI 可能已清空 currentWorkdir）。 */
-export function resolveDraftSkillsWorkdir(ctx: {
-  currentWorkdir: string;
-  recentWorkdirs: string[];
-}): string {
-  const current = ctx.currentWorkdir?.trim();
-  if (current) return current;
-  const recent = ctx.recentWorkdirs.find((p) => p.trim().length > 0)?.trim();
-  return recent ?? "";
-}
-
 export function skillsToSlashCommands(
   skills: Array<{
     name: string;

@@ -617,13 +617,22 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     );
   });
 
-  it("requestSlashCommands during draft newSession uses recent workdir when current is cleared", async () => {
+  it("draft newSession does not reuse the previous workdir after it is cleared", async () => {
+    const created: MuseSession = {
+      ...baseSession,
+      id: "sess-created",
+      title: "新对话",
+      lastActiveAt: 1,
+      createdAt: 1,
+    };
     const api = stubApi({
       listSessionsGrouped: vi.fn(async () => ({
         pinned: [],
         recent: [],
         activeSessionId: undefined,
       })),
+      createSession: vi.fn(async () => created),
+      selectSession: vi.fn(async () => ({ session: created })),
       getSkills: vi.fn(async () => ({
         skills: [{ name: "recent-skill", description: "from recent", userInvocable: true }],
       })),
@@ -639,10 +648,16 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     bridge.postMessage({ command: "newSession" });
     await flush();
     vi.mocked(api.getSkills).mockClear();
+    vi.mocked(api.createSession).mockClear();
     bridge.postMessage({ command: "requestSlashCommands" });
     await flush();
+    bridge.postMessage({ command: "sendMessage", text: "first message" });
+    await flush();
 
-    expect(api.getSkills).toHaveBeenCalledWith("/repo/recent");
+    expect(api.getSkills).not.toHaveBeenCalled();
+    expect(api.createSession).toHaveBeenCalledWith(undefined, {
+      permissionMode: "acceptEdits",
+    });
   });
 
   it("requestSlashCommands during draft newSession loads skills by workdir", async () => {

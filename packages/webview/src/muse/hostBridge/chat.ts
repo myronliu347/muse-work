@@ -4,7 +4,6 @@ import {
   emitPermissionMode,
   newId,
   postToWebview,
-  resolveDraftSkillsWorkdir,
   resolveSlashCommandsSessionId,
   skillsToSlashCommands,
 } from "./utils.js";
@@ -321,7 +320,7 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       }
 
       const session = await ctx.api.createSession(
-        resolveDraftSkillsWorkdir(ctx) || undefined,
+        ctx.currentWorkdir || undefined,
         {
           // 仅用户手动选过模型（draftModel 有值）才传 model；否则不传，让 server
           // 回落 agent.model（勿用默认值兜底，否则会覆盖 agent 预设的模型）。
@@ -511,7 +510,7 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       return;
     }
 
-    const workdir = resolveDraftSkillsWorkdir(ctx);
+    const workdir = ctx.currentWorkdir?.trim();
     if (workdir) {
       try {
         const { skills } = await ctx.api.getSkills(workdir);
