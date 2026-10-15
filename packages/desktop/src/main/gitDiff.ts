@@ -29,7 +29,26 @@ export interface WorkspaceDiffFile {
 
 export type WorkspaceDiffResult =
   | { kind: "not-a-repo" }
+  | { kind: "error"; message: string }
   | { kind: "ok"; files: WorkspaceDiffFile[] };
+
+export type CommitCompare = "patch" | "head" | "worktree";
+
+export interface GitCommitSummary {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  date: string;
+}
+
+export type ListCommitsResult =
+  | { kind: "not-a-repo" }
+  | { kind: "ok"; commits: GitCommitSummary[] };
+
+/** Well-known hash of the empty tree; used to diff a root commit. */
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+const RECENT_COMMIT_LIMIT = 50;
 
 export const MAX_DIFF_LINES = 2000;
 const MAX_UNTRACKED_BYTES = 2 * 1024 * 1024;
@@ -47,6 +66,34 @@ interface StatusEntry {
   path: string;
   oldPath?: string;
   status: WorkspaceFileStatus;
+}
+
+function parseNameStatusZ(z: string): StatusEntry[] {
+  const parts = z.split("\0");
+  const entries: StatusEntry[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const token = parts[i];
+    if (!token) continue;
+    const code = token[0];
+    if (code === "R" || code === "C") {
+      const oldPath = parts[++i] ?? "";
+      const filePath = parts[++i] ?? "";
+      if (!filePath) continue;
+      entries.push({ path: filePath, oldPath, status: "renamed" });
+      continue;
+    }
+    const filePath = parts[++i] ?? "";
+    if (!filePath) continue;
+    const status: WorkspaceFileStatus =
+      code === "A" ? "added" : code === "D" ? "deleted" : "modified";
+    entries.push({ path: filePath, status });
+  }
+  return entries;
+}
+
+/** Reject option-like or whitespace revisions before they reach git. */
+function isSafeRev(rev: string): boolean {
+  return rev.length > 0 && rev.length <= 200 && !rev.startsWith("-") && !/[\0\s]/.test(rev);
 }
 
 function parsePorcelain(z: string): StatusEntry[] {
@@ -192,6 +239,134 @@ export async function getWorkspaceDiff(cwd: string): Promise<WorkspaceDiffResult
       entry.status === "untracked"
         ? await diffForUntracked(root, entry)
         : await diffForTracked(root, base, entry),
+    );
+  }
+  return { kind: "ok", files };
+}
+
+export async function listRecentCommits(
+  cwd: string,
+  limit = RECENT_COMMIT_LIMIT,
+): Promise<ListCommitsResult> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { kind: "not-a-repo" };
+  }
+
+  const n = Math.min(Math.max(Math.floor(limit), 1), 100);
+  let out = "";
+  try {
+    out = await git(cwd, [
+      "log",
+      "-z",
+      "-n",
+      String(n),
+      "--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%cI",
+    ]);
+  } catch {
+    return { kind: "ok", commits: [] };
+  }
+
+  const commits: GitCommitSummary[] = [];
+  for (const rec of out.split("\0")) {
+    if (!rec) continue;
+    const [hash, shortHash, subject, author, date] = rec.split("\x1f");
+    if (!hash || !shortHash) continue;
+    commits.push({
+      hash,
+      shortHash,
+      subject: subject ?? "",
+      author: author ?? "",
+      date: date ?? "",
+    });
+  }
+  return { kind: "ok", commits };
+}
+
+export async function getCommitDiff(
+  cwd: string,
+  rev: string,
+  compare: CommitCompare,
+): Promise<WorkspaceDiffResult> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { kind: "not-a-repo" };
+  }
+  if (
+    !isSafeRev(rev) ||
+    (compare !== "patch" && compare !== "head" && compare !== "worktree")
+  ) {
+    return { kind: "error", message: "找不到该提交" };
+  }
+
+  const root =
+    (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
+    cwd;
+
+  let resolved: string;
+  try {
+    resolved = (
+      await git(cwd, [
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        `${rev}^{commit}`,
+      ])
+    ).trim();
+  } catch {
+    return { kind: "error", message: "找不到该提交" };
+  }
+
+  // patch: parent..commit (root commits diff against the empty tree).
+  // head: commit..HEAD. worktree: commit..worktree.
+  let parent = resolved;
+  if (compare === "patch") {
+    try {
+      parent = (
+        await git(cwd, ["rev-parse", "--verify", "--end-of-options", `${resolved}^`])
+      ).trim();
+    } catch {
+      parent = EMPTY_TREE;
+    }
+  }
+  const diffBase =
+    compare === "patch"
+      ? ["-M", parent, resolved]
+      : compare === "head"
+        ? ["-M", resolved, "HEAD"]
+        : ["-M", resolved];
+
+  let nameStatus = "";
+  try {
+    nameStatus = await git(root, ["diff", "--name-status", "-z", ...diffBase]);
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "无法读取差异",
+    };
+  }
+
+  const entries = parseNameStatusZ(nameStatus);
+  if (compare === "worktree") {
+    const status = await git(root, [
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+    ]).catch(() => "");
+    for (const entry of parsePorcelain(status)) {
+      if (entry.status === "untracked") entries.push(entry);
+    }
+  }
+
+  const files: WorkspaceDiffFile[] = [];
+  for (const entry of entries) {
+    files.push(
+      entry.status === "untracked"
+        ? await diffForUntracked(root, entry)
+        : await diffForTracked(root, diffBase, entry),
     );
   }
   return { kind: "ok", files };

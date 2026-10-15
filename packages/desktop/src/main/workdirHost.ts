@@ -15,7 +15,12 @@ import {
   searchWorkspaceFiles,
 } from "./fileSearch.js";
 import { listGitBranches } from "./gitBranches.js";
-import { getWorkspaceDiff, revertWorkspaceDiff } from "./gitDiff.js";
+import {
+  getCommitDiff,
+  getWorkspaceDiff,
+  listRecentCommits,
+  type CommitCompare,
+} from "./gitDiff.js";
 import { generateRandomName } from "./nameGenerator.js";
 import { TerminalManager } from "./terminal.js";
 import { createWorktree, removeWorktree } from "./worktree.js";
@@ -359,6 +364,8 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       repoRoot?: string;
       paths?: string[];
       busy?: boolean;
+      rev?: string;
+      compare?: string;
     };
     const command = msg?.command;
     if (!command) return;
@@ -626,6 +633,39 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       pushToWebview(win, {
         command: "desktopWorkspaceDiff",
         paneId: msg.paneId,
+        ...(typeof msg.requestId === "string" ? { requestId: msg.requestId } : {}),
+        result,
+      });
+      return;
+    }
+
+    if (command === "desktopListCommits") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const result = cwd
+        ? await listRecentCommits(cwd)
+        : ({ kind: "not-a-repo" } as const);
+      pushToWebview(win, {
+        command: "desktopCommits",
+        paneId: msg.paneId,
+        result,
+      });
+      return;
+    }
+
+    if (command === "desktopGetCommitDiff") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const rev = typeof msg.rev === "string" ? msg.rev : "";
+      const compare: CommitCompare =
+        msg.compare === "head" || msg.compare === "worktree" ? msg.compare : "patch";
+      const result = cwd
+        ? await getCommitDiff(cwd, rev, compare)
+        : ({ kind: "not-a-repo" } as const);
+      pushToWebview(win, {
+        command: "desktopWorkspaceDiff",
+        paneId: msg.paneId,
+        ...(typeof msg.requestId === "string" ? { requestId: msg.requestId } : {}),
         result,
       });
       return;

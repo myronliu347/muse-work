@@ -1,7 +1,13 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Theme } from "@radix-ui/themes";
 import React from "react";
+
+HTMLElement.prototype.hasPointerCapture ??= () => false;
+HTMLElement.prototype.setPointerCapture ??= () => {};
+HTMLElement.prototype.releasePointerCapture ??= () => {};
 
 vi.mock("@pierre/diffs/react", () => ({
   PatchDiff: ({
@@ -93,6 +99,7 @@ function renderPane(options?: {
   const onClose = options?.onClose ?? vi.fn();
   const initialMode = options?.initialMode ?? "recent";
   const result = render(
+    <Theme>
     <DiffPane
       vscode={vscode}
       width={420}
@@ -114,7 +121,8 @@ function renderPane(options?: {
       onAddComment={options?.onAddComment}
       onOpenFile={options?.onOpenFile}
       onSendMessage={options?.onSendMessage}
-    />,
+    />
+    </Theme>,
   );
   const rerenderWith = (props: {
     visible?: boolean;
@@ -133,6 +141,7 @@ function renderPane(options?: {
     }>;
   }) =>
     result.rerender(
+      <Theme>
       <DiffPane
         vscode={vscode}
         width={420}
@@ -149,16 +158,22 @@ function renderPane(options?: {
         onAddComment={options?.onAddComment}
         onOpenFile={options?.onOpenFile}
         onSendMessage={options?.onSendMessage}
-      />,
+      />
+      </Theme>,
     );
   return { ...result, rerenderWith, vscode, onClose };
 }
 
-/** Switch the toolbar dropdown to the unstaged (workspace git) mode. */
+/** Open the Radix mode menu and pick a label. */
+async function pickMode(label: string) {
+  const user = userEvent.setup();
+  await user.click(screen.getByTestId("diff-mode-select"));
+  await user.click(await screen.findByRole("option", { name: label }));
+}
+
+/** Switch the toolbar dropdown to workspace-vs-HEAD. */
 function switchToUnstaged() {
-  fireEvent.change(screen.getByTestId("diff-mode-select"), {
-    target: { value: "unstaged" },
-  });
+  return pickMode("对比 HEAD");
 }
 
 function sendDiffResult(files: WorkspaceDiffFile[], paneId?: string) {
@@ -183,6 +198,7 @@ describe("DiffPane", () => {
     const vscode = createMockVscode();
     const makeFiles = () => [makeFile()].map((f) => ({ ...f }));
     const { rerender } = render(
+      <Theme>
       <DiffPane
         vscode={vscode}
         width={420}
@@ -199,12 +215,14 @@ describe("DiffPane", () => {
         onAddComment={vi.fn()}
         onOpenFile={vi.fn()}
         onSendMessage={vi.fn()}
-      />,
+      />
+      </Theme>,
     );
     // Re-render with a fresh recentFiles reference but identical content,
     // repeatedly — the previous code setState'd on every one of these.
     for (let i = 0; i < 20; i++) {
       rerender(
+        <Theme>
         <DiffPane
           vscode={vscode}
           width={420}
@@ -221,7 +239,8 @@ describe("DiffPane", () => {
           onAddComment={vi.fn()}
           onOpenFile={vi.fn()}
           onSendMessage={vi.fn()}
-        />,
+        />
+        </Theme>,
       );
     }
     expect(screen.getByTestId("diff-pane")).toBeInTheDocument();
@@ -233,7 +252,7 @@ describe("DiffPane", () => {
     errorSpy.mockRestore();
   });
 
-  it("defaults to recent mode and only requests the workspace diff after switching to unstaged", () => {
+  it("defaults to recent mode and only requests the workspace diff after switching to unstaged", async () => {
     const { vscode } = renderPane();
     // Recent is the default: no workspace git request on mount.
     expect(
@@ -241,9 +260,9 @@ describe("DiffPane", () => {
         ([msg]) => msg.command === "desktopGetWorkspaceDiff",
       ),
     ).toBe(false);
-    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
 
-    switchToUnstaged();
+    await switchToUnstaged();
     expect(
       vscode.postMessage.mock.calls.some(
         ([msg]) => msg.command === "desktopGetWorkspaceDiff",
@@ -511,10 +530,12 @@ describe("DiffPane", () => {
 
   it("tags requests with paneId and ignores responses for other panes", () => {
     const { vscode } = renderPane({ initialMode: "unstaged", paneId: "pane-1" });
-    expect(vscode.postMessage).toHaveBeenCalledWith({
-      command: "desktopGetWorkspaceDiff",
-      paneId: "pane-1",
-    });
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "desktopGetWorkspaceDiff",
+        paneId: "pane-1",
+      }),
+    );
     sendDiffResult([makeFile()], "pane-2");
     expect(
       document.querySelector(".desktop-panel-placeholder"),
@@ -600,11 +621,11 @@ describe("DiffPane", () => {
       workdir: "/w/a",
       recentFiles: [makeFile()],
     });
-    expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
     // Switching sessions defaults back to 最近一次修改, showing the new
     // session's reloaded file_history data instead of the old git diff.
-    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
     expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
   });
 
@@ -628,13 +649,13 @@ describe("DiffPane", () => {
     // Simulate a fresh diffView target that keeps unstaged mode (e.g. a dock
     // toggle with the mode persisted) while the session changes.
     rerenderWith({ sessionId: "s2", workdir: "/w/b" });
-    expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
     rerenderWith({
       sessionId: "s2",
       workdir: "/w/b",
       diffView: { mode: "unstaged" },
     });
-    expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
+    expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
     expect(lastDiffRequest(vscode).length).toBeGreaterThan(1);
   });
 
@@ -642,6 +663,7 @@ describe("DiffPane", () => {
     const onWidthChange = vi.fn();
     const vscode = createMockVscode();
     render(
+      <Theme>
       <DiffPane
         vscode={vscode}
         width={420}
@@ -650,7 +672,8 @@ describe("DiffPane", () => {
         onClose={vi.fn()}
         visible={true}
         isStreaming={false}
-      />,
+      />
+      </Theme>,
     );
     const pane = screen.getByTestId("diff-pane");
     const handle = pane.querySelector(
@@ -916,7 +939,7 @@ describe("DiffPane", () => {
     it("defaults to recent mode and hides commit/discard actions", () => {
       renderPane();
       const select = screen.getByTestId("diff-mode-select");
-      expect(select).toHaveValue("recent");
+      expect(select).toHaveTextContent("最近一次修改");
       expect(select).toHaveTextContent("最近一次修改");
       // Recent mode hides the workspace-git commit/discard actions.
       expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();
@@ -932,7 +955,7 @@ describe("DiffPane", () => {
           }),
         ],
       });
-      expect(screen.getByTestId("diff-mode-select")).toHaveValue("recent");
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
       expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
       // PatchDiff mock strips the "+" prefix and surfaces the added line.
       expect(screen.getByTestId("diff-pane")).toHaveTextContent("new1");
@@ -944,16 +967,196 @@ describe("DiffPane", () => {
       ).toBe(false);
     });
 
-    it("switching to unstaged re-requests the workspace diff", () => {
+    it("switching to unstaged re-requests the workspace diff", async () => {
       const { vscode } = renderPane();
       vscode.postMessage.mockClear();
-      switchToUnstaged();
-      expect(screen.getByTestId("diff-mode-select")).toHaveValue("unstaged");
+      await switchToUnstaged();
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("对比 HEAD");
       expect(
         vscode.postMessage.mock.calls.some(
           ([msg]) => msg.command === "desktopGetWorkspaceDiff",
         ),
       ).toBe(true);
+    });
+  });
+
+  describe("commit diff (指定提交)", () => {
+    const commits = [
+      {
+        hash: "abc111",
+        shortHash: "abc111",
+        subject: "second",
+        author: "Ada",
+        date: "2026-10-15T01:02:03Z",
+      },
+      {
+        hash: "abc000",
+        shortHash: "abc000",
+        subject: "init",
+        author: "Ada",
+        date: "2026-10-14T01:02:03Z",
+      },
+    ];
+
+    function switchToPatch() {
+      return pickMode("某次提交的改动");
+    }
+
+    function switchToSince() {
+      return pickMode("自该提交至今");
+    }
+
+    function lastCommitDiffRequest(vscode: ReturnType<typeof createMockVscode>) {
+      return vscode.postMessage.mock.calls
+        .map(([msg]) => msg)
+        .filter((msg) => msg.command === "desktopGetCommitDiff")
+        .at(-1);
+    }
+
+    it("lists commits and requests that commit's own patch", async () => {
+      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
+      vscode.postMessage.mockClear();
+      await switchToPatch();
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("某次提交的改动");
+      const user = userEvent.setup();
+      await user.click(screen.getByTestId("diff-mode-select"));
+      expect(await screen.findByRole("option", { name: "对比 HEAD" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "自该提交至今" })).toBeInTheDocument();
+      await user.keyboard("{Escape}");
+      expect(screen.queryByTestId("diff-compare-select")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("diff-commit")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("diff-revert-all")).not.toBeInTheDocument();
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopListCommits",
+        paneId: "p1",
+        workdir: "/repo",
+      });
+      expect(
+        vscode.postMessage.mock.calls.some(
+          ([msg]) => msg.command === "desktopGetWorkspaceDiff",
+        ),
+      ).toBe(false);
+
+      sendCommand("desktopCommits", {
+        paneId: "p1",
+        result: { kind: "ok", commits },
+      });
+
+      const select = screen.getByTestId("diff-commit-select");
+      expect(select).toHaveTextContent("abc111");
+      expect(select).toHaveTextContent("second");
+      expect(select).toHaveTextContent("Ada");
+      expect(select).toHaveTextContent("2026-10-15");
+      expect(screen.queryByTestId("diff-compare-select")).not.toBeInTheDocument();
+
+      const diffReq = lastCommitDiffRequest(vscode);
+      expect(diffReq).toEqual(
+        expect.objectContaining({
+          command: "desktopGetCommitDiff",
+          paneId: "p1",
+          workdir: "/repo",
+          rev: "abc111",
+          compare: "patch",
+        }),
+      );
+      expect(typeof diffReq.requestId).toBe("string");
+
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: diffReq.requestId,
+        result: { kind: "ok", files: [makeFile()] },
+      });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("src/a.ts");
+      expect(screen.queryByTestId("diff-revert-file")).not.toBeInTheDocument();
+    });
+
+    it("switches to since-this-commit and ignores a stale diff reply", async () => {
+      const { vscode } = renderPane({ paneId: "p1" });
+      await switchToPatch();
+      sendCommand("desktopCommits", {
+        paneId: "p1",
+        result: { kind: "ok", commits },
+      });
+      const first = lastCommitDiffRequest(vscode);
+
+      await switchToSince();
+      const second = lastCommitDiffRequest(vscode);
+      expect(second).toEqual(
+        expect.objectContaining({ rev: "abc111", compare: "worktree" }),
+      );
+      expect(second.requestId).not.toBe(first.requestId);
+
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: first.requestId,
+        result: { kind: "ok", files: [makeFile({ path: "stale.ts" })] },
+      });
+      expect(screen.queryByText("stale.ts")).not.toBeInTheDocument();
+
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: second.requestId,
+        result: { kind: "ok", files: [makeFile({ path: "head.ts" })] },
+      });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("head.ts");
+
+      const user = userEvent.setup();
+      await user.click(screen.getByTestId("diff-commit-select"));
+      await user.click(await screen.findByTestId("diff-commit-option-abc000"));
+      expect(lastCommitDiffRequest(vscode)).toEqual(
+        expect.objectContaining({ rev: "abc000", compare: "worktree" }),
+      );
+    });
+
+    it("shows a host error and returns to recent mode when the session changes", async () => {
+      const { vscode, rerenderWith } = renderPane({
+        paneId: "p1",
+        sessionId: "s1",
+        recentFiles: [makeFile({ path: "recent.ts" })],
+      });
+      await switchToPatch();
+      sendCommand("desktopCommits", {
+        paneId: "p1",
+        result: { kind: "ok", commits },
+      });
+      const req = lastCommitDiffRequest(vscode);
+      sendCommand("desktopWorkspaceDiff", {
+        paneId: "p1",
+        requestId: req.requestId,
+        result: { kind: "error", message: "找不到该提交" },
+      });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("找不到该提交");
+
+      rerenderWith({
+        sessionId: "s2",
+        recentFiles: [makeFile({ path: "recent.ts" })],
+      });
+      expect(screen.getByTestId("diff-mode-select")).toHaveTextContent("最近一次修改");
+      expect(screen.queryByTestId("diff-commit-select")).not.toBeInTheDocument();
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("recent.ts");
+    });
+
+    it("shows 没有提交 when the repository has no commits", async () => {
+      renderPane({ paneId: "p1" });
+      await switchToPatch();
+      sendCommand("desktopCommits", {
+        paneId: "p1",
+        result: { kind: "ok", commits: [] },
+      });
+      expect(screen.getByTestId("diff-pane")).toHaveTextContent("没有提交");
+      expect(screen.queryByText("无改动")).not.toBeInTheDocument();
+    });
+
+    it("refresh reloads the commit list", async () => {
+      const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });
+      await switchToPatch();
+      vscode.postMessage.mockClear();
+      fireEvent.click(screen.getByTestId("diff-refresh"));
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopListCommits",
+        paneId: "p1",
+        workdir: "/repo",
+      });
     });
   });
 
