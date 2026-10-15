@@ -1,0 +1,72 @@
+packages/webview/src/components/panels/DiffPane.tsx
+  aa09dc525df5f072 46,113,235,309-311,335-336,341,385,390-392,399-401,404-427,438-439,449-450,460,518-519,815,1033,1070-1072
+packages/webview/src/styles/DiffPane.css
+  aa09dc525df5f072 327
+packages/webview/tests/webview/diffPane.test.tsx
+  aa09dc525df5f072 617-618,622,625-630,632-643,997-999,1002,1005,1009,1012-1013,1017-1018,1023,1026,1041,1043-1046,1058,1060,1063,1067,1070,1073-1074,1077,1079-1080,1082,1084-1090
+packages/desktop/src/main/workdirHost.ts
+  aa09dc525df5f072 18,635,639
+packages/desktop/tests/workdirHost.test.ts
+  aa09dc525df5f072 1386,1398-1399,1437
+packages/desktop/src/main/gitDiff.ts
+  aa09dc525df5f072 9,230-252,254,257-258,268-269,271,273,275,277,279,291-298
+packages/desktop/tests/gitHelpers.test.ts
+  aa09dc525df5f072 8,58-60,62-63,72,85-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ad49abe53fe394e44fc275017d3d0678dc555050",
+  "prompts": {
+    "aa09dc525df5f072": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0ff23669-e263-49bf-8e07-1a7c70ed2d39",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 239,
+      "total_deletions": 729,
+      "accepted_lines": 212,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 3,
+          "deletions": 27,
+          "accepted_lines": 3
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 4,
+          "deletions": 26,
+          "accepted_lines": 4
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 10,
+          "deletions": 112,
+          "accepted_lines": 10
+        },
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 83,
+          "deletions": 146,
+          "accepted_lines": 83
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 1,
+          "deletions": 119,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 72,
+          "deletions": 141,
+          "accepted_lines": 59
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 66,
+          "deletions": 158,
+          "accepted_lines": 52
+        }
+      }
+    }
+  }
+}
