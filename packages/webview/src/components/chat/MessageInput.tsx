@@ -1,6 +1,7 @@
 import React, {
   useState,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useRef,
   useMemo,
@@ -65,6 +66,21 @@ interface SlashCommandState {
   filterText: string;
   startPos: number;
   endPos: number;
+}
+
+function readEditableText(el: HTMLElement | null, fallback: string): string {
+  if (!el) return fallback;
+  // jsdom leaves innerText undefined; an empty string is a real cleared input.
+  if (typeof el.innerText === "string") return el.innerText;
+  return el.textContent ?? fallback;
+}
+
+function writeEditableText(el: HTMLElement, text: string) {
+  el.textContent = text;
+  // Browsers implement innerText on the prototype. jsdom's is a getter only,
+  // and assigning it throws — unless a test replaced it with a writable own property.
+  const own = Object.getOwnPropertyDescriptor(el, "innerText");
+  if (own?.writable || own?.set) el.innerText = text;
 }
 
 function findTextOffset(
@@ -133,7 +149,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       modelSelectApi,
       workdir,
       mentionIssues,
+      onPersistDraft,
     } = props;
+    const onPersistDraftRef = useRef(onPersistDraft);
+    onPersistDraftRef.current = onPersistDraft;
     const [message, setMessage] = useState("");
 
     const [permMenuOpen, setPermMenuOpen] = useState(false);
@@ -249,8 +268,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // state mirror (only its trim() emptiness check is consumed).
         const mirror = div.innerText ?? div.textContent ?? "";
         setMessage(mirror);
+        messageRef.current = mirror;
         inputContentRef.current = mirror;
         saveDraft(sessionId, mirror);
+        onPersistDraftRef.current?.({
+          text: mirror,
+          images: attachedImagesRef.current.slice(),
+        });
         vscode.postMessage({
           command: "updateInputContent",
           sessionId,
@@ -279,8 +303,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         }
         const mirror = div.innerText ?? div.textContent ?? "";
         setMessage(mirror);
+        messageRef.current = mirror;
         inputContentRef.current = mirror;
         saveDraft(sessionId, mirror);
+        onPersistDraftRef.current?.({
+          text: mirror,
+          images: attachedImagesRef.current.slice(),
+        });
         vscode.postMessage({
           command: "updateInputContent",
           sessionId,
@@ -339,6 +368,19 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     // with the (stale) inputContent prop the host last pushed.
     const messageRef = useRef(message);
     messageRef.current = message;
+    // inputContent is applied on session change below, but a freshly mounted
+    // input (assistant page coming back) never sees that change.
+    useLayoutEffect(() => {
+      const initial = inputContentRef.current;
+      const el = textareaRef.current;
+      if (!initial || !el) return;
+      // An untouched contentEditable can already contain a newline. That is
+      // still empty, and must not block restoring a draft.
+      if (readEditableText(el, "").replace(/\u00A0/g, " ").trim()) return;
+      writeEditableText(el, initial);
+      messageRef.current = initial;
+      setMessage(initial);
+    }, []);
     useEffect(() => {
       const prevSession = prevSessionRef.current;
       const sessionChanged = prevSession !== sessionId;
@@ -1052,9 +1094,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         // Clear contenteditable
         unmountEditorHostsIn(textareaRef.current);
         textareaRef.current.innerHTML = "";
+        writeEditableText(textareaRef.current, "");
         setMessage("");
+        messageRef.current = "";
+        attachedImagesRef.current = [];
         saveDraft(sessionId, "");
         saveImageDraft(sessionId, []);
+        onPersistDraftRef.current?.({ text: "", images: [] });
         // Clear persisted input content
         vscode.postMessage({
           command: "updateInputContent",
@@ -1299,6 +1345,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         const newValue = target.innerText ?? target.textContent ?? "";
 
         setMessage(newValue);
+        messageRef.current = newValue;
+        onPersistDraftRef.current?.({
+          text: newValue,
+          images: attachedImagesRef.current.slice(),
+        });
 
         // If we're editing a queued message and the read-only chip has been deleted
         // (e.g. via backspace), exit edit mode. The remaining body text is kept.
@@ -1566,6 +1617,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (selectionChangeTimerRef.current) {
           clearTimeout(selectionChangeTimerRef.current);
         }
+        onPersistDraftRef.current?.({
+          text: readEditableText(textareaRef.current, messageRef.current),
+          images: attachedImagesRef.current.slice(),
+        });
       };
     }, []);
 

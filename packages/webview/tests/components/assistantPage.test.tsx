@@ -1,15 +1,34 @@
 import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { MessageInputHandle } from "../../src/components/chat/MessageInput";
-import { AssistantPage } from "../../src/components/assistant/AssistantPage";
+import {
+  AssistantPage,
+  clearAssistantComposerDraft,
+} from "../../src/components/assistant/AssistantPage";
 import {
   classifyAssistantHref,
   collectAssistantFilePaths,
   stripClosedFileLinks,
 } from "../../src/components/assistant/assistantLinks";
 
+function typeComposer(text: string) {
+  const input = screen.getByTestId("message-input");
+  Object.defineProperty(input, "innerText", {
+    value: text,
+    configurable: true,
+    writable: true,
+  });
+  input.textContent = text;
+  fireEvent.input(input);
+}
+
 describe("AssistantPage", () => {
+  afterEach(() => {
+    cleanup();
+    clearAssistantComposerDraft();
+  });
+
   it("renders jsonl roles and sends a user line", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
@@ -439,6 +458,48 @@ describe("AssistantPage", () => {
     expect(document.querySelector(".image-preview-modal img")?.getAttribute("src")).toBe(
       "data:image/png;base64,one",
     );
+  });
+
+  it("keeps the composer text when the page is left and opened again", () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendAssistantMessage: vi.fn(),
+    };
+    const first = render(<AssistantPage api={api} />);
+    typeComposer("先记着");
+    first.unmount();
+
+    render(<AssistantPage api={api} />);
+    expect(screen.getByTestId("message-input").textContent).toBe("先记着");
+  });
+
+  it("does not bring back text that was already sent", () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendAssistantMessage: vi.fn().mockResolvedValue({
+        line: { id: "1", at: 1, role: "user", message: "先记着" },
+      }),
+    };
+    const first = render(<AssistantPage api={api} />);
+    typeComposer("先记着");
+    fireEvent.click(screen.getByTestId("send-btn"));
+    first.unmount();
+
+    render(<AssistantPage api={api} />);
+    expect(screen.getByTestId("message-input").textContent).toBe("");
+  });
+
+  it("keeps the composer text when switching to the transcript and back", () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    typeComposer("先记着");
+    fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+    expect(screen.queryByTestId("message-input")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "对话" }));
+    expect(screen.getByTestId("message-input").textContent).toBe("先记着");
   });
 });
 

@@ -18,7 +18,7 @@ import { MessageList } from "../chat/MessageList";
 import { ContextTag } from "../shared/ContextTag";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
-import type { VsCodeApi } from "../../types";
+import type { AttachedImage, VsCodeApi } from "../../types";
 import {
   classifyAssistantHref,
   collectAssistantFilePaths,
@@ -70,6 +70,23 @@ const LOG_ROW_GAP = 18;
 const LOG_ROW_ESTIMATE = 96;
 
 const logRowHeights = new Map<string, number>();
+
+type AssistantComposerDraft = { text: string; images: AttachedImage[] };
+
+// 助手页切走会卸载整页。未发送的内容留在这里，回来时再填进输入框。
+let assistantComposerDraft: AssistantComposerDraft = { text: "", images: [] };
+
+function readAssistantComposerDraft(): AssistantComposerDraft {
+  return assistantComposerDraft;
+}
+
+function writeAssistantComposerDraft(draft: AssistantComposerDraft) {
+  assistantComposerDraft = { text: draft.text, images: draft.images.slice() };
+}
+
+export function clearAssistantComposerDraft() {
+  assistantComposerDraft = { text: "", images: [] };
+}
 
 const noopHost: VsCodeApi = {
   postMessage: () => {},
@@ -184,6 +201,48 @@ function formatBubbleTime(at: number): string {
   const date = new Date(at);
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function AssistantComposer({
+  vscode,
+  sending,
+  workdir,
+  mentionIssues,
+  inputRef,
+  onSend,
+}: {
+  vscode: VsCodeApi;
+  sending: boolean;
+  workdir?: string;
+  mentionIssues?: Array<{ id: string; title: string }>;
+  inputRef?: Ref<MessageInputHandle>;
+  onSend: (
+    text: string,
+    images?: Array<{ data: string; mediaType: string }>,
+  ) => void;
+}) {
+  // 挂载时拍一份草稿。输入过程中不把草稿再传回 inputContent，避免光标被重置。
+  const [initialDraft] = useState(() => readAssistantComposerDraft());
+  const persistDraft = useCallback((draft: AssistantComposerDraft) => {
+    writeAssistantComposerDraft(draft);
+  }, []);
+  return (
+    <MessageInput
+      ref={inputRef}
+      vscode={vscode}
+      isStreaming={false}
+      disabled={sending}
+      workdir={workdir}
+      mentionIssues={mentionIssues}
+      inputContent={initialDraft.text || undefined}
+      initialAttachedImages={
+        initialDraft.images.length > 0 ? initialDraft.images : undefined
+      }
+      onPersistDraft={persistDraft}
+      onAbortMessage={() => {}}
+      onSendMessage={onSend}
+    />
+  );
 }
 
 function BubbleTime({ at }: { at: number }) {
@@ -877,15 +936,13 @@ export const AssistantPage: React.FC<{
       </div>
       {error ? <p className="assistant-error">{error}</p> : null}
       <div className="assistant-composer">
-        <MessageInput
-          ref={inputRef}
+        <AssistantComposer
           vscode={vscode}
-          isStreaming={false}
-          disabled={sending}
+          sending={sending}
           workdir={agentWorkdir}
           mentionIssues={mentionIssues}
-          onAbortMessage={() => {}}
-          onSendMessage={(text, images) => {
+          inputRef={inputRef}
+          onSend={(text, images) => {
             void send(text, images);
           }}
         />

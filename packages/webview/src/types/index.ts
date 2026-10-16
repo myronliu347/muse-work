@@ -497,6 +497,11 @@ export interface MessageInputProps {
   workdir?: string;
   /** When set, @ in this composer also lists these issues. */
   mentionIssues?: Array<{ id: string; title: string }>;
+  /**
+   * Latest unsent text and images. The assistant page unmounts when the user
+   * leaves it, so the draft has to be kept by the caller.
+   */
+  onPersistDraft?: (draft: { text: string; images: AttachedImage[] }) => void;
 }
 
 /**
