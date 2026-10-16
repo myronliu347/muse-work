@@ -1,0 +1,36 @@
+packages/server/src/services/sessionRunner/agent.ts
+  9fd821deee9d6e0b 860-863,894-895,897,901-906
+packages/server/tests/automationRuntime.test.ts
+  9fd821deee9d6e0b 658-763
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "489de481e3248462336a51c284b88bb821ff33b0",
+  "prompts": {
+    "9fd821deee9d6e0b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "38f0781d-9f4c-4485-a6a7-f318d9d60c27",
+        "model": "default"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 119,
+      "total_deletions": 1,
+      "accepted_lines": 119,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/server/tests/automationRuntime.test.ts": {
+          "additions": 106,
+          "accepted_lines": 106
+        }
+      }
+    }
+  }
+}
