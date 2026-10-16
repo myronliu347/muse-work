@@ -655,6 +655,112 @@ describe("automationRuntime", () => {
     expect(run?.error).toBe("进程退出");
   });
 
+  it("createAppContext settles a run as failed when sendMessage is unauthorized", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+        providers: {
+          ...loadProvidersConfig(home).providers,
+          "openai-compatible": {
+            ...loadProvidersConfig(home).providers["openai-compatible"],
+            apiKey: "sk-test",
+          },
+        },
+      },
+      home,
+    );
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const ctx = createAppContext({
+      home,
+      createAgent: async () => ({
+        sendMessage: async () => {
+          const err = new Error("Unauthorized") as Error & { status: number };
+          err.status = 401;
+          throw err;
+        },
+        appendSystemNote: async () => {},
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-unauth",
+      }),
+    });
+    runtimes.push(ctx.automationRuntime);
+    const automation = ctx.automationStore.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = ctx.automationRuntime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: Date.now(),
+    });
+    await expect
+      .poll(() => ctx.automationStore.getRun(run!.id)?.status)
+      .toBe("failed");
+    expect(ctx.automationStore.getRun(run!.id)?.error).toBe("Unauthorized");
+  });
+
+  it("createAppContext settles a run as failed on mid-turn auth error block", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
+    homes.push(home);
+    saveProvidersConfig(
+      {
+        ...loadProvidersConfig(home),
+        activeProviderId: "openai-compatible",
+        activeModelId: "gpt-4.1",
+        providers: {
+          ...loadProvidersConfig(home).providers,
+          "openai-compatible": {
+            ...loadProvidersConfig(home).providers["openai-compatible"],
+            apiKey: "sk-test",
+          },
+        },
+      },
+      home,
+    );
+    const workdir = fs.mkdtempSync(path.join(home, "proj-"));
+    const tokenExpired =
+      'HTTP 403 Forbidden: {"msg":"auth failed","extra":{"code":30002,"msg":"request access token is invalid: token error: Token is expired"}}';
+    const ctx = createAppContext({
+      home,
+      createAgent: async (opts) => ({
+        sendMessage: async () => {
+          opts.callbacks?.onLoadingChange?.(true);
+          opts.callbacks?.onErrorBlockAdded?.(tokenExpired);
+          // Mid-turn auth failure often leaves sendMessage hanging; the run
+          // must still leave "running" via onTurnSettled from handleUnauthorized.
+          await new Promise(() => {});
+        },
+        appendSystemNote: async () => {},
+        dispose: async () => {},
+        getMessages: () => [],
+        sessionId: "wave-unauth-block",
+      }),
+    });
+    runtimes.push(ctx.automationRuntime);
+    const automation = ctx.automationStore.create({
+      name: "巡检",
+      prompt: "查 changelog",
+      workdir,
+      enabled: true,
+      triggers: [{ type: "cron", expr: "0 9 * * *" }],
+    });
+    const run = ctx.automationRuntime.enqueue(automation.id, {
+      type: "manual",
+      firedAt: Date.now(),
+    });
+    await expect
+      .poll(() => ctx.automationStore.getRun(run!.id)?.status)
+      .toBe("failed");
+    expect(ctx.automationStore.getRun(run!.id)?.error).toBe("Unauthorized");
+  });
+
   it("createAppContext marks an interrupted turn as stopped", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-auto-rt-"));
     homes.push(home);

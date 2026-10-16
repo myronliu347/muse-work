@@ -857,6 +857,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
   async function handleUnauthorized(sessionId: string): Promise<void> {
     getLogger().warn("turn unauthorized", { sessionId });
+    // Capture before flipping status: automation / issue dispatch settle only
+    // when the turn was still running. A second unauthorized callback must not
+    // re-fire onTurnSettled after we already idled.
+    const wasRunning = store.get(sessionId)?.status === "running";
     store.updateStatus(sessionId, "error");
     hub.broadcast(sessionId, {
       type: "session:status",
@@ -887,11 +891,19 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       });
     }
 
-    // Auth failures should not permanently block the session.
+    // Auth failures should not permanently block the session. Mirror
+    // finishTurnError so automation runs / issue exec turns leave "running".
     if (store.get(sessionId)) {
+      agentLoading.set(sessionId, false);
       store.updateStatus(sessionId, "idle");
       hub.broadcast(sessionId, { type: "session:status", status: "idle" });
       core.markUnreadDoneIfInactive(sessionId);
+      if (wasRunning) {
+        ctx.onTurnSettled?.(sessionId, {
+          ok: false,
+          error: "Unauthorized",
+        });
+      }
     }
   }
 
