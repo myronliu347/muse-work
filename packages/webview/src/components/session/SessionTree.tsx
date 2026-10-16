@@ -697,8 +697,13 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                       s.running ||
                       s.unreadDone,
                   ) ?? sessions[0];
-                const statusCurrent =
-                  statusSession?.sessionId === currentSessionId;
+                // Require a real session id — `undefined === undefined` would
+                // otherwise paint every empty Issue as running while streaming
+                // (e.g. assistant/automations view clears currentSessionId).
+                const statusCurrent = Boolean(
+                  statusSession?.sessionId &&
+                    statusSession.sessionId === currentSessionId,
+                );
                 const statusRunning =
                   Boolean(statusSession?.running) ||
                   (statusCurrent && isStreaming);

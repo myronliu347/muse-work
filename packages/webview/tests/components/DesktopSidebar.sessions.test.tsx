@@ -909,6 +909,40 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
   });
 
+  it("empty-session issue does not inherit streaming when currentSessionId is unset", () => {
+    renderSidebar({
+      isStreaming: true,
+      currentSessionId: undefined,
+      issueGroups: [
+        issueGroup({
+          issueId: "empty-1",
+          title: "空 Issue",
+          sessions: [],
+        }),
+        issueGroup({
+          issueId: "busy-1",
+          title: "进行中",
+          sessions: [
+            entry({ sessionId: "busy-plan", running: true }),
+          ],
+        }),
+      ],
+    });
+
+    const emptyRow = screen.getByTestId("desktop-session-issue-row-empty-1");
+    expect(
+      emptyRow.querySelector("[data-testid='desktop-session-status-running']"),
+    ).toBeNull();
+    expect(
+      emptyRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
+    ).toBeTruthy();
+
+    const busyRow = screen.getByTestId("desktop-session-issue-row-busy-1");
+    expect(
+      busyRow.querySelector("[data-testid='desktop-session-status-running']"),
+    ).toBeTruthy();
+  });
+
   it("hides pin/delete on issue sessions and offers open-planning when empty", () => {
     const onOpenPlanning = vi.fn();
     renderSidebar({
