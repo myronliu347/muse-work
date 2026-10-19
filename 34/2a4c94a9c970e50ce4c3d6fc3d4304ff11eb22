@@ -1,0 +1,56 @@
+packages/desktop/scripts/packMac.mjs
+  8bbc03374c3b406d 1-66
+packages/desktop/tests/nodePtyPackaging.test.ts
+  8bbc03374c3b406d 1-78
+packages/desktop/package.json
+  8bbc03374c3b406d 60-61,72
+packages/desktop/scripts/ensureNodePty.mjs
+  8bbc03374c3b406d 1-70
+packages/desktop/scripts/nodePtyPackaging.mjs
+  8bbc03374c3b406d 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "342a4c94a9c970e50ce4c3d6fc3d4304ff11eb22",
+  "prompts": {
+    "8bbc03374c3b406d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d39f2210-0b8b-4b18-84b4-d21a30f3a4f9",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 277,
+      "total_deletions": 7,
+      "accepted_lines": 272,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/scripts/packMac.mjs": {
+          "additions": 69,
+          "deletions": 3,
+          "accepted_lines": 66
+        },
+        "packages/desktop/package.json": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/desktop/scripts/nodePtyPackaging.mjs": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/desktop/scripts/ensureNodePty.mjs": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/desktop/tests/nodePtyPackaging.test.ts": {
+          "additions": 80,
+          "deletions": 2,
+          "accepted_lines": 78
+        }
+      }
+    }
+  }
+}
