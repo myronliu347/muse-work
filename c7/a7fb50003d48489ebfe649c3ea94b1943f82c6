@@ -1,0 +1,63 @@
+packages/webview/src/stores/panelGroupStore.ts
+  a0d1dee990d92b79 62,84
+packages/webview/src/components/panels/FileTree.tsx
+  a0d1dee990d92b79 195-197,235-236,264-273
+packages/webview/tests/stores/fileTreeState.test.ts
+  a0d1dee990d92b79 34,42
+packages/webview/tests/components/filePane.test.tsx
+  a0d1dee990d92b79 128-156
+packages/webview/src/types/index.ts
+  a0d1dee990d92b79 609
+packages/webview/tests/components/fileTree.test.tsx
+  a0d1dee990d92b79 63,71-72,75-80,327-346
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c7a7fb50003d48489ebfe649c3ea94b1943f82c6",
+  "prompts": {
+    "a0d1dee990d92b79": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3e8d778c-05c0-4e3b-85d0-6b53bba876a5",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 78,
+      "total_deletions": 70,
+      "accepted_lines": 78,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/stores/fileTreeState.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 29,
+          "deletions": 5,
+          "accepted_lines": 29
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 15,
+          "deletions": 63,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
