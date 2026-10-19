@@ -1,0 +1,69 @@
+packages/desktop/src/main/workdirHost.ts
+  b339fe4d974eadba 644-647,649
+packages/desktop/tests/gitHelpers.test.ts
+  b339fe4d974eadba 111-201
+packages/webview/src/components/ChatApp.tsx
+  b339fe4d974eadba 118-122,783
+packages/webview/src/components/panels/DiffPane.tsx
+  b339fe4d974eadba 227-228,255,376,379,479,482,489,546,559
+packages/desktop/src/main/gitDiff.ts
+  b339fe4d974eadba 98-102,251-254,256-257,274-338,341-349,359
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  b339fe4d974eadba 45-46,102,165
+packages/webview/tests/webview/diffPane.test.tsx
+  b339fe4d974eadba 81,115,158,1061-1077
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3cc446455488e809c1dbb9f69240fd56fb558592",
+  "prompts": {
+    "b339fe4d974eadba": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "73a80111-d44f-4e36-afaf-4c61fd7321db",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 232,
+      "total_deletions": 27,
+      "accepted_lines": 224,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 91,
+          "accepted_lines": 91
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 10,
+          "deletions": 4,
+          "accepted_lines": 10
+        },
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 96,
+          "deletions": 21,
+          "accepted_lines": 88
+        }
+      }
+    }
+  }
+}
