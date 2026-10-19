@@ -192,8 +192,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
     onTreeChange({ ...tree, expanded: Array.from(set) });
   };
 
-  const toggleCollapsed = () => {
-    onTreeChange({ ...tree, collapsed: !tree.collapsed });
+  const toggleSearchMode = () => {
+    if (!onSidebarModeChange) return;
+    onSidebarModeChange(sidebarMode === "search" ? "tree" : "search");
   };
 
   // Drop the children cache and re-request the root plus every expanded dir.
@@ -221,7 +222,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
       <div className="file-tree file-tree--empty" style={{ width }}>
         <div className="file-tree-drag-handle" onMouseDown={onWidthDragStart} />
         <div className="file-tree-header">
-          <FileIcon name="folder" isDirectory className="file-tree-icon" />
           <span className="file-tree-workdir" title="">
             无工作目录
           </span>
@@ -230,35 +230,15 @@ export const FileTree: React.FC<FileTreeProps> = ({
               <button
                 type="button"
                 className="file-tree-mode-btn"
-                data-testid="file-sidebar-mode-tree"
-                aria-pressed={sidebarMode === "tree"}
-                title="文件树"
-                onClick={() => onSidebarModeChange("tree")}
-              >
-                <i className="codicon codicon-list-tree" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="file-tree-mode-btn"
                 data-testid="file-sidebar-mode-search"
                 aria-pressed={sidebarMode === "search"}
-                title="搜索"
-                onClick={() => onSidebarModeChange("search")}
+                title={sidebarMode === "search" ? "返回文件树" : "搜索"}
+                onClick={toggleSearchMode}
               >
                 <i className="codicon codicon-search" aria-hidden />
               </button>
             </div>
           )}
-          <button
-            type="button"
-            className="file-tree-mode-btn"
-            data-testid="file-tree-collapse-btn"
-            title="收起文件树"
-            aria-label="收起文件树"
-            onClick={toggleCollapsed}
-          >
-            <i className="codicon codicon-chevron-right" aria-hidden />
-          </button>
         </div>
         {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
           <FileContentSearch
@@ -281,28 +261,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const modeToggles = (
     <div className="file-tree-mode-toggles">
       {onSidebarModeChange && (
-        <>
-          <button
-            type="button"
-            className="file-tree-mode-btn"
-            data-testid="file-sidebar-mode-tree"
-            aria-pressed={sidebarMode === "tree"}
-            title="文件树"
-            onClick={() => onSidebarModeChange("tree")}
-          >
-            <i className="codicon codicon-list-tree" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="file-tree-mode-btn"
-            data-testid="file-sidebar-mode-search"
-            aria-pressed={sidebarMode === "search"}
-            title="搜索"
-            onClick={() => onSidebarModeChange("search")}
-          >
-            <i className="codicon codicon-search" aria-hidden />
-          </button>
-        </>
+        <button
+          type="button"
+          className="file-tree-mode-btn"
+          data-testid="file-sidebar-mode-search"
+          aria-pressed={sidebarMode === "search"}
+          title={sidebarMode === "search" ? "返回文件树" : "搜索"}
+          onClick={toggleSearchMode}
+        >
+          <i className="codicon codicon-search" aria-hidden />
+        </button>
       )}
       <button
         type="button"
@@ -313,16 +281,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
         onClick={refreshTree}
       >
         <i className="codicon codicon-refresh" aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="file-tree-mode-btn"
-        data-testid="file-tree-collapse-btn"
-        title="收起文件树"
-        aria-label="收起文件树"
-        onClick={toggleCollapsed}
-      >
-        <i className="codicon codicon-chevron-right" aria-hidden />
       </button>
     </div>
   );
@@ -335,12 +293,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
         data-testid="file-tree-resize"
       />
       <div className="file-tree-header" title={workdir} data-testid="file-tree-workdir">
-        <FileIcon
-          name={workdirName}
-          isDirectory
-          isOpen
-          className="file-tree-icon"
-        />
         <span className="file-tree-workdir">{workdirName}</span>
         {modeToggles}
       </div>

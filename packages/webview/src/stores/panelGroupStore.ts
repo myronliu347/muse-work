@@ -59,6 +59,7 @@ function relativeUnderWorkdir(
 
 /**
  * Merge ancestor dirs of `fileAbsPath` into `expanded` and set `selected`.
+ * A file inside the workdir also opens the tree column.
  * Outside workdir: only updates selected.
  */
 export function ensureExpandedForFile(
@@ -80,7 +81,7 @@ export function ensureExpandedForFile(
     toAdd.push(acc);
   }
   const expanded = Array.from(new Set([...tree.expanded, ...toAdd]));
-  return { ...tree, expanded, selected: fileAbsPath };
+  return { ...tree, expanded, selected: fileAbsPath, collapsed: false };
 }
 
 /**

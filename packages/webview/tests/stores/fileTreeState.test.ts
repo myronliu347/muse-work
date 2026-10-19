@@ -31,6 +31,7 @@ describe("ensureExpandedForFile", () => {
     );
     expect(next.expanded).toEqual(expect.arrayContaining(["src", "src/a"]));
     expect(next.selected).toBe("/work/proj/src/a/b.ts");
+    expect(next.collapsed).toBe(false);
   });
 
   it("no-ops expand when file is outside workdir", () => {
@@ -38,5 +39,6 @@ describe("ensureExpandedForFile", () => {
     const next = ensureExpandedForFile(base, "/work/proj", "/other/x.ts");
     expect(next.expanded).toEqual(base.expanded);
     expect(next.selected).toBe("/other/x.ts");
+    expect(next.collapsed).toBe(true);
   });
 });

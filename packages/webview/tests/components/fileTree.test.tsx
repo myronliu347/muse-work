@@ -60,7 +60,7 @@ describe("FileTree", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("collapses the tree column via header control", () => {
+  it("header shows the workdir name without folder, tree-mode, or collapse controls", () => {
     render(
       <FileTree
         workdir="/work"
@@ -68,12 +68,16 @@ describe("FileTree", () => {
         tree={openTree()}
         onTreeChange={onTreeChange}
         onOpenFile={onOpenFile}
+        sidebarMode="tree"
+        onSidebarModeChange={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByTestId("file-tree-collapse-btn"));
-    expect(onTreeChange).toHaveBeenCalledWith(
-      expect.objectContaining({ collapsed: true }),
-    );
+    const header = screen.getByTestId("file-tree-workdir");
+    expect(header.querySelector(".file-tree-icon")).toBeNull();
+    expect(screen.queryByTestId("file-sidebar-mode-tree")).toBeNull();
+    expect(screen.queryByTestId("file-tree-collapse-btn")).toBeNull();
+    expect(screen.getByTestId("file-sidebar-mode-search")).toBeInTheDocument();
+    expect(screen.getByTestId("file-tree-refresh-btn")).toBeInTheDocument();
   });
 
   it("requests root listing when cache is empty", () => {
@@ -319,5 +323,25 @@ describe("FileTree", () => {
     );
     fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
     expect(onMode).toHaveBeenCalledWith("search");
+  });
+
+  it("search button returns to the tree when already searching", () => {
+    const onMode = vi.fn();
+    render(
+      <FileTree
+        workdir="/w"
+        vscode={{ postMessage }}
+        tree={openTree()}
+        onTreeChange={onTreeChange}
+        onOpenFile={onOpenFile}
+        sidebarMode="search"
+        onSidebarModeChange={onMode}
+        contentSearch={emptyContentSearchState()}
+        onContentSearchChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
+    expect(onMode).toHaveBeenCalledWith("tree");
   });
 });

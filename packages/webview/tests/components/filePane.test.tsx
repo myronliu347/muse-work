@@ -125,6 +125,35 @@ describe("FilePane", () => {
     );
   });
 
+  it("opens the file tree when the open file is inside the workdir", () => {
+    const { onFileTreeChange } = renderPane({
+      fileView: makeFileView({ path: "/work/a/src/app.ts" }),
+      workdir: "/work/a",
+      fileTree: emptyFileTreeState(),
+    });
+    expect(onFileTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collapsed: false,
+        selected: "/work/a/src/app.ts",
+        expanded: ["src"],
+      }),
+    );
+  });
+
+  it("leaves the file tree collapsed when the open file is outside the workdir", () => {
+    const { onFileTreeChange } = renderPane({
+      fileView: makeFileView({ path: "/other/notes.md" }),
+      workdir: "/work/a",
+      fileTree: emptyFileTreeState(),
+    });
+    expect(onFileTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collapsed: true,
+        selected: "/other/notes.md",
+      }),
+    );
+  });
+
   it("hides expand control when tree is open", () => {
     renderPane({
       fileView: null,

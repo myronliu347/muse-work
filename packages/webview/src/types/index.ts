@@ -606,7 +606,7 @@ export type FileTreeState = {
   width: number;
   /** Cached list results keyed by relative dir ("" = workdir root). */
   childrenCache: Record<string, FileTreeDirEntry[]>;
-  /** When true, the tree column is collapsed to a slim rail. Default true. */
+  /** When true, the tree column is hidden. A file inside the workdir opens it. */
   collapsed: boolean;
 };
 
