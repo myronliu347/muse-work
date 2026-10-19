@@ -108,6 +108,97 @@ describe("getBranchDiff", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it("compares with the branch this one was cut from, not main", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-base-"));
+    initRepo(dir);
+    execFileSync("git", ["branch", "-M", "main"], { cwd: dir });
+    execFileSync("git", ["checkout", "-b", "develop"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "c.txt"), "from-develop\n");
+    execFileSync("git", ["add", "c.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "dev"], {
+      cwd: dir,
+    });
+    execFileSync("git", ["checkout", "-b", "feature", "develop"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    execFileSync("git", ["add", "a.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "feat"], {
+      cwd: dir,
+    });
+    execFileSync("git", ["checkout", "main"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "m.txt"), "from-main\n");
+    execFileSync("git", ["add", "m.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "main-moves"], {
+      cwd: dir,
+    });
+    execFileSync("git", ["checkout", "feature"], { cwd: dir });
+
+    const result = await getBranchDiff(dir);
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      const paths = result.files.map((f) => f.path);
+      expect(paths).toContain("a.txt");
+      expect(paths).not.toContain("c.txt");
+      expect(paths).not.toContain("m.txt");
+      expect(result.files.find((f) => f.path === "a.txt")?.hunks).toContain("+world");
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps the cut point when the branch was created from HEAD", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-head-"));
+    initRepo(dir);
+    execFileSync("git", ["branch", "-M", "main"], { cwd: dir });
+    execFileSync("git", ["checkout", "-b", "develop"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "c.txt"), "from-develop\n");
+    execFileSync("git", ["add", "c.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "dev"], {
+      cwd: dir,
+    });
+    execFileSync("git", ["checkout", "-b", "feature"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    execFileSync("git", ["add", "a.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "feat"], {
+      cwd: dir,
+    });
+
+    const result = await getBranchDiff(dir);
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      const paths = result.files.map((f) => f.path);
+      expect(paths).toContain("a.txt");
+      expect(paths).not.toContain("c.txt");
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("uses the recorded base branch when the creation reflog is gone", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-pref-"));
+    initRepo(dir);
+    execFileSync("git", ["branch", "-M", "main"], { cwd: dir });
+    execFileSync("git", ["checkout", "-b", "develop"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "c.txt"), "from-develop\n");
+    execFileSync("git", ["add", "c.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "dev"], {
+      cwd: dir,
+    });
+    execFileSync("git", ["checkout", "-b", "feature", "develop"], { cwd: dir });
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    execFileSync("git", ["add", "a.txt"], { cwd: dir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "feat"], {
+      cwd: dir,
+    });
+    fs.rmSync(path.join(dir, ".git", "logs", "refs", "heads", "feature"));
+
+    const result = await getBranchDiff(dir, { baseBranch: "develop" });
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      const paths = result.files.map((f) => f.path);
+      expect(paths).toContain("a.txt");
+      expect(paths).not.toContain("c.txt");
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("returns not-a-repo outside a work tree", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-brdiff-nr-"));
     expect(await getBranchDiff(dir)).toEqual({ kind: "not-a-repo" });

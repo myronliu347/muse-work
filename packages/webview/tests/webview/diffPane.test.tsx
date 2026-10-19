@@ -78,6 +78,7 @@ function renderPane(options?: {
   isStreaming?: boolean;
   sessionId?: string;
   workdir?: string;
+  baseBranch?: string;
   onClose?: () => void;
   onAddComment?: (text: string) => void;
   onOpenFile?: (path: string) => void;
@@ -111,6 +112,7 @@ function renderPane(options?: {
       isStreaming={options?.isStreaming ?? false}
       sessionId={options?.sessionId}
       workdir={options?.workdir}
+      baseBranch={options?.baseBranch}
       diffView={
         options?.diffView ?? {
           mode: initialMode,
@@ -153,6 +155,7 @@ function renderPane(options?: {
         isStreaming={props.isStreaming ?? false}
         sessionId={props.sessionId}
         workdir={props.workdir}
+        baseBranch={options?.baseBranch}
         diffView={props.diffView ?? options?.diffView}
         recentFiles={(props.recentFiles ?? options?.recentFiles) as never}
         onAddComment={options?.onAddComment}
@@ -1054,6 +1057,23 @@ describe("DiffPane", () => {
         .filter((msg) => msg.command === "desktopGetBranchDiff")
         .at(-1);
     }
+
+    it("sends the session base branch with the branch diff request", async () => {
+      const { vscode } = renderPane({
+        paneId: "p1",
+        workdir: "/repo",
+        baseBranch: "develop",
+      });
+      vscode.postMessage.mockClear();
+      await switchToBranch();
+      expect(lastBranchRequest(vscode)).toEqual(
+        expect.objectContaining({
+          command: "desktopGetBranchDiff",
+          baseBranch: "develop",
+          workdir: "/repo",
+        }),
+      );
+    });
 
     it("requests the branch diff and hides commit and discard actions", async () => {
       const { vscode } = renderPane({ paneId: "p1", workdir: "/repo" });

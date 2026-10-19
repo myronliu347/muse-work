@@ -115,7 +115,11 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   const effectiveHost = "local";
   const gitBranches = paneGitBranches;
   const sessionGitMeta = state.currentSession as
-    | { worktreeBranch?: string; worktreeName?: string }
+    | {
+        worktreeBranch?: string;
+        worktreeName?: string;
+        baseBranch?: string;
+      }
     | undefined;
   const headerGitContext =
     !isDraftSession
@@ -776,6 +780,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     isStreaming: state.isStreaming,
     sessionId: state.currentSession?.id,
     workdir: assistantVisible ? assistantWorkdir : effectiveWorkdir,
+    baseBranch: assistantVisible ? undefined : sessionGitMeta?.baseBranch,
     previewEpoch,
     previewUrl,
     currentForward,

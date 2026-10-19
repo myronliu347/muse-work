@@ -42,6 +42,8 @@ export interface DesktopPanelSlotsProps {
   isStreaming: boolean;
   sessionId?: string;
   workdir?: string;
+  /** Branch this session's worktree was cut from. */
+  baseBranch?: string;
   previewEpoch: number;
   previewUrl: string | null;
   currentForward: RemoteForwardRef | null;
@@ -97,6 +99,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   isStreaming,
   sessionId,
   workdir,
+  baseBranch,
   previewEpoch,
   previewUrl,
   currentForward,
@@ -159,6 +162,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           isStreaming={isStreaming}
           sessionId={sessionId}
           workdir={workdir}
+          baseBranch={baseBranch}
           diffView={diffView}
           recentFiles={recentFiles}
           onOpenFile={onOpenFile}

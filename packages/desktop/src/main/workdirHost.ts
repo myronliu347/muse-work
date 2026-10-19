@@ -641,8 +641,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     if (command === "desktopGetBranchDiff") {
       const cwd =
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const baseBranch =
+        typeof msg.baseBranch === "string" && msg.baseBranch
+          ? msg.baseBranch
+          : undefined;
       const result = cwd
-        ? await getBranchDiff(cwd)
+        ? await getBranchDiff(cwd, baseBranch ? { baseBranch } : undefined)
         : ({ kind: "not-a-repo" } as const);
       pushToWebview(win, {
         command: "desktopWorkspaceDiff",

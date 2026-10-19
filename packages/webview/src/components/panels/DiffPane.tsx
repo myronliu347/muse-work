@@ -224,6 +224,8 @@ export interface DiffPaneProps {
    *  snapshots mapped to diff files. Survives session switches (derived from
    *  the live transcript in ChatApp). */
   recentFiles?: WorkspaceDiffFile[];
+  /** Branch this session's worktree was cut from, when the reflog is gone. */
+  baseBranch?: string;
 }
 
 interface CommentTarget {
@@ -250,6 +252,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   onSendMessage,
   diffView,
   recentFiles,
+  baseBranch,
 }) => {
   const [state, setState] = useState<DiffState>({ kind: "loading" });
   // recent: last assistant turn. unstaged: uncommitted worktree vs HEAD.
@@ -370,9 +373,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         requestId: nextRequestId(),
         ...(paneId ? { paneId } : {}),
         ...(workdir ? { workdir } : {}),
+        ...(baseBranch ? { baseBranch } : {}),
       });
     },
-    [vscode, paneId, workdir, clearComment, nextRequestId],
+    [vscode, paneId, workdir, baseBranch, clearComment, nextRequestId],
   );
 
   const requestCommitDiff = useCallback(
@@ -472,16 +476,17 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // mode renders the transcript-derived recentFiles prop. Switching sessions
   // restores that session's last range; a workdir change inside one session
   // drops back to 最近一次修改 because the previous branch base no longer applies.
-  const prevRef = useRef({ visible: false, sessionId, workdir, isStreaming });
+  const prevRef = useRef({ visible: false, sessionId, workdir, isStreaming, baseBranch });
   useEffect(() => {
     const prev = prevRef.current;
-    prevRef.current = { visible, sessionId, workdir, isStreaming };
+    prevRef.current = { visible, sessionId, workdir, isStreaming, baseBranch };
     const becameVisible = visible && !prev.visible;
     const becameHidden = !visible && prev.visible;
     const sessionChanged = prev.sessionId !== sessionId;
     const workdirChanged = prev.workdir !== workdir;
     const contextChanged = visible && (sessionChanged || workdirChanged);
     const generationEnded = visible && prev.isStreaming && !isStreaming;
+    const baseChanged = prev.baseBranch !== baseBranch;
     if (contextChanged) {
       if (sessionChanged && prev.sessionId) {
         sessionViewRef.current.set(prev.sessionId, {
@@ -538,7 +543,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       }
     } else if (mode === "unstaged" && generationEnded) {
       refresh();
-    } else if (mode === "branch" && generationEnded) {
+    } else if (mode === "branch" && (generationEnded || baseChanged)) {
       requestBranchDiff();
     }
   }, [
@@ -551,6 +556,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     recentFiles,
     requestBranchDiff,
     loadCommits,
+    baseBranch,
   ]);
 
   // Recent mode renders the live recentFiles prop; keep state in sync when the

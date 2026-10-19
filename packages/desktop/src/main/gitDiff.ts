@@ -95,6 +95,11 @@ function isSafeRev(rev: string): boolean {
   return rev.length > 0 && rev.length <= 200 && !rev.startsWith("-") && !/[\0\s]/.test(rev);
 }
 
+/** Branch names and commit ids. Ranges and pathspecs stay out of the base ref. */
+function isBranchRef(rev: string): boolean {
+  return isSafeRev(rev) && !rev.includes("..") && !/[\^~:?*[\\]/.test(rev);
+}
+
 function parsePorcelain(z: string): StatusEntry[] {
   const entries: StatusEntry[] = [];
   const parts = z.split("\0");
@@ -243,17 +248,13 @@ export async function getWorkspaceDiff(cwd: string): Promise<WorkspaceDiffResult
   return { kind: "ok", files };
 }
 
-async function resolveBranchBase(cwd: string): Promise<string | null> {
-  const candidates = [
-    getDefaultRemoteBranch(cwd),
-    "origin/main",
-    "origin/master",
-    "main",
-    "master",
-  ];
+async function firstResolvableRef(
+  cwd: string,
+  refs: Array<string | undefined>,
+): Promise<string | null> {
   const seen = new Set<string>();
-  for (const ref of candidates) {
-    if (!ref || seen.has(ref) || !isSafeRev(ref)) continue;
+  for (const ref of refs) {
+    if (!ref || seen.has(ref) || !isBranchRef(ref)) continue;
     seen.add(ref);
     try {
       await git(cwd, [
@@ -270,8 +271,82 @@ async function resolveBranchBase(cwd: string): Promise<string | null> {
   return null;
 }
 
-/** Worktree vs the fork point of the current branch (committed + uncommitted). */
-export async function getBranchDiff(cwd: string): Promise<WorkspaceDiffResult> {
+/**
+ * Where the current branch was cut from. `git worktree add -b` and
+ * `git checkout -b <name> <start>` record `branch: Created from <start>`.
+ * A bare `checkout -b` records `Created from HEAD`; the reflog sha is that
+ * start commit.
+ */
+async function resolveCreatedFrom(
+  cwd: string,
+): Promise<{ ref?: string; sha?: string } | null> {
+  let branch = "";
+  try {
+    branch = (await git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+  } catch {
+    return null;
+  }
+  if (!branch || branch === "HEAD" || !isBranchRef(branch)) return null;
+
+  let log = "";
+  try {
+    log = await git(cwd, ["reflog", "show", "--format=%H%x1f%gs", branch]);
+  } catch {
+    return null;
+  }
+  const oldest = log.split("\n").filter(Boolean).at(-1);
+  if (!oldest) return null;
+  const [sha, subject] = oldest.split("\x1f");
+  const from = subject?.match(/^branch: Created from (.+)$/)?.[1]?.trim();
+  const startSha = sha && isBranchRef(sha) ? sha : undefined;
+  if (from && from !== "HEAD" && isBranchRef(from)) {
+    return { ref: from, sha: startSha };
+  }
+  return startSha ? { sha: startSha } : null;
+}
+
+async function resolveBranchBase(
+  cwd: string,
+  preferred?: string,
+): Promise<string | null> {
+  let current = "";
+  try {
+    current = (await git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+  } catch {
+    current = "";
+  }
+  const created = await resolveCreatedFrom(cwd);
+  const named = await firstResolvableRef(cwd, [created?.ref]);
+  if (named) return named;
+  // `checkout -b` records "Created from HEAD". That commit is the cut point;
+  // don't replace it with the repo's default branch.
+  if (created?.sha) {
+    const sha = await firstResolvableRef(cwd, [created.sha]);
+    if (sha) return sha;
+  }
+  const recorded =
+    preferred && preferred !== "HEAD" && preferred !== current
+      ? preferred
+      : undefined;
+  return firstResolvableRef(cwd, [
+    recorded,
+    getDefaultRemoteBranch(cwd),
+    "origin/main",
+    "origin/master",
+    "main",
+    "master",
+  ]);
+}
+
+/**
+ * Worktree vs the fork point with the branch this one was cut from
+ * (committed + uncommitted). `preferred` is the session's recorded base,
+ * used when the branch reflog no longer has the start point.
+ */
+export async function getBranchDiff(
+  cwd: string,
+  options?: { baseBranch?: string },
+): Promise<WorkspaceDiffResult> {
   try {
     await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
   } catch {
@@ -281,7 +356,7 @@ export async function getBranchDiff(cwd: string): Promise<WorkspaceDiffResult> {
   const root =
     (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
     cwd;
-  const baseRef = await resolveBranchBase(cwd);
+  const baseRef = await resolveBranchBase(cwd, options?.baseBranch);
   if (!baseRef) return { kind: "error", message: "找不到基准分支" };
 
   let mergeBase = "";
