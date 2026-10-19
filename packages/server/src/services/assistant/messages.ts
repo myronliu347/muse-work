@@ -108,14 +108,12 @@ function parseLine(raw: string): MuseChatLine | undefined {
   }
 }
 
-function readAll(dir: string): MuseChatLine[] {
+function readSlice(dir: string, name: string): MuseChatLine[] {
+  const content = fs.readFileSync(path.join(dir, name), "utf8");
   const lines: MuseChatLine[] = [];
-  for (const name of listSliceNames(dir)) {
-    const content = fs.readFileSync(path.join(dir, name), "utf8");
-    for (const raw of content.split("\n")) {
-      const line = parseLine(raw);
-      if (line) lines.push(line);
-    }
+  for (const raw of content.split("\n")) {
+    const line = parseLine(raw);
+    if (line) lines.push(line);
   }
   return lines;
 }
@@ -131,13 +129,6 @@ function sliceCodePoints(text: string, max: number): { text: string; truncated: 
   const chars = [...text];
   if (chars.length <= max) return { text, truncated: false };
   return { text: chars.slice(0, max).join(""), truncated: true };
-}
-
-function olderThan(lines: MuseChatLine[], before?: string): MuseChatLine[] {
-  if (!before) return lines;
-  const index = lines.findIndex((line) => line.id === before);
-  if (index < 0) return [];
-  return lines.slice(0, index);
 }
 
 export function createAssistantMessageLog(options: {
@@ -193,10 +184,28 @@ export function createAssistantMessageLog(options: {
 
   function page(args?: { before?: string; limit?: number }): MuseChatPage {
     const limit = capLimit(args?.limit);
-    const eligible = olderThan(readAll(dir), args?.before);
+    const names = listSliceNames(dir);
+    const collected: MuseChatLine[] = [];
+    let seenBefore = !args?.before;
+
+    for (let i = names.length - 1; i >= 0 && collected.length <= limit; i--) {
+      const parsed = readSlice(dir, names[i]);
+      for (let j = parsed.length - 1; j >= 0; j--) {
+        const line = parsed[j];
+        if (!seenBefore) {
+          if (line.id === args?.before) seenBefore = true;
+          continue;
+        }
+        collected.push(line);
+        if (collected.length > limit) break;
+      }
+    }
+
+    if (!seenBefore) return { messages: [], hasMore: false };
+    const hasMore = collected.length > limit;
     return {
-      messages: eligible.slice(-limit),
-      hasMore: eligible.length > limit,
+      messages: (hasMore ? collected.slice(0, limit) : collected).reverse(),
+      hasMore,
     };
   }
 

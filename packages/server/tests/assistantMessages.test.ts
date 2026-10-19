@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -42,6 +42,41 @@ describe("assistant message log", () => {
     expect(fs.readdirSync(dir).sort()).toEqual(["000001.jsonl", "000002.jsonl"]);
     const second = fs.readFileSync(path.join(dir, "000002.jsonl"), "utf8");
     expect(second).toContain("next");
+  });
+
+  it("returns the newest page without reading older slices", () => {
+    const dirHome = home();
+    const dir = path.join(getMuseHomeDir(dirHome), "db", "assistant-messages");
+    fs.mkdirSync(dir, { recursive: true });
+    const line = (id: string) =>
+      JSON.stringify({ id, at: 1, role: "user", message: id });
+    fs.writeFileSync(
+      path.join(dir, "000001.jsonl"),
+      `${Array.from({ length: 10 }, (_, i) => line(`old-${i}`)).join("\n")}\n`,
+    );
+    fs.writeFileSync(
+      path.join(dir, "000002.jsonl"),
+      `${Array.from({ length: 60 }, (_, i) => line(`new-${i}`)).join("\n")}\n`,
+    );
+    const log = createAssistantMessageLog({ home: dirHome });
+    const readFileSync = vi.spyOn(fs, "readFileSync");
+    const page = log.page();
+    const paths = readFileSync.mock.calls.map((call) => String(call[0]));
+    readFileSync.mockRestore();
+    expect(paths.some((filePath) => filePath.endsWith("000001.jsonl"))).toBe(false);
+    expect(paths.some((filePath) => filePath.endsWith("000002.jsonl"))).toBe(true);
+    expect(page.messages.map((item) => item.id)).toEqual(
+      Array.from({ length: 50 }, (_, i) => `new-${i + 10}`),
+    );
+    expect(page.hasMore).toBe(true);
+
+    const older = log.page({ before: "new-10" });
+    expect(older.messages.map((item) => item.id)).toEqual([
+      ...Array.from({ length: 10 }, (_, i) => `old-${i}`),
+      ...Array.from({ length: 10 }, (_, i) => `new-${i}`),
+    ]);
+    expect(older.hasMore).toBe(false);
+    expect(log.page({ before: "missing" }).messages).toEqual([]);
   });
 
   it("pages older rows across slices with before", () => {
