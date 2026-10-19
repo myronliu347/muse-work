@@ -33,8 +33,15 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).not.toContain("interrupt");
     expect(first.systemPrompt).toContain("主人跟机器人的私聊");
     expect(first.systemPrompt).toContain("干活的是 Issue 会话");
-    expect(first.systemPrompt).toContain("`Agent` 只做跟项目无关的杂事");
+    expect(first.systemPrompt).not.toContain("`Agent`");
     expect(first.systemPrompt).toContain("谁在哪个频道问");
+    expect(first.systemPrompt).toContain("这种私聊默认 `app` 为 `muse`");
+    expect(first.systemPrompt).not.toContain("发 POPO 私聊");
+    expect(first.systemPrompt).toContain("做成的不要再做");
+    expect(first.systemPrompt).not.toContain("`Bash` 只用来跑");
+    expect(first.systemPrompt).toContain("`Bash` 不做长时间任务");
+    expect(first.tools).not.toContain("Agent");
+    expect(first.systemPrompt).toContain("留下结论和数字");
     expect(first.systemPrompt).toContain("每条发给人的话都要温和可爱");
     expect(first.systemPrompt).toContain("把标准念出来算失败");
     expect(first.systemPrompt).toContain("派活前先弄清这件事要做什么");
