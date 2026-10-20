@@ -303,6 +303,13 @@ session.post("/messages", async (c) => {
   if (!content.trim() && images.length === 0) {
     return c.json({ error: "content or images is required" }, 400);
   }
+  if (source === "user") {
+    const issue = ctx.issueStore.getByPlanningSession(sessionId);
+    if (issue?.status === "awaiting_close") {
+      ctx.issueStore.resume(issue.id);
+      ctx.hub.broadcastAll({ type: "issue:changed" });
+    }
+  }
   try {
     const result = await ctx.runner.sendMessage(
       sessionId,

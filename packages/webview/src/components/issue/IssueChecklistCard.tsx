@@ -12,6 +12,7 @@ export interface IssueChecklistCardProps {
   title: string;
   description?: string;
   status?: string;
+  statusLabel?: string;
   items: IssueChecklistItem[];
 }
 
@@ -20,6 +21,7 @@ const ISSUE_STATUS_LABEL: Record<string, string> = {
   planning: "规划中",
   executing: "执行中",
   review: "待审核",
+  awaiting_close: "待关闭",
 };
 
 const ITEM_STATUS_LABEL: Record<string, string> = {
@@ -36,11 +38,11 @@ export const IssueChecklistCard: React.FC<IssueChecklistCardProps> = ({
   title,
   description,
   status,
+  statusLabel: statusLabelProp,
   items,
 }) => {
-  const statusLabel = status
-    ? (ISSUE_STATUS_LABEL[status] ?? status)
-    : undefined;
+  const statusLabel = statusLabelProp
+    ?? (status ? (ISSUE_STATUS_LABEL[status] ?? status) : undefined);
   const desc = description?.trim();
   return (
     <div

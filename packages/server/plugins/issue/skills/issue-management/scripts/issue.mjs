@@ -44,6 +44,7 @@ function usage() {
   node issue.mjs items --id <ID> --remove <ITEM_ID>
   node issue.mjs exec-turn --id <ID>
   node issue.mjs dispatch --id <ID> --item <ITEM_ID> [--prompt P]
+  node issue.mjs ready --id <ID>
   node issue.mjs complete --id <ID>
   node issue.mjs cancel --id <ID>
 `);
@@ -209,6 +210,13 @@ async function main() {
       if (prompt != null) body.prompt = prompt;
       const result = await request("POST", `/issues/${id}/dispatch`, body);
       printJson(result);
+      return;
+    }
+    case "ready": {
+      const id = arg(argv, "--id");
+      if (!id) throw new Error("ready 需要 --id");
+      const { issue } = await request("POST", `/issues/${id}/ready`);
+      printJson(issue);
       return;
     }
     case "complete": {

@@ -170,12 +170,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
   return [
     tool(
       "ListIssues",
-      "列出未完成 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。",
+      "列出未完成、且不是待关闭的 Issue：id、标题、描述、工作目录、会话是否已打开。已打开的还有 sessionStatus（idle、running、error）和 queued（还没收进当前轮、等当前这一步结束后进入同一轮的消息摘要）。待关闭的不在这里，用户点名后用 MessageIssue，它会回到进行中。",
       { type: "object", properties: {} },
       async () =>
         ok(
           await Promise.all(
-            deps.issues.listActive().map(async (issue) => {
+            deps.issues.listActive().filter((issue) => issue.status !== "awaiting_close").map(async (issue) => {
               const sessionId = issue.planningSessionId;
               const session = sessionId ? deps.sessions.get(sessionId) : undefined;
               let queued: string[] = [];
@@ -330,6 +330,10 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const message = text(args.message);
         if (!issue?.planningSessionId) return fail("session not open");
         if (!message) return fail("message required");
+        if (issue.status === "awaiting_close") {
+          deps.issues.resume(issue.id);
+          deps.hub.broadcastAll({ type: "issue:changed" });
+        }
         const sessionId = issue.planningSessionId;
         const running = deps.sessions.get(sessionId)?.status === "running";
         await deps.runner.sendMessage(sessionId, message);

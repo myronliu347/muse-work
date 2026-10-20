@@ -15,6 +15,7 @@ export type IssueStatus =
   | "planning"
   | "executing"
   | "review"
+  | "awaiting_close"
   | "completed"
   | "cancelled";
 export type ChecklistItemStatus = "pending" | "running" | "done";
@@ -74,6 +75,10 @@ export interface IssueStore {
       agentMode?: IssueAgentMode;
     },
   ): Issue | undefined;
+  /** 单会话声明事情做完，留在未完成列表里等用户关闭。 */
+  markReady(id: string): Issue | undefined;
+  /** 待关闭的 Issue 收到新消息后回到进行中。 */
+  resume(id: string): Issue | undefined;
   setExecutionSessionId(id: string, executionSessionId: string): Issue | undefined;
   setItems(id: string, items: ChecklistItem[]): Issue | undefined;
   appendItems(
@@ -112,6 +117,7 @@ const KNOWN_STATUSES = new Set<IssueStatus>([
   "planning",
   "executing",
   "review",
+  "awaiting_close",
   "completed",
   "cancelled",
 ]);
@@ -476,6 +482,30 @@ export function createIssueStore(
       issue.updatedAt = Date.now();
       persist();
       return this.maybeEnterReview(id);
+    },
+
+    markReady(id): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue || isTerminal(issue.status)) return undefined;
+      if (issue.agentMode !== "single") {
+        throw new Error("only single agent issues can be marked ready");
+      }
+      if (issue.status !== "awaiting_close") {
+        issue.status = "awaiting_close";
+        issue.updatedAt = Date.now();
+        persist();
+      }
+      return cloneIssue(issue);
+    },
+
+    resume(id): Issue | undefined {
+      const issue = issues.get(id);
+      if (!issue) return undefined;
+      if (issue.status !== "awaiting_close") return cloneIssue(issue);
+      issue.status = "planning";
+      issue.updatedAt = Date.now();
+      persist();
+      return cloneIssue(issue);
     },
 
     complete(id): Issue | undefined {

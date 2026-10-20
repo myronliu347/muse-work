@@ -10,19 +10,13 @@ import type {
   DesktopIssueGroup,
 } from "../../types";
 import { bodyPortal } from "../../utils/bodyPortal";
+import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
 export const SESSION_DRAG_MIME = "application/x-muse-session";
 
 const dirName = (workdir: string): string =>
   workdir.split(/[\\/]/).filter(Boolean).pop() ?? workdir;
-
-const ISSUE_STATUS_LABEL: Record<string, string> = {
-  pending: "待规划",
-  planning: "规划中",
-  executing: "执行中",
-  review: "待审核",
-};
 
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
@@ -677,8 +671,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               {groups.map((group) => {
                 const priority = group.priority || "p1";
                 const sessions = group.sessions ?? [];
-                const statusLabel =
-                  ISSUE_STATUS_LABEL[group.status] ?? group.status;
                 const issueCurrent = Boolean(
                   currentSessionId &&
                     sessions.some((s) => s.sessionId === currentSessionId),
@@ -707,6 +699,12 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                 const statusRunning =
                   Boolean(statusSession?.running) ||
                   (statusCurrent && isStreaming);
+                const statusLabel = issueSidebarStatusLabel({
+                  status: group.status,
+                  agentMode: group.agentMode,
+                  running: statusRunning,
+                  sessionStatus: statusSession?.sessionStatus,
+                });
                 const statusWaiting = Boolean(statusSession?.waitingConfirmation);
                 const statusUnread =
                   Boolean(statusSession?.unreadDone) && !statusCurrent;
@@ -735,6 +733,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                           title={group.title}
                           description={group.description}
                           status={group.status}
+                          statusLabel={statusLabel}
                           items={group.items ?? []}
                         />
                       }

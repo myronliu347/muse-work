@@ -124,6 +124,25 @@ issuesRoutes.patch("/issues/:id", async (c) => {
   }
 });
 
+/** POST /issues/:id/ready — single agent marks the task done, still active */
+issuesRoutes.post("/issues/:id/ready", (c) => {
+  const ctx = c.get("ctx");
+  const existing = ctx.issueStore.get(c.req.param("id"));
+  if (!existing) return c.json({ error: "not found" }, 404);
+  if (isTerminal(existing.status)) return c.json({ error: "issue is terminal" }, 409);
+  try {
+    const issue = ctx.issueStore.markReady(existing.id);
+    if (!issue) return c.json({ error: "conflict" }, 409);
+    broadcastIssueChanged(ctx);
+    return c.json({ issue });
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      409,
+    );
+  }
+});
+
 /** POST /issues/:id/complete — cancelled → 409 */
 issuesRoutes.post("/issues/:id/complete", (c) => {
   const ctx = c.get("ctx");

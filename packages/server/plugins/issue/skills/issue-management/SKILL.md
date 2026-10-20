@@ -9,7 +9,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 
 **执行会话不会挂载本插件**，因此执行 AI 看不到这些命令。关单与调度只应在规划/普通/单 agent/POPO 会话完成。
 
-系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。用户明确说关掉 / 完成 / 取消时才 `complete` 或 `cancel`。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
+系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。对照当初要做的那件事，做完了且没有还在等用户拍板，调用 `ready`，不要自己关单。用户明确说关掉 / 完成 / 取消时才 `complete` 或 `cancel`。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
 
 ## 何时创建
 
@@ -49,6 +49,7 @@ node issue.mjs items --id ID --done ITEM_ID
 node issue.mjs items --id ID --remove ITEM_ID
 node issue.mjs exec-turn --id ID
 node issue.mjs dispatch --id ID --item ITEM_ID [--prompt "补充说明"]
+node issue.mjs ready --id ID
 node issue.mjs complete --id ID
 node issue.mjs cancel --id ID
 ```

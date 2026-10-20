@@ -86,5 +86,8 @@ describe("issuePlanning", () => {
     expect(extra).toContain("本会话");
     expect(extra).toContain("issue.mjs");
     expect(extra).toContain("complete");
+    expect(extra).toContain("直接在本会话里改代码实现");
+    expect(extra).not.toContain("与用户确认需求后");
+    expect(extra).toContain("ready");
   });
 });

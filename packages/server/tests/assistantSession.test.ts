@@ -46,6 +46,7 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("把标准念出来算失败");
     expect(first.systemPrompt).toContain("派活前先弄清这件事要做什么");
     expect(first.systemPrompt).toContain("同一件事只开一条 Issue");
+    expect(first.systemPrompt).toContain("不含待关闭的");
     expect(first.systemPrompt).toContain("[@issue:id 标题]");
     expect(first.systemPrompt).toContain("不要为下一步再 `CreateIssue`");
     expect(first.systemPrompt).not.toContain("讲清缺陷");

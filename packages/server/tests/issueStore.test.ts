@@ -7,6 +7,27 @@ import { createIssueStore } from "../src/services/issueStore.js";
 import { getClosedIssuesDir } from "../src/services/issueClosedStorage.js";
 
 describe("issueStore", () => {
+  it("marks a single issue awaiting close and resumes it", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const issue = store.create({ title: "修登录" });
+    store.setPlanning(issue.id, {
+      planningSessionId: "sess",
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    const ready = store.markReady(issue.id);
+    expect(ready?.status).toBe("awaiting_close");
+    expect(store.listActive().map((item) => item.id)).toContain(issue.id);
+    expect(store.listClosed()).toEqual([]);
+    const resumed = store.resume(issue.id);
+    expect(resumed?.status).toBe("planning");
+    const split = store.create({ title: "新需求" });
+    expect(() => store.markReady(split.id)).toThrow(/single/);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("persists create and reloads tags/priority", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });

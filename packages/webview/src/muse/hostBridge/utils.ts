@@ -109,6 +109,10 @@ export function toEntry(session: TreeSession): DesktopSessionEntry {
     worktreeBranch: session.worktreeBranch,
     worktreeRepoRoot: session.worktreeRepoRoot,
     running: session.running ?? session.status === "running",
+    sessionStatus:
+      session.status === "idle" || session.status === "running" || session.status === "error"
+        ? session.status
+        : undefined,
     waitingConfirmation: session.waitingConfirmation,
     pinned: session.pinned,
     unreadDone: session.unreadDone,

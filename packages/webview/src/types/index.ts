@@ -300,6 +300,8 @@ export interface DesktopSessionEntry {
   worktreeRepoRoot?: string;
   /** True while this session is generating — drives the per-session running dot (FR-031). */
   running?: boolean;
+  /** Persisted session status. Single-mode issues use it for 空闲 / 失败. */
+  sessionStatus?: "idle" | "running" | "error";
   /** True while a confirmation request (tool/plan/question) awaits the user — drives the waiting dot. */
   waitingConfirmation?: boolean;
   /** Whether the session is in the pin group. */

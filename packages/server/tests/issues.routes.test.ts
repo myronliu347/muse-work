@@ -116,7 +116,15 @@ describe("issues HTTP", () => {
     expect(session?.systemPrompt).not.toContain("不要修改产品实现");
     expect(session?.systemPrompt).toContain("issue.mjs");
     expect(session?.systemPrompt).toContain("complete");
+    expect(session?.systemPrompt).toContain("直接在本会话里改代码实现");
+    expect(session?.systemPrompt).not.toContain("与用户确认需求后");
+    expect(session?.systemPrompt).toContain("ready");
     expect(app.ctx.issueStore.get(issue.id)?.agentMode).toBe("single");
+    const ready = await fetch(`${app.baseUrl}/issues/${issue.id}/ready`, { method: "POST" });
+    expect(ready.status).toBe(200);
+    expect(app.ctx.issueStore.get(issue.id)?.status).toBe("awaiting_close");
+    const listed = await fetch(`${app.baseUrl}/issues`).then((r) => r.json());
+    expect(listed.issues.map((item: { id: string }) => item.id)).toContain(issue.id);
     const dispatch = await fetch(`${app.baseUrl}/issues/${issue.id}/dispatch`, {
       method: "POST",
       headers: { "content-type": "application/json" },

@@ -477,4 +477,42 @@ describe("assistant tools", () => {
     );
     expect(missing.success).toBe(false);
   });
+
+  it("hides awaiting-close issues and resumes them when messaging", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-ready-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const issue = issues.create({ title: "修登录", description: "修" });
+    const session = sessions.create({ workdir: "/tmp/a", model: "m", title: "修登录" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: session.id,
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    issues.markReady(issue.id);
+    const broadcasts: unknown[] = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations: createAutomationStore({ home }),
+      log: createAssistantMessageLog({ home }),
+      hub: { broadcastAll: (event: unknown) => broadcasts.push(event) } as WsHub,
+      runner: {
+        sendMessage: async () => ({ accepted: true as const }),
+        getRuntimeState: async () => ({ queuedMessages: [] }),
+      } as never,
+    });
+    const context = { workdir: "/tmp/a", taskManager: {} as never };
+    const listed = await tool(tools, "ListIssues").execute({}, context);
+    expect(JSON.parse(listed.content)).toEqual([]);
+    const sent = await tool(tools, "MessageIssue").execute(
+      { issueId: issue.id, message: "接着改一下文案" },
+      context,
+    );
+    expect(sent.success).toBe(true);
+    expect(issues.get(issue.id)?.status).toBe("planning");
+    expect(broadcasts).toEqual([{ type: "issue:changed" }]);
+  });
 });

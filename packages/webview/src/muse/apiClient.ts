@@ -111,6 +111,7 @@ export type MuseIssueStatus =
   | "planning"
   | "executing"
   | "review"
+  | "awaiting_close"
   | "completed"
   | "cancelled";
 export type MuseChecklistItemStatus = "pending" | "running" | "done";
