@@ -1,0 +1,50 @@
+packages/webview/src/components/session/SessionTree.tsx
+  6944b3dab38beac2 220,310,1019
+packages/webview/src/types/index.ts
+  6944b3dab38beac2 225
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  6944b3dab38beac2 1003,1010,1012-1013
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "774594fce432a078b13ed6a6d8ae827477cb55c5",
+  "prompts": {
+    "6944b3dab38beac2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9935f167-7c06-47e9-9842-f316c4c3d179",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 71,
+      "accepted_lines": 8,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/types/index.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "deletions": 4
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 4,
+          "deletions": 16,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 3,
+          "deletions": 49,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
