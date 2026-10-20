@@ -1,0 +1,37 @@
+packages/webview/src/components/assistant/AssistantPage.tsx
+  b257e677e3fbeeca 824
+packages/webview/tests/components/assistantPage.test.tsx
+  b257e677e3fbeeca 134,280,521
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "96a098ae96460547bc8684d3f21dc69eee40a4d7",
+  "prompts": {
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 4,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
