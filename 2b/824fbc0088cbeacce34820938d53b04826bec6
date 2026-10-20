@@ -1,0 +1,94 @@
+packages/webview/src/utils/filePathDisplay.ts
+  6944b3dab38beac2 40-44,51
+packages/webview/tests/muse/filePathDisplay.test.ts
+  6944b3dab38beac2 32-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2b824fbc0088cbeacce34820938d53b04826bec6",
+  "prompts": {
+    "6944b3dab38beac2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9935f167-7c06-47e9-9842-f316c4c3d179",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 54,
+      "total_deletions": 17,
+      "accepted_lines": 54,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 9,
+          "deletions": 9,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/utils/filePathDisplay.ts": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "additions": 8,
+          "deletions": 7,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/muse/filePathDisplay.test.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        }
+      }
+    },
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 153,
+      "total_deletions": 17,
+      "accepted_lines": 8,
+      "overriden_lines": 4,
+      "per_file_stats": {
+        "packages/server/tests/assistantWorkGuard.test.ts": {
+          "additions": 39
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/server/src/services/assistant/workGuard.ts": {
+          "additions": 54
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 5,
+          "deletions": 2,
+          "overriden_lines": 2
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "deletions": 6,
+          "overriden_lines": 1
+        },
+        "packages/server/tests/sessionRunner.control.test.ts": {
+          "additions": 44
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 9,
+          "deletions": 8,
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
