@@ -29,6 +29,15 @@ describe("resolveWorkspaceFilePath", () => {
       resolveWorkspaceFilePath("/Users/dev/proj/src/a.ts", "/Users/dev/proj"),
     ).toBe("/Users/dev/proj/src/a.ts");
   });
+
+  it("leaves ~/ paths for the host to expand against home", () => {
+    expect(
+      resolveWorkspaceFilePath(
+        "~/Documents/lovart-研究-2026-10-20.html",
+        "/Users/liuyuyang/assistant-chat",
+      ),
+    ).toBe("~/Documents/lovart-研究-2026-10-20.html");
+  });
 });
 
 describe("middleEllipsis", () => {

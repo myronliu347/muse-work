@@ -37,13 +37,18 @@ export function decodeFileHref(href: string): string {
   }
 }
 
-/** Join a git-relative path with workdir for host openFile (needs absolute). */
+/**
+ * Join a git-relative path with workdir for host openFile (needs absolute).
+ * `~/…` stays intact: the host expands it against the home directory. Joining
+ * it here turns `~/Documents/a.html` into `<workdir>/~/Documents/a.html`.
+ */
 export function resolveWorkspaceFilePath(
   filePath: string,
   workdir?: string,
 ): string {
   if (!filePath) return filePath;
   const normalized = filePath.replace(/\\/g, "/");
+  if (normalized === "~" || normalized.startsWith("~/")) return normalized;
   if (/^([a-zA-Z]:\/|\/)/.test(normalized)) return filePath;
   if (!workdir) return filePath;
   const wd = workdir.replace(/\\/g, "/").replace(/\/+$/, "");
