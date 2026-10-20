@@ -1,0 +1,50 @@
+packages/server/src/services/assistant/observe.ts
+  b257e677e3fbeeca 21,23
+packages/server/tests/assistantWiring.test.ts
+  b257e677e3fbeeca 133-144
+packages/server/tests/assistantRuntime.test.ts
+  b257e677e3fbeeca 181,231,245,289,348
+packages/server/src/services/assistant/runtime.ts
+  b257e677e3fbeeca 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3c4865ecf90a476bf7972f2f801939f5335e63a9",
+  "prompts": {
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 9,
+      "accepted_lines": 20,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/tests/assistantWiring.test.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 2,
+          "deletions": 3,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
