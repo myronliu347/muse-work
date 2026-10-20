@@ -10,7 +10,8 @@ import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog, type MuseChatImage 
 import { openIssueSession, type OpenIssueBody } from "../issueOpen.js";
 import { createServerWorktree, type ServerWorktree } from "../gitWorktree.js";
 import { userMessageText } from "../sessionRunner/serialization.js";
-import { tavilySearch, type TavilyOptions } from "./tavily.js";
+import type { TavilyOptions } from "./tavily.js";
+import { createWebSearchTool } from "./webSearchTool.js";
 
 type Log = ReturnType<typeof createAssistantMessageLog>;
 
@@ -116,15 +117,6 @@ function composeOutbound(message: string, files: string[], links: string[], over
   }
   return [message, ...extras].filter(Boolean).join("\n");
 }
-
-function clampInt(value: unknown, fallback: number, min: number, max: number): number {
-  const n = typeof value === "number" ? value : Number.NaN;
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(max, Math.max(min, Math.trunc(n)));
-}
-
-const SEARCH_TOPICS = ["general", "news", "finance"] as const;
-const TIME_RANGES = ["day", "week", "month", "year"] as const;
 
 function queuedPreview(item: unknown): string | undefined {
   if (!item || typeof item !== "object") return undefined;
@@ -251,6 +243,70 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           type: normalizeIssueType(args.type),
         });
         return ok(issue);
+      },
+    ),
+    tool(
+      "UpdateIssue",
+      "修改已有 Issue 的标题、描述、优先级或分类。只改传入的字段。分类不改变怎么开工。已关闭的不能改。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["p0", "p1", "p2"] },
+          type: {
+            type: "string",
+            enum: ["bug", "feature", "research", "analysis", "review", "work"],
+            description:
+              "只做分类。bug、feature、research（调研）、analysis（分析）、review（检查）、work（兜底）。",
+          },
+        },
+        required: ["issueId"],
+      },
+      async (args) => {
+        const issueId = text(args.issueId);
+        if (!issueId) return fail("issueId required");
+        const existing = deps.issues.get(issueId);
+        if (!existing) return fail("not found");
+        if (existing.status === "completed" || existing.status === "cancelled") {
+          return fail("already closed");
+        }
+        const patch: {
+          title?: string;
+          description?: string;
+          priority?: "p0" | "p1" | "p2";
+          type?: "bug" | "feature" | "research" | "analysis" | "review" | "work";
+        } = {};
+        if (args.title !== undefined) {
+          const title = text(args.title);
+          if (!title) return fail("title required");
+          patch.title = title;
+        }
+        if (args.description !== undefined) {
+          patch.description = text(args.description);
+        }
+        if (args.priority !== undefined) {
+          if (args.priority === "p0" || args.priority === "p1" || args.priority === "p2") {
+            patch.priority = args.priority;
+          } else {
+            return fail("priority must be p0, p1, or p2");
+          }
+        }
+        if (args.type !== undefined) {
+          const type = normalizeIssueType(args.type);
+          if (args.type !== type) return fail("type must be bug, feature, research, analysis, review, or work");
+          patch.type = type;
+        }
+        if (Object.keys(patch).length === 0) return fail("nothing to update");
+        try {
+          const issue = deps.issues.update(issueId, patch);
+          if (!issue) return fail("not found");
+          deps.hub.broadcastAll({ type: "issue:changed" });
+          return ok(issue);
+        } catch (err) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
       },
     ),
     tool(
@@ -612,51 +668,6 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         });
       },
     ),
-    tool(
-      "WebSearch",
-      "用 Tavily 搜索网页。查事实、文档、新闻时用。返回简短答案和来源。要读某一页全文再用 WebFetch。不要为此建 Issue。",
-      {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "搜索词" },
-          topic: {
-            type: "string",
-            enum: [...SEARCH_TOPICS],
-            description: "general 综合，news 新闻，finance 财经。默认 general",
-          },
-          timeRange: {
-            type: "string",
-            enum: [...TIME_RANGES],
-            description: "只要这段时间里的结果：day、week、month、year",
-          },
-          maxResults: { type: "number", description: "条数，1 到 10，默认 5" },
-        },
-        required: ["query"],
-      },
-      async (args) => {
-        const query = text(args.query);
-        if (!query) return fail("需要 query");
-        const topic = text(args.topic);
-        if (topic && !SEARCH_TOPICS.includes(topic as (typeof SEARCH_TOPICS)[number])) {
-          return fail("topic 只能是 general、news、finance");
-        }
-        const timeRange = text(args.timeRange);
-        if (timeRange && !TIME_RANGES.includes(timeRange as (typeof TIME_RANGES)[number])) {
-          return fail("timeRange 只能是 day、week、month、year");
-        }
-        const result = await tavilySearch(
-          {
-            query,
-            search_depth: "basic",
-            topic: topic || "general",
-            max_results: clampInt(args.maxResults, 5, 1, 10),
-            include_answer: "basic",
-            ...(timeRange ? { time_range: timeRange } : {}),
-          },
-          { home: deps.home, ...deps.tavily },
-        );
-        return result.ok ? ok(result.value) : fail(result.error);
-      },
-    ),
+    createWebSearchTool({ home: deps.home, tavily: deps.tavily }),
   ];
 }

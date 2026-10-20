@@ -78,6 +78,24 @@ describe("assistant tools", () => {
     expect(issue.priority).toBe("p1");
     expect(issue.type).toBe("work");
 
+    const updated = await tool(tools, "UpdateIssue").execute(
+      {
+        issueId: issue.id,
+        title: "改标题",
+        description: "新描述",
+        priority: "p0",
+        type: "bug",
+      },
+      context,
+    );
+    expect(updated.success).toBe(true);
+    expect(issues.get(issue.id)).toMatchObject({
+      title: "改标题",
+      description: "新描述",
+      priority: "p0",
+      type: "bug",
+    });
+
     const missing = await tool(tools, "OpenIssue").execute(
       { issueId: issue.id, workdir: path.join(workdir, "nope") },
       context,
@@ -182,6 +200,7 @@ describe("assistant tools", () => {
       "ListIssues",
       "ListWorkdirs",
       "CreateIssue",
+      "UpdateIssue",
       "OpenIssue",
       "MessageIssue",
       "CloseIssue",

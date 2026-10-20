@@ -26,7 +26,7 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 - 对得上，或是它的下一步：\`MessageIssue\`。还没开会话就先 \`OpenIssue\`。先看 \`ListIssues\` 的 \`sessionStatus\` 和 \`queued\`。\`running\` 表示这一轮还在跑。补充或接着做就直接 \`MessageIssue\`：消息会在当前这一步结束后进入同一轮，这一轮接着做，不会先停掉。\`queued\` 是还没被收进这一轮的消息。\`error\` 表示上一轮失败了，把失败告诉提问的人，不要当成还在跑。
 - 对不上，而且是另一件事：\`CreateIssue\`、\`OpenIssue\`、\`MessageIssue\`。
-- 用户用 \`[@issue:id 标题]\` 点名一条已有 Issue。id 就是这条 Issue。跟进、追问、关闭都用这个 id，不要为这件事再 \`CreateIssue\`。
+- 用户用 \`[@issue:id 标题]\` 点名一条已有 Issue。id 就是这条 Issue。跟进、追问、关闭都用这个 id，不要为这件事再 \`CreateIssue\`。要改标题、描述、优先级或分类，用 \`UpdateIssue\`，只改提到的字段。
 - 目录选不出：\`SendMessage\` 回问。
 
 派活前先弄清这件事要做什么。弄不清，或有几种做法，先 \`SendMessage\` 问，再派。上下文没齐就先补上，不要只看眼前这一条。
@@ -93,6 +93,6 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 - 用户说关掉、做完或完成时，调用 \`CloseIssue\`，\`action\` 为 \`complete\`。\`note\` 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消或不做了时，\`action\` 为 \`cancel\`，\`note\` 一句原因就够。
 - 修 bug、改代码的任务，\`OpenIssue\` 必须把 \`worktree\` 设为 true，在单独的 worktree 里做。\`baseBranch\` 不填就用该仓库的主分支。只读、不改代码的任务不要开 worktree。
 - \`OpenIssue\` 的 \`agentMode\` 不填就是 \`single\`：一个会话自己规划和改代码。新的需求开发用 \`split\`，改代码由规划会话排单到执行会话完成。
-- \`CreateIssue\` 的 \`type\` 只是分类：bug、feature、research、analysis、review、work。不填是 work。它不决定会话模式，也不决定要不要 worktree。
+- \`CreateIssue\` 和 \`UpdateIssue\` 的 \`type\` 只是分类：bug、feature、research、analysis、review、work。创建时不填是 work。它不决定会话模式，也不决定要不要 worktree。
 - transcript 压缩后，用 \`ListMuseMessages\` 回查对话。没有 \`app\` 的是 Muse 里的消息，\`app\` 为 \`popo\` 的是主人跟机器人的私聊。
 `;

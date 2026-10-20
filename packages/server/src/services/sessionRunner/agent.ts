@@ -2,11 +2,13 @@ import {
   listSkillMetadataForWorkdir,
   loadSessionFromJsonl,
   type PermissionDecision,
+  type ToolPlugin,
 } from "@muse-work/agent";
 import type { GatewayResolution } from "@muse-work/provider";
 import path from "node:path";
 import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import { resolveScenarioAgent } from "../agentConfig.js";
+import { createWebSearchTool } from "../assistant/webSearchTool.js";
 import { planningCodeWriteDecision } from "../issuePlanning.js";
 import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
 import { MUSE_IDENTITY_REV } from "../museSystemPrompt.js";
@@ -355,6 +357,18 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     return provider.resolveGateway(model);
   }
 
+  /** 助手带着自己的协调工具；其余会话只加 WebSearch。助手列表里已有则不重复挂。 */
+  function sessionCustomTools(session: {
+    origin?: "user" | "automation" | "assistant";
+  } | undefined): ToolPlugin[] {
+    const assistant =
+      session?.origin === "assistant" && options.getAssistantTools
+        ? options.getAssistantTools()
+        : [];
+    if (assistant.some((entry) => entry.name === "WebSearch")) return assistant;
+    return [...assistant, createWebSearchTool({ home })];
+  }
+
   async function createAgentWithRestore(
     sessionId: string,
     workdir: string,
@@ -390,9 +404,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       ...(session?.allowedTools && session.allowedTools.length > 0
         ? { allowedTools: session.allowedTools }
         : {}),
-      ...(session?.origin === "assistant" && options.getAssistantTools
-        ? { customTools: options.getAssistantTools() }
-        : {}),
+      customTools: sessionCustomTools(session),
       ...(pluginDirs.length > 0
         ? {
             plugins: pluginDirs.map((path) => ({

@@ -1033,7 +1033,7 @@ describe("sessionRunner concurrency / dispose", () => {
       },
     };
 
-    const seen: Array<{ agentName?: string; plugins?: unknown }> = [];
+    const seen: Array<{ agentName?: string; plugins?: unknown; tools?: string[] }> = [];
     const store = createSessionStore({ home });
     const hub = createWsHub();
     const registry = createProviderRegistry([provider], home);
@@ -1042,8 +1042,29 @@ describe("sessionRunner concurrency / dispose", () => {
       hub,
       registry,
       home,
+      getAssistantTools: () => [
+        {
+          name: "CreateIssue",
+          config: {
+            type: "function",
+            function: { name: "CreateIssue", description: "", parameters: {} },
+          },
+          execute: async () => ({ success: true, content: "" }),
+        },
+        {
+          name: "WebSearch",
+          config: {
+            type: "function",
+            function: { name: "WebSearch", description: "assistant", parameters: {} },
+          },
+          execute: async () => ({ success: true, content: "" }),
+        },
+      ],
       createAgent: async (options) => {
-        seen.push({ plugins: options.plugins });
+        seen.push({
+          plugins: options.plugins,
+          tools: options.customTools?.map((entry) => entry.name),
+        });
         return { sendMessage: async () => {}, dispose: async () => {} };
       },
     });
@@ -1057,6 +1078,7 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => seen.length).toBe(1);
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/issue");
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/popo-notify");
+    expect(seen[0].tools).toEqual(["WebSearch"]);
 
     const exec = store.create({
       workdir: home,
@@ -1067,6 +1089,7 @@ describe("sessionRunner concurrency / dispose", () => {
     await expect.poll(() => seen.length).toBe(2);
     expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/issue");
     expect(JSON.stringify(seen[1].plugins ?? [])).not.toContain("plugins/popo-notify");
+    expect(seen[1].tools).toEqual(["WebSearch"]);
 
     const automation = store.create({
       workdir: home,
@@ -1079,5 +1102,15 @@ describe("sessionRunner concurrency / dispose", () => {
     expect(JSON.stringify(seen[2].plugins ?? [])).toContain("plugins/popo-notify");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/issue");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/automation");
+    expect(seen[2].tools).toEqual(["WebSearch"]);
+
+    const assistant = store.create({
+      workdir: home,
+      model: "gpt-4.1",
+      origin: "assistant",
+    });
+    await runner.sendMessage(assistant.id, "hi");
+    await expect.poll(() => seen.length).toBe(4);
+    expect(seen[3].tools).toEqual(["CreateIssue", "WebSearch"]);
   });
 });

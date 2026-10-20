@@ -9,6 +9,7 @@ export const ASSISTANT_TOOLS = [
   "ListIssues",
   "ListWorkdirs",
   "CreateIssue",
+  "UpdateIssue",
   "OpenIssue",
   "MessageIssue",
   "CloseIssue",
