@@ -9,7 +9,7 @@ import {
   toSerializableWorkflowRuns,
   userMessageText,
 } from "./serialization.js";
-import { wrapSystemInject } from "./ctx.js";
+import { publishCompaction, wrapSystemInject } from "./ctx.js";
 import type {
   OutboundImage,
   RunnerContext,
@@ -64,6 +64,14 @@ export function createActions(ctx: RunnerContext): SessionRunner {
 
     setOnPermissionRequest(cb) {
       ctx.onPermissionRequest = cb;
+    },
+
+    isCompacting(sessionId) {
+      return ctx.compacting.has(sessionId);
+    },
+
+    setOnCompactionChange(cb) {
+      ctx.onCompactionChange = cb;
     },
 
     async appendSystemNote(sessionId, content) {
@@ -311,10 +319,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         await existing.compact();
         return { ok: true as const };
       } finally {
-        hub.broadcast(sessionId, {
-          type: "compaction:state",
-          isCompacting: false,
-        });
+        publishCompaction(ctx, sessionId, false);
       }
     },
 

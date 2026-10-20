@@ -251,6 +251,9 @@ export function createAppContext(
       description: request.description,
     });
   });
+  sessions.runner.setOnCompactionChange((sessionId, isCompacting) => {
+    if (!isCompacting) assistantRuntime.onCompactionSettled(sessionId);
+  });
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);
     automationRuntime.handleTurnSettled(sessionId, result);

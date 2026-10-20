@@ -63,6 +63,8 @@ export function createAssistantQueue(options: { home: string }): {
   enqueue(event: AssistantEvent): void;
   absorb(event: AssistantEvent, headLocked: boolean): boolean;
   claimBatch(): AssistantEvent[];
+  claimFirst(): AssistantEvent[];
+  hasWaiting(): boolean;
   peek(): AssistantEvent | undefined;
   list(): AssistantQueueView[];
   dropHead(): void;
@@ -103,6 +105,17 @@ export function createAssistantQueue(options: { home: string }): {
         save();
       }
       return events.slice(0, inflightCount);
+    },
+    claimFirst() {
+      if (events.length === 0) return [];
+      if (inflightCount === 0) {
+        inflightCount = 1;
+        save();
+      }
+      return events.slice(0, 1);
+    },
+    hasWaiting() {
+      return events.length > inflightCount;
     },
     peek() {
       return events[0];

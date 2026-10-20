@@ -27,7 +27,7 @@ import {
   toBackgroundTaskSummary,
   toSerializableWorkflowRuns,
 } from "./serialization.js";
-import { wrapSystemInject } from "./ctx.js";
+import { publishCompaction, wrapSystemInject } from "./ctx.js";
 import type {
   AgentLayer,
   RunnerContext,
@@ -562,10 +562,7 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
         onCompactionStateChange: (isCompacting) => {
           if (disposed.has(sessionId)) return;
-          hub.broadcast(sessionId, {
-            type: "compaction:state",
-            isCompacting,
-          });
+          publishCompaction(ctx, sessionId, isCompacting);
         },
         onQueuedMessagesChange: (messages) => {
           if (disposed.has(sessionId)) return;

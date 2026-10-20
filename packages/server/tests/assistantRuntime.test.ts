@@ -177,4 +177,183 @@ describe("assistant runtime", () => {
     expect(sends[3].content).not.toContain("message: 一");
     expect(sends[3].content).not.toContain("message: 三");
   });
+
+  it("aborts after 60s only when someone is waiting, then injects the hint and the first waiter", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt4-"));
+    const sessions = createSessionStore({ home });
+    const sends: string[] = [];
+    const aborts: string[] = [];
+    let now = 0;
+    const timers: Array<{ at: number; fn: () => void }> = [];
+    let runtime: ReturnType<typeof createAssistantRuntime> | undefined;
+    const runner = {
+      sendMessage: async (_sessionId: string, content: string) => {
+        sends.push(content);
+        return { accepted: true as const };
+      },
+      appendSystemNote: async () => {},
+      abortMessage: async (sessionId: string) => {
+        aborts.push(sessionId);
+        runtime!.onAssistantTurnSettled(sessionId, { ok: false, error: "interrupted" });
+        return { ok: true as const };
+      },
+    };
+    runtime = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      clock: () => now,
+      schedule: (fn, ms) => {
+        const timer = { at: now + ms, fn };
+        timers.push(timer);
+        return () => {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+        };
+      },
+    });
+    const advance = (ms: number) => {
+      now += ms;
+      const due = timers.filter((timer) => timer.at <= now);
+      for (const timer of due) {
+        const index = timers.indexOf(timer);
+        if (index >= 0) timers.splice(index, 1);
+        timer.fn();
+      }
+    };
+    runtime.start();
+    const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
+    runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
+    runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "先等" });
+    runtime.enqueue({ type: "issue", issueId: "i2", title: "支付", workdir: "/repo", summary: "后等" });
+    expect(sends).toHaveLength(1);
+    advance(59_000);
+    expect(aborts).toEqual([]);
+    expect(sends).toHaveLength(1);
+    advance(1_000);
+    expect(aborts).toEqual([assistantId]);
+    expect(sends).toHaveLength(2);
+    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("title: 登录");
+    expect(sends[1]).not.toContain("message: 正在做");
+    expect(sends[1]).not.toContain("title: 支付");
+    expect(runtime.queueItems().map((item) => item.title)).toEqual(["登录", "支付"]);
+    expect(runtime.queueItems().map((item) => item.active ?? false)).toEqual([true, false]);
+  });
+
+  it("keeps running past 60s when the queue is empty, and preempts once someone arrives", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt5-"));
+    const sessions = createSessionStore({ home });
+    const sends: string[] = [];
+    let now = 0;
+    const timers: Array<{ at: number; fn: () => void }> = [];
+    let runtime: ReturnType<typeof createAssistantRuntime> | undefined;
+    const runner = {
+      sendMessage: async (_sessionId: string, content: string) => {
+        sends.push(content);
+        return { accepted: true as const };
+      },
+      appendSystemNote: async () => {},
+      abortMessage: async (sessionId: string) => {
+        runtime!.onAssistantTurnSettled(sessionId, { ok: false, error: "interrupted" });
+        return { ok: true as const };
+      },
+    };
+    runtime = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      clock: () => now,
+      schedule: (fn, ms) => {
+        const timer = { at: now + ms, fn };
+        timers.push(timer);
+        return () => {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+        };
+      },
+    });
+    const advance = (ms: number) => {
+      now += ms;
+      const due = timers.filter((timer) => timer.at <= now);
+      for (const timer of due) {
+        const index = timers.indexOf(timer);
+        if (index >= 0) timers.splice(index, 1);
+        timer.fn();
+      }
+    };
+    runtime.start();
+    runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
+    advance(60_000);
+    expect(sends).toHaveLength(1);
+    runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "后来" });
+    expect(sends).toHaveLength(2);
+    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("message: 后来");
+    expect(sends[1]).not.toContain("message: 正在做");
+  });
+
+  it("waits out compaction, then preempts if the queue is still waiting", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt6-"));
+    const sessions = createSessionStore({ home });
+    const sends: string[] = [];
+    const aborts: string[] = [];
+    let now = 0;
+    let compacting = true;
+    const timers: Array<{ at: number; fn: () => void }> = [];
+    let runtime: ReturnType<typeof createAssistantRuntime> | undefined;
+    const runner = {
+      sendMessage: async (_sessionId: string, content: string) => {
+        sends.push(content);
+        return { accepted: true as const };
+      },
+      appendSystemNote: async () => {},
+      isCompacting: () => compacting,
+      abortMessage: async (sessionId: string) => {
+        aborts.push(sessionId);
+        runtime!.onAssistantTurnSettled(sessionId, { ok: false, error: "interrupted" });
+        return { ok: true as const };
+      },
+    };
+    runtime = createAssistantRuntime({
+      home,
+      sessions,
+      runner: runner as never,
+      queue: createAssistantQueue({ home }),
+      clock: () => now,
+      schedule: (fn, ms) => {
+        const timer = { at: now + ms, fn };
+        timers.push(timer);
+        return () => {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+        };
+      },
+    });
+    const advance = (ms: number) => {
+      now += ms;
+      const due = timers.filter((timer) => timer.at <= now);
+      for (const timer of due) {
+        const index = timers.indexOf(timer);
+        if (index >= 0) timers.splice(index, 1);
+        timer.fn();
+      }
+    };
+    runtime.start();
+    const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
+    runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
+    runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "等" });
+    advance(60_000);
+    expect(aborts).toEqual([]);
+    expect(sends).toHaveLength(1);
+    compacting = false;
+    runtime.onCompactionSettled(assistantId);
+    expect(aborts).toEqual([assistantId]);
+    expect(sends).toHaveLength(2);
+    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("title: 登录");
+    expect(sends[1]).not.toContain("message: 正在做");
+  });
 });

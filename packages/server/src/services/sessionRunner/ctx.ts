@@ -204,6 +204,11 @@ export interface SessionRunner {
   setOnTurnSettled(
     cb: (sessionId: string, result: { ok: boolean; error?: string }) => void,
   ): void;
+  /** 会话是否正在压缩。压缩期间不能中止这一轮。 */
+  isCompacting(sessionId: string): boolean;
+  setOnCompactionChange(
+    cb: (sessionId: string, isCompacting: boolean) => void,
+  ): void;
   disposeSession(sessionId: string): Promise<void>;
   /** 释放会话的 live agent（不动会话记录/消息）；agent 变更后调用，下次 ensureAgent 重建。 */
   disposeAgent(sessionId: string): Promise<{ ok: true }>;
@@ -387,6 +392,11 @@ export interface RunnerContext {
         request: { permissionId: string; toolName: string; description: string },
       ) => void)
     | undefined;
+  /** 压缩状态变化。只在 true/false 切换时调用。 */
+  onCompactionChange:
+    | ((sessionId: string, isCompacting: boolean) => void)
+    | undefined;
+  compacting: Set<string>;
   agents: Map<string, SessionAgent>;
   /** Last ensure/activity time for LRU live-agent eviction. */
   agentLastUsed: Map<string, number>;
@@ -439,6 +449,19 @@ export interface RunnerContext {
   agent: AgentLayer;
 }
 
+/** 记下压缩状态，状态变化时通知，并推给界面。 */
+export function publishCompaction(
+  ctx: RunnerContext,
+  sessionId: string,
+  isCompacting: boolean,
+): void {
+  const was = ctx.compacting.has(sessionId);
+  if (isCompacting) ctx.compacting.add(sessionId);
+  else ctx.compacting.delete(sessionId);
+  if (was !== isCompacting) ctx.onCompactionChange?.(sessionId, isCompacting);
+  ctx.hub.broadcast(sessionId, { type: "compaction:state", isCompacting });
+}
+
 export function createRunnerContext(
   options: CreateSessionRunnerOptions,
 ): RunnerContext {
@@ -455,6 +478,8 @@ export function createRunnerContext(
     memoryUsage: options.memoryUsage ?? (() => process.memoryUsage()),
     onTurnSettled: options.onTurnSettled,
     onPermissionRequest: undefined,
+    onCompactionChange: undefined,
+    compacting: new Set<string>(),
     agents: new Map<string, SessionAgent>(),
     agentLastUsed: new Map<string, number>(),
     agentIdentities: new Map<string, string>(),
