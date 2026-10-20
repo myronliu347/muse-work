@@ -1,0 +1,68 @@
+packages/server/src/services/assistant/runtime.ts
+  b257e677e3fbeeca 15-17,24-27,36,43-44,49-51,101-127,131,136,139-140,151-162,170-171,174-180,217,232,236-239,246-251
+packages/server/tests/assistantRuntime.test.ts
+  b257e677e3fbeeca 180-358
+packages/server/src/services/sessionRunner/actions.ts
+  b257e677e3fbeeca 12,69-76,322
+packages/server/src/services/sessionRunner/ctx.ts
+  b257e677e3fbeeca 207-211,395-399,452-464,481-482
+packages/server/src/services/assistant/queue.ts
+  b257e677e3fbeeca 66-67,109-119
+packages/server/src/services/sessionRunner/agent.ts
+  b257e677e3fbeeca 30,565
+packages/server/src/services/appContext.ts
+  b257e677e3fbeeca 254-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e7a0d3be090d487e88a0ce53f35875ed4c3f5e87",
+  "prompts": {
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 321,
+      "total_deletions": 26,
+      "accepted_lines": 319,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 10,
+          "deletions": 5,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/assistant/queue.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 12,
+          "deletions": 15,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 179,
+          "accepted_lines": 179
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 79,
+          "deletions": 6,
+          "accepted_lines": 79
+        }
+      }
+    }
+  }
+}
