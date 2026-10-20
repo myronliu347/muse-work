@@ -99,14 +99,34 @@
 .confirm-dialog-note {
   width: 100%;
   box-sizing: border-box;
-  margin-top: var(--space-2);
-  padding: 6px 8px;
+  min-height: 72px;
+  margin: 0;
+  padding: 7px 10px;
   border: 1px solid var(--gray-6);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-3);
   background: var(--gray-1);
   color: var(--gray-12);
   font: inherit;
+  font-size: var(--font-size-2);
+  line-height: 1.4;
   resize: vertical;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.confirm-dialog-note::placeholder {
+  color: var(--gray-9);
+}
+
+.confirm-dialog-note:hover {
+  border-color: var(--gray-7);
+}
+
+.confirm-dialog-note:focus {
+  outline: none;
+  border-color: var(--accent-8);
+  box-shadow: 0 0 0 3px var(--accent-a4, color-mix(in srgb, var(--accent-9) 18%, transparent));
 }
 
 .confirm-dialog-btn-confirm:disabled {

@@ -68,9 +68,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {description && (
               <div className="confirm-dialog-description">{description}</div>
             )}
-            {children}
           </div>
         </div>
+        {children}
         <div className="confirm-dialog-actions">
           <button
             type="button"
