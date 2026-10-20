@@ -12,7 +12,7 @@ import { ensureAssistantSession } from "./session.js";
 
 type Queue = ReturnType<typeof createAssistantQueue>;
 
-const TURN_LIMIT_MS = 60_000;
+const TURN_LIMIT_MS = 90_000;
 const OVERRUN_NOTE = "这一轮处理得太久了。应该把事情安排下去，不要自己继续做。";
 
 export function createAssistantRuntime(options: {

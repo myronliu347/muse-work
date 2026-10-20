@@ -130,6 +130,18 @@ describe("assistant wiring", () => {
       assistantSessionId: "assistant",
       sessionId: "assistant",
     });
+    issues.setExecutionSessionId(issue.id, "exec-1");
+    await enqueueIssueSessionTurn({
+      issues,
+      runner: {
+        getMessages: async () => [
+          { role: "assistant", blocks: [{ type: "text", content: "执行完了" }] },
+        ],
+      },
+      enqueue: (event) => events.push(event),
+      assistantSessionId: "assistant",
+      sessionId: "exec-1",
+    });
     expect(events).toEqual([
       {
         type: "issue",

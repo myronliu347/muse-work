@@ -178,7 +178,7 @@ describe("assistant runtime", () => {
     expect(sends[3].content).not.toContain("message: 三");
   });
 
-  it("aborts after 60s only when someone is waiting, then injects the hint and the first waiter", async () => {
+  it("aborts after 90s only when someone is waiting, then injects the hint and the first waiter", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt4-"));
     const sessions = createSessionStore({ home });
     const sends: string[] = [];
@@ -228,7 +228,7 @@ describe("assistant runtime", () => {
     runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "先等" });
     runtime.enqueue({ type: "issue", issueId: "i2", title: "支付", workdir: "/repo", summary: "后等" });
     expect(sends).toHaveLength(1);
-    advance(59_000);
+    advance(89_000);
     expect(aborts).toEqual([]);
     expect(sends).toHaveLength(1);
     advance(1_000);
@@ -242,7 +242,7 @@ describe("assistant runtime", () => {
     expect(runtime.queueItems().map((item) => item.active ?? false)).toEqual([true, false]);
   });
 
-  it("keeps running past 60s when the queue is empty, and preempts once someone arrives", async () => {
+  it("keeps running past 90s when the queue is empty, and preempts once someone arrives", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt5-"));
     const sessions = createSessionStore({ home });
     const sends: string[] = [];
@@ -286,7 +286,7 @@ describe("assistant runtime", () => {
     };
     runtime.start();
     runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
-    advance(60_000);
+    advance(90_000);
     expect(sends).toHaveLength(1);
     runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "后来" });
     expect(sends).toHaveLength(2);
@@ -345,7 +345,7 @@ describe("assistant runtime", () => {
     const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
     runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
     runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "等" });
-    advance(60_000);
+    advance(90_000);
     expect(aborts).toEqual([]);
     expect(sends).toHaveLength(1);
     compacting = false;

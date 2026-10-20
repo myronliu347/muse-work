@@ -18,10 +18,9 @@ export async function enqueueIssueSessionTurn(args: {
   if (args.assistantSessionId && args.sessionId === args.assistantSessionId) {
     return;
   }
+  // 执行会话的回合由规划会话验收后再进来，完成本身不推给助手。
   const issue = args.issues.listActive().find(
-    (item) =>
-      item.planningSessionId === args.sessionId ||
-      item.executionSessionId === args.sessionId,
+    (item) => item.planningSessionId === args.sessionId,
   );
   if (!issue?.workdir) return;
   let messages: unknown[] = [];
