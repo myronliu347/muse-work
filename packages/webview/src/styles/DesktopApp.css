@@ -1910,6 +1910,9 @@ body.is-panel-resizing * {
 
 .desktop-layout .chat-header .header-title-group {
   -webkit-app-region: drag;
+  /* Fill the titlebar band. align-items:center on the header shrinks the
+     drag target to the text line, so the top edge of the window does not move. */
+  align-self: stretch;
 }
 
 .desktop-layout > .chat-container .chat-header,
@@ -1926,6 +1929,12 @@ body.is-panel-resizing * {
 
 .desktop-layout .assistant-page .assistant-header-title {
   -webkit-app-region: drag;
+  /* The title is only as wide as "Muse Bot" otherwise, so the empty
+     titlebar between it and the view switch cannot move the window. */
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
 }
 
 .desktop-layout .assistant-page .assistant-header button {
