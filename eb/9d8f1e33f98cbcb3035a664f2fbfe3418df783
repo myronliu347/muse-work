@@ -1,0 +1,29 @@
+packages/webview/src/styles/globals.css
+  6944b3dab38beac2 147-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "eb9d8f1e33f98cbcb3035a664f2fbfe3418df783",
+  "prompts": {
+    "6944b3dab38beac2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9935f167-7c06-47e9-9842-f316c4c3d179",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 23,
+      "total_deletions": 0,
+      "accepted_lines": 23,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/globals.css": {
+          "additions": 23,
+          "accepted_lines": 23
+        }
+      }
+    }
+  }
+}
