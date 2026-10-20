@@ -1,0 +1,65 @@
+packages/webview/src/styles/DesktopApp.css
+  6944b3dab38beac2 614-635
+packages/webview/src/components/session/SessionTree.tsx
+  6944b3dab38beac2 775-781,784-785
+packages/webview/tests/components/DesktopSidebar.sessions.test.tsx
+  6944b3dab38beac2 716-717,855-856,941,950,952,954
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "83fd57cd97b52eb9d0a43caffac595d7dfae0dc5",
+  "prompts": {
+    "6944b3dab38beac2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9935f167-7c06-47e9-9842-f316c4c3d179",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 39,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/components/DesktopSidebar.sessions.test.tsx": {
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "accepted_lines": 9
+        }
+      }
+    },
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 12,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/prompt.ts": {
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
