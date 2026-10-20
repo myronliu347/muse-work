@@ -217,7 +217,7 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "issues" | "closed" | "tasks" | "workspace";
+type SectionId = "pin" | "issues" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
@@ -225,8 +225,6 @@ export interface SessionTreeProps {
   recentSessions?: DesktopSessionEntry[];
   /** Issue 分组：规划会话 + 执行会话（侧栏「待办事项」折叠展示）。 */
   issueGroups?: DesktopIssueGroup[];
-  /** 已完成 / 已取消，默认收起。 */
-  closedIssueGroups?: DesktopIssueGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -276,7 +274,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
   issueGroups,
-  closedIssueGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -310,7 +307,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
-    () => new Set(["closed"]),
+    () => new Set(),
   );
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -866,48 +863,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
-  const renderClosedIssuesSection = () => {
-    const groups = closedIssueGroups ?? [];
-    if (groups.length === 0) return null;
-    const open = !collapsedSections.has("closed");
-    return (
-      <div
-        className="desktop-session-section"
-        data-testid="desktop-session-section-issues-closed"
-      >
-        {renderSectionHeader({
-          sectionId: "closed",
-          title: "已关闭",
-          testId: "desktop-session-section-issues-closed",
-        })}
-        <CollapsibleBody open={open}>
-          {groups.map((group) => (
-            <div
-              key={group.issueId}
-              className="issue-sidebar-row"
-              data-testid={`desktop-session-closed-issue-${group.issueId}`}
-              onClick={() => {
-                if (group.sessions.length > 0) onSelectIssue?.(group.issueId);
-              }}
-            >
-              <IssueTypeIcon type={group.type} />
-              <span className="issue-sidebar-title issue-sidebar-title--stacked">
-                <span className="issue-sidebar-title-line" title={group.title}>
-                  {group.title}
-                </span>
-                {group.closeNote ? (
-                  <span className="issue-sidebar-note" title={group.closeNote}>
-                    {group.closeNote}
-                  </span>
-                ) : null}
-              </span>
-            </div>
-          ))}
-        </CollapsibleBody>
-      </div>
-    );
-  };
-
   /** 任务 section：自动任务项目会话。 */
   const renderTasksSection = () => {
     const open = !collapsedSections.has("tasks");
@@ -1040,7 +995,6 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           })
         : null}
       {renderIssuesSection()}
-      {renderClosedIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 
@@ -1062,7 +1016,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               ? `完成「${pendingIssueAction.title}」？`
               : `取消「${pendingIssueAction.title}」？`
           }
-          description="关闭后停在已关闭里，可以回看，不能再接着做。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
+          description="关闭后不能再接着做。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
           confirmText={
             pendingIssueAction.kind === "complete" ? "完成" : "取消 Issue"
           }

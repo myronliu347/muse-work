@@ -222,7 +222,7 @@ export interface DesktopHostProps {
    * 与 sessionTree 同一 `desktopSessionTree` 消息推送。
    */
   issueGroups?: DesktopIssueGroup[];
-  /** 已完成 / 已取消。侧栏「已关闭」里回看，不能再打开接着做。 */
+  /** 已完成 / 已取消。不进侧栏，只用来解析已经打开的会话。 */
   closedIssueGroups?: DesktopIssueGroup[];
   /** Open a historical session; switches workdir first when needed. */
   onSelectSession: (workdir: string, sessionId: string) => void;

@@ -679,7 +679,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         isAuthenticated={isAuthenticated}
         {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
         issueGroups={issueGroups ?? host.issueGroups}
-        closedIssueGroups={host.closedIssueGroups}
         onNewIssue={onNewIssue}
         onOpenPlanning={onOpenPlanning}
         onSelectIssue={onSelectIssue}

@@ -67,8 +67,6 @@ export interface DesktopSidebarProps {
   recentSessions?: DesktopSessionEntry[];
   /** Issue 分组（侧栏「待办事项」）。 */
   issueGroups?: DesktopIssueGroup[];
-  /** 已完成 / 已取消。 */
-  closedIssueGroups?: DesktopIssueGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
@@ -124,7 +122,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   pinnedSessions,
   recentSessions,
   issueGroups,
-  closedIssueGroups,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
@@ -256,7 +253,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         pinnedSessions={pinnedSessions}
         recentSessions={recentSessions}
         issueGroups={issueGroups}
-        closedIssueGroups={closedIssueGroups}
         currentSessionId={currentSessionId}
         visibleSessionIds={visibleSessionIds}
         isStreaming={isStreaming}
