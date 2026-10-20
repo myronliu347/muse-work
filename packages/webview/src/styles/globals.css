@@ -144,3 +144,26 @@ a:focus-visible {
   color: var(--gray-11);
   display: inline-block;
 }
+
+/* Radix 组件默认 size 2（14px），对话框标题默认 heading size 5。
+   界面正文和控件是 --font-size-1，这里把默认档拉回同一阶。 */
+.rt-Button:where(.rt-r-size-2),
+.rt-SelectTrigger:where(.rt-r-size-2),
+.rt-SelectContent:where(.rt-r-size-2) :where(.rt-SelectItem, .rt-SelectLabel),
+.rt-BaseMenuContent:where(.rt-r-size-2) :where(.rt-BaseMenuItem, .rt-BaseMenuLabel),
+.rt-TextFieldRoot:where(.rt-r-size-2),
+.rt-TextAreaRoot:where(.rt-r-size-2) :where(.rt-TextAreaInput),
+.rt-Text:where(.rt-r-size-2),
+.rt-Text:where(.rt-r-size-3) {
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  --line-height: var(--line-height-1);
+  letter-spacing: var(--letter-spacing-1);
+  --letter-spacing: var(--letter-spacing-1);
+}
+
+.rt-Heading:where(.rt-r-size-5) {
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  --line-height: var(--line-height-2);
+}
