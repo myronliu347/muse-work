@@ -821,7 +821,7 @@ export const AssistantPage: React.FC<{
               aria-pressed={mode === "transcript"}
               onClick={() => setMode("transcript")}
             >
-              AI 消息
+              轨迹
             </button>
           </div>
           {showPanelToggle && onToggleDock ? (

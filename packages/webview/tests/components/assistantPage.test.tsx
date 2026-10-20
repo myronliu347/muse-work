@@ -131,7 +131,7 @@ describe("AssistantPage", () => {
     };
     render(<AssistantPage api={api} />);
     expect(await screen.findByText("Muse Bot")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+    fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
     expect(await screen.findByText("工具调用了")).toBeTruthy();
     expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
@@ -277,7 +277,7 @@ describe("AssistantPage", () => {
     try {
       render(<AssistantPage api={api} />);
       expect(await screen.findByText("你好")).toBeTruthy();
-      fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+      fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
       expect(document.querySelector(".assistant-log")).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "对话" }));
       const log = document.querySelector(".assistant-log") as HTMLDivElement;
@@ -518,7 +518,7 @@ describe("AssistantPage", () => {
     };
     render(<AssistantPage api={api} />);
     typeComposer("先记着");
-    fireEvent.click(screen.getByRole("button", { name: "AI 消息" }));
+    fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
     expect(screen.queryByTestId("message-input")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "对话" }));
     expect(screen.getByTestId("message-input").textContent).toBe("先记着");
