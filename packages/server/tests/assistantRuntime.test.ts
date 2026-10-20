@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createSessionStore } from "../src/services/sessionStore.js";
+import { formatEventTimestamp } from "../src/services/assistant/events.js";
 import { createAssistantQueue } from "../src/services/assistant/queue.js";
 import { createAssistantRuntime } from "../src/services/assistant/runtime.js";
 
@@ -226,6 +227,7 @@ describe("assistant runtime", () => {
     const assistantId = sessions.list().find((session) => session.origin === "assistant")!.id;
     runtime.enqueue({ type: "chat", from: "muse", message: "正在做" });
     runtime.enqueue({ type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "先等" });
+    expect(sends[0]).toContain(`timestamp: ${formatEventTimestamp(0)}`);
     runtime.enqueue({ type: "issue", issueId: "i2", title: "支付", workdir: "/repo", summary: "后等" });
     expect(sends).toHaveLength(1);
     advance(89_000);

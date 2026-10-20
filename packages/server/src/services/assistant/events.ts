@@ -7,6 +7,8 @@ export type AssistantChatEvent = {
   user?: string;
   groupId?: string;
   images?: Array<{ data: string; mediaType: string }>;
+  /** 事件触发时的毫秒时间戳。 */
+  timestamp?: number;
   retry?: 1;
   turnError?: string;
 };
@@ -20,6 +22,8 @@ export type AssistantIssueEvent = {
   request?: string;
   requestNote?: string;
   summary: string;
+  /** 事件触发时的毫秒时间戳。 */
+  timestamp?: number;
   retry?: 1;
   turnError?: string;
 };
@@ -38,6 +42,8 @@ export type AssistantAutomationEvent = {
   instruction?: string;
   error?: string;
   summary?: string;
+  /** 事件触发时的毫秒时间戳。 */
+  timestamp?: number;
   retry?: 1;
   turnError?: string;
 };
@@ -52,6 +58,8 @@ export type AssistantPermissionEvent = {
   toolName: string;
   description: string;
   descriptionNote?: string;
+  /** 事件触发时的毫秒时间戳。 */
+  timestamp?: number;
   retry?: 1;
   turnError?: string;
 };
@@ -115,6 +123,32 @@ function truncateCodePoints(text: string, max: number): { text: string; truncate
   return { text: chars.slice(0, max).join(""), truncated: true };
 }
 
+/** 本地时间，带时区偏移，给模型看这条事件是什么时候触发的。 */
+export function formatEventTimestamp(ms: number): string {
+  const date = new Date(ms);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const offsetMin = -date.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  return [
+    date.getFullYear(),
+    "-",
+    pad(date.getMonth() + 1),
+    "-",
+    pad(date.getDate()),
+    "T",
+    pad(date.getHours()),
+    ":",
+    pad(date.getMinutes()),
+    ":",
+    pad(date.getSeconds()),
+    sign,
+    pad(Math.floor(abs / 60)),
+    ":",
+    pad(abs % 60),
+  ].join("");
+}
+
 function linesOf(fields: Array<[string, string | undefined]>): string {
   return fields
     .filter(([, value]) => value !== undefined && value !== "")
@@ -127,6 +161,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
   if (event.type === "chat") {
     body = linesOf([
       ["type", "chat"],
+      ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
       ["from", event.from],
       ["message", event.message],
       ["user", event.user],
@@ -141,6 +176,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
     const summary = truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "issue"],
+      ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
       ["issueId", event.issueId],
       ["title", event.title],
       ["workdir", event.workdir],
@@ -156,6 +192,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
     const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "permission"],
+      ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
       ["permissionId", event.permissionId],
       ["issueId", event.issueId],
       ["title", event.title],
@@ -175,6 +212,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
         : truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "automation"],
+      ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
       ["automationId", event.automationId],
       ["name", event.name],
       ["runId", event.runId],

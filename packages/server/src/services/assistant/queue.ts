@@ -36,6 +36,7 @@ function mergedChat(tail: AssistantChatEvent, next: AssistantChatEvent): Assista
     .filter((part) => part !== "")
     .join("\n");
   const images = normalizeAssistantImages([...(tail.images ?? []), ...(next.images ?? [])]);
+  const timestamp = latestTimestamp(tail.timestamp, next.timestamp);
   return {
     type: "chat",
     from: tail.from,
@@ -43,7 +44,14 @@ function mergedChat(tail: AssistantChatEvent, next: AssistantChatEvent): Assista
     ...(tail.user ? { user: tail.user } : {}),
     ...(tail.groupId ? { groupId: tail.groupId } : {}),
     ...(images.length > 0 ? { images } : {}),
+    ...(timestamp !== undefined ? { timestamp } : {}),
   };
+}
+
+function latestTimestamp(left?: number, right?: number): number | undefined {
+  if (left === undefined) return right;
+  if (right === undefined) return left;
+  return Math.max(left, right);
 }
 
 function load(filePath: string): { events: AssistantEvent[]; inflightCount: number } {

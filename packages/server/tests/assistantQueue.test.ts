@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getMuseHomeDir } from "@muse-work/provider";
-import { formatAssistantEvent, formatAssistantEvents, viewAssistantEvent } from "../src/services/assistant/events.js";
+import { formatAssistantEvent, formatAssistantEvents, formatEventTimestamp, viewAssistantEvent } from "../src/services/assistant/events.js";
 import { createAssistantQueue } from "../src/services/assistant/queue.js";
 
 describe("assistant events and queue", () => {
@@ -15,6 +15,13 @@ describe("assistant events and queue", () => {
       user: "a@corp",
       groupId: "g1",
     })).toBe("type: chat\nfrom: popo-group\nmessage: 你好\nuser: a@corp\ngroupId: g1");
+    const triggeredAt = Date.UTC(2026, 9, 20, 8, 1, 37);
+    expect(formatAssistantEvent({
+      type: "chat",
+      from: "muse",
+      message: "现在",
+      timestamp: triggeredAt,
+    })).toBe(`type: chat\ntimestamp: ${formatEventTimestamp(triggeredAt)}\nfrom: muse\nmessage: 现在`);
     expect(formatAssistantEvents([
       { type: "chat", from: "muse", message: "一" },
       { type: "issue", issueId: "i1", title: "登录", workdir: "/repo", summary: "s" },

@@ -50,6 +50,11 @@ export function createAssistantRuntime(options: {
   let cancelLimit: (() => void) | undefined;
   let preempting = false;
 
+  function stamp(event: AssistantEvent): AssistantEvent {
+    if (event.timestamp !== undefined) return event;
+    return { ...event, timestamp: clock() };
+  }
+
   function chatSource(event: AssistantEvent): string | undefined {
     if (event.type !== "chat") return undefined;
     return `${event.from}\0${event.user ?? ""}\0${event.groupId ?? ""}`;
@@ -219,6 +224,7 @@ export function createAssistantRuntime(options: {
 
   return {
     enqueue(event) {
+      event = stamp(event);
       if (inflight && event.type === "chat") {
         const source = chatSource(event);
         if (source && inflightSources.has(source)) {
