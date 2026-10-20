@@ -23,7 +23,11 @@ export type AssistantToolDeps = {
   automations: AutomationStore;
   log: Log;
   hub: WsHub;
-  sendText?: (receiver: string, content: string) => Promise<string[] | void>;
+  sendText?: (
+    receiver: string,
+    content: string,
+    at?: { atUids?: string[] },
+  ) => Promise<string[] | void>;
   sendLocalFile?: (receiver: string, filePath: string) => Promise<string | void>;
   recallPopo?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   /** 主人账号。只有发给这个人的 POPO 私聊才写入对话列表。 */
@@ -116,6 +120,51 @@ function composeOutbound(message: string, files: string[], links: string[], over
     if (!message.includes(filePath)) extras.push(filePath);
   }
   return [message, ...extras].filter(Boolean).join("\n");
+}
+
+function issueMentionLabel(title: string): string {
+  const cleaned = title.replace(/[\[\]\r\n]/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned || "Issue";
+}
+
+function mentionedIssueId(message: string): string | undefined {
+  const match = message.match(/\[@issue:([^\s\]]+)/);
+  return match?.[1];
+}
+
+type AtTarget = { type: "issue" | "user"; id: string };
+
+function parseAts(value: unknown): AtTarget[] | string {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return "ats 必须是数组";
+  const ats: AtTarget[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") return "ats 每一项都要有 type 和 id";
+    const type = (item as { type?: unknown }).type;
+    const id = text((item as { id?: unknown }).id);
+    if (type !== "issue" && type !== "user") return "at type 只能是 issue 或 user";
+    if (!id) return "at id required";
+    ats.push({ type, id });
+  }
+  return ats;
+}
+
+function previousIssueId(log: Log): string | undefined {
+  const messages = log.page({ limit: 50 }).messages;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const line = messages[i];
+    if (!line || line.app) continue;
+    const issueId = line.issueId || mentionedIssueId(line.message);
+    if (issueId) return issueId;
+  }
+  return undefined;
+}
+
+function withIssueLead(message: string, lead: string, joiner: string): string {
+  if (message === lead || message.startsWith(`${lead}${joiner}`) || message.startsWith(`${lead} `)) {
+    return message;
+  }
+  return message ? `${lead}${joiner}${message}` : lead;
 }
 
 function queuedPreview(item: unknown): string | undefined {
@@ -490,7 +539,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "SendMessage",
-      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。本地图片和文件用 files 传绝对路径，链接用 links。",
+      "回复 Muse 或 POPO。app 为 muse 或 popo。popo 有 groupId 则发群，否则发给 user。ats 用来 @：Muse 只能 @ issue，POPO 群只能 @ user。本地图片和文件用 files 传绝对路径，链接用 links。",
       {
         type: "object",
         properties: {
@@ -498,15 +547,54 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           app: { type: "string", enum: ["muse", "popo"] },
           user: { type: "string" },
           groupId: { type: "string" },
+          ats: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["issue", "user"] },
+                id: { type: "string" },
+              },
+              required: ["type", "id"],
+            },
+            description:
+              "Muse 用 { type: issue, id }，换了才加引用，跟上一条同一条不加。POPO 群用 { type: user, id }，id 是邮箱。私聊不要传。",
+          },
           files: { type: "array", items: { type: "string" } },
           links: { type: "array", items: { type: "string" } },
         },
         required: ["message", "app"],
       },
       async (args) => {
-        const message = typeof args.message === "string" ? args.message.trim() : "";
+        let message = typeof args.message === "string" ? args.message.trim() : "";
         const files = stringList(args.files);
         const links = stringList(args.links);
+        const groupId = text(args.groupId);
+        const parsedAts = parseAts(args.ats);
+        if (typeof parsedAts === "string") return fail(parsedAts);
+        const issueAts = parsedAts.filter((at) => at.type === "issue");
+        const userAts = parsedAts.filter((at) => at.type === "user");
+        let rememberedIssueId: string | undefined;
+        let atUids: string[] | undefined;
+        if (args.app === "muse") {
+          if (userAts.length > 0) return fail("muse 只能 @ issue");
+          if (issueAts.length === 1 && previousIssueId(deps.log) === issueAts[0]?.id) {
+            rememberedIssueId = issueAts[0]?.id;
+          } else if (issueAts.length > 0) {
+            const chips: string[] = [];
+            for (const at of issueAts) {
+              const issue = deps.issues.get(at.id);
+              if (!issue) return fail("not found");
+              chips.push(`[@issue:${issue.id} ${issueMentionLabel(issue.title)}]`);
+              rememberedIssueId = issue.id;
+            }
+            message = withIssueLead(message, chips.join(" "), " ");
+          }
+        } else if (args.app === "popo") {
+          if (issueAts.length > 0) return fail("POPO 不能 @ issue");
+          if (userAts.length > 0 && !groupId) return fail("只有群聊可以 @ 人");
+          if (userAts.length > 0) atUids = userAts.map((at) => at.id);
+        }
         if (!message && files.length === 0 && links.length === 0) return fail("message required");
         for (const filePath of files) {
           const problem = localFile(filePath);
@@ -515,19 +603,29 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const { images, overflow } = inlineImages(files);
         const body = composeOutbound(message, files, links, overflow);
         if (args.app === "muse") {
-          const line = deps.log.append("assistant", body, images.length > 0 ? images : undefined);
+          const line = deps.log.append(
+            "assistant",
+            body,
+            images.length > 0 ? images : undefined,
+            undefined,
+            undefined,
+            rememberedIssueId,
+          );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ line });
         }
         if (args.app !== "popo") return fail("app must be muse or popo");
-        const groupId = text(args.groupId);
         const user = text(args.user);
         const receiver = groupId || user;
         if (!receiver || !deps.sendText) return fail("popo recipient required");
         if (files.length > 0 && !deps.sendLocalFile) return fail("popo file send unavailable");
         const msgIds: string[] = [];
         try {
-          if (body) msgIds.push(...messageIds(await deps.sendText(receiver, body)));
+          if (body) {
+            msgIds.push(
+              ...messageIds(await deps.sendText(receiver, body, atUids ? { atUids } : undefined)),
+            );
+          }
           for (const filePath of files) {
             const msgId = await deps.sendLocalFile!(receiver, filePath);
             if (typeof msgId === "string" && msgId.trim()) msgIds.push(msgId.trim());
@@ -543,6 +641,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
             images.length > 0 ? images : undefined,
             "popo",
             msgIds,
+            rememberedIssueId,
           );
           deps.hub.broadcastAll({ type: "assistant:chat", line });
           return ok({ sent: true, receiver, msgIds, line });

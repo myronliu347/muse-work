@@ -40,9 +40,14 @@ function popoFileType(filePath: string): string {
   return ext || "bin";
 }
 
+export type PopoTextAt = {
+  /** 群里 @ 的用户邮箱或机器人 appId。只加在第一段文本上。 */
+  atUids?: string[];
+};
+
 export interface Sender {
   /** 返回每段文本对应的消息 id，供撤回使用。 */
-  sendText(receiver: string, content: string): Promise<string[]>;
+  sendText(receiver: string, content: string, at?: PopoTextAt): Promise<string[]>;
   /** 先登记文件拿到 fileKey 和 uploadUrl，再把本地字节传上去，最后按图片或文件发出。 */
   sendLocalFile(receiver: string, filePath: string): Promise<string>;
   recall(args: PopoRecall): Promise<void>;
@@ -167,12 +172,18 @@ export function createSender(options: SenderOptions): Sender {
   }
 
   return {
-    async sendText(receiver, content) {
+    async sendText(receiver, content, at) {
+      const atUids = (at?.atUids ?? []).map((id) => id.trim()).filter(Boolean);
       const msgIds: string[] = [];
-      for (const chunk of chunkText(content)) {
+      const chunks = chunkText(content);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i] ?? "";
         const result = await authed(SEND_API, {
           receiver,
-          message: { content: chunk },
+          message: {
+            content: chunk,
+            ...(i === 0 && atUids.length > 0 ? { atUids } : {}),
+          },
           msgType: "text",
         });
         const msgId = readMsgId(result, receiver);

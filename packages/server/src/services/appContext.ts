@@ -29,6 +29,7 @@ import { createAssistantRuntime } from "./assistant/runtime.js";
 import { createAssistantTools } from "./assistant/tools.js";
 import { enqueueIssuePermission, enqueueIssueSessionTurn } from "./assistant/observe.js";
 import { loadPopoConfig } from "../popo/popoConfig.js";
+import type { PopoTextAt } from "../popo/sender.js";
 import { lastAssistantText } from "./issueDispatch.js";
 
 export { resolveHome };
@@ -48,7 +49,7 @@ export interface AppContext {
   assistantLog: ReturnType<typeof createAssistantMessageLog>;
   assistantRuntime: ReturnType<typeof createAssistantRuntime>;
   popoSend: {
-    current?: (receiver: string, content: string) => Promise<string[]>;
+    current?: (receiver: string, content: string, at?: PopoTextAt) => Promise<string[]>;
     sendLocalFile?: (receiver: string, filePath: string) => Promise<string>;
     recall?: (args: { msgId: string; sessionId: string; sessionType: 1 | 3 }) => Promise<void>;
   };
@@ -164,10 +165,10 @@ export function createAppContext(
     automations,
     log: assistantLog,
     hub: sessions.hub,
-    sendText: (receiver, content) => {
+    sendText: (receiver, content, at) => {
       const send = popoSend.current;
       if (!send) return Promise.reject(new Error("POPO 未配置"));
-      return send(receiver, content);
+      return send(receiver, content, at);
     },
     sendLocalFile: (receiver, filePath) => {
       const send = popoSend.sendLocalFile;

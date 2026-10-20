@@ -34,10 +34,16 @@ describe("popo sender", () => {
       fetchImpl,
     });
     await sender.sendText("user@corp.netease.com", "hello");
+    await sender.sendText("g1", "看一下", { atUids: ["a@corp.netease.com"] });
     expect(seen[0].headers["open-access-token"]).toBe("tk-1");
     expect(seen[0].body).toEqual({
       receiver: "user@corp.netease.com",
       message: { content: "hello" },
+      msgType: "text",
+    });
+    expect(seen[1].body).toEqual({
+      receiver: "g1",
+      message: { content: "看一下", atUids: ["a@corp.netease.com"] },
       msgType: "text",
     });
   });

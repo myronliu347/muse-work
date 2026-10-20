@@ -205,6 +205,28 @@ describe("AssistantPage", () => {
     expect(screen.queryByText(/\[@issue:/)).toBeNull();
   });
 
+  it("renders an issue mention in an assistant reply as a tag", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message: "[@issue:abc123 登录失败] 修好了",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} />);
+    const title = await screen.findByText("登录失败");
+    expect(title.closest(".assistant-bubble-assistant")).toBeTruthy();
+    expect(screen.getByText("修好了").closest(".assistant-bubble-assistant")).toBeTruthy();
+    expect(screen.queryByText(/\[@issue:/)).toBeNull();
+  });
+
   it("prepends older lines when the log is scrolled to the top", async () => {
     const api = {
       listAssistantMessages: vi.fn(async (query?: { before?: string }) => {

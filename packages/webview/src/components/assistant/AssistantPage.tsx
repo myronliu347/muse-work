@@ -412,17 +412,29 @@ function AssistantBubbleBody({
   const { text, urls } = popoImageUrls(line.message);
   const shots = [...urls, ...(line.images ?? []).map((img) => img.data)];
   const gallery = shots.map((src, index) => ({ url: src, alt: `图片 ${index + 1}` }));
+  const parts = parseMentions(text).filter(
+    (part) => part.issueId || part.content.trim(),
+  );
   return (
     <>
-      {text ? (
-        <div
-          className="message-content markdown-content"
-          onClick={onLinkClick}
-          dangerouslySetInnerHTML={{
-            __html: markdownHtml(text, closedFilePaths),
-          }}
-        />
-      ) : null}
+      {parts.map((part, index) =>
+        part.issueId ? (
+          <ContextTag
+            key={`${line.id}:issue:${index}`}
+            name={part.fileName || part.issueId}
+            path={part.issueId}
+          />
+        ) : (
+          <div
+            key={`${line.id}:text:${index}`}
+            className="message-content markdown-content"
+            onClick={onLinkClick}
+            dangerouslySetInnerHTML={{
+              __html: markdownHtml(part.content, closedFilePaths),
+            }}
+          />
+        ),
+      )}
       {shots.length > 0 ? (
         <div className="assistant-user-images">
           {shots.map((src, index) => (

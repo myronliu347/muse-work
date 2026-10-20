@@ -26,6 +26,8 @@ export interface MuseChatLine {
   app?: "popo";
   /** POPO 发出去的消息 id，用来撤回。 */
   msgIds?: string[];
+  /** 这句在说的 Issue。引用没写进正文时也记着，用来判断下一句要不要再带。 */
+  issueId?: string;
 }
 
 export interface MuseChatPage {
@@ -102,6 +104,9 @@ function parseLine(raw: string): MuseChatLine | undefined {
     const msgIds = normalizeMsgIds((record as { msgIds?: unknown }).msgIds);
     if (msgIds.length > 0) record.msgIds = msgIds;
     else delete record.msgIds;
+    const issueId = (record as { issueId?: unknown }).issueId;
+    if (typeof issueId === "string" && issueId.trim()) record.issueId = issueId.trim();
+    else delete record.issueId;
     return record;
   } catch {
     return undefined;
@@ -142,6 +147,7 @@ export function createAssistantMessageLog(options: {
     images?: MuseChatImage[],
     app?: "popo",
     msgIds?: string[],
+    issueId?: string,
   ): MuseChatLine;
   page(args?: { before?: string; limit?: number }): MuseChatPage;
   search(args: { q: string; before?: string; limit?: number }): MuseChatSearchPage;
@@ -156,6 +162,7 @@ export function createAssistantMessageLog(options: {
     images?: MuseChatImage[],
     app?: "popo",
     msgIds?: string[],
+    issueId?: string,
   ): MuseChatLine {
     fs.mkdirSync(dir, { recursive: true });
     const names = listSliceNames(dir);
@@ -169,6 +176,7 @@ export function createAssistantMessageLog(options: {
     const at = now();
     const kept = normalizeAssistantImages(images);
     const keptIds = normalizeMsgIds(msgIds);
+    const keptIssueId = typeof issueId === "string" ? issueId.trim() : "";
     const line: MuseChatLine = {
       id: newId(),
       at,
@@ -177,6 +185,7 @@ export function createAssistantMessageLog(options: {
       ...(kept.length > 0 ? { images: kept } : {}),
       ...(app === "popo" ? { app: "popo" as const } : {}),
       ...(keptIds.length > 0 ? { msgIds: keptIds } : {}),
+      ...(keptIssueId ? { issueId: keptIssueId } : {}),
     };
     fs.appendFileSync(filePath, `${JSON.stringify(line)}\n`);
     return line;

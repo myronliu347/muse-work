@@ -498,6 +498,88 @@ describe("assistant tools", () => {
     expect(missing.success).toBe(false);
   });
 
+  it("prefixes a reply when the issue changes and skips it when the last one matches", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-mention-"));
+    const issues = createIssueStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const sent: Array<{ content: string; atUids?: string[] }> = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions: createSessionStore({ home }),
+      automations: createAutomationStore({ home }),
+      log,
+      hub: { broadcastAll: () => undefined } as WsHub,
+      runner: {} as never,
+      sendText: async (_receiver, content, at) => {
+        sent.push({ content, ...(at?.atUids ? { atUids: at.atUids } : {}) });
+        return ["m1"];
+      },
+      popoMasterUid: () => "master",
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const analysis = issues.create({ title: "高码澄清", description: "查" });
+    const design = issues.create({ title: "设计系统", description: "做" });
+
+    log.append("user", `接着看 [@issue:${analysis.id} 高码澄清]`);
+    const same = await tool(tools, "SendMessage").execute(
+      { app: "muse", ats: [{ type: "issue", id: analysis.id }], message: "查到了" },
+      context,
+    );
+    expect(same.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe("查到了");
+
+    const switched = await tool(tools, "SendMessage").execute(
+      { app: "muse", ats: [{ type: "issue", id: design.id }], message: "卡在提问上" },
+      context,
+    );
+    expect(switched.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe(
+      `[@issue:${design.id} 设计系统] 卡在提问上`,
+    );
+
+    const again = await tool(tools, "SendMessage").execute(
+      { app: "muse", ats: [{ type: "issue", id: design.id }], message: "还是这条" },
+      context,
+    );
+    expect(again.success).toBe(true);
+    expect(log.page().messages.at(-1)?.message).toBe("还是这条");
+
+    const museUser = await tool(tools, "SendMessage").execute(
+      { app: "muse", ats: [{ type: "user", id: "a@corp.netease.com" }], message: "不行" },
+      context,
+    );
+    expect(museUser.success).toBe(false);
+    const privateAt = await tool(tools, "SendMessage").execute(
+      { app: "popo", user: "master", ats: [{ type: "user", id: "a@corp.netease.com" }], message: "私聊" },
+      context,
+    );
+    expect(privateAt.success).toBe(false);
+    const groupIssue = await tool(tools, "SendMessage").execute(
+      { app: "popo", groupId: "g1", ats: [{ type: "issue", id: design.id }], message: "群里" },
+      context,
+    );
+    expect(groupIssue.success).toBe(false);
+
+    const group = await tool(tools, "SendMessage").execute(
+      {
+        app: "popo",
+        groupId: "g1",
+        ats: [{ type: "user", id: "a@corp.netease.com" }],
+        message: "看一下",
+      },
+      context,
+    );
+    expect(group.success).toBe(true);
+    expect(sent).toEqual([{ content: "看一下", atUids: ["a@corp.netease.com"] }]);
+
+    const missing = await tool(tools, "SendMessage").execute(
+      { app: "muse", ats: [{ type: "issue", id: "missing" }], message: "没有" },
+      context,
+    );
+    expect(missing.success).toBe(false);
+  });
+
   it("hides awaiting-close issues and resumes them when messaging", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-ready-"));
     const issues = createIssueStore({ home });

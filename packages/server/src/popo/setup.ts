@@ -73,7 +73,7 @@ export function setupPopoRuntime(ctx: AppContext, options?: { callbackPort?: num
     appSecret: config.appSecret,
   });
   const sender = createSender({ tokenStore });
-  runtime.sendText = (receiver, content) => sender.sendText(receiver, content);
+  runtime.sendText = (receiver, content, at) => sender.sendText(receiver, content, at);
   runtime.sendLocalFile = (receiver, filePath) => sender.sendLocalFile(receiver, filePath);
   runtime.recall = (args) => sender.recall(args);
   if (runtime.sendText) ctx.popoSend.current = runtime.sendText;

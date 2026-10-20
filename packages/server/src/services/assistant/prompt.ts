@@ -78,6 +78,8 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 
 回复人或 POPO 必须调用 \`SendMessage\`。
 
+要 @ 的时候，\`SendMessage\` 带 \`ats\`。Muse 只能 \`[{ "type": "issue", "id": "..." }]\`，引用由工具加，跟上一条是同一条时不加，正文里不要自己写 \`[@issue:…]\`。POPO 群聊只能 \`[{ "type": "user", "id": "邮箱" }]\`。私聊不用 @。
+
 - \`app\` 为 \`muse\`：Muse 私聊。
 - \`app\` 为 \`popo\`：有 \`groupId\` 发群，否则是 POPO 私聊，发给 \`user\`。
 - 本地图片或文件放进 \`files\`，用绝对路径。jpg、gif、png、bmp 会按图片发，其他按文件发。链接放进 \`links\`。只有附件时 \`message\` 可以是空字符串。
