@@ -496,13 +496,6 @@
   opacity: 0.85;
 }
 
-.desktop-session-issue-icon-spacer {
-  display: block;
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
 .desktop-session-workdir-folder:has(.desktop-session-status-icon),
 .desktop-session-workdir-folder:has(.desktop-session-unread-dot) {
   opacity: 1;
@@ -605,6 +598,22 @@
 .issue-sidebar-row--current:hover,
 .issue-sidebar-row--visible:hover {
   background: color-mix(in srgb, var(--gray-4) 88%, transparent);
+}
+
+.issue-type-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--gray-11);
+  line-height: 0;
+}
+
+.issue-checklist-card-title .issue-type-icon {
+  margin-right: 6px;
+  vertical-align: -1px;
 }
 
 .issue-sidebar-title {

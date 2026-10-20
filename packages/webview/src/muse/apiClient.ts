@@ -115,6 +115,13 @@ export type MuseIssueStatus =
   | "completed"
   | "cancelled";
 export type MuseChecklistItemStatus = "pending" | "running" | "done";
+export type MuseIssueType =
+  | "bug"
+  | "feature"
+  | "research"
+  | "analysis"
+  | "review"
+  | "work";
 
 export interface MuseChecklistItem {
   id: string;
@@ -128,7 +135,7 @@ export interface MuseIssue {
   title: string;
   description: string;
   priority: MuseIssuePriority;
-  tags: string[];
+  type: MuseIssueType;
   status: MuseIssueStatus;
   agentMode?: "single" | "split";
   workdir?: string;
@@ -147,6 +154,7 @@ export interface MuseIssueGroup {
   title: string;
   description?: string;
   priority: string;
+  type?: string;
   status: string;
   items: MuseChecklistItem[];
   planningSessionId?: string;
@@ -217,7 +225,8 @@ export interface MuseAutomationRun {
       title: string;
       status: string;
       priority: string;
-      tags: string[];
+      type?: string;
+      tags?: string[];
     };
   };
   skipReason?: "rule_running" | "global_concurrency";
@@ -783,7 +792,7 @@ export class MuseApiClient {
     title: string;
     description?: string;
     priority?: MuseIssuePriority;
-    tags?: string[];
+    type?: MuseIssueType;
   }): Promise<{ issue: MuseIssue }> {
     const res = await this.request("/issues", {
       method: "POST",
@@ -799,7 +808,7 @@ export class MuseApiClient {
       title?: string;
       description?: string;
       priority?: MuseIssuePriority;
-      tags?: string[];
+      type?: MuseIssueType;
     },
   ): Promise<{ issue: MuseIssue }> {
     const res = await this.request(`/issues/${encodeURIComponent(id)}`, {

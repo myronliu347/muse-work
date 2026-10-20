@@ -274,6 +274,8 @@ export interface DesktopIssueGroup {
   description?: string;
   /** p0 | p1 | p2 */
   priority: string;
+  /** bug | feature | research | analysis | review | work。缺省按 work 展示。 */
+  type?: string;
   status: string;
   items: Array<{ id: string; content: string; status: string }>;
   planningSessionId?: string;

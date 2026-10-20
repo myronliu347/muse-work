@@ -712,9 +712,14 @@ describe("DesktopSidebar pin/recent sessions", () => {
     const badge = section.querySelector(".issue-sidebar-priority-p0");
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
+    const issueRow = screen.getByTestId("desktop-session-issue-row-issue-1");
+    expect(issueRow.firstElementChild).toHaveAttribute(
+      "data-testid",
+      "issue-type-work",
+    );
     expect(
-      screen.getByTestId("desktop-session-issue-icon-spacer"),
-    ).toBeTruthy();
+      issueRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
+    ).toBeNull();
     expect(
       screen.getByTestId("desktop-session-issue-row-issue-1"),
     ).not.toHaveTextContent("写方案");
@@ -849,9 +854,10 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       row.querySelector("[data-testid='desktop-session-issue-expand']"),
     ).toBeNull();
+    expect(row.firstElementChild).toHaveAttribute("data-testid", "issue-type-work");
     expect(
       row.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
-    ).toBeTruthy();
+    ).toBeNull();
   });
 
   it("keeps the issue title on one line and overlays status/more on hover", () => {
@@ -933,9 +939,13 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       emptyRow.querySelector("[data-testid='desktop-session-status-running']"),
     ).toBeNull();
+    expect(emptyRow.firstElementChild).toHaveAttribute(
+      "data-testid",
+      "issue-type-work",
+    );
     expect(
       emptyRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
-    ).toBeTruthy();
+    ).toBeNull();
 
     const busyRow = screen.getByTestId("desktop-session-issue-row-busy-1");
     expect(

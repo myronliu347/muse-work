@@ -3,6 +3,7 @@ import { Tooltip } from "../shared/Tooltip";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { WorktreeInfoCard } from "../shared/WorktreeInfoCard";
 import { IssueChecklistCard } from "../issue/IssueChecklistCard";
+import { IssueTypeIcon } from "../issue/IssueTypeIcon";
 import { formatRelativeActiveAt } from "../../utils/time";
 import type {
   DesktopSessionGroup,
@@ -731,6 +732,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                         <IssueChecklistCard
                           issueId={group.issueId}
                           title={group.title}
+                          type={group.type}
                           description={group.description}
                           status={group.status}
                           statusLabel={statusLabel}
@@ -769,21 +771,17 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                             : undefined
                         }
                       >
-                        <span
-                          className="desktop-session-workdir-icon-slot"
-                          aria-hidden="true"
-                        >
-                          {statusIcon ? (
+                        <IssueTypeIcon type={group.type} />
+                        {statusIcon ? (
+                          <span
+                            className="desktop-session-workdir-icon-slot"
+                            aria-hidden="true"
+                          >
                             <span className="desktop-session-workdir-folder">
                               {statusIcon}
                             </span>
-                          ) : (
-                            <span
-                              className="desktop-session-issue-icon-spacer"
-                              data-testid="desktop-session-issue-icon-spacer"
-                            />
-                          )}
-                        </span>
+                          </span>
+                        ) : null}
                         <span
                           className="issue-sidebar-title"
                           title={group.title}

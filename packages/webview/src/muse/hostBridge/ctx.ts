@@ -89,6 +89,7 @@ export interface BridgeCtx {
     title: string;
     description?: string;
     priority: string;
+    type?: string;
     status: string;
     items: NonNullable<MuseSessionsGrouped["issueGroups"]>[number]["items"];
     planningSessionId?: string;
@@ -101,6 +102,7 @@ export interface BridgeCtx {
     title: string;
     description?: string;
     priority: string;
+    type?: string;
     status: string;
     items: NonNullable<MuseSessionsGrouped["closedIssueGroups"]>[number]["items"];
     planningSessionId?: string;

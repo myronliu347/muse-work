@@ -129,7 +129,7 @@ describe("MuseApiClient issues", () => {
                 title: "修登录",
                 description: "",
                 priority: "p1",
-                tags: ["auth"],
+                type: "bug",
                 status: "pending",
                 items: [],
                 createdAt: 1,
@@ -160,14 +160,14 @@ describe("MuseApiClient issues", () => {
     await client.createIssue({
       title: "x",
       priority: "p0",
-      tags: ["urgent"],
+      type: "bug",
     });
     expect(fetches[0]?.method).toBe("POST");
     expect(fetches[0]?.url).toBe("http://127.0.0.1:9/issues");
     expect(JSON.parse(fetches[0]?.body ?? "{}")).toEqual({
       title: "x",
       priority: "p0",
-      tags: ["urgent"],
+      type: "bug",
     });
   });
 });

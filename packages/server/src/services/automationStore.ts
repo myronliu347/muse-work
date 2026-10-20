@@ -57,7 +57,9 @@ export interface AutomationRun {
       title: string;
       status: string;
       priority: string;
-      tags: string[];
+      type?: string;
+      /** 旧运行记录里可能还有。新记录不再写。 */
+      tags?: string[];
     };
   };
   skipReason?: SkipReason;
@@ -129,7 +131,14 @@ function cloneRun(run: AutomationRun): AutomationRun {
     ...run,
     trigger: {
       ...run.trigger,
-      issue: run.trigger.issue ? { ...run.trigger.issue, tags: [...run.trigger.issue.tags] } : undefined,
+      issue: run.trigger.issue
+        ? {
+            ...run.trigger.issue,
+            ...(run.trigger.issue.tags
+              ? { tags: [...run.trigger.issue.tags] }
+              : {}),
+          }
+        : undefined,
     },
   };
 }
@@ -331,7 +340,12 @@ export function createAutomationStore(options?: { home?: string }) {
         run.trigger = {
           ...patch.trigger,
           issue: patch.trigger.issue
-            ? { ...patch.trigger.issue, tags: [...patch.trigger.issue.tags] }
+            ? {
+                ...patch.trigger.issue,
+                ...(patch.trigger.issue.tags
+                  ? { tags: [...patch.trigger.issue.tags] }
+                  : {}),
+              }
             : undefined,
         };
       }

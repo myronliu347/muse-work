@@ -13,8 +13,8 @@ function mockApi(): MuseApiClient {
   } as unknown as MuseApiClient;
 }
 
-describe("NewIssueDialog tags", () => {
-  it("Enter 把草稿收成 chip，提交时带 tags 数组", async () => {
+describe("NewIssueDialog type", () => {
+  it("默认 work，选中 Bug 后提交带 type", async () => {
     const api = mockApi();
     const onCreated = vi.fn();
     render(
@@ -23,19 +23,14 @@ describe("NewIssueDialog tags", () => {
     fireEvent.change(screen.getByTestId("new-issue-title"), {
       target: { value: "修登录" },
     });
-    const input = screen.getByTestId("new-issue-tags");
-    fireEvent.change(input, { target: { value: "bug" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByTestId("new-issue-tag-bug")).toHaveTextContent("bug");
-    fireEvent.change(input, { target: { value: "前端" } });
-    fireEvent.keyDown(input, { key: "," });
-    expect(screen.getByTestId("new-issue-tag-前端")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-type-work")).toBeChecked();
+    fireEvent.click(screen.getByTestId("new-issue-type-bug"));
     fireEvent.click(screen.getByTestId("new-issue-submit"));
     await vi.waitFor(() => {
       expect(api.createIssue).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "修登录",
-          tags: ["bug", "前端"],
+          type: "bug",
         }),
       );
     });

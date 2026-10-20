@@ -1,5 +1,6 @@
 import React from "react";
 import "../../styles/DesktopApp.css";
+import { IssueTypeIcon } from "./IssueTypeIcon";
 
 export interface IssueChecklistItem {
   id: string;
@@ -10,6 +11,7 @@ export interface IssueChecklistItem {
 export interface IssueChecklistCardProps {
   issueId: string;
   title: string;
+  type?: string;
   description?: string;
   status?: string;
   statusLabel?: string;
@@ -36,6 +38,7 @@ const ITEM_STATUS_LABEL: Record<string, string> = {
 export const IssueChecklistCard: React.FC<IssueChecklistCardProps> = ({
   issueId,
   title,
+  type,
   description,
   status,
   statusLabel: statusLabelProp,
@@ -49,7 +52,10 @@ export const IssueChecklistCard: React.FC<IssueChecklistCardProps> = ({
       className="issue-checklist-card"
       data-testid={`desktop-session-issue-checklist-${issueId}`}
     >
-      <div className="issue-checklist-card-title">{title}</div>
+      <div className="issue-checklist-card-title">
+        <IssueTypeIcon type={type} />
+        {title}
+      </div>
       {statusLabel ? (
         <div
           className={`issue-checklist-card-issue-status issue-checklist-card-issue-status-${status}`}

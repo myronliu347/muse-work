@@ -16,7 +16,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 - **只有用户明确说要创建 issue / 待办 / 记一个任务 / 用这个建** 时才 `create`。
 - 不要根据闲聊或猜测擅自建 Issue。
 - **当前会话已经是某个 Issue 的会话**（system prompt 里有 Issue ID）：**禁止再 `create`**。规划+执行才对那个 ID `items --add-json`；单 agent 不要维护清单。
-- **从普通对话或 POPO 创建**：`create` 只填 title / description / priority / tags，**不要**附带当前会话 workdir。workdir 仍等用户点「打开会话」再选。默认先建空 Issue，**不要**顺手 `--add-json`。
+- **从普通对话或 POPO 创建**：`create` 只填 title / description / priority / type，**不要**附带当前会话 workdir。workdir 仍等用户点「打开会话」再选。默认先建空 Issue，**不要**顺手 `--add-json`。`--type` 只是分类：bug、feature、research、analysis、review、work。不填是 work。它不决定怎么开工。
 - **写入清单必须先给拟议条目，等用户确认后再写。** pending Issue 就能加条目，不必等打开会话；但「用户说建清单」只表示可以开始拟议，**同一轮不要** `items --add-json` / `create --add-json`，除非用户已经逐条确认或明确说「就这些、写进去」。
 - `dispatch` 才需要已打开的**规划+执行**会话；没开规划、用户未确认开工时都不要 dispatch。
 
@@ -41,9 +41,9 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 在 skill 的 `scripts/` 目录执行（Base URL：`MUSE_SERVER_URL`，或 `MUSE_HOME` 下的 `server-url` 文件，否则 `http://127.0.0.1:$MUSE_SERVER_PORT`，端口默认 8787）：
 
 ```bash
-node issue.mjs create --title "标题" [--description D] [--priority p0|p1|p2] [--tags a,b] [--add-json '[{ "content": "改登录" }]']
+node issue.mjs create --title "标题" [--description D] [--priority p0|p1|p2] [--type bug|feature|research|analysis|review|work] [--add-json '[{ "content": "改登录" }]']
 node issue.mjs get --id ID
-node issue.mjs update --id ID [--title T] [--description D] [--priority p0|p1|p2] [--tags a,b]
+node issue.mjs update --id ID [--title T] [--description D] [--priority p0|p1|p2] [--type bug|feature|research|analysis|review|work]
 node issue.mjs items --id ID --add-json '[{ "content": "改登录" }]'
 node issue.mjs items --id ID --done ITEM_ID
 node issue.mjs items --id ID --remove ITEM_ID

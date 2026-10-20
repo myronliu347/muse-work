@@ -10,6 +10,14 @@ import {
 
 export type IssueAgentMode = "single" | "split";
 export type IssuePriority = "p0" | "p1" | "p2";
+/** 只做分类，不决定会话模式或 worktree。缺省 work。 */
+export type IssueType =
+  | "bug"
+  | "feature"
+  | "research"
+  | "analysis"
+  | "review"
+  | "work";
 export type IssueStatus =
   | "pending"
   | "planning"
@@ -31,7 +39,7 @@ export interface Issue {
   title: string;
   description: string;
   priority: IssuePriority;
-  tags: string[];
+  type: IssueType;
   status: IssueStatus;
   /** single = 本会话规划并实现；split = 规划会话 + 执行会话。缺省按 split。 */
   agentMode: IssueAgentMode;
@@ -55,7 +63,7 @@ export interface IssueStore {
     title: string;
     description?: string;
     priority?: IssuePriority;
-    tags?: string[];
+    type?: IssueType;
   }): Issue;
   get(id: string): Issue | undefined;
   listActive(): Issue[];
@@ -63,7 +71,7 @@ export interface IssueStore {
   listAll(): Issue[];
   update(
     id: string,
-    patch: Partial<Pick<Issue, "title" | "description" | "priority" | "tags">>,
+    patch: Partial<Pick<Issue, "title" | "description" | "priority" | "type">>,
   ): Issue | undefined;
   setPlanning(
     id: string,
@@ -168,25 +176,23 @@ function isTerminal(status: IssueStatus): boolean {
 function cloneIssue(issue: Issue): Issue {
   return {
     ...issue,
-    tags: [...issue.tags],
     items: issue.items.map((item) => ({ ...item })),
   };
 }
 
-export function normalizeTags(tags: unknown): string[] {
-  if (!Array.isArray(tags)) {
-    return [];
-  }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const tag of tags) {
-    const normalized = String(tag).trim().toLowerCase();
-    if (normalized && !seen.has(normalized)) {
-      seen.add(normalized);
-      result.push(normalized);
-    }
-  }
-  return result;
+const ISSUE_TYPES = new Set<IssueType>([
+  "bug",
+  "feature",
+  "research",
+  "analysis",
+  "review",
+  "work",
+]);
+
+export function normalizeIssueType(value: unknown): IssueType {
+  return typeof value === "string" && ISSUE_TYPES.has(value as IssueType)
+    ? (value as IssueType)
+    : "work";
 }
 
 export function allItemsDone(items: ChecklistItem[]): boolean {
@@ -197,13 +203,14 @@ function normalizeAgentMode(value: unknown): IssueAgentMode {
   return value === "single" ? "single" : "split";
 }
 
-function hydrateIssue(record: Issue): Issue {
+function hydrateIssue(record: Issue & { tags?: unknown }): Issue {
+  const { tags: _tags, ...rest } = record;
   return {
-    ...record,
+    ...rest,
     title: record.title,
     description: record.description ?? "",
     priority: normalizePriority(record.priority),
-    tags: normalizeTags(record.tags),
+    type: normalizeIssueType(record.type),
     items: record.items ?? [],
     agentMode: normalizeAgentMode(record.agentMode),
   };
@@ -291,7 +298,7 @@ export function createIssueStore(
         title,
         description: input.description ?? "",
         priority: input.priority ?? "p1",
-        tags: normalizeTags(input.tags),
+        type: normalizeIssueType(input.type),
         status: "pending",
         agentMode: "split",
         items: [],
@@ -353,8 +360,8 @@ export function createIssueStore(
       if (patch.priority !== undefined) {
         issue.priority = patch.priority;
       }
-      if (patch.tags !== undefined) {
-        issue.tags = normalizeTags(patch.tags);
+      if (patch.type !== undefined) {
+        issue.type = normalizeIssueType(patch.type);
       }
       issue.updatedAt = Date.now();
       persist();

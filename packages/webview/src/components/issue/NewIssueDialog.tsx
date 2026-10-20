@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import type { MuseApiClient, MuseIssuePriority } from "../../muse/apiClient";
+import React, { useEffect, useState } from "react";
+import type { MuseApiClient, MuseIssuePriority, MuseIssueType } from "../../muse/apiClient";
 import "../../styles/ConfirmDialog.css";
 import "../../styles/NewIssueDialog.css";
 import { bodyPortal } from "../../utils/bodyPortal";
+import { IssueTypeIcon } from "./IssueTypeIcon";
+import { ISSUE_TYPES } from "../../utils/issueType";
 
 export interface NewIssueDialogProps {
   api: MuseApiClient;
@@ -11,7 +13,7 @@ export interface NewIssueDialogProps {
 }
 
 /**
- * Modal form to create a pending Issue (title required; description / priority / tags optional).
+ * Modal form to create a pending Issue (title required; description / priority / type optional).
  */
 export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
   api,
@@ -21,11 +23,9 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<MuseIssuePriority>("p1");
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagDraft, setTagDraft] = useState("");
+  const [type, setType] = useState<MuseIssueType>("work");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,17 +45,11 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const pending = tagDraft.trim();
-      const nextTags = pending
-        ? tags.some((t) => t.toLowerCase() === pending.toLowerCase())
-          ? tags
-          : [...tags, pending]
-        : tags;
       await api.createIssue({
         title: trimmed,
         description: description.trim() || undefined,
         priority,
-        tags: nextTags.length > 0 ? nextTags : undefined,
+        type,
       });
       onCreated();
     } catch (err) {
@@ -133,69 +127,28 @@ export const NewIssueDialog: React.FC<NewIssueDialogProps> = ({
             ))}
           </div>
         </fieldset>
-        <div className="new-issue-field">
-          <span className="new-issue-label">标签</span>
-          <div
-            className="new-issue-chips"
-            onClick={() => tagInputRef.current?.focus()}
-          >
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="new-issue-chip"
-                data-testid={`new-issue-tag-${tag}`}
+        <fieldset className="new-issue-field new-issue-priority" disabled={submitting}>
+          <legend className="new-issue-label">类型</legend>
+          <div className="new-issue-priority-chips">
+            {ISSUE_TYPES.map((item) => (
+              <label
+                key={item.id}
+                className={`new-issue-priority-chip${type === item.id ? " is-selected" : ""}`}
               >
-                {tag}
-                <button
-                  type="button"
-                  className="new-issue-chip-remove"
-                  aria-label={`移除 ${tag}`}
-                  disabled={submitting}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTags((prev) => prev.filter((t) => t !== tag));
-                  }}
-                >
-                  ×
-                </button>
-              </span>
+                <input
+                  type="radio"
+                  name="new-issue-type"
+                  value={item.id}
+                  checked={type === item.id}
+                  onChange={() => setType(item.id)}
+                  data-testid={`new-issue-type-${item.id}`}
+                />
+                <IssueTypeIcon type={item.id} />
+                <span className="new-issue-priority-name">{item.label}</span>
+              </label>
             ))}
-            <input
-              ref={tagInputRef}
-              className="new-issue-chip-input"
-              value={tagDraft}
-              onChange={(e) => setTagDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
-                  e.preventDefault();
-                  const next = tagDraft.trim().replace(/,$/, "");
-                  if (
-                    next &&
-                    !tags.some((t) => t.toLowerCase() === next.toLowerCase())
-                  ) {
-                    setTags((prev) => [...prev, next]);
-                  }
-                  setTagDraft("");
-                } else if (e.key === "Backspace" && !tagDraft && tags.length) {
-                  setTags((prev) => prev.slice(0, -1));
-                }
-              }}
-              onBlur={() => {
-                const next = tagDraft.trim();
-                if (
-                  next &&
-                  !tags.some((t) => t.toLowerCase() === next.toLowerCase())
-                ) {
-                  setTags((prev) => [...prev, next]);
-                }
-                setTagDraft("");
-              }}
-              data-testid="new-issue-tags"
-              placeholder={tags.length === 0 ? "输入后回车添加" : ""}
-              disabled={submitting}
-            />
           </div>
-        </div>
+        </fieldset>
         {error ? (
           <div className="new-issue-error" data-testid="new-issue-error">
             {error}

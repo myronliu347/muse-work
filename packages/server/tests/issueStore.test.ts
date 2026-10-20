@@ -28,19 +28,20 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("persists create and reloads tags/priority", () => {
+  it("persists create and reloads type/priority", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });
     const issue = store.create({
       title: "修登录",
-      tags: [" Auth ", "auth", ""],
+      type: "bug",
       priority: "p0",
     });
     expect(issue.status).toBe("pending");
-    expect(issue.tags).toEqual(["auth"]);
+    expect(issue.type).toBe("bug");
     expect(issue.priority).toBe("p0");
+    expect(store.create({ title: "杂事" }).type).toBe("work");
     const reloaded = createIssueStore({ home });
-    expect(reloaded.get(issue.id)?.title).toBe("修登录");
+    expect(reloaded.get(issue.id)?.type).toBe("bug");
     fs.rmSync(home, { recursive: true, force: true });
   });
 
@@ -260,7 +261,7 @@ describe("issueStore", () => {
             title: "还活着",
             status: "pending",
             priority: "p1",
-            tags: [],
+            tags: ["old"],
             items: [],
             createdAt: 1,
             updatedAt: 2,
@@ -280,6 +281,8 @@ describe("issueStore", () => {
     );
     const store = createIssueStore({ home });
     expect(store.listActive().map((issue) => issue.id)).toEqual(["live-1"]);
+    expect(store.get("live-1")?.type).toBe("work");
+    expect(store.get("live-1")).not.toHaveProperty("tags");
     expect(store.get("old-done")?.status).toBe("completed");
     const activeFile = JSON.parse(
       fs.readFileSync(path.join(dbDir, "issues.json"), "utf-8"),

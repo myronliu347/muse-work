@@ -105,6 +105,7 @@ describe("DesktopApp host → sidebar 会话树", () => {
           issueId: "issue-1",
           title: "侧栏 Issue",
           priority: "p2",
+          type: "research",
           status: "pending",
           items: [],
           sessions: [entry("plan-1")],
@@ -118,6 +119,9 @@ describe("DesktopApp host → sidebar 会话树", () => {
     const badge = section.querySelector(".issue-sidebar-priority-p2");
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P2");
+    const icon = section.querySelector("[data-testid=issue-type-research]");
+    expect(icon).toBeTruthy();
+    expect(icon).toHaveAttribute("aria-label", "调研");
   });
 
   it("desktopSessionTree 缺少 priority 的遗留 Issue 不白屏", () => {
@@ -147,5 +151,10 @@ describe("DesktopApp host → sidebar 会话树", () => {
     expect(screen.getByTestId("desktop-session-section-issues")).toHaveTextContent(
       "测试任务看板功能",
     );
+    const icons = screen.getAllByTestId("issue-type-work");
+    expect(icons.length).toBeGreaterThan(0);
+    for (const icon of icons) {
+      expect(icon).toHaveAttribute("aria-label", "兜底");
+    }
   });
 });

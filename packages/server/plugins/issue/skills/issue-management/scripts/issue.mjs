@@ -36,8 +36,8 @@ function usage() {
   console.log(`issue.mjs — Issue 管理 CLI（${BASE}）
 
 用法：
-  node issue.mjs create --title <标题> [--description D] [--priority p0|p1|p2] [--tags a,b] [--add-json '[{ "content": "..." }]']
-  node issue.mjs update --id <ID> [--title T] [--description D] [--priority p0|p1|p2] [--tags a,b]
+  node issue.mjs create --title <标题> [--description D] [--priority p0|p1|p2] [--type bug|feature|research|analysis|review|work] [--add-json '[{ "content": "..." }]']
+  node issue.mjs update --id <ID> [--title T] [--description D] [--priority p0|p1|p2] [--type bug|feature|research|analysis|review|work]
   node issue.mjs get --id <ID>
   node issue.mjs items --id <ID> --add-json '[{ "content": "..." }]'
   node issue.mjs items --id <ID> --done <ITEM_ID>
@@ -55,12 +55,23 @@ function arg(argv, name) {
   return i >= 0 ? argv[i + 1] : undefined;
 }
 
-function parseTags(raw) {
+const ISSUE_TYPES = new Set([
+  "bug",
+  "feature",
+  "research",
+  "analysis",
+  "review",
+  "work",
+]);
+
+function parseType(raw) {
   if (raw == null || raw === "") return undefined;
-  return raw
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  if (!ISSUE_TYPES.has(raw)) {
+    throw new Error(
+      "--type 只能是 bug、feature、research、analysis、review、work",
+    );
+  }
+  return raw;
 }
 
 async function request(method, urlPath, body) {
@@ -103,8 +114,8 @@ async function main() {
       if (description != null) body.description = description;
       const priority = arg(argv, "--priority");
       if (priority != null) body.priority = priority;
-      const tags = parseTags(arg(argv, "--tags"));
-      if (tags) body.tags = tags;
+      const type = parseType(arg(argv, "--type"));
+      if (type) body.type = type;
       const addJson = arg(argv, "--add-json");
       if (addJson != null) {
         let rawItems;
@@ -137,8 +148,8 @@ async function main() {
       if (description != null) body.description = description;
       const priority = arg(argv, "--priority");
       if (priority != null) body.priority = priority;
-      const tags = parseTags(arg(argv, "--tags"));
-      if (tags) body.tags = tags;
+      const type = parseType(arg(argv, "--type"));
+      if (type) body.type = type;
       const { issue } = await request("PATCH", `/issues/${id}`, body);
       printJson(issue);
       return;

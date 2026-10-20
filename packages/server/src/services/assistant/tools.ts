@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ToolPlugin, ToolResult } from "@muse-work/agent";
-import type { IssueStore } from "../issueStore.js";
+import { normalizeIssueType, type IssueStore } from "../issueStore.js";
 import type { SessionStore } from "../sessionStore.js";
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { AutomationStore } from "../automationStore.js";
@@ -193,6 +193,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
               return {
                 id: issue.id,
                 title: issue.title,
+                type: issue.type,
                 description: issue.description,
                 workdir: issue.workdir,
                 sessionOpen: Boolean(sessionId),
@@ -221,14 +222,19 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "CreateIssue",
-      "创建 Issue。优先级默认 p1，标签默认空。",
+      "创建 Issue。type 只是分类，不改变怎么开工。不填是 work。优先级默认 p1。",
       {
         type: "object",
         properties: {
           title: { type: "string" },
           description: { type: "string" },
           priority: { type: "string", enum: ["p0", "p1", "p2"] },
-          tags: { type: "array", items: { type: "string" } },
+          type: {
+            type: "string",
+            enum: ["bug", "feature", "research", "analysis", "review", "work"],
+            description:
+              "只做分类。bug、feature、research（调研）、analysis（分析）、review（检查）、work（兜底）。",
+          },
         },
         required: ["title", "description"],
       },
@@ -238,10 +244,12 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         if (!title || !description) return fail("title and description required");
         const priority =
           args.priority === "p0" || args.priority === "p2" ? args.priority : "p1";
-        const tags = Array.isArray(args.tags)
-          ? args.tags.filter((tag): tag is string => typeof tag === "string")
-          : [];
-        const issue = deps.issues.create({ title, description, priority, tags });
+        const issue = deps.issues.create({
+          title,
+          description,
+          priority,
+          type: normalizeIssueType(args.type),
+        });
         return ok(issue);
       },
     ),

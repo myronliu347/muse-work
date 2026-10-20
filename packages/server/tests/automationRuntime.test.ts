@@ -398,7 +398,7 @@ describe("automationRuntime", () => {
     expect(store.listRuns(automation.id)).toHaveLength(0);
   });
 
-  it("issue create enqueues when tags are a subset and skips otherwise", () => {
+  it("issue create enqueues and records the issue type", () => {
     const now = () => new Date(2026, 8, 16, 9, 0, 0);
     const { store, issueStore } = setup(now);
     const automation = store.create({
@@ -412,7 +412,7 @@ describe("automationRuntime", () => {
     });
     const hit = issueStore.create({
       title: "修登录",
-      tags: ["auth", "backend"],
+      type: "bug",
     });
     const runs = store.listRuns(automation.id);
     expect(runs).toHaveLength(1);
@@ -423,11 +423,11 @@ describe("automationRuntime", () => {
         id: hit.id,
         title: "修登录",
         status: "pending",
-        tags: ["auth", "backend"],
+        type: "bug",
       },
     });
-    issueStore.create({ title: "无关", tags: ["backend"] });
-    expect(store.listRuns(automation.id)).toHaveLength(1);
+    issueStore.create({ title: "无关" });
+    expect(store.listRuns(automation.id)).toHaveLength(2);
   });
 
   function setupRealStart(now: () => Date) {
@@ -550,7 +550,7 @@ describe("automationRuntime", () => {
     const issue = issueStore.create({
       title: "修登录",
       description: "详细描述".repeat(600),
-      tags: ["auth"],
+      type: "bug",
     });
     await expect
       .poll(() => store.listRuns(automation.id).some((r) => r.trigger.type === "issue"))
@@ -559,7 +559,7 @@ describe("automationRuntime", () => {
     expect(issueText).toContain("触发：Issue");
     expect(issueText).toContain(`ID：${issue.id}`);
     expect(issueText).toContain("标题：修登录");
-    expect(issueText).toContain("标签：auth");
+    expect(issueText).toContain("类型：bug");
     expect(issueText).toContain("查 changelog");
     expect(issueText.length).toBeLessThan("详细描述".repeat(600).length);
   });

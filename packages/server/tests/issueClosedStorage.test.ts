@@ -15,7 +15,7 @@ import { createIssueStore, type Issue } from "../src/services/issueStore.js";
 const hydrate = (record: Issue): Issue => ({
   ...record,
   description: record.description ?? "",
-  tags: record.tags ?? [],
+  type: record.type ?? "work",
   items: record.items ?? [],
   agentMode: record.agentMode === "single" ? "single" : "split",
   priority:
@@ -32,7 +32,7 @@ describe("issueClosedStorage", () => {
       title: "jan",
       description: "",
       priority: "p1",
-      tags: [],
+      type: "work",
       status: "completed",
       agentMode: "split",
       items: [],
@@ -71,7 +71,7 @@ describe("issueClosedStorage", () => {
             title: "legacy",
             status: "completed",
             priority: "p1",
-            tags: [],
+            type: "work",
             items: [],
             createdAt: 1,
             updatedAt: new Date(2025, 5, 1).getTime(),

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
-import type { Issue, IssueAgentMode, IssuePriority } from "../services/issueStore.js";
+import type { Issue, IssueAgentMode, IssuePriority, IssueType } from "../services/issueStore.js";
 import {
   runnerErrorMessage,
   runnerErrorStatus,
@@ -52,7 +52,7 @@ issuesRoutes.post("/issues", async (c) => {
     title?: string;
     description?: string;
     priority?: IssuePriority;
-    tags?: string[];
+    type?: IssueType;
     items?: Array<{ content?: string }>;
   };
   try {
@@ -75,7 +75,7 @@ issuesRoutes.post("/issues", async (c) => {
       title: body.title ?? "",
       description: body.description,
       priority: body.priority,
-      tags: body.tags,
+      type: body.type,
     });
     if (toAdd.length > 0) {
       issue = ctx.issueStore.appendItems(issue.id, toAdd) ?? issue;
@@ -102,7 +102,7 @@ issuesRoutes.patch("/issues/:id", async (c) => {
     return c.json({ error: "issue is terminal" }, 409);
   }
   let body: Partial<
-    Pick<Issue, "title" | "description" | "priority" | "tags">
+    Pick<Issue, "title" | "description" | "priority" | "type">
   >;
   try {
     body = await c.req.json();

@@ -74,9 +74,9 @@ describe("assistant tools", () => {
       context,
     );
     expect(created.success).toBe(true);
-    const issue = JSON.parse(created.content) as { id: string; priority: string; tags: string[] };
+    const issue = JSON.parse(created.content) as { id: string; priority: string; type: string };
     expect(issue.priority).toBe("p1");
-    expect(issue.tags).toEqual([]);
+    expect(issue.type).toBe("work");
 
     const missing = await tool(tools, "OpenIssue").execute(
       { issueId: issue.id, workdir: path.join(workdir, "nope") },

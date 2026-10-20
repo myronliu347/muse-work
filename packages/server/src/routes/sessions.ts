@@ -26,6 +26,7 @@ sessionsRoutes.get("/sessions", (c) => {
       title: string;
       description?: string;
       priority: string;
+      type?: string;
       status: string;
       items: unknown;
       planningSessionId?: string;
@@ -46,6 +47,7 @@ sessionsRoutes.get("/sessions", (c) => {
         title: issue.title,
         description: issue.description ?? "",
         priority: issue.priority,
+        type: issue.type,
         status: issue.status,
         items: issue.items,
         planningSessionId: issue.planningSessionId,

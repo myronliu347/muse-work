@@ -41,7 +41,7 @@ function buildRunPrompt(
       `标题：${info?.title ?? ""}`,
       `状态：${info?.status ?? ""}`,
       `优先级：${info?.priority ?? ""}`,
-      `标签：${(info?.tags ?? []).join(",")}`,
+      `类型：${info?.type ?? ""}`,
       "描述：",
       description,
     ].join("\n");
@@ -64,13 +64,6 @@ function issueTriggerMatches(
   if (!trigger.events.includes(event)) return false;
   if (trigger.priority !== undefined && trigger.priority !== issue.priority) {
     return false;
-  }
-  if (trigger.tags && trigger.tags.length > 0) {
-    const issueTags = new Set(issue.tags);
-    for (const tag of trigger.tags) {
-      const normalized = String(tag).trim().toLowerCase();
-      if (!normalized || !issueTags.has(normalized)) return false;
-    }
   }
   return true;
 }
@@ -339,7 +332,7 @@ export function createAutomationRuntime(options: {
           title: payload.issue.title,
           status: payload.issue.status,
           priority: payload.issue.priority,
-          tags: [...payload.issue.tags],
+          type: payload.issue.type,
         },
       });
     }

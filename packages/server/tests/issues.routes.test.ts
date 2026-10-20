@@ -22,11 +22,11 @@ describe("issues HTTP", () => {
     const created = await fetch(`${app.baseUrl}/issues`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "修登录", tags: ["Auth"] }),
+      body: JSON.stringify({ title: "修登录", type: "bug" }),
     });
     expect(created.status).toBe(201);
     const { issue } = await created.json();
-    expect(issue.tags).toEqual(["auth"]);
+    expect(issue.type).toBe("bug");
     const list = await fetch(`${app.baseUrl}/issues`).then((r) => r.json());
     expect(list.issues.map((i: { id: string }) => i.id)).toContain(issue.id);
     const cancel = await fetch(`${app.baseUrl}/issues/${issue.id}/cancel`, {
