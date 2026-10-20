@@ -1,0 +1,97 @@
+packages/server/tests/assistantSession.test.ts
+  bdf1c98453e7eb5f 51
+packages/server/src/services/assistant/tools.ts
+  bdf1c98453e7eb5f 26-30,125-169,542,550-562,569,572-597,606-613,624-628,644
+packages/server/src/popo/setup.ts
+  bdf1c98453e7eb5f 76
+packages/server/tests/assistantTools.test.ts
+  bdf1c98453e7eb5f 501-582
+packages/webview/tests/components/assistantPage.test.tsx
+  bdf1c98453e7eb5f 208-229
+packages/server/src/services/assistant/prompt.ts
+  bdf1c98453e7eb5f 81-82
+packages/server/src/services/assistant/messages.ts
+  bdf1c98453e7eb5f 29-30,107-109,150,165,179,188
+packages/webview/src/components/assistant/AssistantPage.tsx
+  bdf1c98453e7eb5f 415-417,420-437
+packages/server/src/popo/sender.ts
+  bdf1c98453e7eb5f 43-47,50,175-176,178-180,183-186
+packages/server/src/services/appContext.ts
+  bdf1c98453e7eb5f 32,52,168,171
+packages/server/tests/popoSender.test.ts
+  bdf1c98453e7eb5f 37,44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4363d0276652e141bde27751c88e84b7cecb349f",
+  "prompts": {
+    "bdf1c98453e7eb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e2d6be5c-7ca9-40f1-8f09-21c7a206fd9d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 311,
+      "total_deletions": 66,
+      "accepted_lines": 268,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/popoSender.test.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/popo/setup.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/popo/sender.ts": {
+          "additions": 15,
+          "deletions": 4,
+          "accepted_lines": 15
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 97,
+          "deletions": 15,
+          "accepted_lines": 82
+        },
+        "packages/server/src/services/assistant/messages.ts": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 21,
+          "deletions": 9,
+          "accepted_lines": 21
+        },
+        "packages/server/src/services/appContext.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 129,
+          "deletions": 30,
+          "accepted_lines": 105
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 22,
+          "accepted_lines": 22
+        }
+      }
+    }
+  }
+}
