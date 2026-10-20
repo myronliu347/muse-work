@@ -713,10 +713,8 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(badge).toBeTruthy();
     expect(badge).toHaveTextContent("P0");
     const issueRow = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(issueRow.firstElementChild).toHaveAttribute(
-      "data-testid",
-      "issue-type-work",
-    );
+    expect(issueRow.firstElementChild).toHaveClass("issue-sidebar-icon-slot");
+    expect(issueRow.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
     expect(
       issueRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
     ).toBeNull();
@@ -854,7 +852,8 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       row.querySelector("[data-testid='desktop-session-issue-expand']"),
     ).toBeNull();
-    expect(row.firstElementChild).toHaveAttribute("data-testid", "issue-type-work");
+    expect(row.firstElementChild).toHaveClass("issue-sidebar-icon-slot");
+    expect(row.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
     expect(
       row.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
     ).toBeNull();
@@ -939,7 +938,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(
       emptyRow.querySelector("[data-testid='desktop-session-status-running']"),
     ).toBeNull();
-    expect(emptyRow.firstElementChild).toHaveAttribute(
+    expect(emptyRow.querySelector(".issue-sidebar-icon-slot")?.firstElementChild).toHaveAttribute(
       "data-testid",
       "issue-type-work",
     );
@@ -948,9 +947,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toBeNull();
 
     const busyRow = screen.getByTestId("desktop-session-issue-row-busy-1");
+    const busySlot = busyRow.querySelector(".issue-sidebar-icon-slot");
     expect(
-      busyRow.querySelector("[data-testid='desktop-session-status-running']"),
+      busySlot?.querySelector("[data-testid='desktop-session-status-running']"),
     ).toBeTruthy();
+    expect(busySlot?.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
   });
 
   it("hides pin/delete on issue sessions and offers open-planning when empty", () => {

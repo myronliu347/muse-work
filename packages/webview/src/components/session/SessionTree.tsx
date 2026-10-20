@@ -772,17 +772,17 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                             : undefined
                         }
                       >
-                        <IssueTypeIcon type={group.type} />
-                        {statusIcon ? (
-                          <span
-                            className="desktop-session-workdir-icon-slot"
-                            aria-hidden="true"
-                          >
-                            <span className="desktop-session-workdir-folder">
+                        <span className="issue-sidebar-icon-slot">
+                          <IssueTypeIcon type={group.type} />
+                          {statusIcon ? (
+                            <span
+                              className="issue-sidebar-status-cover"
+                              aria-hidden="true"
+                            >
                               {statusIcon}
                             </span>
-                          </span>
-                        ) : null}
+                          ) : null}
+                        </span>
                         <span
                           className="issue-sidebar-title"
                           title={group.title}

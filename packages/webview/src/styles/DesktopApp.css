@@ -611,6 +611,28 @@
   line-height: 0;
 }
 
+.issue-sidebar-icon-slot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.issue-sidebar-status-cover {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.issue-sidebar-icon-slot:has(.issue-sidebar-status-cover) .issue-type-icon {
+  visibility: hidden;
+}
+
 .issue-checklist-card-title .issue-type-icon {
   margin-right: 6px;
   vertical-align: -1px;
