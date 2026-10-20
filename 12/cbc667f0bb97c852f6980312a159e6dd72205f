@@ -1,0 +1,123 @@
+packages/server/tests/sessionRunner.test.ts
+  bdf1c98453e7eb5f 966-967,989
+packages/server/src/services/sessionRunner/agent.ts
+  bdf1c98453e7eb5f 13,123-126,136-139
+packages/agent/docs/slimdown.md
+  bdf1c98453e7eb5f 62
+packages/desktop/tests/ensureServerPlugins.test.ts
+  bdf1c98453e7eb5f 17,21,35,39,48,71,83,89
+packages/agent/src/builtin/skills/settings.ts
+  bdf1c98453e7eb5f 60
+packages/webview/tests/components/configDialog.appearance.test.tsx
+  bdf1c98453e7eb5f 93
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  bdf1c98453e7eb5f 2,46
+packages/server/tests/museSettings.test.ts
+  bdf1c98453e7eb5f 23-24,76,81,83,90
+packages/webview/e2e/utils/museApiMock.ts
+  bdf1c98453e7eb5f 4,14
+packages/desktop/scripts/ensureServerPlugins.mjs
+  bdf1c98453e7eb5f 4-5,9,13,24
+packages/server/tests/settings.routes.test.ts
+  bdf1c98453e7eb5f 23,29
+packages/server/src/routes/settings.ts
+  bdf1c98453e7eb5f 3
+packages/server/src/services/museSettings.ts
+  bdf1c98453e7eb5f 5,11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "12cbc667f0bb97c852f6980312a159e6dd72205f",
+  "prompts": {
+    "bdf1c98453e7eb5f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e2d6be5c-7ca9-40f1-8f09-21c7a206fd9d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 459,
+      "accepted_lines": 44,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/sessionRunner.test.ts": {
+          "additions": 3,
+          "deletions": 20,
+          "accepted_lines": 3
+        },
+        "packages/agent/docs/slimdown.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 9,
+          "deletions": 23,
+          "accepted_lines": 9
+        },
+        "packages/server/src/services/museSettings.ts": {
+          "additions": 3,
+          "deletions": 85,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 2,
+          "deletions": 29,
+          "accepted_lines": 2
+        },
+        "packages/desktop/tests/ensureServerPlugins.test.ts": {
+          "additions": 9,
+          "deletions": 9,
+          "accepted_lines": 8
+        },
+        "packages/agent/src/builtin/skills/settings.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/scripts/ensureServerPlugins.mjs": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/e2e/utils/museApiMock.ts": {
+          "additions": 2,
+          "deletions": 22,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/settings.routes.test.ts": {
+          "additions": 2,
+          "deletions": 74,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "deletions": 21
+        },
+        "packages/webview/e2e/demo/desktop-app.demo.ts": {
+          "deletions": 11
+        },
+        "packages/webview/tests/components/configDialog.appearance.test.tsx": {
+          "additions": 1,
+          "deletions": 9,
+          "accepted_lines": 1
+        },
+        "packages/server/src/routes/settings.ts": {
+          "additions": 1,
+          "deletions": 42,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/apiClient.test.ts": {
+          "deletions": 32
+        },
+        "packages/server/tests/museSettings.test.ts": {
+          "additions": 6,
+          "deletions": 75,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}
