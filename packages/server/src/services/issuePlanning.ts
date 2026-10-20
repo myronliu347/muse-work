@@ -119,6 +119,6 @@ export function buildIssueSingleAgentExtra(issue: {
     "1. 直接在本会话里改代码实现，不要另开执行会话。",
     "2. 不要建清单、不要 dispatch。单 agent 模式下系统会拒绝派发。",
     "3. 对照当初要做的那件事，做完了，而且没有还在等用户拍板的问题，用 issue-management skill（issue.mjs）ready。不要自己关单。还要继续做，或者正在问用户，就不要 ready。",
-    "4. 用户明确说关掉 / 完成 / 取消时才 complete 或 cancel。",
+    "4. 用户明确说关掉 / 完成时才 complete --note。note 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消时才 cancel --note，一句原因就够。",
   ].join("\n");
 }

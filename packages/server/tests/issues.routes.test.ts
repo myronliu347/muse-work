@@ -31,6 +31,8 @@ describe("issues HTTP", () => {
     expect(list.issues.map((i: { id: string }) => i.id)).toContain(issue.id);
     const cancel = await fetch(`${app.baseUrl}/issues/${issue.id}/cancel`, {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "先不做" }),
     });
     expect(cancel.status).toBe(200);
     const list2 = await fetch(`${app.baseUrl}/issues`).then((r) => r.json());

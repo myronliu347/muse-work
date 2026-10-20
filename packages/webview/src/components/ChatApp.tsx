@@ -653,7 +653,9 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   const handleSelectIssue = useCallback(
     (issueId: string) => {
       if (host?.type !== "desktop") return;
-      const group = host.issueGroups?.find((g) => g.issueId === issueId);
+      const group =
+        host.issueGroups?.find((g) => g.issueId === issueId) ??
+        host.closedIssueGroups?.find((g) => g.issueId === issueId);
       if (!group) return;
       const sessionId = resolveIssuePlanningSessionId(group);
       if (!sessionId) return;
@@ -910,15 +912,16 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
       postToHost({ command: "desktopRefreshSessionTree" });
     const issueSidebarProps = {
       issueGroups: host.issueGroups,
+      closedIssueGroups: host.closedIssueGroups,
       onNewIssue: () => setShowNewIssue(true),
       onSelectIssue: (issueId: string) => {
         setView("chat");
         handleSelectIssue(issueId);
       },
       onOpenPlanning: (issueId: string) => setPlanningIssueId(issueId),
-      onCompleteIssue: (issueId: string) => {
+      onCompleteIssue: (issueId: string, note: string) => {
         void museApi
-          .completeIssue(issueId)
+          .completeIssue(issueId, note)
           .then(refreshSessionTree)
           .catch((err) => {
             window.alert(
@@ -926,9 +929,9 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             );
           });
       },
-      onCancelIssue: (issueId: string) => {
+      onCancelIssue: (issueId: string, note: string) => {
         void museApi
-          .cancelIssue(issueId)
+          .cancelIssue(issueId, note)
           .then(refreshSessionTree)
           .catch((err) => {
             window.alert(

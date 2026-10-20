@@ -158,11 +158,12 @@ describe("assistant tools", () => {
     expect([...read.planning[0]!.text].length).toBeGreaterThan(8000);
 
     const closed = await tool(tools, "CloseIssue").execute(
-      { issueId: issue.id, action: "complete" },
+      { issueId: issue.id, action: "complete", note: "登录修好了" },
       context,
     );
     expect(closed.success).toBe(true);
     expect(issues.get(issue.id)?.status).toBe("completed");
+    expect(issues.get(issue.id)?.closeNote).toBe("登录修好了");
     const resolved = await tool(tools, "ResolvePermission").execute(
       { permissionId: "perm-1", sessionId: "s1", behavior: "allow" },
       context,

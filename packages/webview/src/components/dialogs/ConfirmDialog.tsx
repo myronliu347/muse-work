@@ -7,6 +7,8 @@ export interface ConfirmDialogProps {
   description?: string;
   confirmText?: string;
   cancelText?: string;
+  confirmDisabled?: boolean;
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -20,6 +22,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   description,
   confirmText = "确定",
   cancelText = "取消",
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
 }) => {
@@ -33,13 +37,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       if (e.key === "Enter") {
         // A focused button fires its own click on Enter — let it win.
         if (document.activeElement instanceof HTMLButtonElement) return;
+        if (document.activeElement instanceof HTMLTextAreaElement) return;
+        if (confirmDisabled) return;
         e.preventDefault();
         onConfirm();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onConfirm, onCancel]);
+  }, [confirmDisabled, onConfirm, onCancel]);
 
   return bodyPortal(
     <div
@@ -62,6 +68,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {description && (
               <div className="confirm-dialog-description">{description}</div>
             )}
+            {children}
           </div>
         </div>
         <div className="confirm-dialog-actions">
@@ -78,7 +85,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className="confirm-dialog-btn confirm-dialog-btn-confirm"
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
-            autoFocus
+            disabled={confirmDisabled}
+            autoFocus={!children}
           >
             {confirmText}
           </button>

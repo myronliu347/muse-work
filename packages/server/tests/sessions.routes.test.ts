@@ -125,6 +125,8 @@ describe("sessions HTTP routes", () => {
 
     await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "做完了" }),
     });
     const afterClose = await fetch(`${app.baseUrl}/sessions?grouped=1`).then(
       (r) => r.json(),

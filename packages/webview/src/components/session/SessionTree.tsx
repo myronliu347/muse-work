@@ -217,7 +217,7 @@ export function groupRecentSessionsByWorkdir(
   return groups;
 }
 
-type SectionId = "pin" | "issues" | "tasks" | "workspace";
+type SectionId = "pin" | "issues" | "closed" | "tasks" | "workspace";
 
 export interface SessionTreeProps {
   sessionTree?: DesktopSessionGroup[];
@@ -225,6 +225,8 @@ export interface SessionTreeProps {
   recentSessions?: DesktopSessionEntry[];
   /** Issue 分组：规划会话 + 执行会话（侧栏「待办事项」折叠展示）。 */
   issueGroups?: DesktopIssueGroup[];
+  /** 已完成 / 已取消，默认收起。 */
+  closedIssueGroups?: DesktopIssueGroup[];
   currentSessionId?: string;
   visibleSessionIds?: string[];
   isStreaming: boolean;
@@ -243,10 +245,10 @@ export interface SessionTreeProps {
   onOpenPlanning?: (issueId: string) => void;
   /** 进入 Issue 详情（规划/执行 Tab 在主区，侧栏不再展开子会话）。 */
   onSelectIssue?: (issueId: string) => void;
-  /** 分组行更多菜单「完成」。 */
-  onCompleteIssue?: (issueId: string) => void;
-  /** 分组行更多菜单「取消」。 */
-  onCancelIssue?: (issueId: string) => void;
+  /** 分组行更多菜单「完成」。note 是一句结果结论。 */
+  onCompleteIssue?: (issueId: string, note: string) => void;
+  /** 分组行更多菜单「取消」。note 是一句原因。 */
+  onCancelIssue?: (issueId: string, note: string) => void;
 }
 
 function CollapsibleBody({
@@ -274,6 +276,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
   pinnedSessions: pinnedProp,
   recentSessions: recentProp,
   issueGroups,
+  closedIssueGroups,
   currentSessionId,
   visibleSessionIds,
   isStreaming,
@@ -302,11 +305,12 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     title: string;
     kind: "complete" | "cancel";
   } | null>(null);
+  const [closeNote, setCloseNote] = useState("");
   const [collapsedWorkdirs, setCollapsedWorkdirs] = useState<Set<string>>(
     () => new Set(),
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionId>>(
-    () => new Set(),
+    () => new Set(["closed"]),
   );
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -862,6 +866,48 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
     );
   };
 
+  const renderClosedIssuesSection = () => {
+    const groups = closedIssueGroups ?? [];
+    if (groups.length === 0) return null;
+    const open = !collapsedSections.has("closed");
+    return (
+      <div
+        className="desktop-session-section"
+        data-testid="desktop-session-section-issues-closed"
+      >
+        {renderSectionHeader({
+          sectionId: "closed",
+          title: "已关闭",
+          testId: "desktop-session-section-issues-closed",
+        })}
+        <CollapsibleBody open={open}>
+          {groups.map((group) => (
+            <div
+              key={group.issueId}
+              className="issue-sidebar-row"
+              data-testid={`desktop-session-closed-issue-${group.issueId}`}
+              onClick={() => {
+                if (group.sessions.length > 0) onSelectIssue?.(group.issueId);
+              }}
+            >
+              <IssueTypeIcon type={group.type} />
+              <span className="issue-sidebar-title issue-sidebar-title--stacked">
+                <span className="issue-sidebar-title-line" title={group.title}>
+                  {group.title}
+                </span>
+                {group.closeNote ? (
+                  <span className="issue-sidebar-note" title={group.closeNote}>
+                    {group.closeNote}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          ))}
+        </CollapsibleBody>
+      </div>
+    );
+  };
+
   /** 任务 section：自动任务项目会话。 */
   const renderTasksSection = () => {
     const open = !collapsedSections.has("tasks");
@@ -994,6 +1040,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
           })
         : null}
       {renderIssuesSection()}
+      {renderClosedIssuesSection()}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 
@@ -1015,20 +1062,41 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
               ? `完成「${pendingIssueAction.title}」？`
               : `取消「${pendingIssueAction.title}」？`
           }
-          description="关闭后不会删除会话，仅从待办事项中消失。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
+          description="关闭后停在已关闭里，可以回看，不能再接着做。若该 Issue 使用了 worktree，会同时删除隔离目录和对应分支。"
           confirmText={
             pendingIssueAction.kind === "complete" ? "完成" : "取消 Issue"
           }
+          confirmDisabled={!closeNote.trim()}
           onConfirm={() => {
+            const note = closeNote.trim();
+            if (!note) return;
             if (pendingIssueAction.kind === "complete") {
-              onCompleteIssue?.(pendingIssueAction.issueId);
+              onCompleteIssue?.(pendingIssueAction.issueId, note);
             } else {
-              onCancelIssue?.(pendingIssueAction.issueId);
+              onCancelIssue?.(pendingIssueAction.issueId, note);
             }
+            setCloseNote("");
             setPendingIssueAction(null);
           }}
-          onCancel={() => setPendingIssueAction(null)}
-        />
+          onCancel={() => {
+            setCloseNote("");
+            setPendingIssueAction(null);
+          }}
+        >
+          <textarea
+            className="confirm-dialog-note"
+            data-testid="issue-close-note"
+            rows={2}
+            value={closeNote}
+            autoFocus
+            placeholder={
+              pendingIssueAction.kind === "complete"
+                ? "写成了什么。缺陷写上原因和方案"
+                : "一句取消原因"
+            }
+            onChange={(e) => setCloseNote(e.target.value)}
+          />
+        </ConfirmDialog>
       )}
       {issueMenu &&
         bodyPortal(
@@ -1048,6 +1116,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                   (g) => g.issueId === issueMenu.issueId,
                 );
                 setIssueMenu(null);
+                setCloseNote("");
                 setPendingIssueAction({
                   issueId: issueMenu.issueId,
                   title: group?.title ?? issueMenu.issueId,
@@ -1068,6 +1137,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
                   (g) => g.issueId === issueMenu.issueId,
                 );
                 setIssueMenu(null);
+                setCloseNote("");
                 setPendingIssueAction({
                   issueId: issueMenu.issueId,
                   title: group?.title ?? issueMenu.issueId,

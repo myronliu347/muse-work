@@ -49,6 +49,8 @@ export interface Issue {
   planningSessionId?: string;
   executionSessionId?: string;
   items: ChecklistItem[];
+  /** 完成时的结果结论，或取消时的原因。 */
+  closeNote?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -100,8 +102,8 @@ export interface IssueStore {
     itemId: string,
     patch: Partial<Pick<ChecklistItem, "content" | "status">>,
   ): Issue | undefined;
-  complete(id: string): Issue | undefined;
-  cancel(id: string): Issue | undefined;
+  complete(id: string, note: string): Issue | undefined;
+  cancel(id: string, note: string): Issue | undefined;
   maybeEnterReview(id: string): Issue | undefined;
   markExecuting(id: string): Issue | undefined;
   subscribe(
@@ -167,6 +169,12 @@ function writeAtomically(filePath: string, content: string): void {
 
 function saveIssuesFile(file: IssuesFile, filePath: string): void {
   writeAtomically(filePath, JSON.stringify(file, null, 2) + "\n");
+}
+
+function requireCloseNote(note: string): string {
+  const trimmed = note.trim();
+  if (!trimmed) throw new Error("close note required");
+  return trimmed;
 }
 
 function isTerminal(status: IssueStatus): boolean {
@@ -515,11 +523,12 @@ export function createIssueStore(
       return cloneIssue(issue);
     },
 
-    complete(id): Issue | undefined {
+    complete(id, note): Issue | undefined {
       const issue = issues.get(id);
       if (!issue || issue.status === "cancelled") {
         return undefined;
       }
+      issue.closeNote = requireCloseNote(note);
       issue.status = "completed";
       issue.updatedAt = Date.now();
       archive(issue);
@@ -527,11 +536,12 @@ export function createIssueStore(
       return cloneIssue(issue);
     },
 
-    cancel(id): Issue | undefined {
+    cancel(id, note): Issue | undefined {
       const issue = issues.get(id);
       if (!issue || issue.status === "completed") {
         return undefined;
       }
+      issue.closeNote = requireCloseNote(note);
       issue.status = "cancelled";
       issue.updatedAt = Date.now();
       archive(issue);

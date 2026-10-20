@@ -95,6 +95,7 @@ export interface BridgeCtx {
     planningSessionId?: string;
     executionSessionId?: string;
     agentMode?: "single" | "split";
+    closeNote?: string;
     sessions: TreeSession[];
   }>;
   closedIssueGroups: Array<{
@@ -108,6 +109,7 @@ export interface BridgeCtx {
     planningSessionId?: string;
     executionSessionId?: string;
     agentMode?: "single" | "split";
+    closeNote?: string;
     sessions: TreeSession[];
   }>;
   titledSessions: Set<string>;

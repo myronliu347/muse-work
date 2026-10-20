@@ -1000,22 +1000,29 @@ describe("DesktopSidebar pin/recent sessions", () => {
     ).toHaveTextContent("测试任务看板功能");
   });
 
-  it("does not show closed issues in the sidebar", () => {
+  it("shows a closed issue with its note and does not offer to reopen it", () => {
     renderSidebar({
       issueGroups: [issueGroup({ title: "进行中的事" })],
-      recentSessions: [
-        entry({ sessionId: "plain", title: "普通聊天", workdir: "/repo" }),
+      closedIssueGroups: [
+        issueGroup({
+          issueId: "done-1",
+          title: "修登录",
+          status: "completed",
+          closeNote: "登录修好了",
+          sessions: [],
+        }),
       ],
     });
 
     const openSection = screen.getByTestId("desktop-session-section-issues");
     expect(openSection).toHaveTextContent("进行中的事");
+    const closed = screen.getByTestId("desktop-session-section-issues-closed");
+    expect(closed).toHaveTextContent("已关闭");
+    expect(closed).toHaveTextContent("修登录");
+    expect(closed).toHaveTextContent("登录修好了");
     expect(
-      screen.queryByTestId("desktop-session-section-issues-closed"),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId("desktop-session-tree")).not.toHaveTextContent(
-      "已关闭",
-    );
+      closed.querySelector("[data-testid='desktop-session-issue-more-done-1']"),
+    ).toBeNull();
   });
 
   it("shows complete and cancel in the issue group more menu", () => {

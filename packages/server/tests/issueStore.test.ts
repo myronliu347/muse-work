@@ -190,15 +190,33 @@ describe("issueStore", () => {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  it("complete stores a conclusion and cancel stores a reason", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
+    const store = createIssueStore({ home });
+    const done = store.create({ title: "修登录" });
+    expect(() => store.complete(done.id, "  ")).toThrow(/note/);
+    const closed = store.complete(done.id, "登录修好了");
+    expect(closed?.status).toBe("completed");
+    expect(closed?.closeNote).toBe("登录修好了");
+    const dropped = store.create({ title: "不做了" });
+    const cancelled = store.cancel(dropped.id, "需求取消");
+    expect(cancelled?.status).toBe("cancelled");
+    expect(cancelled?.closeNote).toBe("需求取消");
+    const reloaded = createIssueStore({ home });
+    expect(reloaded.get(done.id)?.closeNote).toBe("登录修好了");
+    expect(reloaded.listActive().map((issue) => issue.id)).not.toContain(done.id);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
   it("complete rejects cancelled; cancel rejects completed", () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-issue-"));
     const store = createIssueStore({ home });
     const a = store.create({ title: "a" });
-    store.cancel(a.id);
-    expect(store.complete(a.id)).toBeUndefined();
+    store.cancel(a.id, "不做");
+    expect(store.complete(a.id, "做完了")).toBeUndefined();
     const b = store.create({ title: "b" });
-    store.complete(b.id);
-    expect(store.cancel(b.id)).toBeUndefined();
+    store.complete(b.id, "做完了");
+    expect(store.cancel(b.id, "不做")).toBeUndefined();
     fs.rmSync(home, { recursive: true, force: true });
   });
 
@@ -208,8 +226,8 @@ describe("issueStore", () => {
     const done = store.create({ title: "已完成" });
     const dropped = store.create({ title: "已取消" });
     store.create({ title: "进行中" });
-    store.complete(done.id);
-    store.cancel(dropped.id);
+    store.complete(done.id, "做完了");
+    store.cancel(dropped.id, "不做");
 
     const db = path.join(getMuseHomeDir(home), "db");
     const activeFile = JSON.parse(

@@ -144,6 +144,7 @@ export interface MuseIssue {
   planningSessionId?: string;
   executionSessionId?: string;
   items: MuseChecklistItem[];
+  closeNote?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -160,6 +161,7 @@ export interface MuseIssueGroup {
   planningSessionId?: string;
   executionSessionId?: string;
   agentMode?: "single" | "split";
+  closeNote?: string;
   sessions: MuseSession[];
 }
 
@@ -819,18 +821,29 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async completeIssue(id: string): Promise<{ issue: MuseIssue }> {
+  async completeIssue(
+    id: string,
+    note: string,
+  ): Promise<{ issue: MuseIssue }> {
     const res = await this.request(
       `/issues/${encodeURIComponent(id)}/complete`,
-      { method: "POST" },
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ note }),
+      },
     );
     return parseJson(res);
   }
 
-  async cancelIssue(id: string): Promise<{ issue: MuseIssue }> {
+  async cancelIssue(id: string, note: string): Promise<{ issue: MuseIssue }> {
     const res = await this.request(
       `/issues/${encodeURIComponent(id)}/cancel`,
-      { method: "POST" },
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ note }),
+      },
     );
     return parseJson(res);
   }

@@ -45,8 +45,8 @@ function usage() {
   node issue.mjs exec-turn --id <ID>
   node issue.mjs dispatch --id <ID> --item <ITEM_ID> [--prompt P]
   node issue.mjs ready --id <ID>
-  node issue.mjs complete --id <ID>
-  node issue.mjs cancel --id <ID>
+  node issue.mjs complete --id <ID> --note <结果结论>
+  node issue.mjs cancel --id <ID> --note <取消原因>
 `);
 }
 
@@ -232,15 +232,19 @@ async function main() {
     }
     case "complete": {
       const id = arg(argv, "--id");
+      const note = arg(argv, "--note");
       if (!id) throw new Error("complete 需要 --id");
-      const { issue } = await request("POST", `/issues/${id}/complete`);
+      if (!note) throw new Error("complete 需要 --note");
+      const { issue } = await request("POST", `/issues/${id}/complete`, { note });
       printJson(issue);
       return;
     }
     case "cancel": {
       const id = arg(argv, "--id");
+      const note = arg(argv, "--note");
       if (!id) throw new Error("cancel 需要 --id");
-      const { issue } = await request("POST", `/issues/${id}/cancel`);
+      if (!note) throw new Error("cancel 需要 --note");
+      const { issue } = await request("POST", `/issues/${id}/cancel`, { note });
       printJson(issue);
       return;
     }

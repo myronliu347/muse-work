@@ -67,6 +67,8 @@ export interface DesktopSidebarProps {
   recentSessions?: DesktopSessionEntry[];
   /** Issue 分组（侧栏「待办事项」）。 */
   issueGroups?: DesktopIssueGroup[];
+  /** 已完成 / 已取消。 */
+  closedIssueGroups?: DesktopIssueGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
   /** Sessions shown in panes — those other than currentSessionId get a weak highlight. */
@@ -92,10 +94,10 @@ export interface DesktopSidebarProps {
   onOpenPlanning?: (issueId: string) => void;
   /** 进入 Issue 详情（主区 Tab 切换规划/执行）。 */
   onSelectIssue?: (issueId: string) => void;
-  /** 分组行更多菜单 → 完成 Issue。 */
-  onCompleteIssue?: (issueId: string) => void;
-  /** 分组行更多菜单 → 取消 Issue。 */
-  onCancelIssue?: (issueId: string) => void;
+  /** 分组行更多菜单 → 完成 Issue。note 是一句结果结论。 */
+  onCompleteIssue?: (issueId: string, note: string) => void;
+  /** 分组行更多菜单 → 取消 Issue。note 是一句原因。 */
+  onCancelIssue?: (issueId: string, note: string) => void;
   /** 当前高亮的菜单项（选中态） */
   activeMenu?: "newChat" | "automations" | "assistant";
   /** 侧栏顶部「自动化」独立页 */
@@ -122,6 +124,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   pinnedSessions,
   recentSessions,
   issueGroups,
+  closedIssueGroups,
   currentSessionId,
   visibleSessionIds,
   onSelectSession,
@@ -253,6 +256,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         pinnedSessions={pinnedSessions}
         recentSessions={recentSessions}
         issueGroups={issueGroups}
+        closedIssueGroups={closedIssueGroups}
         currentSessionId={currentSessionId}
         visibleSessionIds={visibleSessionIds}
         isStreaming={isStreaming}

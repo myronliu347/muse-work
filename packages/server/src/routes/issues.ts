@@ -143,26 +143,47 @@ issuesRoutes.post("/issues/:id/ready", (c) => {
   }
 });
 
-/** POST /issues/:id/complete — cancelled → 409 */
-issuesRoutes.post("/issues/:id/complete", (c) => {
-  const ctx = c.get("ctx");
-  const issue = ctx.issueStore.complete(c.req.param("id"));
-  if (!issue) {
-    return c.json({ error: "conflict" }, 409);
+async function readCloseNote(c: { req: { json: () => Promise<unknown> } }): Promise<string> {
+  try {
+    const body = (await c.req.json()) as { note?: unknown };
+    return typeof body.note === "string" ? body.note : "";
+  } catch {
+    return "";
   }
-  broadcastIssueChanged(ctx);
-  return c.json({ issue });
+}
+
+/** POST /issues/:id/complete — note 是结果结论；cancelled → 409 */
+issuesRoutes.post("/issues/:id/complete", async (c) => {
+  const ctx = c.get("ctx");
+  const note = await readCloseNote(c);
+  try {
+    const issue = ctx.issueStore.complete(c.req.param("id"), note);
+    if (!issue) return c.json({ error: "conflict" }, 409);
+    broadcastIssueChanged(ctx);
+    return c.json({ issue });
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      400,
+    );
+  }
 });
 
-/** POST /issues/:id/cancel — completed → 409 */
-issuesRoutes.post("/issues/:id/cancel", (c) => {
+/** POST /issues/:id/cancel — note 是取消原因；completed → 409 */
+issuesRoutes.post("/issues/:id/cancel", async (c) => {
   const ctx = c.get("ctx");
-  const issue = ctx.issueStore.cancel(c.req.param("id"));
-  if (!issue) {
-    return c.json({ error: "conflict" }, 409);
+  const note = await readCloseNote(c);
+  try {
+    const issue = ctx.issueStore.cancel(c.req.param("id"), note);
+    if (!issue) return c.json({ error: "conflict" }, 409);
+    broadcastIssueChanged(ctx);
+    return c.json({ issue });
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      400,
+    );
   }
-  broadcastIssueChanged(ctx);
-  return c.json({ issue });
 });
 
 /** POST /issues/:id/planning-session — open or reuse planning session */

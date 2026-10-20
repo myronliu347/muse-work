@@ -96,6 +96,24 @@
   border: none;
 }
 
+.confirm-dialog-note {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: var(--space-2);
+  padding: 6px 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background: var(--gray-1);
+  color: var(--gray-12);
+  font: inherit;
+  resize: vertical;
+}
+
+.confirm-dialog-btn-confirm:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .confirm-dialog-btn-confirm:hover {
   background-color: var(--red-10);
 }

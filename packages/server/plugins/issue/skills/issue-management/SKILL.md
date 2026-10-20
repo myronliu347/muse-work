@@ -9,7 +9,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
 
 **执行会话不会挂载本插件**，因此执行 AI 看不到这些命令。关单与调度只应在规划/普通/单 agent/POPO 会话完成。
 
-系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。对照当初要做的那件事，做完了且没有还在等用户拍板，调用 `ready`，不要自己关单。用户明确说关掉 / 完成 / 取消时才 `complete` 或 `cancel`。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
+系统提示词若写明「单 agent」：规划与实现都在**当前会话**，**可以改代码**；**禁止 dispatch**，**不要建清单、不要 items / exec-turn**。对照当初要做的那件事，做完了且没有还在等用户拍板，调用 `ready`，不要自己关单。用户明确说关掉 / 完成时才 `complete --note`。note 写详细一点：做成了什么。是缺陷时简单写原因和方案。用户说取消时才 `cancel --note`，一句原因就够。若写明「规划会话」且「不要修改产品实现」：按下面「规划与调度」执行。
 
 ## 何时创建
 
@@ -34,7 +34,7 @@ description: "管理本机 Issue：用户明确要求创建 issue/待办时创�
    - **中断或失败**：该项仍为 pending。**禁止** `--done`、禁止派下一项；对同一 itemId 再 dispatch。
    - **需要看工具过程时**再 `exec-turn --id ISSUE_ID`（不强制）。
 5. Issue 进入待审核后停止自动 dispatch，向用户汇报；可选用子代理做 E2E 或 code review（**非强制**）；有问题再 `dispatch` 返工前先征得用户同意。
-6. **用户明确说关掉 / 完成 / 取消** 时立即 `complete` 或 `cancel`；**不要求**清单项全部 done，用户随时可关单。不要替用户关单。
+6. **用户明确说关掉 / 完成** 时立即 `complete --note`。note 写详细一点：做成了什么。是缺陷时简单写原因和方案。**用户说取消** 时 `cancel --note`，一句原因就够。**不要求**清单项全部 done，用户随时可关单。不要替用户关单。
 
 ## 命令速查
 
@@ -50,8 +50,8 @@ node issue.mjs items --id ID --remove ITEM_ID
 node issue.mjs exec-turn --id ID
 node issue.mjs dispatch --id ID --item ITEM_ID [--prompt "补充说明"]
 node issue.mjs ready --id ID
-node issue.mjs complete --id ID
-node issue.mjs cancel --id ID
+node issue.mjs complete --id ID --note "结果结论"
+node issue.mjs cancel --id ID --note "取消原因"
 ```
 
 `--add-json` 只追加 pending 项，且仅在用户确认条目后使用；`--done` 把该项标为 done（不强制先读过程）；`--remove` 可删 pending 或正在执行的项（后者会中止执行回合）。需要看执行过程时用 `exec-turn`。用户未确认清单时不要 `create --add-json`。

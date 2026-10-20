@@ -48,11 +48,11 @@ describe("issueStore.subscribe", () => {
     expect(events.map((e) => e.event)).toEqual(["created"]);
     expect(events[0]?.issue.id).toBe(created.id);
 
-    store.complete(created.id);
+    store.complete(created.id, "登录修好了");
     expect(events.map((e) => e.event)).toEqual(["created", "completed"]);
 
     const other = store.create({ title: "取消我" });
-    store.cancel(other.id);
+    store.cancel(other.id, "需求取消");
     expect(events.map((e) => e.event)).toEqual([
       "created",
       "completed",

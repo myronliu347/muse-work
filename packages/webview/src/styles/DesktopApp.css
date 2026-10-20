@@ -616,6 +616,26 @@
   vertical-align: -1px;
 }
 
+.issue-sidebar-title--stacked {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+  gap: 1px;
+}
+
+.issue-sidebar-title-line,
+.issue-sidebar-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-sidebar-note {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--gray-10);
+}
+
 .issue-sidebar-title {
   flex: 1 1 auto;
   min-width: 0;

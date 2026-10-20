@@ -32,6 +32,7 @@ sessionsRoutes.get("/sessions", (c) => {
       planningSessionId?: string;
       executionSessionId?: string;
       agentMode?: "single" | "split";
+      closeNote?: string;
     }) => {
       const sessions = [];
       if (issue.planningSessionId) {
@@ -53,6 +54,7 @@ sessionsRoutes.get("/sessions", (c) => {
         planningSessionId: issue.planningSessionId,
         executionSessionId: issue.executionSessionId,
         agentMode: issue.agentMode,
+        ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
         sessions,
       };
     };

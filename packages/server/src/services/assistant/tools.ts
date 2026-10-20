@@ -353,32 +353,43 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "CloseIssue",
-      "关闭 Issue。action 为 complete 表示做完，cancel 表示取消。已完成不能再取消，已取消不能再完成。",
+      "关闭 Issue。action 为 complete 表示做完，note 写详细一点：做成了什么；是缺陷时简单写原因和方案。action 为 cancel 表示取消，note 一句原因就够。已完成不能再取消，已取消不能再完成。",
       {
         type: "object",
         properties: {
           issueId: { type: "string" },
           action: { type: "string", enum: ["complete", "cancel"] },
+          note: {
+            type: "string",
+            description:
+              "取消时一句原因就够。完成时写详细一点：做成了什么。缺陷要简单写原因和方案。",
+          },
         },
-        required: ["issueId", "action"],
+        required: ["issueId", "action", "note"],
       },
       async (args) => {
         const issueId = text(args.issueId);
+        const note = text(args.note);
+        if (!note) return fail("note required");
         const issue = deps.issues.get(issueId);
         if (!issue) return fail("not found");
-        if (args.action === "complete") {
-          if (issue.status === "cancelled") return fail("already cancelled");
-          const closed = deps.issues.complete(issueId);
-          if (!closed) return fail("close failed");
-          deps.hub.broadcastAll({ type: "issue:changed" });
-          return ok({ id: closed.id, status: closed.status });
-        }
-        if (args.action === "cancel") {
-          if (issue.status === "completed") return fail("already completed");
-          const closed = deps.issues.cancel(issueId);
-          if (!closed) return fail("close failed");
-          deps.hub.broadcastAll({ type: "issue:changed" });
-          return ok({ id: closed.id, status: closed.status });
+        try {
+          if (args.action === "complete") {
+            if (issue.status === "cancelled") return fail("already cancelled");
+            const closed = deps.issues.complete(issueId, note);
+            if (!closed) return fail("close failed");
+            deps.hub.broadcastAll({ type: "issue:changed" });
+            return ok({ id: closed.id, status: closed.status, closeNote: closed.closeNote });
+          }
+          if (args.action === "cancel") {
+            if (issue.status === "completed") return fail("already completed");
+            const closed = deps.issues.cancel(issueId, note);
+            if (!closed) return fail("close failed");
+            deps.hub.broadcastAll({ type: "issue:changed" });
+            return ok({ id: closed.id, status: closed.status, closeNote: closed.closeNote });
+          }
+        } catch (err) {
+          return fail(err instanceof Error ? err.message : String(err));
         }
         return fail("action must be complete or cancel");
       },
