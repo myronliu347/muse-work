@@ -228,6 +228,23 @@
   color: var(--gray-9);
 }
 
+/* Light: user bubbles take a soft accent fill. Assistant keeps the gray-3
+   surface so replies stay in a bubble. Inline code is gray-3 too, so lift it. */
+:root[data-theme="light"] .assistant-bubble-user {
+  background: var(--accent-4);
+  border: none;
+  color: var(--gray-12);
+}
+
+:root[data-theme="light"] .assistant-bubble-assistant .markdown-content code {
+  background-color: var(--color-panel);
+}
+
+:root[data-theme="light"] .assistant-bubble-source,
+:root[data-theme="light"] .assistant-bubble-time {
+  color: var(--gray-11);
+}
+
 .assistant-user-content {
   display: flex;
   flex-direction: column;
