@@ -1,0 +1,66 @@
+packages/server/src/services/assistant/prompt.ts
+  b257e677e3fbeeca 3
+packages/server/src/services/assistant/runtime.ts
+  b257e677e3fbeeca 53-57,227
+packages/server/tests/assistantRuntime.test.ts
+  b257e677e3fbeeca 6,230
+packages/server/tests/assistantQueue.test.ts
+  b257e677e3fbeeca 6,18-24
+packages/server/src/services/assistant/queue.ts
+  b257e677e3fbeeca 39,47,51-54
+packages/server/src/services/assistant/events.ts
+  b257e677e3fbeeca 10-11,25-26,45-46,61-62,126-151,164,179,195,215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "be1d6c2a50dc6d5c93d2acd4dc5317601add3de4",
+  "prompts": {
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 11,
+      "accepted_lines": 72,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 38,
+          "accepted_lines": 38
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/queue.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 9,
+          "deletions": 9,
+          "accepted_lines": 9
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
