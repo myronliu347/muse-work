@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Stub Muse HTTP endpoints used by ConfigDialog tabs (plugins / provider).
+ * Stub Muse HTTP endpoints used by ConfigDialog tabs (provider).
  * E2E pass-through disables hostBridge, so settings panels hit the real URL
  * unless we fulfill these routes.
  */
@@ -11,27 +11,7 @@ export async function mockMuseSettingsApis(page: Page): Promise<void> {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          version: 1,
-          plugins: { superpowers: false, mattpocock: true },
-        }),
-      });
-      return;
-    }
-    if (route.request().method() === "PUT" || route.request().method() === "PATCH") {
-      const body = route.request().postDataJSON() as {
-        plugins?: { superpowers?: boolean; mattpocock?: boolean };
-      };
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          version: 1,
-          plugins: {
-            superpowers: body?.plugins?.superpowers ?? false,
-            mattpocock: body?.plugins?.mattpocock ?? true,
-          },
-        }),
+        body: JSON.stringify({ version: 1 }),
       });
       return;
     }

@@ -1,3 +1,0 @@
-mattpocock/skills v1.2.3
-https://github.com/mattpocock/skills
-Skills flattened from skills/<category>/<name>/ to skills/<name>/ (25 official skills from plugin.json; misc/in-progress/deprecated excluded)

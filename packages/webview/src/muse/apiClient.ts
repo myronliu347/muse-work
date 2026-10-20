@@ -64,11 +64,6 @@ export interface MuseOpenAiCompatibleConfigPatch {
   models?: MuseModelInfo[];
 }
 
-export interface MuseSettings {
-  version: 1;
-  plugins: { superpowers: boolean; mattpocock: boolean };
-}
-
 export interface MuseAuthStatus {
   state: "authenticated" | "unauthenticated" | "needs_config" | "expired";
   user?: string;
@@ -309,11 +304,6 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async getSettings(): Promise<MuseSettings> {
-    const res = await this.request("/settings");
-    return parseJson(res);
-  }
-
   async getTavilyConfig(): Promise<MuseTavilyConfig> {
     const res = await this.request("/settings/tavily");
     return parseJson(res);
@@ -340,17 +330,6 @@ export class MuseApiClient {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content }),
-    });
-    return parseJson(res);
-  }
-
-  async updateSettings(patch: {
-    plugins?: { superpowers?: boolean; mattpocock?: boolean };
-  }): Promise<MuseSettings> {
-    const res = await this.request("/settings", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
     });
     return parseJson(res);
   }

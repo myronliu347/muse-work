@@ -59,4 +59,4 @@ Muse 走进程内 `Agent.create()`，不跑 `wave --stdio` / Wave 企业托管�
 
 - **Workflow**：等产品评估
 - 主机侧 worktree（Issue / desktop `worktree.ts`）
-- Muse 设置里的 superpowers / mattpocock 开关（本地目录，不是市场）
+- 设置页不再提供内置插件开关；宿主按会话挂载 issue 和 automation

@@ -1,16 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export function superpowersManifestPath(pluginsDir) {
-  return path.join(pluginsDir, "superpowers", ".muse-plugin", "plugin.json");
+export function issueManifestPath(pluginsDir) {
+  return path.join(pluginsDir, "issue", ".muse-plugin", "plugin.json");
 }
 
 /**
- * Ensure `pluginsDest` contains the Superpowers Muse plugin manifest.
+ * Ensure `pluginsDest` contains the issue plugin manifest.
  * Copies from `pluginsSrc` when dest is missing/incomplete, or when `force`.
  */
 export function ensureServerPlugins(pluginsSrc, pluginsDest, opts = {}) {
-  const manifest = superpowersManifestPath(pluginsDest);
+  const manifest = issueManifestPath(pluginsDest);
   if (opts.force || !fs.existsSync(manifest)) {
     if (!fs.existsSync(pluginsSrc)) {
       throw new Error(`[prepareServer] missing plugins source: ${pluginsSrc}`);
@@ -21,6 +21,6 @@ export function ensureServerPlugins(pluginsSrc, pluginsDest, opts = {}) {
     console.log("[prepareServer] copied plugins to", pluginsDest);
   }
   if (!fs.existsSync(manifest)) {
-    throw new Error(`[prepareServer] missing superpowers manifest: ${manifest}`);
+    throw new Error(`[prepareServer] missing issue plugin manifest: ${manifest}`);
   }
 }

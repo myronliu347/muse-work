@@ -13,7 +13,6 @@ import {
 import { createSessionRunner, type SessionAgent } from "../src/services/sessionRunner/index.js";
 import { createSessionStore } from "../src/services/sessionStore.js";
 import { createWsHub } from "../src/services/wsHub.js";
-import { saveMuseSettings } from "../src/services/museSettings.js";
 
 describe("sessionRunner concurrency / dispose", () => {
   let home: string | undefined;
@@ -524,11 +523,6 @@ describe("sessionRunner concurrency / dispose", () => {
       },
       home,
     );
-    saveMuseSettings(
-      { version: 1, plugins: { superpowers: true, mattpocock: true } },
-      home,
-    );
-
     let seenPlugins: unknown;
     const provider: AiProvider = {
       id: "openai-compatible",
@@ -582,121 +576,13 @@ describe("sessionRunner concurrency / dispose", () => {
     expect(seenPlugins).toEqual([
       {
         type: "local",
-        path: expect.stringMatching(/plugins[\\/]superpowers$/),
-      },
-      {
-        type: "local",
-        path: expect.stringMatching(/plugins[\\/]mattpocock$/),
-      },
-      {
-        type: "local",
         path: expect.stringMatching(/plugins[\\/]issue$/),
       },
       {
         type: "local",
         path: expect.stringMatching(/plugins[\\/]automation$/),
       },
-      {
-        type: "local",
-        path: expect.stringMatching(/plugins[\\/]popo-notify$/),
-      },
     ]);
-  });
-
-  it("recreates agent when builtin plugins are disabled", async () => {
-    home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-runner-sp-off-"));
-    saveProvidersConfig(
-      {
-        ...loadProvidersConfig(home),
-        activeProviderId: "openai-compatible",
-        activeModelId: "gpt-4.1",
-      },
-      home,
-    );
-    saveMuseSettings(
-      { version: 1, plugins: { superpowers: true, mattpocock: true } },
-      home,
-    );
-
-    const pluginSnapshots: unknown[] = [];
-    let disposeCount = 0;
-    const provider: AiProvider = {
-      id: "openai-compatible",
-      displayName: "OpenAI Compatible",
-      async getAuthStatus(): Promise<AuthStatus> {
-        return {
-          state: "authenticated",
-          providerId: "openai-compatible",
-          user: "t",
-        };
-      },
-      async beginLogin() {
-        return { reused: true };
-      },
-      async completeLogin() {
-        return { state: "authenticated", providerId: "openai-compatible" };
-      },
-      async logout() {},
-      async listModels(): Promise<ModelInfo[]> {
-        return [{ id: "gpt-4.1", label: "GPT-4.1" }];
-      },
-      async resolveGateway(modelId: string) {
-        return {
-          baseURL: "https://api.example.com/v1",
-          apiKey: "sk-test",
-          model: modelId,
-        };
-      },
-    };
-
-    const store = createSessionStore({ home });
-    const hub = createWsHub();
-    const registry = createProviderRegistry([provider], home);
-    const runner = createSessionRunner({
-      store,
-      hub,
-      registry,
-      home,
-      createAgent: async (options) => {
-        pluginSnapshots.push(options.plugins);
-        return {
-          sendMessage: async () => {},
-          dispose: async () => {
-            disposeCount += 1;
-          },
-        };
-      },
-    });
-
-    const session = store.create({ workdir: home, model: "gpt-4.1" });
-    await runner.sendMessage(session.id, "hello");
-    await expect.poll(() => pluginSnapshots.length).toBe(1);
-    await expect.poll(() => store.get(session.id)?.status).toBe("idle");
-    expect(pluginSnapshots[0]).toBeDefined();
-
-    saveMuseSettings(
-      { version: 1, plugins: { superpowers: false, mattpocock: false } },
-      home,
-    );
-    runner.invalidateAgentIdentities();
-    await runner.sendMessage(session.id, "again");
-    await expect.poll(() => pluginSnapshots.length).toBe(2);
-    // settings 全关后仍挂内置 issue / automation / popo-notify；身份变化 → agent 重建
-    expect(pluginSnapshots[1]).toEqual([
-      {
-        type: "local",
-        path: expect.stringMatching(/plugins[\\/]issue$/),
-      },
-      {
-        type: "local",
-        path: expect.stringMatching(/plugins[\\/]automation$/),
-      },
-      {
-        type: "local",
-        path: expect.stringMatching(/plugins[\\/]popo-notify$/),
-      },
-    ]);
-    expect(disposeCount).toBe(1);
   });
 
   it("passes a per-session logger into createAgent", async () => {
@@ -1077,7 +963,8 @@ describe("sessionRunner concurrency / dispose", () => {
     await runner.sendMessage(normal.id, "hi");
     await expect.poll(() => seen.length).toBe(1);
     expect(JSON.stringify(seen[0].plugins)).toContain("plugins/issue");
-    expect(JSON.stringify(seen[0].plugins)).toContain("plugins/popo-notify");
+    expect(JSON.stringify(seen[0].plugins)).toContain("plugins/automation");
+    expect(JSON.stringify(seen[0].plugins)).not.toContain("plugins/popo-notify");
     expect(seen[0].tools).toEqual(["WebSearch"]);
 
     const exec = store.create({
@@ -1099,7 +986,7 @@ describe("sessionRunner concurrency / dispose", () => {
     });
     await runner.sendMessage(automation.id, "hi");
     await expect.poll(() => seen.length).toBe(3);
-    expect(JSON.stringify(seen[2].plugins ?? [])).toContain("plugins/popo-notify");
+    expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/popo-notify");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/issue");
     expect(JSON.stringify(seen[2].plugins ?? [])).not.toContain("plugins/automation");
     expect(seen[2].tools).toEqual(["WebSearch"]);

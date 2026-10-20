@@ -14,11 +14,11 @@ describe("ensureServerPlugins", () => {
   });
 
   function pluginTree(root: string): void {
-    const manifestDir = path.join(root, "superpowers", ".muse-plugin");
+    const manifestDir = path.join(root, "issue", ".muse-plugin");
     fs.mkdirSync(manifestDir, { recursive: true });
     fs.writeFileSync(
       path.join(manifestDir, "plugin.json"),
-      JSON.stringify({ name: "superpowers" }),
+      JSON.stringify({ name: "issue" }),
     );
   }
 
@@ -32,11 +32,11 @@ describe("ensureServerPlugins", () => {
     pluginTree(src);
     ensureServerPlugins(src, dest);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "issue", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 
-  it("replaces dest when it exists without a superpowers manifest", () => {
+  it("replaces dest when it exists without an issue manifest", () => {
     const src = fs.mkdtempSync(path.join(os.tmpdir(), "muse-plug-src-"));
     const dest = fs.mkdtempSync(path.join(os.tmpdir(), "muse-plug-dst-"));
     dirs.push(src, dest);
@@ -45,7 +45,7 @@ describe("ensureServerPlugins", () => {
     ensureServerPlugins(src, dest);
     expect(fs.existsSync(path.join(dest, "stale.txt"))).toBe(false);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "issue", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("ensureServerPlugins", () => {
     const dest = path.join(parent, "muse-server", "plugins");
     ensureServerPlugins(src, dest);
     expect(
-      fs.existsSync(path.join(dest, "superpowers", ".muse-plugin", "plugin.json")),
+      fs.existsSync(path.join(dest, "issue", ".muse-plugin", "plugin.json")),
     ).toBe(true);
   });
 
@@ -80,13 +80,13 @@ describe("ensureServerPlugins", () => {
     pluginTree(dest);
     fs.writeFileSync(path.join(dest, "stale.txt"), "old");
     fs.writeFileSync(
-      path.join(src, "superpowers", "SOURCE.txt"),
+      path.join(src, "issue", "SOURCE.txt"),
       "fresh\n",
     );
     ensureServerPlugins(src, dest, { force: true });
     expect(fs.existsSync(path.join(dest, "stale.txt"))).toBe(false);
     expect(
-      fs.readFileSync(path.join(dest, "superpowers", "SOURCE.txt"), "utf8"),
+      fs.readFileSync(path.join(dest, "issue", "SOURCE.txt"), "utf8"),
     ).toBe("fresh\n");
   });
 

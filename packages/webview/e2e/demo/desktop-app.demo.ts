@@ -312,17 +312,6 @@ test.describe("Desktop App Screenshots", () => {
       "../../docs/public/screenshots/desktop-settings-dialog.webp",
     );
 
-    // Plugins tab (MattPocock toggle on by default)
-    await webviewPage.getByRole("tab", { name: "插件" }).click();
-    await expect(webviewPage.getByTestId("plugin-settings")).toBeVisible();
-    // Switch input is opacity:0; still assert checked + attached for the demo.
-    await expect(webviewPage.getByTestId("mattpocock-toggle")).toBeChecked();
-    await expect(webviewPage.getByTestId("superpowers-toggle")).not.toBeChecked();
-    await screenshotWebp(
-      webviewPage,
-      "../../docs/public/screenshots/desktop-settings-plugins.webp",
-    );
-
     // Provider tab (CodeMaker quota)
     await webviewPage.getByRole("tab", { name: "供应商" }).click();
     await expect(webviewPage.getByTestId("muse-provider-settings")).toBeVisible();

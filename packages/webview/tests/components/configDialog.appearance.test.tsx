@@ -30,10 +30,6 @@ vi.mock("../../src/components/settings/MuseProviderSettings", () => {
   };
 });
 
-vi.mock("../../src/components/settings/PluginSettings", () => ({
-  PluginSettings: () => <div data-testid="plugin-settings">plugin settings</div>,
-}));
-
 vi.mock("../../src/components/settings/PopoSettings", () => ({
   PopoSettings: () => <div data-testid="popo-settings">popo settings</div>,
 }));
@@ -94,9 +90,7 @@ describe("ConfigDialog appearance tab", () => {
 
     expect(screen.getByRole("heading", { name: "设置" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "外观" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "插件" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "插件" }));
-    expect(screen.getByTestId("plugin-settings")).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "插件" })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "供应商" }));
 
     expect(screen.getByTestId("muse-provider-settings")).toBeTruthy();
@@ -159,8 +153,6 @@ describe("ConfigDialog appearance tab", () => {
 
   it("hides save on instant-apply tabs and shows it for provider", () => {
     renderDialog();
-    expect(screen.queryByTestId("config-dialog-save")).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "插件" }));
     expect(screen.queryByTestId("config-dialog-save")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "POPO" }));
     expect(screen.queryByTestId("config-dialog-save")).toBeNull();

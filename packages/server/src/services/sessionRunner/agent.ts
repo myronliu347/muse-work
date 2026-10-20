@@ -10,7 +10,7 @@ import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 import { resolveScenarioAgent } from "../agentConfig.js";
 import { createWebSearchTool } from "../assistant/webSearchTool.js";
 import { planningCodeWriteDecision } from "../issuePlanning.js";
-import { loadMuseSettings, pluginDirIfPresent } from "../museSettings.js";
+import { pluginDirIfPresent } from "../museSettings.js";
 import { MUSE_IDENTITY_REV } from "../museSystemPrompt.js";
 import type { WsEvent } from "../wsHub.js";
 import { createAgentLogger, getLogger } from "../../utils/logger.js";
@@ -120,11 +120,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
 
   /**
    * Paths of built-in plugins whose dirs are present.
-   * Settings gate superpowers/mattpocock; issue and automation mount for
-   * all sessions except issue-exec and origin=automation (unattended runs
-   * and execution turns cannot manage issues or nested automations).
-   * The assistant mounts automation only, so it can schedule rules.
-   * popo-notify mounts on user + automation sessions, not issue-exec.
+   * issue and automation mount for all sessions except issue-exec and
+   * origin=automation (unattended runs and execution turns cannot manage
+   * issues or nested automations). The assistant mounts automation only,
+   * so it can schedule rules.
    */
   function enabledPluginDirs(session?: {
     agentName?: string;
@@ -134,25 +133,12 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
       const automation = pluginDirIfPresent("automation");
       return automation ? [automation] : [];
     }
-    const plugins = loadMuseSettings(home).plugins;
-    const dirs = ["superpowers", "mattpocock"].flatMap((name) => {
-      if (!plugins[name as keyof typeof plugins]) return [];
-      const dir = pluginDirIfPresent(name);
-      return dir ? [dir] : [];
-    });
-    const push = (name: string) => {
+    if (session?.origin === "automation") return [];
+    if (session?.agentName === resolveScenarioAgent("issue-exec", home)) return [];
+    const dirs: string[] = [];
+    for (const name of ["issue", "automation"]) {
       const dir = pluginDirIfPresent(name);
       if (dir) dirs.push(dir);
-    };
-    // Automation origin already skips issue; also skip automation plugin.
-    if (session?.origin === "automation") {
-      push("popo-notify");
-      return dirs;
-    }
-    if (session?.agentName !== resolveScenarioAgent("issue-exec", home)) {
-      push("issue");
-      push("automation");
-      push("popo-notify");
     }
     return dirs;
   }

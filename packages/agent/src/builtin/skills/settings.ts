@@ -57,7 +57,7 @@ Set \`model\` for the default, and \`models.<name>\` for per-model overrides (vi
 `,
   "skills/settings/PLUGINS.md": `# Plugins
 
-Muse loads **local plugin directories** via \`Agent.create({ plugins: [{ type: "local", path }] })\`. There is no remote plugin marketplace. Enable optional bundled plugins from Muse settings (superpowers / mattpocock); issue, automation, and popo-notify are mounted by the host when relevant.
+Muse loads **local plugin directories** via \`Agent.create({ plugins: [{ type: "local", path }] })\`. There is no remote plugin marketplace. The host mounts issue and automation when the session is allowed to manage them.
 
 A plugin root needs \`.muse-plugin/plugin.json\` plus optional \`commands/\`, \`skills/\`, \`agents/\`, hooks, and MCP/LSP config.
 `,

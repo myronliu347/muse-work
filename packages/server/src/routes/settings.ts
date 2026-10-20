@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../honoEnv.js";
-import { loadMuseSettings, patchMuseSettings } from "../services/museSettings.js";
+import { loadMuseSettings } from "../services/museSettings.js";
 import {
   readMuseUserSettingsText,
   MuseSettingsJsonError,
@@ -58,47 +58,6 @@ settingsRoutes.put("/settings/raw", async (c) => {
       500,
     );
   }
-});
-
-settingsRoutes.patch("/settings", async (c) => {
-  const ctx = c.get("ctx");
-  let body: {
-    plugins?: { superpowers?: unknown; mattpocock?: unknown };
-  } | undefined;
-  try {
-    body = await c.req.json<{
-      plugins?: { superpowers?: unknown; mattpocock?: unknown };
-    }>();
-  } catch {
-    body = undefined;
-  }
-  const plugins = body?.plugins;
-  if (!plugins) {
-    return c.json({ error: "plugins is required" }, 400);
-  }
-  if (plugins) {
-    const { superpowers, mattpocock } = plugins;
-    if (
-      (superpowers !== undefined && typeof superpowers !== "boolean") ||
-      (mattpocock !== undefined && typeof mattpocock !== "boolean")
-    ) {
-      return c.json(
-        { error: "plugins fields must be boolean" },
-        400,
-      );
-    }
-  }
-  const settings = patchMuseSettings(
-    {
-      plugins: {
-        superpowers: plugins.superpowers as boolean | undefined,
-        mattpocock: plugins.mattpocock as boolean | undefined,
-      },
-    },
-    ctx.home,
-  );
-  ctx.runner.invalidateAgentIdentities();
-  return c.json(settings);
 });
 
 /** 不回传密钥本身，只说明有没有、从哪来。 */
