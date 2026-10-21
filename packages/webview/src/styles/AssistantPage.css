@@ -171,6 +171,13 @@
   flex-direction: column;
 }
 
+/* Hint is in normal flow after the virtual spacer. Row spacing lives in the
+   virtualizer (LOG_ROW_GAP), so match it or the hint sits on the last time. */
+.assistant-page .message-list-status-hint {
+  margin-top: 18px;
+  padding-top: 0;
+}
+
 .assistant-bubble-row {
   display: flex;
   flex-direction: column;
