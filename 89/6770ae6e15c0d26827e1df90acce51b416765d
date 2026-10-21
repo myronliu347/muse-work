@@ -1,0 +1,228 @@
+packages/server/tests/defaultCreateAgent.displayMessages.test.ts
+  95f11bcea5fb76cc 10-11,23
+packages/server/src/routes/sessions.ts
+  95f11bcea5fb76cc 273-280
+packages/server/src/services/wsEvents.ts
+  95f11bcea5fb76cc 66-67
+packages/webview/src/types/index.ts
+  95f11bcea5fb76cc 405-408,710-711,879-881
+packages/webview/src/muse/apiClient.ts
+  95f11bcea5fb76cc 466-473,475,477-484
+packages/agent/tests/managers/messageManager.discard.test.ts
+  95f11bcea5fb76cc 13
+packages/webview/src/muse/messageRouter.ts
+  95f11bcea5fb76cc 82-98
+packages/agent/tests/managers/messageManager.compactFinalize.test.ts
+  95f11bcea5fb76cc 168,174
+packages/server/tests/sessions.ws.test.ts
+  95f11bcea5fb76cc 345,363
+packages/server/src/services/sessionRunner/core.ts
+  95f11bcea5fb76cc 38
+packages/webview/src/components/chat/MessageList.tsx
+  95f11bcea5fb76cc 291-292,307-309,522-536,554-567,592-607,634,640-654,663
+packages/webview/src/reducers/chatReducer.ts
+  95f11bcea5fb76cc 232,274-275,283-309
+packages/webview/src/components/chat/ChatBody.tsx
+  95f11bcea5fb76cc 43-44,93-94,188-189
+packages/webview/src/muse/wsClient.ts
+  95f11bcea5fb76cc 42-43
+packages/agent/src/managers/messageManager.ts
+  95f11bcea5fb76cc 385,511-513,762-764,1133-1135
+packages/server/tests/transcriptPage.test.ts
+  95f11bcea5fb76cc 1-47
+packages/webview/src/muse/hostBridge/index.ts
+  95f11bcea5fb76cc 335-338
+packages/server/src/services/sessionRunner/actions.ts
+  95f11bcea5fb76cc 5,61-115,325-330,379,391-392,411,429,441-443,470
+packages/webview/src/components/ChatApp.tsx
+  95f11bcea5fb76cc 858-862
+packages/server/src/utils/transcriptPage.ts
+  95f11bcea5fb76cc 1-70
+packages/server/src/services/sessionRunner/ctx.ts
+  95f11bcea5fb76cc 119-120,215-219
+packages/webview/src/muse/hostBridge/chat.ts
+  95f11bcea5fb76cc 224-232
+packages/agent/tests/managers/messageManager.compactDisplay.test.ts
+  95f11bcea5fb76cc 80,118-120,131,133-134,137,157,159-161,172
+packages/agent/README.md
+  95f11bcea5fb76cc 35-40
+packages/webview/src/muse/hostBridge/session.ts
+  95f11bcea5fb76cc 33,172-173,175-198,417
+README.md
+  95f11bcea5fb76cc 20
+packages/agent/src/services/session.ts
+  95f11bcea5fb76cc 487
+packages/agent/src/utils/messageOperations.ts
+  95f11bcea5fb76cc 520-522
+packages/server/src/services/sessionRunner/agent.ts
+  95f11bcea5fb76cc 573-589
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "896770ae6e15c0d26827e1df90acce51b416765d",
+  "prompts": {
+    "95f11bcea5fb76cc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "af9e78e8-285f-4d37-9782-e202fbf61c51",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 480,
+      "total_deletions": 192,
+      "accepted_lines": 462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/reducers/chatReducer.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 8,
+          "deletions": 2,
+          "accepted_lines": 8
+        },
+        "packages/agent/README.md": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 69,
+          "deletions": 6,
+          "accepted_lines": 67
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/transcriptPage.test.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 17,
+          "deletions": 1,
+          "accepted_lines": 17
+        },
+        "packages/server/src/utils/transcriptPage.ts": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "packages/agent/src/services/session.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/managers/messageManager.compactFinalize.test.ts": {
+          "additions": 2,
+          "deletions": 11,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 29,
+          "deletions": 3,
+          "accepted_lines": 28
+        },
+        "packages/agent/tests/managers/messageManager.discard.test.ts": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 17,
+          "deletions": 4,
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 1
+        },
+        "packages/webview/tests/muse/hostBridge.control.test.ts": {
+          "additions": 1
+        },
+        "packages/server/src/services/sessionRunner/actions.ts": {
+          "additions": 81,
+          "deletions": 47,
+          "accepted_lines": 71
+        },
+        "packages/server/src/services/sessionRunner/core.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/agent/src/agent.ts": {
+          "deletions": 7
+        },
+        "packages/server/src/services/sessionRunner/ctx.ts": {
+          "additions": 7,
+          "deletions": 3,
+          "accepted_lines": 7
+        },
+        "packages/agent/src/managers/messageManager.ts": {
+          "additions": 10,
+          "deletions": 61,
+          "accepted_lines": 10
+        },
+        "packages/agent/tests/managers/messageManager.compactDisplay.test.ts": {
+          "additions": 15,
+          "deletions": 23,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 17,
+          "deletions": 3,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/agent/src/utils/messageOperations.ts": {
+          "additions": 3,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/server/tests/sessions.ws.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/defaultCreateAgent.displayMessages.test.ts": {
+          "additions": 3,
+          "deletions": 6,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "README.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
