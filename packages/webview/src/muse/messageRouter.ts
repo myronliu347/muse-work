@@ -79,7 +79,23 @@ export function createMessageHandler({
     switch (message.command) {
       case "updateMessages":
         if (!forThisPane(message)) break;
-        dispatch({ type: "SET_MESSAGES", payload: message.messages });
+        dispatch({
+          type: "SET_MESSAGES",
+          payload: message.messages,
+          hasMore: message.hasMore,
+        });
+        break;
+      case "prependMessages":
+        if (!forThisPane(message)) break;
+        dispatch({
+          type: "PREPEND_MESSAGES",
+          payload: message.messages,
+          hasMore: Boolean(message.hasMore),
+        });
+        break;
+      case "appendMessages":
+        if (!forThisPane(message)) break;
+        dispatch({ type: "APPEND_MESSAGES", payload: message.messages });
         break;
       case "updateTasks":
         if (!forThisPane(message)) break;

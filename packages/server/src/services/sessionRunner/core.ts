@@ -35,7 +35,7 @@ export function createCore(ctx: RunnerContext): CoreLayer {
     turnHadOutput.set(sessionId, true);
   }
 
-  /** Push the UI transcript (pre-compact history included), enriched with file_history diff stats. */
+  /** Push the live folded context. UI reloads use getMessagePage, which pages the file. */
   function broadcastMessages(sessionId: string): void {
     const session = store.get(sessionId);
     const messages = agents.get(sessionId)?.getMessages?.();

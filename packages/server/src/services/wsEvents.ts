@@ -63,7 +63,8 @@ export type WsEvent =
   | { type: "auth:changed"; status: import("@muse-work/provider").AuthStatus }
   | { type: "compaction:state"; isCompacting: boolean }
   | { type: "error:block"; error: string }
-  | { type: "messages:replace"; messages: unknown[] }
+  | { type: "messages:replace"; messages: unknown[]; hasMore?: boolean }
+  | { type: "messages:append"; messages: unknown[] }
   | {
       type: "file_history:update";
       messages: Array<{ messageId: string; snapshots: unknown[] }>;

@@ -517,11 +517,9 @@ export function formatToolTokenSummary(
 }
 
 /**
- * Fold a message list at the last compact boundary — returns only messages from
- * the most recent compact summary forward. Mirrors what is sent to the LLM
- * (convertMessagesForAPI stops at the last compact block), so the display layer
- * matches the AI context. The session file keeps the full history; folding is
- * display-only.
+ * Fold a message list at the last compact boundary — messages from the most
+ * recent compact summary forward. This is the in-memory API context. The
+ * session file keeps the earlier transcript; the UI pages that file.
  */
 export function sliceFromLastCompact(messages: Message[]): Message[] {
   let lastCompactIndex = -1;

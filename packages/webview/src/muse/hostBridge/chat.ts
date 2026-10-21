@@ -221,6 +221,15 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
       postToWebview({
         command: "updateMessages",
         messages: event.messages,
+        ...(typeof event.hasMore === "boolean" ? { hasMore: event.hasMore } : {}),
+      });
+      return;
+    }
+
+    if (event.type === "messages:append") {
+      postToWebview({
+        command: "appendMessages",
+        messages: event.messages,
       });
       return;
     }

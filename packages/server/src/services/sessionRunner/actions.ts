@@ -2,6 +2,7 @@ import type { WsBroadcastEvent } from "../wsHub.js";
 import { closeAgentLogger } from "../../utils/logger.js";
 import { mapSdkMessages } from "../../utils/messageMapper.js";
 import { enrichFileHistory, revertSnapshots } from "../../utils/fileHistoryDiff.js";
+import { pageTranscript, type PageMessage } from "../../utils/transcriptPage.js";
 import {
   isRewindTargetMessage,
   toSerializableSlashCommand,
@@ -56,6 +57,61 @@ export function createActions(ctx: RunnerContext): SessionRunner {
   } = ctx;
   const core = ctx.core;
   const agent = ctx.agent;
+
+  async function readDiskMessages(sessionId: string): Promise<PageMessage[]> {
+    const session = store.get(sessionId);
+    if (!session) return [];
+    // SDK persists under museSessionId, not the server store's session id.
+    const diskId = session.museSessionId ?? sessionId;
+    const data = await agent.loadMainSessionFromDisk(diskId, session.workdir);
+    return ((data?.messages ?? []) as PageMessage[]).filter(
+      (message) => Boolean(message) && typeof message.id === "string",
+    );
+  }
+
+  /** Disk transcript when it exists; otherwise the live folded context (unsaved session). */
+  async function transcriptForLookup(sessionId: string): Promise<PageMessage[]> {
+    const disk = await readDiskMessages(sessionId);
+    if (disk.length > 0) return disk;
+    return (agents.get(sessionId)?.getMessages?.() ?? []) as PageMessage[];
+  }
+
+  async function loadPage(
+    sessionId: string,
+    opts?: { before?: string; limit?: number },
+  ): Promise<{ messages: unknown[]; hasMore: boolean }> {
+    const session = store.get(sessionId);
+    if (!session) {
+      throw Object.assign(new Error(`session not found: ${sessionId}`), {
+        statusCode: 404,
+      });
+    }
+    const disk = await readDiskMessages(sessionId);
+    const existing = agents.get(sessionId);
+    if (existing) core.touchAgent(sessionId);
+    const live = (existing?.getMessages?.() ?? []) as PageMessage[];
+    const page = pageTranscript(disk, live, opts);
+    const nested = await agent.attachNestedMessages(
+      sessionId,
+      session.workdir,
+      mapSdkMessages(page.messages),
+    );
+    return {
+      messages: enrichFileHistory(nested, session.workdir, sessionId),
+      hasMore: page.hasMore,
+    };
+  }
+
+  function pushTranscript(
+    sessionId: string,
+    page: { messages: unknown[]; hasMore: boolean },
+  ): void {
+    hub.broadcast(sessionId, {
+      type: "messages:replace",
+      messages: page.messages,
+      hasMore: page.hasMore,
+    });
+  }
 
   return {
     setOnTurnSettled(cb: (sessionId: string, result: { ok: boolean; error?: string }) => void) {
@@ -266,37 +322,12 @@ export function createActions(ctx: RunnerContext): SessionRunner {
     },
 
     async getMessages(sessionId) {
-      const session = store.get(sessionId);
-      if (!session) {
-        throw Object.assign(new Error(`session not found: ${sessionId}`), {
-          statusCode: 404,
-        });
-      }
-      // Serve history without forcing agent creation: use the live runtime when
-      // one exists, otherwise read the persisted jsonl from disk.
-      const existing = agents.get(sessionId);
-      let sdkMessages: unknown[] = [];
-      if (existing?.getMessages) {
-        sdkMessages = existing.getMessages();
-        core.touchAgent(sessionId);
-      } else {
-        // SDK persists sessions under its own id (museSessionId), not the
-        // server store's session id — reading by sessionId would miss the file.
-        const diskId = session.museSessionId ?? sessionId;
-        const data = await agent.loadMainSessionFromDisk(
-          diskId,
-          session.workdir,
-        );
-        sdkMessages = data?.messages ?? [];
-      }
-      const nested = await agent.attachNestedMessages(
-        sessionId,
-        session.workdir,
-        mapSdkMessages(sdkMessages),
-      );
-      // Attach per-file +N/−M diff stats to the last assistant message's
-      // file_history block (UI card). Read-only enrichment; SDK blocks intact.
-      return enrichFileHistory(nested, session.workdir, sessionId);
+      const page = await loadPage(sessionId);
+      return page.messages;
+    },
+
+    async getMessagePage(sessionId, opts) {
+      return loadPage(sessionId, opts);
     },
 
     async compact(sessionId) {
@@ -345,6 +376,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       hub.broadcast(sessionId, {
         type: "messages:replace",
         messages: [],
+        hasMore: false,
       });
       return { ok: true as const };
     },
@@ -356,8 +388,8 @@ export function createActions(ctx: RunnerContext): SessionRunner {
           statusCode: 404,
         });
       }
-      const existing = await agent.ensureAgent(sessionId);
-      const messages = existing.getMessages?.() ?? [];
+      await agent.ensureAgent(sessionId);
+      const messages = await transcriptForLookup(sessionId);
       return messages.flatMap((message) => {
         if (!isRewindTargetMessage(message)) return [];
         const id = (message as { id: string }).id;
@@ -376,7 +408,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         core.interruptTurn(sessionId, { denyMessage: "Aborted for rewind" });
       }
       const existing = await agent.ensureAgent(sessionId);
-      const messages = existing.getMessages?.() ?? [];
+      const messages = await transcriptForLookup(sessionId);
       const index = messages.findIndex(
         (message) =>
           isRewindTargetMessage(message) &&
@@ -394,7 +426,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       }
       const inputContent = userMessageText(messages[index]);
       await existing.truncateHistory(index);
-      core.broadcastMessages(sessionId);
+      pushTranscript(sessionId, await loadPage(sessionId));
       return { ok: true as const, inputContent };
     },
 
@@ -406,7 +438,9 @@ export function createActions(ctx: RunnerContext): SessionRunner {
         });
       }
       const existing = await agent.ensureAgent(sessionId);
-      const messages = existing.getMessages?.() ?? [];
+      const live = existing.getMessages?.() ?? [];
+      const disk = await readDiskMessages(sessionId);
+      const messages = [...disk, ...live];
       const ids = Array.isArray(messageIds) ? messageIds : [messageIds];
       const snapshots = ids.flatMap((messageId) => {
         const target = messages.find(
@@ -433,7 +467,7 @@ export function createActions(ctx: RunnerContext): SessionRunner {
           timestamp?: number;
         }>,
       );
-      core.broadcastMessages(sessionId);
+      pushTranscript(sessionId, await loadPage(sessionId));
       return { ok: true as const, revertedCount };
     },
 

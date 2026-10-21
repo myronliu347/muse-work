@@ -402,6 +402,10 @@ export interface MessageListProps {
   openHttpInBrowser?: boolean;
   /** Open the nested Agent tool transcript popup. */
   onOpenAgentTranscript?: (toolBlock: ToolBlock) => void;
+  /** Older transcript pages exist before the first loaded message. */
+  hasOlderMessages?: boolean;
+  /** Ask the host for the page before the current first message. */
+  onLoadOlder?: () => void;
   /** Undo the newest turn's file changes (file_history card). */
   onRevertFileHistory?: (messageIds: string[]) => void;
   /** True while the file_history revert request is in flight. */
@@ -703,6 +707,8 @@ export interface QueuedMessageListProps {
 // Chat state management
 export interface ChatState {
   messages: Message[];
+  /** True when the session file has messages before the loaded window. */
+  hasOlderMessages: boolean;
   tasks: Task[];
   backgroundTasks: BackgroundTaskSummary[];
   workflowRuns: SerializableWorkflowRun[];
@@ -870,7 +876,9 @@ export interface WorkflowManagerProps {
 }
 
 export type ChatAction =
-  | { type: "SET_MESSAGES"; payload: Message[] }
+  | { type: "SET_MESSAGES"; payload: Message[]; hasMore?: boolean }
+  | { type: "PREPEND_MESSAGES"; payload: Message[]; hasMore: boolean }
+  | { type: "APPEND_MESSAGES"; payload: Message[] }
   | {
       type: "UPDATE_MESSAGE_ID";
       payload: { from: string; to: string };

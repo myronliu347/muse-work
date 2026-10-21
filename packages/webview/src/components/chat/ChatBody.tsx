@@ -40,6 +40,8 @@ export interface ChatBodyProps {
   onOpenPreview: (url: string) => void;
   onOpenFile: (path: string, startLine?: number, endLine?: number) => void;
   onOpenAgentTranscript: (toolBlock: ToolBlock) => void;
+  hasOlderMessages?: boolean;
+  onLoadOlder?: () => void;
   onRevertFileHistory: (messageIds: string[]) => void;
   revertingFileHistory: boolean;
   onOpenFileHistoryFile: (path: string) => void;
@@ -88,6 +90,8 @@ export const ChatBody = forwardRef<
     onOpenPreview,
     onOpenFile,
     onOpenAgentTranscript,
+    hasOlderMessages,
+    onLoadOlder,
     onRevertFileHistory,
     revertingFileHistory,
     onOpenFileHistoryFile,
@@ -181,6 +185,8 @@ export const ChatBody = forwardRef<
           onOpenPreview={onOpenPreview}
           onOpenFile={onOpenFile}
           onOpenAgentTranscript={onOpenAgentTranscript}
+          hasOlderMessages={hasOlderMessages}
+          onLoadOlder={onLoadOlder}
           onRevertFileHistory={onRevertFileHistory}
           revertingFileHistory={revertingFileHistory}
           onOpenFileHistoryFile={onOpenFileHistoryFile}

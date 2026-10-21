@@ -332,6 +332,10 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     clearChat: () => void chat.handleClearChat(),
     compactChat: () => void chat.handleCompactChat(),
     listRewindCheckpoints: () => void chat.handleListRewindCheckpoints(),
+    loadOlderMessages: (msg) => {
+      const before = typeof msg.before === "string" ? msg.before : "";
+      if (before) void session.loadOlderMessages(before);
+    },
     rewindToMessage: (msg) =>
       void chat.handleRewindToMessage(msg as { messageId?: string }),
     setPermissionMode: (msg) =>

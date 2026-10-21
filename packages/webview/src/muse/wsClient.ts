@@ -39,7 +39,8 @@ export type MuseWsEventPayload =
   | { type: "auth:changed"; status: unknown }
   | { type: "compaction:state"; isCompacting: boolean }
   | { type: "error:block"; error: string }
-  | { type: "messages:replace"; messages: unknown[] }
+  | { type: "messages:replace"; messages: unknown[]; hasMore?: boolean }
+  | { type: "messages:append"; messages: unknown[] }
   | {
       type: "file_history:update";
       messages: Array<{ messageId: string; snapshots: unknown[] }>;

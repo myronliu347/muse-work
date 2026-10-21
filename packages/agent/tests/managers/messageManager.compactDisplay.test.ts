@@ -77,7 +77,7 @@ describe("MessageManager compaction display stream", () => {
     expect(messageManager.getSessionId()).toBe(initialSessionId);
   });
 
-  it("initializeFromSession keeps the full transcript in displayMessages while folding the context", () => {
+  it("initializeFromSession folds the context and does not retain the pre-compact transcript", () => {
     const makeMsg = (
       id: string,
       role: "user" | "assistant",
@@ -111,17 +111,13 @@ describe("MessageManager compaction display stream", () => {
 
     messageManager.initializeFromSession(sessionData);
 
-    // API context folds at the last compact boundary (restart semantics)...
     const context = messageManager.getMessages();
     expect(context.map((m) => m.id)).toEqual(["c1", "u2", "a2"]);
-
-    // ...while the UI display stream keeps the full transcript, pre-compaction
-    // history included.
-    const display = messageManager.getDisplayMessages();
-    expect(display.map((m) => m.id)).toEqual(["u1", "a1", "c1", "u2", "a2"]);
   });
 
-  it("compaction then new messages keep the pre-compaction history in displayMessages", async () => {
+  it("compaction drops pre-compact messages from memory and still accepts new ones", async () => {
+    messageManager.addUserMessage({ content: "q0" });
+    messageManager.addAssistantMessage("a0");
     messageManager.addUserMessage({ content: "q1" });
     messageManager.addAssistantMessage("a1");
     messageManager.addUserMessage({ content: "q2" });
@@ -129,18 +125,16 @@ describe("MessageManager compaction display stream", () => {
 
     await messageManager.compactMessagesAndUpdateSession("summary");
 
-    // A new round after compaction must not clobber the display stream with
-    // the folded context ([compact, ...last rounds]).
     messageManager.addUserMessage({ content: "q3" });
     messageManager.addAssistantMessage("a3");
 
-    const display = messageManager.getDisplayMessages();
+    const context = messageManager.getMessages();
     expect(
-      display.map((m) => (m.blocks[0] as { content: string }).content),
-    ).toEqual(["q1", "a1", "q2", "a2", "summary", "q3", "a3"]);
+      context.map((m) => (m.blocks[0] as { content: string }).content),
+    ).toEqual(["summary", "q1", "a1", "q2", "a2", "q3", "a3"]);
   });
 
-  it("compaction then tool block updates sync the display stream without dropping history", async () => {
+  it("compaction then tool block updates stay on the folded context", async () => {
     messageManager.addUserMessage({ content: "q1" });
     messageManager.addAssistantMessage("a1");
     messageManager.addUserMessage({ content: "q2" });
@@ -160,13 +154,11 @@ describe("MessageManager compaction display stream", () => {
       stage: "start",
     } as Parameters<MessageManager["addToolBlockToMessage"]>[1]);
 
-    const display = messageManager.getDisplayMessages();
+    const context = messageManager.getMessages();
     expect(
-      display.map((m) => (m.blocks[0] as { content: string }).content),
-    ).toEqual(["q1", "a1", "q2", "a2", "summary"]);
-    // The updated message (not the trailing compact block) carries the tool
-    // block in the display stream too.
-    const updated = display.find((m) => m.id === lastAssistantId)!;
+      context.map((m) => (m.blocks[0] as { content: string }).content),
+    ).toEqual(["summary", "q1", "a1", "q2", "a2"]);
+    const updated = context.find((m) => m.id === lastAssistantId)!;
     expect(
       updated.blocks.some((b) => b.type === "tool" && b.name === "Write"),
     ).toBe(true);
@@ -177,6 +169,6 @@ describe("MessageManager compaction display stream", () => {
     messageManager.addAssistantMessage("a1");
     await messageManager.compactMessagesAndUpdateSession("summary");
     messageManager.clearMessages();
-    expect(messageManager.getDisplayMessages()).toEqual([]);
+    expect(messageManager.getMessages()).toEqual([]);
   });
 });

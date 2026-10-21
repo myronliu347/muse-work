@@ -229,6 +229,7 @@ function nestedMessagesFromLoaded(messages: Message[]): Record<string, Message[]
 
 export const initialState: ChatState = {
   messages: [],
+  hasOlderMessages: false,
   tasks: [],
   backgroundTasks: [],
   workflowRuns: [],
@@ -270,10 +271,42 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: action.payload,
+        hasOlderMessages:
+          typeof action.hasMore === "boolean" ? action.hasMore : false,
         currentSession: pinSessionTitle(state.currentSession, action.payload),
         subagentMessages: {
           ...state.subagentMessages,
           ...nestedMessagesFromLoaded(action.payload),
+        },
+      };
+    }
+    case "PREPEND_MESSAGES": {
+      const known = new Set(state.messages.map((message) => message.id));
+      const older = action.payload.filter(
+        (message) => message.id && !known.has(message.id),
+      );
+      return {
+        ...state,
+        messages: [...older, ...state.messages],
+        hasOlderMessages: action.hasMore,
+        subagentMessages: {
+          ...state.subagentMessages,
+          ...nestedMessagesFromLoaded(older),
+        },
+      };
+    }
+    case "APPEND_MESSAGES": {
+      const known = new Set(state.messages.map((message) => message.id));
+      const extra = action.payload.filter(
+        (message) => message.id && !known.has(message.id),
+      );
+      if (extra.length === 0) return state;
+      return {
+        ...state,
+        messages: [...state.messages, ...extra],
+        subagentMessages: {
+          ...state.subagentMessages,
+          ...nestedMessagesFromLoaded(extra),
         },
       };
     }

@@ -30,6 +30,7 @@ export interface SessionModule {
   handleRefreshSessionTree: () => Promise<void>;
   refreshTree: () => Promise<MuseSessionsGrouped>;
   loadMessages: (id: string) => Promise<void>;
+  loadOlderMessages: (before: string) => Promise<void>;
   applyGrouped: (grouped: MuseSessionsGrouped) => void;
   patchTreeSession: (id: string, patch: Partial<TreeSession>) => void;
   emitCurrentSession: (session: MuseSession) => void;
@@ -168,9 +169,33 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     }
   };
 
+  let loadingOlder = false;
+
   const loadMessages = async (id: string): Promise<void> => {
-    const { messages } = await ctx.api.getMessages(id);
-    postToWebview({ command: "updateMessages", messages });
+    const page = await ctx.api.getMessages(id);
+    if (ctx.sessionId !== id) return;
+    postToWebview({
+      command: "updateMessages",
+      messages: page.messages,
+      ...(typeof page.hasMore === "boolean" ? { hasMore: page.hasMore } : {}),
+    });
+  };
+
+  const loadOlderMessages = async (before: string): Promise<void> => {
+    const id = ctx.sessionId;
+    if (!id || !before || loadingOlder) return;
+    loadingOlder = true;
+    try {
+      const page = await ctx.api.getMessages(id, { before, limit: 40 });
+      if (ctx.sessionId !== id) return;
+      postToWebview({
+        command: "prependMessages",
+        messages: page.messages,
+        hasMore: page.hasMore,
+      });
+    } finally {
+      loadingOlder = false;
+    }
   };
 
   const restoreRuntimeState = async (id: string): Promise<void> => {
@@ -389,6 +414,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     handleRefreshSessionTree,
     refreshTree,
     loadMessages,
+    loadOlderMessages,
     applyGrouped,
     patchTreeSession,
     emitCurrentSession,

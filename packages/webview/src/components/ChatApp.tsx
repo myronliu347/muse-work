@@ -855,6 +855,11 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
       onNewSession={handleClearChat}
       onAbortMessage={handleAbortMessage}
       messages={state.messages}
+      hasOlderMessages={state.hasOlderMessages}
+      onLoadOlder={() => {
+        const before = state.messages[0]?.id;
+        if (before) postToHost({ command: "loadOlderMessages", before });
+      }}
       onOpenSettings={handleOpenSettings}
       onLogin={handleLogin}
       onSelectPrompt={(text) => messageInputRef.current?.setText(text)}

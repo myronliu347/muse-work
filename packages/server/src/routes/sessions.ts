@@ -270,8 +270,14 @@ session.get("/messages", async (c) => {
   if (!s) {
     return c.json({ error: `session not found: ${sessionId}` }, 404);
   }
-  const messages = await ctx.runner.getMessages(sessionId);
-  return c.json({ messages });
+  const before = c.req.query("before");
+  const limitRaw = c.req.query("limit");
+  const limit = limitRaw ? Number(limitRaw) : undefined;
+  const page = await ctx.runner.getMessagePage(sessionId, {
+    ...(before ? { before } : {}),
+    ...(limit && Number.isFinite(limit) ? { limit } : {}),
+  });
+  return c.json(page);
 });
 
 session.post("/messages", async (c) => {

@@ -32,6 +32,12 @@ import { AGENT_TOOL_NAME } from "@muse-work/agent/constants";
 
 完整列表见内置 settings skill。占位符 `${MUSE_PLUGIN_ROOT}`、`${WAVE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_ROOT}` 都会替换。
 
+## 会话记录
+
+压缩之后，进程里只留模型还在用的上下文：最后一条摘要、摘要前保留的最近几轮，以及之后的新消息。更早的对话留在会话文件里，不再常驻内存。
+
+界面打开时读文件里最后一条摘要之后的消息（按时间顺序），再加上还没写盘的新消息。往上翻时按当前最上面那条的 id，向文件再要更早的一页（默认 40 条）。这一页只交给界面，不放回 agent。压缩结束时，屏幕上已有的记录留着，只在末尾补上摘要。回退按消息 id 到文件里定位。
+
 ## Scripts
 
 ```bash

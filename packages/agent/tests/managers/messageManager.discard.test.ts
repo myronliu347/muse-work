@@ -10,7 +10,7 @@ describe("MessageManager - discardAssistantMessage (streaming fallback)", () => 
     return new MessageManager(container, { callbacks, workdir: "/test" });
   }
 
-  it("drops the message from the context and display streams and notifies hosts", () => {
+  it("drops the message from the context and notifies hosts", () => {
     const onAssistantMessageDiscarded = vi.fn();
     const messageManager = createManager({ onAssistantMessageDiscarded });
 
@@ -22,7 +22,6 @@ describe("MessageManager - discardAssistantMessage (streaming fallback)", () => 
 
     expect(messageManager.discardAssistantMessage(messageId)).toBe(true);
     expect(messageManager.getMessages()).toHaveLength(1);
-    expect(messageManager.getDisplayMessages()).toHaveLength(1);
     expect(messageManager.getMessages()[0].role).toBe("user");
     expect(onAssistantMessageDiscarded).toHaveBeenCalledWith(messageId);
   });

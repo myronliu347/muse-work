@@ -288,6 +288,8 @@ export const MessageList = forwardRef<
     onOpenFile,
     openHttpInBrowser,
     onOpenAgentTranscript,
+    hasOlderMessages,
+    onLoadOlder,
     onRevertFileHistory,
     revertingFileHistory,
     onOpenFileHistoryFile,
@@ -302,6 +304,9 @@ export const MessageList = forwardRef<
   const isFirstEffectRef = useRef(true);
   const isFirstLayoutRef = useRef(true);
   const prevListHeadRef = useRef<string | undefined>(messages[0]?.id);
+  const requestedOlderRef = useRef<string | undefined>(undefined);
+  const onLoadOlderRef = useRef(onLoadOlder);
+  onLoadOlderRef.current = onLoadOlder;
   const stickyHeadRef = useRef<string | undefined>(messages[0]?.id);
   // Session-swap pin happens before paint. The follow effect must not scroll
   // again afterwards, or the list jumps a second time once the frame is visible.
@@ -514,7 +519,21 @@ export const MessageList = forwardRef<
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
     const head = messages[0]?.id;
-    const isSessionSwap = Boolean(head) && head !== prevListHeadRef.current;
+    const previousHead = prevListHeadRef.current;
+    const isPrepend =
+      Boolean(head) &&
+      Boolean(previousHead) &&
+      head !== previousHead &&
+      messages.findIndex((message) => message.id === previousHead) > 0;
+    if (isPrepend) {
+      const delta = container.scrollHeight - prevScrollHeightRef.current;
+      if (delta > 0) container.scrollTop += delta;
+      prevListHeadRef.current = head;
+      prevScrollHeightRef.current = container.scrollHeight;
+      isFirstLayoutRef.current = false;
+      return;
+    }
+    const isSessionSwap = Boolean(head) && head !== previousHead;
     const isInitialLoad = isFirstLayoutRef.current;
     isFirstLayoutRef.current = false;
     if (!isSessionSwap && !isInitialLoad) return;
@@ -532,7 +551,20 @@ export const MessageList = forwardRef<
     if (!container) return;
 
     const listHead = messages[0]?.id;
-    const isSessionSwap = Boolean(listHead) && listHead !== prevListHeadRef.current;
+    if (
+      requestedOlderRef.current &&
+      requestedOlderRef.current !== listHead
+    ) {
+      requestedOlderRef.current = undefined;
+    }
+    const previousHead = prevListHeadRef.current;
+    const isPrepend =
+      Boolean(listHead) &&
+      Boolean(previousHead) &&
+      listHead !== previousHead &&
+      messages.findIndex((message) => message.id === previousHead) > 0;
+    const isSessionSwap =
+      !isPrepend && Boolean(listHead) && listHead !== previousHead;
     prevListHeadRef.current = listHead;
     const isInitialLoad = isFirstEffectRef.current && messages.length > 0;
     isFirstEffectRef.current = false;
@@ -556,6 +588,22 @@ export const MessageList = forwardRef<
           userScrolledUpRef.current = true;
         } else if (isNearBottom) {
           userScrolledUpRef.current = false;
+        }
+        const oldestId = messages[0]?.id;
+        if (
+          hasOlderMessages &&
+          onLoadOlder &&
+          oldestId &&
+          container.scrollTop < 48 &&
+          requestedOlderRef.current !== oldestId
+        ) {
+          requestedOlderRef.current = oldestId;
+          window.setTimeout(() => {
+            if (requestedOlderRef.current === oldestId) {
+              requestedOlderRef.current = undefined;
+            }
+          }, 3000);
+          onLoadOlderRef.current?.();
         }
       }
       prevScrollTopRef.current = container.scrollTop;
@@ -583,11 +631,26 @@ export const MessageList = forwardRef<
 
     const skipFollow = skipFollowRef.current;
     if (skipFollow) skipFollowRef.current = false;
-    if (!skipFollow) {
+    if (!skipFollow && !isPrepend) {
       scrollToBottom(
         isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
         isNewMessage || isInitialLoad || isSessionSwap,
       );
+    }
+    const oldestId = messages[0]?.id;
+    if (
+      hasOlderMessages &&
+      oldestId &&
+      container.scrollHeight <= container.clientHeight + 48 &&
+      requestedOlderRef.current !== oldestId
+    ) {
+      requestedOlderRef.current = oldestId;
+      window.setTimeout(() => {
+        if (requestedOlderRef.current === oldestId) {
+          requestedOlderRef.current = undefined;
+        }
+      }, 3000);
+      onLoadOlderRef.current?.();
     }
     computeSticky();
     computeActiveNav();
@@ -597,7 +660,7 @@ export const MessageList = forwardRef<
       container.removeEventListener("scroll", handleScroll);
       container.removeEventListener("wheel", handleWheel);
     };
-  }, [messages, queuedMessages, isStreaming, scrollToBottom, computeSticky, computeActiveNav]);
+  }, [messages, queuedMessages, isStreaming, hasOlderMessages, scrollToBottom, computeSticky, computeActiveNav]);
 
   useEffect(() => {
     const container = containerRef.current;

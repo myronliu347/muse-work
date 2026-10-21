@@ -570,10 +570,23 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
         },
         onCompactBlockAdded: () => {
           if (disposed.has(sessionId)) return;
-          // Compaction folds the API context but keeps the UI transcript.
-          // Push that full list so pre-compact messages stay on screen.
-          if (!agents.get(sessionId)?.getMessages) return;
-          core.broadcastMessages(sessionId);
+          // The client already has the pre-compact transcript from streaming.
+          // Append only the summary so that history stays on screen, and the
+          // agent does not have to resend it.
+          const live = agents.get(sessionId)?.getMessages?.() ?? [];
+          const compact = live.find(
+            (message) =>
+              Array.isArray((message as { blocks?: unknown[] }).blocks) &&
+              (message as { blocks: Array<{ type?: string }> }).blocks.some(
+                (block) => block.type === "compact",
+              ),
+          );
+          if (compact) {
+            hub.broadcast(sessionId, {
+              type: "messages:append",
+              messages: mapSdkMessages([compact]),
+            });
+          }
           hub.broadcast(sessionId, {
             type: "compaction:state",
             isCompacting: false,

@@ -165,22 +165,13 @@ describe("MessageManager - Compaction finalizes streaming blocks", () => {
     messageManager.addAssistantMessage();
     messageManager.updateCurrentMessageContent("A2");
 
-    const displayBefore = messageManager.getDisplayMessages();
-    expect(displayBefore).toHaveLength(4);
+    expect(messageManager.getMessages()).toHaveLength(4);
 
     await messageManager.compactMessagesAndUpdateSession("summarized");
 
-    // API context folds to [compact, ...last API rounds]...
     const context = messageManager.getMessages();
     expect(context[0].blocks[0].type).toBe("compact");
+    expect(context[0].blocks[0]).toMatchObject({ content: "summarized" });
     expect(context).toHaveLength(5);
-
-    // ...while the display stream keeps the full history and appends the
-    // compact block at the end (never clearing the pre-compaction messages).
-    const display = messageManager.getDisplayMessages();
-    expect(display).toHaveLength(5);
-    expect(display[0].role).toBe("user");
-    expect(display[4].blocks[0].type).toBe("compact");
-    expect(display[4].blocks[0]).toMatchObject({ content: "summarized" });
   });
 });

@@ -463,11 +463,25 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
-  async getMessages(id: string): Promise<{ messages: unknown[] }> {
+  async getMessages(
+    id: string,
+    query?: { before?: string; limit?: number },
+  ): Promise<{ messages: unknown[]; hasMore: boolean }> {
+    const params = new URLSearchParams();
+    if (query?.before) params.set("before", query.before);
+    if (query?.limit) params.set("limit", String(query.limit));
+    const qs = params.toString();
     const res = await this.request(
-      `/sessions/${encodeURIComponent(id)}/messages`,
+      `/sessions/${encodeURIComponent(id)}/messages${qs ? `?${qs}` : ""}`,
     );
-    return parseJson(res);
+    const body = (await parseJson(res)) as {
+      messages?: unknown[];
+      hasMore?: boolean;
+    };
+    return {
+      messages: Array.isArray(body.messages) ? body.messages : [],
+      hasMore: Boolean(body.hasMore),
+    };
   }
 
   async getRuntimeState(

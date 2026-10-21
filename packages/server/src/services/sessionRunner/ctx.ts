@@ -116,9 +116,8 @@ export function defaultCreateAgent(options: AgentOptions): Promise<SessionAgent>
       abortMessage: () => agent.abortMessage(),
       // SDK exposes destroy(); brief uses dispose as our session lifecycle hook.
       dispose: () => agent.destroy(),
-      // Hosts render displayMessages. agent.messages is the folded API
-      // context ([compact, ...last rounds]) and would hide pre-compact history.
-      getMessages: () => agent.displayMessages,
+      // Folded API context. The UI tail is paged from the session file.
+      getMessages: () => agent.messages,
       sessionId: agent.sessionId,
       compact: (instructions) => agent.compact(instructions),
       clearMessages: () => agent.clearMessages(),
@@ -213,6 +212,11 @@ export interface SessionRunner {
   /** 释放会话的 live agent（不动会话记录/消息）；agent 变更后调用，下次 ensureAgent 重建。 */
   disposeAgent(sessionId: string): Promise<{ ok: true }>;
   getMessages(sessionId: string): Promise<unknown[]>;
+  /** Chronological UI window. `before` pages older disk messages; nothing is kept on the agent. */
+  getMessagePage(
+    sessionId: string,
+    opts?: { before?: string; limit?: number },
+  ): Promise<{ messages: unknown[]; hasMore: boolean }>;
   /**
    * Drop cached agent identity fingerprints so the next ensureAgent recreates
    * agents with the current provider gateway settings.

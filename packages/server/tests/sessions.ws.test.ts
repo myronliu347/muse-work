@@ -342,6 +342,7 @@ describe("sessions + websocket streaming", () => {
       minCount: 5,
       filter: (e) =>
         e.type === "compaction:state" ||
+        e.type === "messages:append" ||
         e.type === "messages:replace" ||
         e.type === "subagent:assistant:message" ||
         e.type === "subagent:message:delta" ||
@@ -359,7 +360,7 @@ describe("sessions + websocket streaming", () => {
     expect(received).toEqual(
       expect.arrayContaining([
         { type: "compaction:state", isCompacting: true, sessionId: session.id },
-        { type: "messages:replace", messages: compacted, sessionId: session.id },
+        { type: "messages:append", messages: compacted, sessionId: session.id },
         { type: "compaction:state", isCompacting: false, sessionId: session.id },
         {
           type: "subagent:assistant:message",

@@ -484,7 +484,7 @@ export async function loadSessionFromJsonl(
     // Transcripts written by older CLI versions re-appended the preserved
     // rounds at each compaction point, so a message id can appear twice.
     // Keep the first occurrence — duplicates would render twice once the
-    // full-history restore below feeds them to displayMessages. Append-only
+    // full-history restore below feeds them to the session file. Append-only
     // transcripts (current write side) have unique ids, making this a no-op.
     const seenIds = new Set<string>();
     const messages: Message[] = [];

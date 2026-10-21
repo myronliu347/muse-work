@@ -7,12 +7,10 @@ describe("defaultCreateAgent message snapshot", () => {
     vi.restoreAllMocks();
   });
 
-  it("getMessages returns the UI transcript, including messages before the compact boundary", async () => {
-    const context = [{ id: "compact" }];
-    const display = [{ id: "user-before" }, { id: "assistant-before" }, { id: "compact" }];
+  it("getMessages returns the folded API context", async () => {
+    const context = [{ id: "compact" }, { id: "user-after" }];
     vi.spyOn(Agent, "create").mockResolvedValue({
       messages: context,
-      displayMessages: display,
       sessionId: "s1",
       getPermissionMode: () => "acceptEdits",
     } as unknown as Agent);
@@ -22,7 +20,6 @@ describe("defaultCreateAgent message snapshot", () => {
       model: "test-model",
     });
 
-    expect(wrapped.getMessages?.()).toEqual(display);
-    expect(wrapped.getMessages?.()).not.toBe(context);
+    expect(wrapped.getMessages?.()).toEqual(context);
   });
 });
