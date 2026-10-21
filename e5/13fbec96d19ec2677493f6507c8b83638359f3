@@ -1,0 +1,64 @@
+packages/webview/src/components/chat/MessageInput.tsx
+  b257e677e3fbeeca 984-988
+packages/webview/tests/components/assistantPage.test.tsx
+  b257e677e3fbeeca 204,206-209,228,230-233
+packages/server/tests/assistantTools.test.ts
+  b257e677e3fbeeca 538
+packages/server/src/services/assistant/tools.ts
+  b257e677e3fbeeca 584,588,591
+packages/webview/src/components/assistant/AssistantPage.tsx
+  b257e677e3fbeeca 328,427
+packages/webview/src/components/shared/ContextTag.tsx
+  b257e677e3fbeeca 10-11,19,22,33,37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e513fbec96d19ec2677493f6507c8b83638359f3",
+  "prompts": {
+    "b257e677e3fbeeca": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3560285c-76b4-4047-95f2-fd75a969376f",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 28,
+      "total_deletions": 10,
+      "accepted_lines": 27,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/shared/ContextTag.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
