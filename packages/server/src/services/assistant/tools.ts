@@ -581,14 +581,14 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           if (issueAts.length === 1 && previousIssueId(deps.log) === issueAts[0]?.id) {
             rememberedIssueId = issueAts[0]?.id;
           } else if (issueAts.length > 0) {
-            const chips: string[] = [];
+            const quotes: string[] = [];
             for (const at of issueAts) {
               const issue = deps.issues.get(at.id);
               if (!issue) return fail("not found");
-              chips.push(`[@issue:${issue.id} ${issueMentionLabel(issue.title)}]`);
+              quotes.push(`> ${issueMentionLabel(issue.title)}`);
               rememberedIssueId = issue.id;
             }
-            message = withIssueLead(message, chips.join(" "), " ");
+            message = withIssueLead(message, quotes.join("\n"), "\n\n");
           }
         } else if (args.app === "popo") {
           if (issueAts.length > 0) return fail("POPO 不能 @ issue");

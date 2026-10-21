@@ -981,7 +981,11 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         tagSpan.innerText = issueMentionToken(issue);
         renderInEditorHost(
           tagSpan,
-          <ContextTag name={title || issue.id} path={issue.id} />,
+          <ContextTag
+            name={title || issue.id}
+            path={issue.id}
+            tooltip={title || issue.id}
+          />,
         );
         const textNode = range.startContainer;
         if (textNode.nodeType === Node.TEXT_NODE) {

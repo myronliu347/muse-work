@@ -535,7 +535,7 @@ describe("assistant tools", () => {
     );
     expect(switched.success).toBe(true);
     expect(log.page().messages.at(-1)?.message).toBe(
-      `[@issue:${design.id} 设计系统] 卡在提问上`,
+      `> 设计系统\n\n卡在提问上`,
     );
 
     const again = await tool(tools, "SendMessage").execute(

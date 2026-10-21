@@ -7,6 +7,8 @@ interface ContextTagProps {
   path: string;
   isImage?: boolean;
   onClick?: () => void;
+  /** Hover text. Defaults to the path, or "点击查看 {name}" when clickable. */
+  tooltip?: string;
 }
 
 export const ContextTag: React.FC<ContextTagProps> = ({
@@ -14,8 +16,10 @@ export const ContextTag: React.FC<ContextTagProps> = ({
   path,
   isImage,
   onClick,
+  tooltip,
 }) => {
   const isClickable = onClick !== undefined;
+  const tip = tooltip ?? (isClickable ? `点击查看 ${name}` : path);
 
   const handlePreview = (e: React.MouseEvent) => {
     if (isClickable) {
@@ -26,11 +30,11 @@ export const ContextTag: React.FC<ContextTagProps> = ({
   };
 
   return (
-    <Tooltip text={isClickable ? `点击查看 ${name}` : path} position="top">
+    <Tooltip text={tip} position="top">
       <span
         className={`context-tag ${isClickable ? "clickable" : ""} ${isImage ? "is-image" : ""}`}
         onClick={handlePreview}
-        aria-label={isClickable ? `点击查看 ${name}` : path}
+        aria-label={tip}
         data-path={path}
       >
         <span className="tag-at">@</span>

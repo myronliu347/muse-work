@@ -325,6 +325,7 @@ function UserLine({
           key={index}
           name={part.fileName || part.issueId}
           path={part.issueId}
+          tooltip={part.fileName || part.issueId}
         />
       );
     }
@@ -423,6 +424,7 @@ function AssistantBubbleBody({
             key={`${line.id}:issue:${index}`}
             name={part.fileName || part.issueId}
             path={part.issueId}
+            tooltip={part.fileName || part.issueId}
           />
         ) : (
           <div
