@@ -20,8 +20,15 @@ function Glyph({ children }: { children: React.ReactNode }) {
 const GLYPH: Record<IssueTypeId, React.ReactNode> = {
   bug: (
     <Glyph>
-      <ellipse cx="8" cy="10.2" rx="3.15" ry="2.9" {...stroke} />
-      <path d="M4.9 10.2h6.2M6.5 7.6 5.1 4.4M9.5 7.6l1.4-3.2" {...stroke} />
+      <path d="M6.5 4.9 5.15 2.7M9.5 4.9 10.85 2.7" {...stroke} />
+      <path
+        d="M8 4.35c-1.85 0-3.15 1.85-3.15 4.15v1.15c0 2.05 1.4 3.55 3.15 3.55s3.15-1.5 3.15-3.55V8.5c0-2.3-1.3-4.15-3.15-4.15z"
+        {...stroke}
+      />
+      <path
+        d="M8 6.15v6.7M5.05 8.55 3.15 7.25M10.95 8.55 12.85 7.25M5.15 11.15 3.3 12.55M10.85 11.15 12.7 12.55"
+        {...stroke}
+      />
     </Glyph>
   ),
   feature: (
