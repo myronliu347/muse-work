@@ -8,6 +8,7 @@ import {
   applyCloseFileTab,
   emptyPanelGroup,
   emptyContentSearchState,
+  nextActivePanelAfterClose,
 } from "../../src/stores/panelGroupStore";
 
 beforeEach(() => {
@@ -74,6 +75,18 @@ describe("releasePanelContent", () => {
     expect(patch.activeFilePath).toBeUndefined();
     expect(patch.diffView).toBeUndefined();
     expect(patch.contentSearch).toBeUndefined();
+  });
+});
+
+describe("nextActivePanelAfterClose", () => {
+  it("follows 文件、终端、浏览器、变更 when the current kind closes", () => {
+    expect(
+      nextActivePanelAfterClose(
+        ["file", "terminal", "preview", "diff"],
+        "file",
+        "file",
+      ),
+    ).toBe("terminal");
   });
 });
 

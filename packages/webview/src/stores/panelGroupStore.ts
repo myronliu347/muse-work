@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
-import { firstPanelTab, type CollapsedTabs } from "../muse/panelTabs";
+import { PANEL_ADD_ORDER, type CollapsedTabs } from "../muse/panelTabs";
 import { closeFileTab, emptyFileTabsState } from "../muse/fileTabs";
 import { collapseDockState } from "../muse/dockActions";
 import type {
@@ -292,13 +292,15 @@ export function prunePanelGroupCache(keepKeys: Set<string>): string[] {
   return usePanelGroupStore.getState().pruneGroups(keepKeys);
 }
 
+/** Next kind tab after closing the current one: first remaining in 文件、终端、浏览器、变更. */
 export function nextActivePanelAfterClose(
   checked: DesktopPanelKind[],
   closed: DesktopPanelKind,
   active: DesktopPanelKind | null,
 ): DesktopPanelKind | null {
   if (active !== closed) return active;
-  return firstPanelTab(checked.filter((k) => k !== closed));
+  const remaining = checked.filter((kind) => kind !== closed);
+  return PANEL_ADD_ORDER.find((kind) => remaining.includes(kind)) ?? null;
 }
 
 /** Close one file tab. The last tab also closes the file panel, so the
