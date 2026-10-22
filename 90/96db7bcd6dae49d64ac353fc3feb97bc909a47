@@ -1,0 +1,109 @@
+packages/webview/src/components/desktop/BotTabs.tsx
+  f594d63ded943b58 1-148
+packages/webview/src/components/ChatApp.tsx
+  f594d63ded943b58 23-27,69-71,93-114,184,195-203,275-276,278,280,893-898,913
+packages/webview/tests/components/botTabs.test.tsx
+  f594d63ded943b58 1-197
+packages/webview/src/components/desktop/DesktopShell.tsx
+  f594d63ded943b58 22,103-105,676,921
+packages/webview/src/components/assistant/AssistantPage.tsx
+  f594d63ded943b58 9,470-471,481,903-905
+packages/webview/src/styles/DesktopApp.css
+  f594d63ded943b58 2060-2173,2203-2213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9096db7bcd6dae49d64ac353fc3feb97bc909a47",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        }
+      }
+    },
+    "f594d63ded943b58": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4416b38c-8d6f-4075-a6e3-44f2cc13ca7f",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 543,
+      "total_deletions": 22,
+      "accepted_lines": 534,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 201,
+          "deletions": 4,
+          "accepted_lines": 197
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 153,
+          "deletions": 5,
+          "accepted_lines": 148
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 125,
+          "deletions": 1,
+          "accepted_lines": 125
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 51,
+          "deletions": 11,
+          "accepted_lines": 51
+        }
+      }
+    }
+  }
+}
