@@ -1,0 +1,134 @@
+packages/webview/src/components/ChatApp.tsx
+  2a5aa26e16788b9f 35-39,89,322-334,940-967,978-992,1062,1076
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  2a5aa26e16788b9f 4,60-63,85-87,130-131,133-139,178-185,187-238,240-243,245-247,249-265,297-299
+packages/webview/src/muse/panelTabs.ts
+  2a5aa26e16788b9f 3-5
+packages/webview/src/components/desktop/DockDetail.tsx
+  2a5aa26e16788b9f 1-69
+packages/webview/tests/components/DesktopApp.test.tsx
+  2a5aa26e16788b9f 136,140,143-144
+packages/webview/tests/components/botLists.test.tsx
+  2a5aa26e16788b9f 343
+packages/webview/tests/components/dockDetail.test.tsx
+  2a5aa26e16788b9f 1-446
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  2a5aa26e16788b9f 76-79,135-137,241-243
+packages/webview/src/styles/DesktopPanelDock.css
+  2a5aa26e16788b9f 337-369
+packages/webview/src/components/desktop/BotTabs.tsx
+  2a5aa26e16788b9f 16,19,35,91-93,101,103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3e040d6b3cefe113b09f63323c30f2d35631e08b",
+  "prompts": {
+    "2a5aa26e16788b9f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e8a05627-b5e0-4e68-8781-cd9187fd5032",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 774,
+      "total_deletions": 114,
+      "accepted_lines": 744,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 69,
+          "accepted_lines": 69
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 117,
+          "deletions": 84,
+          "accepted_lines": 106
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 448,
+          "deletions": 2,
+          "accepted_lines": 446
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/muse/panelTabs.ts": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 81,
+          "deletions": 23,
+          "accepted_lines": 64
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        }
+      }
+    }
+  }
+}
