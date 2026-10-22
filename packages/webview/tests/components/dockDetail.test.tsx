@@ -503,6 +503,50 @@ describe("assistant dock detail", () => {
     const terminal = within(dock).queryByTestId("terminal-pane");
     if (terminal) expect(terminal).not.toBeVisible();
   });
+
+  it("keeps 详情 when switching from Muse Bot to a session with a different active kind", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["terminal"],
+      mounted: ["terminal"],
+      active: "terminal",
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    expect(
+      within(assistantDock).getByTestId("desktop-panel-tab-detail"),
+    ).toHaveClass("desktop-panel-tab--active");
+    expect(
+      within(assistantDock).getByTestId("desktop-panel-tab-file"),
+    ).not.toHaveClass("desktop-panel-tab--active");
+
+    establishSession();
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    const chat = await screen.findByTestId("chat-container");
+    const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(
+      within(sessionDock).getByTestId("desktop-panel-tab-terminal"),
+    ).not.toHaveClass("desktop-panel-tab--active");
+  });
 });
 
 describe("session dock detail", () => {

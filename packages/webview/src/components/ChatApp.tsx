@@ -322,7 +322,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Opening a kind from a shortcut, the dock toggle, or the add menu also
   // leaves 详情. List clicks only call selectPanel, so a stale active kind
   // must not pull the dock back off 详情. Closing the kind that was active
-  // while 详情 is showing must not follow the next kind either.
+  // while 详情 is showing must not follow the next kind either. Muse Bot and
+  // a session share one dock chrome but keep separate active kinds, so a
+  // group change only refreshes these refs.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
   useEffect(() => {
@@ -330,6 +332,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const previousGroupKey = seenPanelGroupKey.current;
     seenPanelKind.current = activePanel;
     seenPanelGroupKey.current = groupKey;
+    if (previousGroupKey !== groupKey) return;
     if (previousKind === activePanel) return;
     const closedPreviousKind =
       previousGroupKey === groupKey &&
