@@ -1,0 +1,193 @@
+.bot-lists {
+  width: 268px;
+  flex: none;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 14px 14px 0 0;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.bot-list-card {
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
+  background: var(--gray-2, #1c1c1e);
+  border: 1px solid var(--gray-6, rgba(255, 255, 255, 0.1));
+  overflow: hidden;
+}
+
+.bot-list-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 11px 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-11, #c7c7cc);
+}
+
+.bot-list-card-title span {
+  color: var(--gray-9, #6e6e73);
+  font-weight: 600;
+}
+
+.bot-list-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+}
+
+.bot-list-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.bot-list-row:hover {
+  background: var(--gray-3, rgba(255, 255, 255, 0.06));
+}
+
+.bot-list-row[aria-current="true"] {
+  background: rgba(142, 182, 255, 0.12);
+}
+
+.bot-list-kind {
+  width: 42px;
+  flex: none;
+  font-size: 11px;
+  color: var(--gray-9, #6e6e73);
+}
+
+.bot-list-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.bot-list-priority {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--gray-4, #3a3a3a);
+}
+
+.bot-frame-bar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-width: 0;
+  height: var(--desktop-shell-titlebar-height);
+  -webkit-app-region: no-drag;
+}
+
+.bot-frame-bar > .bot-tabs {
+  flex: 1;
+  height: 100%;
+}
+
+.bot-lists-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin-left: auto;
+  padding-right: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.bot-lists-tool {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-12, #d0d0d4);
+  display: grid;
+  place-items: center;
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+}
+
+.bot-lists-tool:hover,
+.bot-lists-tool[aria-expanded="true"] {
+  background: var(--gray-4, rgba(255, 255, 255, 0.06));
+}
+
+.bot-lists-tool svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.bot-lists-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--gray-5, #3a3a3c);
+  color: var(--gray-12, #fff);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.bot-lists-tip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--gray-4, #2c2c2e);
+  color: var(--gray-12, #fff);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.bot-lists-tool:hover .bot-lists-tip,
+.bot-lists-tool:focus-visible .bot-lists-tip {
+  opacity: 1;
+}
+
+.bot-lists-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 8px;
+  width: 280px;
+  background: var(--gray-2, #1c1c1e);
+  border: 1px solid var(--gray-6, rgba(255, 255, 255, 0.12));
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  padding: 6px 0 8px;
+  z-index: 6;
+}

@@ -26,6 +26,13 @@ import {
   useBotWorkspaceController,
   type BotWorkspaceContextValue,
 } from "./desktop/BotTabs";
+import {
+  BotLists,
+  readBotQueue,
+  useBotListsWide,
+  type BotListQueueItem,
+} from "./desktop/BotLists";
+import type { PanelSelection } from "./desktop/botWorkspace";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
@@ -236,6 +243,47 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       cancelled = true;
     };
   }, [assistantVisible, museApi]);
+  const botListsWide = useBotListsWide();
+  const [botMenu, setBotMenu] = useState<"queue" | "todo" | null>(null);
+  const [botQueue, setBotQueue] = useState<BotListQueueItem[]>([]);
+  useEffect(() => {
+    if (!assistantVisible) return;
+    let cancelled = false;
+    let sawPush = false;
+    const apply = (items: unknown) => {
+      if (!cancelled && Array.isArray(items)) setBotQueue(readBotQueue(items));
+    };
+    void museApi
+      .listAssistantQueue()
+      .then((page) => {
+        if (sawPush) return;
+        apply(page.items);
+      })
+      .catch(() => undefined);
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { command?: string; items?: unknown };
+      if (data?.command !== "assistant:queue") return;
+      sawPush = true;
+      apply(data.items);
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("message", onMessage);
+    };
+  }, [assistantVisible, museApi]);
+  const botIssues = (host?.issueGroups ?? []).map((group) => ({
+    issueId: group.issueId,
+    title: group.title,
+    priority: group.priority,
+  }));
+  const selectBotPanel = useCallback(
+    (panel: Exclude<PanelSelection, { kind: "none" }>) => {
+      workspace.selectPanel(panel);
+      setBotMenu(null);
+    },
+    [workspace],
+  );
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory. The assistant keeps its own
@@ -923,14 +971,29 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openPreviewHandler,
   };
 
+  const botLists = assistantVisible ? (
+    <BotLists
+      queue={botQueue}
+      issues={botIssues}
+      selected={workspace.panel}
+      wide={botListsWide}
+      menu={botMenu}
+      onSelect={selectBotPanel}
+      onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
+    />
+  ) : null;
+
   const assistantFrame = (
     <div className="chat-container" ref={chatContainerRef} data-testid="assistant-frame">
-      <BotTabs
-        state={workspace}
-        titles={issueTitles}
-        onFocus={workspace.focusTab}
-        onClose={workspace.closeIssueTab}
-      />
+      <div className="bot-frame-bar">
+        <BotTabs
+          state={workspace}
+          titles={issueTitles}
+          onFocus={workspace.focusTab}
+          onClose={workspace.closeIssueTab}
+        />
+        {botListsWide ? null : botLists}
+      </div>
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
           <AssistantPage
@@ -948,6 +1011,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             emptyState={<AssistantWelcome />}
           />
         </div>
+        {botListsWide ? botLists : null}
         {dock.checked.length > 0 && dock.active ? (
           <DesktopPanelSlots {...dock} />
         ) : null}
