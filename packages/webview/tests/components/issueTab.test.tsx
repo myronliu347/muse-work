@@ -1327,6 +1327,66 @@ describe("issue tab", () => {
     ).toEqual([]);
   });
 
+  it("closes the last issue file tab without retargeting the session dock", async () => {
+    await withElementBox(async () => {
+      resetWebviewStores();
+      stubAssistant([]);
+      stubWideViewport();
+      seedFileGroup(ASSISTANT_PANEL_GROUP_KEY);
+      usePanelGroupStore.getState().patchGroup("/work/radii", {
+        checked: ["file", "terminal"],
+        mounted: ["file", "terminal"],
+        active: "file",
+        collapsedTabs: null,
+        dockFullscreen: false,
+        fileTree: { ...emptyFileTreeState(), collapsed: false },
+      });
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <ChatApp
+            vscode={createMockVscode()}
+            host={createMockDesktopHost({
+              issueGroups: [RADII_ISSUE],
+            })}
+          />
+        </MuseTheme>,
+      );
+
+      const frame = await screen.findByTestId("assistant-frame");
+      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      await user.click(within(dock).getByRole("button", { name: "文件" }));
+      replyListDir("", [dirEntry("App.tsx", "/work/radii", "App.tsx", false)]);
+      await user.click(await within(dock).findByTestId("file-tree-row-App.tsx"));
+      expect(await within(dock).findByTestId("file-tab")).toHaveAttribute(
+        "data-path",
+        "/work/radii/App.tsx",
+      );
+
+      const sessionDock = usePanelGroupStore.getState().groups["/work/radii"];
+      expect(sessionDock?.fileTabs?.map((tab) => tab.path)).toEqual(["/work/radii/App.tsx"]);
+      expect(sessionDock?.checked).toEqual(["file", "terminal"]);
+      expect(sessionDock?.active).toBe("file");
+
+      await user.click(within(dock).getByTestId("file-tab-close"));
+
+      const sessionAfter = usePanelGroupStore.getState().groups["/work/radii"];
+      expect(sessionAfter?.checked).toEqual(["file", "terminal"]);
+      expect(sessionAfter?.active).toBe("file");
+      expect(sessionAfter?.collapsedTabs).toBeNull();
+      expect(sessionAfter?.dockFullscreen).toBe(false);
+      expect(sessionAfter?.fileTabs ?? []).toEqual([]);
+
+      const chrome = usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY];
+      expect(chrome?.checked).toEqual(["terminal", "preview", "diff"]);
+      expect(chrome?.active).toBe("terminal");
+      expect(within(dock).queryByTestId("file-tab")).toBeNull();
+      expect(within(dock).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+    });
+  });
+
   it("loads the older issue page when the transcript is scrolled near the top", async () => {
     resetWebviewStores();
     stubAssistant([]);

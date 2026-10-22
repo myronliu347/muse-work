@@ -300,7 +300,8 @@ export function useFilePanel({
         closedLast = removed && next.fileTabs.length === 0;
         if (!removed) return {};
         if (next.fileTabs.length > 0) return next;
-        if (group.checked.includes("file")) return applyCloseFileTab(group, path);
+        // File tabs live on the directory group, which may also be a session
+        // dock. Clearing the last tab must not retarget or collapse that dock.
         return {
           ...next,
           contentSearch: emptyContentSearchState(),
