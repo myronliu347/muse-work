@@ -1,0 +1,135 @@
+packages/webview/src/muse/listDirRequests.ts
+  8e5bfcf4c3f6895d 1-39
+packages/webview/src/hooks/useFilePanel.ts
+  8e5bfcf4c3f6895d 14,55,69,71,108,123,137,155,158,353-357,359,365
+packages/webview/tests/components/issueTab.test.tsx
+  8e5bfcf4c3f6895d 529-617
+packages/webview/src/muse/messageRouter.ts
+  8e5bfcf4c3f6895d 15-16,226-234,240,250
+packages/webview/src/stores/index.ts
+  8e5bfcf4c3f6895d 40,49
+packages/webview/src/components/panels/FileTree.tsx
+  8e5bfcf4c3f6895d 16,61-75,83,119,126
+packages/webview/src/components/ChatApp.tsx
+  8e5bfcf4c3f6895d 104-106,427-442,836-837,1281,1285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c74a8f910bcea0d598fa39355e1041eb16fc7a9b",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        }
+      }
+    },
+    "8e5bfcf4c3f6895d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d060696d-b61a-40d9-ae78-ced6f3eea43a",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 205,
+      "total_deletions": 77,
+      "accepted_lines": 204,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 13,
+          "deletions": 10,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 92,
+          "accepted_lines": 92
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 17,
+          "deletions": 9,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "additions": 19,
+          "deletions": 23,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 23,
+          "deletions": 35,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/muse/listDirRequests.ts": {
+          "additions": 39,
+          "accepted_lines": 39
+        }
+      }
+    },
+    "b1e026764997bbab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e01f215-45c2-482e-aacc-a3bc8be98e4a",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelTabs.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
