@@ -339,7 +339,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // if it is the sole pane. The effect reads the chrome tab from a ref and
   // does not depend on the workspace object. If this instance's checked set,
   // active kind, and group did not change, it does not retarget the chrome
-  // just because another pane wrote it.
+  // just because another pane wrote it. Gaining write permission is different:
+  // this pane's snapshot can be unchanged while it becomes the only writer.
+  // If the chrome kind is not checked here, return to 详情. Do not adopt this
+  // group's active kind. If the chrome kind is checked here, leave it.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
   const seenCheckedPanels = useRef(checkedPanels);
@@ -365,21 +368,26 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         : paneCount <= 1;
   const dockWriteAllowed = dockOnScreen && dockWriter;
   const dockWasOnScreen = useRef(false);
+  const dockWriteWasAllowed = useRef(false);
   useEffect(() => {
     const previousKind = seenPanelKind.current;
     const previousGroupKey = seenPanelGroupKey.current;
     const previousChecked = seenCheckedPanels.current;
     const wasOnScreen = dockWasOnScreen.current;
     const onScreen = dockOnScreenRef.current;
+    const wasWriter = dockWriteWasAllowed.current;
     seenPanelKind.current = activePanel;
     seenPanelGroupKey.current = groupKey;
     seenCheckedPanels.current = checkedPanels;
     dockWasOnScreen.current = onScreen;
+    dockWriteWasAllowed.current = dockWriteAllowed;
     if (!dockWriteAllowed) return;
     const checkedUnchanged =
       previousChecked.length === checkedPanels.length &&
       previousChecked.every((kind, index) => kind === checkedPanels[index]);
+    const gainedWrite = !wasWriter;
     if (
+      !gainedWrite &&
       previousGroupKey === groupKey &&
       previousKind === activePanel &&
       checkedUnchanged
@@ -390,6 +398,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const selectDock = selectDockRef.current;
     const chromeKindMissing =
       dock !== DOCK_DETAIL_TAB && !checkedPanels.includes(dock);
+    if (gainedWrite) {
+      if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
+      return;
+    }
     if (previousGroupKey !== groupKey || !wasOnScreen) {
       if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
       return;
