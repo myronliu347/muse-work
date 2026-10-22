@@ -1985,6 +1985,10 @@ body.is-panel-resizing * {
   display: none;
 }
 
+.desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-session-list {
+  display: none;
+}
+
 .desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-shell-chrome {
   display: none;
 }
