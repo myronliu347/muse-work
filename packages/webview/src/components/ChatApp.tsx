@@ -11,6 +11,10 @@ import {
   DesktopSidebar,
   resolveSidebarSessions,
 } from "./desktop/DesktopSidebar";
+import {
+  DESKTOP_SESSION_LIST_WIDTH,
+  DesktopSessionList,
+} from "./desktop/DesktopSessionList";
 import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
@@ -366,9 +370,14 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
+  const sessionListInset =
+    noPaneDesktop && noPaneRail === "sessions" && !sidebarCollapsed
+      ? DESKTOP_SESSION_LIST_WIDTH
+      : 0;
+  const contentInset = layoutSidebarWidth + sessionListInset;
   const sidebarInset =
     !dockFullscreen && !sidebarCollapsed && paneHasSidebarInset(host?.panes, paneId);
-  const chatMinWidth = chatMainMinWidth(sidebarInset, layoutSidebarWidth);
+  const chatMinWidth = chatMainMinWidth(sidebarInset, contentInset);
   const dockMaxWidth = chatColumnWidth - chatMinWidth;
   const panels = usePanels({
     postToHost,
@@ -1029,7 +1038,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
         data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
         style={
           {
-            "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
+            "--desktop-sidebar-width": `${contentInset}px`,
             "--desktop-sidebar-drawer-width": `${sidebarWidth}px`,
           } as React.CSSProperties
         }
@@ -1089,6 +1098,41 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           }}
           activeMenu={noPaneRail}
         />
+        {noPaneRail === "sessions" ? (
+          <DesktopSessionList
+            onNewSession={() => {
+              setNoPaneRail("sessions");
+              setView("chat");
+              handleDesktopNewSession();
+            }}
+            onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
+            isStreaming={state.isStreaming}
+            disabled={false}
+            {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
+            currentSessionId={
+              view === "assistant" || view === "automations"
+                ? undefined
+                : state.currentSession?.id
+            }
+            onSelectSession={(workdir, sessionId) => {
+              setView("chat");
+              host.onSelectSession(workdir, sessionId);
+            }}
+            onOpenPane={host.onOpenPane}
+            onDeleteSession={host.onDeleteSession}
+            onTogglePin={host.onTogglePin}
+            onRenameSession={host.onRenameSession}
+            onOpenInEditor={(workdir) =>
+              postToHost({ command: "desktopOpenInEditor", workdir })
+            }
+            onOpenInTerminal={(workdir) =>
+              postToHost({ command: "desktopOpenInTerminal", workdir })
+            }
+            onRevealInFinder={(workdir) =>
+              postToHost({ command: "revealInFinder", path: workdir })
+            }
+          />
+        ) : null}
         {view === "automations" ? (
           <AutomationsPage
             api={museApi}

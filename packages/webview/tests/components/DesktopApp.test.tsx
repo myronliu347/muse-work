@@ -84,10 +84,16 @@ describe("DesktopApp host → sidebar 会话树", () => {
       ],
     });
 
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-item-sess-1")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
+
     expect(screen.getByTestId("desktop-session-item-sess-1")).toBeTruthy();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
   });
 
-  it("desktopSessionTree issueGroups 渲染待办事项与优先级徽标", () => {
+  it("首屏没有 Issue 区，点开会话后仍不渲染 Issue", () => {
     const vscode = mockVscode();
     render(<DesktopApp vscode={vscode} />);
 
@@ -99,7 +105,13 @@ describe("DesktopApp host → sidebar 会话树", () => {
     });
     postToWindow({
       command: "desktopSessionTree",
-      groups: [],
+      groups: [
+        {
+          host: "local",
+          workdir: "recent",
+          sessions: [entry("sess-1")],
+        },
+      ],
       issueGroups: [
         {
           issueId: "issue-1",
@@ -110,34 +122,6 @@ describe("DesktopApp host → sidebar 会话树", () => {
           items: [],
           sessions: [entry("plan-1")],
         },
-      ],
-    });
-
-    const section = screen.getByTestId("desktop-session-section-issues");
-    expect(section).toHaveTextContent("待办事项");
-    expect(section).toHaveTextContent("侧栏 Issue");
-    const badge = section.querySelector(".issue-sidebar-priority-p2");
-    expect(badge).toBeTruthy();
-    expect(badge).toHaveTextContent("P2");
-    const icon = section.querySelector("[data-testid=issue-type-research]");
-    expect(icon).toBeTruthy();
-    expect(icon).toHaveAttribute("aria-label", "调研");
-  });
-
-  it("desktopSessionTree 缺少 priority 的遗留 Issue 不白屏", () => {
-    const vscode = mockVscode();
-    render(<DesktopApp vscode={vscode} />);
-
-    postToWindow({
-      command: "desktopWorkdirState",
-      workdir: "/tmp/proj",
-      recentWorkdirs: ["/tmp/proj"],
-      host: "local",
-    });
-    postToWindow({
-      command: "desktopSessionTree",
-      groups: [],
-      issueGroups: [
         {
           issueId: "legacy-1",
           title: "测试任务看板功能",
@@ -148,13 +132,14 @@ describe("DesktopApp host → sidebar 会话树", () => {
       ],
     });
 
-    expect(screen.getByTestId("desktop-session-section-issues")).toHaveTextContent(
-      "测试任务看板功能",
-    );
-    const icons = screen.getAllByTestId("issue-type-work");
-    expect(icons.length).toBeGreaterThan(0);
-    for (const icon of icons) {
-      expect(icon).toHaveAttribute("aria-label", "兜底");
-    }
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByText("侧栏 Issue")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
+
+    expect(screen.getByTestId("desktop-session-item-sess-1")).toBeTruthy();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByText("侧栏 Issue")).toBeNull();
+    expect(screen.queryByText("测试任务看板功能")).toBeNull();
   });
 });

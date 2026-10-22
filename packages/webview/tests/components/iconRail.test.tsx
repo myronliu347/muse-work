@@ -107,24 +107,53 @@ describe("desktop icon rail", () => {
     expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
       "active",
     );
-    expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+    expect(
+      screen
+        .getByTestId("desktop-session-list")
+        .contains(screen.getByTestId("desktop-new-session")),
+    ).toBe(true);
 
     await user.click(screen.getByTestId("desktop-assistant-menu"));
     expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
       "active",
     );
+    expect(screen.queryByTestId("desktop-session-list")).toBeNull();
     expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+  });
+
+  it("lists ordinary sessions without issues and stays on sessions", async () => {
+    const user = userEvent.setup();
+    const host = hostWithPanes();
+    render(
+      <DesktopShell
+        vscode={mockVscode()}
+        host={host}
+        onOpenSettings={vi.fn()}
+        api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+        postToHost={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    const list = screen.getByTestId("desktop-session-list");
+    expect(list).toHaveTextContent("sess-1");
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-session-item-sess-1"));
+    expect(host.onSelectSession).toHaveBeenCalledWith("/tmp/proj", "sess-1");
+    expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
+      "active",
+    );
   });
 
   it("opens the no-pane desktop on Muse Bot and switches to sessions", async () => {
     resetWebviewStores();
     const user = userEvent.setup();
+    const host = { ...hostWithPanes(), panes: [], focusedPaneId: null };
     render(
       <MuseTheme>
-        <ChatApp
-          vscode={mockVscode()}
-          host={{ ...hostWithPanes(), panes: [], focusedPaneId: null }}
-        />
+        <ChatApp vscode={mockVscode()} host={host} />
       </MuseTheme>,
     );
     establishSession();
@@ -132,6 +161,7 @@ describe("desktop icon rail", () => {
     expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
       "active",
     );
+    expect(screen.queryByTestId("desktop-session-list")).toBeNull();
     expect(screen.queryByTestId("desktop-new-session")).toBeNull();
     expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
 
@@ -143,6 +173,15 @@ describe("desktop icon rail", () => {
     expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
       "active",
     );
-    expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+    const list = screen.getByTestId("desktop-session-list");
+    expect(list).toHaveTextContent("sess-1");
+    expect(list.contains(screen.getByTestId("desktop-new-session"))).toBe(true);
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-session-item-sess-1"));
+    expect(host.onSelectSession).toHaveBeenCalledWith("/tmp/proj", "sess-1");
+    expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
+      "active",
+    );
   });
 });

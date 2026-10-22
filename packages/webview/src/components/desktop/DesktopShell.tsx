@@ -8,6 +8,10 @@ import React, {
 } from "react";
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
+import {
+  DESKTOP_SESSION_LIST_WIDTH,
+  DesktopSessionList,
+} from "./DesktopSessionList";
 import { AutomationsPage } from "../automation/AutomationsPage";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
@@ -83,6 +87,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const [shellView, setShellView] = useState<ShellSurface>("assistant");
+  const sessionListInset =
+    shellView === "sessions" && !sidebarCollapsed
+      ? DESKTOP_SESSION_LIST_WIDTH
+      : 0;
+  const contentInset = layoutSidebarWidth + sessionListInset;
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
   // non-empty and at most two rows exist.
@@ -648,7 +657,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
       style={
         {
-          "--desktop-sidebar-width": `${layoutSidebarWidth}px`,
+          "--desktop-sidebar-width": `${contentInset}px`,
           "--desktop-sidebar-drawer-width": `${sidebarWidth}px`,
         } as React.CSSProperties
       }
@@ -704,6 +713,38 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         }}
         activeMenu={shellView}
       />
+      {shellView === "sessions" ? (
+        <DesktopSessionList
+          onNewSession={() => {
+            setShellView("sessions");
+            vscode.postMessage({ command: "newSession" });
+          }}
+          onNewSessionInWorkdir={(workdir) =>
+            vscode.postMessage({ command: "newSession", workdir })
+          }
+          isStreaming={false}
+          disabled={false}
+          {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
+          currentSessionId={focusedSessionId}
+          visibleSessionIds={visibleSessionIds}
+          onSelectSession={(workdir, sessionId) => {
+            host.onSelectSession(workdir, sessionId);
+          }}
+          onOpenPane={handleOpenPane}
+          onDeleteSession={host.onDeleteSession}
+          onTogglePin={host.onTogglePin}
+          onRenameSession={host.onRenameSession}
+          onOpenInEditor={(workdir) =>
+            vscode.postMessage({ command: "desktopOpenInEditor", workdir })
+          }
+          onOpenInTerminal={(workdir) =>
+            vscode.postMessage({ command: "desktopOpenInTerminal", workdir })
+          }
+          onRevealInFinder={(workdir) =>
+            vscode.postMessage({ command: "revealInFinder", path: workdir })
+          }
+        />
+      ) : null}
       {shellView === "automations" ? (
         <AutomationsPage
           api={api}
@@ -742,7 +783,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             >
               {rowPanes.map((pane, index) => {
                 const paneStyle: React.CSSProperties = {
-                  minWidth: minPaneWidth(index === 0, layoutSidebarWidth),
+                  minWidth: minPaneWidth(index === 0, contentInset),
                 };
                 if (
                   resizePreview &&

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import {
   DesktopSidebar,
   formatRelativeActiveAt,
@@ -12,6 +12,7 @@ import {
   isTaskProjectWorkdir,
   partitionRecentSessions,
 } from "../../src/components/desktop/DesktopSidebar";
+import { DesktopSessionList } from "../../src/components/desktop/DesktopSessionList";
 import type { DesktopIssueGroup, DesktopSessionEntry } from "../../src/types";
 
 afterEach(() => {
@@ -55,10 +56,10 @@ function issueGroup(
   };
 }
 
-function renderSidebar(
+function railElement(
   props: Partial<React.ComponentProps<typeof DesktopSidebar>> = {},
 ) {
-  return render(
+  return (
     <DesktopSidebar
       onNewSession={noop}
       onNewSessionInPane={noop}
@@ -73,15 +74,55 @@ function renderSidebar(
       onOpenPane={noop}
       onDeleteSession={noop}
       onTogglePin={noop}
-      popoEnabled
       {...props}
-    />,
+    />
   );
+}
+
+function sessionListElement(props: Record<string, unknown> = {}) {
+  const {
+    issueGroups: _issueGroups,
+    closedIssueGroups: _closedIssueGroups,
+    onSelectIssue: _onSelectIssue,
+    onNewIssue: _onNewIssue,
+    onOpenPlanning: _onOpenPlanning,
+    onCompleteIssue: _onCompleteIssue,
+    onCancelIssue: _onCancelIssue,
+    onNewSessionInPane: _onNewSessionInPane,
+    onOpenSettings: _onOpenSettings,
+    onLogin: _onLogin,
+    isAuthenticated: _isAuthenticated,
+    activeMenu: _activeMenu,
+    popoEnabled: _popoEnabled,
+    popoChats: _popoChats,
+    sidebarAccessHidden: _sidebarAccessHidden,
+    ...rest
+  } = props;
+  return (
+    <DesktopSessionList
+      onNewSession={noop}
+      onNewSessionInWorkdir={noop}
+      isStreaming={false}
+      disabled={false}
+      sessionTree={[]}
+      pinnedSessions={[]}
+      recentSessions={[]}
+      onSelectSession={noop}
+      onOpenPane={noop}
+      onDeleteSession={noop}
+      onTogglePin={noop}
+      {...rest}
+    />
+  );
+}
+
+function renderSidebar(props: Record<string, unknown> = {}) {
+  return render(sessionListElement(props));
 }
 
 describe("DesktopSidebar pin/recent sessions", () => {
   it("marks Muse Bot unread until it is opened", () => {
-    const { rerender } = renderSidebar();
+    const { rerender } = render(railElement());
     expect(screen.queryByTestId("assistant-unread-dot")).toBeNull();
     fireEvent(
       window,
@@ -94,24 +135,7 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
     expect(screen.getByTestId("assistant-unread-dot")).toBeTruthy();
 
-    rerender(
-      <DesktopSidebar
-        onNewSession={noop}
-        onNewSessionInPane={noop}
-        onNewSessionInWorkdir={noop}
-        isStreaming={false}
-        disabled={false}
-        onOpenSettings={noop}
-        sessionTree={[]}
-        pinnedSessions={[]}
-        recentSessions={[]}
-        onSelectSession={noop}
-        onOpenPane={noop}
-        onDeleteSession={noop}
-        onTogglePin={noop}
-        activeMenu="assistant"
-      />,
-    );
+    rerender(railElement({ activeMenu: "assistant" }));
     expect(screen.queryByTestId("assistant-unread-dot")).toBeNull();
   });
 
@@ -569,26 +593,19 @@ describe("DesktopSidebar pin/recent sessions", () => {
       isStreaming: true,
       disabled: false,
     });
-    expect(screen.getByTestId("desktop-new-session")).toBeEnabled();
+    const newSession = () =>
+      within(screen.getByTestId("desktop-session-list")).getByTestId(
+        "desktop-new-session",
+      );
+    expect(newSession()).toBeEnabled();
 
     rerender(
-      <DesktopSidebar
-        onNewSession={noop}
-        onNewSessionInPane={noop}
-        onNewSessionInWorkdir={noop}
-        isStreaming={false}
-        disabled={true}
-        onOpenSettings={noop}
-        sessionTree={[]}
-        pinnedSessions={[]}
-        recentSessions={[]}
-        onSelectSession={noop}
-        onOpenPane={noop}
-        onDeleteSession={noop}
-        onTogglePin={noop}
-      />,
+      sessionListElement({
+        isStreaming: false,
+        disabled: true,
+      }),
     );
-    expect(screen.getByTestId("desktop-new-session")).toBeDisabled();
+    expect(newSession()).toBeDisabled();
   });
 
   it("selects using the session workdir, not section key", () => {
@@ -692,10 +709,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
     expect(card.textContent).toContain("Worktree");
   });
 
-  it("renders 待办事项 between pin and tasks with priority badge", () => {
+
+  it("keeps issue groups out of the session list", () => {
     renderSidebar({
       pinnedSessions: [entry({ sessionId: "p1", workdir: "/repo/alpha" })],
-      issueGroups: [issueGroup({ priority: "p0" })],
+      issueGroups: [issueGroup({ priority: "p0", title: "设计评审" })],
       recentSessions: [
         entry({
           sessionId: "t1",
@@ -704,159 +722,19 @@ describe("DesktopSidebar pin/recent sessions", () => {
       ],
     });
 
-    const section = screen.getByTestId("desktop-session-section-issues");
-    expect(section).toHaveTextContent("待办事项");
-    expect(
-      screen.getByTestId("desktop-session-issue-group-issue-1"),
-    ).toHaveTextContent("设计评审");
-    const badge = section.querySelector(".issue-sidebar-priority-p0");
-    expect(badge).toBeTruthy();
-    expect(badge).toHaveTextContent("P0");
-    const issueRow = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(issueRow.firstElementChild).toHaveClass("issue-sidebar-icon-slot");
-    expect(issueRow.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
-    expect(
-      issueRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
-    ).toBeNull();
-    expect(
-      screen.getByTestId("desktop-session-issue-row-issue-1"),
-    ).not.toHaveTextContent("写方案");
-    const checklist = screen.getByTestId(
-      "desktop-session-issue-checklist-issue-1",
-    );
-    expect(checklist.closest(".tooltip-box")).not.toHaveClass("visible");
-
-    const tree = screen.getByTestId("desktop-session-tree");
-    const pinIdx = tree.innerHTML.indexOf(
-      'data-testid="desktop-session-section-pin"',
-    );
-    const issuesIdx = tree.innerHTML.indexOf(
-      'data-testid="desktop-session-section-issues"',
-    );
-    const tasksIdx = tree.innerHTML.indexOf(
-      'data-testid="desktop-session-section-tasks"',
-    );
-    expect(pinIdx).toBeLessThan(issuesIdx);
-    expect(issuesIdx).toBeLessThan(tasksIdx);
+    const list = screen.getByTestId("desktop-session-list");
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByText("设计评审")).toBeNull();
+    expect(within(list).getByTestId("desktop-session-item-p1")).toBeTruthy();
+    expect(within(list).getByTestId("desktop-session-section-tasks")).toBeTruthy();
+    expect(within(list).getByTestId("desktop-new-session")).toBeTruthy();
   });
 
-  it("does not list planning/execution sessions under the issue row", () => {
+  it("does not list planning or execution sessions from issue groups", () => {
     renderSidebar({ issueGroups: [issueGroup({ agentMode: "split" })] });
-    expect(
-      screen.queryByTestId("desktop-session-item-plan-1"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("desktop-session-item-exec-1"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("single-agent issue row opens issue detail without nested session rows", () => {
-    const onSelectIssue = vi.fn();
-    renderSidebar({
-      onSelectIssue,
-      currentSessionId: "plan-1",
-      issueGroups: [
-        issueGroup({
-          agentMode: "single",
-          title: "高码 SDD",
-          executionSessionId: undefined,
-          sessions: [
-            entry({
-              sessionId: "plan-1",
-              title: "高码 SDD · 规划",
-              hasWorktree: true,
-              worktreeName: "wt-a",
-            }),
-          ],
-        }),
-      ],
-    });
-
-    expect(
-      screen.queryByTestId("desktop-session-item-plan-1"),
-    ).not.toBeInTheDocument();
-    const row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(row).toHaveTextContent("高码 SDD");
-    expect(row).toHaveClass("issue-sidebar-row--current");
-    expect(
-      screen.getByTestId("desktop-session-worktree-badge-plan-1"),
-    ).toBeTruthy();
-
-    fireEvent.click(row);
-    expect(onSelectIssue).toHaveBeenCalledWith("issue-1");
-  });
-
-  it("split issue row calls onSelectIssue instead of expanding nested sessions", () => {
-    const onSelectIssue = vi.fn();
-    renderSidebar({
-      onSelectIssue,
-      issueGroups: [issueGroup({ agentMode: "split" })],
-    });
-    fireEvent.click(screen.getByTestId("desktop-session-issue-row-issue-1"));
-    expect(onSelectIssue).toHaveBeenCalledWith("issue-1");
-  });
-
-  it("single-agent issue row shows running/waiting/unread status instead of priority flag", () => {
-    const single = (
-      session: Partial<DesktopSessionEntry> & { sessionId: string },
-    ) => [
-      issueGroup({
-        agentMode: "single",
-        executionSessionId: undefined,
-        sessions: [entry(session)],
-      }),
-    ];
-
-    renderSidebar({
-      currentSessionId: "plan-1",
-      isStreaming: true,
-      issueGroups: single({ sessionId: "plan-1" }),
-    });
-    let row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(
-      row.querySelector("[data-testid='desktop-session-status-running']"),
-    ).toBeTruthy();
-    expect(
-      row.querySelector("[data-testid='desktop-session-issue-expand']"),
-    ).toBeNull();
-    cleanup();
-
-    renderSidebar({
-      currentSessionId: "other",
-      issueGroups: single({
-        sessionId: "plan-1",
-        waitingConfirmation: true,
-      }),
-    });
-    row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(
-      row.querySelector("[data-testid='desktop-session-status-waiting']"),
-    ).toBeTruthy();
-    cleanup();
-
-    renderSidebar({
-      currentSessionId: "other",
-      issueGroups: single({
-        sessionId: "plan-1",
-        unreadDone: true,
-      }),
-    });
-    row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(row.querySelector(".desktop-session-unread-dot")).toBeTruthy();
-    cleanup();
-
-    renderSidebar({
-      issueGroups: single({ sessionId: "plan-1" }),
-    });
-    row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    expect(
-      row.querySelector("[data-testid='desktop-session-issue-expand']"),
-    ).toBeNull();
-    expect(row.firstElementChild).toHaveClass("issue-sidebar-icon-slot");
-    expect(row.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
-    expect(
-      row.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
-    ).toBeNull();
+    expect(screen.queryByTestId("desktop-session-item-plan-1")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-item-exec-1")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
   });
 
   it("keeps the issue title on one line and overlays status/more on hover", () => {
@@ -884,154 +762,6 @@ describe("DesktopSidebar pin/recent sessions", () => {
     );
   });
 
-  it("shows the checklist in a right-side popover on issue row hover", () => {
-    renderSidebar({ issueGroups: [issueGroup()] });
-    const row = screen.getByTestId("desktop-session-issue-row-issue-1");
-    const checklist = screen.getByTestId(
-      "desktop-session-issue-checklist-issue-1",
-    );
-    expect(checklist.closest(".tooltip-box")).not.toHaveClass("visible");
-
-    fireEvent.mouseEnter(row);
-    expect(checklist.closest(".tooltip-box")).toHaveClass("visible");
-    fireEvent.mouseLeave(row);
-    fireEvent.mouseEnter(checklist.closest(".tooltip-box")!);
-    expect(checklist.closest(".tooltip-box")).toHaveClass("visible");
-    expect(checklist).toHaveTextContent("设计评审");
-    expect(checklist).toHaveTextContent("评审登录方案");
-    expect(checklist).toHaveTextContent("待规划");
-    expect(checklist).toHaveTextContent("写方案");
-    expect(checklist).toHaveTextContent("改登录");
-    expect(checklist.querySelector(".issue-checklist-card-item-done")).toHaveTextContent(
-      "写方案",
-    );
-    const css = fs.readFileSync(
-      path.join(__dirname, "../../src/styles/DesktopApp.css"),
-      "utf8",
-    );
-    expect(css).toMatch(
-      /\.issue-checklist-card\s*\{[^}]*max-height:\s*min\(52vh,\s*360px\)/s,
-    );
-  });
-
-  it("empty-session issue does not inherit streaming when currentSessionId is unset", () => {
-    renderSidebar({
-      isStreaming: true,
-      currentSessionId: undefined,
-      issueGroups: [
-        issueGroup({
-          issueId: "empty-1",
-          title: "空 Issue",
-          sessions: [],
-        }),
-        issueGroup({
-          issueId: "busy-1",
-          title: "进行中",
-          sessions: [
-            entry({ sessionId: "busy-plan", running: true }),
-          ],
-        }),
-      ],
-    });
-
-    const emptyRow = screen.getByTestId("desktop-session-issue-row-empty-1");
-    expect(
-      emptyRow.querySelector("[data-testid='desktop-session-status-running']"),
-    ).toBeNull();
-    expect(emptyRow.querySelector(".issue-sidebar-icon-slot")?.firstElementChild).toHaveAttribute(
-      "data-testid",
-      "issue-type-work",
-    );
-    expect(
-      emptyRow.querySelector("[data-testid='desktop-session-issue-icon-spacer']"),
-    ).toBeNull();
-
-    const busyRow = screen.getByTestId("desktop-session-issue-row-busy-1");
-    const busySlot = busyRow.querySelector(".issue-sidebar-icon-slot");
-    expect(
-      busySlot?.querySelector("[data-testid='desktop-session-status-running']"),
-    ).toBeTruthy();
-    expect(busySlot?.querySelector("[data-testid='issue-type-work']")).toBeTruthy();
-  });
-
-  it("hides pin/delete on issue sessions and offers open-planning when empty", () => {
-    const onOpenPlanning = vi.fn();
-    renderSidebar({
-      issueGroups: [
-        issueGroup({
-          issueId: "empty-1",
-          title: "空 Issue",
-          sessions: [],
-        }),
-        issueGroup(),
-      ],
-      onOpenPlanning,
-    });
-
-    expect(
-      screen.queryByTestId("desktop-session-pin-plan-1"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("desktop-session-delete-plan-1"),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId("desktop-session-issue-row-empty-1"));
-    expect(onOpenPlanning).toHaveBeenCalledWith("empty-1");
-    expect(
-      screen.queryByTestId("desktop-session-issue-open-planning-empty-1"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("renders leftover issue groups that omit priority without throwing", () => {
-    expect(() =>
-      renderSidebar({
-        issueGroups: [
-          {
-            issueId: "legacy-1",
-            title: "测试任务看板功能",
-            status: "reviewing",
-            items: [],
-            sessions: [],
-          } as DesktopIssueGroup,
-        ],
-      }),
-    ).not.toThrow();
-    expect(
-      screen.getByTestId("desktop-session-issue-group-legacy-1"),
-    ).toHaveTextContent("测试任务看板功能");
-  });
-
-  it("does not list closed issues in the sidebar", () => {
-    renderSidebar({
-      issueGroups: [issueGroup({ title: "进行中的事" })],
-    });
-
-    const openSection = screen.getByTestId("desktop-session-section-issues");
-    expect(openSection).toHaveTextContent("进行中的事");
-    expect(screen.queryByText("已关闭")).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("desktop-session-section-issues-closed"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows complete and cancel in the issue group more menu", () => {
-    renderSidebar({
-      issueGroups: [issueGroup()],
-      onCompleteIssue: vi.fn(),
-      onCancelIssue: vi.fn(),
-    });
-
-    fireEvent.click(screen.getByTestId("desktop-session-issue-more-issue-1"));
-    const menu = screen.getByTestId("desktop-session-issue-menu-issue-1");
-    expect(menu.closest(".desktop-sidebar")).toBeNull();
-    expect(
-      screen.getByTestId("desktop-session-issue-complete-issue-1"),
-    ).toHaveTextContent("完成");
-    expect(
-      screen.getByTestId("desktop-session-issue-cancel-issue-1"),
-    ).toHaveTextContent("取消");
-  });
-
   it("keeps worktree rows as direct li children of the session ul", () => {
     const { container } = renderSidebar({
       recentSessions: [
@@ -1046,12 +776,6 @@ describe("DesktopSidebar pin/recent sessions", () => {
         entry({ sessionId: "plain", workdir: "/repo" }),
       ],
     });
-    // Worktree + plain rows share the /repo group, so the nested ul must
-    // contain two <li> flex children. A tooltip wrapper span in between
-    // would break the flex column and shift the row upward (regression:
-    // hover card pressed the row into the group header above). The tooltip
-    // box itself is `position: fixed` (out of flex flow) and may appear as
-    // a sibling DIV — it must not be a wrapper around the <li>.
     const list = container.querySelector(".desktop-session-items");
     expect(list).toBeTruthy();
     const lis = Array.from(list!.querySelectorAll(":scope > li"));
@@ -1067,7 +791,11 @@ describe("DesktopSidebar pin/recent sessions", () => {
   });
 });
 
-it("highlights the 新对话 menu item when active", () => {
-  renderSidebar({ activeMenu: "newChat" });
-  expect(screen.getByTestId("desktop-new-session").className).toContain("active");
+it("renders 新对话 inside the session list", () => {
+  renderSidebar();
+  expect(
+    within(screen.getByTestId("desktop-session-list")).getByTestId(
+      "desktop-new-session",
+    ),
+  ).toBeTruthy();
 });

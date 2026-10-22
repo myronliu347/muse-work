@@ -994,7 +994,7 @@ export const SessionTree: React.FC<SessionTreeProps> = ({
             sessions: pinnedSessions,
           })
         : null}
-      {renderIssuesSection()}
+      {issueGroups?.length ? renderIssuesSection() : null}
       {renderTasksSection()}
       {renderWorkspaceSection()}
 
