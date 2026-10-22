@@ -11,7 +11,8 @@ import {
   pinFileTab,
   selectFileTab,
 } from "../muse/fileTabs";
-import { emptyContentSearchState, emptyFileTreeState } from "../stores";
+import { noteDesktopContentSearchRequest } from "../muse/contentSearchRequests";
+import { emptyContentSearchState, emptyFileTreeState, usePanelGroupStore } from "../stores";
 import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
 import type { ChatAppCore } from "./useChatAppCore";
@@ -70,24 +71,29 @@ export function useFilePanel({
 }: UseFilePanelParams): FilePanelHandlers {
   const writeListingGroup = updateListingGroup ?? updatePanelGroup;
   // Reset file sidebar search when workdir changes (per-group memory stays
-  // for tree width/expand; search mode/results start fresh).
+  // for tree width/expand; search mode/results start fresh). The visible
+  // search lives on the listing group, so that group is cleared too.
   const contentSearchWorkdirRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!groupKey) return;
-    const prev = contentSearchWorkdirRef.current;
-    contentSearchWorkdirRef.current = effectiveWorkdir;
-    if (prev === undefined) return;
-    if (prev === effectiveWorkdir) return;
-    updatePanelGroup({
-      fileSidebarMode: "tree",
-      contentSearch: emptyContentSearchState(),
-    });
-  }, [effectiveWorkdir, groupKey, updatePanelGroup]);
-
   const contentSearchSeqRef = useRef(0);
   const contentSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  useEffect(() => {
+    const prev = contentSearchWorkdirRef.current;
+    contentSearchWorkdirRef.current = effectiveWorkdir;
+    if (prev === undefined) return;
+    if (prev === effectiveWorkdir) return;
+    if (contentSearchTimerRef.current) {
+      clearTimeout(contentSearchTimerRef.current);
+      contentSearchTimerRef.current = null;
+    }
+    const reset = {
+      fileSidebarMode: "tree" as const,
+      contentSearch: emptyContentSearchState(),
+    };
+    if (groupKey) updatePanelGroup(reset);
+    writeListingGroup(reset);
+  }, [effectiveWorkdir, groupKey, updatePanelGroup, writeListingGroup]);
 
   useEffect(() => {
     return () => {
@@ -103,8 +109,9 @@ export function useFilePanel({
         clearTimeout(contentSearchTimerRef.current);
         contentSearchTimerRef.current = null;
       }
+      const startedWorkdir = effectiveWorkdir;
       const q = next.query.trim();
-      if (!q || !effectiveWorkdir) {
+      if (!q || !startedWorkdir) {
         writeListingGroup({
           contentSearch: {
             ...next,
@@ -119,14 +126,16 @@ export function useFilePanel({
       }
       contentSearchTimerRef.current = setTimeout(() => {
         contentSearchTimerRef.current = null;
+        if (contentSearchWorkdirRef.current !== startedWorkdir) return;
         const requestId = `cs-${++contentSearchSeqRef.current}`;
-        writeListingGroup({
+        noteDesktopContentSearchRequest(startedWorkdir, requestId);
+        usePanelGroupStore.getState().patchGroup(startedWorkdir, {
           contentSearch: { ...next, loading: true, requestId, error: undefined },
         });
         postToHost({
           command: "desktopSearchContent",
           requestId,
-          workdir: effectiveWorkdir,
+          workdir: startedWorkdir,
           query: q,
           caseSensitive: next.caseSensitive,
           wholeWord: next.wholeWord,

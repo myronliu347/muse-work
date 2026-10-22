@@ -98,8 +98,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onOpenMatch,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const pendingRef = useRef<Set<string>>(new Set());
   const [pendingDirs, setPendingDirs] = useState<Set<string>>(new Set());
   const width = tree.width || FILE_TREE_WIDTH_DEFAULT;
+
+  const commitPending = (next: Set<string>) => {
+    pendingRef.current = next;
+    setPendingDirs(next);
+  };
 
   const expandedSet = useMemo(
     () => new Set(tree.expanded),
@@ -114,15 +120,21 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const requestDir = (dir: string) => {
     if (!workdir) return;
     if (tree.childrenCache[dir] !== undefined) return;
-    if (pendingDirs.has(dir)) return;
-    setPendingDirs((prev) => new Set(prev).add(dir));
+    if (pendingRef.current.has(dir)) return;
+    const next = new Set(pendingRef.current);
+    next.add(dir);
+    commitPending(next);
     postDirList(vscode, workdir, dir);
   };
 
   // Always refresh root when workdir mounts/changes (avoids stale empty cache).
+  // Drop in-flight child requests from the previous directory before the
+  // expanded-dir effect asks for them again.
   useEffect(() => {
     if (!workdir) return;
-    setPendingDirs((prev) => new Set(prev).add(""));
+    const next = new Set<string>([""]);
+    pendingRef.current = next;
+    setPendingDirs(next);
     postDirList(vscode, workdir, "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workdir]);
@@ -136,19 +148,22 @@ export const FileTree: React.FC<FileTreeProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workdir, tree.expanded.join("\0")]);
 
-  // Clear pending when cache fills (host result lands via parent)
+  // Clear pending when cache fills (host result lands via parent).
+  // A listing cached for the previous workdir is a different cache object, so
+  // it does not retire the request started for this workdir.
   useEffect(() => {
-    setPendingDirs((prev) => {
-      let changed = false;
-      const next = new Set(prev);
-      for (const dir of prev) {
-        if (tree.childrenCache[dir] !== undefined) {
-          next.delete(dir);
-          changed = true;
-        }
+    const prev = pendingRef.current;
+    let changed = false;
+    const next = new Set(prev);
+    for (const dir of prev) {
+      if (tree.childrenCache[dir] !== undefined) {
+        next.delete(dir);
+        changed = true;
       }
-      return changed ? next : prev;
-    });
+    }
+    if (!changed) return;
+    pendingRef.current = next;
+    setPendingDirs(next);
   }, [tree.childrenCache]);
 
   const virtualizer = useVirtualizer({
@@ -203,7 +218,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       if (!dirs.includes(dir)) dirs.push(dir);
     }
     onTreeChange({ ...tree, childrenCache: {} });
-    setPendingDirs(new Set(dirs));
+    commitPending(new Set(dirs));
     requestDirListings(vscode, workdir, dirs);
     onRefreshFile?.();
   };

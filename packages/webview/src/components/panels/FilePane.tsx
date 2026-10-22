@@ -317,6 +317,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
         </div>
         {onFileTreeChange && !treeCollapsed && (
           <FileTree
+            key={workdir ?? ""}
             workdir={workdir}
             vscode={vscode}
             tree={fileTree}

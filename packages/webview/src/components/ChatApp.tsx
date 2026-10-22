@@ -354,26 +354,30 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory. On Muse Bot and 会话, the
   // file, terminal, browser, and diff tabs follow the selected issue. A queue
-  // row keeps the previous issue. The assistant group key stays put so the
-  // chrome tab does not reset when the directory changes.
+  // row keeps the previous issue. With no issue, Muse Bot stays on the
+  // assistant directory and 会话 stays on the open session. The assistant
+  // group key stays put so the chrome tab does not reset when the directory
+  // changes.
   const dockIssueId =
     workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
   const dockIssueGroup = dockIssueId
     ? (host?.issueGroups ?? []).find((group) => group.issueId === dockIssueId)
     : undefined;
-  const dockWorkdir = dockIssueGroup
-    ? issueGroupSessionWorkdir(
-        dockIssueGroup,
-        issueTabSessionId(dockIssueGroup) ?? "",
-        host?.workdir,
-      )
-    : assistantWorkdir;
   const onSessionsSurface =
     host?.type === "desktop" &&
     (paneId !== undefined
       ? providedShellSurface === "sessions"
       : noPaneRail === "sessions");
   const sessionPanelWorkdir = effectiveWorkdir ?? host?.workdir ?? undefined;
+  const dockWorkdir = dockIssueGroup
+    ? issueGroupSessionWorkdir(
+        dockIssueGroup,
+        issueTabSessionId(dockIssueGroup) ?? "",
+        host?.workdir,
+      )
+    : onSessionsSurface
+      ? sessionPanelWorkdir
+      : assistantWorkdir;
   const panelWorkdir = assistantVisible ? dockWorkdir : sessionPanelWorkdir;
   const groupKey = assistantVisible
     ? ASSISTANT_PANEL_GROUP_KEY
@@ -1252,7 +1256,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     vscode,
     paneId,
     isStreaming: state.isStreaming,
-    sessionId: state.currentSession?.id,
+    sessionId: dockIssueId
+      ? dockIssueGroup
+        ? issueTabSessionId(dockIssueGroup)
+        : undefined
+      : state.currentSession?.id,
     workdir: assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir,
     baseBranch:
       dockIssueId || assistantVisible ? undefined : sessionGitMeta?.baseBranch,

@@ -12,6 +12,7 @@ import type {
   Message,
 } from "../types";
 import { openDesktopSettingsPage } from "./desktopSettingsNav";
+import { acceptDesktopContentSearchResult } from "./contentSearchRequests";
 import { acceptDesktopListDirResult } from "./listDirRequests";
 import { emptyFileTreeState, patchPaneUi, usePanelGroupStore } from "../stores";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
@@ -247,14 +248,20 @@ export function createMessageHandler({
         break;
       }
       case "desktopSearchContentResult": {
-        const key = previewGroupKeyRef.current || groupKeyRef.current;
-        if (!key) break;
         const requestId =
           typeof message.requestId === "string" ? message.requestId : "";
+        const notedWorkdir = requestId
+          ? acceptDesktopContentSearchResult(requestId)
+          : undefined;
+        if (requestId && !notedWorkdir) break;
+        const key =
+          notedWorkdir || previewGroupKeyRef.current || groupKeyRef.current;
+        if (!key) break;
         usePanelGroupStore.getState().patchGroup(key, (group) => {
           if (
-            !group.contentSearch?.requestId ||
-            group.contentSearch.requestId !== requestId
+            requestId &&
+            (!group.contentSearch?.requestId ||
+              group.contentSearch.requestId !== requestId)
           ) {
             return {};
           }
