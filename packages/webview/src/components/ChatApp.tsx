@@ -86,11 +86,20 @@ import "../styles/WelcomeView.css";
 import type {
   ChatAppProps,
   DesktopPanelKind,
+  DiffViewState,
   Message,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
-import { ASSISTANT_PANEL_GROUP_KEY, usePanelGroup, usePaneUi } from "../stores";
+import {
+  ASSISTANT_PANEL_GROUP_KEY,
+  emptyContentSearchState,
+  emptyFileTreeState,
+  usePanelGroup,
+  usePanelGroupStore,
+  usePaneUi,
+  type PanelGroupState,
+} from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
 import { useChatAppCore } from "../hooks/useChatAppCore";
@@ -102,7 +111,7 @@ import { useRewind } from "../hooks/useRewind";
 import { useDialogs } from "../hooks/useDialogs";
 import "../styles/ChatApp.css";
 
-
+const EMPTY_RECENT_DIFF_FILES: WorkspaceDiffFile[] = [];
 
 export { prunePanelGroupCache } from "../stores";
 
@@ -371,6 +380,24 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
+  const followIssueTools = assistantVisible || onSessionsSurface;
+  const previewGroupKeyRef = useRef<string | undefined>(undefined);
+  previewGroupKeyRef.current =
+    followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
+  const followIssueToolsRef = useRef(followIssueTools);
+  followIssueToolsRef.current = followIssueTools;
+  const issueToolWorkdir = followIssueTools ? dockWorkdir : undefined;
+  const treeCacheWorkdirRef = useRef<string | undefined>(undefined);
+  const dropTreeCache =
+    issueToolWorkdir !== undefined &&
+    treeCacheWorkdirRef.current !== undefined &&
+    treeCacheWorkdirRef.current !== issueToolWorkdir;
+  if (
+    issueToolWorkdir !== undefined &&
+    treeCacheWorkdirRef.current !== issueToolWorkdir
+  ) {
+    treeCacheWorkdirRef.current = issueToolWorkdir;
+  }
   const {
     checked: checkedPanels,
     mounted: mountedPanels,
@@ -388,6 +415,33 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
+  const dockPreviewUrl = usePanelGroupStore((state) =>
+    followIssueTools && dockWorkdir
+      ? (state.groups[dockWorkdir]?.previewUrl ?? null)
+      : null,
+  );
+  const dockForward = usePanelGroupStore((state) =>
+    followIssueTools && dockWorkdir
+      ? (state.groups[dockWorkdir]?.forward ?? null)
+      : null,
+  );
+  const dockForwardError = usePanelGroupStore((state) =>
+    followIssueTools && dockWorkdir
+      ? (state.groups[dockWorkdir]?.forwardError ?? null)
+      : null,
+  );
+  const dockPreviewEpoch = usePanelGroupStore((state) =>
+    followIssueTools && dockWorkdir
+      ? (state.previewEpochs[dockWorkdir] ?? 0)
+      : 0,
+  );
+  const usingIssuePreview = Boolean(followIssueTools && dockWorkdir);
+  const shownPreviewUrl = usingIssuePreview ? dockPreviewUrl : previewUrl;
+  const shownForward = usingIssuePreview ? dockForward : currentForward;
+  const shownForwardError = usingIssuePreview
+    ? dockForwardError
+    : previewForwardError;
+  const shownPreviewEpoch = usingIssuePreview ? dockPreviewEpoch : previewEpoch;
   // Opening a kind from a shortcut, the dock toggle, or the add menu also
   // leaves 详情. List clicks only call selectPanel, so a stale active kind
   // must not pull the dock back off 详情. Closing the kind that was active
@@ -571,8 +625,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   }, [state]);
 
   useEffect(() => {
-    previewUrlRef.current = previewUrl;
-  }, [previewUrl]);
+    previewUrlRef.current = shownPreviewUrl;
+  }, [shownPreviewUrl]);
 
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
@@ -614,6 +668,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           togglePanelRef,
           previewUrlRef,
           groupKeyRef,
+          previewGroupKeyRef,
           openQuickOpenRef,
           hostRef,
         },
@@ -636,6 +691,35 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
+  const updatePanelGroupRef = useRef(updatePanelGroup);
+  updatePanelGroupRef.current = updatePanelGroup;
+  const skipIssueTreeReset = useRef(true);
+  useEffect(() => {
+    if (skipIssueTreeReset.current) {
+      skipIssueTreeReset.current = false;
+      return;
+    }
+    if (!followIssueToolsRef.current) return;
+    updatePanelGroupRef.current((group) => ({
+      fileTree: {
+        ...(group.fileTree ?? emptyFileTreeState()),
+        childrenCache: {},
+      },
+      contentSearch: emptyContentSearchState(),
+    }));
+  }, [dockWorkdir]);
+  const updatePreviewGroup = useCallback(
+    (
+      patch:
+        | Partial<PanelGroupState>
+        | ((group: PanelGroupState) => Partial<PanelGroupState>),
+    ) => {
+      const key = previewGroupKeyRef.current;
+      if (!key) return;
+      usePanelGroupStore.getState().patchGroup(key, patch);
+    },
+    [],
+  );
 
   // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
@@ -700,6 +784,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     postToHost,
     updatePanelGroup,
     groupKey,
+    forwardGroupKeyRef: previewGroupKeyRef,
     panelWorkdir,
     chatContainerRef,
     togglePanelRef,
@@ -721,7 +806,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     panelWidths,
     dockMaxWidth,
     chatMinWidth,
-    hideDiff: assistantVisible,
+    hideDiff: assistantVisible && !dockIssueId,
     previewWithoutWorkdir: assistantVisible,
   });
   const {
@@ -737,12 +822,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   } = panels;
 
   const preview = usePreview({
-    updatePanelGroup,
+    updatePanelGroup: updatePreviewGroup,
     tryOpenPanel,
     acquireForward,
     effectiveHost,
-    currentForward,
-    previewForwardError,
+    currentForward: shownForward,
+    previewForwardError: shownForwardError,
   });
   const {
     handleOpenPreview,
@@ -759,7 +844,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     api: museApi,
     currentSession: state.currentSession,
     effectiveHost,
-    effectiveWorkdir: assistantVisible ? assistantWorkdir : effectiveWorkdir,
+    effectiveWorkdir: followIssueTools ? dockWorkdir : effectiveWorkdir,
     groupKey,
     contentSearch,
   });
@@ -1144,6 +1229,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const chromeKindMissing =
     workspace.dock !== DOCK_DETAIL_TAB &&
     !checkedPanels.includes(workspace.dock);
+  const issueDiffView = useMemo<DiffViewState | null>(
+    () => (dockIssueId ? { mode: "unstaged" } : null),
+    [dockIssueId],
+  );
   const dock: DesktopPanelSlotsProps = {
     checked: checkedPanels,
     active: workspace.dock === DOCK_DETAIL_TAB ? activePanel : workspace.dock,
@@ -1177,16 +1266,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     isStreaming: state.isStreaming,
     sessionId: state.currentSession?.id,
     workdir: assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir,
-    baseBranch: assistantVisible ? undefined : sessionGitMeta?.baseBranch,
-    previewEpoch,
-    previewUrl,
-    currentForward,
-    previewForwardError,
+    baseBranch:
+      dockIssueId || assistantVisible ? undefined : sessionGitMeta?.baseBranch,
+    previewEpoch: shownPreviewEpoch,
+    previewUrl: shownPreviewUrl,
+    currentForward: shownForward,
+    previewForwardError: shownForwardError,
     onRemotePreviewRetry: handleRemotePreviewRetry,
     onPreviewNavigate: handlePreviewNavigate,
     onAddComment: handleAddComment,
-    diffView,
-    recentFiles: recentDiffFiles,
+    diffView: issueDiffView ?? diffView,
+    recentFiles: dockIssueId ? EMPTY_RECENT_DIFF_FILES : recentDiffFiles,
     onOpenFile: handleOpenFile,
     onOpenFilePinned: handleOpenFilePin,
     onRefreshOpenFile: handleRefreshOpenFile,
@@ -1200,11 +1290,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     onCloseFileTab: handleCloseFileTab,
     onPinFileTab: handlePinFileTab,
-    fileTree,
+    fileTree: dropTreeCache ? { ...fileTree, childrenCache: {} } : fileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,
     onFileSidebarModeChange: handleFileSidebarModeChange,
-    contentSearch,
+    contentSearch: dropTreeCache ? emptyContentSearchState() : contentSearch,
     onContentSearchChange: handleContentSearchChange,
     onOpenInPreview: handleOpenLocalFilePreview,
     onRevealInFinder: handleRevealInFinder,

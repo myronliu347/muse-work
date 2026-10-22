@@ -49,6 +49,8 @@ interface UsePanelsParams {
   postToHost: ChatAppCore["postToHost"];
   updatePanelGroup: ChatAppCore["updatePanelGroup"];
   groupKey?: string;
+  /** Where the browser forward record and its preview URL are stored. */
+  forwardGroupKeyRef?: MutableRefObject<string | undefined>;
   panelWorkdir?: string;
   chatContainerRef: RefObject<HTMLDivElement>;
   togglePanelRef: MutableRefObject<(kind: DesktopPanelKind) => void>;
@@ -75,6 +77,7 @@ export function usePanels({
   postToHost,
   updatePanelGroup,
   groupKey,
+  forwardGroupKeyRef,
   panelWorkdir,
   chatContainerRef,
   togglePanelRef,
@@ -147,11 +150,12 @@ export function usePanels({
       }
       const requestId = `fwd-${++forwardSeqRef.current}`;
       const fwd = { host, remotePort, originalUrl: url, requestId };
-      usePanelGroupStore.getState().ensureGroup(groupKey);
-      updatePanelGroup({ forward: fwd });
+      const storeKey = forwardGroupKeyRef?.current || groupKey;
+      usePanelGroupStore.getState().patchGroup(storeKey, { forward: fwd });
       // The session id scopes the tunnel's lifetime on the host — it stays alive
       // across UI actions and is only released when the session is deleted
-      // (scenario 18).
+      // (scenario 18). The forward record itself follows the issue directory
+      // so the reply writes that directory's preview URL.
       postToHost({
         command: "desktopForwardPort",
         host,
@@ -160,7 +164,7 @@ export function usePanels({
         sessionId: groupKey,
       });
     },
-    [postToHost, showPanelHint, groupKey, updatePanelGroup],
+    [postToHost, showPanelHint, groupKey, forwardGroupKeyRef],
   );
 
   // Open a panel as a tab in the shared dock. First open must fit beside the

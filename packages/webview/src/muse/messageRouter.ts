@@ -33,6 +33,7 @@ export interface MessageRouterRefs {
   togglePanelRef: React.MutableRefObject<(kind: DesktopPanelKind) => void>;
   previewUrlRef: React.MutableRefObject<string | null>;
   groupKeyRef: React.MutableRefObject<string | undefined>;
+  previewGroupKeyRef: React.MutableRefObject<string | undefined>;
   openQuickOpenRef: React.MutableRefObject<(query: string) => void>;
   hostRef: React.MutableRefObject<DesktopHostProps | undefined>;
 }
@@ -65,6 +66,7 @@ export function createMessageHandler({
     togglePanelRef,
     previewUrlRef,
     groupKeyRef,
+    previewGroupKeyRef,
     openQuickOpenRef,
     hostRef,
   } = refs;
@@ -160,7 +162,8 @@ export function createMessageHandler({
             });
             if (
               message.url === previewUrlRef.current &&
-              targetKey === groupKeyRef.current
+              (targetKey === groupKeyRef.current ||
+                targetKey === previewGroupKeyRef.current)
             ) {
               // Same URL as before (re-acquire after a guest load failure):
               // remount so the webview actually reloads instead of the [url]

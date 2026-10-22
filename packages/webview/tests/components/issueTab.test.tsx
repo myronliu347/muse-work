@@ -1,16 +1,17 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, usePanelGroupStore } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
-import type { DesktopIssueGroup, DesktopSessionEntry } from "../../src/types";
+import type { DesktopIssueGroup, DesktopSessionEntry, FileTreeDirEntry } from "../../src/types";
 import {
   createMockDesktopHost,
   createMockVscode,
   fixtures,
+  sendExtensionMessage,
   sendHostMessage,
 } from "../webview/test-utils";
 
@@ -175,11 +176,52 @@ function seedFileGroup(key: string) {
   });
 }
 
+function dirEntry(
+  name: string,
+  workdir: string,
+  relativePath: string,
+  isDirectory: boolean,
+): FileTreeDirEntry {
+  const path = relativePath ? `${workdir}/${relativePath}` : workdir;
+  return { name, path, relativePath, isDirectory };
+}
+
+function listDirMessages(vscode: ReturnType<typeof createMockVscode>) {
+  return vscode.postMessage.mock.calls
+    .map((call) => call[0] as { command?: string; dir?: string; workdir?: string })
+    .filter((message) => message.command === "desktopListDir");
+}
+
+function replyListDir(dir: string, entries: FileTreeDirEntry[]) {
+  sendExtensionMessage({ command: "desktopListDirResult", dir, entries });
+}
+
+async function withElementBox<T>(run: () => Promise<T>): Promise<T> {
+  const proto = HTMLElement.prototype;
+  const height = Object.getOwnPropertyDescriptor(proto, "offsetHeight");
+  const width = Object.getOwnPropertyDescriptor(proto, "offsetWidth");
+  Object.defineProperty(proto, "offsetHeight", {
+    configurable: true,
+    get: () => 400,
+  });
+  Object.defineProperty(proto, "offsetWidth", {
+    configurable: true,
+    get: () => 300,
+  });
+  try {
+    return await run();
+  } finally {
+    if (height) Object.defineProperty(proto, "offsetHeight", height);
+    if (width) Object.defineProperty(proto, "offsetWidth", width);
+  }
+}
+
 describe("issue tab", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
     resetWebviewStores();
+    delete (HTMLElement.prototype as { loadURL?: unknown }).loadURL;
   });
 
   it("opens the issue transcript from detail without leaving Muse Bot", async () => {
@@ -431,5 +473,164 @@ describe("issue tab", () => {
     const paneAgain = await screen.findByTestId("desktop-pane-pane-a");
     expect(within(paneAgain).getByRole("button", { name: RADII })).toHaveClass("active");
     expect(within(paneAgain).getByTestId("issue-session-title")).toHaveTextContent(RADII);
+  });
+
+  it("refetches an expanded directory for the next issue instead of reusing cached children", async () => {
+    await withElementBox(async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    seedFileGroup(ASSISTANT_PANEL_GROUP_KEY);
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "文件" }));
+    replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
+    const src = await within(dock).findByTestId("file-tree-row-src");
+    await user.click(src);
+    await waitFor(() => {
+      expect(listDirMessages(vscode)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ dir: "src", workdir: "/work/radii" }),
+        ]),
+      );
+    });
+    replyListDir("src", [dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false)]);
+    expect(await within(dock).findByTestId("file-tree-row-src/old-child.ts")).toBeInTheDocument();
+
+    vscode.postMessage.mockClear();
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+
+    await waitFor(() => {
+      expect(listDirMessages(vscode)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ dir: "src", workdir: "/work/a11y-exec" }),
+        ]),
+      );
+    });
+    expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
+    expect(within(dock).queryByText("old-child.ts")).toBeNull();
+    });
+  });
+
+  it("requests the selected issue directory when 变更 opens on Muse Bot", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+
+    await waitFor(() => {
+      const diffCalls = vscode.postMessage.mock.calls
+        .map((call) => call[0] as { command?: string; workdir?: string; baseBranch?: string })
+        .filter(
+          (message) =>
+            message.command === "desktopGetWorkspaceDiff" ||
+            message.command === "desktopGetBranchDiff",
+        );
+      expect(diffCalls.length).toBeGreaterThan(0);
+      expect(diffCalls.every((message) => message.command === "desktopGetWorkspaceDiff")).toBe(true);
+      expect(diffCalls.every((message) => message.workdir === "/work/radii")).toBe(true);
+      expect(diffCalls.every((message) => message.baseBranch === undefined)).toBe(true);
+    });
+  });
+
+  it("keeps a separate browser preview for each issue", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["preview"],
+      mounted: ["preview"],
+      active: "preview",
+      previewUrl: "http://shared.example/",
+    });
+    const user = userEvent.setup();
+    Object.defineProperty(HTMLElement.prototype, "loadURL", {
+      configurable: true,
+      value: () => undefined,
+    });
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "浏览器" }));
+    const address = within(dock).getByTestId("preview-address");
+    expect(address).not.toHaveValue("http://shared.example/");
+    await user.click(address);
+    await user.type(address, "http://radii.test");
+    await user.keyboard("{Enter}");
+    await waitFor(() => {
+      expect(address).toHaveValue("http://radii.test/");
+    });
+    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
+      "http://radii.test/",
+    );
+    expect(within(dock).getByTestId("desktop-panel-tab-preview")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await waitFor(() => {
+      expect(within(dock).getByTestId("preview-address")).not.toHaveValue("http://radii.test/");
+    });
+    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
+      "http://radii.test/",
+    );
+    expect(usePanelGroupStore.getState().groups["/work/a11y-exec"]?.previewUrl ?? null).toBeNull();
+
+    await user.click(within(dock).getByRole("button", { name: "浏览器" }));
+    const nextAddress = within(dock).getByTestId("preview-address");
+    await user.click(nextAddress);
+    await user.type(nextAddress, "http://a11y.test");
+    await user.keyboard("{Enter}");
+    await waitFor(() => {
+      expect(nextAddress).toHaveValue("http://a11y.test/");
+    });
+    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
+      "http://radii.test/",
+    );
+    expect(usePanelGroupStore.getState().groups["/work/a11y-exec"]?.previewUrl).toBe(
+      "http://a11y.test/",
+    );
+    expect(usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.previewUrl).not.toBe(
+      "http://a11y.test/",
+    );
   });
 });
