@@ -1,3 +1,6 @@
+import type { DesktopIssueGroup } from "../../types";
+import { resolveIssuePlanningSessionId } from "../../utils/issueGroups";
+
 export type PanelSelection =
   | { kind: "issue"; issueId: string }
   | { kind: "queue"; id: string }
@@ -61,6 +64,12 @@ export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWor
 
 export function selectDock(state: BotWorkspaceState, dock: DockChrome): BotWorkspaceState {
   return { ...state, dock };
+}
+
+/** 执行会话优先；否则用规划会话。两个都没有时打不开这条 Issue。 */
+export function issueTabSessionId(group: DesktopIssueGroup): string | undefined {
+  if (group.executionSessionId) return group.executionSessionId;
+  return resolveIssuePlanningSessionId(group);
 }
 
 export function sessionActionLabel(

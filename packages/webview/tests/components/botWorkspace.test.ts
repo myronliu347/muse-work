@@ -3,11 +3,26 @@ import {
   closeIssueTab,
   focusTab,
   initialBotWorkspace,
+  issueTabSessionId,
   openIssueSession,
   selectDock,
   selectPanel,
   sessionActionLabel,
 } from "../../src/components/desktop/botWorkspace";
+import type { DesktopIssueGroup } from "../../src/types";
+
+function issueGroup(
+  partial: Partial<DesktopIssueGroup> & Pick<DesktopIssueGroup, "issueId">,
+): DesktopIssueGroup {
+  return {
+    title: partial.issueId,
+    priority: "p1",
+    status: "planning",
+    items: [],
+    sessions: [],
+    ...partial,
+  };
+}
 
 describe("botWorkspace", () => {
   it("opens on Muse Bot with the first issue only in the detail panel", () => {
@@ -58,6 +73,71 @@ describe("botWorkspace", () => {
     const closed = closeIssueTab(opened, "a11y");
     expect(closed.active).toBe("bot");
     expect(closed.openIssueIds).toEqual(["radii"]);
+  });
+
+  it("issueTabSessionId prefers an execution session over planning", () => {
+    expect(
+      issueTabSessionId(
+        issueGroup({
+          issueId: "radii",
+          planningSessionId: "plan-radii",
+          sessions: [
+            {
+              sessionId: "plan-radii",
+              title: "圆角",
+              lastActiveAt: 1,
+              workdir: "/work/radii",
+              hasWorktree: false,
+            },
+          ],
+        }),
+      ),
+    ).toBe("plan-radii");
+
+    expect(
+      issueTabSessionId(
+        issueGroup({
+          issueId: "a11y",
+          planningSessionId: "plan-a11y",
+          executionSessionId: "exec-a11y",
+          sessions: [
+            {
+              sessionId: "plan-a11y",
+              title: "规划",
+              lastActiveAt: 1,
+              workdir: "/work/a11y-plan",
+              hasWorktree: false,
+            },
+            {
+              sessionId: "exec-a11y",
+              title: "执行",
+              lastActiveAt: 2,
+              workdir: "/work/a11y-exec",
+              hasWorktree: false,
+            },
+          ],
+        }),
+      ),
+    ).toBe("exec-a11y");
+
+    expect(
+      issueTabSessionId(
+        issueGroup({
+          issueId: "notes",
+          sessions: [
+            {
+              sessionId: "plan-from-list",
+              title: "笔记",
+              lastActiveAt: 1,
+              workdir: "/work/notes",
+              hasWorktree: false,
+            },
+          ],
+        }),
+      ),
+    ).toBe("plan-from-list");
+
+    expect(issueTabSessionId(issueGroup({ issueId: "empty", sessions: [] }))).toBeUndefined();
   });
 
   it("names the detail button from tab state", () => {

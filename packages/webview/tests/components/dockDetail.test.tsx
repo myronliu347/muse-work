@@ -397,7 +397,11 @@ describe("assistant dock detail", () => {
 
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     expect(await within(dock).findByTestId("file-tree")).toBeVisible();
-    expect(within(dock).getByTestId("file-tree-workdir")).toHaveTextContent("proj");
+    expect(within(dock).getByTestId("file-tree-workdir")).toHaveTextContent("radii");
+    expect(within(dock).getByTestId("file-tree-workdir")).toHaveAttribute(
+      "title",
+      "/work/radii",
+    );
     expect(within(dock).getByTestId("dock-detail")).not.toBeVisible();
     expect(within(lists).getByRole("button", { name: new RegExp(RADII) })).toHaveAttribute(
       "aria-current",
@@ -439,16 +443,19 @@ describe("assistant dock detail", () => {
     expect(within(dock).getByTestId("dock-detail")).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
     expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
-    expect(screen.getByText("今天想让我帮你做些什么？")).toBeInTheDocument();
-    expect(fetched.some((url) => url.includes("/sessions/"))).toBe(false);
+    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
+    expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
+    expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
 
     await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
     expect(within(dock).getByRole("button", { name: "切到会话" })).toBeInTheDocument();
     await user.click(within(dock).getByRole("button", { name: "切到会话" }));
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
+    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
+    expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
     expect(onSelectSession).not.toHaveBeenCalled();
-    expect(fetched.some((url) => url.includes("/sessions/"))).toBe(false);
+    expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
     await user.click(within(lists).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
@@ -460,6 +467,12 @@ describe("assistant dock detail", () => {
     expect(within(queueDetail).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
+
+    await user.click(within(dock).getByRole("button", { name: "文件" }));
+    const queuedTree = await within(dock).findByTestId("file-tree-workdir");
+    expect(queuedTree).toHaveTextContent("a11y");
+    expect(queuedTree).toHaveAttribute("title", "/work/a11y");
+    expect(queuedTree).not.toHaveTextContent("proj");
   });
 
   it("shows 详情 again after the last kind panel closes", async () => {

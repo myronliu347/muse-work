@@ -33,11 +33,13 @@ import {
   type BotListQueueItem,
 } from "./desktop/BotLists";
 import {
+  issueTabSessionId,
   sessionActionLabel,
   type PanelSelection,
 } from "./desktop/botWorkspace";
 import { DockDetail } from "./desktop/DockDetail";
 import { ChatComposer } from "./chat/ChatComposer";
+import { Message as MessageView } from "./message/Message";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
   settingsPageLeaveBlocked,
@@ -84,6 +86,7 @@ import "../styles/WelcomeView.css";
 import type {
   ChatAppProps,
   DesktopPanelKind,
+  Message,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
@@ -289,12 +292,78 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [workspace],
   );
+  const openIssueGroup =
+    workspace.active === "bot"
+      ? undefined
+      : (host?.issueGroups ?? []).find((group) => group.issueId === workspace.active);
+  const [issueTabChoice, setIssueTabChoice] = useState<{
+    issueId: string;
+    tab: IssueViewTab;
+  } | null>(null);
+  const openIssueViewTab: IssueViewTab =
+    openIssueGroup && issueTabChoice?.issueId === openIssueGroup.issueId
+      ? issueTabChoice.tab
+      : openIssueGroup?.executionSessionId
+        ? "execution"
+        : "planning";
+  const openIssueSessionId = !openIssueGroup
+    ? undefined
+    : openIssueViewTab === "execution"
+      ? (openIssueGroup.executionSessionId ?? issueTabSessionId(openIssueGroup))
+      : resolveIssuePlanningSessionId(openIssueGroup);
+  const [issueTranscript, setIssueTranscript] = useState<{
+    sessionId: string;
+    messages: Message[];
+  } | null>(null);
+  useEffect(() => {
+    if (!assistantVisible || !openIssueSessionId) return;
+    let cancelled = false;
+    void museApi
+      .getMessages(openIssueSessionId)
+      .then((page) => {
+        if (cancelled) return;
+        setIssueTranscript({
+          sessionId: openIssueSessionId,
+          messages: page.messages as Message[],
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIssueTranscript({ sessionId: openIssueSessionId, messages: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [assistantVisible, openIssueSessionId, museApi]);
+  const shownIssueMessages =
+    issueTranscript && issueTranscript.sessionId === openIssueSessionId
+      ? issueTranscript.messages
+      : [];
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory. The assistant keeps its own
-  // dock: 文件、终端、浏览器，工作目录是助手会话目录。
+  // the same dock as sessions in that directory. On Muse Bot and 会话, the
+  // file, terminal, browser, and diff tabs follow the selected issue. A queue
+  // row keeps the previous issue. The assistant group key stays put so the
+  // chrome tab does not reset when the directory changes.
+  const dockIssueId =
+    workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
+  const dockIssueGroup = dockIssueId
+    ? (host?.issueGroups ?? []).find((group) => group.issueId === dockIssueId)
+    : undefined;
+  const dockWorkdir = dockIssueGroup
+    ? issueGroupSessionWorkdir(
+        dockIssueGroup,
+        issueTabSessionId(dockIssueGroup) ?? "",
+        host?.workdir,
+      )
+    : assistantWorkdir;
+  const onSessionsSurface =
+    host?.type === "desktop" &&
+    (paneId !== undefined
+      ? providedShellSurface === "sessions"
+      : noPaneRail === "sessions");
   const sessionPanelWorkdir = effectiveWorkdir ?? host?.workdir ?? undefined;
-  const panelWorkdir = assistantVisible ? assistantWorkdir : sessionPanelWorkdir;
+  const panelWorkdir = assistantVisible ? dockWorkdir : sessionPanelWorkdir;
   const groupKey = assistantVisible
     ? ASSISTANT_PANEL_GROUP_KEY
     : panelWorkdir
@@ -1056,9 +1125,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     }
     return { kind: "none" as const };
   })();
-  const detailActionLabel =
+  const detailIssueGroup =
     workspace.panel.kind === "issue"
-      ? sessionActionLabel(workspace, workspace.panel.issueId)
+      ? (host?.issueGroups ?? []).find((group) => group.issueId === workspace.panel.issueId)
+      : undefined;
+  const detailActionLabel =
+    detailIssueGroup && issueTabSessionId(detailIssueGroup)
+      ? sessionActionLabel(workspace, detailIssueGroup.issueId)
       : null;
 
   // Shared dock payload: the 4 panel slots + dock chrome (rendered by
@@ -1103,7 +1176,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneId,
     isStreaming: state.isStreaming,
     sessionId: state.currentSession?.id,
-    workdir: assistantVisible ? assistantWorkdir : effectiveWorkdir,
+    workdir: assistantVisible || onSessionsSurface ? dockWorkdir : effectiveWorkdir,
     baseBranch: assistantVisible ? undefined : sessionGitMeta?.baseBranch,
     previewEpoch,
     previewUrl,
@@ -1163,21 +1236,41 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       </div>
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          <AssistantPage
-            api={museApi}
-            vscode={vscode}
-            showPanelToggle={false}
-            onToggleDock={handleToggleDock}
-            onOpenFile={handleOpenFile}
-            onOpenUrl={handleOpenPreview}
-            hideQueue={assistantVisible}
-            inputRef={messageInputRef}
-            mentionIssues={(host?.issueGroups ?? []).map((group) => ({
-              id: group.issueId,
-              title: group.title,
-            }))}
-            emptyState={<AssistantWelcome />}
-          />
+          {openIssueGroup ? (
+            <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
+              <IssueSessionHeader
+                title={openIssueGroup.title}
+                activeTab={openIssueViewTab}
+                onTabChange={(tab) => {
+                  if (tab === "execution" && !openIssueGroup.executionSessionId) return;
+                  setIssueTabChoice({ issueId: openIssueGroup.issueId, tab });
+                }}
+                showTabs={isSplitIssueGroup(openIssueGroup)}
+                executionEnabled={Boolean(openIssueGroup.executionSessionId)}
+              />
+              <div data-testid="issue-tab-messages">
+                {shownIssueMessages.map((message) => (
+                  <MessageView key={message.id} message={message} vscode={vscode} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <AssistantPage
+              api={museApi}
+              vscode={vscode}
+              showPanelToggle={false}
+              onToggleDock={handleToggleDock}
+              onOpenFile={handleOpenFile}
+              onOpenUrl={handleOpenPreview}
+              hideQueue={assistantVisible}
+              inputRef={messageInputRef}
+              mentionIssues={(host?.issueGroups ?? []).map((group) => ({
+                id: group.issueId,
+                title: group.title,
+              }))}
+              emptyState={<AssistantWelcome />}
+            />
+          )}
         </div>
         {botListsWide ? botLists : null}
         <DesktopPanelSlots {...dock} />
