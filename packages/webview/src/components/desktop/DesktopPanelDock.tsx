@@ -1,10 +1,10 @@
 import React from "react";
 import type { DesktopPanelKind, FileViewState, PanelToggleProps } from "../../types";
 import {
+  DOCK_DETAIL_TAB,
   PANEL_ADD_ORDER,
   PANEL_TAB_ICONS,
   PANEL_TAB_LABELS,
-  PANEL_TAB_ORDER,
 } from "../../muse/panelTabs";
 import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
@@ -57,6 +57,10 @@ export interface DesktopPanelDockProps {
   onSelectFileTab?: (path: string) => void;
   onCloseFileTab?: (path: string) => void;
   onPinFileTab?: (path: string) => void;
+  /** 详情 is the first tab and is not a DesktopPanelKind. */
+  detailActive?: boolean;
+  onSelectDetail?: () => void;
+  detail?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -78,6 +82,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onSelectFileTab,
   onCloseFileTab,
   onPinFileTab,
+  detailActive = false,
+  onSelectDetail,
+  detail,
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
@@ -120,12 +127,16 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // active (switching to the diff/preview panel keeps the file tabs visible).
   // While files are open the "文件" kind tab yields its place to them.
   const showFileTabs = fileTabs.length > 0;
-  const kindTabs = PANEL_TAB_ORDER.filter(
-    (kind) => checked.includes(kind) && !(showFileTabs && kind === "file"),
+  const visibleKinds = PANEL_ADD_ORDER.filter(
+    (kind) => checked.includes(kind) || (showFileTabs && kind === "file"),
   );
-  const canAdd = PANEL_ADD_ORDER.some(
-    (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
-  );
+  // 详情 alone is not a kind panel. The + menu appears after the toggle
+  // opens one, matching the old closed-dock toggle.
+  const canAdd =
+    checked.length > 0 &&
+    PANEL_ADD_ORDER.some(
+      (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
+    );
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
   const clampedWidth = clampDockWidth(
@@ -164,74 +175,94 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       )}
       <div className="desktop-panel-dock-header">
         <div className="desktop-panel-dock-tabs" ref={tabsRef}>
-          {kindTabs.map((kind) => (
-            <div
-              key={kind}
-              className={`desktop-panel-tab${kind === active ? " desktop-panel-tab--active" : ""}`}
-              data-testid={`desktop-panel-tab-${kind}`}
+          <div
+            className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}`}
+            data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
+          >
+            <button
+              type="button"
+              className="desktop-panel-tab-label"
+              onClick={() => onSelectDetail?.()}
             >
-              <button
-                type="button"
-                className="desktop-panel-tab-label"
-                onClick={() => onSelect(kind)}
-              >
-                <i
-                  className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
-                  aria-hidden
-                />
-                {PANEL_TAB_LABELS[kind]}
-              </button>
-              <button
-                type="button"
-                className="desktop-panel-tab-close"
-                data-testid={`desktop-panel-tab-close-${kind}`}
-                aria-label={`关闭${PANEL_TAB_LABELS[kind]}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCloseTab(kind);
-                }}
-              >
-                <i className="codicon codicon-close" />
-              </button>
-            </div>
-          ))}
-          {showFileTabs &&
-            fileTabs.map((tab) => {
-              const isActive = active === "file" && tab.path === activeFilePath;
-              const name =
-                tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
-              return (
-                <div
-                  key={tab.path}
-                  className={`file-tab${isActive ? " file-tab--active" : ""}${tab.pinned ? "" : " file-tab--preview"}`}
-                  data-testid="file-tab"
-                  data-path={tab.path}
-                  data-active={isActive ? "true" : "false"}
-                  title={tab.path}
-                  onClick={() => onSelectFileTab?.(tab.path)}
-                  onDoubleClick={() => onPinFileTab?.(tab.path)}
-                >
-                  <FileIcon
-                    name={name}
-                    className="file-tab-icon"
-                  />
-                  <span className="file-tab-label">{name}</span>
-                  <button
-                    type="button"
-                    className="file-tab-close"
-                    data-testid="file-tab-close"
-                    title="关闭"
-                    aria-label="关闭"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCloseFileTab?.(tab.path);
-                    }}
+              <i
+                className="codicon codicon-info desktop-panel-tab-icon"
+                aria-hidden
+              />
+              详情
+            </button>
+          </div>
+          {visibleKinds.map((kind) => {
+            if (kind === "file" && showFileTabs) {
+              return fileTabs.map((tab) => {
+                const isActive =
+                  !detailActive &&
+                  active === "file" &&
+                  tab.path === activeFilePath;
+                const name =
+                  tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
+                return (
+                  <div
+                    key={tab.path}
+                    className={`file-tab${isActive ? " file-tab--active" : ""}${tab.pinned ? "" : " file-tab--preview"}`}
+                    data-testid="file-tab"
+                    data-path={tab.path}
+                    data-active={isActive ? "true" : "false"}
+                    title={tab.path}
+                    onClick={() => onSelectFileTab?.(tab.path)}
+                    onDoubleClick={() => onPinFileTab?.(tab.path)}
                   >
-                    <i className="codicon codicon-close" aria-hidden />
-                  </button>
-                </div>
-              );
-            })}
+                    <FileIcon name={name} className="file-tab-icon" />
+                    <span className="file-tab-label">{name}</span>
+                    <button
+                      type="button"
+                      className="file-tab-close"
+                      data-testid="file-tab-close"
+                      title="关闭"
+                      aria-label="关闭"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCloseFileTab?.(tab.path);
+                      }}
+                    >
+                      <i className="codicon codicon-close" aria-hidden />
+                    </button>
+                  </div>
+                );
+              });
+            }
+            const selected = !detailActive && kind === active;
+            return (
+              <div
+                key={kind}
+                className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}`}
+                data-testid={`desktop-panel-tab-${kind}`}
+              >
+                <button
+                  type="button"
+                  className="desktop-panel-tab-label"
+                  onClick={() => onSelect(kind)}
+                >
+                  <i
+                    className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
+                    aria-hidden
+                  />
+                  {PANEL_TAB_LABELS[kind]}
+                </button>
+                <button
+                  type="button"
+                  className="desktop-panel-tab-close"
+                  data-testid={`desktop-panel-tab-close-${kind}`}
+                  aria-label={`关闭${PANEL_TAB_LABELS[kind]}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCloseTab(kind);
+                  }}
+                >
+                  <i className="codicon codicon-close" />
+                </button>
+              </div>
+            );
+          })}
           {canAdd && (
             <div className="desktop-panel-add">
               <PanelAddMenu
@@ -263,7 +294,9 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
           <PanelToggleControl {...panelToggle} />
         </div>
       </div>
-      <div className="desktop-panel-dock-body">{children}</div>
+      <div className="desktop-panel-dock-body">
+        {detailActive ? detail : children}
+      </div>
     </aside>
   );
 };

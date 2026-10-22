@@ -334,3 +334,36 @@
 .desktop-pane--closable:has(.desktop-panel-dock) .chat-header {
   padding-right: var(--space-3);
 }
+
+.dock-detail {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+.dock-detail-title {
+  margin: 0;
+  font-size: var(--font-size-3);
+}
+
+.dock-detail-meta,
+.dock-detail-kind {
+  margin: var(--space-2) 0 0;
+  color: var(--gray-11);
+}
+
+.dock-detail-body {
+  margin: var(--space-3) 0 0;
+  white-space: pre-wrap;
+}
+
+.dock-detail-items {
+  margin: var(--space-3) 0 0;
+  padding-left: 1.2em;
+}
+
+.dock-detail-action {
+  margin-top: var(--space-4);
+}

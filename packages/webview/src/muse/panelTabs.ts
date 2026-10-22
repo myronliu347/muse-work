@@ -1,5 +1,8 @@
 import type { DesktopPanelKind } from "../types";
 
+/** First dock tab. Not a DesktopPanelKind and not in the add menu. */
+export const DOCK_DETAIL_TAB = "detail" as const;
+
 export const PANEL_TAB_ORDER: DesktopPanelKind[] = [
   "preview",
   "diff",

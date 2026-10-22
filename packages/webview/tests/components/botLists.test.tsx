@@ -340,7 +340,7 @@ describe("ChatApp pending and issue lists", () => {
     expect(within(frame).getAllByRole("button", { name: "Muse Bot" })).toHaveLength(1);
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(1);
     expect(within(frame).getByRole("button", { name: "Muse Bot" }).className).toContain("active");
-    expect(screen.queryByTestId("desktop-panel-tab-detail")).toBeNull();
+    expect(screen.getByTestId("desktop-panel-tab-detail")).toBeInTheDocument();
 
     await user.click(within(lists).getByRole("button", { name: /回复 Ty/ }));
     expect(onSelectSession).not.toHaveBeenCalled();

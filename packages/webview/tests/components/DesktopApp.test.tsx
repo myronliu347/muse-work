@@ -133,13 +133,14 @@ describe("DesktopApp host → sidebar 会话树", () => {
     });
 
     expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
-    expect(screen.queryByText("侧栏 Issue")).toBeNull();
+    expect(screen.getByTestId("desktop-sidebar").textContent).not.toContain("侧栏 Issue");
 
     fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
 
+    const sessionList = screen.getByTestId("desktop-session-list");
     expect(screen.getByTestId("desktop-session-item-sess-1")).toBeTruthy();
     expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
-    expect(screen.queryByText("侧栏 Issue")).toBeNull();
-    expect(screen.queryByText("测试任务看板功能")).toBeNull();
+    expect(sessionList.textContent).not.toContain("侧栏 Issue");
+    expect(sessionList.textContent).not.toContain("测试任务看板功能");
   });
 });

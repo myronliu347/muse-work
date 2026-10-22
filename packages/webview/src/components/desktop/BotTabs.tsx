@@ -13,8 +13,10 @@ import {
   focusTab as applyFocusTab,
   initialBotWorkspace,
   openIssueSession as applyOpenIssueSession,
+  selectDock as applySelectDock,
   selectPanel as applySelectPanel,
   type BotWorkspaceState,
+  type DockChrome,
   type PanelSelection,
 } from "./botWorkspace";
 
@@ -30,6 +32,7 @@ export interface BotWorkspaceContextValue extends BotWorkspaceState {
   closeIssueTab: (issueId: string) => void;
   openIssueSession: (issueId: string) => void;
   selectPanel: (panel: Exclude<PanelSelection, { kind: "none" }>) => void;
+  selectDock: (dock: DockChrome) => void;
 }
 
 const BotWorkspaceContext = createContext<BotWorkspaceContextValue | null>(null);
@@ -85,6 +88,9 @@ export function useBotWorkspaceController(
     },
     [],
   );
+  const selectDock = useCallback((dock: DockChrome) => {
+    setState((current) => applySelectDock(current, dock));
+  }, []);
   return useMemo(
     () => ({
       ...state,
@@ -92,8 +98,9 @@ export function useBotWorkspaceController(
       closeIssueTab,
       openIssueSession,
       selectPanel,
+      selectDock,
     }),
-    [state, focusTab, closeIssueTab, openIssueSession, selectPanel],
+    [state, focusTab, closeIssueTab, openIssueSession, selectPanel, selectDock],
   );
 }
 

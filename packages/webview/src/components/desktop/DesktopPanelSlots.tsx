@@ -73,6 +73,10 @@ export interface DesktopPanelSlotsProps {
   onOpenInPreview: (path: string) => void;
   onRevealInFinder: (path: string) => void;
   openPreviewHandler: (url: string) => void;
+  /** 详情 replaces the kind panes. Kind clicks stay on `onSelect`. */
+  detailActive?: boolean;
+  onSelectDetail?: () => void;
+  detail?: React.ReactNode;
 }
 
 /**
@@ -128,6 +132,9 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onOpenInPreview,
   onRevealInFinder,
   openPreviewHandler,
+  detailActive = false,
+  onSelectDetail,
+  detail,
 }) => {
   const renderPanelSlot = (kind: DesktopPanelKind) => {
     const dockWidth = widths[active ?? kind] ?? 0;
@@ -231,6 +238,9 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       onSelectFileTab={onSelectFileTab}
       onCloseFileTab={onCloseFileTab}
       onPinFileTab={onPinFileTab}
+      detailActive={detailActive}
+      onSelectDetail={onSelectDetail}
+      detail={detail}
     >
       {PANEL_ORDER.filter((kind) => mounted.includes(kind)).map((kind) => (
         <div

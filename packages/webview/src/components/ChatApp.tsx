@@ -32,7 +32,11 @@ import {
   useBotListsWide,
   type BotListQueueItem,
 } from "./desktop/BotLists";
-import type { PanelSelection } from "./desktop/botWorkspace";
+import {
+  sessionActionLabel,
+  type PanelSelection,
+} from "./desktop/botWorkspace";
+import { DockDetail } from "./desktop/DockDetail";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
@@ -82,6 +86,7 @@ import type {
   DesktopPanelKind,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
+import { DOCK_DETAIL_TAB } from "../muse/panelTabs";
 import { ASSISTANT_PANEL_GROUP_KEY, usePanelGroup, usePaneUi } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
@@ -314,6 +319,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
+  // Opening a kind from a shortcut or the dock toggle also leaves 详情.
+  // List clicks only call selectPanel, so a stale active kind must not
+  // pull the dock back off 详情.
+  const seenPanelKind = useRef(activePanel);
+  useEffect(() => {
+    if (seenPanelKind.current === activePanel) return;
+    seenPanelKind.current = activePanel;
+    if (activePanel && workspace.dock !== activePanel) {
+      workspace.selectDock(activePanel);
+    } else if (!activePanel && workspace.dock !== DOCK_DETAIL_TAB) {
+      workspace.selectDock(DOCK_DETAIL_TAB);
+    }
+  }, [activePanel, workspace]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
@@ -919,6 +937,34 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     effectiveWorkdir,
   };
 
+  const detailSelection = (() => {
+    const panel = workspace.panel;
+    if (panel.kind === "issue") {
+      const found = (host?.issueGroups ?? []).find(
+        (group) => group.issueId === panel.issueId,
+      );
+      return found
+        ? { kind: "issue" as const, issue: found }
+        : { kind: "none" as const };
+    }
+    if (panel.kind === "queue") {
+      const found = botQueue.find((item) => item.id === panel.id);
+      return found
+        ? {
+            kind: "queue" as const,
+            typeLabel: found.kind,
+            title: found.title,
+            body: "",
+          }
+        : { kind: "none" as const };
+    }
+    return { kind: "none" as const };
+  })();
+  const detailActionLabel =
+    workspace.panel.kind === "issue"
+      ? sessionActionLabel(workspace, workspace.panel.issueId)
+      : null;
+
   // Shared dock payload: the 4 panel slots + dock chrome (rendered by
   // ChatContainer when a bound session is showing).
   const dock: DesktopPanelSlotsProps = {
@@ -929,7 +975,21 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     fullscreen: dockFullscreen,
     widths: panelWidths,
     dockMaxWidth,
-    onSelect: handleSelectPanel,
+    onSelect: (kind) => {
+      workspace.selectDock(kind);
+      handleSelectPanel(kind);
+    },
+    onSelectDetail: () => {
+      workspace.selectDock(DOCK_DETAIL_TAB);
+    },
+    detailActive: workspace.dock === DOCK_DETAIL_TAB,
+    detail: (
+      <DockDetail
+        selection={detailSelection}
+        actionLabel={detailActionLabel}
+        onOpenSession={workspace.openIssueSession}
+      />
+    ),
     onCloseTab: handleTogglePanel,
     onAddPanel: handleAddPanel,
     onToggleDock: handleToggleDock,
@@ -999,7 +1059,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           <AssistantPage
             api={museApi}
             vscode={vscode}
-            showPanelToggle={checkedPanels.length === 0}
+            showPanelToggle={false}
             onToggleDock={handleToggleDock}
             onOpenFile={handleOpenFile}
             onOpenUrl={handleOpenPreview}
@@ -1013,9 +1073,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           />
         </div>
         {botListsWide ? botLists : null}
-        {dock.checked.length > 0 && dock.active ? (
-          <DesktopPanelSlots {...dock} />
-        ) : null}
+        <DesktopPanelSlots {...dock} />
       </div>
     </div>
   );
