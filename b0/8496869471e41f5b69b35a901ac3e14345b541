@@ -1,0 +1,122 @@
+packages/webview/src/muse/messageRouter.ts
+  1f5a83248e8a3112 6,14,37,69,427-441
+packages/webview/tests/webview/moreMenu.test.tsx
+  1f5a83248e8a3112 2-9,80-115
+packages/webview/src/hooks/useChatSend.ts
+  1f5a83248e8a3112 21,156-166
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  1f5a83248e8a3112 5-12,36-50,60-61,67-70,99-100,102,104-114,116,371
+packages/webview/src/muse/desktopSettingsNav.ts
+  1f5a83248e8a3112 1-23
+packages/webview/tests/components/iconRail.test.tsx
+  1f5a83248e8a3112 4,36-122,326-489
+packages/webview/src/components/desktop/DesktopShell.tsx
+  1f5a83248e8a3112 16-20,102-107,725-727,731-735,739-741,786
+packages/webview/src/components/ChatApp.tsx
+  1f5a83248e8a3112 4,25-29,156-162,261-262,319,1112-1120,1125-1133,1138-1146,1189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b08496869471e41f5b69b35a901ac3e14345b541",
+  "prompts": {
+    "1f5a83248e8a3112": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "5d4230f3-169f-49bf-88c3-aaaa23947f0c",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 467,
+      "total_deletions": 37,
+      "accepted_lines": 462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 44,
+          "deletions": 2,
+          "accepted_lines": 44
+        },
+        "packages/webview/src/muse/desktopSettingsNav.ts": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/webview/moreMenu.test.tsx": {
+          "additions": 44,
+          "deletions": 1,
+          "accepted_lines": 44
+        },
+        "packages/webview/tests/components/iconRail.test.tsx": {
+          "additions": 257,
+          "deletions": 10,
+          "accepted_lines": 252
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 45,
+          "deletions": 14,
+          "accepted_lines": 45
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 12,
+          "deletions": 7,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 23,
+          "deletions": 3,
+          "accepted_lines": 23
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        }
+      }
+    }
+  }
+}
