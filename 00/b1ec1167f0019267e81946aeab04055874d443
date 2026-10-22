@@ -1,0 +1,95 @@
+packages/webview/src/components/desktop/DesktopShell.tsx
+  fd850c8a70b461fa 22-26,69-70,92-111,122
+packages/webview/tests/components/botTabs.test.tsx
+  fd850c8a70b461fa 52-54,168-270
+packages/webview/src/components/desktop/BotTabs.tsx
+  fd850c8a70b461fa 53
+packages/webview/src/components/ChatApp.tsx
+  fd850c8a70b461fa 27,119-122,124-128,131-136,139,143,288-292,294-315,1100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "00b1ec1167f0019267e81946aeab04055874d443",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        }
+      }
+    },
+    "fd850c8a70b461fa": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f6e5bf73-ce3b-4be8-b323-b8f889a2f635",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 183,
+      "total_deletions": 18,
+      "accepted_lines": 183,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 106,
+          "accepted_lines": 106
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 48,
+          "deletions": 12,
+          "accepted_lines": 48
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 28,
+          "deletions": 5,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
