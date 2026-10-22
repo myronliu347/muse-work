@@ -19,7 +19,11 @@ import ConfigDialog, {
 } from "../dialogs/ConfigDialog";
 import { registerDesktopSettingsOpener } from "../../muse/desktopSettingsNav";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
-import { BotWorkspaceProvider, useBotWorkspaceController } from "./BotTabs";
+import {
+  BotWorkspaceProvider,
+  useBotWorkspaceController,
+  type BotWorkspaceContextValue,
+} from "./BotTabs";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   ConfigurationData,
@@ -62,6 +66,8 @@ interface DesktopShellProps {
   onCancelIssue?: (issueId: string, note: string) => void;
   api: MuseApiClient;
   postToHost: (message: Record<string, unknown>) => void;
+  /** 外层 ChatApp 持有的标签状态。传入后本壳不再挂第二份 controller。 */
+  workspace?: BotWorkspaceContextValue;
 }
 
 /**
@@ -83,7 +89,26 @@ interface DesktopShellProps {
  * (`desktopResizePaneRows`), with a live local preview. The webview never
  * applies the new order or sizes on its own — it waits for `desktopPanes`.
  */
-export const DesktopShell: React.FC<DesktopShellProps> = ({
+export const DesktopShell: React.FC<DesktopShellProps> = (props) => {
+  const { workspace, ...rest } = props;
+  if (workspace) {
+    return <DesktopShellView {...rest} workspace={workspace} />;
+  }
+  return <DesktopShellWorkspaceOwner {...rest} />;
+};
+
+const DesktopShellWorkspaceOwner: React.FC<
+  Omit<DesktopShellProps, "workspace">
+> = (props) => {
+  const workspace = useBotWorkspaceController(
+    props.host.issueGroups?.[0]?.issueId ?? null,
+  );
+  return <DesktopShellView {...props} workspace={workspace} />;
+};
+
+const DesktopShellView: React.FC<
+  DesktopShellProps & { workspace: BotWorkspaceContextValue }
+> = ({
   vscode,
   host,
   onLogin,
@@ -94,15 +119,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   onConfigurationSave,
   api,
   postToHost,
+  workspace,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const [shellView, setShellView] = useState<ShellSurface>("assistant");
-  const workspace = useBotWorkspaceController(
-    host.issueGroups?.[0]?.issueId ?? null,
-  );
   const settingsPageRef = useRef<ConfigDialogHandle>(null);
   useLayoutEffect(() => {
     return registerDesktopSettingsOpener(() => {

@@ -50,7 +50,7 @@ export function useBotWorkspace(): BotWorkspaceContextValue | null {
   return useContext(BotWorkspaceContext);
 }
 
-/** Owns tab state. DesktopShell provides it; a pane-less ChatApp uses its own. */
+/** Owns tab state for one running app. Mount this only in the child that exists when nothing else owns the workspace. */
 export function useBotWorkspaceController(
   firstIssueId: string | null,
 ): BotWorkspaceContextValue {

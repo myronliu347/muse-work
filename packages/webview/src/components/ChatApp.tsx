@@ -24,6 +24,7 @@ import {
   BotTabs,
   useBotWorkspace,
   useBotWorkspaceController,
+  type BotWorkspaceContextValue,
 } from "./desktop/BotTabs";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
@@ -115,14 +116,31 @@ function AssistantWelcome() {
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
 export type MainView = "newChat" | "chat" | "automations" | "assistant";
 
-export const ChatApp: React.FC<ChatAppProps> = (props) => {
-  return <ChatAppInner {...props} />;
+type ChatAppInnerProps = ChatAppProps & {
+  workspace: BotWorkspaceContextValue;
 };
 
-const ChatAppInner: React.FC<ChatAppProps> = ({
+export const ChatApp: React.FC<ChatAppProps> = (props) => {
+  const providedWorkspace = useBotWorkspace();
+  if (providedWorkspace) {
+    return <ChatAppInner {...props} workspace={providedWorkspace} />;
+  }
+  return <ChatAppWorkspaceOwner {...props} />;
+};
+
+/** 没有 provider 时只在这个子组件里挂 controller，避免和已有 context 同时调用。 */
+const ChatAppWorkspaceOwner: React.FC<ChatAppProps> = (props) => {
+  const ownedWorkspace = useBotWorkspaceController(
+    props.host?.issueGroups?.[0]?.issueId ?? null,
+  );
+  return <ChatAppInner {...props} workspace={ownedWorkspace} />;
+};
+
+const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   vscode,
   host,
   paneId,
+  workspace,
 }) => {
   const museApi = useMemo(
     () => new MuseApiClient({ baseUrl: resolveMuseServerUrl() }),
@@ -192,11 +210,6 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   }, [noPaneDesktop]);
   const shellSurface = useShellSurface();
   const providedShellSurface = useProvidedShellSurface();
-  const providedWorkspace = useBotWorkspace();
-  const ownedWorkspace = useBotWorkspaceController(
-    host?.issueGroups?.[0]?.issueId ?? null,
-  );
-  const workspace = providedWorkspace ?? ownedWorkspace;
   const issueTitles: Record<string, string> = {};
   for (const group of host?.issueGroups ?? []) {
     issueTitles[group.issueId] = group.title;
@@ -272,12 +285,34 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   useEffect(() => {
     useScenarioModelsStore.getState().init(museApi);
   }, [museApi]);
-  // 会话切换时回到聊天视图，但桌面助理面要留在 Muse Bot。
-  // 图标选中态在 noPaneRail / shellView，不随这次 setView 丢掉。
+  // 只有会话 id 真的变了才离开当前页。切图标栏本身不能把视图拉回聊天。
+  // 无窗格的面是 noPaneRail；窗格的面是壳提供的 shell surface。
+  // 不改 noPaneRail。设置页在 view 之前渲染，所以这里 setView 不会盖住设置。
+  // 正在把布局交给 DesktopShell 的外层实例不渲染 view，会话变化不能改掉它。
+  const sessionIdRef = useRef(state.currentSession?.id);
   useEffect(() => {
-    if (shellSurface === "assistant") return;
-    setView("chat");
-  }, [state.currentSession?.id, shellSurface]);
+    const nextId = state.currentSession?.id;
+    if (sessionIdRef.current === nextId) return;
+    sessionIdRef.current = nextId;
+    if (noPaneDesktop) {
+      if (noPaneRail === "assistant") return;
+      setView("chat");
+      return;
+    }
+    if (paneId !== undefined) {
+      if (providedShellSurface === "assistant") return;
+      setView("chat");
+      return;
+    }
+    if (host?.type !== "desktop") setView("chat");
+  }, [
+    state.currentSession?.id,
+    noPaneDesktop,
+    noPaneRail,
+    paneId,
+    providedShellSurface,
+    host?.type,
+  ]);
   // Mirrors so the stable message listener can reach the panel toggle logic
   // (filled by usePanels) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
@@ -1062,6 +1097,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           <DesktopShell
             vscode={vscode}
             host={host}
+            workspace={workspace}
             onLogin={handleLogin}
             isAuthenticated={state.isAuthenticated}
             configurationData={state.configurationData}

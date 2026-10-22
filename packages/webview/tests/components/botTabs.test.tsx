@@ -49,6 +49,9 @@ function stubEmptyAssistant() {
           working: false,
         });
       }
+      if (url.includes("/automations")) {
+        return jsonResponse({ automations: [] });
+      }
       if (url.includes("/scenarios/models")) {
         return jsonResponse({ models: {} });
       }
@@ -160,6 +163,109 @@ describe("assistant frame", () => {
     expect(
       within(screen.getByTestId("assistant-frame")).getByRole("button", { name: "Muse Bot" }),
     ).toBeInTheDocument();
+  });
+
+  it("leaves the automations page when the session id changes on the no-pane rail", async () => {
+    resetWebviewStores();
+    stubEmptyAssistant();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByTestId("desktop-automations-menu"));
+    expect(await screen.findByTestId("automations-page")).toBeInTheDocument();
+
+    establishSession({ sessionId: "sess-next" });
+
+    expect(screen.queryByTestId("automations-page")).toBeNull();
+  });
+
+  it("keeps the assistant frame when the session id changes with no shell provider", async () => {
+    resetWebviewStores();
+    stubEmptyAssistant();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+
+    expect(await screen.findByTestId("assistant-frame")).toBeInTheDocument();
+    establishSession({ sessionId: "sess-a" });
+    expect(screen.getByTestId("assistant-frame")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-container")).toBeNull();
+  });
+
+  it("keeps the assistant frame when the session id changes while a split is open", async () => {
+    resetWebviewStores();
+    stubEmptyAssistant();
+    const vscode = createMockVscode();
+    const { rerender } = render(
+      <MuseTheme>
+        <ChatApp vscode={vscode} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+    expect(await screen.findByTestId("assistant-frame")).toBeInTheDocument();
+
+    rerender(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            panes: [{ paneId: "pane-1", sessionId: "sess-1" }],
+            focusedPaneId: "pane-1",
+          })}
+        />
+      </MuseTheme>,
+    );
+    establishSession({ sessionId: "sess-split" });
+
+    rerender(
+      <MuseTheme>
+        <ChatApp vscode={vscode} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("assistant-frame")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-container")).toBeNull();
+  });
+
+  it("shows issue tabs from the workspace passed into DesktopShell", async () => {
+    resetWebviewStores();
+    stubEmptyAssistant();
+    const { result } = renderHook(() => useBotWorkspaceController(null));
+    act(() => {
+      result.current.openIssueSession(ISSUE_ID);
+    });
+
+    render(
+      <MuseTheme>
+        <DesktopShell
+          workspace={result.current}
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            panes: [{ paneId: "pane-1", sessionId: "sess-1" }],
+            focusedPaneId: "pane-1",
+            issueGroups: [
+              {
+                issueId: ISSUE_ID,
+                title: ISSUE_TITLE,
+                priority: "p1",
+                status: "pending",
+                items: [],
+                sessions: [],
+              },
+            ],
+          })}
+          api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+          postToHost={vi.fn()}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    expect(within(frame).getByRole("button", { name: ISSUE_TITLE })).toBeInTheDocument();
   });
 
   it("shows Muse Bot tabs on the focused pane", async () => {
