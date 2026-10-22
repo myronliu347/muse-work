@@ -692,6 +692,70 @@ describe("assistant dock detail", () => {
     );
   });
 
+  it("keeps 文件 when the pane paints the dock and the shell host has a session", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["terminal"],
+      mounted: ["terminal"],
+      active: "terminal",
+    });
+    const user = userEvent.setup();
+    const host = createMockDesktopHost({
+      panes: [{ paneId: "pane-1", sessionId: "sess-1" }],
+      focusedPaneId: "pane-1",
+    });
+    const view = render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "文件" }));
+    expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    establishSession();
+    view.rerender(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={{ ...host }} />
+      </MuseTheme>,
+    );
+
+    const painted = await screen.findByTestId("assistant-frame");
+    const paintedDock = within(painted).getByTestId("desktop-panel-dock");
+    expect(within(paintedDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(paintedDock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    await user.click(screen.getByTestId("desktop-settings-btn"));
+    expect(await screen.findByTestId("desktop-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-panel-dock")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-assistant-menu"));
+    const assistantAgain = await screen.findByTestId("assistant-frame");
+    const dockAgain = within(assistantAgain).getByTestId("desktop-panel-dock");
+    expect(within(dockAgain).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dockAgain).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+  });
+
   it("shows 详情 when the session group does not have the chrome kind", async () => {
     resetWebviewStores();
     stubAssistant([]);

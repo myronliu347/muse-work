@@ -327,12 +327,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // mount it, so those groupKey changes must not call selectDock. On a dock
   // surface the chrome kind stays, unless this group does not have it
   // checked — then the chrome returns to 详情 instead of adopting the other
-  // group's active kind.
+  // group's active kind. With panes, this outer instance only mounts
+  // DesktopShell and never paints the dock. DesktopShell does not update
+  // noPaneRail, so a session here must not make dockOnScreen true.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
+  const shellHostWithoutDock =
+    paneId === undefined && (host?.panes?.length ?? 0) > 0;
   const dockOnScreen =
-    assistantVisible ||
-    (view === "chat" && !isDraftSession && noPaneRail !== "settings");
+    !shellHostWithoutDock &&
+    (assistantVisible ||
+      (view === "chat" && !isDraftSession && noPaneRail !== "settings"));
   const dockWasOnScreen = useRef(false);
   useEffect(() => {
     const previousKind = seenPanelKind.current;
