@@ -94,8 +94,10 @@ export const ChatContainer: FC<ChatContainerProps> = ({
         </div>
         {view === "chat" &&
           !isDraftSession &&
-          dock.checked.length > 0 &&
-          dock.active && <DesktopPanelSlots {...dock} />}
+          (dock.detailActive ||
+            (dock.checked.length > 0 && dock.active)) && (
+            <DesktopPanelSlots {...dock} />
+          )}
       </div>
     </div>
   );

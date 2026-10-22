@@ -319,19 +319,35 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
-  // Opening a kind from a shortcut or the dock toggle also leaves 详情.
-  // List clicks only call selectPanel, so a stale active kind must not
-  // pull the dock back off 详情.
+  // Opening a kind from a shortcut, the dock toggle, or the add menu also
+  // leaves 详情. List clicks only call selectPanel, so a stale active kind
+  // must not pull the dock back off 详情. Closing the kind that was active
+  // while 详情 is showing must not follow the next kind either.
   const seenPanelKind = useRef(activePanel);
+  const seenPanelGroupKey = useRef(groupKey);
   useEffect(() => {
-    if (seenPanelKind.current === activePanel) return;
+    const previousKind = seenPanelKind.current;
+    const previousGroupKey = seenPanelGroupKey.current;
     seenPanelKind.current = activePanel;
+    seenPanelGroupKey.current = groupKey;
+    if (previousKind === activePanel) return;
+    const closedPreviousKind =
+      previousGroupKey === groupKey &&
+      previousKind != null &&
+      !checkedPanels.includes(previousKind);
+    if (
+      workspace.dock === DOCK_DETAIL_TAB &&
+      closedPreviousKind &&
+      activePanel
+    ) {
+      return;
+    }
     if (activePanel && workspace.dock !== activePanel) {
       workspace.selectDock(activePanel);
     } else if (!activePanel && workspace.dock !== DOCK_DETAIL_TAB) {
       workspace.selectDock(DOCK_DETAIL_TAB);
     }
-  }, [activePanel, workspace]);
+  }, [activePanel, checkedPanels, groupKey, workspace]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
@@ -1017,7 +1033,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     fileView,
     fileTabs,
     activeFilePath,
-    onSelectFileTab: handleSelectFileTab,
+    onSelectFileTab: (path) => {
+      workspace.selectDock("file");
+      handleSelectFileTab(path);
+    },
     onCloseFileTab: handleCloseFileTab,
     onPinFileTab: handlePinFileTab,
     fileTree,

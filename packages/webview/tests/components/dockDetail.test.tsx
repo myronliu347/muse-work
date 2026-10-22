@@ -16,7 +16,11 @@ import {
 } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 import type { DesktopIssueGroup, DesktopPanelKind } from "../../src/types";
-import { createMockDesktopHost, createMockVscode } from "../webview/test-utils";
+import {
+  createMockDesktopHost,
+  createMockVscode,
+  establishSession,
+} from "../webview/test-utils";
 
 const RADII = "圆角还没对齐";
 const A11Y = "无障碍检查";
@@ -84,6 +88,18 @@ function stubAssistant(fetched: string[]) {
       }
       if (url.includes("/automations")) return jsonResponse({ automations: [] });
       if (url.includes("/scenarios/models")) return jsonResponse({ models: {} });
+      if (url.endsWith("/providers") || url.includes("/providers?")) {
+        return jsonResponse({
+          providers: [
+            {
+              id: "openai-compatible",
+              displayName: "OpenAI",
+              models: [{ id: "m", label: "M" }],
+            },
+          ],
+          active: { providerId: "openai-compatible", modelId: "m" },
+        });
+      }
       return jsonResponse({});
     }),
   );
@@ -176,7 +192,8 @@ describe("dock detail tab", () => {
     );
 
     expect(screen.getByText("详情正文")).toBeVisible();
-    expect(screen.queryByTestId("file-tree")).toBeNull();
+    expect(screen.getByTestId("file-tree")).toBeInTheDocument();
+    expect(screen.getByTestId("file-tree")).not.toBeVisible();
     expect(screen.getByTestId("desktop-panel-tab-detail")).toHaveClass(
       "desktop-panel-tab--active",
     );
@@ -327,7 +344,7 @@ describe("assistant dock detail", () => {
     expect(within(detail).getByText("量一下圆角")).toBeInTheDocument();
     expect(within(detail).getByText("改 token")).toBeInTheDocument();
     expect(within(detail).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
-    expect(within(dock).queryByTestId("file-tree")).toBeNull();
+    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(frame).getByRole("button", { name: "Muse Bot" })).toHaveClass(/active/);
     expect(onSelectSession).not.toHaveBeenCalled();
 
@@ -340,7 +357,7 @@ describe("assistant dock detail", () => {
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     expect(await within(dock).findByTestId("file-tree")).toBeVisible();
     expect(within(dock).getByTestId("file-tree-workdir")).toHaveTextContent("proj");
-    expect(within(dock).queryByTestId("dock-detail")).toBeNull();
+    expect(within(dock).getByTestId("dock-detail")).not.toBeVisible();
     expect(within(lists).getByRole("button", { name: new RegExp(RADII) })).toHaveAttribute(
       "aria-current",
       "true",
@@ -349,7 +366,7 @@ describe("assistant dock detail", () => {
 
     for (const label of ["终端", "浏览器", "变更"] as const) {
       await user.click(within(dock).getByRole("button", { name: label }));
-      expect(within(dock).queryByTestId("dock-detail")).toBeNull();
+      expect(within(dock).getByTestId("dock-detail")).not.toBeVisible();
       const tree = within(dock).queryByTestId("file-tree");
       if (tree) expect(tree).not.toBeVisible();
       expect(within(lists).getByRole("button", { name: new RegExp(RADII) })).toHaveAttribute(
@@ -365,7 +382,7 @@ describe("assistant dock detail", () => {
     expect(within(nextDetail).getByRole("heading", { name: A11Y })).toBeInTheDocument();
     expect(within(nextDetail).getByText("空闲 · P2")).toBeInTheDocument();
     expect(within(nextDetail).getByText("补上焦点环")).toBeInTheDocument();
-    expect(within(dock).queryByTestId("file-tree")).toBeNull();
+    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(lists).getByRole("button", { name: new RegExp(A11Y) })).toHaveAttribute(
       "aria-current",
       "true",
@@ -439,8 +456,82 @@ describe("assistant dock detail", () => {
 
     await user.click(within(dock).getByTestId("desktop-panel-tab-close-file"));
     expect(await within(dock).findByTestId("dock-detail")).toBeVisible();
-    expect(within(dock).queryByTestId("file-tree")).toBeNull();
+    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
     expect(within(dock).queryByTestId("desktop-panel-tab-file")).toBeNull();
+  });
+
+  it("stays on 详情 when another kind is still open", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file", "terminal"],
+      mounted: ["file", "terminal"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [
+              issue({
+                issueId: "radii",
+                title: RADII,
+                priority: "p1",
+                items: RADII_ITEMS,
+              }),
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const dock = await screen.findByTestId("desktop-panel-dock");
+    expect(within(dock).getByTestId("dock-detail")).toBeVisible();
+
+    await user.click(within(dock).getByTestId("desktop-panel-tab-close-file"));
+
+    expect(within(dock).getByTestId("dock-detail")).toBeVisible();
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
+    const terminal = within(dock).queryByTestId("terminal-pane");
+    if (terminal) expect(terminal).not.toBeVisible();
+  });
+});
+
+describe("session dock detail", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    resetWebviewStores();
+  });
+
+  it("keeps the detail tab when no kind panel is checked", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+    establishSession();
+
+    await user.click(await screen.findByTestId("desktop-sessions-menu"));
+
+    const chat = await screen.findByTestId("chat-container");
+    expect(screen.queryByTestId("assistant-frame")).toBeNull();
+    expect(within(chat).getByTestId("desktop-panel-tab-detail")).toBeVisible();
+    expect(within(chat).queryByTestId("desktop-panel-tab-file")).toBeNull();
+    expect(within(chat).queryByTestId("desktop-panel-tab-terminal")).toBeNull();
+    expect(within(chat).queryByTestId("desktop-panel-tab-preview")).toBeNull();
+    expect(within(chat).queryByTestId("desktop-panel-tab-diff")).toBeNull();
   });
 });

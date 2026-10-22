@@ -295,7 +295,12 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         </div>
       </div>
       <div className="desktop-panel-dock-body">
-        {detailActive ? detail : children}
+        <div className="desktop-panel-dock-layer" hidden={!detailActive}>
+          {detail}
+        </div>
+        <div className="desktop-panel-dock-layer" hidden={detailActive}>
+          {children}
+        </div>
       </div>
     </aside>
   );

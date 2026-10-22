@@ -73,7 +73,7 @@ export interface DesktopPanelSlotsProps {
   onOpenInPreview: (path: string) => void;
   onRevealInFinder: (path: string) => void;
   openPreviewHandler: (url: string) => void;
-  /** 详情 replaces the kind panes. Kind clicks stay on `onSelect`. */
+  /** 详情 stays mounted beside the kind panes and is the visible layer when set. */
   detailActive?: boolean;
   onSelectDetail?: () => void;
   detail?: React.ReactNode;
