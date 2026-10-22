@@ -1,0 +1,95 @@
+packages/webview/src/components/desktop/BotLists.css
+  6b33accf42ce82cc 1-193
+packages/webview/src/components/desktop/BotLists.tsx
+  6b33accf42ce82cc 1-285
+packages/webview/src/components/ChatApp.tsx
+  6b33accf42ce82cc 29-35,246-286,974-985,988-996,1014
+packages/webview/tests/components/botLists.test.tsx
+  6b33accf42ce82cc 1-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "416de28493dbddef1ae5c9846da8ecde428b1341",
+  "prompts": {
+    "6b33accf42ce82cc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "00fe85e9-2616-4e69-92b2-7c767e8aa39d",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1034,
+      "total_deletions": 39,
+      "accepted_lines": 1001,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 193,
+          "accepted_lines": 193
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 468,
+          "deletions": 15,
+          "accepted_lines": 453
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 290,
+          "deletions": 5,
+          "accepted_lines": 285
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 83,
+          "deletions": 19,
+          "accepted_lines": 70
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        }
+      }
+    }
+  }
+}
