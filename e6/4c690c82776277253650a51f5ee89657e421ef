@@ -1,0 +1,102 @@
+packages/webview/src/components/ChatApp.tsx
+  23602a0f6fa120d1 330-332,335-336,338-340
+packages/webview/tests/components/dockDetail.test.tsx
+  23602a0f6fa120d1 695-758
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e64c690c82776277253650a51f5ee89657e421ef",
+  "prompts": {
+    "23602a0f6fa120d1": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3817818b-6d8d-458b-9053-7a0ff12fff0f",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 3,
+      "accepted_lines": 72,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 8,
+          "deletions": 3,
+          "accepted_lines": 8
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        }
+      }
+    },
+    "b1e026764997bbab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e01f215-45c2-482e-aacc-a3bc8be98e4a",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelTabs.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
