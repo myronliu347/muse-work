@@ -11,7 +11,10 @@ import {
   pinFileTab,
   selectFileTab,
 } from "../muse/fileTabs";
-import { noteDesktopContentSearchRequest } from "../muse/contentSearchRequests";
+import {
+  allocateDesktopContentSearchRequestId,
+  noteDesktopContentSearchRequest,
+} from "../muse/contentSearchRequests";
 import { emptyContentSearchState, emptyFileTreeState, usePanelGroupStore } from "../stores";
 import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
@@ -74,7 +77,6 @@ export function useFilePanel({
   // for tree width/expand; search mode/results start fresh). The visible
   // search lives on the listing group, so that group is cleared too.
   const contentSearchWorkdirRef = useRef<string | undefined>(undefined);
-  const contentSearchSeqRef = useRef(0);
   const contentSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -127,7 +129,7 @@ export function useFilePanel({
       contentSearchTimerRef.current = setTimeout(() => {
         contentSearchTimerRef.current = null;
         if (contentSearchWorkdirRef.current !== startedWorkdir) return;
-        const requestId = `cs-${++contentSearchSeqRef.current}`;
+        const requestId = allocateDesktopContentSearchRequestId();
         noteDesktopContentSearchRequest(startedWorkdir, requestId);
         usePanelGroupStore.getState().patchGroup(startedWorkdir, {
           contentSearch: { ...next, loading: true, requestId, error: undefined },

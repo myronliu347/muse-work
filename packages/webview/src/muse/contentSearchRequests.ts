@@ -2,6 +2,12 @@ type PendingSearch = { workdir: string };
 
 const latestByWorkdir = new Map<string, string>();
 const pending = new Map<string, PendingSearch>();
+let contentSearchSeq = 0;
+
+export function allocateDesktopContentSearchRequestId(): string {
+  contentSearchSeq += 1;
+  return `cs-${contentSearchSeq}`;
+}
 
 export function noteDesktopContentSearchRequest(
   workdir: string,
