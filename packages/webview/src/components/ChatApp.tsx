@@ -104,6 +104,28 @@ import { createMessageHandler } from "../muse/messageRouter";
 
 const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
 const EMPTY_LISTING_SEARCH = emptyContentSearchState();
+const EMPTY_FILE_TABS: PanelGroupState["fileTabs"] = [];
+const EMPTY_EXPANDED: string[] = [];
+
+function applyNewestIssuePage(
+  current: Message[] | null,
+  currentHasMore: boolean,
+  incoming: Message[],
+  hasMore: boolean,
+): { messages: Message[]; hasMore: boolean } {
+  const anchor = incoming[0]?.id;
+  const anchorIndex =
+    current && anchor
+      ? current.findIndex((message) => message.id === anchor)
+      : -1;
+  if (current && anchorIndex > 0) {
+    return {
+      messages: [...current.slice(0, anchorIndex), ...incoming],
+      hasMore: currentHasMore,
+    };
+  }
+  return { messages: incoming, hasMore };
+}
 import { useChatAppCore } from "../hooks/useChatAppCore";
 import { useChatSend } from "../hooks/useChatSend";
 import { usePanels } from "../hooks/usePanels";
@@ -323,31 +345,65 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       ? (openIssueGroup.executionSessionId ?? issueTabSessionId(openIssueGroup))
       : resolveIssuePlanningSessionId(openIssueGroup);
   const [issueTranscript, setIssueTranscript] = useState<
-    | { sessionId: string; status: "ready"; messages: Message[] }
+    | {
+        sessionId: string;
+        status: "ready";
+        messages: Message[];
+        hasMore: boolean;
+      }
     | { sessionId: string; status: "error" }
     | null
   >(null);
   const [issueTranscriptAttempt, setIssueTranscriptAttempt] = useState(0);
+  const issueTranscriptRef = useRef(issueTranscript);
+  issueTranscriptRef.current = issueTranscript;
+  const requestedOlderIssueRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    requestedOlderIssueRef.current = undefined;
+  }, [openIssueSessionId]);
   useEffect(() => {
     if (!assistantVisible || !openIssueSessionId) return;
     let cancelled = false;
     const sessionId = openIssueSessionId;
-    void museApi
-      .getMessages(sessionId)
-      .then((page) => {
-        if (cancelled) return;
-        setIssueTranscript({
-          sessionId,
-          status: "ready",
-          messages: page.messages as Message[],
+    const load = () => {
+      void museApi
+        .getMessages(sessionId)
+        .then((page) => {
+          if (cancelled) return;
+          const incoming = page.messages as Message[];
+          const hasMore = Boolean(page.hasMore);
+          setIssueTranscript((current) => {
+            const ready =
+              current?.sessionId === sessionId && current.status === "ready"
+                ? current
+                : null;
+            return {
+              sessionId,
+              status: "ready",
+              ...applyNewestIssuePage(
+                ready?.messages ?? null,
+                ready?.hasMore ?? hasMore,
+                incoming,
+                hasMore,
+              ),
+            };
+          });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setIssueTranscript((current) => {
+            if (current?.sessionId === sessionId && current.status === "ready") {
+              return current;
+            }
+            return { sessionId, status: "error" };
+          });
         });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setIssueTranscript({ sessionId, status: "error" });
-      });
+    };
+    load();
+    const interval = window.setInterval(load, 4000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [assistantVisible, openIssueSessionId, museApi, issueTranscriptAttempt]);
   const openIssueTranscript =
@@ -357,6 +413,49 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const shownIssueMessages =
     openIssueTranscript?.status === "ready" ? openIssueTranscript.messages : [];
   const issueTranscriptFailed = openIssueTranscript?.status === "error";
+  const handleIssueMessagesScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const transcript = issueTranscriptRef.current;
+    if (!openIssueSessionId || !transcript || transcript.status !== "ready") return;
+    if (transcript.sessionId !== openIssueSessionId || !transcript.hasMore) return;
+    const scroller = event.currentTarget;
+    if (scroller.scrollTop >= 48) return;
+    const oldestId = transcript.messages[0]?.id;
+    if (!oldestId || requestedOlderIssueRef.current === oldestId) return;
+    requestedOlderIssueRef.current = oldestId;
+    window.setTimeout(() => {
+      if (requestedOlderIssueRef.current === oldestId) {
+        requestedOlderIssueRef.current = undefined;
+      }
+    }, 3000);
+    const sessionId = openIssueSessionId;
+    void museApi
+      .getMessages(sessionId, { before: oldestId, limit: 40 })
+      .then((page) => {
+        const older = page.messages as Message[];
+        setIssueTranscript((current) => {
+          if (
+            !current ||
+            current.sessionId !== sessionId ||
+            current.status !== "ready"
+          ) {
+            return current;
+          }
+          const seen = new Set(current.messages.map((message) => message.id));
+          const prepended = older.filter((message) => !seen.has(message.id));
+          return {
+            sessionId,
+            status: "ready",
+            messages: [...prepended, ...current.messages],
+            hasMore: Boolean(page.hasMore),
+          };
+        });
+      })
+      .catch(() => {
+        if (requestedOlderIssueRef.current === oldestId) {
+          requestedOlderIssueRef.current = undefined;
+        }
+      });
+  };
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory. On Muse Bot and 会话, the
@@ -446,9 +545,33 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       ? (state.groups[dockWorkdir]?.contentSearch ?? EMPTY_LISTING_SEARCH)
       : undefined,
   );
+  const issueFileTabs = usePanelGroupStore((state) => {
+    if (!usingIssuePreview || !dockWorkdir) return undefined;
+    return state.groups[dockWorkdir]?.fileTabs ?? EMPTY_FILE_TABS;
+  });
+  const issueActiveFilePath = usePanelGroupStore((state) => {
+    if (!usingIssuePreview || !dockWorkdir) return undefined;
+    return state.groups[dockWorkdir]?.activeFilePath ?? null;
+  });
+  const issueExpanded = usePanelGroupStore((state) => {
+    if (!usingIssuePreview || !dockWorkdir) return undefined;
+    return state.groups[dockWorkdir]?.fileTree?.expanded ?? EMPTY_EXPANDED;
+  });
+  const issueSelected = usePanelGroupStore((state) => {
+    if (!usingIssuePreview || !dockWorkdir) return undefined;
+    return state.groups[dockWorkdir]?.fileTree?.selected;
+  });
+  const shownFileTabs = issueFileTabs ?? fileTabs;
+  const shownActiveFilePath =
+    issueActiveFilePath !== undefined ? issueActiveFilePath : activeFilePath;
   const shownFileTree =
     issueChildrenCache !== undefined
-      ? { ...fileTree, childrenCache: issueChildrenCache }
+      ? {
+          ...fileTree,
+          expanded: issueExpanded ?? EMPTY_EXPANDED,
+          selected: issueSelected,
+          childrenCache: issueChildrenCache,
+        }
       : fileTree;
   const shownContentSearch = issueContentSearch ?? contentSearch;
   const shownPreviewUrl = usingIssuePreview ? dockPreviewUrl : previewUrl;
@@ -569,8 +692,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
-    () => fileTabs.find((t) => t.path === activeFilePath) ?? null,
-    [fileTabs, activeFilePath],
+    () => shownFileTabs.find((t) => t.path === shownActiveFilePath) ?? null,
+    [shownFileTabs, shownActiveFilePath],
   );
   const previewUrlRef = useRef(previewUrl);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -846,6 +969,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     groupKey,
     contentSearch: shownContentSearch,
     updateListingGroup: updatePreviewGroup,
+    updateFileGroup: updatePreviewGroup,
   });
   const {
     handleOpenFile,
@@ -1285,8 +1409,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onRefreshOpenFile: handleRefreshOpenFile,
     onSendMessage: (text) => handleSendMessage(text),
     fileView,
-    fileTabs,
-    activeFilePath,
+    fileTabs: shownFileTabs,
+    activeFilePath: shownActiveFilePath,
     onSelectFileTab: (path) => {
       workspace.selectDock("file");
       handleSelectFileTab(path);
@@ -1341,7 +1465,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 showTabs={isSplitIssueGroup(openIssueGroup)}
                 executionEnabled={Boolean(openIssueGroup.executionSessionId)}
               />
-              <div className="issue-tab-messages" data-testid="issue-tab-messages">
+              <div
+                className="issue-tab-messages"
+                data-testid="issue-tab-messages"
+                onScroll={handleIssueMessagesScroll}
+              >
                 {issueTranscriptFailed ? (
                   <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
                     <span>会话加载失败</span>
@@ -1357,7 +1485,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   </div>
                 ) : (
                   shownIssueMessages.map((message) => (
-                    <MessageView key={message.id} message={message} vscode={vscode} />
+                    <MessageView
+                      key={message.id}
+                      message={message}
+                      vscode={vscode}
+                      onOpenFile={handleOpenFile}
+                      onOpenPreview={handleOpenPreview}
+                      workdir={dockWorkdir}
+                    />
                   ))
                 )}
               </div>

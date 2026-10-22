@@ -1139,6 +1139,9 @@ export const Message: React.FC<MessageProps> = React.memo(
       prev.isQueued === next.isQueued &&
       prev.onRewindToMessage === next.onRewindToMessage &&
       prev.onOpenAgentTranscript === next.onOpenAgentTranscript &&
+      prev.onOpenFile === next.onOpenFile &&
+      prev.onOpenPreview === next.onOpenPreview &&
+      prev.workdir === next.workdir &&
       prev.blockRenderMode === next.blockRenderMode &&
       prev.finalTextBlockIndex === next.finalTextBlockIndex
     );

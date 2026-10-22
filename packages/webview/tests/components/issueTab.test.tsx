@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
+import * as botWorkspace from "../../src/components/desktop/botWorkspace";
 import { MuseApiClient } from "../../src/muse/apiClient";
 import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, usePanelGroupStore } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
@@ -528,7 +529,7 @@ describe("issue tab", () => {
     expect(within(paneAgain).getByTestId("issue-session-title")).toHaveTextContent(RADII);
   });
 
-  it("refetches an expanded directory for the next issue instead of reusing cached children", async () => {
+  it("does not apply an expanded directory from the previous issue", async () => {
     await withElementBox(async () => {
     resetWebviewStores();
     stubAssistant([]);
@@ -570,16 +571,27 @@ describe("issue tab", () => {
     await waitFor(() => {
       expect(listDirMessages(vscode)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ dir: "src", workdir: "/work/a11y-exec" }),
+          expect.objectContaining({ dir: "", workdir: "/work/a11y-exec" }),
         ]),
       );
     });
+    expect(
+      listDirMessages(vscode).some(
+        (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
+      ),
+    ).toBe(false);
     expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
     expect(within(dock).queryByText("old-child.ts")).toBeNull();
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
+    ).toContain("src");
+    expect(
+      usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
+    ).not.toContain("src");
     });
   });
 
-  it("refetches a session-surface directory after another issue is selected", async () => {
+  it("shows the next issue directory on 会话 without the previous expansion", async () => {
     await withElementBox(async () => {
       resetWebviewStores();
       stubAssistant([]);
@@ -662,12 +674,20 @@ describe("issue tab", () => {
       await waitFor(() => {
         expect(listDirMessages(vscode)).toEqual(
           expect.arrayContaining([
-            expect.objectContaining({ dir: "src", workdir: "/work/a11y-exec" }),
+            expect.objectContaining({ dir: "", workdir: "/work/a11y-exec" }),
           ]),
         );
       });
+      expect(
+        listDirMessages(vscode).some(
+          (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
+        ),
+      ).toBe(false);
       expect(within(dockAgain).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
       expect(within(dockAgain).queryByText("old-child.ts")).toBeNull();
+      expect(
+        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
+      ).toContain("src");
     });
   });
 
@@ -910,7 +930,7 @@ describe("issue tab", () => {
     });
   });
 
-  it("requests an expanded directory again when the issue changes before that listing returns", async () => {
+  it("keeps an in-flight directory listing on the issue that requested it", async () => {
     await withElementBox(async () => {
       resetWebviewStores();
       stubAssistant([]);
@@ -958,10 +978,15 @@ describe("issue tab", () => {
       await waitFor(() => {
         expect(listDirMessages(vscode)).toEqual(
           expect.arrayContaining([
-            expect.objectContaining({ dir: "src", workdir: "/work/a11y-exec" }),
+            expect.objectContaining({ dir: "", workdir: "/work/a11y-exec" }),
           ]),
         );
       });
+      expect(
+        listDirMessages(vscode).some(
+          (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
+        ),
+      ).toBe(false);
 
       sendExtensionMessage({
         command: "desktopListDirResult",
@@ -972,10 +997,13 @@ describe("issue tab", () => {
       expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
       expect(within(dock).queryByText("old-child.ts")).toBeNull();
       expect(
-        listDirMessages(vscode).some(
-          (message) => message.dir === "src" && message.workdir === "/work/a11y-exec",
+        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.childrenCache.src?.some(
+          (entry) => entry.name === "old-child.ts",
         ),
       ).toBe(true);
+      expect(
+        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.childrenCache?.src,
+      ).toBeUndefined();
     });
   });
 
@@ -1162,5 +1190,294 @@ describe("issue tab", () => {
     expect(within(emptyTranscript).queryByText("会话加载失败")).toBeNull();
     expect(within(emptyTranscript).queryByRole("button", { name: "重试" })).toBeNull();
     expect(within(emptyTranscript).getByTestId("issue-tab-messages")).toBeEmptyDOMElement();
+  });
+
+  it("keeps each issue's open file and expansion, and a list click stays on 详情", async () => {
+    await withElementBox(async () => {
+      resetWebviewStores();
+      stubAssistant([]);
+      stubWideViewport();
+      seedFileGroup(ASSISTANT_PANEL_GROUP_KEY);
+      const selectDock = vi.spyOn(botWorkspace, "selectDock");
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <ChatApp
+            vscode={createMockVscode()}
+            host={createMockDesktopHost({
+              issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+            })}
+          />
+        </MuseTheme>,
+      );
+
+      const frame = await screen.findByTestId("assistant-frame");
+      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      await user.click(within(dock).getByRole("button", { name: "文件" }));
+      replyListDir("", [
+        dirEntry("src", "/work/radii", "src", true),
+        dirEntry("App.tsx", "/work/radii", "App.tsx", false),
+      ]);
+      await user.click(await within(dock).findByTestId("file-tree-row-src"));
+      replyListDir("src", [
+        dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false),
+      ]);
+      expect(
+        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
+      ).toBeInTheDocument();
+      await user.click(within(dock).getByTestId("file-tree-row-App.tsx"));
+      const radiiTab = await within(dock).findByTestId("file-tab");
+      expect(radiiTab).toHaveAttribute("data-path", "/work/radii/App.tsx");
+      expect(radiiTab).toHaveAttribute("data-active", "true");
+      expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+        "desktop-panel-tab--active",
+      );
+
+      selectDock.mockClear();
+      const lists = within(frame).getByTestId("bot-lists");
+      await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+
+      expect(selectDock).not.toHaveBeenCalled();
+      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(within(dock).queryByTestId("file-tab")).toBeNull();
+      expect(within(dock).queryByText("App.tsx")).toBeNull();
+      expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
+      expect(
+        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.active,
+      ).toBe("file");
+      expect(
+        usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+      ).toEqual(["/work/radii/App.tsx"]);
+      expect(
+        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+      ).toEqual([]);
+      expect(
+        usePanelGroupStore.getState().groups["/work/radii"]?.fileTree.expanded ?? [],
+      ).toContain("src");
+      expect(
+        usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
+      ).not.toContain("src");
+
+      await user.click(within(dock).getByRole("button", { name: "文件" }));
+      expect(within(dock).getByTestId("file-tree-workdir")).toHaveAttribute(
+        "title",
+        "/work/a11y-exec",
+      );
+      expect(within(dock).queryByTestId("file-tab")).toBeNull();
+      expect(within(dock).queryByText("old-child.ts")).toBeNull();
+
+      selectDock.mockClear();
+      await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
+      expect(selectDock).not.toHaveBeenCalled();
+      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+
+      const restored = within(dock).getByTestId("file-tab");
+      expect(restored).toHaveAttribute("data-path", "/work/radii/App.tsx");
+      expect(restored).toHaveAttribute("data-active", "false");
+      await user.click(restored);
+      expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
+      expect(within(dock).getByTestId("file-tree-workdir")).toHaveAttribute(
+        "title",
+        "/work/radii",
+      );
+      expect(
+        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("stores a file-content reply on the issue directory group", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    seedFileGroup(ASSISTANT_PANEL_GROUP_KEY);
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    await screen.findByTestId("assistant-frame");
+    sendExtensionMessage({
+      command: "desktopFileContent",
+      fileView: {
+        path: "/work/radii/App.tsx",
+        host: "local",
+        content: "export {}\n",
+      },
+    });
+
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+    ).toEqual(["/work/radii/App.tsx"]);
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.activeFilePath,
+    ).toBe("/work/radii/App.tsx");
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+    ).toEqual([]);
+  });
+
+  it("loads the older issue page when the transcript is scrolled near the top", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const calls: Array<[string, { before?: string; limit?: number } | undefined]> = [];
+    let olderStarted = 0;
+    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id, query) => {
+      calls.push([id, query]);
+      if (id !== "plan-radii") return { messages: [], hasMore: false };
+      if (query?.before) {
+        olderStarted += 1;
+        return {
+          messages: [textMessage("radii-old", "更早的圆角")],
+          hasMore: false,
+        };
+      }
+      return {
+        messages: [textMessage("radii-1", RADII_MESSAGE)],
+        hasMore: true,
+      };
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    const transcript = within(frame).getByTestId("issue-tab-transcript");
+    expect(await within(transcript).findByText(RADII_MESSAGE)).toBeInTheDocument();
+
+    const scroller = within(transcript).getByTestId("issue-tab-messages");
+    scroller.scrollTop = 0;
+    fireEvent.scroll(scroller);
+    fireEvent.scroll(scroller);
+
+    expect(await within(transcript).findByText("更早的圆角")).toBeInTheDocument();
+    expect(within(transcript).getByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect(olderStarted).toBe(1);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        ["plan-radii", { before: "radii-1", limit: 40 }],
+      ]),
+    );
+  });
+
+  it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const getMessages = vi
+      .spyOn(MuseApiClient.prototype, "getMessages")
+      .mockResolvedValue({
+        messages: [textMessage("radii-1", RADII_MESSAGE)],
+        hasMore: false,
+      });
+    try {
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <ChatApp
+            vscode={createMockVscode()}
+            host={createMockDesktopHost({
+              issueGroups: [RADII_ISSUE],
+            })}
+          />
+        </MuseTheme>,
+      );
+
+      const frame = await screen.findByTestId("assistant-frame");
+      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+      expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+      const radiiCalls = () =>
+        getMessages.mock.calls.filter((call) => call[0] === "plan-radii");
+      expect(radiiCalls()).toHaveLength(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+      expect(radiiCalls()).toHaveLength(2);
+
+      await user.click(screen.getByTestId("desktop-sessions-menu"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+      expect(radiiCalls()).toHaveLength(2);
+
+      await user.click(screen.getByTestId("desktop-assistant-menu"));
+      await waitFor(() => {
+        expect(radiiCalls()).toHaveLength(3);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens a file path from the issue transcript in the file dock", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const onSelectSession = vi.fn();
+    vi.spyOn(MuseApiClient.prototype, "getMessages").mockImplementation(async (id) => {
+      if (id !== "plan-radii") return { messages: [], hasMore: false };
+      return {
+        messages: [
+          {
+            id: "radii-file",
+            role: "assistant" as const,
+            timestamp: "2026-10-22T00:00:00.000Z",
+            blocks: [{ type: "text" as const, content: "改一下 src/App.tsx" }],
+          },
+        ],
+        hasMore: false,
+      };
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            onSelectSession,
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    const transcript = within(frame).getByTestId("issue-tab-transcript");
+    const link = await within(transcript).findByRole("link", { name: "src/App.tsx" });
+    await user.click(link);
+
+    expect(onSelectSession).not.toHaveBeenCalled();
+    const fileTab = await within(dock).findByTestId("file-tab");
+    expect(fileTab).toHaveAttribute("data-path", "src/App.tsx");
+    expect(fileTab).toHaveAttribute("data-active", "true");
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
   });
 });

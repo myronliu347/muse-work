@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import type { MuseApiClient } from "../muse/apiClient";
 import {
+  closeFileTab,
   openFileTab,
   pinFileTab,
   selectFileTab,
@@ -57,6 +58,8 @@ interface UseFilePanelParams {
   groupKey?: string;
   contentSearch: ContentSearchState;
   updateListingGroup?: ChatAppCore["updatePanelGroup"];
+  /** File tabs and tree expand/selection. Defaults to the chrome group. */
+  updateFileGroup?: ChatAppCore["updatePanelGroup"];
 }
 
 export function useFilePanel({
@@ -71,8 +74,10 @@ export function useFilePanel({
   groupKey,
   contentSearch,
   updateListingGroup,
+  updateFileGroup,
 }: UseFilePanelParams): FilePanelHandlers {
   const writeListingGroup = updateListingGroup ?? updatePanelGroup;
+  const writeFileGroup = updateFileGroup ?? writeListingGroup;
   // Reset file sidebar search when workdir changes (per-group memory stays
   // for tree width/expand; search mode/results start fresh). The visible
   // search lives on the listing group, so that group is cleared too.
@@ -181,7 +186,7 @@ export function useFilePanel({
     (path: string, startLine?: number, endLine?: number) => {
       if (!path) return;
       if (!tryOpenPanel("file")) return;
-      updatePanelGroup((group) =>
+      writeFileGroup((group) =>
         openFileTab(
           {
             fileTabs: group.fileTabs ?? [],
@@ -206,7 +211,7 @@ export function useFilePanel({
       effectiveHost,
       effectiveWorkdir,
       postToHost,
-      updatePanelGroup,
+      writeFileGroup,
     ],
   );
 
@@ -216,7 +221,7 @@ export function useFilePanel({
     (path: string) => {
       if (!path) return;
       if (!tryOpenPanel("file")) return;
-      updatePanelGroup((group) =>
+      writeFileGroup((group) =>
         openFileTab(
           {
             fileTabs: group.fileTabs ?? [],
@@ -239,7 +244,7 @@ export function useFilePanel({
       effectiveHost,
       effectiveWorkdir,
       postToHost,
-      updatePanelGroup,
+      writeFileGroup,
     ],
   );
 
@@ -265,7 +270,7 @@ export function useFilePanel({
     (path: string) => {
       if (!path) return;
       if (!tryOpenPanel("file")) return;
-      updatePanelGroup((group) =>
+      writeFileGroup((group) =>
         selectFileTab(
           {
             fileTabs: group.fileTabs ?? [],
@@ -275,21 +280,55 @@ export function useFilePanel({
         ),
       );
     },
-    [tryOpenPanel, updatePanelGroup],
+    [tryOpenPanel, writeFileGroup],
   );
 
   const handleCloseFileTab = useCallback(
     (path: string) => {
       if (!path) return;
-      updatePanelGroup((group) => applyCloseFileTab(group, path));
+      let closedLast = false;
+      writeFileGroup((group) => {
+        const currentTabs = group.fileTabs ?? [];
+        const next = closeFileTab(
+          {
+            fileTabs: currentTabs,
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+        );
+        const removed = currentTabs.some((tab) => tab.path === path);
+        closedLast = removed && next.fileTabs.length === 0;
+        if (!removed) return {};
+        if (next.fileTabs.length > 0) return next;
+        if (group.checked.includes("file")) return applyCloseFileTab(group, path);
+        return {
+          ...next,
+          contentSearch: emptyContentSearchState(),
+        };
+      });
+      if (!closedLast) return;
+      updatePanelGroup((group) => {
+        if (!group.checked.includes("file")) return {};
+        if ((group.fileTabs ?? []).some((tab) => tab.path === path)) {
+          return applyCloseFileTab(group, path);
+        }
+        return applyCloseFileTab(
+          {
+            ...group,
+            fileTabs: [{ path, host: "" }],
+            activeFilePath: path,
+          },
+          path,
+        );
+      });
     },
-    [updatePanelGroup],
+    [updatePanelGroup, writeFileGroup],
   );
 
   const handlePinFileTab = useCallback(
     (path: string) => {
       if (!path) return;
-      updatePanelGroup((group) =>
+      writeFileGroup((group) =>
         pinFileTab(
           {
             fileTabs: group.fileTabs ?? [],
@@ -299,7 +338,7 @@ export function useFilePanel({
         ),
       );
     },
-    [updatePanelGroup],
+    [writeFileGroup],
   );
 
   const handleRevealInFinder = useCallback(
@@ -354,22 +393,22 @@ export function useFilePanel({
 
   const handleFileTreeChange = useCallback(
     (next: FileTreeState) => {
-      updatePanelGroup((group) => ({
-        fileTree: {
-          ...group.fileTree,
-          expanded: next.expanded,
-          selected: next.selected,
-          width: next.width,
-          collapsed: next.collapsed,
-        },
-      }));
       writeListingGroup((group) => ({
         fileTree: {
           ...(group.fileTree ?? emptyFileTreeState()),
+          expanded: next.expanded,
+          selected: next.selected,
           childrenCache: {
             ...(group.fileTree?.childrenCache ?? {}),
             ...next.childrenCache,
           },
+        },
+      }));
+      updatePanelGroup((group) => ({
+        fileTree: {
+          ...group.fileTree,
+          width: next.width,
+          collapsed: next.collapsed,
         },
       }));
     },
