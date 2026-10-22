@@ -322,34 +322,41 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     : openIssueViewTab === "execution"
       ? (openIssueGroup.executionSessionId ?? issueTabSessionId(openIssueGroup))
       : resolveIssuePlanningSessionId(openIssueGroup);
-  const [issueTranscript, setIssueTranscript] = useState<{
-    sessionId: string;
-    messages: Message[];
-  } | null>(null);
+  const [issueTranscript, setIssueTranscript] = useState<
+    | { sessionId: string; status: "ready"; messages: Message[] }
+    | { sessionId: string; status: "error" }
+    | null
+  >(null);
+  const [issueTranscriptAttempt, setIssueTranscriptAttempt] = useState(0);
   useEffect(() => {
     if (!assistantVisible || !openIssueSessionId) return;
     let cancelled = false;
+    const sessionId = openIssueSessionId;
     void museApi
-      .getMessages(openIssueSessionId)
+      .getMessages(sessionId)
       .then((page) => {
         if (cancelled) return;
         setIssueTranscript({
-          sessionId: openIssueSessionId,
+          sessionId,
+          status: "ready",
           messages: page.messages as Message[],
         });
       })
       .catch(() => {
         if (cancelled) return;
-        setIssueTranscript({ sessionId: openIssueSessionId, messages: [] });
+        setIssueTranscript({ sessionId, status: "error" });
       });
     return () => {
       cancelled = true;
     };
-  }, [assistantVisible, openIssueSessionId, museApi]);
-  const shownIssueMessages =
+  }, [assistantVisible, openIssueSessionId, museApi, issueTranscriptAttempt]);
+  const openIssueTranscript =
     issueTranscript && issueTranscript.sessionId === openIssueSessionId
-      ? issueTranscript.messages
-      : [];
+      ? issueTranscript
+      : null;
+  const shownIssueMessages =
+    openIssueTranscript?.status === "ready" ? openIssueTranscript.messages : [];
+  const issueTranscriptFailed = openIssueTranscript?.status === "error";
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
   // the same dock as sessions in that directory. On Muse Bot and 会话, the
@@ -1335,9 +1342,24 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 executionEnabled={Boolean(openIssueGroup.executionSessionId)}
               />
               <div className="issue-tab-messages" data-testid="issue-tab-messages">
-                {shownIssueMessages.map((message) => (
-                  <MessageView key={message.id} message={message} vscode={vscode} />
-                ))}
+                {issueTranscriptFailed ? (
+                  <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
+                    <span>会话加载失败</span>
+                    <button
+                      type="button"
+                      className="issue-tab-load-retry"
+                      onClick={() =>
+                        setIssueTranscriptAttempt((attempt) => attempt + 1)
+                      }
+                    >
+                      重试
+                    </button>
+                  </div>
+                ) : (
+                  shownIssueMessages.map((message) => (
+                    <MessageView key={message.id} message={message} vscode={vscode} />
+                  ))
+                )}
               </div>
             </div>
           ) : (

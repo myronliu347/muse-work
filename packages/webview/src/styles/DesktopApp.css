@@ -2022,6 +2022,28 @@ body.is-panel-resizing * {
   overflow-y: auto;
 }
 
+.issue-tab-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  font-size: var(--font-size-1);
+}
+
+.issue-tab-load-retry {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-2);
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+  cursor: pointer;
+}
+
+.issue-tab-load-retry:hover {
+  background: var(--accent-10);
+}
+
 /* Draft start page must cover the whole chat column. Flex `height: 100%`
    was collapsing to the welcome+composer cluster, so wallpaper/cat clipped
    and the stack sat on the window bottom. */

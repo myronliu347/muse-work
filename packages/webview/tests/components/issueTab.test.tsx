@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
+import { MuseApiClient } from "../../src/muse/apiClient";
 import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, usePanelGroupStore } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 import type { DesktopIssueGroup, DesktopSessionEntry, FileTreeDirEntry } from "../../src/types";
@@ -222,6 +223,7 @@ describe("issue tab", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     resetWebviewStores();
     delete (HTMLElement.prototype as { loadURL?: unknown }).loadURL;
   });
@@ -1090,5 +1092,75 @@ describe("issue tab", () => {
     expect(diffCalls.every((message) => message.command === "desktopGetWorkspaceDiff")).toBe(true);
     expect(diffCalls.every((message) => message.workdir === "/work/radii")).toBe(true);
     expect(diffCalls.some((message) => message.workdir === "/work/notes")).toBe(false);
+  });
+
+  it("shows a failed issue transcript instead of an empty one and retries the load", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    let radiiLoads = 0;
+    const getMessages = vi
+      .spyOn(MuseApiClient.prototype, "getMessages")
+      .mockImplementation(async (id) => {
+        if (id !== "plan-radii") return { messages: [], hasMore: false };
+        radiiLoads += 1;
+        if (radiiLoads === 1) throw new Error("messages unavailable");
+        return {
+          messages: [textMessage("radii-1", RADII_MESSAGE)],
+          hasMore: false,
+        };
+      });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [
+              RADII_ISSUE,
+              issue({
+                issueId: "empty",
+                title: EMPTY,
+                priority: "p2",
+                planningSessionId: "plan-empty",
+                sessions: [session("plan-empty", "/work/empty", EMPTY)],
+              }),
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+
+    const transcript = within(frame).getByTestId("issue-tab-transcript");
+    expect(await within(transcript).findByText("会话加载失败")).toBeInTheDocument();
+    const messages = within(transcript).getByTestId("issue-tab-messages");
+    expect(messages).not.toBeEmptyDOMElement();
+    expect(within(transcript).queryByText(RADII_MESSAGE)).toBeNull();
+    expect(getMessages).toHaveBeenCalledTimes(1);
+    expect(getMessages).toHaveBeenCalledWith("plan-radii");
+
+    await user.click(within(transcript).getByRole("button", { name: "重试" }));
+
+    expect(await within(transcript).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect(within(transcript).queryByText("会话加载失败")).toBeNull();
+    expect(within(transcript).queryByRole("button", { name: "重试" })).toBeNull();
+    expect(getMessages).toHaveBeenCalledTimes(2);
+    expect(getMessages.mock.calls.filter((call) => call[0] === "plan-radii")).toHaveLength(2);
+
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(EMPTY) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    await waitFor(() => {
+      expect(getMessages).toHaveBeenCalledWith("plan-empty");
+    });
+    const emptyTranscript = within(frame).getByTestId("issue-tab-transcript");
+    expect(within(emptyTranscript).getByTestId("issue-session-title")).toHaveTextContent(EMPTY);
+    expect(within(emptyTranscript).queryByText("会话加载失败")).toBeNull();
+    expect(within(emptyTranscript).queryByRole("button", { name: "重试" })).toBeNull();
+    expect(within(emptyTranscript).getByTestId("issue-tab-messages")).toBeEmptyDOMElement();
   });
 });
