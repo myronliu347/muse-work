@@ -1,0 +1,102 @@
+packages/webview/src/components/ChatApp.tsx
+  195bcbc520bb716a 326-330,333-336,340,343-349,352-353,372,1008-1009,1012
+packages/webview/tests/components/dockDetail.test.tsx
+  195bcbc520bb716a 91-99,655-783
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "571d8463f43c20c698c90eb635612324b1f3cec4",
+  "prompts": {
+    "195bcbc520bb716a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d2470ace-af0f-4769-a1e2-3f4873b07c1d",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 163,
+      "total_deletions": 10,
+      "accepted_lines": 163,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 25,
+          "deletions": 10,
+          "accepted_lines": 25
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 138,
+          "accepted_lines": 138
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        }
+      }
+    },
+    "b1e026764997bbab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e01f215-45c2-482e-aacc-a3bc8be98e4a",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/panelTabs.ts": {
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
