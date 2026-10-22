@@ -845,6 +845,52 @@ describe("assistant dock detail", () => {
     );
     expect(within(sessionDock).getByTestId("terminal-pane")).not.toBeVisible();
   });
+
+  it("selects 终端 when 文件 closes while the group active kind is already 终端", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/mock/workdir", {
+      checked: ["file", "terminal"],
+      mounted: ["file", "terminal"],
+      active: "terminal",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={createMockDesktopHost()} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
+
+    establishSession();
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    const chat = await screen.findByTestId("chat-container");
+    const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    await user.click(within(sessionDock).getByTestId("desktop-panel-tab-close-file"));
+
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+  });
 });
 
 describe("session dock detail", () => {

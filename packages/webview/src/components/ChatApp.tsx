@@ -86,7 +86,7 @@ import type {
   DesktopPanelKind,
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
-import { DOCK_DETAIL_TAB } from "../muse/panelTabs";
+import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
 import { ASSISTANT_PANEL_GROUP_KEY, usePanelGroup, usePaneUi } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
@@ -325,11 +325,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // while 详情 is showing must not follow the next kind either. Muse Bot and
   // a session share one dock chrome. 设置, 自动化, and the draft page do not
   // mount it, so those groupKey changes must not call selectDock. On a dock
-  // surface the chrome kind stays, unless this group does not have it
-  // checked — then the chrome returns to 详情 instead of adopting the other
-  // group's active kind. With panes, this outer instance only mounts
-  // DesktopShell and never paints the dock. DesktopShell does not update
-  // noPaneRail, so a session here must not make dockOnScreen true.
+  // surface a group switch keeps the chrome kind, unless this group does not
+  // have it checked — then the chrome returns to 详情 instead of adopting the
+  // other group's active kind. Inside one group, if that close leaves active
+  // unchanged and another kind is still checked, select the first remaining
+  // kind in PANEL_ADD_ORDER; select 详情 only when none remain. With panes,
+  // this outer instance only mounts DesktopShell and never paints the dock.
+  // DesktopShell does not update noPaneRail, so a session here must not make
+  // dockOnScreen true.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
   const shellHostWithoutDock =
@@ -354,8 +357,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       if (chromeKindMissing) workspace.selectDock(DOCK_DETAIL_TAB);
       return;
     }
-    if (previousKind === activePanel) {
-      if (chromeKindMissing) workspace.selectDock(DOCK_DETAIL_TAB);
+    if (previousGroupKey === groupKey && previousKind === activePanel) {
+      if (chromeKindMissing) {
+        const nextKind = PANEL_ADD_ORDER.find((kind) =>
+          checkedPanels.includes(kind),
+        );
+        workspace.selectDock(nextKind ?? DOCK_DETAIL_TAB);
+      }
       return;
     }
     const closedPreviousKind =
