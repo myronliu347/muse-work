@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Tooltip } from "../shared/Tooltip";
-import { NewSessionIcon, AutomationsIcon, AssistantIcon } from "../shared/HeaderIcons";
-import museM from "../../assets/muse-m.png";
 import {
   SessionTree,
   SESSION_DRAG_MIME,
@@ -16,11 +13,7 @@ import type {
   DesktopSessionEntry,
   DesktopIssueGroup,
 } from "../../types";
-import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
-import {
-  DESKTOP_SIDEBAR_MAX_WIDTH,
-  DESKTOP_SIDEBAR_MIN_WIDTH,
-} from "../../muse/layout";
+import type { ShellSurface } from "./shellSurface";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -34,10 +27,6 @@ export {
 };
 
 export type { WorkdirSessionGroup } from "../session/SessionTree";
-
-const isMacPlatform = (): boolean =>
-  typeof navigator !== "undefined" &&
-  navigator.platform.toUpperCase().startsWith("MAC");
 
 export interface DesktopSidebarProps {
   onNewSession: () => void;
@@ -65,7 +54,7 @@ export interface DesktopSidebarProps {
   pinnedSessions?: DesktopSessionEntry[];
   /** Sessions in the 工作空间 / 任务 sections (split by workdir kind). */
   recentSessions?: DesktopSessionEntry[];
-  /** Issue 分组（侧栏「待办事项」）。 */
+  /** Issue 分组（侧栏「待办事项」）。图标栏不渲染。 */
   issueGroups?: DesktopIssueGroup[];
   /** Active session id — drives current highlight and unread-dot suppression. */
   currentSessionId?: string;
@@ -96,54 +85,116 @@ export interface DesktopSidebarProps {
   onCompleteIssue?: (issueId: string, note: string) => void;
   /** 分组行更多菜单 → 取消 Issue。note 是一句原因。 */
   onCancelIssue?: (issueId: string, note: string) => void;
-  /** 当前高亮的菜单项（选中态） */
-  activeMenu?: "newChat" | "automations" | "assistant";
-  /** 侧栏顶部「自动化」独立页 */
+  /** 当前高亮的图标。 */
+  activeMenu?: ShellSurface | "newChat";
+  /** 图标栏「会话」。 */
+  onOpenSessions?: () => void;
+  /** 图标栏「自动化」。 */
   onOpenAutomations?: () => void;
-  /** 侧栏顶部「Muse Bot」对话 */
+  /** 图标栏「Muse Bot」。 */
   onOpenAssistant?: () => void;
   /** 抽屉滑出视口时，避免焦点与读屏进入侧栏。 */
   sidebarAccessHidden?: boolean;
 }
 
+function RailIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** 星芒：大星加右上、左下两处小十字。 */
+function MuseBotIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M9.94 15.5a2 2 0 0 0-1.44-1.44L2.36 12.48a.5.5 0 0 1 0-.96l6.14-1.58A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 3v4M22 5h-4M4 17v2M5 18H3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </RailIcon>
+  );
+}
+
+/** 会话：对话气泡。 */
+function SessionsIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M5 6.4h14a1.6 1.6 0 0 1 1.6 1.6v6.6a1.6 1.6 0 0 1-1.6 1.6h-8.2L6.4 19.2v-3H5A1.6 1.6 0 0 1 3.4 14.6V8A1.6 1.6 0 0 1 5 6.4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </RailIcon>
+  );
+}
+
+/** 自动化：时钟。 */
+function AutomationsRailIcon() {
+  return (
+    <RailIcon>
+      <circle cx="12" cy="12" r="7.4" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M12 8.1V12.1l2.7 1.8"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </RailIcon>
+  );
+}
+
+/** 设置：六齿齿轮，中心圆孔。 */
+function SettingsIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M10.19 5.7 10.57 2.96h2.86l.38 2.74 2.74 1.59 2.56-1.05 1.43 2.48-2.18 1.7v3.16l2.18 1.7-1.43 2.48-2.56-1.05-2.74 1.59-.38 2.74h-2.86l-.38-2.74-2.74-1.59-2.56 1.05-1.43-2.48 2.18-1.7v-3.16l-2.18-1.7 1.43-2.48 2.56 1.05 2.74-1.59Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="2.35"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+    </RailIcon>
+  );
+}
+
 /**
- * Left rail for the desktop host: "新对话", session tree, and footer.
+ * Left icon rail: Muse Bot, sessions, automations, settings.
  */
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
-  onNewSession,
-  onNewSessionInPane,
-  onNewSessionInWorkdir,
-  isStreaming,
-  disabled,
   onOpenSettings,
-  onLogin,
-  isAuthenticated = false,
-  sessionTree,
-  pinnedSessions,
-  recentSessions,
-  issueGroups,
-  currentSessionId,
-  visibleSessionIds,
-  onSelectSession,
-  onOpenPane,
-  onDeleteSession,
-  onTogglePin,
-  onRenameSession,
-  onOpenInEditor,
-  onOpenInTerminal,
-  onRevealInFinder,
-  onNewIssue,
-  onOpenPlanning,
-  onSelectIssue,
-  onCompleteIssue,
-  onCancelIssue,
   activeMenu,
+  onOpenSessions,
   onOpenAutomations,
   onOpenAssistant,
   sidebarAccessHidden = false,
 }) => {
-  const { width, setWidth } = useDesktopSidebarWidth();
-  const sidebarRef = React.useRef<HTMLDivElement>(null);
   const [assistantUnread, setAssistantUnread] = useState(false);
   useEffect(() => {
     if (activeMenu === "assistant") setAssistantUnread(false);
@@ -160,153 +211,62 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   }, [activeMenu]);
   const showAssistantUnread = assistantUnread && activeMenu !== "assistant";
 
-  const onResizeStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const handle = e.currentTarget as HTMLElement;
-    handle.classList.add("desktop-sidebar-resize--active");
-    document.body.classList.add("is-panel-resizing");
-    const left = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-    const onMove = (ev: MouseEvent) => {
-      setWidth(ev.clientX - left);
-    };
-    const onUp = () => {
-      handle.classList.remove("desktop-sidebar-resize--active");
-      document.body.classList.remove("is-panel-resizing");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  };
-
   return (
     <div
-      className="desktop-sidebar"
+      className="desktop-sidebar desktop-icon-rail"
       data-testid="desktop-sidebar"
-      ref={sidebarRef}
       aria-hidden={sidebarAccessHidden || undefined}
       {...(sidebarAccessHidden ? ({ inert: "" } as const) : {})}
     >
       <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
-      <div
-        className="desktop-sidebar-resize"
-        onMouseDown={onResizeStart}
-        data-testid="desktop-sidebar-resize"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="调整侧栏宽度"
-        aria-valuemin={DESKTOP_SIDEBAR_MIN_WIDTH}
-        aria-valuemax={DESKTOP_SIDEBAR_MAX_WIDTH}
-        aria-valuenow={width}
-      />
-      <div className="app-menus">
+      <nav className="desktop-rail" aria-label="主导航">
         <button
           type="button"
-          className={`app-menu${activeMenu === "newChat" ? " active" : ""}`}
-          onClick={(e) => {
-            if (isMacPlatform() ? e.metaKey : e.ctrlKey) {
-              onNewSessionInPane();
-            } else {
-              onNewSession();
-            }
-          }}
-          // 新对话仅在无 workdir 时禁用；streaming 中也可开新会话（spec §7）。
-          disabled={disabled}
-          title={
-            isMacPlatform()
-              ? "新对话（⌘N，⌘+点击并排打开）"
-              : "新对话（Ctrl+N，Ctrl+点击并排打开）"
-          }
-          data-testid="desktop-new-session"
-        >
-          <NewSessionIcon className="app-menu-icon app-menu-icon--16" />
-          <span>新对话</span>
-        </button>
-        <button
-          type="button"
-          className={`app-menu${activeMenu === "automations" ? " active" : ""}`}
-          onClick={() => onOpenAutomations?.()}
-          data-testid="desktop-automations-menu"
-        >
-          <AutomationsIcon className="app-menu-icon app-menu-icon--16" />
-          <span>自动化</span>
-        </button>
-        <button
-          type="button"
-          className={`app-menu${activeMenu === "assistant" ? " active" : ""}`}
+          className={`desktop-rail-btn${activeMenu === "assistant" ? " active" : ""}`}
           onClick={() => onOpenAssistant?.()}
+          title="Muse Bot"
+          aria-label="Muse Bot"
           data-testid="desktop-assistant-menu"
         >
-          <AssistantIcon className="app-menu-icon app-menu-icon--16" />
-          <span>Muse Bot</span>
+          <MuseBotIcon />
           {showAssistantUnread ? (
             <span
-              className="desktop-session-unread-dot app-menu-unread"
+              className="desktop-session-unread-dot desktop-rail-unread"
               data-testid="assistant-unread-dot"
             />
           ) : null}
         </button>
-      </div>
-      <div className="divider" />
-      <SessionTree
-        sessionTree={sessionTree}
-        pinnedSessions={pinnedSessions}
-        recentSessions={recentSessions}
-        issueGroups={issueGroups}
-        currentSessionId={currentSessionId}
-        visibleSessionIds={visibleSessionIds}
-        isStreaming={isStreaming}
-        onSelectSession={onSelectSession}
-        onOpenPane={onOpenPane}
-        onDeleteSession={onDeleteSession}
-        onTogglePin={onTogglePin}
-        onRenameSession={onRenameSession}
-        onNewSessionInWorkdir={onNewSessionInWorkdir}
-        onOpenInEditor={onOpenInEditor}
-        onOpenInTerminal={onOpenInTerminal}
-        onRevealInFinder={onRevealInFinder}
-        onNewIssue={onNewIssue}
-        onOpenPlanning={onOpenPlanning}
-        onSelectIssue={onSelectIssue}
-        onCompleteIssue={onCompleteIssue}
-        onCancelIssue={onCancelIssue}
-      />
-      <div className="desktop-sidebar-footer" data-testid="desktop-sidebar-footer">
-        <span className="desktop-sidebar-logo-wrap" data-testid="desktop-brand">
-          <img
-            src={museM}
-            alt="Muse"
-            className="desktop-sidebar-logo"
-            draggable={false}
-          />
-        </span>
-        <div className="desktop-sidebar-footer-actions">
-          {!isAuthenticated && onLogin && (
-            <Tooltip text="登录" position="top">
-              <button
-                type="button"
-                className="desktop-sidebar-icon-btn"
-                onClick={onLogin}
-                data-testid="desktop-login-btn"
-                aria-label="登录"
-              >
-                <span className="codicon codicon-sign-in" aria-hidden="true" />
-              </button>
-            </Tooltip>
-          )}
-          <Tooltip text="设置" position="top">
-            <button
-              type="button"
-              className="desktop-sidebar-icon-btn"
-              onClick={onOpenSettings}
-              data-testid="desktop-settings-btn"
-              aria-label="设置"
-            >
-              <span className="codicon codicon-settings-gear" aria-hidden="true" />
-            </button>
-          </Tooltip>
-        </div>
-      </div>
+        <button
+          type="button"
+          className={`desktop-rail-btn${activeMenu === "sessions" ? " active" : ""}`}
+          onClick={() => onOpenSessions?.()}
+          title="会话"
+          aria-label="会话"
+          data-testid="desktop-sessions-menu"
+        >
+          <SessionsIcon />
+        </button>
+        <button
+          type="button"
+          className={`desktop-rail-btn${activeMenu === "automations" ? " active" : ""}`}
+          onClick={() => onOpenAutomations?.()}
+          title="自动化"
+          aria-label="自动化"
+          data-testid="desktop-automations-menu"
+        >
+          <AutomationsRailIcon />
+        </button>
+        <button
+          type="button"
+          className={`desktop-rail-btn${activeMenu === "settings" ? " active" : ""}`}
+          onClick={onOpenSettings}
+          title="设置"
+          aria-label="设置"
+          data-testid="desktop-settings-btn"
+        >
+          <SettingsIcon />
+        </button>
+      </nav>
     </div>
   );
 };

@@ -1,5 +1,5 @@
-/** Overlay sidebar default width. Chat content is padded by this on the leftmost pane. */
-export const DESKTOP_SIDEBAR_WIDTH = 240;
+/** Fixed icon-rail width. Chat content is padded by this on the leftmost pane. */
+export const DESKTOP_SIDEBAR_WIDTH = 52;
 
 /** Narrowest the overlay sidebar can be dragged. */
 export const DESKTOP_SIDEBAR_MIN_WIDTH = 180;
@@ -27,19 +27,14 @@ export function chatMainMinWidth(
   sidebarInset: boolean,
   sidebarWidth: number = DESKTOP_SIDEBAR_WIDTH,
 ): number {
-  return (
-    CHAT_CONTENT_MIN_WIDTH +
-    (sidebarInset ? clampSidebarWidth(sidebarWidth) : 0)
-  );
+  return CHAT_CONTENT_MIN_WIDTH + (sidebarInset ? sidebarWidth : 0);
 }
 
 export function minPaneWidth(
   firstInRow: boolean,
   sidebarWidth: number = DESKTOP_SIDEBAR_WIDTH,
 ): number {
-  return (
-    MIN_PANE_WIDTH + (firstInRow ? clampSidebarWidth(sidebarWidth) : 0)
-  );
+  return MIN_PANE_WIDTH + (firstInRow ? sidebarWidth : 0);
 }
 
 /**

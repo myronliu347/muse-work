@@ -1,7 +1,7 @@
 /* Desktop host layout: sidebar + chat, workdir selector inside the input */
 
 .desktop-layout {
-  --desktop-sidebar-width: 240px;
+  --desktop-sidebar-width: 52px;
   /* macOS hiddenInset traffic lights sit in this strip; sidebar + chat header share it. */
   --desktop-shell-titlebar-height: 38px;
   --desktop-shell-chrome-left: 82px;
@@ -33,9 +33,9 @@
   grid-area: 1 / 1;
   z-index: 6;
   justify-self: start;
-  width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
-  min-width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
-  max-width: var(--desktop-sidebar-drawer-width, var(--desktop-sidebar-width));
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
   height: 100%;
   max-height: 100%;
   display: flex;
@@ -196,6 +196,49 @@
   width: 16px;
   height: 16px;
   display: block;
+}
+
+.desktop-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.desktop-rail-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  appearance: none;
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.desktop-rail-btn svg {
+  display: block;
+}
+
+.desktop-rail-btn:hover:not(.active) {
+  background: var(--gray-4);
+}
+
+.desktop-rail-btn.active {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.desktop-rail-unread {
+  position: absolute;
+  top: 6px;
+  right: 6px;
 }
 
 /* 侧栏顶部菜单区：统一定义 padding 与按钮间距（按钮自身不带 margin） */

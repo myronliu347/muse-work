@@ -33,7 +33,7 @@ import {
   DesktopPanelSlots,
   type DesktopPanelSlotsProps,
 } from "./desktop/DesktopPanelSlots";
-import { useShellSurface } from "./desktop/shellSurface";
+import { useProvidedShellSurface, useShellSurface } from "./desktop/shellSurface";
 import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
@@ -41,10 +41,10 @@ import { resolveMuseServerUrl } from "../muse/hostBridge";
 import type { WorkspaceDiffFile } from "./panels/DiffPane";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
 import {
+  DESKTOP_SIDEBAR_WIDTH,
   chatMainMinWidth,
   paneHasSidebarInset,
 } from "../muse/layout";
-import { useDesktopSidebarWidth } from "../hooks/useDesktopSidebarWidth";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
 import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
 import type {
@@ -133,11 +133,12 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   // 主内容区视图：聊天 / 新会话页 / 自动化 / Muse Bot。
   const [view, setView] = useState<MainView>("chat");
   const shellSurface = useShellSurface();
+  const providedShellSurface = useProvidedShellSurface();
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
   const assistantVisible =
     host?.type === "desktop" &&
     (paneId !== undefined
-      ? shellSurface === "assistant" &&
+      ? providedShellSurface === "assistant" &&
         (host.focusedPaneId ?? paneId) === paneId
       : (host.panes?.length ?? 0) === 0 && view === "assistant");
   useEffect(() => {
@@ -345,7 +346,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     handleAddComment,
   } = send;
 
-  const { width: sidebarWidth } = useDesktopSidebarWidth();
+  const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const sidebarInset =
@@ -998,7 +999,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     // 助理占中间栏，右侧是助手自己的文件、终端和浏览器。
     const showAssistantInPane =
       paneId !== undefined &&
-      shellSurface === "assistant" &&
+      providedShellSurface === "assistant" &&
       (host.focusedPaneId ?? paneId) === paneId;
     if (paneId !== undefined) {
       return (

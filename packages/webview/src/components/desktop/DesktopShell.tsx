@@ -9,7 +9,7 @@ import React, {
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import { AutomationsPage } from "../automation/AutomationsPage";
-import { ShellSurfaceProvider } from "./shellSurface";
+import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   DesktopHostProps,
@@ -19,10 +19,10 @@ import type {
 } from "../../types";
 import "../../styles/DesktopApp.css";
 import {
+  DESKTOP_SIDEBAR_WIDTH,
   MIN_PANE_WIDTH,
   minPaneWidth,
 } from "../../muse/layout";
-import { useDesktopSidebarWidth } from "../../hooks/useDesktopSidebarWidth";
 import { useDesktopSidebarCollapsed } from "../../hooks/useDesktopSidebarCollapsed";
 import { DesktopSidebarToggle } from "./DesktopSidebarToggle";
 
@@ -36,7 +36,7 @@ type DropZone = "above" | "below";
 interface DesktopShellProps {
   vscode: VsCodeApi;
   host: DesktopHostProps;
-  /** Sidebar settings — owned by the delegating ChatApp instance. */
+  /** Dialog opener from ChatApp. The icon rail opens the settings page and does not call this. */
   onOpenSettings: () => void;
   onLogin?: () => void;
   isAuthenticated?: boolean;
@@ -73,23 +73,16 @@ interface DesktopShellProps {
 export const DesktopShell: React.FC<DesktopShellProps> = ({
   vscode,
   host,
-  onOpenSettings,
   onLogin,
   isAuthenticated,
-  issueGroups,
-  onNewIssue,
-  onOpenPlanning,
-  onSelectIssue,
-  onCompleteIssue,
-  onCancelIssue,
   api,
   postToHost,
 }) => {
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
-  const { width: sidebarWidth } = useDesktopSidebarWidth();
+  const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
-  const [shellView, setShellView] = useState<"chat" | "automations" | "assistant">("chat");
+  const [shellView, setShellView] = useState<ShellSurface>("assistant");
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
   // non-empty and at most two rows exist.
@@ -636,7 +629,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   // 顶栏菜单占住选中时，会话和待办不再同时亮着。
   const menuOwnsSelection =
     shellView === "assistant" ||
-    shellView === "automations";
+    shellView === "automations" ||
+    shellView === "settings";
 
   const rowStyle = (row: number): React.CSSProperties | undefined => {
     if (!hasTwoRows) return undefined;
@@ -663,7 +657,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       <DesktopSidebar
         sidebarAccessHidden={sidebarCollapsed}
         onNewSession={() => {
-          setShellView("chat");
+          setShellView("sessions");
           vscode.postMessage({ command: "newSession" });
         }}
         onNewSessionInPane={() =>
@@ -674,20 +668,16 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         }
         isStreaming={false}
         disabled={false}
-        onOpenSettings={onOpenSettings}
+        onOpenSettings={() => {
+          setShellView("settings");
+        }}
         onLogin={onLogin}
         isAuthenticated={isAuthenticated}
         {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
-        issueGroups={issueGroups ?? host.issueGroups}
-        onNewIssue={onNewIssue}
-        onOpenPlanning={onOpenPlanning}
-        onSelectIssue={onSelectIssue}
-        onCompleteIssue={onCompleteIssue}
-        onCancelIssue={onCancelIssue}
         currentSessionId={menuOwnsSelection ? undefined : focusedSessionId}
         visibleSessionIds={menuOwnsSelection ? [] : visibleSessionIds}
         onSelectSession={(workdir, sessionId) => {
-          setShellView("chat");
+          setShellView("sessions");
           host.onSelectSession(workdir, sessionId);
         }}
         onOpenPane={handleOpenPane}
@@ -703,21 +693,16 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         onRevealInFinder={(workdir) =>
           vscode.postMessage({ command: "revealInFinder", path: workdir })
         }
+        onOpenSessions={() => {
+          setShellView("sessions");
+        }}
         onOpenAutomations={() => {
           setShellView("automations");
         }}
         onOpenAssistant={() => {
           setShellView("assistant");
         }}
-        activeMenu={
-          shellView === "automations"
-            ? "automations"
-            : shellView === "assistant"
-              ? "assistant"
-            : focusedSessionId == null || focusedSessionId === "__draft__"
-              ? "newChat"
-              : undefined
-        }
+        activeMenu={shellView}
       />
       {shellView === "automations" ? (
         <AutomationsPage
@@ -725,6 +710,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           postToHost={postToHost}
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
+      ) : shellView === "settings" ? (
+        <div data-testid="desktop-settings-page" />
       ) : (
       <div
         className="desktop-pane-rows"
