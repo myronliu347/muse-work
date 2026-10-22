@@ -469,6 +469,8 @@ export const AssistantPage: React.FC<{
   mentionIssues?: Array<{ id: string; title: string }>;
   /** 没有对话记录时替换「还没有消息」。有记录时不渲染。 */
   emptyState?: ReactNode;
+  /** 桌面 Muse Bot 已在旁边挂上待处理列表时，不再在消息列里重复一份。 */
+  hideQueue?: boolean;
 }> = ({
   api,
   vscode = noopHost,
@@ -479,6 +481,7 @@ export const AssistantPage: React.FC<{
   inputRef,
   mentionIssues,
   emptyState,
+  hideQueue = false,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -835,6 +838,7 @@ export const AssistantPage: React.FC<{
           ) : null}
         </div>
       </header>
+      {hideQueue ? null : (
       <section className="assistant-queue" aria-label="待处理队列">
         <div className="assistant-queue-card">
         <div className="assistant-queue-title">
@@ -866,6 +870,7 @@ export const AssistantPage: React.FC<{
         )}
         </div>
       </section>
+      )}
       {mode === "transcript" ? (
         <div className="assistant-transcript">
           {agentError ? <p className="assistant-error">{agentError}</p> : null}

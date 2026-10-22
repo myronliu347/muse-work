@@ -1003,6 +1003,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             onToggleDock={handleToggleDock}
             onOpenFile={handleOpenFile}
             onOpenUrl={handleOpenPreview}
+            hideQueue={assistantVisible}
             inputRef={messageInputRef}
             mentionIssues={(host?.issueGroups ?? []).map((group) => ({
               id: group.issueId,

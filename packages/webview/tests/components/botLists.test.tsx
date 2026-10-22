@@ -450,4 +450,27 @@ describe("ChatApp pending and issue lists", () => {
       await within(await screen.findByTestId("assistant-frame")).findByTestId("bot-lists"),
     ).toBeInTheDocument();
   });
+
+  it("shows the pending queue once beside the desktop assistant frame", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const lists = await within(frame).findByTestId("bot-lists");
+    expect(within(lists).getByRole("heading", { name: /待处理/ })).toBeInTheDocument();
+    expect(within(frame).queryByRole("region", { name: "待处理队列" })).toBeNull();
+
+    media.setWidth(1100);
+    await waitFor(() => {
+      expect(within(frame).getByRole("button", { name: "待处理" })).toBeInTheDocument();
+    });
+    expect(within(frame).queryByRole("region", { name: "待处理队列" })).toBeNull();
+  });
 });
