@@ -33,7 +33,11 @@ import {
   DesktopPanelSlots,
   type DesktopPanelSlotsProps,
 } from "./desktop/DesktopPanelSlots";
-import { useProvidedShellSurface, useShellSurface } from "./desktop/shellSurface";
+import {
+  useProvidedShellSurface,
+  useShellSurface,
+  type ShellSurface,
+} from "./desktop/shellSurface";
 import { useScenarioModelsStore } from "../stores/scenarioModelsStore";
 import { MuseApiClient } from "../muse/apiClient";
 import { resolveDraftModel } from "../muse/defaultModel";
@@ -130,8 +134,15 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           workdir: effectiveWorkdir,
         }
       : undefined;
+  // 无窗格桌面就是单栏布局：图标栏默认落在 Muse Bot。有窗格时由 DesktopShell 管。
+  const noPaneDesktop =
+    host?.type === "desktop" &&
+    paneId === undefined &&
+    (host.panes?.length ?? 0) === 0;
   // 主内容区视图：聊天 / 新会话页 / 自动化 / Muse Bot。
-  const [view, setView] = useState<MainView>("chat");
+  const [view, setView] = useState<MainView>(noPaneDesktop ? "assistant" : "chat");
+  // 图标选中态不跟会话推送走。会话 id 变化仍会把内容区拉回聊天，避免盖住对话。
+  const [noPaneRail, setNoPaneRail] = useState<ShellSurface>("assistant");
   const shellSurface = useShellSurface();
   const providedShellSurface = useProvidedShellSurface();
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
@@ -206,9 +217,15 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
   // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
   // state.currentSession 对应的会话（sessionId 即 currentSession.id）。
+  // 挂载时 id 未变，不要把无窗格的初始 Muse Bot 清掉。图标选中态在 noPaneRail，
+  // 不随这次 setView("chat") 一起丢掉。
+  const sessionId = state.currentSession?.id;
+  const seenSessionId = useRef(sessionId);
   useEffect(() => {
+    if (seenSessionId.current === sessionId) return;
+    seenSessionId.current = sessionId;
     setView("chat");
-  }, [state.currentSession?.id]);
+  }, [sessionId]);
   // Mirrors so the stable message listener can reach the panel toggle logic
   // (filled by usePanels) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
@@ -601,9 +618,6 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
         binary: false,
       }));
   }, [state.messages, effectiveWorkdir]);
-
-
-  const showNewSessionPage = isDraftSession && state.initialized;
 
   const activeIssueGroup = useMemo(
     () =>
@@ -1061,21 +1075,19 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           onRevealInFinder={(workdir) =>
             postToHost({ command: "revealInFinder", path: workdir })
           }
+          onOpenSessions={() => {
+            setNoPaneRail("sessions");
+            setView("chat");
+          }}
           onOpenAutomations={() => {
+            setNoPaneRail("automations");
             setView("automations");
           }}
           onOpenAssistant={() => {
+            setNoPaneRail("assistant");
             setView("assistant");
           }}
-          activeMenu={
-            view === "automations"
-              ? "automations"
-              : view === "assistant"
-                ? "assistant"
-              : view === "newChat" || showNewSessionPage
-                ? "newChat"
-                : undefined
-          }
+          activeMenu={noPaneRail}
         />
         {view === "automations" ? (
           <AutomationsPage

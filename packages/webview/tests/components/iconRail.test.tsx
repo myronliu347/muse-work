@@ -3,13 +3,17 @@ import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ChatApp } from "../../src/components/ChatApp";
 import { DesktopShell } from "../../src/components/desktop/DesktopShell";
 import { MuseApiClient } from "../../src/muse/apiClient";
+import { resetWebviewStores } from "../../src/stores";
+import { MuseTheme } from "../../src/ui/theme";
 import type {
   DesktopHostProps,
   DesktopSessionEntry,
   VsCodeApi,
 } from "../../src/types";
+import { establishSession } from "../webview/test-utils";
 
 function mockVscode(): VsCodeApi {
   return {
@@ -107,6 +111,36 @@ describe("desktop icon rail", () => {
 
     await user.click(screen.getByTestId("desktop-assistant-menu"));
     expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
+      "active",
+    );
+    expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+  });
+
+  it("opens the no-pane desktop on Muse Bot and switches to sessions", async () => {
+    resetWebviewStores();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={mockVscode()}
+          host={{ ...hostWithPanes(), panes: [], focusedPaneId: null }}
+        />
+      </MuseTheme>,
+    );
+    establishSession();
+
+    expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
+      "active",
+    );
+    expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+    expect(screen.getByTestId("desktop-assistant-menu").className).not.toContain(
+      "active",
+    );
+    expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
       "active",
     );
     expect(screen.queryByTestId("desktop-new-session")).toBeNull();
