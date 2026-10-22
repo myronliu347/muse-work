@@ -323,23 +323,36 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // leaves 详情. List clicks only call selectPanel, so a stale active kind
   // must not pull the dock back off 详情. Closing the kind that was active
   // while 详情 is showing must not follow the next kind either. Muse Bot and
-  // a session share one dock chrome. Switching groups does not adopt the
-  // other group's active kind. An empty group returns to 详情 when the dock
-  // is still on a kind, so the bar does not unmount or go blank.
+  // a session share one dock chrome. 设置, 自动化, and the draft page do not
+  // mount it, so those groupKey changes must not call selectDock. On a dock
+  // surface the chrome kind stays, unless this group does not have it
+  // checked — then the chrome returns to 详情 instead of adopting the other
+  // group's active kind.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
+  const dockOnScreen =
+    assistantVisible ||
+    (view === "chat" && !isDraftSession && noPaneRail !== "settings");
+  const dockWasOnScreen = useRef(false);
   useEffect(() => {
     const previousKind = seenPanelKind.current;
     const previousGroupKey = seenPanelGroupKey.current;
+    const wasOnScreen = dockWasOnScreen.current;
     seenPanelKind.current = activePanel;
     seenPanelGroupKey.current = groupKey;
-    if (previousGroupKey !== groupKey) {
-      if (!activePanel && workspace.dock !== DOCK_DETAIL_TAB) {
-        workspace.selectDock(DOCK_DETAIL_TAB);
-      }
+    dockWasOnScreen.current = dockOnScreen;
+    if (!dockOnScreen) return;
+    const chromeKindMissing =
+      workspace.dock !== DOCK_DETAIL_TAB &&
+      !checkedPanels.includes(workspace.dock);
+    if (previousGroupKey !== groupKey || !wasOnScreen) {
+      if (chromeKindMissing) workspace.selectDock(DOCK_DETAIL_TAB);
       return;
     }
-    if (previousKind === activePanel) return;
+    if (previousKind === activePanel) {
+      if (chromeKindMissing) workspace.selectDock(DOCK_DETAIL_TAB);
+      return;
+    }
     const closedPreviousKind =
       previousGroupKey === groupKey &&
       previousKind != null &&
@@ -356,7 +369,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     } else if (!activePanel && workspace.dock !== DOCK_DETAIL_TAB) {
       workspace.selectDock(DOCK_DETAIL_TAB);
     }
-  }, [activePanel, checkedPanels, groupKey, workspace]);
+  }, [activePanel, checkedPanels, dockOnScreen, groupKey, workspace]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
@@ -992,9 +1005,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
   // Shared dock payload: the 4 panel slots + dock chrome (rendered by
   // ChatContainer when a bound session is showing).
+  // The highlighted kind and the visible pane follow the chrome tab.
+  // The other group's active must not paint through when it differs.
   const dock: DesktopPanelSlotsProps = {
     checked: checkedPanels,
-    active: activePanel,
+    active: workspace.dock === DOCK_DETAIL_TAB ? activePanel : workspace.dock,
     mounted: mountedPanels,
     disabledPanels: panelDisabled,
     fullscreen: dockFullscreen,
