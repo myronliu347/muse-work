@@ -287,7 +287,7 @@ test.describe("Desktop App Screenshots", () => {
     );
   });
 
-  test("sidebar settings button opens config dialog", async ({ webviewPage }) => {
+  test("sidebar settings button opens the settings page", async ({ webviewPage }) => {
     await mockMuseSettingsApis(webviewPage);
     const injector = new MessageInjector(webviewPage);
 
@@ -305,7 +305,7 @@ test.describe("Desktop App Screenshots", () => {
 
     await expect(webviewPage.getByTestId("desktop-sidebar")).toBeVisible();
     await webviewPage.getByTestId("desktop-settings-btn").click();
-    await expect(webviewPage.getByTestId("config-dialog")).toBeVisible();
+    await expect(webviewPage.getByTestId("desktop-settings-page")).toBeVisible();
     await expect(webviewPage.getByTestId("appearance-settings")).toBeVisible();
     await screenshotWebp(
       webviewPage,

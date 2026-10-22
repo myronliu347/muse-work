@@ -13,9 +13,11 @@ import {
   DesktopSessionList,
 } from "./DesktopSessionList";
 import { AutomationsPage } from "../automation/AutomationsPage";
+import ConfigDialog from "../dialogs/ConfigDialog";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
+  ConfigurationData,
   DesktopHostProps,
   DesktopPane,
   OpenPaneOptions,
@@ -44,6 +46,10 @@ interface DesktopShellProps {
   onOpenSettings: () => void;
   onLogin?: () => void;
   isAuthenticated?: boolean;
+  configurationData?: ConfigurationData;
+  configurationLoading?: boolean;
+  configurationError?: string;
+  onConfigurationSave?: (config: ConfigurationData) => void;
   /** Issue 侧栏分组（与 host.issueGroups 同源，可由父组件显式传入）。 */
   issueGroups?: DesktopHostProps["issueGroups"];
   onNewIssue?: () => void;
@@ -79,6 +85,10 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   host,
   onLogin,
   isAuthenticated,
+  configurationData,
+  configurationLoading = false,
+  configurationError,
+  onConfigurationSave,
   api,
   postToHost,
 }) => {
@@ -679,6 +689,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         disabled={false}
         onOpenSettings={() => {
           setShellView("settings");
+          vscode.postMessage({ command: "getConfiguration" });
         }}
         onLogin={onLogin}
         isAuthenticated={isAuthenticated}
@@ -752,7 +763,17 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
       ) : shellView === "settings" ? (
-        <div data-testid="desktop-settings-page" />
+        <ConfigDialog
+          layout="page"
+          vscode={vscode}
+          configurationData={configurationData ?? {}}
+          isLoading={configurationLoading}
+          error={configurationError}
+          onSave={onConfigurationSave ?? (() => {})}
+          onCancel={() => {}}
+          isAuthenticated={isAuthenticated}
+          onLogin={onLogin}
+        />
       ) : (
       <div
         className="desktop-pane-rows"

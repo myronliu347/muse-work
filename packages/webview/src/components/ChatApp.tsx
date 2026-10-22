@@ -21,6 +21,7 @@ import { AutomationsPage } from "./automation/AutomationsPage";
 import { AssistantPage } from "./assistant/AssistantPage";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
+import ConfigDialog from "./dialogs/ConfigDialog";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
 import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
 import {
@@ -155,7 +156,9 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     (paneId !== undefined
       ? providedShellSurface === "assistant" &&
         (host.focusedPaneId ?? paneId) === paneId
-      : (host.panes?.length ?? 0) === 0 && view === "assistant");
+      : (host.panes?.length ?? 0) === 0 &&
+        view === "assistant" &&
+        noPaneRail === "assistant");
   useEffect(() => {
     if (!assistantVisible) return;
     let cancelled = false;
@@ -1007,6 +1010,10 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             onOpenSettings={handleOpenSettings}
             onLogin={handleLogin}
             isAuthenticated={state.isAuthenticated}
+            configurationData={state.configurationData}
+            configurationLoading={state.configurationLoading}
+            configurationError={state.configurationError}
+            onConfigurationSave={handleConfigurationSave}
             api={museApi}
             postToHost={postToHost}
             {...issueSidebarProps}
@@ -1057,7 +1064,10 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           onNewSessionInWorkdir={handleDesktopNewSessionInWorkdir}
           isStreaming={state.isStreaming}
           disabled={false}
-          onOpenSettings={handleOpenSettings}
+          onOpenSettings={() => {
+            setNoPaneRail("settings");
+            vscode.postMessage({ command: "getConfiguration" });
+          }}
           onLogin={handleLogin}
           isAuthenticated={state.isAuthenticated}
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
@@ -1133,7 +1143,19 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             }
           />
         ) : null}
-        {view === "automations" ? (
+        {noPaneRail === "settings" ? (
+          <ConfigDialog
+            layout="page"
+            vscode={vscode}
+            configurationData={state.configurationData || {}}
+            isLoading={state.configurationLoading}
+            error={state.configurationError}
+            onSave={handleConfigurationSave}
+            onCancel={() => {}}
+            isAuthenticated={state.isAuthenticated}
+            onLogin={handleLogin}
+          />
+        ) : view === "automations" ? (
           <AutomationsPage
             api={museApi}
             postToHost={postToHost}

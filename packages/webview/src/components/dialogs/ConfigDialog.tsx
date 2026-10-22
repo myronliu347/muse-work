@@ -35,9 +35,19 @@ function isRadixPopupTarget(target: EventTarget | null): boolean {
   );
 }
 
-const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
+const ConfigDialog: React.FC<
+  ConfigDialogProps & {
+    vscode: VsCodeApi;
+    isAuthenticated?: boolean;
+    onLogin?: () => void;
+  }
+> = ({
   onCancel,
+  layout = "dialog",
+  isAuthenticated,
+  onLogin,
 }) => {
+  const page = layout === "page";
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
   const agentSettingsRef = useRef<AgentSettingsHandle>(null);
@@ -63,7 +73,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
   };
   savingRef.current = saving;
   const persistTab = activeTab === "agent" || activeTab === "provider";
-  useDialogFocusTrap(dialogRef);
+  useDialogFocusTrap(dialogRef, !page);
 
   const requestClose = useCallback(() => {
     if (savingRef.current) return;
@@ -93,6 +103,8 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
       }
     };
 
+    if (page) return;
+
     // Defer registration so the click that opened this dialog doesn't close it.
     const timer = setTimeout(() => {
       document.addEventListener("mousedown", handleClickOutside);
@@ -104,7 +116,7 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [requestClose]);
+  }, [page, requestClose]);
 
   const handleSave = async () => {
     if (!persistTab) return;
@@ -122,31 +134,25 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
     if (ok) onCancel();
   };
 
-  return (
-    <motion.div
-      className="configuration-dialog-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.16 }}
-    >
-      <motion.div
-        ref={dialogRef}
-        className={`configuration-dialog config-dialog${
-          activeTab === "agent" ? " config-dialog--wide" : ""
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="config-dialog-title"
-        data-testid="config-dialog"
-        initial={
-          reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }
-        }
-        animate={{ opacity: 1, scale: 1 }}
-        transition={panelTransition}
-      >
+  const panel = (
+    <>
         <div className="configuration-dialog-header config-dialog-header">
           <h3 id="config-dialog-title">设置</h3>
-          <ConfigurationDialogClose onClick={requestClose} disabled={saving} />
+          {page ? (
+            isAuthenticated === false && onLogin ? (
+              <button
+                type="button"
+                className="desktop-sidebar-icon-btn"
+                onClick={onLogin}
+                data-testid="desktop-login-btn"
+                aria-label="登录"
+              >
+                <span className="codicon codicon-sign-in" aria-hidden="true" />
+              </button>
+            ) : null
+          ) : (
+            <ConfigurationDialogClose onClick={requestClose} disabled={saving} />
+          )}
         </div>
 
         <div className="config-dialog-body">
@@ -266,15 +272,18 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
         </div>
         </div>
 
+          {!page || persistTab ? (
           <div className="configuration-actions">
-            <Button
-              variant="soft"
-              color="gray"
-              onClick={requestClose}
-              disabled={saving}
-            >
-              关闭
-            </Button>
+            {page ? null : (
+              <Button
+                variant="soft"
+                color="gray"
+                onClick={requestClose}
+                disabled={saving}
+              >
+                关闭
+              </Button>
+            )}
             {persistTab && (
               <Button
                 onClick={() => void handleSave()}
@@ -285,6 +294,46 @@ const ConfigDialog: React.FC<ConfigDialogProps & { vscode: VsCodeApi }> = ({
               </Button>
             )}
           </div>
+          ) : null}
+    </>
+  );
+
+  if (page) {
+    return (
+      <div
+        ref={dialogRef}
+        className="configuration-dialog config-dialog desktop-settings-page"
+        aria-labelledby="config-dialog-title"
+        data-testid="desktop-settings-page"
+      >
+        {panel}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="configuration-dialog-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.16 }}
+    >
+      <motion.div
+        ref={dialogRef}
+        className={`configuration-dialog config-dialog${
+          activeTab === "agent" ? " config-dialog--wide" : ""
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="config-dialog-title"
+        data-testid="config-dialog"
+        initial={
+          reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }
+        }
+        animate={{ opacity: 1, scale: 1 }}
+        transition={panelTransition}
+      >
+        {panel}
       </motion.div>
     </motion.div>
   );

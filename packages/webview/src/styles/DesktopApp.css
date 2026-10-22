@@ -1735,6 +1735,41 @@ body.is-panel-resizing * {
   height: 100%;
 }
 
+/* Settings fills the middle column; the icon rail overlays the left edge. */
+.desktop-layout > .desktop-settings-page {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--color-background);
+  padding-top: var(--desktop-shell-titlebar-height);
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+  padding-right: var(--space-4);
+  transition: padding-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-layout[data-sidebar-collapsed="true"] > .desktop-settings-page {
+  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-layout > .desktop-settings-page {
+    transition: none;
+  }
+}
+
 /* Overlay sidebar + traffic-light strip, same as the first chat pane. */
 .desktop-layout > .automations-page {
   box-sizing: border-box;

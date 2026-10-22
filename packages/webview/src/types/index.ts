@@ -848,6 +848,8 @@ export interface ConfigDialogProps {
   error?: string;
   onSave: (config: ConfigurationData) => void;
   onCancel: () => void;
+  /** `"dialog"` is the centered overlay. `"page"` fills the desktop middle column. */
+  layout?: "dialog" | "page";
 }
 
 /**

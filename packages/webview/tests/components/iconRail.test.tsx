@@ -184,4 +184,60 @@ describe("desktop icon rail", () => {
       "active",
     );
   });
+
+  it("opens settings as a page without a dialog or the panel dock", async () => {
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <DesktopShell
+          vscode={mockVscode()}
+          host={hostWithPanes()}
+          onOpenSettings={vi.fn()}
+          api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+          postToHost={vi.fn()}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByTestId("desktop-settings-btn"));
+
+    const page = screen.getByTestId("desktop-settings-page");
+    expect(page).toHaveTextContent("外观");
+    expect(page).not.toHaveAttribute("role", "dialog");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector(".configuration-dialog-overlay")).toBeNull();
+    expect(screen.queryByTestId("desktop-panel-dock")).toBeNull();
+    expect(screen.queryByTestId("config-dialog")).toBeNull();
+  });
+
+  it("puts the login button at the top of settings when signed out", async () => {
+    const user = userEvent.setup();
+    const onLogin = vi.fn();
+    render(
+      <MuseTheme>
+        <DesktopShell
+          vscode={mockVscode()}
+          host={hostWithPanes()}
+          onOpenSettings={vi.fn()}
+          onLogin={onLogin}
+          isAuthenticated={false}
+          api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+          postToHost={vi.fn()}
+        />
+      </MuseTheme>,
+    );
+
+    await user.click(screen.getByTestId("desktop-settings-btn"));
+
+    const page = screen.getByTestId("desktop-settings-page");
+    const login = screen.getByTestId("desktop-login-btn");
+    expect(page.contains(login)).toBe(true);
+    const appearance = screen.getByRole("tab", { name: "外观" });
+    expect(
+      login.compareDocumentPosition(appearance) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    await user.click(login);
+    expect(onLogin).toHaveBeenCalledTimes(1);
+  });
 });
