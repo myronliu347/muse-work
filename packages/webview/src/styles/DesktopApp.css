@@ -1020,6 +1020,13 @@
     .messages-container,
   .desktop-layout:not(:has(.desktop-sidebar-resize--active))
     > .chat-container
+    .issue-tab-messages,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    .desktop-pane-row
+    > .desktop-pane:first-child
+    .issue-tab-messages,
+  .desktop-layout:not(:has(.desktop-sidebar-resize--active))
+    > .chat-container
     .input-area-container,
   .desktop-layout:not(:has(.desktop-sidebar-resize--active))
     .desktop-pane-row
@@ -1995,6 +2002,26 @@ body.is-panel-resizing * {
   overflow: visible;
 }
 
+/* Issue transcript fills the chat column. The header stays put; the message
+   list is the scrollport, so a long thread is not clipped by the column. */
+.issue-tab-transcript {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.issue-tab-messages {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 /* Draft start page must cover the whole chat column. Flex `height: 100%`
    was collapsing to the welcome+composer cluster, so wallpaper/cat clipped
    and the stack sat on the window bottom. */
@@ -2224,6 +2251,8 @@ body.is-panel-resizing * {
 
 .desktop-layout > .chat-container .messages-container,
 .desktop-pane-row > .desktop-pane:first-child .messages-container,
+.desktop-layout > .chat-container .issue-tab-messages,
+.desktop-pane-row > .desktop-pane:first-child .issue-tab-messages,
 .desktop-layout .assistant-page .assistant-queue,
 .desktop-layout .assistant-page .assistant-log,
 .desktop-layout .assistant-page .messages-container {
@@ -2303,6 +2332,13 @@ body.is-panel-resizing * {
   .desktop-pane-row
   > .desktop-pane:first-child
   .messages-container,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  > .chat-container
+  .issue-tab-messages,
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .issue-tab-messages,
 .desktop-layout:not(:has(.desktop-sidebar-resize--active))
   > .chat-container
   .input-area-container,

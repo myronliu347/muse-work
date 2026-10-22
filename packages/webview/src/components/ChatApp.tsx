@@ -1334,7 +1334,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 showTabs={isSplitIssueGroup(openIssueGroup)}
                 executionEnabled={Boolean(openIssueGroup.executionSessionId)}
               />
-              <div data-testid="issue-tab-messages">
+              <div className="issue-tab-messages" data-testid="issue-tab-messages">
                 {shownIssueMessages.map((message) => (
                   <MessageView key={message.id} message={message} vscode={vscode} />
                 ))}

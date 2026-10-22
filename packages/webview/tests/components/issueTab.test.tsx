@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -429,6 +431,55 @@ describe("issue tab", () => {
     expect(within(back).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect(within(back).getByText(RADII_MESSAGE)).toBeInTheDocument();
     expect(within(back).queryByText("今天想让我帮你做些什么？")).toBeNull();
+  });
+
+  it("scrolls the issue transcript clear of the icon rail", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+
+    const transcript = within(frame).getByTestId("issue-tab-transcript");
+    expect(transcript).toHaveClass("issue-tab-transcript");
+    expect(within(transcript).getByTestId("issue-tab-messages")).toHaveClass(
+      "issue-tab-messages",
+    );
+
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/DesktopApp.css"),
+      "utf8",
+    );
+    const bodies = (className: string) =>
+      (css.match(/[^{}]+\{[^}]*\}/g) ?? [])
+        .filter((block) => block.split("{")[0]?.includes(`.${className}`))
+        .map((block) => block.split("{")[1] ?? "")
+        .join("\n");
+
+    const transcriptCss = bodies("issue-tab-transcript");
+    expect(transcriptCss).toMatch(/flex:\s*1\b/);
+    expect(transcriptCss).toMatch(/min-height:\s*0/);
+    expect(transcriptCss).toMatch(/overflow:\s*hidden/);
+
+    const messagesCss = bodies("issue-tab-messages");
+    expect(messagesCss).toMatch(/overflow-y:\s*auto/);
+    expect(messagesCss).toMatch(
+      /padding-left:\s*calc\(\s*var\(--desktop-sidebar-width\)\s*\+\s*var\(--space-4\)\s*\)/,
+    );
   });
 
   it("shows the issue transcript in the focused pane only", async () => {
