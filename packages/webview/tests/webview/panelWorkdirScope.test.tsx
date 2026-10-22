@@ -23,6 +23,7 @@ function renderDesktop(options?: { workdir?: string }) {
     recentWorkdirs: options?.workdir ? [options.workdir] : [],
   });
   bootstrapDesktopAuth();
+  fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
   if (options?.workdir) {
     sendHostMessage(
       fixtures.setInitialState({

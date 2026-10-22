@@ -56,17 +56,20 @@ describe("Tooltip Component", () => {
     });
   });
 
-  it("exposes the new session entry with a tooltip on the desktop sidebar button", async () => {
-    renderChatApp();
+  it("reads icon-rail tooltips from the rail button aria-labels", () => {
+    renderChatApp(undefined, { surface: "assistant" });
 
-    // Desktop-only: the chat-header 新建对话 button is hidden (hideSessionButtons);
-    // the entry lives in the desktop sidebar, whose button carries a native
-    // title tooltip (⌘N / Ctrl+N).
-    const newSessionBtn = screen.getByTestId("desktop-new-session");
-    expect(newSessionBtn).toHaveAttribute(
-      "title",
-      expect.stringContaining("新对话"),
-    );
+    const labels: Array<[string, string]> = [
+      ["desktop-assistant-menu", "Muse Bot"],
+      ["desktop-sessions-menu", "会话"],
+      ["desktop-automations-menu", "自动化"],
+      ["desktop-settings-btn", "设置"],
+    ];
+    for (const [testId, label] of labels) {
+      const button = screen.getByTestId(testId);
+      expect(button).toHaveAttribute("aria-label", label);
+      expect(button).toHaveAttribute("title", label);
+    }
   });
 
   it("should show tooltip for the abort button during streaming", async () => {

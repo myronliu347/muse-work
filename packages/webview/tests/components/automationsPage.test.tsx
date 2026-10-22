@@ -3,10 +3,16 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { DesktopSidebar } from "../../src/components/desktop/DesktopSidebar";
+import { ChatApp } from "../../src/components/ChatApp";
 import { AutomationsPage } from "../../src/components/automation/AutomationsPage";
 import type { MuseApiClient } from "../../src/muse/apiClient";
-import { renderChatApp } from "../webview/test-utils";
+import {
+  createMockDesktopHost,
+  createMockVscode,
+  establishSession,
+  renderChatApp,
+} from "../webview/test-utils";
+import { resetWebviewStores } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 
 afterEach(() => {
@@ -86,26 +92,25 @@ function stubFetch(automations = [SAMPLE]) {
     if (url.includes("/providers")) {
       return jsonResponse({ providers: [], active: { providerId: "x" } });
     }
+    if (url.includes("/assistant/messages")) {
+      return jsonResponse({ messages: [], hasMore: false });
+    }
+    if (url.includes("/assistant/queue")) {
+      return jsonResponse({ items: [] });
+    }
+    if (url.includes("/assistant/session")) {
+      return jsonResponse({
+        sessionId: "assistant",
+        title: "Muse Bot",
+        workdir: "/tmp/proj",
+        working: false,
+      });
+    }
     return jsonResponse({});
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
-
-const sidebarNoop = {
-  onNewSession: () => {},
-  onNewSessionInPane: () => {},
-  isStreaming: false,
-  disabled: false,
-  onOpenSettings: () => {},
-  sessionTree: [] as never[],
-  pinnedSessions: [] as never[],
-  recentSessions: [] as never[],
-  onSelectSession: () => {},
-  onOpenPane: () => {},
-  onDeleteSession: () => {},
-  onTogglePin: () => {},
-};
 
 function mockApi(overrides: Partial<MuseApiClient> = {}): MuseApiClient {
   return {
@@ -135,37 +140,84 @@ describe("automations dedicated page", () => {
     stubFetch();
   });
 
-  it("sidebar app-menu has 自动化 and session tree does not list rules", () => {
-    const onOpenAutomations = vi.fn();
+  it("sidebar app-menu has 自动化 and session tree does not list rules", async () => {
+    resetWebviewStores();
+    const user = userEvent.setup();
     render(
-      <DesktopSidebar
-        {...sidebarNoop}
-        onOpenAutomations={onOpenAutomations}
-        recentSessions={[
-          {
-            sessionId: "sess-1",
-            title: "普通会话",
-            lastActiveAt: Date.now(),
-            hasWorktree: false,
-            workdir: "/work/demo",
-          },
-        ]}
-      />,
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "recent",
+                sessions: [
+                  {
+                    sessionId: "sess-1",
+                    title: "普通会话",
+                    lastActiveAt: Date.now(),
+                    hasWorktree: false,
+                    workdir: "/work/demo",
+                  },
+                ],
+              },
+            ],
+            issueGroups: [
+              {
+                issueId: "issue-1",
+                title: "侧栏 Issue",
+                priority: "p2",
+                type: "research",
+                status: "pending",
+                items: [],
+                sessions: [
+                  {
+                    sessionId: "plan-1",
+                    title: "侧栏 Issue",
+                    lastActiveAt: Date.now(),
+                    hasWorktree: false,
+                    workdir: "/work/demo",
+                  },
+                ],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
     );
-    expect(screen.getByTestId("desktop-automations-menu")).toHaveTextContent("自动化");
+    establishSession({ sessionId: "sess-1", workdir: "/work/demo" });
+
+    const automations = screen.getByTestId("desktop-automations-menu");
+    expect(automations).toHaveAttribute("aria-label", "自动化");
+    expect(automations).not.toHaveTextContent("自动化");
     expect(screen.queryByText("工作日 changelog 巡检")).toBeNull();
-    expect(screen.getByText("普通会话")).toBeInTheDocument();
+    expect(screen.queryByText("普通会话")).toBeNull();
     expect(
       screen.queryByTestId("desktop-session-section-automations"),
     ).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    const list = screen.getByTestId("desktop-session-list");
+    expect(list).toHaveTextContent("普通会话");
+    expect(list).not.toHaveTextContent("工作日 changelog 巡检");
+    expect(list).not.toHaveTextContent("侧栏 Issue");
+    expect(
+      screen.queryByTestId("desktop-session-section-automations"),
+    ).toBeNull();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-item-plan-1")).toBeNull();
   });
 
   it("clicking 自动化 replaces the chat column with the list page", async () => {
     const user = userEvent.setup();
-    renderChatApp();
-    expect(screen.getByTestId("chat-container")).toBeInTheDocument();
+    renderChatApp(undefined, { surface: "assistant" });
+    expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
+      "active",
+    );
     await user.click(screen.getByTestId("desktop-automations-menu"));
     expect(await screen.findByTestId("automations-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-panel-dock")).toBeNull();
     expect(screen.queryByTestId("chat-container")).toBeNull();
     expect(screen.getByTestId("automations-page").closest(".desktop-layout")).not.toBeNull();
     expect(await screen.findByText("工作日 changelog 巡检")).toBeInTheDocument();
@@ -173,9 +225,7 @@ describe("automations dedicated page", () => {
     expect(screen.getByTestId("desktop-automations-menu").className).toContain(
       "active",
     );
-    expect(screen.getByTestId("desktop-new-session").className).not.toContain(
-      "active",
-    );
+    expect(screen.queryByTestId("desktop-new-session")).toBeNull();
   });
 
   it("editor has 添加触发器, no cron textbox, and run is disabled when off", async () => {

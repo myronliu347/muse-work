@@ -36,20 +36,54 @@ describe("assistant sidebar selection", () => {
                 ],
               },
             ],
+            issueGroups: [
+              {
+                issueId: "issue-1",
+                title: "侧栏 Issue",
+                priority: "p2",
+                type: "research",
+                status: "pending",
+                items: [],
+                sessions: [
+                  {
+                    sessionId: "plan-1",
+                    title: "侧栏 Issue",
+                    lastActiveAt: Date.now(),
+                    hasWorktree: false,
+                    workdir: "/mock/sandbox",
+                  },
+                ],
+              },
+            ],
           })}
         />
       </MuseTheme>,
     );
     establishSession();
 
+    const assistant = screen.getByTestId("desktop-assistant-menu");
+    expect(assistant).toHaveAttribute("aria-label", "Muse Bot");
+    expect(assistant.className).toContain("active");
+    expect(screen.queryByTestId("desktop-session-item-sess-mock")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+
     const row = screen.getByTestId("desktop-session-item-sess-mock");
     expect(row.className).toContain("desktop-session-item--current");
-
-    await user.click(screen.getByTestId("desktop-assistant-menu"));
-
-    expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
+    expect(assistant.className).not.toContain("active");
+    expect(screen.getByTestId("desktop-sessions-menu").className).toContain(
       "active",
     );
-    expect(row.className).not.toContain("desktop-session-item--current");
+    const list = screen.getByTestId("desktop-session-list");
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-item-plan-1")).toBeNull();
+    expect(list).not.toHaveTextContent("侧栏 Issue");
+
+    await user.click(assistant);
+
+    expect(assistant.className).toContain("active");
+    expect(screen.queryByTestId("desktop-session-item-sess-mock")).toBeNull();
+    expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
   });
 });

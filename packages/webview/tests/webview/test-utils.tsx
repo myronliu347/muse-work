@@ -132,14 +132,29 @@ export function establishDraftSession(opts?: {
   );
 }
 
+export type RenderChatSurface = "assistant" | "sessions";
+
+/**
+ * First paint is Muse Bot. Session chat and the draft page render only after
+ * 会话. fireEvent keeps this synchronous so existing call sites stay un-awaited.
+ * Pass `assistant` when the assertion is about the Muse Bot surface.
+ */
+function revealChatSurface(surface: RenderChatSurface = "sessions") {
+  if (surface === "assistant") return;
+  fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
+}
+
 /**
  * Render the ChatApp with a mock VS Code API on the desktop host. Desktop-only:
  * the extension entry (index.tsx → DesktopApp) always boots the desktop layout,
  * so tests exercise the same environment. A bound session is established so the
  * chat chrome (messages-container, header, input) renders instead of the draft
- * new-session page.
+ * new-session page. The session list is opened so that chrome is on screen.
  */
-export function renderChatApp(vscode?: VsCodeApi) {
+export function renderChatApp(
+  vscode?: VsCodeApi,
+  options?: { surface?: RenderChatSurface },
+) {
   resetWebviewStores();
   const mockVscode = (vscode || createMockVscode()) as ReturnType<
     typeof createMockVscode
@@ -154,6 +169,7 @@ export function renderChatApp(vscode?: VsCodeApi) {
   sendHostMessage(fixtures.authStatusResponse());
   // Bind a session so the draft new-session page is not shown.
   establishSession();
+  revealChatSurface(options?.surface);
   const user = userEvent.setup();
   return { ...result, vscode: mockVscode, user };
 }
@@ -162,7 +178,10 @@ export function renderChatApp(vscode?: VsCodeApi) {
  * Same as renderChatApp, but stays on the draft new-session page
  * (composer footer with workdir + permission is visible).
  */
-export function renderDraftChatApp(vscode?: VsCodeApi) {
+export function renderDraftChatApp(
+  vscode?: VsCodeApi,
+  options?: { surface?: RenderChatSurface },
+) {
   resetWebviewStores();
   const mockVscode = (vscode || createMockVscode()) as ReturnType<
     typeof createMockVscode
@@ -174,6 +193,7 @@ export function renderDraftChatApp(vscode?: VsCodeApi) {
   );
   sendHostMessage(fixtures.authStatusResponse());
   establishDraftSession();
+  revealChatSurface(options?.surface);
   const user = userEvent.setup();
   return { ...result, vscode: mockVscode, user };
 }

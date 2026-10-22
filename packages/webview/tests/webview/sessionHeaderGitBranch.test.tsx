@@ -22,6 +22,7 @@ function renderDesktop(workdir = "/work/a") {
   });
   bootstrapDesktopAuth();
   sendCommand("updateWorkdir", { workdir });
+  fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
   return { vscode };
 }
 

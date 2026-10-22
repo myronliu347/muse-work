@@ -359,7 +359,7 @@ describe("Slash Commands", () => {
     const input = screen.getByTestId("message-input");
     input.focus();
 
-    await typeInInput("/plugin");
+    await typeInInput("/agents");
 
     await waitFor(
       () => {
@@ -371,7 +371,7 @@ describe("Slash Commands", () => {
     );
 
     sendCommand("slashCommandsResponse", {
-      commands: [{ id: "plugin", name: "plugin", description: "插件管理" }],
+      commands: [{ id: "agents", name: "agents", description: "代理" }],
     });
 
     await waitFor(() => {
@@ -388,16 +388,15 @@ describe("Slash Commands", () => {
     sel?.removeAllRanges();
     sel?.addRange(range);
 
-    const cmdItem = screen.getByTestId("slash-command-plugin");
+    const cmdItem = screen.getByTestId("slash-command-agents");
     await act(async () => {
       fireEvent.mouseDown(cmdItem);
     });
 
-    // The plugin dialog opens (it fetches plugins on mount).
+    // Local commands still run when the selection sits on the contenteditable
+    // div. /agents opens the agents dialog; the client does not post listPlugins.
     await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ command: "listPlugins" }),
-      );
+      expect(screen.getByTestId("agents-dialog")).toBeInTheDocument();
     });
 
     // Popup closed and input cleared.

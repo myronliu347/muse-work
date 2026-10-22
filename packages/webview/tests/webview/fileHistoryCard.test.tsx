@@ -360,7 +360,7 @@ describe("FileHistoryCard in MessageList", () => {
     // Open the diff panel directly (no card row click).
     openPanelShortcut("diff");
     const select = await screen.findByTestId("diff-mode-select");
-    expect(select).toHaveValue("recent");
+    expect(select).toHaveTextContent("最近一次修改");
     expect(screen.getByTestId("diff-pane")).toHaveTextContent("lib.ts");
   });
 

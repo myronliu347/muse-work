@@ -1,4 +1,4 @@
-import { renderChatApp, screen, fireEvent, act } from "./test-utils";
+import { renderChatApp, renderDraftChatApp, screen, fireEvent, act } from "./test-utils";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 describe("Input toolbar", () => {
@@ -7,7 +7,7 @@ describe("Input toolbar", () => {
   });
 
   it("renders the permission mode selector and send button in the toolbar", () => {
-    renderChatApp();
+    renderDraftChatApp();
 
     expect(screen.getByLabelText("权限模式")).toBeInTheDocument();
     expect(screen.getByTestId("send-btn")).toHaveAttribute("aria-label", "发送");

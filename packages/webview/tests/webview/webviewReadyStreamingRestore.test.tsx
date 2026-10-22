@@ -39,12 +39,12 @@ describe("Webview Ready Streaming State Restoration", () => {
       sendCommand("startStreaming");
     });
 
-    // Verify abort button is present (streaming active); send button also stays
-    // (sending while streaming queues the message).
+    // Streaming replaces send with abort. The abort control is what stays up
+    // for the rest of this turn.
     await waitFor(() => {
       expect(screen.getByTestId("abort-btn")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("send-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("send-btn")).not.toBeInTheDocument();
 
     // Simulate streaming content update
     act(() => {

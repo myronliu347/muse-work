@@ -332,6 +332,8 @@ describe("Message Queue Features", () => {
     // same window message bus, mirroring split-view panes on one session.
     sendCommand("authStatusResponse", { isAuthenticated: true });
     establishSession();
+    fireEvent.click(within(containerA).getByTestId("desktop-sessions-menu"));
+    fireEvent.click(within(containerB).getByTestId("desktop-sessions-menu"));
     sendCommand("startStreaming");
     sendCommand("updateQueue", {
       messages: [{ id: "q1", content: "Editable text" }],

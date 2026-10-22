@@ -35,7 +35,7 @@ function getGroup(title: string): HTMLElement {
 }
 
 describe("SlashCommandsPopup grouping", () => {
-  it("renders all three group titles and assigns commands to the correct group", () => {
+  it("renders system and skill groups and assigns commands to the correct group", () => {
     const commands: Command[] = [
       { id: "plugin", name: "plugin", description: "插件管理" },
       { id: "config", name: "config", description: "配置" },
@@ -50,25 +50,16 @@ describe("SlashCommandsPopup grouping", () => {
 
     renderPopup(commands);
 
-    // All three group titles are present.
+    // Display groups are 系统指令 then 技能. plugin is not its own group.
     expect(
-      screen.getByText("插件管理", { selector: ".slash-group-title" }),
-    ).toBeInTheDocument();
+      screen.queryByText("插件管理", { selector: ".slash-group-title" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText("系统指令", { selector: ".slash-group-title" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText("技能", { selector: ".slash-group-title" }),
     ).toBeInTheDocument();
-
-    // plugin -> 插件管理
-    const pluginGroup = getGroup("插件管理");
-    expect(
-      within(pluginGroup).getByTestId("slash-command-plugin"),
-    ).toBeInTheDocument();
-    expect(
-      within(pluginGroup).queryByTestId("slash-command-config"),
-    ).not.toBeInTheDocument();
 
     // config/mcp/status/clear/compact -> 系统指令
     const systemGroup = getGroup("系统指令");
@@ -84,9 +75,9 @@ describe("SlashCommandsPopup grouping", () => {
       within(systemGroup).queryByTestId("slash-command-settings"),
     ).not.toBeInTheDocument();
 
-    // everything else -> 技能
+    // plugin and everything else -> 技能
     const skillGroup = getGroup("技能");
-    for (const id of ["settings", "loop", "deepwiki:ask"]) {
+    for (const id of ["plugin", "settings", "loop", "deepwiki:ask"]) {
       expect(
         within(skillGroup).getByTestId(`slash-command-${id}`),
       ).toBeInTheDocument();
@@ -96,7 +87,7 @@ describe("SlashCommandsPopup grouping", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders groups in a fixed order: 插件管理 -> 系统指令 -> 技能", () => {
+  it("renders groups in a fixed order: 系统指令 -> 技能", () => {
     const commands: Command[] = [
       { id: "settings", name: "settings", description: "设置技能" },
       { id: "config", name: "config", description: "配置" },
@@ -108,7 +99,7 @@ describe("SlashCommandsPopup grouping", () => {
     const titles = Array.from(
       container.querySelectorAll(".slash-group-title"),
     ).map((el) => el.textContent);
-    expect(titles).toEqual(["插件管理", "系统指令", "技能"]);
+    expect(titles).toEqual(["系统指令", "技能"]);
   });
 
   it("does not render empty group titles when only SDK/skill commands are present", () => {
@@ -133,8 +124,8 @@ describe("SlashCommandsPopup grouping", () => {
 
   it("selectedIndex follows display (grouped) order, not the raw backend array order", () => {
     // Backend array is NOT in group order: a skill sits at raw index 0.
-    // Display order is: 0 plugin(插件管理), 1 config(系统指令), 2 code-review(技能),
-    //                   3 loop(技能). selectedIndex must index into THAT order.
+    // Display order is: 0 config(系统指令), then skills in encounter order.
+    // selectedIndex must index into THAT order.
     const commands: Command[] = [
       { id: "code-review", name: "code-review", description: "代码审查" },
       { id: "config", name: "config", description: "配置" },
@@ -142,9 +133,9 @@ describe("SlashCommandsPopup grouping", () => {
       { id: "loop", name: "loop", description: "循环技能" },
     ];
 
-    // selectedIndex 0 = first display item = plugin (插件管理), NOT code-review.
+    // selectedIndex 0 = first display item = config, NOT the raw-first skill.
     renderPopup(commands, 0);
-    expect(screen.getByTestId("slash-command-plugin")).toHaveClass("selected");
+    expect(screen.getByTestId("slash-command-config")).toHaveClass("selected");
     expect(screen.getByTestId("slash-command-code-review")).not.toHaveClass(
       "selected",
     );
@@ -178,8 +169,8 @@ describe("SlashCommandsPopup grouping", () => {
 
     renderPopup(commands, 0);
 
-    expect(screen.getByTestId("slash-command-plugin")).toHaveClass("selected");
-    expect(screen.getByTestId("slash-command-config")).not.toHaveClass(
+    expect(screen.getByTestId("slash-command-config")).toHaveClass("selected");
+    expect(screen.getByTestId("slash-command-plugin")).not.toHaveClass(
       "selected",
     );
     expect(screen.getByTestId("slash-command-settings")).not.toHaveClass(
@@ -207,7 +198,7 @@ describe("SlashCommandsPopup grouping", () => {
 });
 
 describe("orderSlashCommands", () => {
-  it("reorders a raw backend list into 插件管理 -> 系统指令 -> 技能 display order", () => {
+  it("reorders a raw backend list into 系统指令 -> 技能 display order", () => {
     const commands: Command[] = [
       { id: "code-review", name: "code-review", description: "代码审查" },
       { id: "config", name: "config", description: "配置" },
@@ -216,9 +207,9 @@ describe("orderSlashCommands", () => {
     ];
 
     expect(orderSlashCommands(commands).map((c) => c.id)).toEqual([
-      "plugin",
       "config",
       "code-review",
+      "plugin",
       "loop",
     ]);
   });

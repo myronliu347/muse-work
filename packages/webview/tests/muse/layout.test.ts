@@ -15,9 +15,16 @@ import {
 
 describe("clampSidebarWidth", () => {
   it("clamps into the sidebar min/max", () => {
-    expect(clampSidebarWidth(240)).toBe(DESKTOP_SIDEBAR_WIDTH);
+    expect(DESKTOP_SIDEBAR_MIN_WIDTH).toBe(180);
+    expect(DESKTOP_SIDEBAR_MAX_WIDTH).toBe(400);
+    expect(clampSidebarWidth(240)).toBe(240);
     expect(clampSidebarWidth(100)).toBe(DESKTOP_SIDEBAR_MIN_WIDTH);
     expect(clampSidebarWidth(800)).toBe(DESKTOP_SIDEBAR_MAX_WIDTH);
+    // The icon rail is a fixed 52px. That constant is not this clamp's identity.
+    expect(DESKTOP_SIDEBAR_WIDTH).toBe(52);
+    expect(clampSidebarWidth(DESKTOP_SIDEBAR_WIDTH)).toBe(
+      DESKTOP_SIDEBAR_MIN_WIDTH,
+    );
   });
 });
 

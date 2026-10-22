@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { MuseTheme } from "../../src/ui/theme";
 import { createMockVscode, sendCommand } from "../webview/test-utils";
@@ -19,6 +19,10 @@ function renderDesktopApp() {
   return { vscode };
 }
 
+function openSessions() {
+  fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
+}
+
 describe("Desktop draft NewSessionPage", () => {
   it("shows NewSessionPage without panel dock on draft", () => {
     renderDesktopApp();
@@ -34,6 +38,7 @@ describe("Desktop draft NewSessionPage", () => {
         latestTotalTokens: 0,
       },
     });
+    openSessions();
 
     expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
     expect(screen.getByTestId("message-input")).toBeInTheDocument();
@@ -56,6 +61,7 @@ describe("Desktop draft NewSessionPage", () => {
         latestTotalTokens: 0,
       },
     });
+    openSessions();
 
     expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
     expect(screen.getByTestId("welcome-login")).toBeInTheDocument();
@@ -80,6 +86,7 @@ describe("Desktop draft NewSessionPage", () => {
         latestTotalTokens: 0,
       },
     });
+    openSessions();
     expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
 
     sendCommand("setInitialState", {
@@ -117,6 +124,7 @@ describe("Desktop draft NewSessionPage", () => {
         latestTotalTokens: 0,
       },
     });
+    openSessions();
     sendCommand("updateMessages", { messages: [] });
 
     expect(screen.queryByTestId("new-session-page")).not.toBeInTheDocument();

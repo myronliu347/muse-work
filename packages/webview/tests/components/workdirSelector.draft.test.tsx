@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
 import { MuseTheme } from "../../src/ui/theme";
 import { createMockVscode, sendCommand } from "../webview/test-utils";
@@ -17,6 +17,10 @@ function renderDesktopApp() {
     </MuseTheme>,
   );
   return { ...result, vscode };
+}
+
+function openSessions() {
+  fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
 }
 
 function readyDraft(opts?: { workdir?: string }) {
@@ -42,6 +46,7 @@ describe("Desktop workdir picker visibility", () => {
   it("shows the folder picker only on a draft / new session", () => {
     renderDesktopApp();
     readyDraft({ workdir: "/home/user/project" });
+    openSessions();
 
     expect(screen.getByTestId("desktop-workdir")).toBeInTheDocument();
     expect(screen.getByTestId("input-workdir-row")).toBeInTheDocument();
@@ -66,6 +71,7 @@ describe("Desktop workdir picker visibility", () => {
   it("does not restore the folder picker after clearing a bound session", () => {
     renderDesktopApp();
     readyDraft({ workdir: "/home/user/project" });
+    openSessions();
     sendCommand("setInitialState", {
       messages: [MockDataGenerator.createUserMessage("hi")],
       isAuthenticated: true,
