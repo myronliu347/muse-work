@@ -94,7 +94,6 @@ import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   emptyContentSearchState,
-  emptyFileTreeState,
   usePanelGroup,
   usePanelGroupStore,
   usePaneUi,
@@ -102,6 +101,9 @@ import {
 } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
+
+const EMPTY_LISTING_CACHE: PanelGroupState["fileTree"]["childrenCache"] = {};
+const EMPTY_LISTING_SEARCH = emptyContentSearchState();
 import { useChatAppCore } from "../hooks/useChatAppCore";
 import { useChatSend } from "../hooks/useChatSend";
 import { usePanels } from "../hooks/usePanels";
@@ -384,20 +386,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const previewGroupKeyRef = useRef<string | undefined>(undefined);
   previewGroupKeyRef.current =
     followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
-  const followIssueToolsRef = useRef(followIssueTools);
-  followIssueToolsRef.current = followIssueTools;
-  const issueToolWorkdir = followIssueTools ? dockWorkdir : undefined;
-  const treeCacheWorkdirRef = useRef<string | undefined>(undefined);
-  const dropTreeCache =
-    issueToolWorkdir !== undefined &&
-    treeCacheWorkdirRef.current !== undefined &&
-    treeCacheWorkdirRef.current !== issueToolWorkdir;
-  if (
-    issueToolWorkdir !== undefined &&
-    treeCacheWorkdirRef.current !== issueToolWorkdir
-  ) {
-    treeCacheWorkdirRef.current = issueToolWorkdir;
-  }
   const {
     checked: checkedPanels,
     mounted: mountedPanels,
@@ -436,6 +424,22 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : 0,
   );
   const usingIssuePreview = Boolean(followIssueTools && dockWorkdir);
+  const issueChildrenCache = usePanelGroupStore((state) =>
+    usingIssuePreview && dockWorkdir
+      ? (state.groups[dockWorkdir]?.fileTree?.childrenCache ??
+        EMPTY_LISTING_CACHE)
+      : undefined,
+  );
+  const issueContentSearch = usePanelGroupStore((state) =>
+    usingIssuePreview && dockWorkdir
+      ? (state.groups[dockWorkdir]?.contentSearch ?? EMPTY_LISTING_SEARCH)
+      : undefined,
+  );
+  const shownFileTree =
+    issueChildrenCache !== undefined
+      ? { ...fileTree, childrenCache: issueChildrenCache }
+      : fileTree;
+  const shownContentSearch = issueContentSearch ?? contentSearch;
   const shownPreviewUrl = usingIssuePreview ? dockPreviewUrl : previewUrl;
   const shownForward = usingIssuePreview ? dockForward : currentForward;
   const shownForwardError = usingIssuePreview
@@ -691,23 +695,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
-  const updatePanelGroupRef = useRef(updatePanelGroup);
-  updatePanelGroupRef.current = updatePanelGroup;
-  const skipIssueTreeReset = useRef(true);
-  useEffect(() => {
-    if (skipIssueTreeReset.current) {
-      skipIssueTreeReset.current = false;
-      return;
-    }
-    if (!followIssueToolsRef.current) return;
-    updatePanelGroupRef.current((group) => ({
-      fileTree: {
-        ...(group.fileTree ?? emptyFileTreeState()),
-        childrenCache: {},
-      },
-      contentSearch: emptyContentSearchState(),
-    }));
-  }, [dockWorkdir]);
   const updatePreviewGroup = useCallback(
     (
       patch:
@@ -846,7 +833,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     effectiveHost,
     effectiveWorkdir: followIssueTools ? dockWorkdir : effectiveWorkdir,
     groupKey,
-    contentSearch,
+    contentSearch: shownContentSearch,
+    updateListingGroup: updatePreviewGroup,
   });
   const {
     handleOpenFile,
@@ -1290,11 +1278,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     onCloseFileTab: handleCloseFileTab,
     onPinFileTab: handlePinFileTab,
-    fileTree: dropTreeCache ? { ...fileTree, childrenCache: {} } : fileTree,
+    fileTree: shownFileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,
     onFileSidebarModeChange: handleFileSidebarModeChange,
-    contentSearch: dropTreeCache ? emptyContentSearchState() : contentSearch,
+    contentSearch: shownContentSearch,
     onContentSearchChange: handleContentSearchChange,
     onOpenInPreview: handleOpenLocalFilePreview,
     onRevealInFinder: handleRevealInFinder,

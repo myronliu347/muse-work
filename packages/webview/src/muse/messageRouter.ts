@@ -12,7 +12,8 @@ import type {
   Message,
 } from "../types";
 import { openDesktopSettingsPage } from "./desktopSettingsNav";
-import { patchPaneUi, usePanelGroupStore } from "../stores";
+import { acceptDesktopListDirResult } from "./listDirRequests";
+import { emptyFileTreeState, patchPaneUi, usePanelGroupStore } from "../stores";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
 import { stripImageSourceMarkers, normalizeUserTextForDedupe } from "../utils/messageUtils";
 
@@ -221,20 +222,22 @@ export function createMessageHandler({
         }
         break;
       case "desktopListDirResult": {
-        const key = groupKeyRef.current;
-        if (!key) break;
         const cacheDir = typeof message.dir === "string" ? message.dir : "";
+        const requestId =
+          typeof message.requestId === "string" ? message.requestId : "";
+        const notedWorkdir = requestId
+          ? acceptDesktopListDirResult(requestId, cacheDir)
+          : undefined;
+        if (requestId && !notedWorkdir) break;
+        const key =
+          notedWorkdir || previewGroupKeyRef.current || groupKeyRef.current;
+        if (!key) break;
         const entries = Array.isArray(message.entries)
           ? (message.entries as FileTreeDirEntry[])
           : [];
         usePanelGroupStore.getState().patchGroup(key, (group) => ({
           fileTree: {
-            ...(group.fileTree ?? {
-              expanded: [],
-              width: 240,
-              childrenCache: {},
-              collapsed: true,
-            }),
+            ...(group.fileTree ?? emptyFileTreeState()),
             childrenCache: {
               ...(group.fileTree?.childrenCache ?? {}),
               [cacheDir]: entries,
@@ -244,7 +247,7 @@ export function createMessageHandler({
         break;
       }
       case "desktopSearchContentResult": {
-        const key = groupKeyRef.current;
+        const key = previewGroupKeyRef.current || groupKeyRef.current;
         if (!key) break;
         const requestId =
           typeof message.requestId === "string" ? message.requestId : "";

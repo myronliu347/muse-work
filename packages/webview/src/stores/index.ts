@@ -37,6 +37,7 @@ export {
 } from "./paneUiStore";
 export { paneStoreKey } from "./paneKey";
 
+import { resetDesktopListDirRequests } from "../muse/listDirRequests";
 import { useDesktopStore } from "./desktopStore";
 import { usePanelGroupStore } from "./panelGroupStore";
 import { usePaneUiStore } from "./paneUiStore";
@@ -45,4 +46,5 @@ export function resetWebviewStores(): void {
   useDesktopStore.getState().reset();
   usePanelGroupStore.getState().reset();
   usePaneUiStore.getState().reset();
+  resetDesktopListDirRequests();
 }

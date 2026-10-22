@@ -526,6 +526,98 @@ describe("issue tab", () => {
     });
   });
 
+  it("refetches a session-surface directory after another issue is selected", async () => {
+    await withElementBox(async () => {
+      resetWebviewStores();
+      stubAssistant([]);
+      stubWideViewport();
+      seedFileGroup(ASSISTANT_PANEL_GROUP_KEY);
+      seedFileGroup("/work/notes");
+      const vscode = createMockVscode();
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <ChatApp
+            vscode={vscode}
+            host={createMockDesktopHost({
+              issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+              sessionTree: [
+                {
+                  host: "local",
+                  workdir: "recent",
+                  sessions: [session("sess-notes", "/work/notes", "会议记录")],
+                },
+              ],
+            })}
+          />
+        </MuseTheme>,
+      );
+
+      sendHostMessage(
+        fixtures.setInitialState({
+          workdir: "/work/notes",
+          messages: [textMessage("notes-1", NOTES_MESSAGE)],
+          isAuthenticated: true,
+          session: {
+            id: "sess-notes",
+            sessionType: "main",
+            workdir: "/work/notes",
+            createdAt: new Date(),
+            lastActiveAt: new Date(),
+            latestTotalTokens: 0,
+          },
+        }),
+      );
+      await user.click(screen.getByTestId("desktop-sessions-menu"));
+      const chat = await screen.findByTestId("chat-container");
+      const dock = await within(chat).findByTestId("desktop-panel-dock");
+      await user.click(within(dock).getByRole("button", { name: "文件" }));
+      const tree = await within(dock).findByTestId("file-tree-workdir");
+      expect(tree).toHaveAttribute("title", "/work/radii");
+      replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
+      const src = await within(dock).findByTestId("file-tree-row-src");
+      await user.click(src);
+      await waitFor(() => {
+        expect(listDirMessages(vscode)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ dir: "src", workdir: "/work/radii" }),
+          ]),
+        );
+      });
+      replyListDir("src", [
+        dirEntry("old-child.ts", "/work/radii", "src/old-child.ts", false),
+      ]);
+      expect(
+        await within(dock).findByTestId("file-tree-row-src/old-child.ts"),
+      ).toBeInTheDocument();
+
+      vscode.postMessage.mockClear();
+      await user.click(screen.getByTestId("desktop-assistant-menu"));
+      const frame = await screen.findByTestId("assistant-frame");
+      const lists = within(frame).getByTestId("bot-lists");
+      await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+      await user.click(screen.getByTestId("desktop-sessions-menu"));
+
+      const chatAgain = await screen.findByTestId("chat-container");
+      const dockAgain = await within(chatAgain).findByTestId("desktop-panel-dock");
+      const fileTab = within(dockAgain).queryByRole("button", { name: "文件" });
+      if (fileTab && !fileTab.className.includes("desktop-panel-tab--active")) {
+        await user.click(fileTab);
+      }
+      const nextTree = await within(dockAgain).findByTestId("file-tree-workdir");
+      expect(nextTree).toHaveAttribute("title", "/work/a11y-exec");
+      await waitFor(() => {
+        expect(listDirMessages(vscode)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ dir: "src", workdir: "/work/a11y-exec" }),
+          ]),
+        );
+      });
+      expect(within(dockAgain).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
+      expect(within(dockAgain).queryByText("old-child.ts")).toBeNull();
+    });
+  });
+
   it("requests the selected issue directory when 变更 opens on Muse Bot", async () => {
     resetWebviewStores();
     stubAssistant([]);

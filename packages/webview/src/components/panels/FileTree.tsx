@@ -13,6 +13,7 @@ import {
 } from "../../stores/panelGroupStore";
 import { FileIcon } from "./FileIcon";
 import { FileContentSearch } from "./FileContentSearch";
+import { noteDesktopListDirRequest } from "../../muse/listDirRequests";
 import {
   encodeFileTreeDrag,
   FILE_TREE_DRAG_MIME,
@@ -57,6 +58,21 @@ function flatten(
 
 let listReqSeq = 0;
 
+const postDirList = (
+  vscode: { postMessage: (msg: unknown) => void },
+  workdir: string,
+  dir: string,
+) => {
+  const requestId = `listdir-${++listReqSeq}`;
+  noteDesktopListDirRequest(workdir, dir, requestId);
+  vscode.postMessage({
+    command: "desktopListDir",
+    requestId,
+    dir,
+    workdir,
+  });
+};
+
 // Post desktopListDir for each dir. Shared by the tree's own refresh and by
 // FilePane's collapsed-toolbar refresh (tree unmounted, so no pendingDirs).
 export const requestDirListings = (
@@ -64,15 +80,7 @@ export const requestDirListings = (
   workdir: string,
   dirs: string[],
 ) => {
-  for (const dir of dirs) {
-    const requestId = `listdir-${++listReqSeq}`;
-    vscode.postMessage({
-      command: "desktopListDir",
-      requestId,
-      dir,
-      workdir,
-    });
-  }
+  for (const dir of dirs) postDirList(vscode, workdir, dir);
 };
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -108,26 +116,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
     if (tree.childrenCache[dir] !== undefined) return;
     if (pendingDirs.has(dir)) return;
     setPendingDirs((prev) => new Set(prev).add(dir));
-    const requestId = `listdir-${++listReqSeq}`;
-    vscode.postMessage({
-      command: "desktopListDir",
-      requestId,
-      dir,
-      workdir,
-    });
+    postDirList(vscode, workdir, dir);
   };
 
   // Always refresh root when workdir mounts/changes (avoids stale empty cache).
   useEffect(() => {
     if (!workdir) return;
     setPendingDirs((prev) => new Set(prev).add(""));
-    const requestId = `listdir-${++listReqSeq}`;
-    vscode.postMessage({
-      command: "desktopListDir",
-      requestId,
-      dir: "",
-      workdir,
-    });
+    postDirList(vscode, workdir, "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workdir]);
 

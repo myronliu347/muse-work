@@ -11,7 +11,7 @@ import {
   pinFileTab,
   selectFileTab,
 } from "../muse/fileTabs";
-import { emptyContentSearchState } from "../stores";
+import { emptyContentSearchState, emptyFileTreeState } from "../stores";
 import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { pathToFileUrl } from "../utils/pathToFileUrl";
 import type { ChatAppCore } from "./useChatAppCore";
@@ -52,6 +52,7 @@ interface UseFilePanelParams {
   effectiveWorkdir?: string;
   groupKey?: string;
   contentSearch: ContentSearchState;
+  updateListingGroup?: ChatAppCore["updatePanelGroup"];
 }
 
 export function useFilePanel({
@@ -65,7 +66,9 @@ export function useFilePanel({
   effectiveWorkdir,
   groupKey,
   contentSearch,
+  updateListingGroup,
 }: UseFilePanelParams): FilePanelHandlers {
+  const writeListingGroup = updateListingGroup ?? updatePanelGroup;
   // Reset file sidebar search when workdir changes (per-group memory stays
   // for tree width/expand; search mode/results start fresh).
   const contentSearchWorkdirRef = useRef<string | undefined>(undefined);
@@ -102,7 +105,7 @@ export function useFilePanel({
       }
       const q = next.query.trim();
       if (!q || !effectiveWorkdir) {
-        updatePanelGroup({
+        writeListingGroup({
           contentSearch: {
             ...next,
             loading: false,
@@ -117,7 +120,7 @@ export function useFilePanel({
       contentSearchTimerRef.current = setTimeout(() => {
         contentSearchTimerRef.current = null;
         const requestId = `cs-${++contentSearchSeqRef.current}`;
-        updatePanelGroup({
+        writeListingGroup({
           contentSearch: { ...next, loading: true, requestId, error: undefined },
         });
         postToHost({
@@ -131,7 +134,7 @@ export function useFilePanel({
         });
       }, 250);
     },
-    [effectiveWorkdir, postToHost, updatePanelGroup],
+    [effectiveWorkdir, postToHost, writeListingGroup],
   );
 
   const handleFileSidebarModeChange = useCallback(
@@ -149,10 +152,10 @@ export function useFilePanel({
         prev.caseSensitive !== next.caseSensitive ||
         prev.wholeWord !== next.wholeWord ||
         prev.regex !== next.regex;
-      updatePanelGroup({ contentSearch: next });
+      writeListingGroup({ contentSearch: next });
       if (searchKeyChanged) runContentSearch(next);
     },
-    [contentSearch, runContentSearch, updatePanelGroup],
+    [contentSearch, runContentSearch, writeListingGroup],
   );
 
   // Desktop file panel (spec: 文件面板): a file path clicked in a message or
@@ -347,14 +350,19 @@ export function useFilePanel({
           selected: next.selected,
           width: next.width,
           collapsed: next.collapsed,
+        },
+      }));
+      writeListingGroup((group) => ({
+        fileTree: {
+          ...(group.fileTree ?? emptyFileTreeState()),
           childrenCache: {
-            ...group.fileTree.childrenCache,
+            ...(group.fileTree?.childrenCache ?? {}),
             ...next.childrenCache,
           },
         },
       }));
     },
-    [updatePanelGroup],
+    [updatePanelGroup, writeListingGroup],
   );
 
   // Local HTML files from the file panel preview in the built-in browser:
