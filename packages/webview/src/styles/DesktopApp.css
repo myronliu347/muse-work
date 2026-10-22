@@ -2020,7 +2020,8 @@ body.is-panel-resizing * {
   display: none;
 }
 
-.desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-session-list {
+.desktop-layout:has(.desktop-panel-dock--fullscreen) .desktop-session-list,
+.desktop-layout:has(.desktop-panel-dock--fullscreen) .bot-lists {
   display: none;
 }
 

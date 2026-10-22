@@ -35,14 +35,37 @@ export function queueKindLabel(type: string | undefined): string {
   return "待处理";
 }
 
+function queueTypeKey(type: unknown): string {
+  return typeof type === "string" && type.length > 0 ? type : "";
+}
+
+/** Client key for a queue row. A string `id` wins. Otherwise type, title, and
+ * how many earlier rows share that pair — not the source-array index, so a
+ * different item inserted at the front does not renumber an existing row. */
+function queueClientKey(
+  item: { id?: unknown; type?: unknown; title: string },
+  occurrence: number,
+): string {
+  if (typeof item.id === "string" && item.id.length > 0) return item.id;
+  return `${queueTypeKey(item.type)}\0${item.title}\0${occurrence}`;
+}
+
 export function readBotQueue(items: readonly unknown[]): BotListQueueItem[] {
-  return items.flatMap((value, index) => {
+  const seen = new Map<string, number>();
+  return items.flatMap((value) => {
     if (!value || typeof value !== "object") return [];
     const item = value as { id?: unknown; type?: unknown; title?: unknown };
     if (typeof item.title !== "string" || item.title.length === 0) return [];
-    const id = typeof item.id === "string" && item.id.length > 0 ? item.id : String(index);
-    const type = typeof item.type === "string" && item.type.length > 0 ? item.type : undefined;
-    return [{ id, kind: queueKindLabel(type), title: item.title }];
+    const type = queueTypeKey(item.type);
+    const bucket = `${type}\0${item.title}`;
+    const occurrence = seen.get(bucket) ?? 0;
+    seen.set(bucket, occurrence + 1);
+    const kindType = type.length > 0 ? type : undefined;
+    return [{
+      id: queueClientKey(item, occurrence),
+      kind: queueKindLabel(kindType),
+      title: item.title,
+    }];
   });
 }
 

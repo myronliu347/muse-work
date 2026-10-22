@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React, { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import {
@@ -472,5 +472,71 @@ describe("ChatApp pending and issue lists", () => {
       expect(within(frame).getByRole("button", { name: "待处理" })).toBeInTheDocument();
     });
     expect(within(frame).queryByRole("region", { name: "待处理队列" })).toBeNull();
+  });
+
+  it("keeps the selected pending row when a different item is inserted at the front", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const lists = await screen.findByTestId("bot-lists");
+    const pending = await within(lists).findByRole("region", { name: "待处理" });
+    const first = within(pending).getAllByRole("button")[0];
+    expect(first).toHaveTextContent("回复 Ty");
+    await user.click(first);
+    expect(first).toHaveAttribute("aria-current", "true");
+
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "assistant:queue",
+          items: [{ type: "permission", title: "先处理这个" }, ...QUEUE],
+        },
+      }),
+    );
+
+    const inserted = await within(lists).findByRole("button", { name: /先处理这个/ });
+    expect(inserted).not.toHaveAttribute("aria-current", "true");
+    expect(within(lists).getByRole("button", { name: /回复 Ty/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+  });
+
+  it("hides pending and issue cards while the assistant dock is fullscreen", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    expect(await within(frame).findByRole("region", { name: "待处理" })).toBeInTheDocument();
+    expect(within(frame).getByRole("region", { name: "待办事项" })).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("panel-toggle-btn"));
+    await user.click(await screen.findByTestId("desktop-panel-fullscreen-btn"));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("region", { name: "待处理" })).toBeNull();
+      expect(screen.queryByRole("region", { name: "待办事项" })).toBeNull();
+    });
+
+    await user.click(screen.getByRole("button", { name: "退出全屏" }));
+    expect(await screen.findByRole("region", { name: "待处理" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "待办事项" })).toBeInTheDocument();
   });
 });

@@ -971,7 +971,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openPreviewHandler,
   };
 
-  const botLists = assistantVisible ? (
+  const botLists = assistantVisible && !dockFullscreen ? (
     <BotLists
       queue={botQueue}
       issues={botIssues}
