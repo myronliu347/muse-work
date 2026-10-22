@@ -20,6 +20,8 @@ import {
   createMockDesktopHost,
   createMockVscode,
   establishSession,
+  fixtures,
+  sendHostMessage,
 } from "../webview/test-utils";
 
 const RADII = "圆角还没对齐";
@@ -890,6 +892,120 @@ describe("assistant dock detail", () => {
     expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
       "desktop-panel-tab--active",
     );
+  });
+
+  it("keeps 文件 when another pane checks only 终端", async () => {
+    // React logs this from useEffect and keeps rendering. Rethrow so a
+    // regression fails the suite instead of hanging it.
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => {
+      const text = args.map((part) => String(part)).join(" ");
+      if (text.includes("Maximum update depth")) {
+        console.error = originalError;
+        throw new Error(text);
+      }
+      originalError(...(args as Parameters<typeof console.error>));
+    };
+    try {
+      resetWebviewStores();
+      stubAssistant([]);
+      stubWideViewport();
+      usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+        checked: ["file"],
+        mounted: ["file"],
+        active: "file",
+        fileTree: { ...emptyFileTreeState(), collapsed: false },
+      });
+      usePanelGroupStore.getState().patchGroup("/work/pane-b", {
+        checked: ["terminal"],
+        mounted: ["terminal"],
+        active: "terminal",
+      });
+      const user = userEvent.setup();
+      const panes = [
+        { paneId: "pane-a", sessionId: "sess-a" },
+        { paneId: "pane-b", sessionId: "sess-b" },
+      ];
+      const host = createMockDesktopHost({
+        panes,
+        focusedPaneId: "pane-a",
+      });
+      const view = render(
+        <MuseTheme>
+          <ChatApp vscode={createMockVscode()} host={host} />
+        </MuseTheme>,
+      );
+      sendHostMessage(
+        fixtures.setInitialState({
+          paneId: "pane-b",
+          workdir: "/work/pane-b",
+          messages: [],
+          isAuthenticated: true,
+          session: {
+            id: "sess-b",
+            sessionType: "main",
+            workdir: "/work/pane-b",
+            createdAt: new Date(),
+            lastActiveAt: new Date(),
+            latestTotalTokens: 0,
+          },
+        }),
+      );
+
+      const frame = await screen.findByTestId("assistant-frame");
+      const paneB = await screen.findByTestId("desktop-pane-pane-b");
+      expect(
+        await within(paneB).findByTestId("desktop-panel-tab-terminal"),
+      ).toBeInTheDocument();
+      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      await user.click(within(dock).getByRole("button", { name: "文件" }));
+
+      expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+        "desktop-panel-tab--active",
+      );
+
+      view.rerender(
+        <MuseTheme>
+          <ChatApp
+            vscode={createMockVscode()}
+            host={{
+              ...host,
+              panes: [...panes, { paneId: "pane-c", sessionId: "sess-c" }],
+            }}
+          />
+        </MuseTheme>,
+      );
+      sendHostMessage(
+        fixtures.setInitialState({
+          paneId: "pane-c",
+          workdir: "/work/pane-c",
+          messages: [],
+          isAuthenticated: true,
+          session: {
+            id: "sess-c",
+            sessionType: "main",
+            workdir: "/work/pane-c",
+            createdAt: new Date(),
+            lastActiveAt: new Date(),
+            latestTotalTokens: 0,
+          },
+        }),
+      );
+
+      const frameAfter = await screen.findByTestId("assistant-frame");
+      const dockAfter = within(frameAfter).getByTestId("desktop-panel-dock");
+      expect(within(dockAfter).getByTestId("desktop-panel-tab-file")).toHaveClass(
+        "desktop-panel-tab--active",
+      );
+      expect(
+        within(dockAfter).getByTestId("desktop-panel-tab-detail"),
+      ).not.toHaveClass("desktop-panel-tab--active");
+    } finally {
+      console.error = originalError;
+    }
   });
 });
 

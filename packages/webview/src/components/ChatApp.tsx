@@ -332,29 +332,66 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // kind in PANEL_ADD_ORDER; select 详情 only when none remain. With panes,
   // this outer instance only mounts DesktopShell and never paints the dock.
   // DesktopShell does not update noPaneRail, so a session here must not make
-  // dockOnScreen true.
+  // dockOnScreen true. Every pane shares one chrome tab. Only the no-pane
+  // ChatApp, or the focused pane, may call selectDock from this effect. An
+  // unfocused pane, and the outer ChatApp that only renders DesktopShell,
+  // return without writing. When focusedPaneId is missing, a pane writes only
+  // if it is the sole pane. The effect reads the chrome tab from a ref and
+  // does not depend on the workspace object. If this instance's checked set,
+  // active kind, and group did not change, it does not retarget the chrome
+  // just because another pane wrote it.
   const seenPanelKind = useRef(activePanel);
   const seenPanelGroupKey = useRef(groupKey);
+  const seenCheckedPanels = useRef(checkedPanels);
+  const dockChromeRef = useRef(workspace.dock);
+  dockChromeRef.current = workspace.dock;
+  const selectDockRef = useRef(workspace.selectDock);
+  selectDockRef.current = workspace.selectDock;
   const shellHostWithoutDock =
     paneId === undefined && (host?.panes?.length ?? 0) > 0;
   const dockOnScreen =
     !shellHostWithoutDock &&
     (assistantVisible ||
       (view === "chat" && !isDraftSession && noPaneRail !== "settings"));
+  const dockOnScreenRef = useRef(dockOnScreen);
+  dockOnScreenRef.current = dockOnScreen;
+  const paneCount = host?.panes?.length ?? 0;
+  const focusedPaneId = host?.focusedPaneId;
+  const dockWriter =
+    paneId === undefined
+      ? paneCount === 0
+      : focusedPaneId
+        ? focusedPaneId === paneId
+        : paneCount <= 1;
+  const dockWriteAllowed = dockOnScreen && dockWriter;
   const dockWasOnScreen = useRef(false);
   useEffect(() => {
     const previousKind = seenPanelKind.current;
     const previousGroupKey = seenPanelGroupKey.current;
+    const previousChecked = seenCheckedPanels.current;
     const wasOnScreen = dockWasOnScreen.current;
+    const onScreen = dockOnScreenRef.current;
     seenPanelKind.current = activePanel;
     seenPanelGroupKey.current = groupKey;
-    dockWasOnScreen.current = dockOnScreen;
-    if (!dockOnScreen) return;
+    seenCheckedPanels.current = checkedPanels;
+    dockWasOnScreen.current = onScreen;
+    if (!dockWriteAllowed) return;
+    const checkedUnchanged =
+      previousChecked.length === checkedPanels.length &&
+      previousChecked.every((kind, index) => kind === checkedPanels[index]);
+    if (
+      previousGroupKey === groupKey &&
+      previousKind === activePanel &&
+      checkedUnchanged
+    ) {
+      return;
+    }
+    const dock = dockChromeRef.current;
+    const selectDock = selectDockRef.current;
     const chromeKindMissing =
-      workspace.dock !== DOCK_DETAIL_TAB &&
-      !checkedPanels.includes(workspace.dock);
+      dock !== DOCK_DETAIL_TAB && !checkedPanels.includes(dock);
     if (previousGroupKey !== groupKey || !wasOnScreen) {
-      if (chromeKindMissing) workspace.selectDock(DOCK_DETAIL_TAB);
+      if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
       return;
     }
     if (previousGroupKey === groupKey && previousKind === activePanel) {
@@ -362,7 +399,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         const nextKind = PANEL_ADD_ORDER.find((kind) =>
           checkedPanels.includes(kind),
         );
-        workspace.selectDock(nextKind ?? DOCK_DETAIL_TAB);
+        selectDock(nextKind ?? DOCK_DETAIL_TAB);
       }
       return;
     }
@@ -370,19 +407,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       previousGroupKey === groupKey &&
       previousKind != null &&
       !checkedPanels.includes(previousKind);
-    if (
-      workspace.dock === DOCK_DETAIL_TAB &&
-      closedPreviousKind &&
-      activePanel
-    ) {
+    if (dock === DOCK_DETAIL_TAB && closedPreviousKind && activePanel) {
       return;
     }
-    if (activePanel && workspace.dock !== activePanel) {
-      workspace.selectDock(activePanel);
-    } else if (!activePanel && workspace.dock !== DOCK_DETAIL_TAB) {
-      workspace.selectDock(DOCK_DETAIL_TAB);
+    if (activePanel && dock !== activePanel) {
+      selectDock(activePanel);
+    } else if (!activePanel && dock !== DOCK_DETAIL_TAB) {
+      selectDock(DOCK_DETAIL_TAB);
     }
-  }, [activePanel, checkedPanels, dockOnScreen, groupKey, workspace]);
+  }, [activePanel, checkedPanels, dockWriteAllowed, groupKey]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
