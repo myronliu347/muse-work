@@ -1,0 +1,205 @@
+packages/webview/tests/components/desktopSidebar.resize.test.tsx
+  55c75fed2a88a352 3-4,6,35,38-40
+packages/webview/tests/webview/messageQueueEnhancements.test.tsx
+  55c75fed2a88a352 335-336
+packages/webview/tests/components/newSessionPage.desktop.test.tsx
+  55c75fed2a88a352 4,22-25,41,64,89,127
+packages/webview/tests/components/workdirSelector.draft.test.tsx
+  55c75fed2a88a352 4,22-25,49,74
+packages/webview/tests/webview/panelWorkdirScope.test.tsx
+  55c75fed2a88a352 26
+packages/webview/tests/muse/layout.test.ts
+  55c75fed2a88a352 18-20,23-27
+packages/webview/tests/components/assistantSidebarSelection.test.tsx
+  55c75fed2a88a352 39-57,64-68,70,72-75,78-87
+packages/webview/tests/webview/inputToolbarButtons.test.tsx
+  55c75fed2a88a352 1,10
+packages/webview/tests/webview/slash-commands.test.tsx
+  55c75fed2a88a352 362,374,391,396-397,399
+packages/webview/tests/muse/apiClient.sessions.test.ts
+  55c75fed2a88a352 170,176,180,182-184
+packages/webview/tests/webview/slashCommandsGrouping.test.tsx
+  55c75fed2a88a352 38,53,55-56,78,80,90,102,127-128,136,138,172-173,201,212
+packages/webview/tests/webview/tooltip.test.tsx
+  55c75fed2a88a352 59-60,62-72
+packages/webview/tests/webview/webviewReadyStreamingRestore.test.tsx
+  55c75fed2a88a352 42-43,47
+packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx
+  55c75fed2a88a352 25
+packages/webview/tests/webview/fileHistoryCard.test.tsx
+  55c75fed2a88a352 363
+packages/webview/tests/components/automationsPage.test.tsx
+  55c75fed2a88a352 6,9-15,95-108,143-145,147-187,189-193,195-204,208-209,214-217,220,228
+packages/webview/tests/webview/test-utils.tsx
+  55c75fed2a88a352 135-146,152,154-157,172,181-184,196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "574232fd68299fa004577b9ec63325cc08d5766d",
+  "prompts": {
+    "55c75fed2a88a352": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8d3d106d-4cd0-4762-a6ac-cacbd1f39c5f",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 240,
+      "total_deletions": 143,
+      "accepted_lines": 235,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/apiClient.sessions.test.ts": {
+          "additions": 6,
+          "deletions": 10,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/webview/webviewReadyStreamingRestore.test.tsx": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/slashCommandsGrouping.test.tsx": {
+          "additions": 16,
+          "deletions": 25,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/muse/layout.test.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/workdirSelector.draft.test.tsx": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/webview/inputToolbarButtons.test.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/desktopSidebar.resize.test.tsx": {
+          "additions": 8,
+          "deletions": 29,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/webview/sessionHeaderGitBranch.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/webview/messageQueueEnhancements.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/assistantSidebarSelection.test.tsx": {
+          "additions": 39,
+          "deletions": 5,
+          "accepted_lines": 39
+        },
+        "packages/webview/tests/webview/slash-commands.test.tsx": {
+          "additions": 6,
+          "deletions": 7,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/automationsPage.test.tsx": {
+          "additions": 95,
+          "deletions": 45,
+          "accepted_lines": 91
+        },
+        "packages/webview/tests/webview/panelWorkdirScope.test.tsx": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/newSessionPage.desktop.test.tsx": {
+          "additions": 9,
+          "deletions": 1,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 13,
+          "deletions": 10,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/webview/test-utils.tsx": {
+          "additions": 23,
+          "deletions": 3,
+          "accepted_lines": 23
+        },
+        "packages/webview/tests/webview/fileHistoryCard.test.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    },
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3265,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v2.html": {
+          "accepted_lines": 387
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v7.html": {
+          "accepted_lines": 257
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v6.html": {
+          "accepted_lines": 208
+        },
+        ".superpowers/brainstorm/31127-1792577981/content/layout-v3.html": {
+          "accepted_lines": 380
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v8.html": {
+          "accepted_lines": 266
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v4.html": {
+          "accepted_lines": 219
+        },
+        "docs/superpowers/plans/2026-10-22-desktop-layout.md": {
+          "accepted_lines": 693
+        },
+        "docs/superpowers/specs/2026-10-22-desktop-layout-design.md": {
+          "accepted_lines": 116
+        },
+        ".superpowers/brainstorm/31465-1792633511/content/layout-v5.html": {
+          "accepted_lines": 200
+        },
+        ".superpowers/brainstorm/28928-1792577816/content/layout-v1.html": {
+          "accepted_lines": 539
+        }
+      }
+    },
+    "b1e026764997bbab": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6e01f215-45c2-482e-aacc-a3bc8be98e4a",
+        "model": "grok-4.7-high"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/panelTabs.ts": {
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/muse/panelTabs.test.ts": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
