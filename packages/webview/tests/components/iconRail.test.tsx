@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import { DesktopShell } from "../../src/components/desktop/DesktopShell";
@@ -31,6 +31,93 @@ function entry(sessionId: string): DesktopSessionEntry {
     workdir: "/tmp/proj",
     hasWorktree: false,
   };
+}
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function stubSettingsFetch() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/settings/raw")) {
+        return jsonResponse({ path: "/tmp/settings.json", content: "{}\n" });
+      }
+      if (url.includes("/scenarios/models")) {
+        return jsonResponse({
+          models: {
+            session: "m",
+            "issue-plan": "m",
+            "issue-exec": "m",
+            assistant: "m",
+          },
+        });
+      }
+      if (url.includes("/providers/openai-compatible")) {
+        return jsonResponse({
+          baseURL: "https://api.example.test/v1",
+          apiKeyEnv: "OPENAI_API_KEY",
+          hasApiKey: false,
+          hasStoredApiKey: false,
+          models: [{ id: "m", label: "M" }],
+        });
+      }
+      if (url.endsWith("/providers") || url.includes("/providers?")) {
+        return jsonResponse({
+          providers: [
+            {
+              id: "openai-compatible",
+              displayName: "OpenAI",
+              models: [{ id: "m", label: "M" }],
+            },
+          ],
+          active: { providerId: "openai-compatible", modelId: "m" },
+        });
+      }
+      if (url.includes("/settings/tavily")) {
+        return jsonResponse({ configured: false, source: "none" });
+      }
+      if (url.includes("/assistant/messages")) {
+        return jsonResponse({ messages: [], hasMore: false });
+      }
+      if (url.includes("/assistant/queue")) {
+        return jsonResponse({ items: [] });
+      }
+      if (url.includes("/automations")) {
+        return jsonResponse({ automations: [] });
+      }
+      if (url.includes("/assistant/session")) {
+        return jsonResponse({
+          sessionId: "assistant",
+          title: "Muse Bot",
+          workdir: "/tmp/proj",
+          working: false,
+        });
+      }
+      return jsonResponse({});
+    }),
+  );
+}
+
+async function dirtySettingsDrafts(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(screen.getByRole("tab", { name: "Agent" }));
+  const editor = await screen.findByTestId("agent-settings-editor");
+  await waitFor(() => {
+    expect(editor).toHaveValue("{}\n");
+  });
+  fireEvent.change(editor, { target: { value: '{"token":"draft"}\n' } });
+
+  await user.click(screen.getByRole("tab", { name: "供应商" }));
+  const apiKey = await screen.findByPlaceholderText("请输入 API Key");
+  fireEvent.change(apiKey, { target: { value: "sk-draft" } });
+  return { editor, apiKey };
 }
 
 function hostWithPanes(): DesktopHostProps {
@@ -77,7 +164,6 @@ describe("desktop icon rail", () => {
       <DesktopShell
         vscode={mockVscode()}
         host={hostWithPanes()}
-        onOpenSettings={vi.fn()}
         api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
         postToHost={vi.fn()}
       />,
@@ -128,7 +214,6 @@ describe("desktop icon rail", () => {
       <DesktopShell
         vscode={mockVscode()}
         host={host}
-        onOpenSettings={vi.fn()}
         api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
         postToHost={vi.fn()}
       />,
@@ -192,7 +277,6 @@ describe("desktop icon rail", () => {
         <DesktopShell
           vscode={mockVscode()}
           host={hostWithPanes()}
-          onOpenSettings={vi.fn()}
           api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
           postToHost={vi.fn()}
         />
@@ -218,7 +302,6 @@ describe("desktop icon rail", () => {
         <DesktopShell
           vscode={mockVscode()}
           host={hostWithPanes()}
-          onOpenSettings={vi.fn()}
           onLogin={onLogin}
           isAuthenticated={false}
           api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
@@ -239,5 +322,169 @@ describe("desktop icon rail", () => {
     ).not.toBe(0);
     await user.click(login);
     expect(onLogin).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens shell settings from showConfiguration without a dialog", () => {
+    resetWebviewStores();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={mockVscode()} host={hostWithPanes()} />
+      </MuseTheme>,
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            command: "showConfiguration",
+            configurationData: { language: "Chinese" },
+          },
+        }),
+      );
+    });
+
+    expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-dialog")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("desktop-settings-btn").className).toContain(
+      "active",
+    );
+  });
+
+  it("opens shell settings from /config without a dialog", async () => {
+    resetWebviewStores();
+    const user = userEvent.setup();
+    const vscode = mockVscode();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={vscode} host={hostWithPanes()} />
+      </MuseTheme>,
+    );
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { command: "authStatusResponse", isAuthenticated: true },
+        }),
+      );
+    });
+
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    const input = screen.getByTestId("message-input");
+    vscode.postMessage.mockClear();
+    act(() => {
+      input.textContent = "/config";
+    });
+    fireEvent.input(input);
+    act(() => {
+      fireEvent.click(screen.getByTestId("send-btn"));
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "getConfiguration" }),
+    );
+    expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-dialog")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("keeps showConfiguration as a dialog off desktop", () => {
+    resetWebviewStores();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={mockVscode()} />
+      </MuseTheme>,
+    );
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { command: "showConfiguration", configurationData: {} },
+        }),
+      );
+    });
+    expect(screen.getByTestId("config-dialog")).toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-settings-page")).toBeNull();
+  });
+
+  it("asks before leaving unsaved settings and ignores a repeat settings click", async () => {
+    stubSettingsFetch();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      const user = userEvent.setup();
+      render(
+        <MuseTheme>
+          <DesktopShell
+            vscode={mockVscode()}
+            host={hostWithPanes()}
+            api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+            postToHost={vi.fn()}
+          />
+        </MuseTheme>,
+      );
+
+      await user.click(screen.getByTestId("desktop-settings-btn"));
+      const drafts = await dirtySettingsDrafts(user);
+
+      confirm.mockClear();
+      await user.click(screen.getByTestId("desktop-settings-btn"));
+      expect(confirm).not.toHaveBeenCalled();
+      expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+      expect(drafts.editor).toHaveValue('{"token":"draft"}\n');
+
+      await user.click(screen.getByTestId("desktop-assistant-menu"));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(confirm).toHaveBeenCalledWith("有未保存的修改，确定关闭？");
+      expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+      expect(drafts.editor).toHaveValue('{"token":"draft"}\n');
+
+      confirm.mockClear();
+      await user.click(screen.getByTestId("desktop-sessions-menu"));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+
+      confirm.mockClear();
+      await user.click(screen.getByTestId("desktop-automations-menu"));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+
+      confirm.mockReturnValue(true);
+      confirm.mockClear();
+      await user.click(screen.getByTestId("desktop-automations-menu"));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId("desktop-settings-page")).toBeNull();
+      expect(screen.getByTestId("automations-page")).toBeInTheDocument();
+    } finally {
+      confirm.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("asks before the no-pane rail leaves unsaved settings", async () => {
+    resetWebviewStores();
+    stubSettingsFetch();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      const user = userEvent.setup();
+      const host = { ...hostWithPanes(), panes: [], focusedPaneId: null };
+      render(
+        <MuseTheme>
+          <ChatApp vscode={mockVscode()} host={host} />
+        </MuseTheme>,
+      );
+      await user.click(screen.getByTestId("desktop-settings-btn"));
+      const drafts = await dirtySettingsDrafts(user);
+
+      await user.click(screen.getByTestId("desktop-assistant-menu"));
+      expect(confirm).toHaveBeenCalledWith("有未保存的修改，确定关闭？");
+      expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+      expect(drafts.apiKey).toHaveValue("sk-draft");
+
+      confirm.mockReturnValue(true);
+      await user.click(screen.getByTestId("desktop-sessions-menu"));
+      expect(screen.queryByTestId("desktop-settings-page")).toBeNull();
+      expect(screen.getByTestId("desktop-session-list")).toBeInTheDocument();
+    } finally {
+      confirm.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
 });

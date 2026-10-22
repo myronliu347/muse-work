@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useReducer,
   useMemo,
   useRef,
@@ -21,7 +22,11 @@ import { AutomationsPage } from "./automation/AutomationsPage";
 import { AssistantPage } from "./assistant/AssistantPage";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
-import ConfigDialog from "./dialogs/ConfigDialog";
+import ConfigDialog, {
+  settingsPageLeaveBlocked,
+  type ConfigDialogHandle,
+} from "./dialogs/ConfigDialog";
+import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
 import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
 import {
@@ -148,6 +153,13 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   const [view, setView] = useState<MainView>(noPaneDesktop ? "assistant" : "chat");
   // 图标选中态不跟会话推送走。会话 id 变化仍会把内容区拉回聊天，避免盖住对话。
   const [noPaneRail, setNoPaneRail] = useState<ShellSurface>("assistant");
+  const settingsPageRef = useRef<ConfigDialogHandle>(null);
+  useLayoutEffect(() => {
+    if (!noPaneDesktop) return;
+    return registerDesktopSettingsOpener(() => {
+      setNoPaneRail("settings");
+    });
+  }, [noPaneDesktop]);
   const shellSurface = useShellSurface();
   const providedShellSurface = useProvidedShellSurface();
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
@@ -246,6 +258,8 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   // The pane this instance renders; undefined = single view (desktop
   // single-pane layout). Ref mirror for use inside stable callbacks.
   const paneIdRef = useRef<string | undefined>(paneId);
+  const hostRef = useRef(host);
+  hostRef.current = host;
 
   openQuickOpenRef.current = (query: string) => {
     setQuickOpenQuery(query);
@@ -302,6 +316,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           previewUrlRef,
           groupKeyRef,
           openQuickOpenRef,
+          hostRef,
         },
       }),
     [dispatch, vscode],
@@ -1007,7 +1022,6 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
           <DesktopShell
             vscode={vscode}
             host={host}
-            onOpenSettings={handleOpenSettings}
             onLogin={handleLogin}
             isAuthenticated={state.isAuthenticated}
             configurationData={state.configurationData}
@@ -1095,14 +1109,41 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
             postToHost({ command: "revealInFinder", path: workdir })
           }
           onOpenSessions={() => {
+            if (
+              settingsPageLeaveBlocked(
+                noPaneRail,
+                "sessions",
+                settingsPageRef.current,
+              )
+            ) {
+              return;
+            }
             setNoPaneRail("sessions");
             setView("chat");
           }}
           onOpenAutomations={() => {
+            if (
+              settingsPageLeaveBlocked(
+                noPaneRail,
+                "automations",
+                settingsPageRef.current,
+              )
+            ) {
+              return;
+            }
             setNoPaneRail("automations");
             setView("automations");
           }}
           onOpenAssistant={() => {
+            if (
+              settingsPageLeaveBlocked(
+                noPaneRail,
+                "assistant",
+                settingsPageRef.current,
+              )
+            ) {
+              return;
+            }
             setNoPaneRail("assistant");
             setView("assistant");
           }}
@@ -1145,6 +1186,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
         ) : null}
         {noPaneRail === "settings" ? (
           <ConfigDialog
+            ref={settingsPageRef}
             layout="page"
             vscode={vscode}
             configurationData={state.configurationData || {}}

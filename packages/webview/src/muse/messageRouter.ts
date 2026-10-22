@@ -3,6 +3,7 @@ import type {
   ChatState,
   ChatAction,
   VsCodeApi,
+  DesktopHostProps,
   DesktopPanelKind,
   FileViewState,
   ContentSearchFileHit,
@@ -10,6 +11,7 @@ import type {
   FileTreeDirEntry,
   Message,
 } from "../types";
+import { openDesktopSettingsPage } from "./desktopSettingsNav";
 import { patchPaneUi, usePanelGroupStore } from "../stores";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
 import { stripImageSourceMarkers, normalizeUserTextForDedupe } from "../utils/messageUtils";
@@ -32,6 +34,7 @@ export interface MessageRouterRefs {
   previewUrlRef: React.MutableRefObject<string | null>;
   groupKeyRef: React.MutableRefObject<string | undefined>;
   openQuickOpenRef: React.MutableRefObject<(query: string) => void>;
+  hostRef: React.MutableRefObject<DesktopHostProps | undefined>;
 }
 
 export interface MessageHandlerDeps {
@@ -63,6 +66,7 @@ export function createMessageHandler({
     previewUrlRef,
     groupKeyRef,
     openQuickOpenRef,
+    hostRef,
   } = refs;
 
   // Session-scoped host pushes are pane-tagged on desktop (FR-032). This pane
@@ -420,6 +424,21 @@ export function createMessageHandler({
         break;
       case "showConfiguration":
         if (!forThisPane(message)) break;
+        if (hostRef.current?.type === "desktop") {
+          dispatch({
+            type: "SET_CONFIGURATION_DATA",
+            payload:
+              message.configurationData ||
+              stateRef.current.configurationData ||
+              {},
+          });
+          dispatch({
+            type: "SET_CONFIGURATION_ERROR",
+            payload: message.error,
+          });
+          openDesktopSettingsPage();
+          break;
+        }
         dispatch({
           type: "SHOW_DIALOG",
           payload: {

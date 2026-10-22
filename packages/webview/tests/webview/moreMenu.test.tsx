@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { renderChatApp, screen, fireEvent, act, sendCommand } from "./test-utils";
+import {
+  renderChatApp,
+  screen,
+  fireEvent,
+  act,
+  sendCommand,
+  fireInput,
+} from "./test-utils";
 
 /**
  * Desktop icon rail opens settings as a page. The non-desktop more menu still
@@ -69,5 +76,41 @@ describe("Desktop settings entry", () => {
     expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
     expect(screen.queryByTestId("desktop-login-btn")).not.toBeInTheDocument();
     expect(screen.queryByTestId("desktop-logout-btn")).not.toBeInTheDocument();
+  });
+
+  it("opens the settings page from showConfiguration without a dialog", () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("showConfiguration", {
+        configurationData: { language: "Chinese" },
+      });
+    });
+
+    expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens the settings page from /config without a dialog", async () => {
+    const { vscode } = renderChatApp();
+    act(() => {
+      fireEvent.click(screen.getByTestId("desktop-sessions-menu"));
+    });
+    const input = screen.getByTestId("message-input");
+    vscode.postMessage.mockClear();
+    act(() => {
+      input.textContent = "/config";
+    });
+    await fireInput(input, { data: "/config", inputType: "insertText" });
+    act(() => {
+      fireEvent.click(screen.getByTestId("send-btn"));
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ command: "getConfiguration" }),
+    );
+    expect(screen.getByTestId("desktop-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

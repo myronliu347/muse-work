@@ -2,7 +2,14 @@
  * ConfigDialog — settings overlay hosts appearance, agent, provider, and POPO.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { motion } from "motion/react";
 import { Button } from "@radix-ui/themes";
 import { ConfigDialogProps, VsCodeApi } from "../../types";
@@ -26,6 +33,21 @@ import "../../styles/ConfigurationDialog.css";
  * 会被 outside-click 误判为「点设置弹窗外」而关闭整个设置弹窗。
  * 这里豁免：target 落在 Radix 弹层（popper wrapper / listbox）内时不算外部点击。
  */
+export interface ConfigDialogHandle {
+  /** False when a save is in flight or the user keeps unsaved drafts. */
+  confirmDiscardUnsaved: () => boolean;
+}
+
+/** True when leaving the settings page for another rail destination should abort. */
+export function settingsPageLeaveBlocked(
+  current: string,
+  next: string,
+  page: ConfigDialogHandle | null,
+): boolean {
+  if (current !== "settings" || next === "settings") return false;
+  return page?.confirmDiscardUnsaved() === false;
+}
+
 function isRadixPopupTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return Boolean(
@@ -35,18 +57,17 @@ function isRadixPopupTarget(target: EventTarget | null): boolean {
   );
 }
 
-const ConfigDialog: React.FC<
+const ConfigDialog = forwardRef<
+  ConfigDialogHandle,
   ConfigDialogProps & {
     vscode: VsCodeApi;
     isAuthenticated?: boolean;
     onLogin?: () => void;
   }
-> = ({
-  onCancel,
-  layout = "dialog",
-  isAuthenticated,
-  onLogin,
-}) => {
+>(function ConfigDialog(
+  { onCancel, layout = "dialog", isAuthenticated, onLogin },
+  ref,
+) {
   const page = layout === "page";
   const dialogRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<MuseProviderSettingsHandle>(null);
@@ -75,14 +96,24 @@ const ConfigDialog: React.FC<
   const persistTab = activeTab === "agent" || activeTab === "provider";
   useDialogFocusTrap(dialogRef, !page);
 
-  const requestClose = useCallback(() => {
-    if (savingRef.current) return;
+  const confirmDiscardUnsaved = useCallback(() => {
+    if (savingRef.current) return false;
     if (settingsRef.current?.isDirty() || agentSettingsRef.current?.isDirty()) {
-      const discard = window.confirm("有未保存的修改，确定关闭？");
-      if (!discard) return;
+      return window.confirm("有未保存的修改，确定关闭？");
     }
+    return true;
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ confirmDiscardUnsaved }),
+    [confirmDiscardUnsaved],
+  );
+
+  const requestClose = useCallback(() => {
+    if (!confirmDiscardUnsaved()) return;
     onCancel();
-  }, [onCancel]);
+  }, [confirmDiscardUnsaved, onCancel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -337,6 +368,6 @@ const ConfigDialog: React.FC<
       </motion.div>
     </motion.div>
   );
-};
+});
 
 export default ConfigDialog;

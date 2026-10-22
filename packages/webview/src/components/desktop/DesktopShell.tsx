@@ -13,7 +13,11 @@ import {
   DesktopSessionList,
 } from "./DesktopSessionList";
 import { AutomationsPage } from "../automation/AutomationsPage";
-import ConfigDialog from "../dialogs/ConfigDialog";
+import ConfigDialog, {
+  settingsPageLeaveBlocked,
+  type ConfigDialogHandle,
+} from "../dialogs/ConfigDialog";
+import { registerDesktopSettingsOpener } from "../../muse/desktopSettingsNav";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
@@ -42,8 +46,6 @@ type DropZone = "above" | "below";
 interface DesktopShellProps {
   vscode: VsCodeApi;
   host: DesktopHostProps;
-  /** Dialog opener from ChatApp. The icon rail opens the settings page and does not call this. */
-  onOpenSettings: () => void;
   onLogin?: () => void;
   isAuthenticated?: boolean;
   configurationData?: ConfigurationData;
@@ -97,6 +99,12 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const [shellView, setShellView] = useState<ShellSurface>("assistant");
+  const settingsPageRef = useRef<ConfigDialogHandle>(null);
+  useLayoutEffect(() => {
+    return registerDesktopSettingsOpener(() => {
+      setShellView("settings");
+    });
+  }, []);
   const sessionListInset =
     shellView === "sessions" && !sidebarCollapsed
       ? DESKTOP_SESSION_LIST_WIDTH
@@ -714,12 +722,23 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
           vscode.postMessage({ command: "revealInFinder", path: workdir })
         }
         onOpenSessions={() => {
+          if (settingsPageLeaveBlocked(shellView, "sessions", settingsPageRef.current)) {
+            return;
+          }
           setShellView("sessions");
         }}
         onOpenAutomations={() => {
+          if (
+            settingsPageLeaveBlocked(shellView, "automations", settingsPageRef.current)
+          ) {
+            return;
+          }
           setShellView("automations");
         }}
         onOpenAssistant={() => {
+          if (settingsPageLeaveBlocked(shellView, "assistant", settingsPageRef.current)) {
+            return;
+          }
           setShellView("assistant");
         }}
         activeMenu={shellView}
@@ -764,6 +783,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         />
       ) : shellView === "settings" ? (
         <ConfigDialog
+          ref={settingsPageRef}
           layout="page"
           vscode={vscode}
           configurationData={configurationData ?? {}}

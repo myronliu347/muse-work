@@ -18,6 +18,7 @@ import {
   findIssueGroupForSession,
   isSplitIssueGroup,
 } from "../utils/issueGroups";
+import { openDesktopSettingsPage } from "../muse/desktopSettingsNav";
 
 interface UseChatSendParams {
   postToHost: ChatAppCore["postToHost"];
@@ -152,13 +153,17 @@ export function useChatSend({
           return;
         }
         if (name === "config") {
-          dispatch({
-            type: "SHOW_DIALOG",
-            payload: {
-              type: "config",
-              data: stateRef.current.configurationData || {},
-            },
-          });
+          if (host?.type === "desktop") {
+            openDesktopSettingsPage();
+          } else {
+            dispatch({
+              type: "SHOW_DIALOG",
+              payload: {
+                type: "config",
+                data: stateRef.current.configurationData || {},
+              },
+            });
+          }
           vscode.postMessage({ command: "getConfiguration" });
           return;
         }
