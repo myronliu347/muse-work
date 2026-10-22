@@ -20,6 +20,11 @@ import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
 import { AssistantPage } from "./assistant/AssistantPage";
+import {
+  BotTabs,
+  useBotWorkspace,
+  useBotWorkspaceController,
+} from "./desktop/BotTabs";
 import { ChatComposer } from "./chat/ChatComposer";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
@@ -61,6 +66,9 @@ import {
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
 import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
+import { useMuseTheme } from "../ui/theme";
+import museM from "../assets/muse-m.png";
+import "../styles/WelcomeView.css";
 import type {
   ChatAppProps,
   DesktopPanelKind,
@@ -81,6 +89,28 @@ import "../styles/ChatApp.css";
 
 
 export { prunePanelGroupCache } from "../stores";
+
+function AssistantWelcome() {
+  const { effective } = useMuseTheme();
+  const showLogo = effective !== "light";
+  return (
+    <div className="assistant-welcome">
+      <h1 className="welcome-headline" data-testid="welcome-headline">
+        {showLogo ? (
+          <img
+            src={museM}
+            alt=""
+            className="welcome-headline-logo"
+            width={64}
+            height={64}
+            draggable={false}
+          />
+        ) : null}
+        今天想让我帮你做些什么？
+      </h1>
+    </div>
+  );
+}
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
 export type MainView = "newChat" | "chat" | "automations" | "assistant";
@@ -151,7 +181,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
     (host.panes?.length ?? 0) === 0;
   // 主内容区视图：聊天 / 新会话页 / 自动化 / Muse Bot。
   const [view, setView] = useState<MainView>(noPaneDesktop ? "assistant" : "chat");
-  // 图标选中态不跟会话推送走。会话 id 变化仍会把内容区拉回聊天，避免盖住对话。
+  // 图标选中态不跟会话推送走。助理面上的会话推送也不能把视图拉回普通聊天。
   const [noPaneRail, setNoPaneRail] = useState<ShellSurface>("assistant");
   const settingsPageRef = useRef<ConfigDialogHandle>(null);
   useLayoutEffect(() => {
@@ -162,6 +192,15 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   }, [noPaneDesktop]);
   const shellSurface = useShellSurface();
   const providedShellSurface = useProvidedShellSurface();
+  const providedWorkspace = useBotWorkspace();
+  const ownedWorkspace = useBotWorkspaceController(
+    host?.issueGroups?.[0]?.issueId ?? null,
+  );
+  const workspace = providedWorkspace ?? ownedWorkspace;
+  const issueTitles: Record<string, string> = {};
+  for (const group of host?.issueGroups ?? []) {
+    issueTitles[group.issueId] = group.title;
+  }
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
   const assistantVisible =
     host?.type === "desktop" &&
@@ -233,18 +272,12 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
   useEffect(() => {
     useScenarioModelsStore.getState().init(museApi);
   }, [museApi]);
-  // 会话切换/新建（host 推送 currentSession 变化）时回到聊天视图，
-  // 侧栏导航不应被机器人页等其它视图挡住。view === "chat" 时聊天区渲染
-  // state.currentSession 对应的会话（sessionId 即 currentSession.id）。
-  // 挂载时 id 未变，不要把无窗格的初始 Muse Bot 清掉。图标选中态在 noPaneRail，
-  // 不随这次 setView("chat") 一起丢掉。
-  const sessionId = state.currentSession?.id;
-  const seenSessionId = useRef(sessionId);
+  // 会话切换时回到聊天视图，但桌面助理面要留在 Muse Bot。
+  // 图标选中态在 noPaneRail / shellView，不随这次 setView 丢掉。
   useEffect(() => {
-    if (seenSessionId.current === sessionId) return;
-    seenSessionId.current = sessionId;
+    if (shellSurface === "assistant") return;
     setView("chat");
-  }, [sessionId]);
+  }, [state.currentSession?.id, shellSurface]);
   // Mirrors so the stable message listener can reach the panel toggle logic
   // (filled by usePanels) without re-subscribing.
   const togglePanelRef = useRef<(kind: DesktopPanelKind) => void>(() => {});
@@ -857,6 +890,12 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
 
   const assistantFrame = (
     <div className="chat-container" ref={chatContainerRef} data-testid="assistant-frame">
+      <BotTabs
+        state={workspace}
+        titles={issueTitles}
+        onFocus={workspace.focusTab}
+        onClose={workspace.closeIssueTab}
+      />
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
           <AssistantPage
@@ -871,6 +910,7 @@ const ChatAppInner: React.FC<ChatAppProps> = ({
               id: group.issueId,
               title: group.title,
             }))}
+            emptyState={<AssistantWelcome />}
           />
         </div>
         {dock.checked.length > 0 && dock.active ? (

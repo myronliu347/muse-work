@@ -2057,6 +2057,120 @@ body.is-panel-resizing * {
   -webkit-app-region: no-drag;
 }
 
+.bot-tabs {
+  height: var(--desktop-shell-titlebar-height);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 10px;
+  box-sizing: border-box;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-layout > .chat-container .bot-tabs,
+.desktop-pane-row > .desktop-pane:first-child .bot-tabs {
+  padding-left: calc(var(--desktop-sidebar-width) + 10px);
+}
+
+.bot-tab,
+.bot-tab-close {
+  -webkit-app-region: no-drag;
+}
+
+.bot-tab {
+  height: 30px;
+  max-width: 220px;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bot-tab.active {
+  background: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.bot-tab-group {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  min-width: 0;
+  border-radius: 8px;
+}
+
+.bot-tab-group.active {
+  background: var(--gray-4);
+}
+
+.bot-tab-group .bot-tab {
+  background: transparent;
+  padding-right: 2px;
+}
+
+.bot-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+
+.bot-tab-close {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.bot-tab-close:hover {
+  background: var(--gray-5);
+  color: var(--gray-12);
+}
+
+.assistant-log:has(.assistant-welcome) {
+  display: flex;
+  flex-direction: column;
+}
+
+.assistant-log:has(.assistant-welcome) .assistant-column {
+  flex: 1;
+  justify-content: center;
+}
+
+.assistant-welcome {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: var(--space-5) var(--space-4);
+}
+
+.desktop-layout > .chat-container .assistant-welcome,
+.desktop-pane-row > .desktop-pane:first-child .assistant-welcome {
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+}
+
 .desktop-layout .assistant-page .assistant-header-title {
   -webkit-app-region: drag;
   /* The title is only as wide as "Muse Bot" otherwise, so the empty
@@ -2086,7 +2200,17 @@ body.is-panel-resizing * {
   .desktop-pane-row
   > .desktop-pane:first-child
   .popo-detail-header,
-.desktop-layout[data-sidebar-collapsed="true"] .assistant-page .assistant-header {
+.desktop-layout[data-sidebar-collapsed="true"] .assistant-page .assistant-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .bot-tabs,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .bot-tabs,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .assistant-welcome,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .assistant-welcome {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
 }
 

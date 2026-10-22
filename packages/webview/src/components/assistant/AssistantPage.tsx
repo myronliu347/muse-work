@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type MouseEvent,
+  type ReactNode,
   type Ref,
 } from "react";
 import { marked } from "marked";
@@ -466,6 +467,8 @@ export const AssistantPage: React.FC<{
   inputRef?: Ref<MessageInputHandle>;
   /** 输入框 @ 可以点名这些进行中的 Issue。 */
   mentionIssues?: Array<{ id: string; title: string }>;
+  /** 没有对话记录时替换「还没有消息」。有记录时不渲染。 */
+  emptyState?: ReactNode;
 }> = ({
   api,
   vscode = noopHost,
@@ -475,6 +478,7 @@ export const AssistantPage: React.FC<{
   onOpenUrl,
   inputRef,
   mentionIssues,
+  emptyState,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -896,7 +900,9 @@ export const AssistantPage: React.FC<{
         }}
       >
         <div className="assistant-column">
-          {lines.length === 0 ? <p className="assistant-empty">还没有消息</p> : null}
+          {lines.length === 0 ? (
+            emptyState ?? <p className="assistant-empty">还没有消息</p>
+          ) : null}
           <div
             ref={virtualizer.containerRef}
             className="virtual-spacer"

@@ -19,6 +19,7 @@ import ConfigDialog, {
 } from "../dialogs/ConfigDialog";
 import { registerDesktopSettingsOpener } from "../../muse/desktopSettingsNav";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
+import { BotWorkspaceProvider, useBotWorkspaceController } from "./BotTabs";
 import type { MuseApiClient } from "../../muse/apiClient";
 import type {
   ConfigurationData,
@@ -99,6 +100,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
   const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
   const [shellView, setShellView] = useState<ShellSurface>("assistant");
+  const workspace = useBotWorkspaceController(
+    host.issueGroups?.[0]?.issueId ?? null,
+  );
   const settingsPageRef = useRef<ConfigDialogHandle>(null);
   useLayoutEffect(() => {
     return registerDesktopSettingsOpener(() => {
@@ -669,6 +673,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
   return (
     <ShellSurfaceProvider value={shellView}>
+    <BotWorkspaceProvider value={workspace}>
     <div
       className="desktop-layout"
       data-testid="desktop-shell"
@@ -913,6 +918,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       </div>
       )}
     </div>
+    </BotWorkspaceProvider>
     </ShellSurfaceProvider>
   );
 };
