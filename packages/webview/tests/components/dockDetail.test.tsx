@@ -1115,6 +1115,89 @@ describe("assistant dock detail", () => {
       "desktop-panel-tab--active",
     );
   });
+
+  it("shows the detail body on an unfocused pane that lacks the chrome kind", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup("/work/pane-a", {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+      fileTree: { ...emptyFileTreeState(), collapsed: false },
+    });
+    usePanelGroupStore.getState().patchGroup("/work/pane-b", {
+      checked: ["terminal"],
+      mounted: ["terminal"],
+      active: "terminal",
+    });
+    const user = userEvent.setup();
+    const vscode = createMockVscode();
+    render(
+      <MuseTheme>
+        <TwoSessionPanes focusedPaneId="pane-a" vscode={vscode} />
+      </MuseTheme>,
+    );
+    sendHostMessage(
+      fixtures.setInitialState({
+        paneId: "pane-a",
+        workdir: "/work/pane-a",
+        messages: [],
+        isAuthenticated: true,
+        session: {
+          id: "sess-a",
+          sessionType: "main",
+          workdir: "/work/pane-a",
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
+      }),
+    );
+    sendHostMessage(
+      fixtures.setInitialState({
+        paneId: "pane-b",
+        workdir: "/work/pane-b",
+        messages: [],
+        isAuthenticated: true,
+        session: {
+          id: "sess-b",
+          sessionType: "main",
+          workdir: "/work/pane-b",
+          createdAt: new Date(),
+          lastActiveAt: new Date(),
+          latestTotalTokens: 0,
+        },
+      }),
+    );
+
+    const paneA = await screen.findByTestId("desktop-pane-pane-a");
+    const dockA = await within(paneA).findByTestId("desktop-panel-dock");
+    await user.click(within(dockA).getByRole("button", { name: "文件" }));
+
+    expect(within(dockA).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dockA).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+
+    const paneB = await screen.findByTestId("desktop-pane-pane-b");
+    const dockB = await within(paneB).findByTestId("desktop-panel-dock");
+    const visibleLayer = [
+      ...dockB.querySelectorAll(".desktop-panel-dock-layer"),
+    ].find((layer) => !layer.hasAttribute("hidden"));
+    expect(visibleLayer?.querySelector("[data-testid='dock-detail']")).not.toBeNull();
+    expect(within(dockB).getByTestId("dock-detail")).toBeVisible();
+    expect(within(dockB).getByTestId("terminal-pane")).not.toBeVisible();
+
+    expect(within(dockA).getByTestId("desktop-panel-tab-file")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dockA).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+  });
 });
 
 describe("session dock detail", () => {

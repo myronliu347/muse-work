@@ -1065,6 +1065,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // ChatContainer when a bound session is showing).
   // The highlighted kind and the visible pane follow the chrome tab.
   // The other group's active must not paint through when it differs.
+  // Panes share workspace.dock, and an unfocused pane does not write it.
+  // If that chrome kind is not in this pane's checked set, show this pane's
+  // detail layer. Leave the shared chrome alone until this pane can write.
+  const chromeKindMissing =
+    workspace.dock !== DOCK_DETAIL_TAB &&
+    !checkedPanels.includes(workspace.dock);
   const dock: DesktopPanelSlotsProps = {
     checked: checkedPanels,
     active: workspace.dock === DOCK_DETAIL_TAB ? activePanel : workspace.dock,
@@ -1080,7 +1086,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onSelectDetail: () => {
       workspace.selectDock(DOCK_DETAIL_TAB);
     },
-    detailActive: workspace.dock === DOCK_DETAIL_TAB,
+    detailActive: workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing,
     detail: (
       <DockDetail
         selection={detailSelection}
