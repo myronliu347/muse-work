@@ -1,0 +1,78 @@
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 103,526-533,555-563,586-590,661-663,958-969,1057-1066,1070,1092,1161,1554
+packages/webview/tests/components/dockDetail.test.tsx
+  8d544d70b6b94a4c 363,448-449,498-503,514,555
+packages/webview/src/hooks/usePanels.ts
+  8d544d70b6b94a4c 51-52,83,125-126,223,238,416-417,459,464
+packages/webview/tests/components/issueTab.test.tsx
+  8d544d70b6b94a4c 252,335-341,559,593-607,628,696-697,699-703,768,772,810,816-817,903,955,969,1009,1039,1044-1047,1229,1274,1277,1282-1283,1291-1296,1326-1420,1453,1488-1491,1496-1498
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "60fe1be49bf4099c6a0d21a57f4f43fdf807d042",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 428,
+      "total_deletions": 292,
+      "accepted_lines": 247,
+      "overriden_lines": 7,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "deletions": 8
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 218,
+          "deletions": 118,
+          "accepted_lines": 166
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 11,
+          "deletions": 6,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 170,
+          "deletions": 135,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 3,
+          "deletions": 2
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 5
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 11,
+          "deletions": 5,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 3,
+          "deletions": 12,
+          "overriden_lines": 6
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 1
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
