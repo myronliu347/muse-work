@@ -61,8 +61,22 @@ export type AssistantPageApi = {
     workdir?: string;
     working?: boolean;
   }>;
-  getMessages?: (sessionId: string) => Promise<{ messages: unknown[] }>;
+  getMessages?: (
+    sessionId: string,
+    query?: { before?: string; limit?: number },
+  ) => Promise<{ messages: unknown[]; hasMore?: boolean }>;
 };
+
+function mergeTranscriptTail<T extends { id: string }>(
+  prev: T[],
+  tail: T[],
+  keepOlder: boolean,
+): T[] {
+  if (!keepOlder || prev.length === 0) return tail;
+  const incoming = new Set(tail.map((message) => message.id));
+  const prefix = prev.filter((message) => message.id && !incoming.has(message.id));
+  return [...prefix, ...tail];
+}
 
 /** Matches .assistant-log padding-top (--space-4) and .assistant-column gap. */
 const LOG_SCROLL_MARGIN = 16;
@@ -482,6 +496,13 @@ export const AssistantPage: React.FC<{
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [agentHasMore, setAgentHasMore] = useState(false);
+  const agentMessagesRef = useRef(agentMessages);
+  agentMessagesRef.current = agentMessages;
+  const agentHasMoreRef = useRef(false);
+  const agentSessionRef = useRef<string | undefined>(undefined);
+  const olderLoadedRef = useRef(false);
+  const loadingAgentOlder = useRef(false);
   const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
   const [openableFilePaths, setOpenableFilePaths] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -669,10 +690,25 @@ export const AssistantPage: React.FC<{
       void api
         .getAssistantSession!()
         .then(async (info) => {
+          if (agentSessionRef.current !== info.sessionId) {
+            agentSessionRef.current = info.sessionId;
+            olderLoadedRef.current = false;
+          }
           const page = await api.getMessages!(info.sessionId);
           if (cancelled) return;
           setAgentWorkdir(info.workdir);
-          setAgentMessages(page.messages as AgentMessage[]);
+          setAgentMessages((prev) =>
+            mergeTranscriptTail(
+              prev,
+              page.messages as AgentMessage[],
+              olderLoadedRef.current,
+            ),
+          );
+          if (!olderLoadedRef.current) {
+            const hasMore = Boolean(page.hasMore);
+            agentHasMoreRef.current = hasMore;
+            setAgentHasMore(hasMore);
+          }
           setAgentError(null);
         })
         .catch((err: unknown) => {
@@ -688,6 +724,38 @@ export const AssistantPage: React.FC<{
       window.clearInterval(timer);
     };
   }, [api, mode]);
+
+  const loadOlderAgent = useCallback(async () => {
+    const sessionId = agentSessionRef.current;
+    const before = agentMessagesRef.current[0]?.id;
+    if (
+      !sessionId ||
+      !before ||
+      !agentHasMoreRef.current ||
+      loadingAgentOlder.current ||
+      !api.getMessages
+    ) {
+      return;
+    }
+    loadingAgentOlder.current = true;
+    try {
+      const page = await api.getMessages(sessionId, { before, limit: 40 });
+      const older = page.messages as AgentMessage[];
+      olderLoadedRef.current = true;
+      const hasMore = Boolean(page.hasMore);
+      agentHasMoreRef.current = hasMore;
+      setAgentHasMore(hasMore);
+      setAgentMessages((prev) => {
+        const ids = new Set(prev.map((message) => message.id));
+        return [...older.filter((message) => message.id && !ids.has(message.id)), ...prev];
+      });
+      setAgentError(null);
+    } catch (err) {
+      setAgentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      loadingAgentOlder.current = false;
+    }
+  }, [api]);
 
   useLayoutEffect(() => {
     if (mode !== "chat") return;
@@ -881,6 +949,10 @@ export const AssistantPage: React.FC<{
               }
               onOpenPreview={onOpenUrl}
               openHttpInBrowser
+              hasOlderMessages={agentHasMore}
+              onLoadOlder={() => {
+                void loadOlderAgent();
+              }}
             />
           )}
         </div>

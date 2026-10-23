@@ -136,6 +136,65 @@ describe("AssistantPage", () => {
     expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
 
+  it("loads the previous transcript page when older history remains", async () => {
+    const getMessages = vi
+      .fn()
+      .mockResolvedValueOnce({
+        messages: [
+          {
+            id: "tail",
+            role: "assistant",
+            timestamp: "2026-10-08T00:00:00.000Z",
+            blocks: [{ type: "text", content: "当前这一页" }],
+          },
+        ],
+        hasMore: true,
+      })
+      .mockResolvedValueOnce({
+        messages: [
+          {
+            id: "older",
+            role: "user",
+            timestamp: "2026-10-08T00:00:00.000Z",
+            blocks: [{ type: "text", content: "更早的提问" }],
+          },
+        ],
+        hasMore: false,
+      })
+      .mockResolvedValue({
+        messages: [
+          {
+            id: "tail",
+            role: "assistant",
+            timestamp: "2026-10-08T00:00:00.000Z",
+            blocks: [{ type: "text", content: "当前这一页" }],
+          },
+        ],
+        hasMore: true,
+      });
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        workdir: "/tmp/assistant-chat",
+      }),
+      getMessages,
+    };
+    render(<AssistantPage api={api} />);
+    fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
+    expect(await screen.findByText("当前这一页")).toBeTruthy();
+    await waitFor(() => {
+      expect(getMessages).toHaveBeenCalledWith("asst", { before: "tail", limit: 40 });
+    });
+    expect(
+      document.querySelector('[data-message-id="older"]'),
+    ).toBeTruthy();
+  });
+
   it("labels the master's POPO private messages", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({
