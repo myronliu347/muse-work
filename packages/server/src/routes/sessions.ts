@@ -33,6 +33,8 @@ sessionsRoutes.get("/sessions", (c) => {
       executionSessionId?: string;
       agentMode?: "single" | "split";
       closeNote?: string;
+      workdir?: string;
+      baseBranch?: string;
     }) => {
       const sessions = [];
       if (issue.planningSessionId) {
@@ -55,6 +57,8 @@ sessionsRoutes.get("/sessions", (c) => {
         executionSessionId: issue.executionSessionId,
         agentMode: issue.agentMode,
         ...(issue.closeNote ? { closeNote: issue.closeNote } : {}),
+        ...(issue.workdir ? { workdir: issue.workdir } : {}),
+        ...(issue.baseBranch ? { baseBranch: issue.baseBranch } : {}),
         sessions,
       };
     };

@@ -1,19 +1,33 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { IssueTypeIcon } from "../issue/IssueTypeIcon";
+import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import type { PanelSelection } from "./botWorkspace";
 import "./BotLists.css";
 
+/** Fallback when the left panel cannot be measured (jsdom). Live layout uses the panel width. */
 export const BOT_LISTS_WIDE_MIN_WIDTH = 1240;
+
+/** Show the cards when the area left of the dock is at least this wide. */
+export const BOT_LISTS_PANEL_MIN_WIDTH = 900;
 
 export type BotListQueueItem = {
   id: string;
   kind: string;
   title: string;
+  /** 毫秒时间戳。缺省时行上仍留出空时间。 */
+  time?: number;
 };
 
 export type BotListIssue = {
   issueId: string;
   title: string;
   priority: string;
+  /** bug | feature | research | analysis | review | work。缺省 work。 */
+  type?: string;
+  /** 侧栏同一套：等待确认、正在运行、未读完成。 */
+  presence?: IssuePresence | null;
+  /** 进行中 / 空闲 / 失败 / 执行中 等。 */
+  statusLabel?: string;
 };
 
 export interface BotListsProps {
@@ -22,6 +36,8 @@ export interface BotListsProps {
   selected: PanelSelection;
   wide: boolean;
   menu: "queue" | "todo" | null;
+  /** Issue 会话只保留事项。缺省两边都显示。 */
+  showQueue?: boolean;
   onSelect: (panel: Exclude<PanelSelection, { kind: "none" }>) => void;
   onToggleMenu: (menu: "queue" | "todo") => void;
 }
@@ -54,17 +70,24 @@ export function readBotQueue(items: readonly unknown[]): BotListQueueItem[] {
   const seen = new Map<string, number>();
   return items.flatMap((value) => {
     if (!value || typeof value !== "object") return [];
-    const item = value as { id?: unknown; type?: unknown; title?: unknown };
+    const item = value as {
+      id?: unknown;
+      type?: unknown;
+      title?: unknown;
+      timestamp?: unknown;
+    };
     if (typeof item.title !== "string" || item.title.length === 0) return [];
     const type = queueTypeKey(item.type);
     const bucket = `${type}\0${item.title}`;
     const occurrence = seen.get(bucket) ?? 0;
     seen.set(bucket, occurrence + 1);
     const kindType = type.length > 0 ? type : undefined;
+    const time = typeof item.timestamp === "number" ? item.timestamp : undefined;
     return [{
       id: queueClientKey(item, occurrence),
       kind: queueKindLabel(kindType),
       title: item.title,
+      ...(time !== undefined ? { time } : {}),
     }];
   });
 }
@@ -78,10 +101,14 @@ export function useBotListsWide(): boolean {
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const media = window.matchMedia(query);
-    const onChange = (event: MediaQueryListEvent) => setWide(event.matches);
-    setWide(media.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
+    const sync = () => setWide(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+    };
   }, [query]);
   return wide;
 }
@@ -90,13 +117,15 @@ const columnStyle: CSSProperties = {
   width: 268,
   alignSelf: "flex-start",
   flex: "0 0 auto",
-  position: "relative",
   height: "auto",
+  position: "absolute",
+  top: 8,
+  right: 18,
+  zIndex: 3,
 };
 
 const cardStyle: CSSProperties = {
   borderRadius: 14,
-  boxShadow: "0 16px 40px rgba(0, 0, 0, 0.38)",
 };
 
 const toolStyle: CSSProperties = {
@@ -107,6 +136,14 @@ const toolStyle: CSSProperties = {
 
 function priorityLabel(priority: string): string {
   return /^p\d$/i.test(priority) ? priority.toUpperCase() : priority;
+}
+
+function formatQueueTime(time: number | undefined): string {
+  if (typeof time !== "number" || !Number.isFinite(time)) return "";
+  const date = new Date(time);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 function InboxIcon() {
@@ -173,6 +210,7 @@ function QueueRows({
             >
               <span className="bot-list-kind">{item.kind}</span>
               <span className="bot-list-title">{item.title}</span>
+              <span className="bot-list-time">{formatQueueTime(item.time)}</span>
             </button>
           </li>
         );
@@ -202,7 +240,18 @@ function IssueRows({
               aria-current={current ? "true" : undefined}
               onClick={() => onSelect({ kind: "issue", issueId: issue.issueId })}
             >
+              <span className="bot-list-icon-slot">
+                <IssueTypeIcon type={issue.type} />
+                {issue.presence ? (
+                  <span className="issue-sidebar-status-cover" aria-hidden="true">
+                    <IssuePresenceMark presence={issue.presence} />
+                  </span>
+                ) : null}
+              </span>
               <span className="bot-list-title">{issue.title}</span>
+              {issue.statusLabel ? (
+                <span className="bot-list-status">{issue.statusLabel}</span>
+              ) : null}
               <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
             </button>
           </li>
@@ -234,9 +283,9 @@ function TodoCard(props: {
   onSelect: BotListsProps["onSelect"];
 }) {
   return (
-    <section className="bot-list-card" style={cardStyle} aria-label="待办事项">
+    <section className="bot-list-card" style={cardStyle} aria-label="事项">
       <h2 className="bot-list-card-title">
-        待办事项
+        事项
         <span>{props.issues.length}</span>
       </h2>
       <IssueRows issues={props.issues} selected={props.selected} onSelect={props.onSelect} />
@@ -250,9 +299,11 @@ export function BotLists({
   selected,
   wide,
   menu,
+  showQueue = true,
   onSelect,
   onToggleMenu,
 }: BotListsProps) {
+  const openMenu = !showQueue && menu === "queue" ? null : menu;
   if (wide) {
     return (
       <aside className="bot-lists" style={columnStyle} data-testid="bot-lists">
@@ -264,40 +315,42 @@ export function BotLists({
 
   return (
     <div className="bot-lists-tools">
+      {showQueue ? (
+        <button
+          type="button"
+          className="bot-lists-tool"
+          style={toolStyle}
+          aria-label="待处理"
+          aria-expanded={openMenu === "queue"}
+          onClick={() => onToggleMenu("queue")}
+        >
+          <InboxIcon />
+          <span className="bot-lists-badge">{queue.length}</span>
+          <span className="bot-lists-tip">待处理</span>
+        </button>
+      ) : null}
       <button
         type="button"
         className="bot-lists-tool"
         style={toolStyle}
-        aria-label="待处理"
-        aria-expanded={menu === "queue"}
-        onClick={() => onToggleMenu("queue")}
-      >
-        <InboxIcon />
-        <span className="bot-lists-badge">{queue.length}</span>
-        <span className="bot-lists-tip">待处理</span>
-      </button>
-      <button
-        type="button"
-        className="bot-lists-tool"
-        style={toolStyle}
-        aria-label="待办"
-        aria-expanded={menu === "todo"}
+        aria-label="事项"
+        aria-expanded={openMenu === "todo"}
         onClick={() => onToggleMenu("todo")}
       >
         <TodoIcon />
         <span className="bot-lists-badge">{issues.length}</span>
-        <span className="bot-lists-tip">待办</span>
+        <span className="bot-lists-tip">事项</span>
       </button>
-      {menu ? (
+      {openMenu ? (
         <div className="bot-lists-pop" data-testid="bot-lists-menu">
-          {menu === "queue" ? (
+          {openMenu === "queue" ? (
             <>
               <h2 className="bot-list-card-title">待处理</h2>
               <QueueRows queue={queue} selected={selected} onSelect={onSelect} />
             </>
           ) : (
             <>
-              <h2 className="bot-list-card-title">待办事项</h2>
+              <h2 className="bot-list-card-title">事项</h2>
               <IssueRows issues={issues} selected={selected} onSelect={onSelect} />
             </>
           )}

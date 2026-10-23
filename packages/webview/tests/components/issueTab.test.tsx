@@ -137,6 +137,11 @@ function stubAssistant(fetched: string[]) {
 }
 
 function stubWideViewport() {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: 1600,
+  });
   vi.stubGlobal("matchMedia", (query: string) => ({
     media: query,
     matches: true,
@@ -271,21 +276,22 @@ describe("issue tab", () => {
     );
     expect(within(frame).getByRole("button", { name: RADII })).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
     expect(fetched.some((url) => url.includes("/sessions/plan-radii/messages"))).toBe(true);
     expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(false);
     expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
+    expect(within(frame).queryByTestId("bot-lists")).toBeNull();
+    expect(within(frame).queryByRole("button", { name: "待处理" })).toBeNull();
+    expect(within(frame).getByRole("button", { name: "事项" })).toBeInTheDocument();
 
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(onSelectSession).not.toHaveBeenCalled();
-    expect(within(frame).getByRole("button", { name: RADII })).toHaveClass("active");
-    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
+    expect(within(frame).queryByTestId("issue-session-title")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-    expect(within(frame).getByText(RADII_MESSAGE)).toBeInTheDocument();
 
     await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
-    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
     expect(within(dock).getByRole("button", { name: "切到会话" })).toBeInTheDocument();
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
@@ -295,16 +301,16 @@ describe("issue tab", () => {
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(within(frame).getByRole("button", { name: A11Y })).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
-    expect(await within(frame).findByText(A11Y_MESSAGE)).toBeInTheDocument();
+    expect((await within(frame).findAllByText(A11Y_MESSAGE)).length).toBeGreaterThan(0);
     expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(true);
     expect(within(frame).queryByText("规划不该被读到")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
 
     await user.click(within(frame).getByRole("button", { name: RADII }));
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-    expect(within(dock).getByRole("button", { name: "切到会话" })).toBeInTheDocument();
-    await user.click(within(dock).getByRole("button", { name: "切到会话" }));
+    expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
+    await user.click(within(frame).getByRole("button", { name: A11Y }));
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(within(frame).getByRole("button", { name: A11Y })).toHaveClass("active");
     expect(within(frame).getByRole("button", { name: RADII })).not.toHaveClass("active");
@@ -312,8 +318,8 @@ describe("issue tab", () => {
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
-    await user.click(within(frame).getByRole("button", { name: RADII }));
-    await user.click(within(lists).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await user.click(within(frame).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
     expect(within(dock).getByText(QUEUE_TITLE)).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
     await user.click(within(dock).getByRole("button", { name: "文件" }));
@@ -322,6 +328,7 @@ describe("issue tab", () => {
     expect(queuedTree).toHaveAttribute("title", "/work/a11y-exec");
     expect(queuedTree).not.toHaveTextContent("proj");
 
+    await user.click(within(frame).getByRole("button", { name: RADII }));
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(screen.queryByTestId("bot-lists")).toBeNull();
     expect(document.querySelector(".bot-tabs")).toBeNull();
@@ -354,7 +361,7 @@ describe("issue tab", () => {
     const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
     await user.click(within(sessionDock).getByRole("button", { name: "文件" }));
     const sessionTree = await within(sessionDock).findByTestId("file-tree-workdir");
-    expect(sessionTree).toHaveAttribute("title", "/work/a11y-exec");
+    expect(sessionTree).toHaveAttribute("title", "/work/radii");
     expect(sessionTree).not.toHaveTextContent("notes");
 
     const callsAfterSession = onSelectSession.mock.calls.length;
@@ -419,7 +426,7 @@ describe("issue tab", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await within(frame).findByTestId("desktop-panel-dock");
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
 
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(document.querySelector(".bot-tabs")).toBeNull();
@@ -432,7 +439,7 @@ describe("issue tab", () => {
     const back = await screen.findByTestId("assistant-frame");
     expect(within(back).getByRole("button", { name: RADII })).toHaveClass("active");
     expect(within(back).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    expect(within(back).getByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect(within(back).getAllByText(RADII_MESSAGE).length).toBeGreaterThan(0);
     expect(within(back).queryByText("今天想让我帮你做些什么？")).toBeNull();
   });
 
@@ -455,13 +462,11 @@ describe("issue tab", () => {
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await within(frame).findByTestId("desktop-panel-dock");
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-    expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
 
     const transcript = within(frame).getByTestId("issue-tab-transcript");
     expect(transcript).toHaveClass("issue-tab-transcript");
-    expect(within(transcript).getByTestId("issue-tab-messages")).toHaveClass(
-      "issue-tab-messages",
-    );
+    expect(transcript.querySelector(".messages-container")).not.toBeNull();
 
     const css = fs.readFileSync(
       path.join(__dirname, "../../src/styles/DesktopApp.css"),
@@ -478,8 +483,7 @@ describe("issue tab", () => {
     expect(transcriptCss).toMatch(/min-height:\s*0/);
     expect(transcriptCss).toMatch(/overflow:\s*hidden/);
 
-    const messagesCss = bodies("issue-tab-messages");
-    expect(messagesCss).toMatch(/overflow-y:\s*auto/);
+    const messagesCss = bodies("messages-container");
     expect(messagesCss).toMatch(
       /padding-left:\s*calc\(\s*var\(--desktop-sidebar-width\)\s*\+\s*var\(--space-4\)\s*\)/,
     );
@@ -517,7 +521,7 @@ describe("issue tab", () => {
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
     expect(within(paneA).getByTestId("issue-session-title")).toHaveTextContent(RADII);
-    expect(await within(paneA).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(paneA).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
     expect(within(paneB).queryByTestId("issue-session-header")).toBeNull();
     expect(fetched.some((url) => url.includes("/sessions/plan-radii/messages"))).toBe(true);
 
@@ -1165,20 +1169,19 @@ describe("issue tab", () => {
 
     const transcript = within(frame).getByTestId("issue-tab-transcript");
     expect(await within(transcript).findByText("会话加载失败")).toBeInTheDocument();
-    const messages = within(transcript).getByTestId("issue-tab-messages");
-    expect(messages).not.toBeEmptyDOMElement();
     expect(within(transcript).queryByText(RADII_MESSAGE)).toBeNull();
     expect(getMessages).toHaveBeenCalledTimes(1);
     expect(getMessages).toHaveBeenCalledWith("plan-radii");
 
     await user.click(within(transcript).getByRole("button", { name: "重试" }));
 
-    expect(await within(transcript).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(transcript).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
     expect(within(transcript).queryByText("会话加载失败")).toBeNull();
     expect(within(transcript).queryByRole("button", { name: "重试" })).toBeNull();
     expect(getMessages).toHaveBeenCalledTimes(2);
     expect(getMessages.mock.calls.filter((call) => call[0] === "plan-radii")).toHaveLength(2);
 
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(EMPTY) }));
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
@@ -1186,10 +1189,10 @@ describe("issue tab", () => {
       expect(getMessages).toHaveBeenCalledWith("plan-empty");
     });
     const emptyTranscript = within(frame).getByTestId("issue-tab-transcript");
-    expect(within(emptyTranscript).getByTestId("issue-session-title")).toHaveTextContent(EMPTY);
+    expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(EMPTY);
     expect(within(emptyTranscript).queryByText("会话加载失败")).toBeNull();
     expect(within(emptyTranscript).queryByRole("button", { name: "重试" })).toBeNull();
-    expect(within(emptyTranscript).getByTestId("issue-tab-messages")).toBeEmptyDOMElement();
+    expect(emptyTranscript.querySelector(".messages-container")).not.toBeNull();
   });
 
   it("keeps each issue's open file and expansion, and a list click stays on 详情", async () => {
@@ -1424,15 +1427,16 @@ describe("issue tab", () => {
     const dock = await within(frame).findByTestId("desktop-panel-dock");
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     const transcript = within(frame).getByTestId("issue-tab-transcript");
-    expect(await within(transcript).findByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(transcript).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
 
-    const scroller = within(transcript).getByTestId("issue-tab-messages");
+    const scroller = transcript.querySelector(".messages-container");
+    expect(scroller).not.toBeNull();
     scroller.scrollTop = 0;
     fireEvent.scroll(scroller);
     fireEvent.scroll(scroller);
 
-    expect(await within(transcript).findByText("更早的圆角")).toBeInTheDocument();
-    expect(within(transcript).getByText(RADII_MESSAGE)).toBeInTheDocument();
+    expect((await within(transcript).findAllByText("更早的圆角")).length).toBeGreaterThan(0);
+    expect(within(transcript).getAllByText(RADII_MESSAGE).length).toBeGreaterThan(0);
     expect(olderStarted).toBe(1);
     expect(calls).toEqual(
       expect.arrayContaining([
@@ -1468,7 +1472,7 @@ describe("issue tab", () => {
       const frame = await screen.findByTestId("assistant-frame");
       const dock = await within(frame).findByTestId("desktop-panel-dock");
       await user.click(within(dock).getByRole("button", { name: "打开会话" }));
-      expect(await within(frame).findByText(RADII_MESSAGE)).toBeInTheDocument();
+      expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
       const radiiCalls = () =>
         getMessages.mock.calls.filter((call) => call[0] === "plan-radii");
       expect(radiiCalls()).toHaveLength(1);
@@ -1539,5 +1543,57 @@ describe("issue tab", () => {
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
       "desktop-panel-tab--active",
     );
+  });
+
+  it("clears unread when the issue list or tab is chosen", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const unread = (
+      entry: DesktopSessionEntry,
+    ): DesktopSessionEntry => ({ ...entry, unreadDone: true });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [
+              {
+                ...RADII_ISSUE,
+                sessions: [unread(session("plan-radii", "/work/radii", RADII))],
+              },
+              {
+                ...A11Y_ISSUE,
+                sessions: [
+                  session("plan-a11y", "/work/a11y-plan", "规划"),
+                  unread(session("exec-a11y", "/work/a11y-exec", "执行")),
+                ],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const lists = await within(frame).findByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "desktopClearUnread",
+      sessionIds: ["plan-radii"],
+    });
+    expect(within(frame).getAllByRole("button", { name: "Muse Bot" })).toHaveLength(1);
+
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    await waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopClearUnread",
+        sessionIds: ["exec-a11y"],
+      });
+    });
   });
 });

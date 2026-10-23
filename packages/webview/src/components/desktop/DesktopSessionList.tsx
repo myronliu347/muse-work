@@ -4,6 +4,7 @@ import {
   resolveSidebarSessions,
 } from "../session/SessionTree";
 import { DESKTOP_SIDEBAR_WIDTH } from "../../muse/layout";
+import { NewSessionIcon } from "../shared/HeaderIcons";
 import type {
   DesktopSessionEntry,
   DesktopSessionGroup,
@@ -30,6 +31,8 @@ export interface DesktopSessionListProps {
   onOpenInEditor?: (workdir: string) => void;
   onOpenInTerminal?: (workdir: string) => void;
   onRevealInFinder?: (workdir: string) => void;
+  width?: number;
+  onWidthChange?: (width: number) => void;
 }
 
 /**
@@ -53,13 +56,32 @@ export const DesktopSessionList: React.FC<DesktopSessionListProps> = ({
   onOpenInEditor,
   onOpenInTerminal,
   onRevealInFinder,
+  width = DESKTOP_SESSION_LIST_WIDTH,
+  onWidthChange,
 }) => {
+  const onResizeStart = (event: React.MouseEvent) => {
+    if (!onWidthChange) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = width;
+    const move = (e: MouseEvent) => {
+      onWidthChange(startWidth + e.clientX - startX);
+    };
+    const up = () => {
+      document.body.classList.remove("is-panel-resizing");
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+    document.body.classList.add("is-panel-resizing");
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
   return (
     <aside
       className="desktop-session-list"
       data-testid="desktop-session-list"
       style={{
-        width: DESKTOP_SESSION_LIST_WIDTH,
+        width,
         marginLeft: DESKTOP_SIDEBAR_WIDTH,
       }}
     >
@@ -70,9 +92,16 @@ export const DesktopSessionList: React.FC<DesktopSessionListProps> = ({
         disabled={disabled}
         onClick={onNewSession}
       >
-        <span className="codicon codicon-add app-menu-icon" aria-hidden="true" />
+        <NewSessionIcon className="app-menu-icon" />
         新对话
       </button>
+      {onWidthChange ? (
+        <div
+          className="desktop-session-list-resize"
+          data-testid="desktop-session-list-resize"
+          onMouseDown={onResizeStart}
+        />
+      ) : null}
       <SessionTree
         {...resolveSidebarSessions({
           sessionTree,

@@ -70,9 +70,34 @@ describe("botWorkspace", () => {
     );
     expect(focusTab(opened, "bot").active).toBe("bot");
     expect(focusTab(opened, "bot").dock).toBe("detail");
+    expect(focusTab(opened, "bot").panel).toEqual(opened.panel);
+    const focused = focusTab(opened, "radii");
+    expect(focused.active).toBe("radii");
+    expect(focused.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(focused.dock).toBe("detail");
     const closed = closeIssueTab(opened, "a11y");
     expect(closed.active).toBe("bot");
     expect(closed.openIssueIds).toEqual(["radii"]);
+  });
+
+  it("selecting an open issue from another issue tab focuses that tab", () => {
+    const opened = openIssueSession(
+      openIssueSession(initialBotWorkspace("radii"), "radii"),
+      "a11y",
+    );
+    const next = selectPanel(opened, { kind: "issue", issueId: "radii" });
+    expect(next.active).toBe("radii");
+    expect(next.panel).toEqual({ kind: "issue", issueId: "radii" });
+  });
+
+  it("selecting an open issue from Muse Bot does not leave the home", () => {
+    const opened = focusTab(
+      openIssueSession(initialBotWorkspace("radii"), "radii"),
+      "bot",
+    );
+    const next = selectPanel(opened, { kind: "issue", issueId: "radii" });
+    expect(next.active).toBe("bot");
+    expect(next.panel).toEqual({ kind: "issue", issueId: "radii" });
   });
 
   it("issueTabSessionId prefers an execution session over planning", () => {

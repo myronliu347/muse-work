@@ -344,6 +344,12 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
       void session.handleRefreshSessionTree().catch(() => {
         // 侧栏保持旧数据，下次任意刷新兜底
       }),
+    desktopClearUnread: (msg) => {
+      const sessionIds = Array.isArray(msg.sessionIds)
+        ? msg.sessionIds.filter((id): id is string => typeof id === "string")
+        : [];
+      session.clearUnreadSessions(sessionIds);
+    },
     getMcpServers: () => void chat.handleGetMcpServers(),
     connectMcpServer: (msg) =>
       void chat.handleConnectMcpServer(msg as { serverName?: string }),

@@ -66,6 +66,8 @@ export interface ChatBodyProps {
   currentSession?: SessionMetadata;
   /** The message composer (rendered both in the new-session page and the input area). */
   composer: ReactNode;
+  /** Issue 标签嵌入会话详情时不展示欢迎页。 */
+  hideWelcome?: boolean;
 }
 
 export const ChatBody = forwardRef<
@@ -112,6 +114,7 @@ export const ChatBody = forwardRef<
     onReject,
     currentSession,
     composer,
+    hideWelcome,
   },
   ref,
 ) {
@@ -125,7 +128,7 @@ export const ChatBody = forwardRef<
   // Welcome page shows only when there are no visible messages yet. Login is optional:
   // a direct-connect config (baseURL/apiKey) works without authentication, so an
   // unauthenticated user who sends a message must still see the chat, not the welcome page.
-  const showWelcome = !hasVisibleMessages;
+  const showWelcome = !hideWelcome && !hasVisibleMessages;
   // Withhold the welcome page until the initial state (incl. auth status) has
   // arrived, otherwise logged-in users see the login CTA flash before
   // setInitialState updates isAuthenticated to true.

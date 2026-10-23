@@ -107,6 +107,7 @@ export function toEntry(session: TreeSession): DesktopSessionEntry {
     hasWorktree: Boolean(session.worktreeName),
     worktreeName: session.worktreeName,
     worktreeBranch: session.worktreeBranch,
+    ...(session.baseBranch ? { baseBranch: session.baseBranch } : {}),
     worktreeRepoRoot: session.worktreeRepoRoot,
     running: session.running ?? session.status === "running",
     sessionStatus:

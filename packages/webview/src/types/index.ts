@@ -284,6 +284,9 @@ export interface DesktopIssueGroup {
   agentMode?: "single" | "split";
   /** 完成时的结果结论，或取消时的原因。 */
   closeNote?: string;
+  workdir?: string;
+  /** 创建 worktree 时使用的基准分支。 */
+  baseBranch?: string;
   sessions: DesktopSessionEntry[];
 }
 
@@ -300,6 +303,8 @@ export interface DesktopSessionEntry {
   worktreeName?: string;
   /** Branch created for the worktree (e.g. `worktree-<name>`). */
   worktreeBranch?: string;
+  /** Base branch / ref used when creating the worktree. */
+  baseBranch?: string;
   /** Main repo root — groups worktree sessions under the same parent as normal ones. */
   worktreeRepoRoot?: string;
   /** True while this session is generating — drives the per-session running dot (FR-031). */

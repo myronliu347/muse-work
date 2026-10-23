@@ -12,10 +12,7 @@ import {
   DesktopSidebar,
   resolveSidebarSessions,
 } from "./desktop/DesktopSidebar";
-import {
-  DESKTOP_SESSION_LIST_WIDTH,
-  DesktopSessionList,
-} from "./desktop/DesktopSessionList";
+import { DesktopSessionList } from "./desktop/DesktopSessionList";
 import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
@@ -27,6 +24,7 @@ import {
   type BotWorkspaceContextValue,
 } from "./desktop/BotTabs";
 import {
+  BOT_LISTS_PANEL_MIN_WIDTH,
   BotLists,
   readBotQueue,
   useBotListsWide,
@@ -38,8 +36,8 @@ import {
   type PanelSelection,
 } from "./desktop/botWorkspace";
 import { DockDetail } from "./desktop/DockDetail";
+import { ChatBody } from "./chat/ChatBody";
 import { ChatComposer } from "./chat/ChatComposer";
-import { Message as MessageView } from "./message/Message";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
   settingsPageLeaveBlocked,
@@ -52,6 +50,10 @@ import {
   IssueSessionHeader,
   type IssueViewTab,
 } from "./issue/IssueSessionHeader";
+import {
+  issueGroupActivity,
+  issueSessionBusy,
+} from "./session/SessionStatusGlyph";
 import {
   findIssueGroupForSession,
   isSplitIssueGroup,
@@ -79,6 +81,7 @@ import {
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
+import { useDesktopSessionListWidth } from "../hooks/useDesktopSidebarWidth";
 import { DesktopSidebarToggle } from "./desktop/DesktopSidebarToggle";
 import { useMuseTheme } from "../ui/theme";
 import museM from "../assets/muse-m.png";
@@ -285,6 +288,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     };
   }, [assistantVisible, museApi]);
   const botListsWide = useBotListsWide();
+  const [botSwitchHost, setBotSwitchHost] = useState<HTMLDivElement | null>(null);
   const [botMenu, setBotMenu] = useState<"queue" | "todo" | null>(null);
   const [botQueue, setBotQueue] = useState<BotListQueueItem[]>([]);
   useEffect(() => {
@@ -313,15 +317,36 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       window.removeEventListener("message", onMessage);
     };
   }, [assistantVisible, museApi]);
-  const botIssues = (host?.issueGroups ?? []).map((group) => ({
-    issueId: group.issueId,
-    title: group.title,
-    priority: group.priority,
-  }));
+  const issueActivityById = new Map(
+    (host?.issueGroups ?? []).map((group) => [
+      group.issueId,
+      issueGroupActivity(group, {
+        currentSessionId: state.currentSession?.id,
+        isStreaming: state.isStreaming,
+      }),
+    ]),
+  );
+  const botIssues = (host?.issueGroups ?? []).map((group) => {
+    const activity = issueActivityById.get(group.issueId);
+    return {
+      issueId: group.issueId,
+      title: group.title,
+      priority: group.priority,
+      type: group.type,
+      presence: activity?.presence ?? null,
+      statusLabel: activity?.label,
+    };
+  });
+  const issueTabPresence: Record<string, ReturnType<typeof issueGroupActivity>["presence"]> = {};
+  for (const [issueId, activity] of issueActivityById) {
+    issueTabPresence[issueId] = activity.presence;
+  }
+  const clearIssueUnreadRef = useRef<(issueId: string) => void>(() => {});
   const selectBotPanel = useCallback(
     (panel: Exclude<PanelSelection, { kind: "none" }>) => {
       workspace.selectPanel(panel);
       setBotMenu(null);
+      if (panel.kind === "issue") clearIssueUnreadRef.current(panel.issueId);
     },
     [workspace],
   );
@@ -410,15 +435,45 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     issueTranscript && issueTranscript.sessionId === openIssueSessionId
       ? issueTranscript
       : null;
-  const shownIssueMessages =
-    openIssueTranscript?.status === "ready" ? openIssueTranscript.messages : [];
+  const issueSessionLive =
+    Boolean(openIssueSessionId) && state.currentSession?.id === openIssueSessionId;
+  const issueShowsLive = issueSessionLive && state.messages.length > 0;
+  const shownIssueMessages = issueShowsLive
+    ? state.messages
+    : openIssueTranscript?.status === "ready"
+      ? openIssueTranscript.messages
+      : [];
   const issueTranscriptFailed = openIssueTranscript?.status === "error";
-  const handleIssueMessagesScroll = (event: React.UIEvent<HTMLDivElement>) => {
+  const issueStreaming = issueShowsLive
+    ? state.isStreaming
+    : Boolean(
+        openIssueGroup &&
+          issueSessionBusy(openIssueGroup, openIssueSessionId, {
+            currentSessionId: state.currentSession?.id,
+            isStreaming: state.isStreaming,
+          }),
+      );
+  // 执行会话还是空的时候，停在执行标签上整页是黑的。用户没手动选过标签时，
+  // 退回有记录的规划会话。
+  useEffect(() => {
+    if (!openIssueGroup) return;
+    if (issueTabChoice?.issueId === openIssueGroup.issueId) return;
+    if (!openIssueGroup.executionSessionId || openIssueViewTab !== "execution") return;
+    if (openIssueTranscript?.status !== "ready" || openIssueTranscript.messages.length > 0) {
+      return;
+    }
+    if (!resolveIssuePlanningSessionId(openIssueGroup)) return;
+    setIssueTabChoice({ issueId: openIssueGroup.issueId, tab: "planning" });
+  }, [openIssueGroup, issueTabChoice, openIssueViewTab, openIssueTranscript]);
+  const loadOlderIssueMessages = () => {
+    if (issueShowsLive) {
+      const before = state.messages[0]?.id;
+      if (before) postToHost({ command: "loadOlderMessages", before });
+      return;
+    }
     const transcript = issueTranscriptRef.current;
     if (!openIssueSessionId || !transcript || transcript.status !== "ready") return;
     if (transcript.sessionId !== openIssueSessionId || !transcript.hasMore) return;
-    const scroller = event.currentTarget;
-    if (scroller.scrollTop >= 48) return;
     const oldestId = transcript.messages[0]?.id;
     if (!oldestId || requestedOlderIssueRef.current === oldestId) return;
     requestedOlderIssueRef.current = oldestId;
@@ -700,6 +755,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const [chatColumnWidth, setChatColumnWidth] = useState(
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
   );
+  // Null until the frame is measured (jsdom). Then cards need this much
+  // room beside the dock — the prototype's 1240px window breakpoint.
+  // matchMedia follows the screen under the Electron viewport, so a real
+  // measurement wins.
+  const [leftPanelWidth, setLeftPanelWidth] = useState(0);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [showNewIssue, setShowNewIssue] = useState(false);
@@ -768,21 +828,40 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
-  useEffect(() => {
+  // Re-measure after every commit: opening the dock does not resize the frame,
+  // and matchMedia does not follow that either.
+  const measureFrame = useCallback(() => {
     const el = chatContainerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const apply = () => {
-      // clientWidth is the CSS-constrained layout width (requires min-width:0
-      // on .chat-container). getBoundingClientRect can report an overflowed
-      // content size and feed a too-large dockMaxWidth, worsening the spill.
-      const width = el.clientWidth;
-      if (width > 0) setChatColumnWidth(width);
+    const frame = el?.clientWidth ?? 0;
+    if (frame > 0) {
+      setChatColumnWidth((current) => (current === frame ? current : frame));
+    }
+    const main = el?.querySelector(".desktop-chat-main");
+    const left = main?.clientWidth ?? 0;
+    if (left > 0) {
+      setLeftPanelWidth((current) => (current === left ? current : left));
+    }
+  }, []);
+  useLayoutEffect(() => {
+    measureFrame();
+  });
+  useEffect(() => {
+    window.addEventListener("resize", measureFrame);
+    window.visualViewport?.addEventListener("resize", measureFrame);
+    const el = chatContainerRef.current;
+    let ro: ResizeObserver | undefined;
+    if (el && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => measureFrame());
+      ro.observe(el);
+      const dock = el.querySelector(".desktop-panel-dock");
+      if (dock) ro.observe(dock);
+    }
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measureFrame);
+      window.visualViewport?.removeEventListener("resize", measureFrame);
     };
-    apply();
-    const ro = new ResizeObserver(() => apply());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [paneId, host?.panes?.length, view, shellSurface]);
+  }, [measureFrame, paneId, host?.panes?.length, view, shellSurface]);
 
   useEffect(() => {
     paneIdRef.current = paneId;
@@ -829,6 +908,20 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
+  useEffect(() => {
+    clearIssueUnreadRef.current = (issueId: string) => {
+      const group = (host?.issueGroups ?? []).find((item) => item.issueId === issueId);
+      const sessionIds = (group?.sessions ?? [])
+        .filter((item) => item.unreadDone && item.sessionId)
+        .map((item) => item.sessionId);
+      if (sessionIds.length === 0) return;
+      postToHost({ command: "desktopClearUnread", sessionIds });
+    };
+  }, [host?.issueGroups, postToHost]);
+  useEffect(() => {
+    if (workspace.active === "bot") return;
+    clearIssueUnreadRef.current(workspace.active);
+  }, [workspace.active, host?.issueGroups]);
   const updatePreviewGroup = useCallback(
     (
       patch:
@@ -864,6 +957,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     });
   }, [effectiveWorkdir, patchPane]);
 
+  const issueSendSessionRef = useRef<string | undefined>(undefined);
+  issueSendSessionRef.current =
+    assistantVisible && openIssueSessionId ? openIssueSessionId : undefined;
+
   const send = useChatSend({
     postToHost,
     patchPane,
@@ -877,6 +974,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     worktreeBranch,
     gitBranches,
     effectiveWorkdir,
+    pinnedSessionIdRef: issueSendSessionRef,
   });
   const {
     handleSendMessage,
@@ -891,10 +989,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
 
   const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
-  const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
+  const { width: sessionListWidth, setWidth: setSessionListWidth } =
+    useDesktopSessionListWidth();
+  const layoutSidebarWidth = sidebarWidth;
   const sessionListInset =
     noPaneDesktop && noPaneRail === "sessions" && !sidebarCollapsed
-      ? DESKTOP_SESSION_LIST_WIDTH
+      ? sessionListWidth
       : 0;
   const contentInset = layoutSidebarWidth + sessionListInset;
   const sidebarInset =
@@ -1368,15 +1468,25 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       workspace.selectDock(kind);
       handleSelectPanel(kind);
     },
-    onSelectDetail: () => {
-      workspace.selectDock(DOCK_DETAIL_TAB);
-    },
-    detailActive: workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing,
-    detail: (
+    onSelectDetail: onSessionsSurface
+      ? undefined
+      : () => {
+          workspace.selectDock(DOCK_DETAIL_TAB);
+        },
+    detailActive:
+      !onSessionsSurface &&
+      (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
+    detail: onSessionsSurface ? undefined : (
       <DockDetail
         selection={detailSelection}
         actionLabel={detailActionLabel}
         onOpenSession={workspace.openIssueSession}
+        onOpenInEditor={(workdir) =>
+          postToHost({ command: "desktopOpenInEditor", workdir })
+        }
+        onRevealInFinder={(workdir) =>
+          postToHost({ command: "revealInFinder", path: workdir })
+        }
       />
     ),
     onCloseTab: handleTogglePanel,
@@ -1428,74 +1538,127 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     openPreviewHandler,
   };
 
-  const botLists = assistantVisible && !dockFullscreen ? (
+  // Cards follow the pane left of the dock, not the window. matchMedia is
+  // only the fallback when that pane has not been measured (jsdom).
+  const showWideCards =
+    leftPanelWidth > 0
+      ? leftPanelWidth >= BOT_LISTS_PANEL_MIN_WIDTH
+      : botListsWide;
+  const onBotHome = workspace.active === "bot";
+  const showCards = onBotHome && showWideCards;
+  const listsMenuOpen = Boolean(botMenu) && !showCards && (onBotHome || botMenu === "todo");
+  const botLists =
+    assistantVisible && !dockFullscreen ? (
     <BotLists
       queue={botQueue}
       issues={botIssues}
       selected={workspace.panel}
-      wide={botListsWide}
+      wide={showCards}
       menu={botMenu}
+      showQueue={onBotHome}
       onSelect={selectBotPanel}
       onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
     />
   ) : null;
 
   const assistantFrame = (
-    <div className="chat-container" ref={chatContainerRef} data-testid="assistant-frame">
+    <div
+      className={`chat-container assistant-frame${listsMenuOpen ? " assistant-frame--lists-open" : ""}`}
+      ref={chatContainerRef}
+      data-testid="assistant-frame"
+    >
       <div className="bot-frame-bar">
         <BotTabs
           state={workspace}
           titles={issueTitles}
+          presence={issueTabPresence}
           onFocus={workspace.focusTab}
           onClose={workspace.closeIssueTab}
         />
-        {botListsWide ? null : botLists}
+        <div className="bot-frame-switch" ref={setBotSwitchHost}>
+          {openIssueGroup ? (
+            <IssueSessionHeader
+              placement="corner"
+              title={openIssueGroup.title}
+              activeTab={openIssueViewTab}
+              onTabChange={(tab) => {
+                if (tab === "execution" && !openIssueGroup.executionSessionId) return;
+                setIssueTabChoice({ issueId: openIssueGroup.issueId, tab });
+              }}
+              showTabs={isSplitIssueGroup(openIssueGroup)}
+              executionEnabled={Boolean(openIssueGroup.executionSessionId)}
+            />
+          ) : null}
+        </div>
+        {showCards ? null : botLists}
       </div>
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
           {openIssueGroup ? (
             <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
-              <IssueSessionHeader
-                title={openIssueGroup.title}
-                activeTab={openIssueViewTab}
-                onTabChange={(tab) => {
-                  if (tab === "execution" && !openIssueGroup.executionSessionId) return;
-                  setIssueTabChoice({ issueId: openIssueGroup.issueId, tab });
-                }}
-                showTabs={isSplitIssueGroup(openIssueGroup)}
-                executionEnabled={Boolean(openIssueGroup.executionSessionId)}
-              />
-              <div
-                className="issue-tab-messages"
-                data-testid="issue-tab-messages"
-                onScroll={handleIssueMessagesScroll}
-              >
-                {issueTranscriptFailed ? (
-                  <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
-                    <span>会话加载失败</span>
-                    <button
-                      type="button"
-                      className="issue-tab-load-retry"
-                      onClick={() =>
-                        setIssueTranscriptAttempt((attempt) => attempt + 1)
-                      }
-                    >
-                      重试
-                    </button>
-                  </div>
-                ) : (
-                  shownIssueMessages.map((message) => (
-                    <MessageView
-                      key={message.id}
-                      message={message}
-                      vscode={vscode}
-                      onOpenFile={handleOpenFile}
-                      onOpenPreview={handleOpenPreview}
-                      workdir={dockWorkdir}
-                    />
-                  ))
-                )}
-              </div>
+              {issueTranscriptFailed ? (
+                <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
+                  <span>会话加载失败</span>
+                  <button
+                    type="button"
+                    className="issue-tab-load-retry"
+                    onClick={() =>
+                      setIssueTranscriptAttempt((attempt) => attempt + 1)
+                    }
+                  >
+                    重试
+                  </button>
+                </div>
+              ) : (
+                <ChatBody
+                  hideWelcome
+                  isRestoring={false}
+                  messages={shownIssueMessages}
+                  initialized
+                  isAuthenticated={state.isAuthenticated}
+                  configurationData={state.configurationData}
+                  onLogin={handleLogin}
+                  queuedMessages={issueShowsLive ? state.queuedMessages : []}
+                  isStreaming={issueStreaming}
+                  isCompacting={issueShowsLive && state.isCompacting}
+                  vscode={vscode}
+                  onRewindToMessage={issueShowsLive ? handleRewindToMessage : () => undefined}
+                  workdir={dockWorkdir}
+                  onOpenPreview={handleOpenPreview}
+                  onOpenFile={handleOpenFile}
+                  onOpenAgentTranscript={handleOpenAgentTranscript}
+                  hasOlderMessages={
+                    issueShowsLive
+                      ? state.hasOlderMessages
+                      : openIssueTranscript?.status === "ready" && openIssueTranscript.hasMore
+                  }
+                  onLoadOlder={loadOlderIssueMessages}
+                  onRevertFileHistory={issueShowsLive ? handleRevertFileHistory : () => undefined}
+                  revertingFileHistory={issueShowsLive && revertingFileHistory}
+                  onOpenFileHistoryFile={handleOpenFileHistoryDiff}
+                  backgroundTasks={issueShowsLive ? state.backgroundTasks : []}
+                  isBackgroundTasksCollapsed={state.isBackgroundTasksCollapsed}
+                  onToggleBackgroundTasks={() =>
+                    dispatch({ type: "TOGGLE_BACKGROUND_TASKS_COLLAPSE" })
+                  }
+                  onStopTask={(taskId) =>
+                    postToHost({ command: "stopBackgroundTask", taskId })
+                  }
+                  tasks={issueShowsLive ? state.tasks : []}
+                  isTaskListCollapsed={state.isTaskListCollapsed}
+                  onToggleTaskList={() => dispatch({ type: "TOGGLE_TASK_LIST_COLLAPSE" })}
+                  isQueueCollapsed={state.isQueueCollapsed}
+                  onToggleQueueCollapse={() => dispatch({ type: "TOGGLE_QUEUE_COLLAPSE" })}
+                  onEditQueuedMessage={handleEditQueuedMessage}
+                  onDeleteQueuedMessage={handleDeleteQueuedMessage}
+                  editingQueuedId={issueShowsLive ? state.editingQueuedId : null}
+                  pendingConfirmations={issueShowsLive ? state.pendingConfirmations : []}
+                  onConfirm={handleConfirmation}
+                  onReject={handleRejection}
+                  currentSession={issueShowsLive ? state.currentSession : undefined}
+                  composer={composer}
+                />
+              )}
             </div>
           ) : (
             <AssistantPage
@@ -1512,10 +1675,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 title: group.title,
               }))}
               emptyState={<AssistantWelcome />}
+              viewSwitchHost={botSwitchHost}
             />
           )}
+          {showCards ? botLists : null}
         </div>
-        {botListsWide ? botLists : null}
         <DesktopPanelSlots {...dock} />
       </div>
     </div>
@@ -1706,7 +1870,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           } as React.CSSProperties
         }
       >
-        <DesktopSidebarToggle />
+        {noPaneRail === "sessions" ? <DesktopSidebarToggle /> : null}
         <DesktopSidebar
           sidebarAccessHidden={sidebarCollapsed}
           onNewSession={() => {
@@ -1824,6 +1988,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             onRevealInFinder={(workdir) =>
               postToHost({ command: "revealInFinder", path: workdir })
             }
+            width={sessionListWidth}
+            onWidthChange={setSessionListWidth}
           />
         ) : null}
         {noPaneRail === "settings" ? (

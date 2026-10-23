@@ -63,3 +63,64 @@ export function resetDesktopSidebarWidth(): void {
   }
   emit();
 }
+
+/** Default width of the session list beside the icon rail. */
+const SESSION_LIST_DEFAULT_WIDTH = 232;
+const SESSION_LIST_WIDTH_STORAGE_KEY = "muse.desktopSessionListWidth";
+
+const sessionListListeners = new Set<() => void>();
+let sessionListCurrent: number | undefined;
+
+function readStoredSessionListWidth(): number {
+  try {
+    const raw = globalThis.localStorage?.getItem(SESSION_LIST_WIDTH_STORAGE_KEY);
+    if (raw == null || raw === "") return SESSION_LIST_DEFAULT_WIDTH;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return SESSION_LIST_DEFAULT_WIDTH;
+    return clampSidebarWidth(parsed);
+  } catch {
+    return SESSION_LIST_DEFAULT_WIDTH;
+  }
+}
+
+function emitSessionList(): void {
+  for (const listener of sessionListListeners) listener();
+}
+
+export function getDesktopSessionListWidth(): number {
+  if (sessionListCurrent === undefined) {
+    sessionListCurrent = readStoredSessionListWidth();
+  }
+  return sessionListCurrent;
+}
+
+export function subscribeDesktopSessionListWidth(
+  listener: () => void,
+): () => void {
+  sessionListListeners.add(listener);
+  return () => {
+    sessionListListeners.delete(listener);
+  };
+}
+
+export function setDesktopSessionListWidth(width: number): void {
+  const next = clampSidebarWidth(width);
+  if (next === getDesktopSessionListWidth()) return;
+  sessionListCurrent = next;
+  try {
+    globalThis.localStorage?.setItem(SESSION_LIST_WIDTH_STORAGE_KEY, String(next));
+  } catch {
+    /* private mode / blocked storage */
+  }
+  emitSessionList();
+}
+
+export function resetDesktopSessionListWidth(): void {
+  sessionListCurrent = SESSION_LIST_DEFAULT_WIDTH;
+  try {
+    globalThis.localStorage?.removeItem(SESSION_LIST_WIDTH_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  emitSessionList();
+}

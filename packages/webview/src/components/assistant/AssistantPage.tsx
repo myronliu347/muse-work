@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { createPortal } from "react-dom";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { observeElementRect, useVirtualizer } from "@tanstack/react-virtual";
@@ -471,6 +472,11 @@ export const AssistantPage: React.FC<{
   emptyState?: ReactNode;
   /** 桌面 Muse Bot 已在旁边挂上待处理列表时，不再在消息列里重复一份。 */
   hideQueue?: boolean;
+  /**
+   * 桌面标签栏上的挂点。传入后「对话 / 轨迹」画到这里，
+   * 不再在消息列顶上另起一行「Muse Bot」标题。
+   */
+  viewSwitchHost?: HTMLElement | null;
 }> = ({
   api,
   vscode = noopHost,
@@ -482,6 +488,7 @@ export const AssistantPage: React.FC<{
   mentionIssues,
   emptyState,
   hideQueue = false,
+  viewSwitchHost,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -812,32 +819,40 @@ export const AssistantPage: React.FC<{
     }
   }
 
+  const viewSwitch = (
+    <div className="assistant-header-actions">
+      <div className="assistant-view-switch" role="group" aria-label="查看内容">
+        <button
+          type="button"
+          aria-pressed={mode === "chat"}
+          onClick={() => setMode("chat")}
+        >
+          对话
+        </button>
+        <button
+          type="button"
+          aria-pressed={mode === "transcript"}
+          onClick={() => setMode("transcript")}
+        >
+          轨迹
+        </button>
+      </div>
+      {showPanelToggle && onToggleDock ? (
+        <PanelToggleControl onToggleDock={onToggleDock} />
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="assistant-page">
-      <header className="assistant-header">
-        <div className="assistant-header-title">Muse Bot</div>
-        <div className="assistant-header-actions">
-          <div className="assistant-view-switch" role="group" aria-label="查看内容">
-            <button
-              type="button"
-              aria-pressed={mode === "chat"}
-              onClick={() => setMode("chat")}
-            >
-              对话
-            </button>
-            <button
-              type="button"
-              aria-pressed={mode === "transcript"}
-              onClick={() => setMode("transcript")}
-            >
-              轨迹
-            </button>
-          </div>
-          {showPanelToggle && onToggleDock ? (
-            <PanelToggleControl onToggleDock={onToggleDock} />
-          ) : null}
-        </div>
-      </header>
+      {viewSwitchHost !== undefined ? (
+        viewSwitchHost ? createPortal(viewSwitch, viewSwitchHost) : null
+      ) : (
+        <header className="assistant-header">
+          <div className="assistant-header-title">Muse Bot</div>
+          {viewSwitch}
+        </header>
+      )}
       {hideQueue ? null : (
       <section className="assistant-queue" aria-label="待处理队列">
         <div className="assistant-queue-card">

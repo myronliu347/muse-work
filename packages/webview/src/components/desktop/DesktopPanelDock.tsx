@@ -130,13 +130,11 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const visibleKinds = PANEL_ADD_ORDER.filter(
     (kind) => checked.includes(kind) || (showFileTabs && kind === "file"),
   );
-  // 详情 alone is not a kind panel. The + menu appears after the toggle
-  // opens one, matching the old closed-dock toggle.
-  const canAdd =
-    checked.length > 0 &&
-    PANEL_ADD_ORDER.some(
-      (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
-    );
+  // 详情 is not a kind, so a detail-only dock still needs + to open
+  // 文件、终端、浏览器、变更.
+  const canAdd = PANEL_ADD_ORDER.some(
+    (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
+  );
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
   const clampedWidth = clampDockWidth(
@@ -175,22 +173,24 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       )}
       <div className="desktop-panel-dock-header">
         <div className="desktop-panel-dock-tabs" ref={tabsRef}>
-          <div
-            className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}`}
-            data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
-          >
-            <button
-              type="button"
-              className="desktop-panel-tab-label"
-              onClick={() => onSelectDetail?.()}
+          {onSelectDetail ? (
+            <div
+              className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}`}
+              data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
             >
-              <i
-                className="codicon codicon-info desktop-panel-tab-icon"
-                aria-hidden
-              />
-              详情
-            </button>
-          </div>
+              <button
+                type="button"
+                className="desktop-panel-tab-label"
+                onClick={() => onSelectDetail()}
+              >
+                <i
+                  className="codicon codicon-info desktop-panel-tab-icon"
+                  aria-hidden
+                />
+                详情
+              </button>
+            </div>
+          ) : null}
           {visibleKinds.map((kind) => {
             if (kind === "file" && showFileTabs) {
               return fileTabs.map((tab) => {

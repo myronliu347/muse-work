@@ -1,5 +1,8 @@
+import type { ReactNode } from "react";
 import type { DesktopIssueGroup } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
+import { Tooltip } from "../shared/Tooltip";
+import { issueTabSessionId } from "./botWorkspace";
 
 export type DockDetailSelection =
   | { kind: "issue"; issue: DesktopIssueGroup }
@@ -10,16 +13,65 @@ export interface DockDetailProps {
   selection: DockDetailSelection;
   actionLabel: "打开会话" | "切到会话" | null;
   onOpenSession: (issueId: string) => void;
+  onOpenInEditor?: (workdir: string) => void;
+  onRevealInFinder?: (workdir: string) => void;
 }
 
 function priorityText(priority: string): string {
   return /^p\d$/i.test(priority) ? priority.toUpperCase() : priority;
 }
 
+function issueEnvironment(issue: DesktopIssueGroup): {
+  workdir: string;
+  worktree: string;
+  baseBranch: string;
+} {
+  const sessionId = issueTabSessionId(issue);
+  const session =
+    issue.sessions.find((item) => item.sessionId === sessionId) ??
+    issue.sessions[0];
+  const worktree = [session?.worktreeName, session?.worktreeBranch]
+    .filter((part) => part && part.length > 0)
+    .join(" · ");
+  return {
+    workdir: session?.workdir || issue.workdir || "",
+    worktree,
+    baseBranch: session?.baseBranch || issue.baseBranch || "",
+  };
+}
+
+function DetailIconButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip text={label} position="bottom">
+      <button
+        type="button"
+        className="dock-detail-action"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
 export function DockDetail({
   selection,
   actionLabel,
   onOpenSession,
+  onOpenInEditor,
+  onRevealInFinder,
 }: DockDetailProps) {
   if (selection.kind === "none") {
     return <div className="dock-detail" data-testid="dock-detail" />;
@@ -45,25 +97,123 @@ export function DockDetail({
     sessionStatus: issue.sessions.find((session) => session.sessionStatus)
       ?.sessionStatus,
   });
+  const description = issue.description?.trim() ?? "";
+  const environment = issueEnvironment(issue);
+  const workdir = environment.workdir;
+
+  const priority = priorityText(issue.priority);
+  const priorityKey = priority.toLowerCase();
 
   return (
     <div className="dock-detail" data-testid="dock-detail">
-      <h2 className="dock-detail-title">{issue.title}</h2>
-      <p className="dock-detail-meta">{`${status} · ${priorityText(issue.priority)}`}</p>
-      <ul className="dock-detail-items">
-        {issue.items.map((item) => (
-          <li key={item.id}>{item.content}</li>
-        ))}
-      </ul>
-      {actionLabel ? (
-        <button
-          type="button"
-          className="dock-detail-action"
-          onClick={() => onOpenSession(issue.issueId)}
-        >
-          {actionLabel}
-        </button>
-      ) : null}
+      <div className="dock-detail-sheet">
+        <div className="dock-detail-head">
+          <div className="dock-detail-heading">
+            <h2 className="dock-detail-title">{issue.title}</h2>
+            <div className="dock-detail-tags">
+              <span className="dock-detail-tag">{status}</span>
+              <span className={`dock-detail-tag dock-detail-tag--${priorityKey}`}>
+                {priority}
+              </span>
+            </div>
+          </div>
+          <div className="dock-detail-actions">
+            {actionLabel ? (
+              <DetailIconButton
+                label={actionLabel}
+                onClick={() => onOpenSession(issue.issueId)}
+              >
+                <SessionActionIcon />
+              </DetailIconButton>
+            ) : null}
+            <DetailIconButton
+              label="在 IDE 中打开"
+              disabled={!workdir}
+              onClick={() => {
+                if (workdir) onOpenInEditor?.(workdir);
+              }}
+            >
+              <IdeActionIcon />
+            </DetailIconButton>
+            <DetailIconButton
+              label="在访达中打开"
+              disabled={!workdir}
+              onClick={() => {
+                if (workdir) onRevealInFinder?.(workdir);
+              }}
+            >
+              <FinderActionIcon />
+            </DetailIconButton>
+          </div>
+        </div>
+        {description ? <p className="dock-detail-body">{description}</p> : null}
+        <dl className="dock-detail-fields">
+          <div>
+            <dt>目录</dt>
+            <dd>{environment.workdir || "—"}</dd>
+          </div>
+          <div>
+            <dt>Worktree</dt>
+            <dd>{environment.worktree || "—"}</dd>
+          </div>
+          <div>
+            <dt>基准分支</dt>
+            <dd>{environment.baseBranch || "—"}</dd>
+          </div>
+        </dl>
+        {issue.items.length > 0 ? (
+          <>
+            <h3 className="dock-detail-section">执行清单</h3>
+            <ul className="dock-detail-items">
+              {issue.items.map((item) => (
+                <li key={item.id} data-status={item.status}>
+                  {item.content}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function SessionActionIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+      <path
+        d="M3 4.2h10v6.2H6.2L3.4 12.6V4.2Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IdeActionIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+      <path
+        d="M6.2 4.2 2.8 8l3.4 3.8M9.8 4.2 13.2 8l-3.4 3.8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FinderActionIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+      <path
+        d="M3.2 6.2h9.6v6.2H3.2V6.2Z M3.2 6.2 4.6 3.6h6.8l1.4 2.6"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

@@ -73,6 +73,17 @@ describe("DesktopPanelDock", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("shows + on a detail-only dock so the four tool tabs can be added", () => {
+    render(
+      <MuseTheme>
+        <DesktopPanelDock {...baseProps} checked={[]} active="file">
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    expect(screen.getByTestId("desktop-panel-add-btn")).toBeInTheDocument();
+  });
+
   it("shows + when panels remain, hides when all open", () => {
     const { rerender } = render(
       <MuseTheme>

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import {
   closeIssueTab as applyCloseIssueTab,
   focusTab as applyFocusTab,
@@ -23,6 +24,7 @@ import {
 export interface BotTabsProps {
   state: BotWorkspaceState;
   titles: Record<string, string>;
+  presence?: Record<string, IssuePresence | null>;
   onFocus: (tab: "bot" | string) => void;
   onClose: (issueId: string) => void;
 }
@@ -108,7 +110,7 @@ function tabClass(active: boolean): string {
   return active ? "bot-tab active" : "bot-tab";
 }
 
-export function BotTabs({ state, titles, onFocus, onClose }: BotTabsProps) {
+export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsProps) {
   const tabs = ["bot", ...state.openIssueIds];
   return (
     <div className="bot-tabs" aria-label="Muse Bot">
@@ -134,6 +136,11 @@ export function BotTabs({ state, titles, onFocus, onClose }: BotTabsProps) {
               className={tabClass(active)}
               onClick={() => onFocus(tab)}
             >
+              {presence?.[tab] ? (
+                <span className="bot-tab-status" aria-hidden="true">
+                  <IssuePresenceMark presence={presence[tab]} />
+                </span>
+              ) : null}
               <span className="bot-tab-label">{title}</span>
             </button>
             <button

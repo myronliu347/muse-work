@@ -12,6 +12,7 @@ import type {
 } from "../../types";
 import { bodyPortal } from "../../utils/bodyPortal";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
+import { SessionStatusGlyph } from "./SessionStatusGlyph";
 
 /** dataTransfer MIME carrying { workdir, sessionId } while a sidebar session drags. */
 export const SESSION_DRAG_MIME = "application/x-muse-session";
@@ -22,69 +23,6 @@ const dirName = (workdir: string): string =>
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().startsWith("MAC");
-
-function SessionStatusGlyph({
-  kind,
-  label,
-}: {
-  kind: "running" | "waiting";
-  label?: string;
-}) {
-  const title =
-    label ?? (kind === "waiting" ? "等待确认" : "正在运行");
-  if (kind === "waiting") {
-    return (
-      <svg
-        className="desktop-session-status-icon desktop-session-status-icon--waiting"
-        viewBox="0 0 16 16"
-        width="14"
-        height="14"
-        data-testid="desktop-session-status-waiting"
-        aria-hidden="true"
-      >
-        <title>{title}</title>
-        <rect x="4.4" y="3" width="2.4" height="10" rx="0.9" />
-        <rect x="9.2" y="3" width="2.4" height="10" rx="0.9" />
-      </svg>
-    );
-  }
-  return (
-    <svg
-      className="desktop-session-status-icon desktop-session-status-icon--running"
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      data-testid="desktop-session-status-running"
-      aria-hidden="true"
-    >
-      <title>{title}</title>
-      <rect
-        className="desktop-session-status-bar desktop-session-status-bar--a"
-        x="3.2"
-        y="4"
-        width="2.2"
-        height="8"
-        rx="1"
-      />
-      <rect
-        className="desktop-session-status-bar desktop-session-status-bar--b"
-        x="6.9"
-        y="4"
-        width="2.2"
-        height="8"
-        rx="1"
-      />
-      <rect
-        className="desktop-session-status-bar desktop-session-status-bar--c"
-        x="10.6"
-        y="4"
-        width="2.2"
-        height="8"
-        rx="1"
-      />
-    </svg>
-  );
-}
 
 /** 去掉会话标题末尾的「· 规划/执行」，避免和侧栏前缀叠两层。 */
 export function stripIssueSessionRoleSuffix(title: string): string {

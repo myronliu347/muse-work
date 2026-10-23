@@ -73,9 +73,18 @@ export type AssistantEvent =
 export type AssistantQueueView = {
   type: "chat" | "issue" | "automation" | "permission";
   title: string;
+  /** 事件触发时的毫秒时间戳。没有则客户端留空时间。 */
+  timestamp?: number;
   retry?: true;
   active?: true;
 };
+
+function queueView(
+  view: AssistantQueueView,
+  timestamp: number | undefined,
+): AssistantQueueView {
+  return typeof timestamp === "number" ? { ...view, timestamp } : view;
+}
 
 function clipQueueText(text: string): string {
   const chars = [...text.replace(/\s+/g, " ").trim()];
@@ -89,23 +98,32 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
     const who =
       event.from === "popo-group" ? "POPO 群" : event.from === "popo" ? "POPO" : "Muse";
     const body = clipQueueText(event.message) || (event.images?.length ? "图片" : "空消息");
-    return { type: "chat", title: `${who}：${body}`, ...retry };
+    return queueView({ type: "chat", title: `${who}：${body}`, ...retry }, event.timestamp);
   }
   if (event.type === "issue") {
-    return { type: "issue", title: event.title || event.issueId, ...retry };
+    return queueView(
+      { type: "issue", title: event.title || event.issueId, ...retry },
+      event.timestamp,
+    );
   }
   if (event.type === "permission") {
-    return {
-      type: "permission",
-      title: `${event.title || event.issueId} · ${event.toolName}`,
-      ...retry,
-    };
+    return queueView(
+      {
+        type: "permission",
+        title: `${event.title || event.issueId} · ${event.toolName}`,
+        ...retry,
+      },
+      event.timestamp,
+    );
   }
-  return {
-    type: "automation",
-    title: `${event.name} · ${event.status}`,
-    ...retry,
-  };
+  return queueView(
+    {
+      type: "automation",
+      title: `${event.name} · ${event.status}`,
+      ...retry,
+    },
+    event.timestamp,
+  );
 }
 
 export const ASSISTANT_SUMMARY_NOTE =

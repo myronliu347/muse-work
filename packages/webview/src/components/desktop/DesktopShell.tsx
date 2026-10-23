@@ -8,10 +8,7 @@ import React, {
 } from "react";
 import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
-import {
-  DESKTOP_SESSION_LIST_WIDTH,
-  DesktopSessionList,
-} from "./DesktopSessionList";
+import { DesktopSessionList } from "./DesktopSessionList";
 import { AutomationsPage } from "../automation/AutomationsPage";
 import ConfigDialog, {
   settingsPageLeaveBlocked,
@@ -39,6 +36,7 @@ import {
   minPaneWidth,
 } from "../../muse/layout";
 import { useDesktopSidebarCollapsed } from "../../hooks/useDesktopSidebarCollapsed";
+import { useDesktopSessionListWidth } from "../../hooks/useDesktopSidebarWidth";
 import { DesktopSidebarToggle } from "./DesktopSidebarToggle";
 
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
@@ -124,7 +122,9 @@ const DesktopShellView: React.FC<
   const panes: DesktopPane[] = useMemo(() => host.panes ?? [], [host.panes]);
   const sidebarWidth = DESKTOP_SIDEBAR_WIDTH;
   const { collapsed: sidebarCollapsed } = useDesktopSidebarCollapsed();
-  const layoutSidebarWidth = sidebarCollapsed ? 0 : sidebarWidth;
+  const { width: sessionListWidth, setWidth: setSessionListWidth } =
+    useDesktopSessionListWidth();
+  const layoutSidebarWidth = sidebarWidth;
   const [shellView, setShellView] = useState<ShellSurface>("assistant");
   const settingsPageRef = useRef<ConfigDialogHandle>(null);
   useLayoutEffect(() => {
@@ -133,9 +133,7 @@ const DesktopShellView: React.FC<
     });
   }, []);
   const sessionListInset =
-    shellView === "sessions" && !sidebarCollapsed
-      ? DESKTOP_SESSION_LIST_WIDTH
-      : 0;
+    shellView === "sessions" && !sidebarCollapsed ? sessionListWidth : 0;
   const contentInset = layoutSidebarWidth + sessionListInset;
   const focusedPaneId = host.focusedPaneId ?? panes[0]?.paneId ?? null;
   // Panes grouped by row (0 = top, 1 = bottom); the host guarantees row 0 is
@@ -708,7 +706,7 @@ const DesktopShellView: React.FC<
         } as React.CSSProperties
       }
     >
-      <DesktopSidebarToggle />
+      {shellView === "sessions" ? <DesktopSidebarToggle /> : null}
       <DesktopSidebar
         sidebarAccessHidden={sidebarCollapsed}
         onNewSession={() => {
@@ -801,6 +799,8 @@ const DesktopShellView: React.FC<
           onRevealInFinder={(workdir) =>
             vscode.postMessage({ command: "revealInFinder", path: workdir })
           }
+          width={sessionListWidth}
+          onWidthChange={setSessionListWidth}
         />
       ) : null}
       {shellView === "automations" ? (

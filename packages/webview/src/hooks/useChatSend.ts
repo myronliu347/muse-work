@@ -37,6 +37,8 @@ interface UseChatSendParams {
   worktreeBranch: string;
   gitBranches: PaneGitBranches | null;
   effectiveWorkdir?: string;
+  /** While an issue tab is on screen, send into that session instead of the pane's. */
+  pinnedSessionIdRef?: MutableRefObject<string | undefined>;
 }
 
 export interface ChatSendHandlers {
@@ -71,6 +73,7 @@ export function useChatSend({
   worktreeBranch,
   gitBranches,
   effectiveWorkdir,
+  pinnedSessionIdRef,
 }: UseChatSendParams): ChatSendHandlers {
   // Live reads for the first-message worktree create. handleSendMessage can
   // close over an older checkbox/branch if the composer send callback lags
@@ -210,13 +213,19 @@ export function useChatSend({
           ? issueGroup.planningSessionId
           : undefined;
 
-      // Send to extension（split Issue：无论当前 Tab，消息只进规划会话）
+      // Issue tab pins the visible planning/execution session. Otherwise a
+      // split issue still sends into its planning session.
+      const pinned = pinnedSessionIdRef?.current;
       postToHost({
         command: "sendMessage",
         text: trimmedText,
         images: images,
         force: force,
-        ...(planningSessionId ? { sessionId: planningSessionId } : {}),
+        ...(pinned
+          ? { sessionId: pinned }
+          : planningSessionId
+            ? { sessionId: planningSessionId }
+            : {}),
       });
     },
     [

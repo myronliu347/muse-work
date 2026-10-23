@@ -33,6 +33,7 @@ export interface SessionModule {
   loadOlderMessages: (before: string) => Promise<void>;
   applyGrouped: (grouped: MuseSessionsGrouped) => void;
   patchTreeSession: (id: string, patch: Partial<TreeSession>) => void;
+  clearUnreadSessions: (ids: readonly string[]) => void;
   emitCurrentSession: (session: MuseSession) => void;
 }
 
@@ -67,6 +68,8 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         executionSessionId: g.executionSessionId,
         ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         ...(g.closeNote ? { closeNote: g.closeNote } : {}),
+        ...(g.workdir ? { workdir: g.workdir } : {}),
+        ...(g.baseBranch ? { baseBranch: g.baseBranch } : {}),
         sessions: (g.sessions ?? []).map(toEntry),
       })),
       closedIssueGroups: ctx.closedIssueGroups.map((g) => ({
@@ -81,6 +84,8 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
         executionSessionId: g.executionSessionId,
         ...(g.agentMode ? { agentMode: g.agentMode } : {}),
         ...(g.closeNote ? { closeNote: g.closeNote } : {}),
+        ...(g.workdir ? { workdir: g.workdir } : {}),
+        ...(g.baseBranch ? { baseBranch: g.baseBranch } : {}),
         sessions: (g.sessions ?? []).map(toEntry),
       })),
     });
@@ -123,6 +128,26 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
 
   const clearUnread = (id: string) => {
     patchTreeSession(id, { unreadDone: false });
+  };
+
+  const clearUnreadSessions = (ids: readonly string[]): void => {
+    const drop = new Set(ids.filter((id) => id.length > 0));
+    if (drop.size === 0) return;
+    const apply = (list: TreeSession[]) =>
+      list.map((session) =>
+        drop.has(session.id) ? { ...session, unreadDone: false } : session,
+      );
+    ctx.pinned = apply(ctx.pinned);
+    ctx.recent = apply(ctx.recent);
+    ctx.issueGroups = ctx.issueGroups.map((group) => ({
+      ...group,
+      sessions: apply(group.sessions),
+    }));
+    ctx.closedIssueGroups = ctx.closedIssueGroups.map((group) => ({
+      ...group,
+      sessions: apply(group.sessions),
+    }));
+    emitSessionTree();
   };
 
   const emitCurrentSession = (session: MuseSession) => {
@@ -417,6 +442,7 @@ export function createSessionModule(ctx: BridgeCtx): SessionModule {
     loadOlderMessages,
     applyGrouped,
     patchTreeSession,
+    clearUnreadSessions,
     emitCurrentSession,
   };
 }

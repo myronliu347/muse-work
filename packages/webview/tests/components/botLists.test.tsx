@@ -224,9 +224,9 @@ describe("BotLists", () => {
 
     const lists = screen.getByTestId("bot-lists");
     expect(within(lists).getByRole("heading", { name: /待处理/ })).toBeInTheDocument();
-    expect(within(lists).getByRole("heading", { name: /待办事项/ })).toBeInTheDocument();
+    expect(within(lists).getByRole("heading", { name: /事项/ })).toBeInTheDocument();
     expect(lists).toHaveStyle({ width: "268px", alignSelf: "flex-start" });
-    expect(["absolute", "fixed"]).not.toContain(getComputedStyle(lists).position);
+    expect(getComputedStyle(lists).position).toBe("absolute");
     expect(getComputedStyle(lists).height).not.toBe("100%");
 
     const cards = lists.querySelectorAll(".bot-list-card");
@@ -240,7 +240,7 @@ describe("BotLists", () => {
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith({ kind: "issue", issueId: "a11y" });
-    expect(within(lists).getByRole("heading", { name: /待办事项/ })).toBeInTheDocument();
+    expect(within(lists).getByRole("heading", { name: /事项/ })).toBeInTheDocument();
     expect(within(lists).getByRole("button", { name: new RegExp(A11Y) })).toHaveAttribute(
       "aria-current",
       "true",
@@ -255,18 +255,18 @@ describe("BotLists", () => {
     render(<ControlledLists wide={false} onSelect={onSelect} />);
 
     expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(screen.queryByRole("heading", { name: /待办事项/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /事项/ })).toBeNull();
 
     const pending = screen.getByRole("button", { name: "待处理" });
-    const todo = screen.getByRole("button", { name: "待办" });
+    const todo = screen.getByRole("button", { name: "事项" });
     expect(pending).toHaveAttribute("aria-label", "待处理");
-    expect(todo).toHaveAttribute("aria-label", "待办");
+    expect(todo).toHaveAttribute("aria-label", "事项");
     expect(pending).toHaveClass("bot-lists-tool");
     expect(todo).toHaveClass("bot-lists-tool");
     expect(pending.querySelector(".bot-lists-badge")).toHaveTextContent("2");
     expect(todo.querySelector(".bot-lists-badge")).toHaveTextContent("2");
     expect(pending.querySelector(".bot-lists-tip")).toHaveTextContent("待处理");
-    expect(todo.querySelector(".bot-lists-tip")).toHaveTextContent("待办");
+    expect(todo.querySelector(".bot-lists-tip")).toHaveTextContent("事项");
     expect(getComputedStyle(pending).width).toBe("32px");
 
     await user.click(todo);
@@ -305,13 +305,12 @@ describe("ChatApp pending and issue lists", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const lists = await within(frame).findByTestId("bot-lists");
-    expect(lists.parentElement).toHaveClass("desktop-chat-body");
+    expect(lists.parentElement).toHaveClass("desktop-chat-main");
     const main = frame.querySelector(".desktop-chat-main");
     expect(main).not.toBeNull();
     expect(main!.compareDocumentPosition(lists) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(getComputedStyle(lists).width).toBe("268px");
-    expect(["absolute", "fixed"]).not.toContain(getComputedStyle(lists).position);
-    expect(getComputedStyle(lists).alignSelf).toBe("flex-start");
+    expect(getComputedStyle(lists).position).toBe("absolute");
 
     expect(await within(lists).findByText("聊天")).toBeInTheDocument();
     expect(within(lists).getByText("自动化")).toBeInTheDocument();
@@ -328,7 +327,7 @@ describe("ChatApp pending and issue lists", () => {
 
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     expect(onSelectSession).not.toHaveBeenCalled();
-    expect(within(lists).getByRole("heading", { name: /待办事项/ })).toBeInTheDocument();
+    expect(within(lists).getByRole("heading", { name: /事项/ })).toBeInTheDocument();
     expect(within(lists).getByRole("button", { name: new RegExp(A11Y) })).toHaveAttribute(
       "aria-current",
       "true",
@@ -354,8 +353,8 @@ describe("ChatApp pending and issue lists", () => {
     await waitFor(() => {
       expect(within(frame).queryByTestId("bot-lists")).toBeNull();
     });
-    const todo = within(frame).getByRole("button", { name: "待办" });
-    expect(todo).toHaveAttribute("aria-label", "待办");
+    const todo = within(frame).getByRole("button", { name: "事项" });
+    expect(todo).toHaveAttribute("aria-label", "事项");
     expect(todo.querySelector(".bot-lists-badge")).toHaveTextContent("2");
     expect(within(frame).getByRole("button", { name: "待处理" }).querySelector(".bot-lists-badge")).toHaveTextContent("5");
 
@@ -392,18 +391,18 @@ describe("ChatApp pending and issue lists", () => {
 
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(screen.queryByRole("button", { name: "待办" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: /待办事项/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "事项" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /事项/ })).toBeNull();
 
     await user.click(screen.getByTestId("desktop-automations-menu"));
     expect(await screen.findByTestId("automations-page")).toBeInTheDocument();
     expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(screen.queryByRole("button", { name: "待办" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "事项" })).toBeNull();
 
     await user.click(screen.getByTestId("desktop-settings-btn"));
     expect(await screen.findByTestId("desktop-settings-page")).toBeInTheDocument();
     expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(screen.queryByRole("button", { name: "待办" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "事项" })).toBeNull();
 
     await user.click(screen.getByTestId("desktop-assistant-menu"));
     expect(await screen.findByTestId("bot-lists")).toBeInTheDocument();
@@ -433,11 +432,11 @@ describe("ChatApp pending and issue lists", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     expect(await within(frame).findByTestId("bot-lists")).toBeInTheDocument();
-    expect(within(frame).getByRole("heading", { name: /待办事项/ })).toBeInTheDocument();
+    expect(within(frame).getByRole("heading", { name: /事项/ })).toBeInTheDocument();
 
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(screen.queryByTestId("bot-lists")).toBeNull();
-    expect(screen.queryByRole("heading", { name: /待办事项/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /事项/ })).toBeNull();
 
     await user.click(screen.getByTestId("desktop-automations-menu"));
     expect(screen.queryByTestId("bot-lists")).toBeNull();
@@ -525,18 +524,18 @@ describe("ChatApp pending and issue lists", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     expect(await within(frame).findByRole("region", { name: "待处理" })).toBeInTheDocument();
-    expect(within(frame).getByRole("region", { name: "待办事项" })).toBeInTheDocument();
+    expect(within(frame).getByRole("region", { name: "事项" })).toBeInTheDocument();
 
     await user.click(screen.getByTestId("panel-toggle-btn"));
     await user.click(await screen.findByTestId("desktop-panel-fullscreen-btn"));
 
     await waitFor(() => {
       expect(screen.queryByRole("region", { name: "待处理" })).toBeNull();
-      expect(screen.queryByRole("region", { name: "待办事项" })).toBeNull();
+      expect(screen.queryByRole("region", { name: "事项" })).toBeNull();
     });
 
     await user.click(screen.getByRole("button", { name: "退出全屏" }));
     expect(await screen.findByRole("region", { name: "待处理" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "待办事项" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "事项" })).toBeInTheDocument();
   });
 });

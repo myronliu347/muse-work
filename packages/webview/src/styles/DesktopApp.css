@@ -40,7 +40,6 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: var(--hairline) solid var(--gray-6);
   background: var(--gray-2);
   box-shadow: none;
   overflow: hidden;
@@ -52,9 +51,22 @@
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.desktop-layout[data-sidebar-collapsed="true"] .desktop-sidebar {
-  transform: translateX(-100%);
+/* Vertical rule starts under the titlebar so it does not cross the tab-bar line
+   in the traffic-light corner. */
+.desktop-sidebar::after {
+  content: "";
+  position: absolute;
+  top: var(--desktop-shell-titlebar-height);
+  right: 0;
+  bottom: 0;
+  width: var(--hairline);
+  background: var(--gray-6);
   pointer-events: none;
+}
+
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-sidebar {
+  transform: none;
+  pointer-events: auto;
 }
 
 .desktop-sidebar-titlebar-drag {
@@ -331,6 +343,7 @@
   grid-area: 1 / 1;
   justify-self: start;
   z-index: 5;
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -340,6 +353,49 @@
   background: var(--gray-2);
   border-right: var(--hairline) solid var(--gray-6);
   overflow: hidden;
+}
+
+.desktop-session-list-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: 8px;
+}
+
+.desktop-session-list-toolbar > .app-menu {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin: var(--space-2);
+}
+
+.desktop-session-list-collapse {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.desktop-session-list-collapse:hover {
+  background: var(--gray-4);
+}
+
+.desktop-session-list-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 8;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
 }
 
 .desktop-layout[data-sidebar-collapsed="true"] .desktop-session-list {
@@ -1767,9 +1823,6 @@ body.is-panel-resizing * {
   transition: padding-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.desktop-layout[data-sidebar-collapsed="true"] > .desktop-settings-page {
-  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
-}
 
 @media (prefers-reduced-motion: reduce) {
   .desktop-layout > .desktop-settings-page {
@@ -1803,20 +1856,6 @@ body.is-panel-resizing * {
   padding-top: 0;
 }
 
-.desktop-layout[data-sidebar-collapsed="true"] > .automations-page {
-  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
-}
-
-.desktop-layout[data-sidebar-collapsed="true"]
-  > .automations-page:not(.automations-page--editor) {
-  padding-left: 0;
-}
-
-.desktop-layout[data-sidebar-collapsed="true"]
-  > .automations-page:not(.automations-page--editor)
-  .automations-page-scroll {
-  padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-4));
-}
 
 .desktop-pane-rows {
   display: flex;
@@ -2013,6 +2052,11 @@ body.is-panel-resizing * {
   overflow: hidden;
 }
 
+.issue-tab-transcript > .messages-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .issue-tab-messages {
   flex: 1;
   min-width: 0;
@@ -2020,6 +2064,9 @@ body.is-panel-resizing * {
   box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: auto;
+  /* Same tail inset as .messages-container so the last line can scroll
+     clear of the composer. */
+  padding-bottom: min(36vh, var(--space-9));
 }
 
 .issue-tab-load-error {
@@ -2107,6 +2154,133 @@ body.is-panel-resizing * {
   -webkit-app-region: no-drag;
 }
 
+/* Muse Bot tab row occupies the traffic-light titlebar. The dock header
+   shares that row. Cards overlay the top-right of the chat so the message
+   scrollbar stays on the far right of this pane. */
+.assistant-frame.chat-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: var(--desktop-shell-titlebar-height) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.assistant-frame > .bot-frame-bar {
+  grid-column: 1;
+  grid-row: 1;
+  height: var(--desktop-shell-titlebar-height);
+  border-bottom: var(--hairline) solid var(--gray-6);
+}
+
+.desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs {
+  padding-left: var(--desktop-shell-chrome-left);
+}
+
+.assistant-frame > .desktop-chat-body {
+  display: contents;
+}
+
+.assistant-frame .desktop-chat-main {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.assistant-frame .desktop-chat-main > .assistant-page,
+.assistant-frame .issue-tab-transcript {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.issue-tab-composer {
+  flex: none;
+}
+
+.assistant-frame .bot-lists {
+  position: absolute;
+  top: 8px;
+  right: 18px;
+  z-index: 3;
+  width: 268px;
+  max-width: 268px;
+  max-height: calc(100% - 16px);
+  margin: 0;
+  padding: 0;
+}
+
+.assistant-frame:has(.bot-lists) .assistant-log,
+.assistant-frame:has(.bot-lists) .assistant-composer,
+.assistant-frame:has(.bot-lists) .assistant-error {
+  padding-right: calc(268px + 36px);
+}
+
+/* Folded list opens over the transcript. Inset the column so the 280px
+   menu does not sit on top of the text. */
+.assistant-frame--lists-open .issue-tab-transcript .messages-container,
+.assistant-frame--lists-open .issue-tab-transcript .input-area-container,
+.assistant-frame--lists-open .assistant-page .assistant-log,
+.assistant-frame--lists-open .assistant-page .assistant-composer,
+.assistant-frame--lists-open .assistant-page .assistant-error {
+  padding-right: calc(280px + 28px);
+}
+
+.assistant-frame .desktop-panel-dock {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  justify-self: stretch;
+  /* The shared dock max-width is `100% - chat min`. Inside this grid, 100%
+     is the dock column itself, so that formula collapses the panel to 0
+     while the column stays wide and looks empty. Size comes from --dock-width. */
+  width: var(--dock-width, 360px);
+  max-width: none;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 规划/执行 sits in the tab bar. The pane inset that clears the rail must not
+   push this control. */
+.assistant-frame .bot-frame-bar .issue-session-header--corner,
+.desktop-pane-row > .desktop-pane:first-child .bot-frame-bar .issue-session-header--corner {
+  padding: 0;
+}
+
+.assistant-frame .issue-tab-messages {
+  padding: 0 28px min(36vh, var(--space-9)) var(--space-4);
+}
+
+.assistant-frame .desktop-panel-dock > .preview-pane-drag-handle {
+  z-index: 20;
+  left: 0;
+  width: 8px;
+}
+
+.assistant-frame:has(.desktop-panel-dock--fullscreen) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.assistant-frame:has(.desktop-panel-dock--fullscreen) > .bot-frame-bar {
+  display: none;
+}
+
+.assistant-frame:has(.desktop-panel-dock--fullscreen) .desktop-panel-dock {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0;
+}
+
 .bot-tabs {
   height: var(--desktop-shell-titlebar-height);
   flex: none;
@@ -2117,7 +2291,8 @@ body.is-panel-resizing * {
   overflow: hidden;
   padding: 0 10px;
   box-sizing: border-box;
-  -webkit-app-region: no-drag;
+  /* Empty tab-bar space stays draggable. Buttons opt out below. */
+  -webkit-app-region: drag;
 }
 
 .desktop-layout > .chat-container .bot-tabs,
@@ -2131,19 +2306,21 @@ body.is-panel-resizing * {
 }
 
 .bot-tab {
-  height: 30px;
-  max-width: 220px;
+  position: relative;
+  height: 24px;
+  max-width: 180px;
   min-width: 0;
   border: 0;
-  border-radius: 8px;
-  padding: 0 10px;
+  border-radius: var(--radius-1);
+  padding: 0 var(--space-2);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   background: transparent;
   color: var(--gray-11);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-1);
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -2153,11 +2330,13 @@ body.is-panel-resizing * {
 }
 
 .bot-tab-group {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  max-width: 220px;
+  max-width: 180px;
   min-width: 0;
-  border-radius: 8px;
+  height: 24px;
+  border-radius: var(--radius-1);
 }
 
 .bot-tab-group.active {
@@ -2166,7 +2345,20 @@ body.is-panel-resizing * {
 
 .bot-tab-group .bot-tab {
   background: transparent;
-  padding-right: 2px;
+  height: 24px;
+}
+
+.bot-tab-group.active .bot-tab {
+  color: var(--gray-12);
+}
+
+.bot-tab-status {
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
 }
 
 .bot-tab-label {
@@ -2174,22 +2366,38 @@ body.is-panel-resizing * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .bot-tab-close {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  margin: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-1);
   display: grid;
   place-items: center;
   flex: none;
   padding: 0;
-  background: transparent;
+  background: var(--color-background);
   color: var(--gray-11);
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bot-tab-group.active .bot-tab-close {
+  background: var(--gray-4);
+}
+
+.bot-tab-group:hover .bot-tab-close,
+.bot-tab-close:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .bot-tab-close:hover {
@@ -2240,27 +2448,26 @@ body.is-panel-resizing * {
   .desktop-pane-row
   > .desktop-pane:first-child
   .chat-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .messages-container,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .messages-container,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .input-area-container,
+.desktop-layout[data-sidebar-collapsed="true"]
+  .desktop-pane-row
+  > .desktop-pane:first-child
+  .input-area-container,
 .desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-session-header,
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
   .issue-session-header,
-.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .popo-detail-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-tab-messages,
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
-  .popo-detail-header,
-.desktop-layout[data-sidebar-collapsed="true"] .assistant-page .assistant-header,
-.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .bot-tabs,
-.desktop-layout[data-sidebar-collapsed="true"]
-  .desktop-pane-row
-  > .desktop-pane:first-child
-  .bot-tabs,
-.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .assistant-welcome,
-.desktop-layout[data-sidebar-collapsed="true"]
-  .desktop-pane-row
-  > .desktop-pane:first-child
-  .assistant-welcome {
+  .issue-tab-messages {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
 }
 

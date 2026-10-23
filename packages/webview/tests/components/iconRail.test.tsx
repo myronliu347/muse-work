@@ -161,12 +161,14 @@ describe("desktop icon rail", () => {
   it("opens on Muse Bot and switches views from the rail", async () => {
     const user = userEvent.setup();
     render(
-      <DesktopShell
-        vscode={mockVscode()}
-        host={hostWithPanes()}
-        api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
-        postToHost={vi.fn()}
-      />,
+      <MuseTheme>
+        <DesktopShell
+          vscode={mockVscode()}
+          host={hostWithPanes()}
+          api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+          postToHost={vi.fn()}
+        />
+      </MuseTheme>,
     );
 
     expect(screen.getByTestId("desktop-assistant-menu").className).toContain(
@@ -211,12 +213,14 @@ describe("desktop icon rail", () => {
     const user = userEvent.setup();
     const host = hostWithPanes();
     render(
-      <DesktopShell
-        vscode={mockVscode()}
-        host={host}
-        api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
-        postToHost={vi.fn()}
-      />,
+      <MuseTheme>
+        <DesktopShell
+          vscode={mockVscode()}
+          host={host}
+          api={new MuseApiClient({ baseUrl: "http://127.0.0.1:9" })}
+          postToHost={vi.fn()}
+        />
+      </MuseTheme>,
     );
 
     await user.click(screen.getByTestId("desktop-sessions-menu"));

@@ -7,6 +7,32 @@
   background: var(--color-background);
 }
 
+/* In the Muse Bot tab bar: keep the title for tests, show only 规划/执行. */
+.issue-session-header--corner {
+  position: relative;
+  z-index: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.issue-session-header--corner .issue-session-header-top {
+  min-height: 0;
+  width: auto;
+  gap: 0;
+}
+
+.issue-session-header--corner .issue-session-header-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .issue-session-header-top {
   display: flex;
   align-items: center;

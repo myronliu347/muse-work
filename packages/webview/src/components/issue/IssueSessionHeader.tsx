@@ -11,6 +11,8 @@ export interface IssueSessionHeaderProps {
   executionEnabled: boolean;
   /** 顶栏右侧：面板切换、会话指令等（与 ChatHeader 一致）。 */
   actions?: ReactNode;
+  /** corner：收进 Muse Bot 标签栏右上角，不再占一行。 */
+  placement?: "row" | "corner";
 }
 
 export const IssueSessionHeader: React.FC<IssueSessionHeaderProps> = ({
@@ -20,9 +22,13 @@ export const IssueSessionHeader: React.FC<IssueSessionHeaderProps> = ({
   showTabs,
   executionEnabled,
   actions,
+  placement = "row",
 }) => {
   return (
-    <div className="issue-session-header" data-testid="issue-session-header">
+    <div
+      className={`issue-session-header${placement === "corner" ? " issue-session-header--corner" : ""}`}
+      data-testid="issue-session-header"
+    >
       <div className="issue-session-header-top">
         <div
           className="issue-session-header-title"

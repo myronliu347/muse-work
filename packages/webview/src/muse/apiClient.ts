@@ -157,6 +157,8 @@ export interface MuseIssueGroup {
   executionSessionId?: string;
   agentMode?: "single" | "split";
   closeNote?: string;
+  workdir?: string;
+  baseBranch?: string;
   sessions: MuseSession[];
 }
 

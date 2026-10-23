@@ -120,6 +120,11 @@ function stubAssistant(fetched: string[]) {
 }
 
 function stubWideViewport() {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: 1600,
+  });
   vi.stubGlobal("matchMedia", (query: string) => ({
     media: query,
     matches: true,
@@ -261,7 +266,8 @@ describe("dock detail tab", () => {
     );
 
     expect(screen.getByRole("heading", { name: RADII })).toBeInTheDocument();
-    expect(screen.getByText("空闲 · P1")).toBeInTheDocument();
+    expect(screen.getByText("空闲")).toBeInTheDocument();
+    expect(screen.getByText("P1")).toBeInTheDocument();
     expect(screen.getByText("量一下圆角")).toBeInTheDocument();
     expect(screen.getByText("改 token")).toBeInTheDocument();
 
@@ -381,7 +387,8 @@ describe("assistant dock detail", () => {
 
     const detail = await within(dock).findByTestId("dock-detail");
     expect(within(detail).getByRole("heading", { name: RADII })).toBeInTheDocument();
-    expect(within(detail).getByText("空闲 · P1")).toBeInTheDocument();
+    expect(within(detail).getByText("空闲")).toBeInTheDocument();
+    expect(within(detail).getByText("P1")).toBeInTheDocument();
     expect(within(detail).getByText("量一下圆角")).toBeInTheDocument();
     expect(within(detail).getByText("改 token")).toBeInTheDocument();
     expect(within(detail).getByRole("button", { name: "打开会话" })).toBeInTheDocument();
@@ -425,7 +432,8 @@ describe("assistant dock detail", () => {
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     const nextDetail = await within(dock).findByTestId("dock-detail");
     expect(within(nextDetail).getByRole("heading", { name: A11Y })).toBeInTheDocument();
-    expect(within(nextDetail).getByText("空闲 · P2")).toBeInTheDocument();
+    expect(within(nextDetail).getByText("空闲")).toBeInTheDocument();
+    expect(within(nextDetail).getByText("P2")).toBeInTheDocument();
     expect(within(nextDetail).getByText("补上焦点环")).toBeInTheDocument();
     expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(lists).getByRole("button", { name: new RegExp(A11Y) })).toHaveAttribute(
@@ -458,7 +466,9 @@ describe("assistant dock detail", () => {
     expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
-    await user.click(within(lists).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    const homeLists = within(frame).getByTestId("bot-lists");
+    await user.click(within(homeLists).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
     const queueDetail = within(dock).getByTestId("dock-detail");
     expect(within(queueDetail).getByText("聊天")).toBeInTheDocument();
     expect(within(queueDetail).getByText(QUEUE_TITLE)).toBeInTheDocument();
@@ -627,12 +637,10 @@ describe("assistant dock detail", () => {
 
     const chat = await screen.findByTestId("chat-container");
     const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
-    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(sessionDock).queryByTestId("desktop-panel-tab-detail")).toBeNull();
     expect(
       within(sessionDock).getByTestId("desktop-panel-tab-terminal"),
-    ).not.toHaveClass("desktop-panel-tab--active");
+    ).toHaveClass("desktop-panel-tab--active");
   });
 
   it("returns to 详情 when switching onto a panel group with no kinds", async () => {
@@ -663,11 +671,7 @@ describe("assistant dock detail", () => {
     await user.click(screen.getByTestId("desktop-sessions-menu"));
 
     const chat = await screen.findByTestId("chat-container");
-    const sessionDock = within(chat).queryByTestId("desktop-panel-dock");
-    expect(sessionDock).not.toBeNull();
-    expect(within(sessionDock!).getByTestId("desktop-panel-tab-detail")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(chat).queryByTestId("desktop-panel-dock")).toBeNull();
 
     act(() => {
       usePanelGroupStore.getState().patchGroup("/mock/workdir", {
@@ -676,8 +680,9 @@ describe("assistant dock detail", () => {
         active: "file",
       });
     });
-    await user.click(within(sessionDock!).getByRole("button", { name: "文件" }));
-    expect(within(sessionDock!).getByTestId("desktop-panel-tab-file")).toHaveClass(
+    const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
+    await user.click(within(sessionDock).getByRole("button", { name: "文件" }));
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
 
@@ -835,13 +840,11 @@ describe("assistant dock detail", () => {
 
     const chat = await screen.findByTestId("chat-container");
     const sessionDock = await within(chat).findByTestId("desktop-panel-dock");
-    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+    expect(within(sessionDock).queryByTestId("desktop-panel-tab-detail")).toBeNull();
+    expect(within(sessionDock).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(sessionDock).getByTestId("desktop-panel-tab-terminal")).not.toHaveClass(
-      "desktop-panel-tab--active",
-    );
-    expect(within(sessionDock).getByTestId("terminal-pane")).not.toBeVisible();
+    expect(within(sessionDock).getByTestId("terminal-pane")).toBeVisible();
   });
 
   it("keeps 文件 when the session group has that kind but another kind is active", async () => {
@@ -882,9 +885,7 @@ describe("assistant dock detail", () => {
     expect(within(sessionDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(sessionDock).queryByTestId("desktop-panel-tab-detail")).toBeNull();
     expect(within(sessionDock).getByTestId("desktop-panel-tab-terminal")).not.toHaveClass(
       "desktop-panel-tab--active",
     );
@@ -932,9 +933,7 @@ describe("assistant dock detail", () => {
     expect(within(sessionDock).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(sessionDock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(sessionDock).queryByTestId("desktop-panel-tab-detail")).toBeNull();
   });
 
   it("keeps 文件 when another pane checks only 终端", async () => {
@@ -1220,7 +1219,7 @@ describe("session dock detail", () => {
     resetWebviewStores();
   });
 
-  it("keeps the detail tab when no kind panel is checked", async () => {
+  it("does not show the issue detail tab", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1236,7 +1235,8 @@ describe("session dock detail", () => {
 
     const chat = await screen.findByTestId("chat-container");
     expect(screen.queryByTestId("assistant-frame")).toBeNull();
-    expect(within(chat).getByTestId("desktop-panel-tab-detail")).toBeVisible();
+    expect(within(chat).queryByTestId("desktop-panel-tab-detail")).toBeNull();
+    expect(within(chat).queryByTestId("dock-detail")).toBeNull();
     expect(within(chat).queryByTestId("desktop-panel-tab-file")).toBeNull();
     expect(within(chat).queryByTestId("desktop-panel-tab-terminal")).toBeNull();
     expect(within(chat).queryByTestId("desktop-panel-tab-preview")).toBeNull();
