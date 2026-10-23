@@ -1,0 +1,261 @@
+packages/webview/src/components/desktop/BotTabs.tsx
+  8d544d70b6b94a4c 11,27,113,139-143
+packages/webview/src/muse/hostBridge/index.ts
+  8d544d70b6b94a4c 347-352
+packages/webview/src/hooks/useChatSend.ts
+  8d544d70b6b94a4c 40-41,76,216-218,224-228
+packages/webview/src/components/assistant/AssistantPage.tsx
+  8d544d70b6b94a4c 12,475-479,491,822-845,848-855
+packages/webview/src/components/session/SessionTree.tsx
+  8d544d70b6b94a4c 15
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 15,27,39,53-56,84,291,320-344,349,438-445,447-473,758-762,831-847,849-850,852-862,864,911-924,960-963,977,992-994,997,1471-1479,1484-1489,1541-1551,1556,1558,1565-1569,1574,1578-1593,1599-1661,1678,1681,1873,1991-1992
+packages/webview/src/components/desktop/DockDetail.tsx
+  8d544d70b6b94a4c 1,4-5,16-17,24-68,73-74,100-102,104-105,109-176,180-217
+packages/webview/src/components/desktop/BotLists.tsx
+  8d544d70b6b94a4c 2-3,7,10-11,17-18,25-30,39-40,73-78,85,90,104-111,121-124,141-148,213,243-250,252-254,286,288,302,306,318-331,336-337,342,344,346,353
+packages/webview/src/components/issue/IssueSessionHeader.tsx
+  8d544d70b6b94a4c 14-15,25,28-31
+packages/webview/src/muse/hostBridge/utils.ts
+  8d544d70b6b94a4c 110
+packages/webview/tests/components/botWorkspace.test.ts
+  8d544d70b6b94a4c 73-77,83-100
+packages/webview/src/components/session/SessionStatusGlyph.tsx
+  8d544d70b6b94a4c 1-116
+packages/webview/tests/components/issueTab.test.tsx
+  8d544d70b6b94a4c 140-144,279,283-285,287,291,304,311-313,321-322,331,364,429,442,465,469,486,524,1178,1184,1192,1195,1430,1432-1433,1438-1439,1475,1547-1598
+packages/webview/src/components/desktop/BotLists.css
+  8d544d70b6b94a4c 9,74-115,141-148,152-154,237-240,246-247,251,253-272
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  8d544d70b6b94a4c 133-137,176-179,181-193
+packages/webview/src/components/chat/ChatBody.tsx
+  8d544d70b6b94a4c 69-70,117,131
+packages/webview/tests/utils/issueStatusLabel.test.ts
+  8d544d70b6b94a4c 2-5,7,37-115
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  8d544d70b6b94a4c 76-86
+packages/webview/src/muse/hostBridge/session.ts
+  8d544d70b6b94a4c 36,71-72,87-88,133-152,445
+packages/webview/tests/components/botLists.test.tsx
+  8d544d70b6b94a4c 227,229,243,258,261,263,269,308,313,330,356-357,394-395,400,405,435,439,527,534,539
+packages/webview/src/muse/apiClient.ts
+  8d544d70b6b94a4c 160-161
+packages/webview/src/styles/DesktopPanelDock.css
+  8d544d70b6b94a4c 356,359-374,379-411,416,418,422,424,428-433,436-478,482-501
+packages/webview/src/styles/DesktopApp.css
+  8d544d70b6b94a4c 54-63,68-71,346,358-398,2055-2059,2067-2069,2157-2283,2294-2295,2309-2311,2314-2315,2318,2322-2323,2333,2336,2338-2339,2348,2351-2361,2369,2373-2379,2381,2386,2389-2400,2451,2455-2456,2460-2461,2465-2466,2470
+packages/server/src/services/assistant/events.ts
+  8d544d70b6b94a4c 76-77,82-87,101,104-107,110-117,119-126
+packages/webview/src/types/index.ts
+  8d544d70b6b94a4c 287-289,306-307
+packages/webview/src/muse/hostBridge/ctx.ts
+  8d544d70b6b94a4c 99-100,115-116
+packages/webview/src/components/desktop/DesktopSessionList.tsx
+  8d544d70b6b94a4c 7,34-35,59-60,62-78,84,95,98-104
+packages/webview/src/styles/IssueSessionHeader.css
+  8d544d70b6b94a4c 10-35
+packages/webview/src/components/desktop/DesktopShell.tsx
+  8d544d70b6b94a4c 11,39,125-127,136,709,802-803
+packages/server/src/routes/sessions.ts
+  8d544d70b6b94a4c 36-37,60-61
+packages/webview/src/hooks/useDesktopSidebarWidth.ts
+  8d544d70b6b94a4c 3,5,7,22-33
+packages/webview/src/muse/sidebarWidth.ts
+  8d544d70b6b94a4c 66-126
+packages/webview/tests/components/dockDetail.test.tsx
+  8d544d70b6b94a4c 123-127,269-270,390-391,435-436,469-471,640,643,674,683-685,843-844,847,888,936,1222,1238-1239
+packages/webview/tests/components/iconRail.test.tsx
+  8d544d70b6b94a4c 164-171,216-223
+packages/webview/src/components/desktop/botWorkspace.ts
+  8d544d70b6b94a4c 33-38,41,60-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2e2df9633baf5cff201a4cf12beacd6a281dd397",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2068,
+      "total_deletions": 808,
+      "accepted_lines": 1713,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/session.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "overriden_lines": 1
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 22,
+          "deletions": 22,
+          "accepted_lines": 22
+        },
+        "packages/webview/src/styles/IssueSessionHeader.css": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 87,
+          "deletions": 31,
+          "accepted_lines": 87
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 29,
+          "deletions": 29,
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/utils/issueStatusLabel.test.ts": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/muse/sidebarWidth.ts": {
+          "additions": 61,
+          "accepted_lines": 61
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 39,
+          "deletions": 24,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 88,
+          "deletions": 8,
+          "accepted_lines": 84
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/session/SessionStatusGlyph.tsx": {
+          "additions": 116,
+          "accepted_lines": 116
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 110,
+          "deletions": 57,
+          "accepted_lines": 81
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 226,
+          "deletions": 76,
+          "accepted_lines": 166
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 347,
+          "deletions": 140,
+          "accepted_lines": 279
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/muse/hostBridge/utils.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/iconRail.test.tsx": {
+          "additions": 16,
+          "deletions": 12,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 13,
+          "deletions": 13,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 21,
+          "deletions": 22,
+          "accepted_lines": 21
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 30,
+          "deletions": 12,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 397,
+          "deletions": 231,
+          "accepted_lines": 252
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/issue/IssueSessionHeader.tsx": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/components/botWorkspace.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 137,
+          "deletions": 17,
+          "accepted_lines": 127
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/hooks/useDesktopSidebarWidth.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/desktop/DesktopSessionList.tsx": {
+          "additions": 71,
+          "deletions": 42,
+          "accepted_lines": 40
+        },
+        "packages/webview/src/components/session/SessionTree.tsx": {
+          "additions": 1,
+          "deletions": 63,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
