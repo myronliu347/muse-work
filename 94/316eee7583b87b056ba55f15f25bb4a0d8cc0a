@@ -1,0 +1,80 @@
+packages/webview/tests/components/dockDetail.test.tsx
+  8d544d70b6b94a4c 455-459,468-470
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 41,447,449-450,1008-1017,1027,1059-1081,1532,1587-1591,1605,1630-1634,1655-1656,1710-1711,1726
+packages/webview/tests/components/botLists.test.tsx
+  8d544d70b6b94a4c 529-530,542-595
+packages/webview/tests/components/issueTab.test.tsx
+  8d544d70b6b94a4c 716-717,1196-1197
+packages/webview/src/components/desktop/BotLists.css
+  8d544d70b6b94a4c 165
+packages/webview/src/components/assistant/AssistantPage.tsx
+  8d544d70b6b94a4c 480-481,494,501-503
+packages/webview/src/hooks/usePanels.ts
+  8d544d70b6b94a4c 58-59,87,365
+packages/webview/src/styles/DesktopApp.css
+  8d544d70b6b94a4c 2055-2056,2061-2076,2189-2190,2195-2200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "94316eee7583b87b056ba55f15f25bb4a0d8cc0a",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 172,
+      "total_deletions": 37,
+      "accepted_lines": 165,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 60,
+          "deletions": 17,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 56,
+          "deletions": 1,
+          "accepted_lines": 56
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 31,
+          "deletions": 12,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 10,
+          "deletions": 4,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
