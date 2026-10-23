@@ -477,6 +477,8 @@ export const AssistantPage: React.FC<{
    * 不再在消息列顶上另起一行「Muse Bot」标题。
    */
   viewSwitchHost?: HTMLElement | null;
+  /** Muse Bot 轨迹页要收起右上角的待处理和事项。 */
+  onViewModeChange?: (mode: "chat" | "transcript") => void;
 }> = ({
   api,
   vscode = noopHost,
@@ -489,12 +491,16 @@ export const AssistantPage: React.FC<{
   emptyState,
   hideQueue = false,
   viewSwitchHost,
+  onViewModeChange,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"chat" | "transcript">("chat");
+  useEffect(() => {
+    onViewModeChange?.(mode);
+  }, [mode, onViewModeChange]);
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentWorkdir, setAgentWorkdir] = useState<string | undefined>();
   const [openableFilePaths, setOpenableFilePaths] = useState<ReadonlySet<string>>(

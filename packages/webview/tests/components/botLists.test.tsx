@@ -526,7 +526,8 @@ describe("ChatApp pending and issue lists", () => {
     expect(await within(frame).findByRole("region", { name: "待处理" })).toBeInTheDocument();
     expect(within(frame).getByRole("region", { name: "事项" })).toBeInTheDocument();
 
-    await user.click(screen.getByTestId("panel-toggle-btn"));
+    await user.click(screen.getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-diff"));
     await user.click(await screen.findByTestId("desktop-panel-fullscreen-btn"));
 
     await waitFor(() => {
@@ -537,5 +538,59 @@ describe("ChatApp pending and issue lists", () => {
     await user.click(screen.getByRole("button", { name: "退出全屏" }));
     expect(await screen.findByRole("region", { name: "待处理" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "事项" })).toBeInTheDocument();
+  });
+
+  it("hides the corner lists on the transcript view", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    expect(await within(frame).findByTestId("bot-lists")).toBeInTheDocument();
+
+    await user.click(within(frame).getByRole("button", { name: "轨迹" }));
+    await waitFor(() => {
+      expect(within(frame).queryByTestId("bot-lists")).toBeNull();
+      expect(within(frame).queryByRole("button", { name: "待处理" })).toBeNull();
+      expect(within(frame).queryByRole("button", { name: "事项" })).toBeNull();
+    });
+
+    await user.click(within(frame).getByRole("button", { name: "对话" }));
+    expect(await within(frame).findByTestId("bot-lists")).toBeInTheDocument();
+  });
+
+  it("closes the detail dock without opening a tool, then restores detail", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    expect(within(dock).getByRole("button", { name: "详情" })).toBeInTheDocument();
+
+    await user.click(within(dock).getByTestId("panel-toggle-btn"));
+    await waitFor(() => {
+      expect(within(frame).queryByTestId("desktop-panel-dock")).toBeNull();
+    });
+    expect(within(frame).queryByRole("button", { name: "变更" })).toBeNull();
+
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+    const restored = await within(frame).findByTestId("desktop-panel-dock");
+    expect(within(restored).getByRole("button", { name: "详情" })).toBeInTheDocument();
+    expect(within(restored).queryByRole("button", { name: "变更" })).toBeNull();
   });
 });

@@ -38,6 +38,7 @@ import {
 import { DockDetail } from "./desktop/DockDetail";
 import { ChatBody } from "./chat/ChatBody";
 import { ChatComposer } from "./chat/ChatComposer";
+import { PanelToggleControl } from "./panels/PanelToggleControl";
 import { ChatDialogs, type ChatDialogsProps } from "./dialogs/ChatDialogs";
 import ConfigDialog, {
   settingsPageLeaveBlocked,
@@ -443,7 +444,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     : openIssueTranscript?.status === "ready"
       ? openIssueTranscript.messages
       : [];
+  const issueTranscriptReady = openIssueTranscript?.status === "ready";
   const issueTranscriptFailed = openIssueTranscript?.status === "error";
+  const issueShowWelcome =
+    shownIssueMessages.length === 0 && (issueShowsLive || issueTranscriptReady);
   const issueStreaming = issueShowsLive
     ? state.isStreaming
     : Boolean(
@@ -1001,6 +1005,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     !dockFullscreen && !sidebarCollapsed && paneHasSidebarInset(host?.panes, paneId);
   const chatMinWidth = chatMainMinWidth(sidebarInset, contentInset);
   const dockMaxWidth = chatColumnWidth - chatMinWidth;
+  const assistantDockToggleRef = useRef<(() => void) | null>(null);
+  const restoreAssistantToolsRef = useRef(false);
+  const [assistantDockOpen, setAssistantDockOpen] = useState(true);
+  const [assistantView, setAssistantView] = useState<"chat" | "transcript">("chat");
+  const onAssistantViewMode = useCallback((mode: "chat" | "transcript") => {
+    setAssistantView(mode);
+  }, []);
+  useEffect(() => {
+    if (workspace.active !== "bot") setAssistantView("chat");
+  }, [workspace.active]);
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
@@ -1010,6 +1024,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     chatContainerRef,
     togglePanelRef,
     toggleFullscreenRef,
+    dockToggleHandlerRef: assistantDockToggleRef,
     isDraftSession,
     host,
     paneId,
@@ -1041,6 +1056,29 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleSelectPanel,
     handleDockWidthChange,
   } = panels;
+  const toggleAssistantDock = useCallback(() => {
+    if (!assistantVisible) {
+      handleToggleDock();
+      return;
+    }
+    if (assistantDockOpen) {
+      restoreAssistantToolsRef.current = checkedPanels.length > 0;
+      if (checkedPanels.length > 0) handleToggleDock();
+      setAssistantDockOpen(false);
+      return;
+    }
+    setAssistantDockOpen(true);
+    if (restoreAssistantToolsRef.current) {
+      restoreAssistantToolsRef.current = false;
+      handleToggleDock();
+    }
+  }, [
+    assistantDockOpen,
+    assistantVisible,
+    checkedPanels.length,
+    handleToggleDock,
+  ]);
+  assistantDockToggleRef.current = assistantVisible ? toggleAssistantDock : null;
 
   const preview = usePreview({
     updatePanelGroup: updatePreviewGroup,
@@ -1491,7 +1529,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     ),
     onCloseTab: handleTogglePanel,
     onAddPanel: handleAddPanel,
-    onToggleDock: handleToggleDock,
+    onToggleDock: assistantVisible ? toggleAssistantDock : handleToggleDock,
     onToggleFullscreen: handleToggleFullscreen,
     onWidthChange: handleDockWidthChange,
     vscode,
@@ -1546,9 +1584,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : botListsWide;
   const onBotHome = workspace.active === "bot";
   const showCards = onBotHome && showWideCards;
-  const listsMenuOpen = Boolean(botMenu) && !showCards && (onBotHome || botMenu === "todo");
-  const botLists =
-    assistantVisible && !dockFullscreen ? (
+  const showBotLists =
+    assistantVisible &&
+    !dockFullscreen &&
+    !(onBotHome && assistantView === "transcript");
+  const botLists = showBotLists ? (
     <BotLists
       queue={botQueue}
       issues={botIssues}
@@ -1562,11 +1602,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   ) : null;
 
   const assistantFrame = (
-    <div
-      className={`chat-container assistant-frame${listsMenuOpen ? " assistant-frame--lists-open" : ""}`}
-      ref={chatContainerRef}
-      data-testid="assistant-frame"
-    >
+    <div className="chat-container assistant-frame" ref={chatContainerRef} data-testid="assistant-frame">
       <div className="bot-frame-bar">
         <BotTabs
           state={workspace}
@@ -1591,6 +1627,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           ) : null}
         </div>
         {showCards ? null : botLists}
+        {assistantDockOpen ? null : (
+          <div className="bot-frame-dock-toggle">
+            <PanelToggleControl onToggleDock={toggleAssistantDock} />
+          </div>
+        )}
       </div>
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
@@ -1611,7 +1652,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 </div>
               ) : (
                 <ChatBody
-                  hideWelcome
+                  hideWelcome={!issueShowWelcome}
+                  onSelectPrompt={(text) => messageInputRef.current?.setText(text)}
                   isRestoring={false}
                   messages={shownIssueMessages}
                   initialized
@@ -1665,7 +1707,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
               api={museApi}
               vscode={vscode}
               showPanelToggle={false}
-              onToggleDock={handleToggleDock}
+              onToggleDock={toggleAssistantDock}
+              onViewModeChange={onAssistantViewMode}
               onOpenFile={handleOpenFile}
               onOpenUrl={handleOpenPreview}
               hideQueue={assistantVisible}
@@ -1680,7 +1723,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           )}
           {showCards ? botLists : null}
         </div>
-        <DesktopPanelSlots {...dock} />
+        {assistantDockOpen ? <DesktopPanelSlots {...dock} /> : null}
       </div>
     </div>
   );

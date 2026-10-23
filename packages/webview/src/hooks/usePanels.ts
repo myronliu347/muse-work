@@ -55,6 +55,8 @@ interface UsePanelsParams {
   chatContainerRef: RefObject<HTMLDivElement>;
   togglePanelRef: MutableRefObject<(kind: DesktopPanelKind) => void>;
   toggleFullscreenRef: MutableRefObject<() => void>;
+  /** When set, ⌘J uses this instead of the kind-only dock toggle. */
+  dockToggleHandlerRef?: MutableRefObject<(() => void) | null>;
   isDraftSession: boolean;
   host?: DesktopHostProps;
   paneId?: string;
@@ -82,6 +84,7 @@ export function usePanels({
   chatContainerRef,
   togglePanelRef,
   toggleFullscreenRef,
+  dockToggleHandlerRef,
   isDraftSession,
   host,
   paneId,
@@ -359,7 +362,7 @@ export function usePanels({
       if (matchDockToggleShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
-        toggleDockRef.current();
+        (dockToggleHandlerRef?.current ?? toggleDockRef.current)();
         return;
       }
       if (matchDockFullscreenShortcut(event)) {

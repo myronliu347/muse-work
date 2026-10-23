@@ -2052,9 +2052,28 @@ body.is-panel-resizing * {
   overflow: hidden;
 }
 
-.issue-tab-transcript > .messages-shell {
+.issue-tab-transcript > .messages-shell,
+.issue-tab-transcript > .welcome-view-shell {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.desktop-layout > .chat-container .issue-tab-transcript > .welcome-view-shell,
+.desktop-pane-row > .desktop-pane:first-child .issue-tab-transcript > .welcome-view-shell {
+  padding-top: var(--space-5);
+}
+
+.bot-frame-dock-toggle {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin-left: auto;
+  padding-right: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.bot-frame-bar .bot-lists-tools + .bot-frame-dock-toggle {
+  margin-left: 0;
 }
 
 .issue-tab-messages {
@@ -2167,8 +2186,18 @@ body.is-panel-resizing * {
 .assistant-frame > .bot-frame-bar {
   grid-column: 1;
   grid-row: 1;
+  position: relative;
+  z-index: 5;
   height: var(--desktop-shell-titlebar-height);
   border-bottom: var(--hairline) solid var(--gray-6);
+}
+
+/* The list button sits on the chat/dock seam. Open the menu across the
+   dock so it does not cover the transcript or change the column width. */
+.assistant-frame:has(.desktop-panel-dock) .bot-lists-pop {
+  left: 0;
+  right: auto;
+  transform-origin: top left;
 }
 
 .desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs {
@@ -2221,16 +2250,6 @@ body.is-panel-resizing * {
 .assistant-frame:has(.bot-lists) .assistant-composer,
 .assistant-frame:has(.bot-lists) .assistant-error {
   padding-right: calc(268px + 36px);
-}
-
-/* Folded list opens over the transcript. Inset the column so the 280px
-   menu does not sit on top of the text. */
-.assistant-frame--lists-open .issue-tab-transcript .messages-container,
-.assistant-frame--lists-open .issue-tab-transcript .input-area-container,
-.assistant-frame--lists-open .assistant-page .assistant-log,
-.assistant-frame--lists-open .assistant-page .assistant-composer,
-.assistant-frame--lists-open .assistant-page .assistant-error {
-  padding-right: calc(280px + 28px);
 }
 
 .assistant-frame .desktop-panel-dock {

@@ -713,7 +713,8 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+    await user.click(within(frame).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-diff"));
 
     await waitFor(() => {
       const diffCalls = vscode.postMessage.mock.calls
@@ -1192,7 +1193,8 @@ describe("issue tab", () => {
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(EMPTY);
     expect(within(emptyTranscript).queryByText("会话加载失败")).toBeNull();
     expect(within(emptyTranscript).queryByRole("button", { name: "重试" })).toBeNull();
-    expect(emptyTranscript.querySelector(".messages-container")).not.toBeNull();
+    expect(await within(emptyTranscript).findByTestId("welcome-headline")).toBeInTheDocument();
+    expect(emptyTranscript.querySelector(".messages-container")).toBeNull();
   });
 
   it("keeps each issue's open file and expansion, and a list click stays on 详情", async () => {

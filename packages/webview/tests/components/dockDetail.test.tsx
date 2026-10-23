@@ -452,7 +452,11 @@ describe("assistant dock detail", () => {
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
     expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
-    expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
+    expect(
+      await within(within(frame).getByTestId("issue-tab-transcript")).findByTestId(
+        "welcome-headline",
+      ),
+    ).toBeInTheDocument();
     expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
 
     await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
@@ -461,7 +465,9 @@ describe("assistant dock detail", () => {
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
-    expect(screen.queryByText("今天想让我帮你做些什么？")).toBeNull();
+    expect(
+      within(within(frame).getByTestId("issue-tab-transcript")).getByTestId("welcome-headline"),
+    ).toBeInTheDocument();
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(fetched.some((url) => url.includes("/sessions/plan-a11y/messages"))).toBe(true);
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
