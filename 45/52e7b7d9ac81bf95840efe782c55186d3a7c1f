@@ -1,0 +1,131 @@
+packages/webview/src/components/desktop/BotTabs.tsx
+  8d544d70b6b94a4c 12,134-160
+packages/webview/src/styles/DesktopPanelDock.css
+  8d544d70b6b94a4c 65-69,95-97,153-156
+packages/webview/src/components/desktop/BotLists.css
+  8d544d70b6b94a4c 59-62,67-100
+packages/webview/src/components/desktop/BotLists.tsx
+  8d544d70b6b94a4c 10-37,57-58,70,255,260,262,267,269-276,297-305,333,341-346,359,367-372,415-420
+packages/webview/src/stores/panelGroupStore.ts
+  8d544d70b6b94a4c 125-126
+packages/webview/src/styles/DesktopApp.css
+  8d544d70b6b94a4c 1807,1811-1839,1870,1872-1884,2220,2277-2287,2290-2295,2353-2354,2374-2378,2402-2405,2416-2418,2555,2559-2561,2565
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 27-29,341-343,1015-1025,1095,1598,1605-1608,1618-1623,1629-1638
+packages/webview/tests/components/issueTab.test.tsx
+  8d544d70b6b94a4c 22-31,274,413-415,439,475,530,568,728,774,846,902,971,1181,1233,1375,1442,1488,1548,1604
+packages/webview/tests/components/dockDetail.test.tsx
+  8d544d70b6b94a4c 30-39,395,533-534,574-575,606-607,646,683,743,791,851,893,938,1021
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  8d544d70b6b94a4c 17,224-273
+packages/webview/src/components/shared/Tooltip.tsx
+  8d544d70b6b94a4c 223
+packages/webview/tests/components/botTabs.test.tsx
+  8d544d70b6b94a4c 58-63,101,274-278
+packages/webview/tests/components/botLists.test.tsx
+  8d544d70b6b94a4c 9,343,531,572-601,614-616,619
+packages/webview/src/styles/Tooltip.css
+  8d544d70b6b94a4c 53-57
+packages/webview/tests/webview/tooltip.test.tsx
+  8d544d70b6b94a4c 59,71-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4552e7b7d9ac81bf95840efe782c55186d3a7c1f",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 531,
+      "total_deletions": 245,
+      "accepted_lines": 465,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 12,
+          "deletions": 3,
+          "accepted_lines": 12
+        },
+        "packages/webview/tests/components/iconRail.test.tsx": {
+          "deletions": 3
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 25,
+          "deletions": 12,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/shared/Tooltip.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 113,
+          "deletions": 61,
+          "accepted_lines": 94
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 30,
+          "deletions": 27,
+          "accepted_lines": 28
+        },
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 51,
+          "deletions": 46,
+          "accepted_lines": 51
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 53,
+          "deletions": 23,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/styles/Tooltip.css": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 17,
+          "deletions": 7,
+          "accepted_lines": 12
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 44,
+          "deletions": 11,
+          "accepted_lines": 39
+        },
+        "packages/webview/tests/webview/tooltip.test.tsx": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 97,
+          "deletions": 31,
+          "accepted_lines": 76
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 30,
+          "deletions": 17,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
