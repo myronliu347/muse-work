@@ -50,6 +50,11 @@
   visibility: visible;
 }
 
+/* Issue tabs are fixed-width and ellipsized; the tip shows the full title. */
+.tooltip-box.bot-tab-tip {
+  max-width: none;
+}
+
 .tooltip-box::after {
   content: "";
   position: absolute;

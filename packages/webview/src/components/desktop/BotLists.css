@@ -56,8 +56,48 @@
   cursor: pointer;
 }
 
+.bot-list-item {
+  position: relative;
+}
+
 .bot-list-row:hover {
   background: var(--gray-3, rgba(255, 255, 255, 0.06));
+}
+
+.bot-list-open {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--gray-4, #3a3a3a);
+  color: var(--gray-12, #fff);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 22px;
+  cursor: pointer;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.bot-list-item:hover .bot-list-open,
+.bot-list-item--hover .bot-list-open,
+.bot-list-item:focus-within .bot-list-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.bot-list-item:hover .bot-list-status,
+.bot-list-item:hover .bot-list-priority,
+.bot-list-item--hover .bot-list-status,
+.bot-list-item--hover .bot-list-priority,
+.bot-list-item:focus-within .bot-list-status,
+.bot-list-item:focus-within .bot-list-priority {
+  visibility: hidden;
 }
 
 .bot-list-row[aria-current="true"] {

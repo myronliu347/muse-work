@@ -14,6 +14,7 @@ import type {
   DesktopIssueGroup,
 } from "../../types";
 import type { ShellSurface } from "./shellSurface";
+import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopApp.css";
 
 export {
@@ -220,52 +221,56 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     >
       <div className="desktop-sidebar-titlebar-drag" aria-hidden="true" />
       <nav className="desktop-rail" aria-label="主导航">
-        <button
-          type="button"
-          className={`desktop-rail-btn${activeMenu === "assistant" ? " active" : ""}`}
-          onClick={() => onOpenAssistant?.()}
-          title="Muse Bot"
-          aria-label="Muse Bot"
-          data-testid="desktop-assistant-menu"
-        >
-          <MuseBotIcon />
-          {showAssistantUnread ? (
-            <span
-              className="desktop-session-unread-dot desktop-rail-unread"
-              data-testid="assistant-unread-dot"
-            />
-          ) : null}
-        </button>
-        <button
-          type="button"
-          className={`desktop-rail-btn${activeMenu === "sessions" ? " active" : ""}`}
-          onClick={() => onOpenSessions?.()}
-          title="会话"
-          aria-label="会话"
-          data-testid="desktop-sessions-menu"
-        >
-          <SessionsIcon />
-        </button>
-        <button
-          type="button"
-          className={`desktop-rail-btn${activeMenu === "automations" ? " active" : ""}`}
-          onClick={() => onOpenAutomations?.()}
-          title="自动化"
-          aria-label="自动化"
-          data-testid="desktop-automations-menu"
-        >
-          <AutomationsRailIcon />
-        </button>
-        <button
-          type="button"
-          className={`desktop-rail-btn${activeMenu === "settings" ? " active" : ""}`}
-          onClick={onOpenSettings}
-          title="设置"
-          aria-label="设置"
-          data-testid="desktop-settings-btn"
-        >
-          <SettingsIcon />
-        </button>
+        <Tooltip text="Muse Bot" position="right" wrap={false}>
+          <button
+            type="button"
+            className={`desktop-rail-btn${activeMenu === "assistant" ? " active" : ""}`}
+            onClick={() => onOpenAssistant?.()}
+            aria-label="Muse Bot"
+            data-testid="desktop-assistant-menu"
+          >
+            <MuseBotIcon />
+            {showAssistantUnread ? (
+              <span
+                className="desktop-session-unread-dot desktop-rail-unread"
+                data-testid="assistant-unread-dot"
+              />
+            ) : null}
+          </button>
+        </Tooltip>
+        <Tooltip text="会话" position="right" wrap={false}>
+          <button
+            type="button"
+            className={`desktop-rail-btn${activeMenu === "sessions" ? " active" : ""}`}
+            onClick={() => onOpenSessions?.()}
+            aria-label="会话"
+            data-testid="desktop-sessions-menu"
+          >
+            <SessionsIcon />
+          </button>
+        </Tooltip>
+        <Tooltip text="自动化" position="right" wrap={false}>
+          <button
+            type="button"
+            className={`desktop-rail-btn${activeMenu === "automations" ? " active" : ""}`}
+            onClick={() => onOpenAutomations?.()}
+            aria-label="自动化"
+            data-testid="desktop-automations-menu"
+          >
+            <AutomationsRailIcon />
+          </button>
+        </Tooltip>
+        <Tooltip text="设置" position="right" wrap={false}>
+          <button
+            type="button"
+            className={`desktop-rail-btn${activeMenu === "settings" ? " active" : ""}`}
+            onClick={onOpenSettings}
+            aria-label="设置"
+            data-testid="desktop-settings-btn"
+          >
+            <SettingsIcon />
+          </button>
+        </Tooltip>
       </nav>
     </div>
   );

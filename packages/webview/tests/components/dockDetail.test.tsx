@@ -27,6 +27,16 @@ import {
   sendHostMessage,
 } from "../webview/test-utils";
 
+async function ensureAssistantDock(
+  scope: HTMLElement,
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  const existing = within(scope).queryByTestId("desktop-panel-dock");
+  if (existing) return existing;
+  await user.click(within(scope).getByTestId("panel-toggle-btn"));
+  return within(scope).findByTestId("desktop-panel-dock");
+}
+
 const RADII = "圆角还没对齐";
 const A11Y = "无障碍检查";
 const QUEUE_TITLE = "回复 Ty";
@@ -382,7 +392,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     expect(tabLabels()).toEqual(["详情", "文件", "终端", "浏览器", "变更"]);
 
     const detail = await within(dock).findByTestId("dock-detail");
@@ -520,7 +530,8 @@ describe("assistant dock detail", () => {
       </MuseTheme>,
     );
 
-    const dock = await screen.findByTestId("desktop-panel-dock");
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     expect(await within(dock).findByTestId("file-tree")).toBeVisible();
 
@@ -560,7 +571,8 @@ describe("assistant dock detail", () => {
       </MuseTheme>,
     );
 
-    const dock = await screen.findByTestId("desktop-panel-dock");
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
     expect(within(dock).getByTestId("dock-detail")).toBeVisible();
 
     await user.click(within(dock).getByTestId("desktop-panel-tab-close-file"));
@@ -591,7 +603,8 @@ describe("assistant dock detail", () => {
       </MuseTheme>,
     );
 
-    const dock = await screen.findByTestId("desktop-panel-dock");
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -630,7 +643,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     expect(
       within(assistantDock).getByTestId("desktop-panel-tab-detail"),
     ).toHaveClass("desktop-panel-tab--active");
@@ -667,7 +680,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
     expect(within(assistantDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -727,7 +740,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
     expect(within(assistantDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -775,7 +788,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -835,7 +848,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
     expect(within(assistantDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -877,7 +890,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
     expect(within(assistantDock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
@@ -922,7 +935,7 @@ describe("assistant dock detail", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
 
     establishSession();
@@ -1005,7 +1018,7 @@ describe("assistant dock detail", () => {
       expect(
         await within(paneB).findByTestId("desktop-panel-tab-terminal"),
       ).toBeInTheDocument();
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "文件" }));
 
       expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(

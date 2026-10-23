@@ -56,7 +56,7 @@ describe("Tooltip Component", () => {
     });
   });
 
-  it("reads icon-rail tooltips from the rail button aria-labels", () => {
+  it("shows a rail label beside the icon on hover", async () => {
     renderChatApp(undefined, { surface: "assistant" });
 
     const labels: Array<[string, string]> = [
@@ -68,7 +68,15 @@ describe("Tooltip Component", () => {
     for (const [testId, label] of labels) {
       const button = screen.getByTestId(testId);
       expect(button).toHaveAttribute("aria-label", label);
-      expect(button).toHaveAttribute("title", label);
+      await act(async () => {
+        fireEvent.mouseEnter(button);
+      });
+      const tip = document.querySelector(".tooltip-box.visible");
+      expect(tip).not.toBeNull();
+      expect(tip).toHaveTextContent(label);
+      await act(async () => {
+        fireEvent.mouseLeave(button);
+      });
     }
   });
 

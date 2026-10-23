@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
+import { Tooltip } from "../shared/Tooltip";
 import {
   closeIssueTab as applyCloseIssueTab,
   focusTab as applyFocusTab,
@@ -130,31 +131,33 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
         }
         const title = titles[tab] ?? tab;
         return (
-          <span key={tab} className={active ? "bot-tab-group active" : "bot-tab-group"}>
-            <button
-              type="button"
-              className={tabClass(active)}
-              onClick={() => onFocus(tab)}
-            >
-              {presence?.[tab] ? (
-                <span className="bot-tab-status" aria-hidden="true">
-                  <IssuePresenceMark presence={presence[tab]} />
-                </span>
-              ) : null}
-              <span className="bot-tab-label">{title}</span>
-            </button>
-            <button
-              type="button"
-              className="bot-tab-close"
-              aria-label="关闭"
-              onClick={(event) => {
-                event.stopPropagation();
-                onClose(tab);
-              }}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </span>
+          <Tooltip key={tab} text={title} position="bottom" wrap={false} className="bot-tab-tip">
+            <span className={active ? "bot-tab-group active" : "bot-tab-group"}>
+              <button
+                type="button"
+                className={tabClass(active)}
+                onClick={() => onFocus(tab)}
+              >
+                {presence?.[tab] ? (
+                  <span className="bot-tab-status" aria-hidden="true">
+                    <IssuePresenceMark presence={presence[tab]} />
+                  </span>
+                ) : null}
+                <span className="bot-tab-label">{title}</span>
+              </button>
+              <button
+                type="button"
+                className="bot-tab-close"
+                aria-label="关闭"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onClose(tab);
+                }}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </span>
+          </Tooltip>
         );
       })}
     </div>

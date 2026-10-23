@@ -122,6 +122,8 @@ export interface PanelGroupState {
   collapsedTabs: CollapsedTabs | null;
   /** Dock covers the chat column; cleared when the dock closes. */
   dockFullscreen: boolean;
+  /** Assistant page shows the dock column. Absent means closed. */
+  dockColumnOpen?: boolean;
   previewUrl: string | null;
   /** Open file tabs (opening order) — see muse/fileTabs.ts for semantics. */
   fileTabs: FileViewState[];

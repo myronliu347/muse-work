@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import {
   BOT_LISTS_WIDE_MIN_WIDTH,
+  botListsWideForPanel,
   BotLists,
 } from "../../src/components/desktop/BotLists";
 import { DesktopShell } from "../../src/components/desktop/DesktopShell";
@@ -339,6 +340,7 @@ describe("ChatApp pending and issue lists", () => {
     expect(within(frame).getAllByRole("button", { name: "Muse Bot" })).toHaveLength(1);
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(1);
     expect(within(frame).getByRole("button", { name: "Muse Bot" }).className).toContain("active");
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
     expect(screen.getByTestId("desktop-panel-tab-detail")).toBeInTheDocument();
 
     await user.click(within(lists).getByRole("button", { name: /回复 Ty/ }));
@@ -526,6 +528,7 @@ describe("ChatApp pending and issue lists", () => {
     expect(await within(frame).findByRole("region", { name: "待处理" })).toBeInTheDocument();
     expect(within(frame).getByRole("region", { name: "事项" })).toBeInTheDocument();
 
+    await user.click(screen.getByTestId("panel-toggle-btn"));
     await user.click(screen.getByTestId("desktop-panel-add-btn"));
     await user.click(await screen.findByTestId("panel-add-item-diff"));
     await user.click(await screen.findByTestId("desktop-panel-fullscreen-btn"));
@@ -566,7 +569,36 @@ describe("ChatApp pending and issue lists", () => {
     expect(await within(frame).findByTestId("bot-lists")).toBeInTheDocument();
   });
 
-  it("closes the detail dock without opening a tool, then restores detail", async () => {
+  it("shrinks the centered column further before the cards fold", () => {
+    expect(botListsWideForPanel(1284)).toBe(true);
+    expect(botListsWideForPanel(1283)).toBe(false);
+    expect(botListsWideForPanel(900)).toBe(false);
+  });
+
+  it("opens an issue session from the list hover button", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1600);
+    const { host, onSelectSession } = listsHost();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const lists = await within(frame).findByTestId("bot-lists");
+    const row = within(lists).getByRole("button", { name: new RegExp(A11Y) });
+    await user.hover(row);
+    await user.click(within(row.parentElement as HTMLElement).getByRole("button", { name: "打开会话" }));
+    expect(onSelectSession).not.toHaveBeenCalled();
+    expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
+    expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
+  });
+
+  it("starts with the detail dock closed and reopens it without a tool", async () => {
     resetWebviewStores();
     stubAssistant(QUEUE);
     const media = installMatchMedia();
@@ -579,18 +611,16 @@ describe("ChatApp pending and issue lists", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
+    expect(within(frame).queryByTestId("desktop-panel-dock")).toBeNull();
+
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
     const dock = await within(frame).findByTestId("desktop-panel-dock");
     expect(within(dock).getByRole("button", { name: "详情" })).toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "变更" })).toBeNull();
 
     await user.click(within(dock).getByTestId("panel-toggle-btn"));
     await waitFor(() => {
       expect(within(frame).queryByTestId("desktop-panel-dock")).toBeNull();
     });
-    expect(within(frame).queryByRole("button", { name: "变更" })).toBeNull();
-
-    await user.click(within(frame).getByTestId("panel-toggle-btn"));
-    const restored = await within(frame).findByTestId("desktop-panel-dock");
-    expect(within(restored).getByRole("button", { name: "详情" })).toBeInTheDocument();
-    expect(within(restored).queryByRole("button", { name: "变更" })).toBeNull();
   });
 });

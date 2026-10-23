@@ -7,8 +7,34 @@ import "./BotLists.css";
 /** Fallback when the left panel cannot be measured (jsdom). Live layout uses the panel width. */
 export const BOT_LISTS_WIDE_MIN_WIDTH = 1240;
 
-/** Show the cards when the area left of the dock is at least this wide. */
-export const BOT_LISTS_PANEL_MIN_WIDTH = 900;
+/** Message column shrinks from this width before the cards fold. */
+export const BOT_MESSAGE_COLUMN_MAX = 800;
+/** Narrowest the message column goes while the cards are still open. */
+export const BOT_MESSAGE_COLUMN_MIN = 520;
+export const BOT_LIST_SIDE_PADDING = 28;
+export const BOT_LIST_CARD_WIDTH = 268;
+export const BOT_LIST_CARD_RIGHT = 18;
+export const BOT_LIST_RAIL_WIDTH = 52;
+
+/** Widest centered column that still leaves a clear gutter for the card. */
+export function botListsColumnWidth(panelWidth: number): number {
+  const content =
+    panelWidth - BOT_LIST_RAIL_WIDTH - BOT_LIST_SIDE_PADDING * 2;
+  const gutter = BOT_LIST_CARD_WIDTH + BOT_LIST_CARD_RIGHT - BOT_LIST_SIDE_PADDING;
+  return content - gutter * 2;
+}
+
+/**
+ * Cards float on the right and the column stays centered. Narrowing shrinks
+ * the column, not the padding. Cards fold once that shrink reaches half
+ * of (max − min).
+ */
+export function botListsWideForPanel(panelWidth: number): boolean {
+  const foldAt =
+    BOT_MESSAGE_COLUMN_MAX -
+    (BOT_MESSAGE_COLUMN_MAX - BOT_MESSAGE_COLUMN_MIN) / 2;
+  return botListsColumnWidth(panelWidth) >= foldAt;
+}
 
 export type BotListQueueItem = {
   id: string;
@@ -28,6 +54,8 @@ export type BotListIssue = {
   presence?: IssuePresence | null;
   /** 进行中 / 空闲 / 失败 / 执行中 等。 */
   statusLabel?: string;
+  /** 悬停时盖在行右侧。已经停在这条会话上时为空。 */
+  openLabel?: "打开会话" | "切到会话" | null;
 };
 
 export interface BotListsProps {
@@ -39,6 +67,7 @@ export interface BotListsProps {
   /** Issue 会话只保留事项。缺省两边都显示。 */
   showQueue?: boolean;
   onSelect: (panel: Exclude<PanelSelection, { kind: "none" }>) => void;
+  onOpenIssue?: (issueId: string) => void;
   onToggleMenu: (menu: "queue" | "todo") => void;
 }
 
@@ -223,17 +252,28 @@ function IssueRows({
   issues,
   selected,
   onSelect,
+  onOpenIssue,
 }: {
   issues: BotListIssue[];
   selected: PanelSelection;
   onSelect: BotListsProps["onSelect"];
+  onOpenIssue?: BotListsProps["onOpenIssue"];
 }) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   return (
     <ul className="bot-list-rows">
       {issues.map((issue) => {
         const current = selected.kind === "issue" && selected.issueId === issue.issueId;
+        const hovered = hoveredId === issue.issueId;
         return (
-          <li key={issue.issueId}>
+          <li
+            key={issue.issueId}
+            className={hovered ? "bot-list-item bot-list-item--hover" : "bot-list-item"}
+            onMouseEnter={() => setHoveredId(issue.issueId)}
+            onMouseLeave={() =>
+              setHoveredId((currentId) => (currentId === issue.issueId ? null : currentId))
+            }
+          >
             <button
               type="button"
               className="bot-list-row"
@@ -254,6 +294,15 @@ function IssueRows({
               ) : null}
               <span className="bot-list-priority">{priorityLabel(issue.priority)}</span>
             </button>
+            {issue.openLabel && onOpenIssue ? (
+              <button
+                type="button"
+                className="bot-list-open"
+                onClick={() => onOpenIssue(issue.issueId)}
+              >
+                {issue.openLabel}
+              </button>
+            ) : null}
           </li>
         );
       })}
@@ -281,6 +330,7 @@ function TodoCard(props: {
   issues: BotListIssue[];
   selected: PanelSelection;
   onSelect: BotListsProps["onSelect"];
+  onOpenIssue?: BotListsProps["onOpenIssue"];
 }) {
   return (
     <section className="bot-list-card" style={cardStyle} aria-label="事项">
@@ -288,7 +338,12 @@ function TodoCard(props: {
         事项
         <span>{props.issues.length}</span>
       </h2>
-      <IssueRows issues={props.issues} selected={props.selected} onSelect={props.onSelect} />
+      <IssueRows
+        issues={props.issues}
+        selected={props.selected}
+        onSelect={props.onSelect}
+        onOpenIssue={props.onOpenIssue}
+      />
     </section>
   );
 }
@@ -301,6 +356,7 @@ export function BotLists({
   menu,
   showQueue = true,
   onSelect,
+  onOpenIssue,
   onToggleMenu,
 }: BotListsProps) {
   const openMenu = !showQueue && menu === "queue" ? null : menu;
@@ -308,7 +364,12 @@ export function BotLists({
     return (
       <aside className="bot-lists" style={columnStyle} data-testid="bot-lists">
         <QueueCard queue={queue} selected={selected} onSelect={onSelect} />
-        <TodoCard issues={issues} selected={selected} onSelect={onSelect} />
+        <TodoCard
+          issues={issues}
+          selected={selected}
+          onSelect={onSelect}
+          onOpenIssue={onOpenIssue}
+        />
       </aside>
     );
   }
@@ -351,7 +412,12 @@ export function BotLists({
           ) : (
             <>
               <h2 className="bot-list-card-title">事项</h2>
-              <IssueRows issues={issues} selected={selected} onSelect={onSelect} />
+              <IssueRows
+                issues={issues}
+                selected={selected}
+                onSelect={onSelect}
+                onOpenIssue={onOpenIssue}
+              />
             </>
           )}
         </div>

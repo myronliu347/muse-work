@@ -51,19 +51,6 @@
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Vertical rule starts under the titlebar so it does not cross the tab-bar line
-   in the traffic-light corner. */
-.desktop-sidebar::after {
-  content: "";
-  position: absolute;
-  top: var(--desktop-shell-titlebar-height);
-  right: 0;
-  bottom: 0;
-  width: var(--hairline);
-  background: var(--gray-6);
-  pointer-events: none;
-}
-
 .desktop-layout[data-sidebar-collapsed="true"] .desktop-sidebar {
   transform: none;
   pointer-events: auto;
@@ -1817,10 +1804,39 @@ body.is-panel-resizing * {
   border-radius: 0;
   box-shadow: none;
   background: var(--color-background);
-  padding-top: var(--desktop-shell-titlebar-height);
-  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
-  padding-right: var(--space-4);
+  padding: 0;
   transition: padding-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-layout > .desktop-settings-page .config-dialog-header {
+  box-sizing: border-box;
+  height: var(--desktop-shell-titlebar-height);
+  margin: 0;
+  padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
+  border-bottom: none;
+  -webkit-app-region: drag;
+}
+
+.desktop-layout > .desktop-settings-page .config-dialog-header h3,
+.desktop-layout > .desktop-settings-page .config-dialog-header button {
+  -webkit-app-region: no-drag;
+}
+
+.desktop-layout > .desktop-settings-page .config-dialog-body {
+  padding-left: var(--desktop-sidebar-width);
+  min-height: 0;
+}
+
+.desktop-layout > .desktop-settings-page .config-tabs {
+  border-right: none;
+}
+
+.desktop-layout > .desktop-settings-page .configuration-fields-scroll-area {
+  box-sizing: border-box;
+  width: min(100%, 880px);
+  max-width: 880px;
+  margin-inline: auto;
+  align-self: center;
 }
 
 
@@ -1851,9 +1867,21 @@ body.is-panel-resizing * {
   padding-right: var(--space-4);
 }
 
-/* Editor chrome occupies the titlebar band so it sits flush with the window top. */
+/* Editor chrome sits in the titlebar, clear of the traffic lights. */
 .desktop-layout > .automations-page.automations-page--editor {
-  padding-top: 0;
+  padding: 0;
+}
+
+.desktop-layout > .automations-page.automations-page--editor .automations-ed-chrome {
+  box-sizing: border-box;
+  height: var(--desktop-shell-titlebar-height);
+  padding-left: var(--desktop-shell-chrome-left);
+  padding-right: var(--space-4);
+}
+
+.desktop-layout > .automations-page.automations-page--editor .automations-page-scroll {
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
+  padding-right: var(--space-4);
 }
 
 
@@ -2189,7 +2217,7 @@ body.is-panel-resizing * {
   position: relative;
   z-index: 5;
   height: var(--desktop-shell-titlebar-height);
-  border-bottom: var(--hairline) solid var(--gray-6);
+  border-bottom: none;
 }
 
 /* The list button sits on the chat/dock seam. Open the menu across the
@@ -2246,10 +2274,25 @@ body.is-panel-resizing * {
   padding: 0;
 }
 
-.assistant-frame:has(.bot-lists) .assistant-log,
-.assistant-frame:has(.bot-lists) .assistant-composer,
-.assistant-frame:has(.bot-lists) .assistant-error {
-  padding-right: calc(268px + 36px);
+/* Cards stay out of flow. Narrowing lowers this cap so the centered column
+   shrinks and the side padding does not. */
+.assistant-frame .assistant-page .assistant-column,
+.assistant-frame .assistant-page .messages-column,
+.assistant-frame .assistant-page .sticky-user-dock,
+.assistant-frame .assistant-page .input-wrapper,
+.assistant-frame .assistant-page .assistant-queue-card,
+.assistant-frame .assistant-page .task-list-inline,
+.assistant-frame .assistant-page .queued-message-list-container,
+.assistant-frame .assistant-page .background-task-list {
+  max-width: var(--bot-column-max, 800px);
+}
+
+.desktop-layout .assistant-page .assistant-log,
+.desktop-layout .assistant-page .messages-container,
+.desktop-layout .assistant-page .assistant-composer,
+.desktop-layout .assistant-page .assistant-error {
+  padding-left: calc(var(--desktop-sidebar-width) + 28px);
+  padding-right: 28px;
 }
 
 .assistant-frame .desktop-panel-dock {
@@ -2307,7 +2350,8 @@ body.is-panel-resizing * {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 0 10px;
   box-sizing: border-box;
   /* Empty tab-bar space stays draggable. Buttons opt out below. */
@@ -2327,8 +2371,11 @@ body.is-panel-resizing * {
 .bot-tab {
   position: relative;
   height: 24px;
-  max-width: 180px;
-  min-width: 0;
+  width: 126px;
+  max-width: 126px;
+  min-width: 126px;
+  flex: none;
+  box-sizing: border-box;
   border: 0;
   border-radius: var(--radius-1);
   padding: 0 var(--space-2);
@@ -2352,8 +2399,10 @@ body.is-panel-resizing * {
   position: relative;
   display: inline-flex;
   align-items: center;
-  max-width: 180px;
-  min-width: 0;
+  width: 126px;
+  max-width: 126px;
+  min-width: 126px;
+  flex: none;
   height: 24px;
   border-radius: var(--radius-1);
 }
@@ -2364,6 +2413,9 @@ body.is-panel-resizing * {
 
 .bot-tab-group .bot-tab {
   background: transparent;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   height: 24px;
 }
 
@@ -2500,17 +2552,17 @@ body.is-panel-resizing * {
 .desktop-layout > .chat-container .messages-container,
 .desktop-pane-row > .desktop-pane:first-child .messages-container,
 .desktop-layout > .chat-container .issue-tab-messages,
-.desktop-pane-row > .desktop-pane:first-child .issue-tab-messages,
-.desktop-layout .assistant-page .assistant-queue,
-.desktop-layout .assistant-page .assistant-log,
-.desktop-layout .assistant-page .messages-container {
+.desktop-pane-row > .desktop-pane:first-child .issue-tab-messages {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
 }
 
+.desktop-layout .assistant-page .assistant-queue {
+  padding-left: calc(var(--desktop-sidebar-width) + 28px);
+  padding-right: 28px;
+}
+
 .desktop-layout > .chat-container .input-area-container,
-.desktop-pane-row > .desktop-pane:first-child .input-area-container,
-.desktop-layout .assistant-page .assistant-composer,
-.desktop-layout .assistant-page .assistant-error {
+.desktop-pane-row > .desktop-pane:first-child .input-area-container {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
 }
 

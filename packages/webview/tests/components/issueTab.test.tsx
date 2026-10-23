@@ -19,6 +19,16 @@ import {
   sendHostMessage,
 } from "../webview/test-utils";
 
+async function ensureAssistantDock(
+  scope: HTMLElement,
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  const existing = within(scope).queryByTestId("desktop-panel-dock");
+  if (existing) return existing;
+  await user.click(within(scope).getByTestId("panel-toggle-btn"));
+  return within(scope).findByTestId("desktop-panel-dock");
+}
+
 const RADII = "圆角还没对齐";
 const A11Y = "无障碍检查";
 const EMPTY = "没有会话";
@@ -261,7 +271,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     const tree = await within(dock).findByTestId("file-tree-workdir");
     expect(tree).toHaveTextContent("radii");
@@ -400,7 +410,9 @@ describe("issue tab", () => {
       </MuseTheme>,
     );
 
-    const dock = await screen.findByTestId("desktop-panel-dock");
+    const user = userEvent.setup();
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
     expect(await within(dock).findByRole("heading", { name: EMPTY })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
@@ -424,7 +436,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
 
@@ -460,7 +472,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
 
@@ -515,7 +527,7 @@ describe("issue tab", () => {
 
     const paneA = await screen.findByTestId("desktop-pane-pane-a");
     const paneB = await screen.findByTestId("desktop-pane-pane-b");
-    const dock = await within(paneA).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(paneA, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
 
     expect(onSelectSession).not.toHaveBeenCalled();
@@ -553,7 +565,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "文件" }));
     replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
     const src = await within(dock).findByTestId("file-tree-row-src");
@@ -713,6 +725,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
     await user.click(within(frame).getByTestId("desktop-panel-add-btn"));
     await user.click(await screen.findByTestId("panel-add-item-diff"));
 
@@ -758,7 +771,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "浏览器" }));
     const address = within(dock).getByTestId("preview-address");
     expect(address).not.toHaveValue("http://shared.example/");
@@ -830,7 +843,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const assistantDock = await within(frame).findByTestId("desktop-panel-dock");
+    const assistantDock = await ensureAssistantDock(frame, user);
     await user.click(within(assistantDock).getByRole("button", { name: "文件" }));
     await waitFor(() => {
       expect(within(assistantDock).getByTestId("file-tree-workdir")).toHaveAttribute(
@@ -886,7 +899,7 @@ describe("issue tab", () => {
       );
 
       const frame = await screen.findByTestId("assistant-frame");
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "文件" }));
       replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
       await user.click(within(dock).getByTestId("file-sidebar-mode-search"));
@@ -955,7 +968,7 @@ describe("issue tab", () => {
       );
 
       const frame = await screen.findByTestId("assistant-frame");
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "文件" }));
       replyListDir("", [dirEntry("src", "/work/radii", "src", true)]);
       const src = await within(dock).findByTestId("file-tree-row-src");
@@ -1165,7 +1178,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
 
     const transcript = within(frame).getByTestId("issue-tab-transcript");
@@ -1217,7 +1230,7 @@ describe("issue tab", () => {
       );
 
       const frame = await screen.findByTestId("assistant-frame");
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "文件" }));
       replyListDir("", [
         dirEntry("src", "/work/radii", "src", true),
@@ -1359,7 +1372,7 @@ describe("issue tab", () => {
       );
 
       const frame = await screen.findByTestId("assistant-frame");
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "文件" }));
       replyListDir("", [dirEntry("App.tsx", "/work/radii", "App.tsx", false)]);
       await user.click(await within(dock).findByTestId("file-tree-row-App.tsx"));
@@ -1426,7 +1439,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     const transcript = within(frame).getByTestId("issue-tab-transcript");
     expect((await within(transcript).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
@@ -1472,7 +1485,7 @@ describe("issue tab", () => {
       );
 
       const frame = await screen.findByTestId("assistant-frame");
-      const dock = await within(frame).findByTestId("desktop-panel-dock");
+      const dock = await ensureAssistantDock(frame, user);
       await user.click(within(dock).getByRole("button", { name: "打开会话" }));
       expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
       const radiiCalls = () =>
@@ -1532,7 +1545,7 @@ describe("issue tab", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     const transcript = within(frame).getByTestId("issue-tab-transcript");
     const link = await within(transcript).findByRole("link", { name: "src/App.tsx" });
@@ -1588,7 +1601,7 @@ describe("issue tab", () => {
     });
     expect(within(frame).getAllByRole("button", { name: "Muse Bot" })).toHaveLength(1);
 
-    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const dock = await ensureAssistantDock(frame, user);
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     await waitFor(() => {

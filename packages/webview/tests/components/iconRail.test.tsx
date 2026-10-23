@@ -182,11 +182,8 @@ describe("desktop icon rail", () => {
     const automations = screen.getByTestId("desktop-automations-menu");
     const settings = screen.getByTestId("desktop-settings-btn");
     expect(sessions).toHaveAttribute("aria-label", "会话");
-    expect(sessions).toHaveAttribute("title", "会话");
     expect(automations).toHaveAttribute("aria-label", "自动化");
-    expect(automations).toHaveAttribute("title", "自动化");
     expect(settings).toHaveAttribute("aria-label", "设置");
-    expect(settings).toHaveAttribute("title", "设置");
 
     await user.click(sessions);
     expect(screen.getByTestId("desktop-assistant-menu").className).not.toContain(

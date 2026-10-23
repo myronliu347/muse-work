@@ -55,6 +55,12 @@ function stubEmptyAssistant() {
       if (url.includes("/scenarios/models")) {
         return jsonResponse({ models: {} });
       }
+      if (url.includes("/providers")) {
+        return jsonResponse({
+          providers: [],
+          active: { providerId: "stub", modelId: "stub" },
+        });
+      }
       return jsonResponse({});
     }),
   );
@@ -92,7 +98,7 @@ describe("BotTabs", () => {
     expect(screen.getByRole("button", { name: "关闭" }).className.split(/\s+/)).not.toContain(
       "active",
     );
-    expect(screen.getByText(ISSUE_TITLE).className).toContain("bot-tab-label");
+    expect(issue.querySelector(".bot-tab-label")?.textContent).toBe(ISSUE_TITLE);
 
     await user.click(issue);
     expect(onFocus).toHaveBeenCalledWith(ISSUE_ID);
@@ -265,7 +271,11 @@ describe("assistant frame", () => {
     );
 
     const frame = await screen.findByTestId("assistant-frame");
-    expect(within(frame).getByRole("button", { name: ISSUE_TITLE })).toBeInTheDocument();
+    expect(
+      within(frame)
+        .getAllByRole("button")
+        .some((button) => button.textContent === ISSUE_TITLE),
+    ).toBe(true);
   });
 
   it("shows Muse Bot tabs on the focused pane", async () => {

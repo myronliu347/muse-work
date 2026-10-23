@@ -24,7 +24,9 @@ import {
   type BotWorkspaceContextValue,
 } from "./desktop/BotTabs";
 import {
-  BOT_LISTS_PANEL_MIN_WIDTH,
+  BOT_MESSAGE_COLUMN_MAX,
+  botListsColumnWidth,
+  botListsWideForPanel,
   BotLists,
   readBotQueue,
   useBotListsWide,
@@ -336,6 +338,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       type: group.type,
       presence: activity?.presence ?? null,
       statusLabel: activity?.label,
+      openLabel: issueTabSessionId(group)
+        ? sessionActionLabel(workspace, group.issueId)
+        : null,
     };
   });
   const issueTabPresence: Record<string, ReturnType<typeof issueGroupActivity>["presence"]> = {};
@@ -1007,7 +1012,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const dockMaxWidth = chatColumnWidth - chatMinWidth;
   const assistantDockToggleRef = useRef<(() => void) | null>(null);
   const restoreAssistantToolsRef = useRef(false);
-  const [assistantDockOpen, setAssistantDockOpen] = useState(true);
+  const [assistantDockOpen, setAssistantDockOpenState] = useState(
+    () =>
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===
+      true,
+  );
+  const setAssistantDockOpen = useCallback((open: boolean) => {
+    setAssistantDockOpenState(open);
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      dockColumnOpen: open,
+    });
+  }, []);
   const [assistantView, setAssistantView] = useState<"chat" | "transcript">("chat");
   const onAssistantViewMode = useCallback((mode: "chat" | "transcript") => {
     setAssistantView(mode);
@@ -1077,6 +1092,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     assistantVisible,
     checkedPanels.length,
     handleToggleDock,
+    setAssistantDockOpen,
   ]);
   assistantDockToggleRef.current = assistantVisible ? toggleAssistantDock : null;
 
@@ -1579,15 +1595,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Cards follow the pane left of the dock, not the window. matchMedia is
   // only the fallback when that pane has not been measured (jsdom).
   const showWideCards =
-    leftPanelWidth > 0
-      ? leftPanelWidth >= BOT_LISTS_PANEL_MIN_WIDTH
-      : botListsWide;
+    leftPanelWidth > 0 ? botListsWideForPanel(leftPanelWidth) : botListsWide;
   const onBotHome = workspace.active === "bot";
   const showCards = onBotHome && showWideCards;
   const showBotLists =
     assistantVisible &&
     !dockFullscreen &&
     !(onBotHome && assistantView === "transcript");
+  const botColumnMax =
+    showCards && showBotLists && leftPanelWidth > 0
+      ? Math.min(BOT_MESSAGE_COLUMN_MAX, Math.floor(botListsColumnWidth(leftPanelWidth)))
+      : undefined;
   const botLists = showBotLists ? (
     <BotLists
       queue={botQueue}
@@ -1597,12 +1615,27 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       menu={botMenu}
       showQueue={onBotHome}
       onSelect={selectBotPanel}
+      onOpenIssue={(issueId) => {
+        workspace.openIssueSession(issueId);
+        workspace.selectPanel({ kind: "issue", issueId });
+        setBotMenu(null);
+        clearIssueUnreadRef.current(issueId);
+      }}
       onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
     />
   ) : null;
 
   const assistantFrame = (
-    <div className="chat-container assistant-frame" ref={chatContainerRef} data-testid="assistant-frame">
+    <div
+      className="chat-container assistant-frame"
+      ref={chatContainerRef}
+      data-testid="assistant-frame"
+      style={
+        botColumnMax != null
+          ? ({ "--bot-column-max": `${botColumnMax}px` } as React.CSSProperties)
+          : undefined
+      }
+    >
       <div className="bot-frame-bar">
         <BotTabs
           state={workspace}
