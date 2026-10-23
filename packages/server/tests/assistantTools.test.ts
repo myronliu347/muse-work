@@ -460,7 +460,9 @@ describe("assistant tools", () => {
     const museLine = log.page().messages[0];
     expect(museLine?.message).toContain("https://example.com/a");
     expect(museLine?.message).toContain(note);
-    expect(museLine?.images?.[0]?.data.startsWith("data:image/png;base64,")).toBe(true);
+    expect(museLine?.message).toContain(png);
+    expect(museLine?.images).toBeUndefined();
+    expect(muse.content).not.toContain("base64");
 
     const popo = await tool(tools, "SendMessage").execute(
       {

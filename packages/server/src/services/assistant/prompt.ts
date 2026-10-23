@@ -82,7 +82,7 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 
 - \`app\` 为 \`muse\`：Muse 私聊。
 - \`app\` 为 \`popo\`：有 \`groupId\` 发群，否则是 POPO 私聊，发给 \`user\`。
-- 本地图片或文件放进 \`files\`，用绝对路径。jpg、gif、png、bmp 会按图片发，其他按文件发。链接放进 \`links\`。只有附件时 \`message\` 可以是空字符串。
+- 本地图片或文件放进 \`files\`，用绝对路径。路径会写进发出的消息，不把文件内容嵌进去。链接放进 \`links\`。只有附件时 \`message\` 可以是空字符串。
 - 撤回已经发出的 POPO 消息用 \`RecallMessage\`。\`msgId\` 用 \`SendMessage\` 返回的 \`msgIds\`，或对话记录里记着的。有 \`groupId\` 就撤回群里那条，否则传 \`user\` 撤回私聊。
 
 谁在哪个频道问，就在那个频道回。\`from\` 为 \`muse\` 时 \`app\` 用 \`muse\`；\`from\` 为 \`popo\` 时 \`app\` 用 \`popo\`，发给 \`user\`；\`from\` 为 \`popo-group\` 时 \`app\` 用 \`popo\`，发给 \`groupId\`。群里只说人话和结论，不提 Issue、会话状态这些内部过程。要审核、要拍板的发私聊，不要发群。\`muse\` 和 POPO 私聊都是私聊，只是平台不同。用户没特别说发 POPO，这种私聊默认 \`app\` 为 \`muse\`。用户说某条他自己跟，就不要再往群里抢发。
