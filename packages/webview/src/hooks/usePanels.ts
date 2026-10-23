@@ -48,6 +48,8 @@ export interface PanelHandlers {
 interface UsePanelsParams {
   postToHost: ChatAppCore["postToHost"];
   updatePanelGroup: ChatAppCore["updatePanelGroup"];
+  /** Dock column width. Muse Bot and 会话 share one width, separate from the directory group. */
+  updateWidthGroup?: ChatAppCore["updatePanelGroup"];
   groupKey?: string;
   /** Where the browser forward record and its preview URL are stored. */
   forwardGroupKeyRef?: MutableRefObject<string | undefined>;
@@ -78,6 +80,7 @@ interface UsePanelsParams {
 export function usePanels({
   postToHost,
   updatePanelGroup,
+  updateWidthGroup,
   groupKey,
   forwardGroupKeyRef,
   panelWorkdir,
@@ -118,6 +121,8 @@ export function usePanels({
   useEffect(() => {
     panelWidthsRef.current = panelWidths;
   }, [panelWidths]);
+
+  const writeWidths = updateWidthGroup ?? updatePanelGroup;
 
   const showPanelHint = useCallback(
     (text: string) => {
@@ -215,7 +220,7 @@ export function usePanels({
           );
           if (changed) {
             panelWidthsRef.current = planned.widths;
-            updatePanelGroup({ widths: planned.widths });
+            writeWidths({ widths: planned.widths });
           }
         }
       }
@@ -230,7 +235,7 @@ export function usePanels({
       }));
       return true;
     },
-    [showPanelHint, updatePanelGroup, chatMinWidth],
+    [showPanelHint, updatePanelGroup, writeWidths, chatMinWidth],
   );
 
   const handleTogglePanel = useCallback(
@@ -408,8 +413,8 @@ export function usePanels({
       file: clamped,
     };
     panelWidthsRef.current = next;
-    updatePanelGroup({ widths: next });
-  }, [updatePanelGroup, chatMinWidth, dockMaxWidth]);
+    writeWidths({ widths: next });
+  }, [writeWidths, chatMinWidth, dockMaxWidth]);
 
   // No workdir: all panels disabled. With a workdir (incl. draft + host
   // folder): all panel kinds available; state is shared per workdir.
@@ -451,12 +456,12 @@ export function usePanels({
       file: clamped,
     };
     panelWidthsRef.current = next;
-    updatePanelGroup({ widths: next });
+    writeWidths({ widths: next });
   }, [
     checkedPanels.length,
     activePanel,
     dockMaxWidth,
-    updatePanelGroup,
+    writeWidths,
   ]);
 
   return {

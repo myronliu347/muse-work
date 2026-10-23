@@ -360,7 +360,7 @@ describe("assistant dock detail", () => {
     const fetched: string[] = [];
     stubAssistant(fetched);
     stubWideViewport();
-    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+    usePanelGroupStore.getState().patchGroup("/work/radii", {
       checked: ["file", "terminal", "preview", "diff"],
       mounted: ["file", "terminal", "preview", "diff"],
       active: "diff",
@@ -445,7 +445,8 @@ describe("assistant dock detail", () => {
     expect(within(nextDetail).getByText("空闲")).toBeInTheDocument();
     expect(within(nextDetail).getByText("P2")).toBeInTheDocument();
     expect(within(nextDetail).getByText("补上焦点环")).toBeInTheDocument();
-    expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
+    expect(within(dock).queryByTestId("file-tree")).toBeNull();
+    expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
     expect(within(lists).getByRole("button", { name: new RegExp(A11Y) })).toHaveAttribute(
       "aria-current",
       "true",
@@ -494,7 +495,12 @@ describe("assistant dock detail", () => {
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
 
-    await user.click(within(dock).getByRole("button", { name: "文件" }));
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+    const expandQueued = within(dock).getByTestId("file-tree-expand-btn");
+    if (expandQueued.getAttribute("aria-pressed") !== "true") {
+      await user.click(expandQueued);
+    }
     const queuedTree = await within(dock).findByTestId("file-tree-workdir");
     expect(queuedTree).toHaveTextContent("a11y");
     expect(queuedTree).toHaveAttribute("title", "/work/a11y");
@@ -505,7 +511,7 @@ describe("assistant dock detail", () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
-    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+    usePanelGroupStore.getState().patchGroup("/work/radii", {
       checked: ["file"],
       mounted: ["file"],
       active: "file",
@@ -546,7 +552,7 @@ describe("assistant dock detail", () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
-    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+    usePanelGroupStore.getState().patchGroup("/work/radii", {
       checked: ["file", "terminal"],
       mounted: ["file", "terminal"],
       active: "file",

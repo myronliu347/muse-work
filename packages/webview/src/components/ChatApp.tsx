@@ -100,6 +100,7 @@ import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   emptyContentSearchState,
+  resolvePanelGroup,
   usePanelGroup,
   usePanelGroupStore,
   usePaneUi,
@@ -522,12 +523,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   };
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory. On Muse Bot and 会话, the
-  // file, terminal, browser, and diff tabs follow the selected issue. A queue
-  // row keeps the previous issue. With no issue, Muse Bot stays on the
-  // assistant directory and 会话 stays on the open session. The assistant
-  // group key stays put so the chrome tab does not reset when the directory
-  // changes.
+  // the same dock as sessions in that directory. On Muse Bot and 会话 the
+  // dock is that directory's group: which tabs are open, files, terminal,
+  // browser, and diff. A queue row keeps the previous issue. Switching
+  // issues switches directories, so the tab set switches with them, the same
+  // way switching sessions does. With no issue, Muse Bot stays on the
+  // assistant group and 会话 stays on the open session. The column width
+  // and open flag stay on the assistant key, so Muse Bot and 会话 share
+  // one dock width.
   const dockIssueId =
     workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
   const dockIssueGroup = dockIssueId
@@ -549,14 +552,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       ? sessionPanelWorkdir
       : assistantWorkdir;
   const panelWorkdir = assistantVisible ? dockWorkdir : sessionPanelWorkdir;
-  const groupKey = assistantVisible
-    ? ASSISTANT_PANEL_GROUP_KEY
-    : panelWorkdir
-      ? panelWorkdir
-      : undefined;
+  const followIssueTools = assistantVisible || onSessionsSurface;
+  const groupKey =
+    dockIssueGroup && dockWorkdir
+      ? dockWorkdir
+      : assistantVisible
+        ? ASSISTANT_PANEL_GROUP_KEY
+        : panelWorkdir
+          ? panelWorkdir
+          : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
-  const followIssueTools = assistantVisible || onSessionsSurface;
   const previewGroupKeyRef = useRef<string | undefined>(undefined);
   previewGroupKeyRef.current =
     followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
@@ -577,6 +583,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
+  // Column width belongs to Muse Bot, not the directory whose tabs are showing.
+  const assistantWidths = usePanelGroupStore(
+    (state) => resolvePanelGroup(state.groups, ASSISTANT_PANEL_GROUP_KEY).widths,
+  );
+  const shownWidths = followIssueTools ? assistantWidths : panelWidths;
   const dockPreviewUrl = usePanelGroupStore((state) =>
     followIssueTools && dockWorkdir
       ? (state.groups[dockWorkdir]?.previewUrl ?? null)
@@ -647,8 +658,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // Opening a kind from a shortcut, the dock toggle, or the add menu also
   // leaves 详情. List clicks only call selectPanel, so a stale active kind
   // must not pull the dock back off 详情. Closing the kind that was active
-  // while 详情 is showing must not follow the next kind either. Muse Bot and
-  // a session share one dock chrome. 设置, 自动化, and the draft page do not
+  // while 详情 is showing must not follow the next kind either. Each
+  // directory has its own dock; Muse Bot and 会话 show the selected issue's
+  // directory. 设置, 自动化, and the draft page do not
   // mount it, so those groupKey changes must not call selectDock. On a dock
   // surface a group switch keeps the chrome kind, unless this group does not
   // have it checked — then the chrome returns to 详情 instead of adopting the
@@ -943,6 +955,18 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [],
   );
+  const updateFileGroup = useCallback(
+    (
+      patch:
+        | Partial<PanelGroupState>
+        | ((group: PanelGroupState) => Partial<PanelGroupState>),
+    ) => {
+      const key = previewGroupKeyRef.current;
+      if (!key) return;
+      usePanelGroupStore.getState().patchGroup(key, patch);
+    },
+    [],
+  );
 
   // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
@@ -1030,9 +1054,20 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   useEffect(() => {
     if (workspace.active !== "bot") setAssistantView("chat");
   }, [workspace.active]);
+  const updateMuseWidthGroup = useCallback(
+    (
+      patch:
+        | Partial<PanelGroupState>
+        | ((group: PanelGroupState) => Partial<PanelGroupState>),
+    ) => {
+      usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, patch);
+    },
+    [],
+  );
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
+    updateWidthGroup: followIssueTools ? updateMuseWidthGroup : undefined,
     groupKey,
     forwardGroupKeyRef: previewGroupKeyRef,
     panelWorkdir,
@@ -1054,7 +1089,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     checkedPanels,
     mountedPanels,
     activePanel,
-    panelWidths,
+    panelWidths: shownWidths,
     dockMaxWidth,
     chatMinWidth,
     hideDiff: assistantVisible && !dockIssueId,
@@ -1123,7 +1158,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     groupKey,
     contentSearch: shownContentSearch,
     updateListingGroup: updatePreviewGroup,
-    updateFileGroup: updatePreviewGroup,
+    updateFileGroup,
   });
   const {
     handleOpenFile,
@@ -1516,7 +1551,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     mounted: mountedPanels,
     disabledPanels: panelDisabled,
     fullscreen: dockFullscreen,
-    widths: panelWidths,
+    widths: shownWidths,
     dockMaxWidth,
     onSelect: (kind) => {
       workspace.selectDock(kind);

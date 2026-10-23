@@ -2220,14 +2220,6 @@ body.is-panel-resizing * {
   border-bottom: none;
 }
 
-/* The list button sits on the chat/dock seam. Open the menu across the
-   dock so it does not cover the transcript or change the column width. */
-.assistant-frame:has(.desktop-panel-dock) .bot-lists-pop {
-  left: 0;
-  right: auto;
-  transform-origin: top left;
-}
-
 .desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs {
   padding-left: var(--desktop-shell-chrome-left);
 }
