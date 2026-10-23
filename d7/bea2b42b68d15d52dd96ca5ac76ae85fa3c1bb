@@ -1,0 +1,103 @@
+packages/server/src/routes/sessions.ts
+  6cd77def0d14128b 317-320
+packages/webview/src/types/index.ts
+  6cd77def0d14128b 500-501
+packages/webview/tests/components/DesktopApp.test.tsx
+  6cd77def0d14128b 6,161-224
+packages/server/src/services/issueStore.ts
+  6cd77def0d14128b 118-119,615-626
+packages/webview/src/components/chat/ChatComposer.tsx
+  6cd77def0d14128b 62-63,107,128-132
+packages/server/tests/assistantTools.test.ts
+  6cd77def0d14128b 620-685
+packages/webview/src/components/ChatApp.tsx
+  6cd77def0d14128b 607-617,732
+packages/server/tests/sessions.routes.test.ts
+  6cd77def0d14128b 252-352
+packages/server/src/services/assistant/tools.ts
+  6cd77def0d14128b 432,446-448
+packages/webview/src/components/chat/MessageInput.tsx
+  6cd77def0d14128b 147,1657-1658,1660
+packages/webview/src/hooks/useChatSend.ts
+  6cd77def0d14128b 112-119
+packages/server/src/services/assistant/prompt.ts
+  6cd77def0d14128b 25,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d7bea2b42b68d15d52dd96ca5ac76ae85fa3c1bb",
+  "prompts": {
+    "6cd77def0d14128b": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bdf2885f-d5ec-4ec7-8009-60810d3ffa48",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 291,
+      "total_deletions": 16,
+      "accepted_lines": 290,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 12,
+          "deletions": 7,
+          "accepted_lines": 12
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 66,
+          "accepted_lines": 66
+        },
+        "packages/webview/src/components/chat/ChatComposer.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 66,
+          "deletions": 1,
+          "accepted_lines": 65
+        },
+        "packages/server/tests/sessions.routes.test.ts": {
+          "additions": 101,
+          "accepted_lines": 101
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/MessageInput.tsx": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/issueStore.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/server/src/routes/sessions.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
