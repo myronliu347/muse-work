@@ -314,7 +314,10 @@ session.post("/messages", async (c) => {
     return c.json({ error: "content or images is required" }, 400);
   }
   if (source === "user") {
-    const issue = ctx.issueStore.getByPlanningSession(sessionId);
+    const issue = ctx.issueStore.getBySession(sessionId);
+    if (issue?.status === "completed" || issue?.status === "cancelled") {
+      return c.json({ error: "issue is closed" }, 409);
+    }
     if (issue?.status === "awaiting_close") {
       ctx.issueStore.resume(issue.id);
       ctx.hub.broadcastAll({ type: "issue:changed" });

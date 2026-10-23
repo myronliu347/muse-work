@@ -429,7 +429,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "MessageIssue",
-      "往 Issue 打开时创建的会话发送一条用户消息。会话正在跑时，消息会在当前这一步结束后进入同一轮，不中断正在进行的请求或工具，返回 joinedTurn。",
+      "往 Issue 打开时创建的会话发送一条用户消息。已关闭的不能发。会话正在跑时，消息会在当前这一步结束后进入同一轮，不中断正在进行的请求或工具，返回 joinedTurn。",
       {
         type: "object",
         properties: {
@@ -443,6 +443,9 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const message = text(args.message);
         if (!issue?.planningSessionId) return fail("session not open");
         if (!message) return fail("message required");
+        if (issue.status === "completed" || issue.status === "cancelled") {
+          return fail("already closed");
+        }
         if (issue.status === "awaiting_close") {
           deps.issues.resume(issue.id);
           deps.hub.broadcastAll({ type: "issue:changed" });

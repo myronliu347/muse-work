@@ -497,6 +497,8 @@ export interface MessageInputProps {
   modelPopup?: React.ReactNode;
   /** Disable the whole input area (e.g. desktop host without a workdir). */
   disabled?: boolean;
+  /** Replaces the default @ mention hint. */
+  placeholder?: string;
   /** Per-session model id shown in the sender toolbar. */
   modelId?: string;
   /** Called when the user picks a model in the sender toolbar. */

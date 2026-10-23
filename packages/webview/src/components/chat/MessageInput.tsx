@@ -144,6 +144,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       rewindPopup,
       modelPopup,
       disabled,
+      placeholder,
       modelId,
       onModelChange,
       modelSelectApi,
@@ -1653,9 +1654,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
               onDrop={handleDrop}
               data-testid="message-input"
               data-placeholder={
-                mentionIssues
+                placeholder ??
+                (mentionIssues
                   ? "@提及 Issue 或文件，粘贴图片，Enter发送..."
-                  : "@提及文件，粘贴图片，Enter发送..."
+                  : "@提及文件，粘贴图片，Enter发送...")
               }
             />
 

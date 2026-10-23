@@ -115,6 +115,8 @@ export interface IssueStore {
   /** True when this session id is some Issue's planning session. */
   hasPlanningSession(sessionId: string): boolean;
   getByPlanningSession(sessionId: string): Issue | undefined;
+  /** Planning or execution session, including closed issues. */
+  getBySession(sessionId: string): Issue | undefined;
 }
 
 export interface CreateIssueStoreOptions {
@@ -607,6 +609,18 @@ export function createIssueStore(
     getByPlanningSession(sessionId): Issue | undefined {
       for (const issue of [...issues.values(), ...closed.values()]) {
         if (issue.planningSessionId === sessionId) return cloneIssue(issue);
+      }
+      return undefined;
+    },
+
+    getBySession(sessionId): Issue | undefined {
+      for (const issue of [...issues.values(), ...closed.values()]) {
+        if (
+          issue.planningSessionId === sessionId ||
+          issue.executionSessionId === sessionId
+        ) {
+          return cloneIssue(issue);
+        }
       }
       return undefined;
     },

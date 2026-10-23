@@ -109,6 +109,14 @@ export function useChatSend({
       const trimmedText = text.trim();
       if (!trimmedText && (!images || images.length === 0)) return;
 
+      const currentId = stateRef.current.currentSession?.id;
+      if (
+        host?.type === "desktop" &&
+        findIssueGroupForSession(host.closedIssueGroups, currentId)
+      ) {
+        return;
+      }
+
       const slashMatch = trimmedText.match(
         /^\/(clear|compact|rewind|mcp|status|tasks|workflows|plugin|config|agents)(\s|$)/,
       );
@@ -195,7 +203,6 @@ export function useChatSend({
         return;
       }
 
-      const currentId = stateRef.current.currentSession?.id;
       const issueGroup =
         host?.type === "desktop"
           ? findIssueGroupForSession(host.issueGroups, currentId)
