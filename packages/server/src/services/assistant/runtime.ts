@@ -13,7 +13,8 @@ import { ensureAssistantSession } from "./session.js";
 type Queue = ReturnType<typeof createAssistantQueue>;
 
 const TURN_LIMIT_MS = 90_000;
-const OVERRUN_NOTE = "这一轮处理得太久了。应该把事情安排下去，不要自己继续做。";
+const OVERRUN_NOTE =
+  "上一轮超时被打断了，后面还有事件在等。被打断的工具没有做完。没做完的交给 Issue 接着做，然后处理下面的事件。不要停在这里。";
 
 export function createAssistantRuntime(options: {
   home: string;

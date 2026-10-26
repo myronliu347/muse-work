@@ -236,7 +236,8 @@ describe("assistant runtime", () => {
     advance(1_000);
     expect(aborts).toEqual([assistantId]);
     expect(sends).toHaveLength(2);
-    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("不要停在这里");
+    expect(sends[1]).not.toContain("不要自己继续做");
     expect(sends[1]).toContain("title: 登录");
     expect(sends[1]).not.toContain("message: 正在做");
     expect(sends[1]).not.toContain("title: 支付");
@@ -292,7 +293,8 @@ describe("assistant runtime", () => {
     expect(sends).toHaveLength(1);
     runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "后来" });
     expect(sends).toHaveLength(2);
-    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("不要停在这里");
+    expect(sends[1]).not.toContain("不要自己继续做");
     expect(sends[1]).toContain("message: 后来");
     expect(sends[1]).not.toContain("message: 正在做");
   });
@@ -354,7 +356,8 @@ describe("assistant runtime", () => {
     runtime.onCompactionSettled(assistantId);
     expect(aborts).toEqual([assistantId]);
     expect(sends).toHaveLength(2);
-    expect(sends[1]).toContain("应该把事情安排下去");
+    expect(sends[1]).toContain("不要停在这里");
+    expect(sends[1]).not.toContain("不要自己继续做");
     expect(sends[1]).toContain("title: 登录");
     expect(sends[1]).not.toContain("message: 正在做");
   });
