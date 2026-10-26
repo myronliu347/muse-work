@@ -1,8 +1,61 @@
 import type { ReactNode } from "react";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 import type { DesktopIssueGroup } from "../../types";
 import { issueSidebarStatusLabel } from "../../utils/issueStatusLabel";
 import { Tooltip } from "../shared/Tooltip";
 import { issueTabSessionId } from "./botWorkspace";
+
+const CHECK_STATUS_ORDER = ["running", "pending", "done"] as const;
+
+const CHECK_STATUS_LABEL: Record<string, string> = {
+  running: "进行中",
+  pending: "待办",
+  done: "完成",
+};
+
+function detailMarkdown(text: string): string {
+  const html = marked.parse(text, { gfm: true, breaks: true });
+  return DOMPurify.sanitize(typeof html === "string" ? html : "", {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "code",
+      "pre",
+      "ul",
+      "ol",
+      "li",
+      "a",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "blockquote",
+      "hr",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "del",
+    ],
+    ALLOWED_ATTR: ["href"],
+  });
+}
+
+function DetailMarkdown({ text }: { text: string }) {
+  return (
+    <div
+      className="dock-detail-md"
+      dangerouslySetInnerHTML={{ __html: detailMarkdown(text) }}
+    />
+  );
+}
 
 export type DockDetailSelection =
   | { kind: "issue"; issue: DesktopIssueGroup }
@@ -151,7 +204,11 @@ export function DockDetail({
             </DetailIconButton>
           </div>
         </div>
-        {description ? <p className="dock-detail-body">{description}</p> : null}
+        {description ? (
+          <div className="dock-detail-description" data-testid="dock-detail-description">
+            <DetailMarkdown text={description} />
+          </div>
+        ) : null}
         <dl className="dock-detail-fields">
           <div>
             <dt>工作目录</dt>
@@ -179,19 +236,54 @@ export function DockDetail({
           ) : null}
         </dl>
         {issue.items.length > 0 ? (
-          <>
-            <h3 className="dock-detail-section">执行清单</h3>
-            <ul className="dock-detail-items">
-              {issue.items.map((item) => (
-                <li key={item.id} data-status={item.status}>
-                  {item.content}
-                </li>
-              ))}
-            </ul>
-          </>
+          <Checklist items={issue.items} />
         ) : null}
       </div>
     </div>
+  );
+}
+
+function Checklist({
+  items,
+}: {
+  items: DesktopIssueGroup["items"];
+}) {
+  const ranked = [...items].sort((a, b) => {
+    const ai = CHECK_STATUS_ORDER.indexOf(a.status as (typeof CHECK_STATUS_ORDER)[number]);
+    const bi = CHECK_STATUS_ORDER.indexOf(b.status as (typeof CHECK_STATUS_ORDER)[number]);
+    return (ai === -1 ? CHECK_STATUS_ORDER.length : ai) - (bi === -1 ? CHECK_STATUS_ORDER.length : bi);
+  });
+  const counts = ranked.reduce<Record<string, number>>((acc, item) => {
+    acc[item.status] = (acc[item.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const summary = [...CHECK_STATUS_ORDER, ...Object.keys(counts).filter(
+    (status) => !CHECK_STATUS_ORDER.includes(status as (typeof CHECK_STATUS_ORDER)[number]),
+  )].filter((status) => counts[status]);
+
+  return (
+    <section className="dock-detail-checks" data-testid="dock-detail-checklist">
+      <div className="dock-detail-check-head">
+        <h3 className="dock-detail-section">执行清单</h3>
+        <div className="dock-detail-check-summary">
+          {summary.map((status) => (
+            <span key={status} data-status={status}>
+              {CHECK_STATUS_LABEL[status] ?? status} {counts[status]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <ol className="dock-detail-check-list">
+        {ranked.map((item) => (
+          <li key={item.id} data-status={item.status}>
+            <span className="dock-detail-check-badge">
+              {CHECK_STATUS_LABEL[item.status] ?? item.status}
+            </span>
+            <DetailMarkdown text={item.content} />
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

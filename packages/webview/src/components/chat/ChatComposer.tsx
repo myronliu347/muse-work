@@ -61,6 +61,8 @@ export interface ChatComposerProps {
   onModelPopupClose: () => void;
   /** Issue 已完成或已取消，输入框只保留阅读，不能再发。 */
   closed?: boolean;
+  /** 草稿新会话才显示工作目录和权限。Issue 会话已经有目录，不显示这行。 */
+  showDraftControls?: boolean;
 }
 
 export const ChatComposer = forwardRef<
@@ -105,6 +107,7 @@ export const ChatComposer = forwardRef<
     onModelSelect,
     onModelPopupClose,
     closed = false,
+    showDraftControls = false,
   },
   ref,
 ) {
@@ -134,7 +137,7 @@ export const ChatComposer = forwardRef<
       onModelChange={onModelChange}
       workdir={effectiveWorkdir ?? panelWorkdir}
       workdirSelector={
-        host?.type === "desktop" && isDraftSession ? (
+        host?.type === "desktop" && showDraftControls ? (
           <>
             <DesktopWorkdirSelector
               host={effectiveHost}

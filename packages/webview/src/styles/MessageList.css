@@ -108,14 +108,16 @@
 }
 
 /* The pinned user message sits above the scrollport. It used to be a
-   height:0 overlay inside the list, which painted on top of the rows. */
+   height:0 overlay inside the list, which painted on top of the rows.
+   Keep the same horizontal inset as .messages-container so the bubble
+   does not sit on the pane edge. */
 .messages-shell > .sticky-user-wrapper {
   position: relative;
   top: auto;
   flex: none;
   height: auto;
   margin: 0;
-  padding: var(--space-2) 0;
+  padding: var(--space-4) 28px var(--space-2) var(--space-4);
   overflow: visible;
   z-index: 2;
 }

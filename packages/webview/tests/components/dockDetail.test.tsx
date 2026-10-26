@@ -328,6 +328,47 @@ describe("dock detail tab", () => {
     expect(screen.queryByRole("button", { name: "切到会话" })).toBeNull();
   });
 
+  it("renders description markdown and checklist status", () => {
+    const radii = issue({
+      issueId: "radii",
+      title: RADII,
+      priority: "p1",
+      items: [
+        { id: "measure", content: "量一下 `圆角`", status: "pending" },
+        { id: "token", content: "改 **token**", status: "done" },
+        { id: "run", content: "正在改", status: "running" },
+      ],
+    });
+    render(
+      <DockDetail
+        selection={{
+          kind: "issue",
+          issue: {
+            ...radii,
+            description: "先看 **方案**\n\n- 核对调用",
+          },
+        }}
+        actionLabel={null}
+        onOpenSession={vi.fn()}
+      />,
+    );
+
+    const description = screen.getByTestId("dock-detail-description");
+    expect(description.querySelector("strong")).toHaveTextContent("方案");
+    expect(description.querySelector("li")).toHaveTextContent("核对调用");
+
+    const checklist = screen.getByTestId("dock-detail-checklist");
+    expect(within(checklist).getByText("进行中 1")).toBeInTheDocument();
+    expect(within(checklist).getByText("待办 1")).toBeInTheDocument();
+    expect(within(checklist).getByText("完成 1")).toBeInTheDocument();
+    const rows = checklist.querySelectorAll(".dock-detail-check-list li");
+    expect(rows[0]).toHaveAttribute("data-status", "running");
+    expect(rows[1]).toHaveAttribute("data-status", "pending");
+    expect(rows[2]).toHaveAttribute("data-status", "done");
+    expect(checklist.querySelector("code")).toHaveTextContent("圆角");
+    expect(checklist.querySelector("strong")).toHaveTextContent("token");
+  });
+
   it("shows a queue item's type, title, and body without an open button", () => {
     render(
       <DockDetail
@@ -1097,7 +1138,7 @@ describe("assistant dock detail", () => {
     }
   });
 
-  it("returns to 详情 when focus moves to a pane that only has 终端", async () => {
+  it("keeps 终端 when focus moves to a pane that does not have 文件", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1167,15 +1208,19 @@ describe("assistant dock detail", () => {
 
     const paneB = await screen.findByTestId("desktop-pane-pane-b");
     const dockB = await within(paneB).findByTestId("desktop-panel-dock");
-    expect(within(dockB).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+    expect(within(dockB).queryByTestId("desktop-panel-tab-detail")).toBeNull();
+    expect(within(dockB).queryByTestId("dock-detail")).toBeNull();
+    expect(within(dockB).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(dockB).getByTestId("desktop-panel-tab-terminal")).not.toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(dockB).getByTestId("terminal-pane")).toBeVisible();
+    const paneAAfter = await screen.findByTestId("desktop-pane-pane-a");
+    expect(
+      within(paneAAfter).getByTestId("desktop-panel-tab-file"),
+    ).toHaveClass("desktop-panel-tab--active");
   });
 
-  it("shows the detail body on an unfocused pane that lacks the chrome kind", async () => {
+  it("keeps an unfocused pane on its own kind when it lacks the chrome kind", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -1237,23 +1282,17 @@ describe("assistant dock detail", () => {
     expect(within(dockA).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(dockA).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    expect(within(dockA).queryByTestId("desktop-panel-tab-detail")).toBeNull();
 
     const paneB = await screen.findByTestId("desktop-pane-pane-b");
     const dockB = await within(paneB).findByTestId("desktop-panel-dock");
-    const visibleLayer = [
-      ...dockB.querySelectorAll(".desktop-panel-dock-layer"),
-    ].find((layer) => !layer.hasAttribute("hidden"));
-    expect(visibleLayer?.querySelector("[data-testid='dock-detail']")).not.toBeNull();
-    expect(within(dockB).getByTestId("dock-detail")).toBeVisible();
-    expect(within(dockB).getByTestId("terminal-pane")).not.toBeVisible();
-
-    expect(within(dockA).getByTestId("desktop-panel-tab-file")).toHaveClass(
+    expect(within(dockB).queryByTestId("dock-detail")).toBeNull();
+    expect(within(dockB).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(dockA).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+    expect(within(dockB).getByTestId("terminal-pane")).toBeVisible();
+
+    expect(within(dockA).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
   });

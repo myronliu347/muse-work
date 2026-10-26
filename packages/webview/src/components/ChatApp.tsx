@@ -707,6 +707,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const dockWasOnScreen = useRef(false);
   const dockWriteWasAllowed = useRef(false);
   useEffect(() => {
+    // 会话页和分屏里的会话不跟 Issue 详情共用选中态。这边打开详情，
+    // 切到会话时不能把那边的面板改成详情，也不能反过来写这边的 dock。
+    if (host?.type === "desktop" && !assistantVisible) return;
     const previousKind = seenPanelKind.current;
     const previousGroupKey = seenPanelGroupKey.current;
     const previousChecked = seenCheckedPanels.current;
@@ -764,7 +767,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     } else if (!activePanel && dock !== DOCK_DETAIL_TAB) {
       selectDock(DOCK_DETAIL_TAB);
     }
-  }, [activePanel, checkedPanels, dockWriteAllowed, groupKey]);
+  }, [activePanel, assistantVisible, checkedPanels, dockWriteAllowed, groupKey, host?.type]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
@@ -1468,6 +1471,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       onModelSelect={handleModelSelect}
       onModelPopupClose={handleModelPopupClose}
       closed={issueClosed}
+      showDraftControls={isDraftSession && !(assistantVisible && openIssueGroup)}
     />
   );
 
@@ -1556,28 +1560,39 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     () => (dockIssueId ? { mode: "unstaged" } : null),
     [dockIssueId],
   );
+  // 详情只属于 Muse Bot / Issue。会话页用自己目录里正在打开的那种面板，
+  // 不因为这边停在详情就把那边也打开。
+  const showIssueDetail = assistantVisible;
+  const sessionChromeKind =
+    workspace.dock !== DOCK_DETAIL_TAB && checkedPanels.includes(workspace.dock)
+      ? workspace.dock
+      : activePanel;
   const dock: DesktopPanelSlotsProps = {
     checked: checkedPanels,
-    active: workspace.dock === DOCK_DETAIL_TAB ? activePanel : workspace.dock,
+    active: showIssueDetail
+      ? workspace.dock === DOCK_DETAIL_TAB
+        ? activePanel
+        : workspace.dock
+      : sessionChromeKind,
     mounted: mountedPanels,
     disabledPanels: panelDisabled,
     fullscreen: dockFullscreen,
     widths: shownWidths,
     dockMaxWidth,
     onSelect: (kind) => {
-      workspace.selectDock(kind);
+      if (showIssueDetail) workspace.selectDock(kind);
       handleSelectPanel(kind);
     },
-    onSelectDetail: onSessionsSurface
-      ? undefined
-      : () => {
+    onSelectDetail: showIssueDetail
+      ? () => {
           workspace.selectDock(DOCK_DETAIL_TAB);
-        },
-    detailTitle,
+        }
+      : undefined,
+    detailTitle: showIssueDetail ? detailTitle : undefined,
     detailActive:
-      !onSessionsSurface &&
+      showIssueDetail &&
       (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
-    detail: onSessionsSurface ? undefined : (
+    detail: showIssueDetail ? (
       <DockDetail
         selection={detailSelection}
         actionLabel={detailActionLabel}
@@ -1589,7 +1604,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           postToHost({ command: "revealInFinder", path: workdir })
         }
       />
-    ),
+    ) : undefined,
     onCloseTab: handleTogglePanel,
     onAddPanel: handleAddPanel,
     onToggleDock: assistantVisible ? toggleAssistantDock : handleToggleDock,
@@ -1623,7 +1638,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     fileTabs: shownFileTabs,
     activeFilePath: shownActiveFilePath,
     onSelectFileTab: (path) => {
-      workspace.selectDock("file");
+      if (showIssueDetail) workspace.selectDock("file");
       handleSelectFileTab(path);
     },
     onCloseFileTab: handleCloseFileTab,

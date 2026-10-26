@@ -320,6 +320,9 @@ describe("issue tab", () => {
     expect(botTab(frame, A11Y)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
     expect((await within(frame).findAllByText(A11Y_MESSAGE)).length).toBeGreaterThan(0);
+    expect(within(frame).queryByTestId("input-workdir-row")).toBeNull();
+    expect(within(frame).queryByText("选择工作目录…")).toBeNull();
+    expect(within(frame).queryByText("默认权限")).toBeNull();
     expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(true);
     expect(within(frame).queryByText("规划不该被读到")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();

@@ -440,19 +440,170 @@
   font-size: 13px;
 }
 
-.dock-detail-body {
+.dock-detail-body,
+.dock-detail-description {
   margin: 14px 0 0;
-  white-space: pre-wrap;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--gray-12);
 }
 
-.dock-detail-items {
-  margin: 16px 0 0;
-  padding-left: 1.15em;
+.dock-detail-body {
+  white-space: pre-wrap;
+}
+
+.dock-detail-md {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.dock-detail-md > :first-child {
+  margin-top: 0;
+}
+
+.dock-detail-md > :last-child {
+  margin-bottom: 0;
+}
+
+.dock-detail-md p,
+.dock-detail-md ul,
+.dock-detail-md ol,
+.dock-detail-md blockquote,
+.dock-detail-md pre,
+.dock-detail-md table {
+  margin: 6px 0;
+}
+
+.dock-detail-md h1,
+.dock-detail-md h2,
+.dock-detail-md h3,
+.dock-detail-md h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.dock-detail-md ul,
+.dock-detail-md ol {
+  padding-left: 1.2em;
+}
+
+.dock-detail-md code {
+  font-size: 12px;
+}
+
+.dock-detail-md pre {
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--gray-3);
+}
+
+.dock-detail-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.dock-detail-md th,
+.dock-detail-md td {
+  padding: 4px 6px;
+  border: 1px solid var(--gray-6);
+  text-align: left;
+  vertical-align: top;
+}
+
+.dock-detail-md a {
+  color: var(--accent-11);
+}
+
+.dock-detail-checks {
+  margin-top: 16px;
+}
+
+.dock-detail-check-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dock-detail-checks .dock-detail-section {
+  margin: 0;
+}
+
+.dock-detail-check-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dock-detail-check-summary span {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--gray-4);
+  color: var(--gray-11);
+}
+
+.dock-detail-check-summary span[data-status="running"] {
+  background: color-mix(in srgb, var(--accent-9) 18%, transparent);
+  color: var(--accent-11);
+}
+
+.dock-detail-check-summary span[data-status="done"] {
+  background: color-mix(in srgb, var(--green-9, #30a46c) 16%, transparent);
+  color: var(--green-11, #18794e);
+}
+
+.dock-detail-check-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.dock-detail-check-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
-  line-height: 1.5;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--gray-5);
+  border-radius: 8px;
+  background: var(--gray-2);
+}
+
+.dock-detail-check-list li[data-status="running"] {
+  border-color: color-mix(in srgb, var(--accent-9) 45%, var(--gray-5));
+}
+
+.dock-detail-check-list li[data-status="done"] {
+  border-color: color-mix(in srgb, var(--green-9, #30a46c) 40%, var(--gray-5));
+}
+
+.dock-detail-check-badge {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--gray-11);
+  white-space: nowrap;
+}
+
+.dock-detail-check-list li[data-status="running"] .dock-detail-check-badge {
+  color: var(--accent-11);
+}
+
+.dock-detail-check-list li[data-status="done"] .dock-detail-check-badge {
+  color: var(--green-11, #18794e);
 }
 
 .dock-detail-fields {
