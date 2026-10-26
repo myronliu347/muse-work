@@ -289,8 +289,8 @@ describe("ChatApp pending and issue lists", () => {
     resetWebviewStores();
   });
 
-  it("follows the 1240px matchMedia threshold", async () => {
-    expect(BOT_LISTS_WIDE_MIN_WIDTH).toBe(1240);
+  it("follows the matchMedia threshold where the column hits its minimum", async () => {
+    expect(BOT_LISTS_WIDE_MIN_WIDTH).toBe(1144);
     resetWebviewStores();
     stubAssistant(QUEUE);
     const media = installMatchMedia();
@@ -569,9 +569,9 @@ describe("ChatApp pending and issue lists", () => {
     expect(await within(frame).findByTestId("bot-lists")).toBeInTheDocument();
   });
 
-  it("shrinks the centered column further before the cards fold", () => {
-    expect(botListsWideForPanel(1284)).toBe(true);
-    expect(botListsWideForPanel(1283)).toBe(false);
+  it("keeps the cards until the centered column hits its minimum", () => {
+    expect(botListsWideForPanel(1144)).toBe(true);
+    expect(botListsWideForPanel(1143)).toBe(false);
     expect(botListsWideForPanel(900)).toBe(false);
   });
 

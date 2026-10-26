@@ -5,7 +5,7 @@ import type { PanelSelection } from "./botWorkspace";
 import "./BotLists.css";
 
 /** Fallback when the left panel cannot be measured (jsdom). Live layout uses the panel width. */
-export const BOT_LISTS_WIDE_MIN_WIDTH = 1240;
+export const BOT_LISTS_WIDE_MIN_WIDTH = 1144;
 
 /** Message column shrinks from this width before the cards fold. */
 export const BOT_MESSAGE_COLUMN_MAX = 800;
@@ -26,14 +26,11 @@ export function botListsColumnWidth(panelWidth: number): number {
 
 /**
  * Cards float on the right and the column stays centered. Narrowing shrinks
- * the column, not the padding. Cards fold once that shrink reaches half
- * of (max − min).
+ * the column, not the padding. Cards stay until the column reaches its
+ * minimum, then they fold.
  */
 export function botListsWideForPanel(panelWidth: number): boolean {
-  const foldAt =
-    BOT_MESSAGE_COLUMN_MAX -
-    (BOT_MESSAGE_COLUMN_MAX - BOT_MESSAGE_COLUMN_MIN) / 2;
-  return botListsColumnWidth(panelWidth) >= foldAt;
+  return botListsColumnWidth(panelWidth) >= BOT_MESSAGE_COLUMN_MIN;
 }
 
 export type BotListQueueItem = {

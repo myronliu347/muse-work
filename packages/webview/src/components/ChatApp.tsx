@@ -776,8 +776,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const [chatColumnWidth, setChatColumnWidth] = useState(
     () => (typeof window !== "undefined" ? window.innerWidth : 1280),
   );
-  // Null until the frame is measured (jsdom). Then cards need this much
-  // room beside the dock — the prototype's 1240px window breakpoint.
+  // Null until the frame is measured (jsdom). Cards stay while the message
+  // column can still shrink, and fold once it would go under its minimum.
   // matchMedia follows the screen under the Electron viewport, so a real
   // measurement wins.
   const [leftPanelWidth, setLeftPanelWidth] = useState(0);
