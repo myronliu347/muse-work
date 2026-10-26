@@ -1,0 +1,91 @@
+packages/webview/tests/components/DesktopApp.test.tsx
+  2f6a6e38361a3c46 6,11,68-139
+packages/webview/src/components/desktop/BotLists.tsx
+  2f6a6e38361a3c46 1,73-74,373,376-385,402
+packages/webview/src/styles/DesktopApp.css
+  2f6a6e38361a3c46 2566,2570,2572-2578
+packages/webview/src/components/ChatApp.tsx
+  2f6a6e38361a3c46 352-364,1701
+packages/webview/src/components/DesktopApp.tsx
+  2f6a6e38361a3c46 53-54,78,80
+packages/webview/tests/components/botWorkspace.test.ts
+  2f6a6e38361a3c46 81-95
+packages/webview/tests/components/botLists.test.tsx
+  2f6a6e38361a3c46 207,284-297,617-665
+packages/webview/src/components/desktop/botWorkspace.ts
+  2f6a6e38361a3c46 70-77,80-86
+packages/webview/src/components/desktop/BotLists.css
+  2f6a6e38361a3c46 161,163-168
+packages/webview/src/styles/DesktopPanelDock.css
+  2f6a6e38361a3c46 106,110-116,198,201-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "6427c79d0c5446497b940f2720f93015e40d0b95",
+  "prompts": {
+    "2f6a6e38361a3c46": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "396cc0c5-f38c-46b4-ad7d-8d24648e5380",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 292,
+      "total_deletions": 85,
+      "accepted_lines": 235,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 9,
+          "deletions": 10,
+          "accepted_lines": 9
+        },
+        "packages/webview/tests/components/DesktopApp.test.tsx": {
+          "additions": 126,
+          "deletions": 52,
+          "accepted_lines": 74
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 66,
+          "deletions": 2,
+          "accepted_lines": 64
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 17,
+          "deletions": 2,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/desktop/botWorkspace.ts": {
+          "additions": 16,
+          "deletions": 4,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/DesktopApp.tsx": {
+          "additions": 7,
+          "deletions": 12,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 15,
+          "deletions": 2,
+          "accepted_lines": 15
+        },
+        "packages/webview/tests/components/botWorkspace.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/desktop/BotLists.css": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        }
+      }
+    }
+  }
+}
