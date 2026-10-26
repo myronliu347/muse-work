@@ -1,0 +1,69 @@
+packages/webview/tests/components/issueTab.test.tsx
+  2f6a6e38361a3c46 12,254,1802-1854
+packages/webview/src/components/ChatApp.tsx
+  2f6a6e38361a3c46 11-14,287,2073-2088
+packages/webview/src/components/desktop/DesktopShell.tsx
+  2f6a6e38361a3c46 41,710-715
+packages/webview/src/components/assistant/museBotNotice.tsx
+  2f6a6e38361a3c46 1-121
+packages/webview/src/components/desktop/BotTabs.tsx
+  2f6a6e38361a3c46 11,127,157-161
+packages/webview/src/styles/DesktopApp.css
+  2f6a6e38361a3c46 2572-2633
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3f652391ba0515ffe6b81957be4e14428c05eed9",
+  "prompts": {
+    "2f6a6e38361a3c46": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "396cc0c5-f38c-46b4-ad7d-8d24648e5380",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 416,
+      "total_deletions": 17,
+      "accepted_lines": 273,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 63,
+          "deletions": 8,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 28,
+          "deletions": 7,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/assistant/AssistantNotice.tsx": {
+          "additions": 27
+        },
+        "packages/webview/src/components/assistant/museBotNotice.tsx": {
+          "additions": 121,
+          "accepted_lines": 121
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/assistant/assistantNotice.ts": {
+          "additions": 99
+        }
+      }
+    }
+  }
+}
