@@ -10,6 +10,7 @@ import { ChatApp } from "../ChatApp";
 import { DesktopSidebar, SESSION_DRAG_MIME, resolveSidebarSessions } from "./DesktopSidebar";
 import { DesktopSessionList } from "./DesktopSessionList";
 import { AutomationsPage } from "../automation/AutomationsPage";
+import { SkillsPage } from "../skills/SkillsPage";
 import ConfigDialog, {
   settingsPageLeaveBlocked,
   type ConfigDialogHandle,
@@ -683,6 +684,7 @@ const DesktopShellView: React.FC<
   const menuOwnsSelection =
     shellView === "assistant" ||
     shellView === "automations" ||
+    shellView === "skills" ||
     shellView === "settings";
 
   const rowStyle = (row: number): React.CSSProperties | undefined => {
@@ -767,6 +769,14 @@ const DesktopShellView: React.FC<
           }
           setShellView("automations");
         }}
+        onOpenSkills={() => {
+          if (
+            settingsPageLeaveBlocked(shellView, "skills", settingsPageRef.current)
+          ) {
+            return;
+          }
+          setShellView("skills");
+        }}
         onOpenAssistant={() => {
           if (settingsPageLeaveBlocked(shellView, "assistant", settingsPageRef.current)) {
             return;
@@ -814,6 +824,13 @@ const DesktopShellView: React.FC<
           api={api}
           postToHost={postToHost}
           recentWorkdirs={host.recentWorkdirs ?? []}
+        />
+      ) : shellView === "skills" ? (
+        <SkillsPage
+          api={api}
+          onRunInTerminal={(command) =>
+            vscode.postMessage({ command: "desktopRunInTerminal", text: command })
+          }
         />
       ) : shellView === "settings" ? (
         <ConfigDialog

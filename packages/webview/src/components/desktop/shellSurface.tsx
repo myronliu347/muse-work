@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export type ShellSurface = "assistant" | "sessions" | "automations" | "settings";
+export type ShellSurface = "assistant" | "sessions" | "automations" | "skills" | "settings";
 
 const ShellSurfaceContext = createContext<ShellSurface | null>(null);
 

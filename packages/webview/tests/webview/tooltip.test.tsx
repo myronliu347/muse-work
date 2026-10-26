@@ -63,6 +63,7 @@ describe("Tooltip Component", () => {
       ["desktop-assistant-menu", "Muse Bot"],
       ["desktop-sessions-menu", "会话"],
       ["desktop-automations-menu", "自动化"],
+      ["desktop-skills-menu", "技能"],
       ["desktop-settings-btn", "设置"],
     ];
     for (const [testId, label] of labels) {

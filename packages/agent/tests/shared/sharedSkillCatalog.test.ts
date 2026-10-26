@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   acquireSkillCatalog,
+  refreshAllSkillCatalogs,
   requestSkillCatalogRefresh,
 } from "../../src/shared/sharedSkillCatalog.js";
 import { resetSharedCatalogsForTests } from "../../src/shared/testing.js";
@@ -100,5 +101,14 @@ describe("SharedSkillCatalog", () => {
     expect(calls.length).toBeGreaterThanOrEqual(2);
     h1.unsubscribe();
     h2.unsubscribe();
+  });
+
+  it("refreshAllSkillCatalogs rescans every live catalog", async () => {
+    const discover = vi.mocked(diskSkillDiscovery.discoverDiskSkills);
+    await acquireSkillCatalog("/tmp/muse-a", { watch: false }, () => {});
+    await acquireSkillCatalog("/tmp/muse-b", { watch: false }, () => {});
+    const before = discover.mock.calls.length;
+    await refreshAllSkillCatalogs();
+    expect(discover.mock.calls.length).toBe(before + 2);
   });
 });

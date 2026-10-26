@@ -118,6 +118,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     return skills;
   }
 
+  function invalidateSkillsListCache(): void {
+    skillsListCache.clear();
+  }
+
   /**
    * Paths of built-in plugins whose dirs are present.
    * issue and automation mount for all sessions except issue-exec and
@@ -1173,5 +1177,6 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     loadMainSessionFromDisk,
     reconcileBackgroundTasks,
     getSkillsForWorkdir,
+    invalidateSkillsListCache,
   };
 }

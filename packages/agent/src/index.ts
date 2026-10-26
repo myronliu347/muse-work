@@ -70,3 +70,4 @@ export type { ToolPlugin, ToolResult, ToolContext } from "./tools/types.js";
 // Host / plugin loading (used by Muse server tests and plugin wiring)
 export { PluginLoader } from "./services/pluginLoader.js";
 export { listSkillMetadataForWorkdir } from "./shared/skillMetadataPreview.js";
+export { refreshAllSkillCatalogs } from "./shared/sharedSkillCatalog.js";

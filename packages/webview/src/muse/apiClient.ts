@@ -674,6 +674,96 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async listInstalledSkills(): Promise<{
+    skills: Array<{ name: string; description: string; path: string }>;
+  }> {
+    const res = await this.request("/skills/installed");
+    return parseJson(res);
+  }
+
+  async getInstalledSkillDetail(skillPath: string): Promise<{
+    name: string;
+    description: string;
+    path: string;
+    body: string;
+  }> {
+    const params = new URLSearchParams({ path: skillPath });
+    const res = await this.request(`/skills/installed/detail?${params.toString()}`);
+    return parseJson(res);
+  }
+
+  async uninstallInstalledSkill(skillPath: string): Promise<{ ok: true }> {
+    const res = await this.request("/skills/installed", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: skillPath }),
+    });
+    return parseJson(res);
+  }
+
+  async getSkillMarket(query: {
+    page?: number;
+    q?: string;
+  }): Promise<{
+    skills: Array<{
+      source: string;
+      skillId: string;
+      name: string;
+      installs: number;
+      isOfficial?: boolean;
+    }>;
+    hasMore: boolean;
+  }> {
+    const params = new URLSearchParams();
+    if (query.q !== undefined) params.set("q", query.q);
+    else params.set("page", String(query.page ?? 0));
+    const res = await this.request(`/skill-market?${params.toString()}`);
+    return parseJson(res);
+  }
+
+  async getMarketSkillSummaries(
+    skills: Array<{ source: string; skillId: string }>,
+  ): Promise<{
+    summaries: Array<{ source: string; skillId: string; description: string; command: string }>;
+  }> {
+    const res = await this.request("/skill-market/summaries", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ skills }),
+    });
+    return parseJson(res);
+  }
+
+  async getMarketSkillDetail(query: {
+    source: string;
+    skillId: string;
+  }): Promise<{
+    name: string;
+    description: string;
+    body: string;
+    installs: number;
+    command: string;
+  }> {
+    const params = new URLSearchParams({
+      source: query.source,
+      skillId: query.skillId,
+    });
+    const res = await this.request(`/skill-market/detail?${params.toString()}`);
+    return parseJson(res);
+  }
+
+  async installMarketSkill(body: {
+    source: string;
+    skillId: string;
+  }): Promise<{ name: string; path: string }> {
+    const res = await this.request("/skill-market/install", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return parseJson(res);
+  }
+
   async getSessionStatus(sessionId: string): Promise<{
     sessionId: string;
     workdir: string;
