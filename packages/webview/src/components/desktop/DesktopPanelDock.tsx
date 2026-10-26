@@ -60,6 +60,8 @@ export interface DesktopPanelDockProps {
   /** 详情 is the first tab and is not a DesktopPanelKind. */
   detailActive?: boolean;
   onSelectDetail?: () => void;
+  /** Selected issue or queue title. The tab shows this, truncated; the tooltip keeps the full text. */
+  detailTitle?: string;
   detail?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -84,6 +86,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onPinFileTab,
   detailActive = false,
   onSelectDetail,
+  detailTitle,
   detail,
   children,
 }) => {
@@ -135,6 +138,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   const canAdd = PANEL_ADD_ORDER.some(
     (kind) => !checked.includes(kind) && !disabledPanels.includes(kind),
   );
+  const detailLabel = detailTitle?.trim() || "详情";
   // Never paint wider than the live max — persisted widths from a larger
   // window would otherwise overflow past the pane edge.
   const clampedWidth = clampDockWidth(
@@ -178,17 +182,25 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}`}
               data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
             >
-              <button
-                type="button"
-                className="desktop-panel-tab-label"
-                onClick={() => onSelectDetail()}
+              <Tooltip
+                text={detailLabel}
+                position="bottom"
+                wrap={false}
+                className="desktop-panel-tab-tip"
+                disabled={!detailTitle?.trim()}
               >
-                <i
-                  className="codicon codicon-note desktop-panel-tab-icon"
-                  aria-hidden
-                />
-                详情
-              </button>
+                <button
+                  type="button"
+                  className="desktop-panel-tab-label"
+                  onClick={() => onSelectDetail()}
+                >
+                  <i
+                    className="codicon codicon-note desktop-panel-tab-icon"
+                    aria-hidden
+                  />
+                  <span className="desktop-panel-tab-text">{detailLabel}</span>
+                </button>
+              </Tooltip>
             </div>
           ) : null}
           {visibleKinds.map((kind) => {

@@ -5,7 +5,7 @@ import type { PanelSelection } from "./botWorkspace";
 import "./BotLists.css";
 
 /** Fallback when the left panel cannot be measured (jsdom). Live layout uses the panel width. */
-export const BOT_LISTS_WIDE_MIN_WIDTH = 1144;
+export const BOT_LISTS_WIDE_MIN_WIDTH = 1176;
 
 /** Message column shrinks from this width before the cards fold. */
 export const BOT_MESSAGE_COLUMN_MAX = 800;
@@ -15,13 +15,15 @@ export const BOT_LIST_SIDE_PADDING = 28;
 export const BOT_LIST_CARD_WIDTH = 268;
 export const BOT_LIST_CARD_RIGHT = 18;
 export const BOT_LIST_RAIL_WIDTH = 52;
+/** Clear space between the centered column and the floating card. */
+export const BOT_LIST_CARD_GAP = 16;
 
-/** Widest centered column that still leaves a clear gutter for the card. */
+/** Widest centered column that still leaves the card and a gap beside it. */
 export function botListsColumnWidth(panelWidth: number): number {
   const content =
     panelWidth - BOT_LIST_RAIL_WIDTH - BOT_LIST_SIDE_PADDING * 2;
   const gutter = BOT_LIST_CARD_WIDTH + BOT_LIST_CARD_RIGHT - BOT_LIST_SIDE_PADDING;
-  return content - gutter * 2;
+  return content - gutter * 2 - BOT_LIST_CARD_GAP * 2;
 }
 
 /**
@@ -65,6 +67,8 @@ export interface BotListsProps {
   showQueue?: boolean;
   onSelect: (panel: Exclude<PanelSelection, { kind: "none" }>) => void;
   onOpenIssue?: (issueId: string) => void;
+  /** Double-click an issue row to open the right-hand dock. */
+  onOpenDock?: () => void;
   onToggleMenu: (menu: "queue" | "todo") => void;
 }
 
@@ -250,11 +254,13 @@ function IssueRows({
   selected,
   onSelect,
   onOpenIssue,
+  onOpenDock,
 }: {
   issues: BotListIssue[];
   selected: PanelSelection;
   onSelect: BotListsProps["onSelect"];
   onOpenIssue?: BotListsProps["onOpenIssue"];
+  onOpenDock?: BotListsProps["onOpenDock"];
 }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   return (
@@ -276,6 +282,10 @@ function IssueRows({
               className="bot-list-row"
               aria-current={current ? "true" : undefined}
               onClick={() => onSelect({ kind: "issue", issueId: issue.issueId })}
+              onDoubleClick={() => {
+                onSelect({ kind: "issue", issueId: issue.issueId });
+                onOpenDock?.();
+              }}
             >
               <span className="bot-list-icon-slot">
                 <IssueTypeIcon type={issue.type} />
@@ -328,6 +338,7 @@ function TodoCard(props: {
   selected: PanelSelection;
   onSelect: BotListsProps["onSelect"];
   onOpenIssue?: BotListsProps["onOpenIssue"];
+  onOpenDock?: BotListsProps["onOpenDock"];
 }) {
   return (
     <section className="bot-list-card" style={cardStyle} aria-label="事项">
@@ -340,6 +351,7 @@ function TodoCard(props: {
         selected={props.selected}
         onSelect={props.onSelect}
         onOpenIssue={props.onOpenIssue}
+        onOpenDock={props.onOpenDock}
       />
     </section>
   );
@@ -354,6 +366,7 @@ export function BotLists({
   showQueue = true,
   onSelect,
   onOpenIssue,
+  onOpenDock,
   onToggleMenu,
 }: BotListsProps) {
   const openMenu = !showQueue && menu === "queue" ? null : menu;
@@ -366,6 +379,7 @@ export function BotLists({
           selected={selected}
           onSelect={onSelect}
           onOpenIssue={onOpenIssue}
+          onOpenDock={onOpenDock}
         />
       </aside>
     );
@@ -414,6 +428,7 @@ export function BotLists({
                 selected={selected}
                 onSelect={onSelect}
                 onOpenIssue={onOpenIssue}
+                onOpenDock={onOpenDock}
               />
             </>
           )}

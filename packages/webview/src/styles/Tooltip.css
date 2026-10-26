@@ -50,9 +50,14 @@
   visibility: visible;
 }
 
-/* Issue tabs are fixed-width and ellipsized; the tip shows the full title. */
+/* Fixed-width tabs ellipsize; the tip shows the full title. */
 .tooltip-box.bot-tab-tip {
   max-width: none;
+}
+
+.tooltip-box.desktop-panel-tab-tip {
+  max-width: min(420px, calc(100vw - 16px));
+  white-space: normal;
 }
 
 .tooltip-box::after {

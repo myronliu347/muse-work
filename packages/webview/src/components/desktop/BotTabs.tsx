@@ -107,14 +107,40 @@ export function useBotWorkspaceController(
   );
 }
 
+function scrollTabIntoView(container: HTMLElement, tab: HTMLElement) {
+  const root = container.getBoundingClientRect();
+  const box = tab.getBoundingClientRect();
+  const gap = 4;
+  if (box.left < root.left + gap) {
+    container.scrollLeft -= root.left + gap - box.left;
+  } else if (box.right > root.right - gap) {
+    container.scrollLeft += box.right - (root.right - gap);
+  }
+}
+
 function tabClass(active: boolean): string {
   return active ? "bot-tab active" : "bot-tab";
 }
 
 export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsProps) {
   const tabs = ["bot", ...state.openIssueIds];
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const reveal = useCallback((tab: "bot" | string) => {
+    onFocus(tab);
+    const root = scrollerRef.current;
+    const el = root?.querySelector<HTMLElement>(`[data-bot-tab="${CSS.escape(tab)}"]`);
+    if (root && el) scrollTabIntoView(root, el);
+  }, [onFocus]);
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>(
+      `[data-bot-tab="${CSS.escape(state.active)}"]`,
+    );
+    if (el) scrollTabIntoView(root, el);
+  }, [state.active, state.openIssueIds]);
   return (
-    <div className="bot-tabs" aria-label="Muse Bot">
+    <div className="bot-tabs" aria-label="Muse Bot" ref={scrollerRef}>
       {tabs.map((tab) => {
         const active = state.active === tab;
         if (tab === "bot") {
@@ -122,8 +148,9 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
             <button
               key="bot"
               type="button"
+              data-bot-tab="bot"
               className={tabClass(active)}
-              onClick={() => onFocus("bot")}
+              onClick={() => reveal("bot")}
             >
               Muse Bot
             </button>
@@ -132,11 +159,14 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
         const title = titles[tab] ?? tab;
         return (
           <Tooltip key={tab} text={title} position="bottom" wrap={false} className="bot-tab-tip">
-            <span className={active ? "bot-tab-group active" : "bot-tab-group"}>
+            <span
+              data-bot-tab={tab}
+              className={active ? "bot-tab-group active" : "bot-tab-group"}
+            >
               <button
                 type="button"
                 className={tabClass(active)}
-                onClick={() => onFocus(tab)}
+                onClick={() => reveal(tab)}
               >
                 {presence?.[tab] ? (
                   <span className="bot-tab-status" aria-hidden="true">

@@ -770,25 +770,25 @@ export const MessageList = forwardRef<
 
   return (
     <div className="messages-shell">
+      {stickyMessage && (
+        <div className="sticky-user-wrapper">
+          <div className="sticky-user-dock">
+            <div
+              className="sticky-user-message"
+              data-testid="sticky-user-message"
+              onClick={() => scrollToMessage(stickyMessage.id)}
+            >
+              <div className="sticky-user-content">{stickyMessage.text}</div>
+            </div>
+          </div>
+        </div>
+      )}
       <div
         ref={containerRef}
         id="messagesContainer"
         className={`messages-container messages-container--virtual${isStreaming ? " streaming" : ""}${isCompacting ? " compacting" : ""}`}
         data-testid="messages-container"
       >
-        {stickyMessage && (
-          <div className="sticky-user-wrapper">
-            <div className="sticky-user-dock">
-              <div
-                className="sticky-user-message"
-                data-testid="sticky-user-message"
-                onClick={() => scrollToMessage(stickyMessage.id)}
-              >
-                <div className="sticky-user-content">{stickyMessage.text}</div>
-              </div>
-            </div>
-          </div>
-        )}
         <div className="messages-column">
           <div
             ref={(node) => {

@@ -1535,6 +1535,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     detailIssueGroup && issueTabSessionId(detailIssueGroup)
       ? sessionActionLabel(workspace, detailIssueGroup.issueId)
       : null;
+  const detailTitle =
+    detailSelection.kind === "issue"
+      ? detailSelection.issue.title
+      : detailSelection.kind === "queue"
+        ? detailSelection.title
+        : undefined;
 
   // Shared dock payload: the 4 panel slots + dock chrome (rendered by
   // ChatContainer when a bound session is showing).
@@ -1567,6 +1573,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : () => {
           workspace.selectDock(DOCK_DETAIL_TAB);
         },
+    detailTitle,
     detailActive:
       !onSessionsSurface &&
       (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
@@ -1661,6 +1668,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         setBotMenu(null);
         clearIssueUnreadRef.current(issueId);
       }}
+      onOpenDock={() => setAssistantDockOpen(true)}
       onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
     />
   ) : null;

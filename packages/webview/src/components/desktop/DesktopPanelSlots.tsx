@@ -76,6 +76,7 @@ export interface DesktopPanelSlotsProps {
   /** 详情 stays mounted beside the kind panes and is the visible layer when set. */
   detailActive?: boolean;
   onSelectDetail?: () => void;
+  detailTitle?: string;
   detail?: React.ReactNode;
 }
 
@@ -134,6 +135,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   openPreviewHandler,
   detailActive = false,
   onSelectDetail,
+  detailTitle,
   detail,
 }) => {
   const renderPanelSlot = (kind: DesktopPanelKind) => {
@@ -240,6 +242,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       onPinFileTab={onPinFileTab}
       detailActive={detailActive}
       onSelectDetail={onSelectDetail}
+      detailTitle={detailTitle}
       detail={detail}
     >
       {PANEL_ORDER.filter((kind) => mounted.includes(kind)).map((kind) => (

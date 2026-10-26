@@ -29,6 +29,14 @@ async function ensureAssistantDock(
   return within(scope).findByTestId("desktop-panel-dock");
 }
 
+function botTab(scope: HTMLElement, name: string): HTMLElement {
+  const tab = within(scope)
+    .getAllByRole("button", { name })
+    .find((el) => el.classList.contains("bot-tab"));
+  if (!tab) throw new Error(`missing bot tab ${name}`);
+  return tab;
+}
+
 const RADII = "圆角还没对齐";
 const A11Y = "无障碍检查";
 const EMPTY = "没有会话";
@@ -284,7 +292,7 @@ describe("issue tab", () => {
     expect(within(dock).getByTestId("desktop-panel-tab-file")).toHaveClass(
       "desktop-panel-tab--active",
     );
-    expect(within(frame).getByRole("button", { name: RADII })).toHaveClass("active");
+    expect(botTab(frame, RADII)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect((await within(frame).findAllByText(RADII_MESSAGE)).length).toBeGreaterThan(0);
     expect(fetched.some((url) => url.includes("/sessions/plan-radii/messages"))).toBe(true);
@@ -309,28 +317,28 @@ describe("issue tab", () => {
 
     await user.click(within(dock).getByRole("button", { name: "打开会话" }));
     expect(onSelectSession).not.toHaveBeenCalled();
-    expect(within(frame).getByRole("button", { name: A11Y })).toHaveClass("active");
+    expect(botTab(frame, A11Y)).toHaveClass("active");
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
     expect((await within(frame).findAllByText(A11Y_MESSAGE)).length).toBeGreaterThan(0);
     expect(fetched.some((url) => url.includes("/sessions/exec-a11y/messages"))).toBe(true);
     expect(within(frame).queryByText("规划不该被读到")).toBeNull();
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
 
-    await user.click(within(frame).getByRole("button", { name: RADII }));
+    await user.click(botTab(frame, RADII));
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
-    await user.click(within(frame).getByRole("button", { name: A11Y }));
+    await user.click(botTab(frame, A11Y));
     expect(onSelectSession).not.toHaveBeenCalled();
-    expect(within(frame).getByRole("button", { name: A11Y })).toHaveClass("active");
-    expect(within(frame).getByRole("button", { name: RADII })).not.toHaveClass("active");
+    expect(botTab(frame, A11Y)).toHaveClass("active");
+    expect(botTab(frame, RADII)).not.toHaveClass("active");
     expect(within(dock).getByRole("heading", { name: A11Y })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "切到会话" })).toBeNull();
     expect(screen.getByTestId("desktop-sessions-menu").className).not.toContain("active");
 
     await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
     await user.click(within(frame).getByRole("button", { name: new RegExp(QUEUE_TITLE) }));
-    expect(within(dock).getByText(QUEUE_TITLE)).toBeInTheDocument();
+    expect(within(dock).getByRole("heading", { name: QUEUE_TITLE })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
     expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
     await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
@@ -344,7 +352,7 @@ describe("issue tab", () => {
     expect(queuedTree).toHaveAttribute("title", "/work/a11y-exec");
     expect(queuedTree).not.toHaveTextContent("proj");
 
-    await user.click(within(frame).getByRole("button", { name: RADII }));
+    await user.click(botTab(frame, RADII));
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(screen.queryByTestId("bot-lists")).toBeNull();
     expect(document.querySelector(".bot-tabs")).toBeNull();
@@ -383,7 +391,7 @@ describe("issue tab", () => {
     const callsAfterSession = onSelectSession.mock.calls.length;
     await user.click(screen.getByTestId("desktop-assistant-menu"));
     const back = await screen.findByTestId("assistant-frame");
-    expect(within(back).getByRole("button", { name: RADII })).toHaveClass("active");
+    expect(botTab(back, RADII)).toHaveClass("active");
     expect(within(back).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     await user.click(screen.getByTestId("desktop-sessions-menu"));
     expect(screen.getByTestId("desktop-session-item-sess-notes").className).toContain(
@@ -455,7 +463,7 @@ describe("issue tab", () => {
     await user.click(screen.getByTestId("desktop-assistant-menu"));
 
     const back = await screen.findByTestId("assistant-frame");
-    expect(within(back).getByRole("button", { name: RADII })).toHaveClass("active");
+    expect(botTab(back, RADII)).toHaveClass("active");
     expect(within(back).getByTestId("issue-session-title")).toHaveTextContent(RADII);
     expect(within(back).getAllByText(RADII_MESSAGE).length).toBeGreaterThan(0);
     expect(within(back).queryByText("今天想让我帮你做些什么？")).toBeNull();
@@ -547,7 +555,7 @@ describe("issue tab", () => {
     await user.click(screen.getByTestId("desktop-settings-btn"));
     await user.click(screen.getByTestId("desktop-assistant-menu"));
     const paneAgain = await screen.findByTestId("desktop-pane-pane-a");
-    expect(within(paneAgain).getByRole("button", { name: RADII })).toHaveClass("active");
+    expect(botTab(paneAgain, RADII)).toHaveClass("active");
     expect(within(paneAgain).getByTestId("issue-session-title")).toHaveTextContent(RADII);
   });
 

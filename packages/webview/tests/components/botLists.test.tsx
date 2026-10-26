@@ -290,7 +290,7 @@ describe("ChatApp pending and issue lists", () => {
   });
 
   it("follows the matchMedia threshold where the column hits its minimum", async () => {
-    expect(BOT_LISTS_WIDE_MIN_WIDTH).toBe(1144);
+    expect(BOT_LISTS_WIDE_MIN_WIDTH).toBe(1176);
     resetWebviewStores();
     stubAssistant(QUEUE);
     const media = installMatchMedia();
@@ -364,8 +364,9 @@ describe("ChatApp pending and issue lists", () => {
     const row = await within(frame).findByRole("button", { name: new RegExp(A11Y) });
     await user.click(row);
     await waitFor(() => {
-      expect(within(frame).queryByRole("button", { name: new RegExp(A11Y) })).toBeNull();
+      expect(within(frame).queryByTestId("bot-lists-menu")).toBeNull();
     });
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveTextContent(A11Y);
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(1);
 
@@ -570,8 +571,8 @@ describe("ChatApp pending and issue lists", () => {
   });
 
   it("keeps the cards until the centered column hits its minimum", () => {
-    expect(botListsWideForPanel(1144)).toBe(true);
-    expect(botListsWideForPanel(1143)).toBe(false);
+    expect(botListsWideForPanel(1176)).toBe(true);
+    expect(botListsWideForPanel(1175)).toBe(false);
     expect(botListsWideForPanel(900)).toBe(false);
   });
 
@@ -615,12 +616,35 @@ describe("ChatApp pending and issue lists", () => {
 
     await user.click(within(frame).getByTestId("panel-toggle-btn"));
     const dock = await within(frame).findByTestId("desktop-panel-dock");
-    expect(within(dock).getByRole("button", { name: "详情" })).toBeInTheDocument();
+    expect(within(dock).getByRole("button", { name: RADII })).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "变更" })).toBeNull();
 
     await user.click(within(dock).getByTestId("panel-toggle-btn"));
     await waitFor(() => {
       expect(within(frame).queryByTestId("desktop-panel-dock")).toBeNull();
     });
+  });
+
+  it("opens the right dock when an issue row is double-clicked", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1400);
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp vscode={createMockVscode()} host={listsHost().host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    expect(within(frame).queryByTestId("desktop-panel-dock")).toBeNull();
+
+    await user.dblClick(within(frame).getByRole("button", { name: new RegExp(A11Y) }));
+    const dock = await within(frame).findByTestId("desktop-panel-dock");
+    const tab = within(dock).getByRole("button", { name: A11Y });
+    expect(tab).toBeInTheDocument();
+    await user.hover(tab);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(A11Y);
   });
 });

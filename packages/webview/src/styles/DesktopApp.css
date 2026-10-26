@@ -2329,8 +2329,20 @@ body.is-panel-resizing * {
   background: var(--gray-2);
 }
 
-.desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs {
-  padding-left: var(--desktop-shell-chrome-left);
+/* Traffic lights sit in the top-left of the window, past the icon rail.
+   The inset lives on the bar, not the scrolling tabs, so a sideways scroll
+   cannot slide "Muse Bot" back under the lights. */
+.desktop-layout > .assistant-frame.chat-container > .bot-frame-bar,
+.desktop-pane-rows > .desktop-pane-row:first-child > .desktop-pane:first-child > .assistant-frame > .bot-frame-bar {
+  padding-left: max(
+    var(--desktop-shell-chrome-left),
+    calc(var(--desktop-sidebar-width) + 10px)
+  );
+}
+
+.desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs,
+.desktop-pane-rows > .desktop-pane-row:first-child > .desktop-pane:first-child > .assistant-frame > .bot-frame-bar > .bot-tabs {
+  padding-left: 0;
 }
 
 .assistant-frame > .desktop-chat-body {
@@ -2367,12 +2379,20 @@ body.is-panel-resizing * {
   position: absolute;
   top: 8px;
   right: 18px;
-  z-index: 3;
+  /* Above the sticky user bar (z-index 20) so the bar cannot cover the cards. */
+  z-index: 30;
   width: 268px;
   max-width: 268px;
   max-height: calc(100% - 16px);
   margin: 0;
   padding: 0;
+}
+
+/* The sticky bar is full-bleed so text can scroll under it. Keep that scrim
+   on the message column; a full-width bar covers the floating cards. */
+.assistant-frame .assistant-page .messages-shell > .sticky-user-wrapper {
+  padding-left: calc(var(--desktop-sidebar-width) + 28px);
+  padding-right: 28px;
 }
 
 /* Cards stay out of flow. Narrowing lowers this cap so the centered column
@@ -2422,6 +2442,15 @@ body.is-panel-resizing * {
   padding: 0 28px min(36vh, var(--space-9)) var(--space-4);
 }
 
+/* The 800px column is centered in a normal chat. On an issue transcript that
+   leaves a wide empty gutter beside the rail; keep it against the left inset. */
+.assistant-frame .issue-tab-transcript .messages-column,
+.assistant-frame .issue-tab-transcript .sticky-user-dock,
+.assistant-frame .issue-tab-transcript .input-wrapper {
+  margin-left: 0;
+  margin-right: auto;
+}
+
 .assistant-frame .desktop-panel-dock > .preview-pane-drag-handle {
   z-index: 20;
   left: 0;
@@ -2455,8 +2484,17 @@ body.is-panel-resizing * {
   overflow-y: hidden;
   padding: 0 10px;
   box-sizing: border-box;
-  /* Empty tab-bar space stays draggable. Buttons opt out below. */
+  /* Empty tab-bar space stays draggable. Buttons opt out below.
+     Keep overflow for trackpad and programmatic reveal; the titlebar
+     cannot spare a visible scrollbar under the tabs. */
   -webkit-app-region: drag;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.bot-tabs::-webkit-scrollbar {
+  display: none;
+  height: 0;
 }
 
 .desktop-layout > .chat-container .bot-tabs,
@@ -2630,17 +2668,32 @@ body.is-panel-resizing * {
   .desktop-pane-row
   > .desktop-pane:first-child
   .input-area-container,
-.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-session-header,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-session-header:not(.issue-session-header--corner),
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
-  .issue-session-header,
+  .issue-session-header:not(.issue-session-header--corner),
 .desktop-layout[data-sidebar-collapsed="true"] > .chat-container .issue-tab-messages,
 .desktop-layout[data-sidebar-collapsed="true"]
   .desktop-pane-row
   > .desktop-pane:first-child
   .issue-tab-messages {
   padding-left: calc(var(--desktop-shell-chrome-left) + 28px + var(--space-3));
+}
+
+/* That titlebar clearance is for chrome that shares the traffic-light row.
+   The issue transcript sits below it; keep the body against the rail. */
+.desktop-layout[data-sidebar-collapsed="true"] > .assistant-frame .issue-tab-transcript .issue-tab-messages,
+.desktop-layout[data-sidebar-collapsed="true"] > .assistant-frame .issue-tab-transcript .input-area-container,
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-pane:first-child .assistant-frame .issue-tab-transcript .issue-tab-messages,
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-pane:first-child .assistant-frame .issue-tab-transcript .input-area-container,
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-pane-row > .desktop-pane:first-child .messages-container,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .messages-container,
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-pane-row > .desktop-pane:first-child .messages-shell > .sticky-user-wrapper,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .messages-shell > .sticky-user-wrapper,
+.desktop-layout[data-sidebar-collapsed="true"] .desktop-pane-row > .desktop-pane:first-child .input-area-container,
+.desktop-layout[data-sidebar-collapsed="true"] > .chat-container .input-area-container {
+  padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
 }
 
 .desktop-layout .chat-header button,
@@ -2652,6 +2705,8 @@ body.is-panel-resizing * {
 
 .desktop-layout > .chat-container .messages-container,
 .desktop-pane-row > .desktop-pane:first-child .messages-container,
+.desktop-layout > .chat-container .messages-shell > .sticky-user-wrapper,
+.desktop-pane-row > .desktop-pane:first-child .messages-shell > .sticky-user-wrapper,
 .desktop-layout > .chat-container .issue-tab-messages,
 .desktop-pane-row > .desktop-pane:first-child .issue-tab-messages {
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
@@ -2685,8 +2740,8 @@ body.is-panel-resizing * {
   padding-right: var(--space-4);
 }
 
-.desktop-layout > .chat-container .issue-session-header,
-.desktop-pane-row > .desktop-pane:first-child .issue-session-header {
+.desktop-layout > .chat-container .issue-session-header:not(.issue-session-header--corner),
+.desktop-pane-row > .desktop-pane:first-child .issue-session-header:not(.issue-session-header--corner) {
   box-sizing: border-box;
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
 }

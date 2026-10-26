@@ -231,6 +231,28 @@ describe("dock detail tab", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it("shows the selected title on the detail tab and the full title in the tooltip", async () => {
+    const title = "分析 wave-agent 项目结构";
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...dockProps}
+          checked={[]}
+          active="file"
+          detailTitle={title}
+          onSelectDetail={() => {}}
+        >
+          <div />
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    const tab = screen.getByRole("button", { name: title });
+    expect(tab.querySelector(".desktop-panel-tab-text")).toHaveTextContent(title);
+    await userEvent.hover(tab);
+    expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(title);
+  });
+
   it("replaces the dock body with detail and hides the file tree", () => {
     render(
       <MuseTheme>
@@ -393,7 +415,7 @@ describe("assistant dock detail", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
-    expect(tabLabels()).toEqual(["详情", "文件", "终端", "浏览器", "变更"]);
+    expect(tabLabels()).toEqual([RADII, "文件", "终端", "浏览器", "变更"]);
 
     const detail = await within(dock).findByTestId("dock-detail");
     expect(within(detail).getByRole("heading", { name: RADII })).toBeInTheDocument();
@@ -461,7 +483,7 @@ describe("assistant dock detail", () => {
     expect(screen.getByTestId("desktop-assistant-menu").className).toContain("active");
     expect(within(dock).getByTestId("dock-detail")).toBeInTheDocument();
     expect(within(dock).queryByRole("button", { name: "打开会话" })).toBeNull();
-    expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
+    expect(frame.querySelector(".bot-tab.active .bot-tab-label")).toHaveTextContent(A11Y);
     expect(within(frame).getByTestId("issue-session-title")).toHaveTextContent(A11Y);
     expect(
       await within(within(frame).getByTestId("issue-tab-transcript")).findByTestId(
