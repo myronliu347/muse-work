@@ -460,7 +460,9 @@ describe("assistant tools", () => {
     const museLine = log.page().messages[0];
     expect(museLine?.message).toContain("https://example.com/a");
     expect(museLine?.message).toContain(note);
-    expect(museLine?.images?.[0]?.data.startsWith("data:image/png;base64,")).toBe(true);
+    expect(museLine?.message).toContain(png);
+    expect(museLine?.images).toBeUndefined();
+    expect(muse.content).not.toContain("base64");
 
     const popo = await tool(tools, "SendMessage").execute(
       {
@@ -616,5 +618,71 @@ describe("assistant tools", () => {
     expect(sent.success).toBe(true);
     expect(issues.get(issue.id)?.status).toBe("planning");
     expect(broadcasts).toEqual([{ type: "issue:changed" }]);
+  });
+
+  it("refuses to message a completed or cancelled issue", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-closed-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const sent: string[] = [];
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations: createAutomationStore({ home }),
+      log: createAssistantMessageLog({ home }),
+      hub: { broadcastAll: () => {} } as WsHub,
+      runner: {
+        sendMessage: async (_sessionId: string, content: string) => {
+          sent.push(content);
+          return { accepted: true as const };
+        },
+      } as never,
+    });
+    const context = { sessionId: "assistant", toolUseId: "tool-1" };
+    const completed = issues.create({ title: "做完的", description: "修" });
+    const completedSession = sessions.create({
+      workdir: "/tmp/a",
+      model: "m",
+      title: "做完的",
+    });
+    issues.setPlanning(completed.id, {
+      planningSessionId: completedSession.id,
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    issues.complete(completed.id, "做完了");
+
+    const refused = await tool(tools, "MessageIssue").execute(
+      { issueId: completed.id, message: "再改一下" },
+      context,
+    );
+    expect(refused.success).toBe(false);
+    expect(refused.error).toBe("already closed");
+
+    const cancelled = issues.create({ title: "取消的", description: "先停" });
+    const cancelledSession = sessions.create({
+      workdir: "/tmp/a",
+      model: "m",
+      title: "取消的",
+    });
+    issues.setPlanning(cancelled.id, {
+      planningSessionId: cancelledSession.id,
+      workdir: "/tmp/a",
+      worktreeEnabled: false,
+      agentMode: "single",
+    });
+    issues.cancel(cancelled.id, "不做了");
+    const refusedCancel = await tool(tools, "MessageIssue").execute(
+      { issueId: cancelled.id, message: "还是做吧" },
+      context,
+    );
+    expect(refusedCancel.success).toBe(false);
+    expect(refusedCancel.error).toBe("already closed");
+    expect(sent).toEqual([]);
+
+    const messageIssue = tools.find((entry) => entry.name === "MessageIssue");
+    expect(messageIssue?.config.function.description).toContain("已关闭");
   });
 });

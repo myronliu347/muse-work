@@ -1342,13 +1342,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       }));
   }, [state.messages, effectiveWorkdir]);
 
-  const activeIssueGroup = useMemo(
-    () =>
-      host?.type === "desktop"
-        ? findIssueGroupForSession(host.issueGroups, state.currentSession?.id)
-        : undefined,
-    [host, state.currentSession?.id],
-  );
+  const activeIssueGroup = useMemo(() => {
+    if (host?.type !== "desktop") return undefined;
+    const sessionId = state.currentSession?.id;
+    return (
+      findIssueGroupForSession(host.issueGroups, sessionId) ??
+      findIssueGroupForSession(host.closedIssueGroups, sessionId)
+    );
+  }, [host, state.currentSession?.id]);
+  const issueClosed =
+    activeIssueGroup?.status === "completed" ||
+    activeIssueGroup?.status === "cancelled";
   const issueViewTab: IssueViewTab = paneUi.issueViewTab ?? "planning";
 
   useEffect(() => {
@@ -1463,6 +1467,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       currentModel={currentModel}
       onModelSelect={handleModelSelect}
       onModelPopupClose={handleModelPopupClose}
+      closed={issueClosed}
     />
   );
 

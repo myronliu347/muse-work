@@ -59,6 +59,8 @@ export interface ChatComposerProps {
   currentModel: string | undefined;
   onModelSelect: (model: string) => void;
   onModelPopupClose: () => void;
+  /** Issue 已完成或已取消，输入框只保留阅读，不能再发。 */
+  closed?: boolean;
 }
 
 export const ChatComposer = forwardRef<
@@ -102,6 +104,7 @@ export const ChatComposer = forwardRef<
     currentModel,
     onModelSelect,
     onModelPopupClose,
+    closed = false,
   },
   ref,
 ) {
@@ -122,7 +125,11 @@ export const ChatComposer = forwardRef<
       sessionId={sessionId}
       permissionMode={permissionMode}
       initialAttachedImages={initialAttachedImages}
-      disabled={host?.type === "desktop" && !effectiveWorkdir && !isDraftSession}
+      disabled={
+        closed ||
+        (host?.type === "desktop" && !effectiveWorkdir && !isDraftSession)
+      }
+      placeholder={closed ? "这条 Issue 已关闭，不能再发消息" : undefined}
       modelId={modelId}
       onModelChange={onModelChange}
       workdir={effectiveWorkdir ?? panelWorkdir}

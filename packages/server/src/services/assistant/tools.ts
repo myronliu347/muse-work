@@ -6,7 +6,7 @@ import type { SessionStore } from "../sessionStore.js";
 import type { SessionRunner } from "../sessionRunner/index.js";
 import type { AutomationStore } from "../automationStore.js";
 import type { WsHub } from "../wsHub.js";
-import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog, type MuseChatImage } from "./messages.js";
+import { ASSISTANT_TEXT_MAX, type createAssistantMessageLog } from "./messages.js";
 import { openIssueSession, type OpenIssueBody } from "../issueOpen.js";
 import { createServerWorktree, type ServerWorktree } from "../gitWorktree.js";
 import { userMessageText } from "../sessionRunner/serialization.js";
@@ -68,18 +68,9 @@ function stringList(value: unknown): string[] {
 }
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "gif", "png", "bmp"]);
-const IMAGE_INLINE_MAX = 4_000_000;
 
 function isImagePath(filePath: string): boolean {
   return IMAGE_EXTS.has(path.extname(filePath).slice(1).toLowerCase());
-}
-
-function imageMediaType(filePath: string): string {
-  const ext = path.extname(filePath).slice(1).toLowerCase();
-  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-  if (ext === "gif") return "image/gif";
-  if (ext === "bmp") return "image/bmp";
-  return "image/png";
 }
 
 function localFile(filePath: string): string | undefined {
@@ -92,34 +83,12 @@ function localFile(filePath: string): string | undefined {
   return undefined;
 }
 
-function inlineImages(files: string[]): { images: MuseChatImage[]; overflow: string[] } {
-  const images: MuseChatImage[] = [];
-  const overflow: string[] = [];
-  for (const filePath of files) {
-    if (!isImagePath(filePath)) continue;
-    const bytes = fs.readFileSync(filePath);
-    if (bytes.length > IMAGE_INLINE_MAX || images.length >= 20) {
-      overflow.push(filePath);
-      continue;
-    }
-    const mediaType = imageMediaType(filePath);
-    images.push({
-      data: `data:${mediaType};base64,${bytes.toString("base64")}`,
-      mediaType,
-    });
+function composeOutbound(message: string, extras: string[]): string {
+  const lines: string[] = [];
+  for (const extra of extras) {
+    if (!message.includes(extra)) lines.push(extra);
   }
-  return { images, overflow };
-}
-
-function composeOutbound(message: string, files: string[], links: string[], overflow: string[]): string {
-  const extras: string[] = [];
-  for (const link of links) {
-    if (!message.includes(link)) extras.push(link);
-  }
-  for (const filePath of [...files.filter((filePath) => !isImagePath(filePath)), ...overflow]) {
-    if (!message.includes(filePath)) extras.push(filePath);
-  }
-  return [message, ...extras].filter(Boolean).join("\n");
+  return [message, ...lines].filter(Boolean).join("\n");
 }
 
 function issueMentionLabel(title: string): string {
@@ -429,7 +398,7 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
     ),
     tool(
       "MessageIssue",
-      "往 Issue 打开时创建的会话发送一条用户消息。会话正在跑时，消息会在当前这一步结束后进入同一轮，不中断正在进行的请求或工具，返回 joinedTurn。",
+      "往 Issue 打开时创建的会话发送一条用户消息。已关闭的不能发。会话正在跑时，消息会在当前这一步结束后进入同一轮，不中断正在进行的请求或工具，返回 joinedTurn。",
       {
         type: "object",
         properties: {
@@ -443,6 +412,9 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         const message = text(args.message);
         if (!issue?.planningSessionId) return fail("session not open");
         if (!message) return fail("message required");
+        if (issue.status === "completed" || issue.status === "cancelled") {
+          return fail("already closed");
+        }
         if (issue.status === "awaiting_close") {
           deps.issues.resume(issue.id);
           deps.hub.broadcastAll({ type: "issue:changed" });
@@ -600,13 +572,17 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
           const problem = localFile(filePath);
           if (problem) return fail(problem);
         }
-        const { images, overflow } = inlineImages(files);
-        const body = composeOutbound(message, files, links, overflow);
+        const recordBody = composeOutbound(message, [...links, ...files]);
+        // POPO 图片走文件发送。路径留在 Muse 记录里，不再另发一条只有路径的文字。
+        const popoText = composeOutbound(message, [
+          ...links,
+          ...files.filter((filePath) => !isImagePath(filePath)),
+        ]);
         if (args.app === "muse") {
           const line = deps.log.append(
             "assistant",
-            body,
-            images.length > 0 ? images : undefined,
+            recordBody,
+            undefined,
             undefined,
             undefined,
             rememberedIssueId,
@@ -621,9 +597,9 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         if (files.length > 0 && !deps.sendLocalFile) return fail("popo file send unavailable");
         const msgIds: string[] = [];
         try {
-          if (body) {
+          if (popoText) {
             msgIds.push(
-              ...messageIds(await deps.sendText(receiver, body, atUids ? { atUids } : undefined)),
+              ...messageIds(await deps.sendText(receiver, popoText, atUids ? { atUids } : undefined)),
             );
           }
           for (const filePath of files) {
@@ -637,8 +613,8 @@ export function createAssistantTools(deps: AssistantToolDeps): ToolPlugin[] {
         if (!groupId && master && user === master) {
           const line = deps.log.append(
             "assistant",
-            body,
-            images.length > 0 ? images : undefined,
+            recordBody,
+            undefined,
             "popo",
             msgIds,
             rememberedIssueId,

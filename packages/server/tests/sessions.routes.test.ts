@@ -249,6 +249,107 @@ describe("sessions HTTP routes", () => {
     expect(loaded.permissionMode).toBe("bypassPermissions");
   });
 
+  it("rejects user messages once the issue is closed", async () => {
+    const app = await listenTestApp();
+    server = app.server;
+    home = app.home;
+
+    const { issue } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "修登录" }),
+    }).then((r) => r.json());
+    const { sessionId } = await fetch(
+      `${app.baseUrl}/issues/${issue.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+    const execution = await fetch(`${app.baseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workdir: "/tmp/proj", model: "m1" }),
+    }).then((r) => r.json());
+    app.ctx.issueStore.setExecutionSessionId(issue.id, execution.id);
+
+    const openSend = await fetch(`${app.baseUrl}/sessions/${sessionId}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "还在做" }),
+    });
+    expect(openSend.status).toBe(200);
+
+    await fetch(`${app.baseUrl}/issues/${issue.id}/complete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "做完了" }),
+    });
+
+    const planningSend = await fetch(
+      `${app.baseUrl}/sessions/${sessionId}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "再改一下" }),
+      },
+    );
+    expect(planningSend.status).toBe(409);
+    expect(await planningSend.json()).toEqual({ error: "issue is closed" });
+
+    const executionSend = await fetch(
+      `${app.baseUrl}/sessions/${execution.id}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "执行会话也别收" }),
+      },
+    );
+    expect(executionSend.status).toBe(409);
+
+    const { issue: cancelled } = await fetch(`${app.baseUrl}/issues`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "先不做" }),
+    }).then((r) => r.json());
+    const opened = await fetch(
+      `${app.baseUrl}/issues/${cancelled.id}/planning-session`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workdir: "/tmp/proj", worktreeEnabled: false }),
+      },
+    ).then((r) => r.json());
+    await fetch(`${app.baseUrl}/issues/${cancelled.id}/cancel`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note: "不做了" }),
+    });
+    const cancelSend = await fetch(
+      `${app.baseUrl}/sessions/${opened.sessionId}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "取消后还想说" }),
+      },
+    );
+    expect(cancelSend.status).toBe(409);
+
+    const injected = await fetch(
+      `${app.baseUrl}/sessions/${opened.sessionId}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: "来源：执行会话\n结束",
+          source: "system-inject",
+        }),
+      },
+    );
+    expect(injected.status).toBe(200);
+  });
+
   it("POST /sessions/:id/abort returns ok", async () => {
     const app = await listenTestApp();
     server = app.server;

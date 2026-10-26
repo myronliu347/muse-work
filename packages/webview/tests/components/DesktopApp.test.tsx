@@ -3,6 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
+import { MuseTheme } from "../../src/ui/theme";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   usePanelGroupStore,
@@ -142,5 +143,69 @@ describe("DesktopApp host → sidebar 会话树", () => {
     expect(screen.queryByTestId("desktop-session-section-issues")).toBeNull();
     expect(sessionList.textContent).not.toContain("侧栏 Issue");
     expect(sessionList.textContent).not.toContain("测试任务看板功能");
+  });
+
+  it("keeps a closed issue session readable and blocks sending", () => {
+    const vscode = mockVscode();
+    render(
+      <MuseTheme>
+        <DesktopApp vscode={vscode} />
+      </MuseTheme>,
+    );
+    postToWindow({
+      command: "desktopWorkdirState",
+      workdir: "/tmp/proj",
+      recentWorkdirs: ["/tmp/proj"],
+      host: "local",
+    });
+    postToWindow({
+      command: "desktopSessionTree",
+      groups: [],
+      issueGroups: [
+        {
+          issueId: "open-1",
+          title: "还在做",
+          priority: "p1",
+          status: "planning",
+          items: [],
+          planningSessionId: "plan-open",
+          sessions: [entry("plan-open")],
+        },
+      ],
+      closedIssueGroups: [
+        {
+          issueId: "closed-1",
+          title: "已经关了",
+          priority: "p1",
+          status: "completed",
+          closeNote: "做完了",
+          items: [],
+          planningSessionId: "plan-closed",
+          sessions: [entry("plan-closed")],
+        },
+      ],
+    });
+    postToWindow({
+      command: "setInitialState",
+      messages: [],
+      session: { id: "plan-closed", title: "已经关了" },
+      workdir: "/tmp/proj",
+    });
+
+    const closedInput = screen.getByTestId("message-input");
+    expect(closedInput.getAttribute("contentEditable")).toBe("false");
+    expect(closedInput.getAttribute("data-placeholder")).toBe(
+      "这条 Issue 已关闭，不能再发消息",
+    );
+
+    postToWindow({
+      command: "setInitialState",
+      messages: [],
+      session: { id: "plan-open", title: "还在做" },
+      workdir: "/tmp/proj",
+    });
+    expect(screen.getByTestId("message-input").getAttribute("contentEditable")).toBe(
+      "true",
+    );
   });
 });
