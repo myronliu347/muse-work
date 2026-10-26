@@ -9,6 +9,10 @@ import React, {
 } from "react";
 import type { MessageInputHandle } from "./chat/MessageInput";
 import {
+  AssistantNotice,
+  useAssistantHomeVisible,
+} from "./assistant/museBotNotice";
+import {
   DesktopSidebar,
   resolveSidebarSessions,
 } from "./desktop/DesktopSidebar";
@@ -280,6 +284,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : (host.panes?.length ?? 0) === 0 &&
         view === "assistant" &&
         noPaneRail === "assistant");
+  useAssistantHomeVisible(assistantVisible && workspace.active === "bot");
   useEffect(() => {
     if (!assistantVisible) return;
     let cancelled = false;
@@ -2065,6 +2070,22 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           } as React.CSSProperties
         }
       >
+        <AssistantNotice
+          onOpen={() => {
+            if (
+              settingsPageLeaveBlocked(
+                noPaneRail,
+                "assistant",
+                settingsPageRef.current,
+              )
+            ) {
+              return;
+            }
+            setNoPaneRail("assistant");
+            setView("assistant");
+            workspace.focusTab("bot");
+          }}
+        />
         {noPaneRail === "sessions" ? <DesktopSidebarToggle /> : null}
         <DesktopSidebar
           onNewSession={() => {

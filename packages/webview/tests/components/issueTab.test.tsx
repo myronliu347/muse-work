@@ -9,6 +9,7 @@ import { ChatApp } from "../../src/components/ChatApp";
 import * as botWorkspace from "../../src/components/desktop/botWorkspace";
 import { MuseApiClient } from "../../src/muse/apiClient";
 import { defaultDockWidth } from "../../src/muse/panelFit";
+import { resetAssistantNoticeForTests } from "../../src/components/assistant/museBotNotice";
 import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, usePanelGroupStore } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 import type { DesktopIssueGroup, DesktopSessionEntry, FileTreeDirEntry } from "../../src/types";
@@ -250,6 +251,7 @@ describe("issue tab", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     resetWebviewStores();
+    resetAssistantNoticeForTests();
     delete (HTMLElement.prototype as { loadURL?: unknown }).loadURL;
   });
 
@@ -1796,5 +1798,58 @@ describe("issue tab", () => {
         sessionIds: ["exec-a11y"],
       });
     });
+  });
+
+  it("notifies and marks the Muse Bot tab when a message arrives off the home", async () => {
+    resetWebviewStores();
+    resetAssistantNoticeForTests();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "assistant:chat",
+          line: { id: "home", role: "assistant", message: "主页不该提示" },
+        },
+      }),
+    );
+    expect(screen.queryByTestId("assistant-notice")).toBeNull();
+    expect(within(frame).queryByTestId("bot-tab-unread-dot")).toBeNull();
+
+    const dock = await ensureAssistantDock(frame, user);
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    expect(botTab(frame, A11Y)).toHaveClass("active");
+
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "assistant:chat",
+          line: { id: "away", role: "assistant", message: "事项那边有回复" },
+        },
+      }),
+    );
+    expect(screen.getByTestId("assistant-notice")).toHaveTextContent("事项那边有回复");
+    expect(within(frame).getByTestId("bot-tab-unread-dot")).toBeTruthy();
+
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    expect(screen.queryByTestId("assistant-notice")).toBeNull();
+    expect(within(frame).queryByTestId("bot-tab-unread-dot")).toBeNull();
   });
 });

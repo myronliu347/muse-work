@@ -38,6 +38,7 @@ import {
 import { useDesktopSidebarCollapsed } from "../../hooks/useDesktopSidebarCollapsed";
 import { useDesktopSessionListWidth } from "../../hooks/useDesktopSidebarWidth";
 import { DesktopSidebarToggle } from "./DesktopSidebarToggle";
+import { AssistantNotice } from "../assistant/museBotNotice";
 
 /** Minimum height of a pane row; splitting into two rows needs 2× this and
     the row separator clamps to it (the desktop host enforces the same limit). */
@@ -706,6 +707,12 @@ const DesktopShellView: React.FC<
         } as React.CSSProperties
       }
     >
+      <AssistantNotice
+        onOpen={() => {
+          setShellView("assistant");
+          workspace.focusTab("bot");
+        }}
+      />
       {shellView === "sessions" ? <DesktopSidebarToggle /> : null}
       <DesktopSidebar
         onNewSession={() => {

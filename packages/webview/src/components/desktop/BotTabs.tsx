@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useAssistantNotice } from "../assistant/museBotNotice";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
 import {
@@ -123,6 +124,7 @@ function tabClass(active: boolean): string {
 }
 
 export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsProps) {
+  const botUnread = useAssistantNotice().unread && state.active !== "bot";
   const tabs = ["bot", ...state.openIssueIds];
   const scrollerRef = useRef<HTMLDivElement>(null);
   const reveal = useCallback((tab: "bot" | string) => {
@@ -152,6 +154,11 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
               className={tabClass(active)}
               onClick={() => reveal("bot")}
             >
+              {botUnread ? (
+                <span className="bot-tab-status" data-testid="bot-tab-unread-dot">
+                  <IssuePresenceMark presence="unread" />
+                </span>
+              ) : null}
               Muse Bot
             </button>
           );
