@@ -1,0 +1,112 @@
+packages/webview/src/components/desktop/DesktopShell.tsx
+  6de369de401cc713 822-827
+packages/webview/src/muse/apiClient.ts
+  6de369de401cc713 724-736,745
+packages/webview/src/styles/SkillsPage.css
+  6de369de401cc713 2,15,23,29-51,70,74-81,88-90,93,96-105,108-118,121-122,200,229-230,236-243,246-268,326-336,338-348,352-384,392-397,402-427,484-489
+packages/server/tests/skillMarket.market.test.ts
+  6de369de401cc713 6,126,128-142
+packages/webview/src/components/desktop/DesktopSidebar.tsx
+  6de369de401cc713 174
+packages/server/src/services/skillMarket/marketClient.ts
+  6de369de401cc713 64,151-158,161-236,243,250-252
+packages/webview/src/components/ChatApp.tsx
+  6de369de401cc713 2161-2166
+packages/webview/tests/muse/skillMarketCss.test.ts
+  6de369de401cc713 13-14
+packages/desktop/src/main/workdirHost.ts
+  6de369de401cc713 55-56,149-194,356,445-450
+packages/webview/tests/components/skillsPage.test.tsx
+  6de369de401cc713 1,32-40,44-52,55-56,87,91-92,100-218
+packages/desktop/tests/workdirHost.test.ts
+  6de369de401cc713 1611-1657
+packages/webview/src/components/skills/SkillsPage.tsx
+  6de369de401cc713 1,46-50,53-96,98,101-102,113,115-117,122-125,128,135-136,152,165,167-169,177-254,291-294,335,343-344,346-368,370,387,390-415,420,425-440,451,470,472,474-478,485,489-497,506,510,525,534-536,538-540,547-552,563-564,568,571,575,578-635,638-639,641,644-669,671-676
+packages/server/src/routes/skillMarket.ts
+  6de369de401cc713 14,79-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7697e0f8dc3356ee92d2e2a6128dda2f189a686e",
+  "prompts": {
+    "6de369de401cc713": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7b43d22d-b71b-4009-939f-97f9774320d5",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1039,
+      "total_deletions": 265,
+      "accepted_lines": 954,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopSidebar.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 56,
+          "deletions": 1,
+          "accepted_lines": 55
+        },
+        "packages/server/src/routes/skillMarket.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/server/tests/skillMarket.market.test.ts": {
+          "additions": 18,
+          "deletions": 2,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/styles/SkillsPage.css": {
+          "additions": 229,
+          "deletions": 81,
+          "accepted_lines": 202
+        },
+        "packages/webview/tests/muse/skillMarketCss.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 15,
+          "deletions": 1,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/skillsPage.test.tsx": {
+          "additions": 146,
+          "deletions": 8,
+          "accepted_lines": 143
+        },
+        "packages/webview/src/components/skills/SkillsPage.tsx": {
+          "additions": 401,
+          "deletions": 152,
+          "accepted_lines": 357
+        },
+        "packages/server/src/services/skillMarket/marketClient.ts": {
+          "additions": 99,
+          "deletions": 15,
+          "accepted_lines": 91
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        }
+      }
+    }
+  }
+}
