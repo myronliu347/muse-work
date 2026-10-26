@@ -1,0 +1,44 @@
+packages/webview/src/components/assistant/AssistantPage.tsx
+  2f6a6e38361a3c46 496-497,511,521,1060-1068
+packages/webview/src/components/ChatApp.tsx
+  2f6a6e38361a3c46 290-294,1893
+packages/webview/tests/components/issueTab.test.tsx
+  2f6a6e38361a3c46 1919-1978
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d25f97248bfde7d2b3befc6526d5edf61abd74c2",
+  "prompts": {
+    "2f6a6e38361a3c46": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "396cc0c5-f38c-46b4-ad7d-8d24648e5380",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 92,
+      "total_deletions": 15,
+      "accepted_lines": 79,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 13,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 73,
+          "deletions": 13,
+          "accepted_lines": 60
+        }
+      }
+    }
+  }
+}
