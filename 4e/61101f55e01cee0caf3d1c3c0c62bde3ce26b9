@@ -1,0 +1,29 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4e61101f55e01cee0caf3d1c3c0c62bde3ce26b9",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
