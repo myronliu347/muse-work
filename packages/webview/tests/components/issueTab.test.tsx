@@ -1852,4 +1852,68 @@ describe("issue tab", () => {
     expect(screen.queryByTestId("assistant-notice")).toBeNull();
     expect(within(frame).queryByTestId("bot-tab-unread-dot")).toBeNull();
   });
+
+  it("splits Muse Bot and the issue session into three columns", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const toggle = within(frame).getByTestId("assistant-column-toggle");
+    expect(toggle).toBeDisabled();
+    expect(frame.querySelector(".assistant-page")).toBeTruthy();
+    expect(within(frame).queryByTestId("issue-tab-transcript")).toBeNull();
+
+    const dock = await ensureAssistantDock(frame, user);
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    expect(toggle).toBeEnabled();
+
+    await user.click(toggle);
+    const toggleOn = within(frame).getByTestId("assistant-column-toggle");
+    expect(toggleOn).toHaveAttribute("aria-pressed", "true");
+    expect(frame.querySelector(".assistant-page")).toBeTruthy();
+    expect(within(frame).getByTestId("issue-tab-transcript")).toBeTruthy();
+    expect(within(frame).getByTestId("assistant-split-handle")).toBeTruthy();
+    expect(frame.querySelector(":scope > .bot-frame-bar")).toBeNull();
+    const botColumn = frame.querySelector(".assistant-split-bot") as HTMLElement;
+    const issueColumn = frame.querySelector(".assistant-split-issue") as HTMLElement;
+    expect(botColumn.querySelector(".assistant-split-bar")).toBeTruthy();
+    expect(issueColumn.querySelector(".assistant-split-bar")).toBeTruthy();
+    expect(within(botColumn).getByRole("button", { name: "Muse Bot" })).toBeDisabled();
+    expect(within(issueColumn).getByRole("button", { name: A11Y })).toBeTruthy();
+    expect(issueColumn.style.minWidth).toBe("520px");
+    const botTab = within(botColumn).getByRole("button", { name: "Muse Bot" });
+
+    await user.click(botTab);
+    expect(frame.querySelector(".assistant-page")).toBeTruthy();
+    expect(within(frame).getByTestId("issue-tab-transcript")).toBeTruthy();
+
+    await user.click(toggleOn);
+    expect(within(frame).getByTestId("assistant-column-toggle")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    const botTabAgain = within(frame).getByRole("button", { name: "Muse Bot" });
+    expect(botTabAgain).toBeEnabled();
+    expect(frame.querySelector(":scope > .bot-frame-bar")).toBeTruthy();
+    expect(within(frame).getByTestId("issue-tab-transcript")).toBeTruthy();
+    expect(within(frame).queryByTestId("assistant-split-handle")).toBeNull();
+
+    await user.click(botTabAgain);
+    expect(frame.querySelector(".assistant-page")).toBeTruthy();
+    expect(within(frame).queryByTestId("issue-tab-transcript")).toBeNull();
+  });
 });

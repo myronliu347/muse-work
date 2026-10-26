@@ -16,6 +16,26 @@ export const MIN_PANE_WIDTH = 360;
 /** Preferred minimum dock width when the window has room. */
 export const PANEL_MIN_WIDTH = 320;
 
+/** Narrowest the issue column stays. Same conversation floor as a chat column, without the rail. */
+export const SPLIT_ISSUE_MIN_WIDTH = CHAT_CONTENT_MIN_WIDTH;
+
+/**
+ * Width of the Muse Bot column in the three-column split.
+ * It keeps the chat column's minimum while the pane can also hold the issue
+ * column. A tighter pane gives the leftover to the issue column's minimum.
+ */
+export function clampSplitLeftWidth(
+  paneWidth: number,
+  desiredLeft: number,
+  chatMin: number,
+  issueMin: number = SPLIT_ISSUE_MIN_WIDTH,
+): number {
+  if (!(paneWidth > 0)) return 0;
+  const leftFloor = Math.min(Math.max(0, chatMin), paneWidth);
+  const leftCap = Math.max(leftFloor, paneWidth - Math.max(0, issueMin));
+  return Math.min(leftCap, Math.max(leftFloor, desiredLeft));
+}
+
 export function clampSidebarWidth(width: number): number {
   return Math.min(
     DESKTOP_SIDEBAR_MAX_WIDTH,

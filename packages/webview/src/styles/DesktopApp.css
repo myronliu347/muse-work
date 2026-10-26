@@ -2185,6 +2185,20 @@ body.is-panel-resizing * {
   padding-top: var(--space-5);
 }
 
+.bot-frame-end {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin-left: auto;
+  padding-right: 8px;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.bot-frame-bar .bot-lists-tools + .bot-frame-end {
+  margin-left: 0;
+}
+
 .bot-frame-dock-toggle {
   display: flex;
   align-items: center;
@@ -2194,9 +2208,66 @@ body.is-panel-resizing * {
   -webkit-app-region: no-drag;
 }
 
+.bot-frame-end .bot-frame-dock-toggle {
+  margin-left: 0;
+  padding-right: 0;
+}
+
 .bot-frame-bar .bot-lists-tools + .bot-frame-dock-toggle {
   margin-left: 0;
 }
+
+.assistant-split-passthrough {
+  display: contents;
+}
+
+.assistant-split-bot,
+.assistant-split-issue {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.assistant-split-bot > .assistant-page,
+.assistant-split-issue > .issue-tab-transcript {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.assistant-split-handle {
+  position: relative;
+  flex: none;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+}
+
+.assistant-split-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--hairline);
+  transform: translateX(-50%);
+  background: var(--gray-6);
+}
+
+.assistant-split-handle:hover,
+body.is-panel-resizing .assistant-split-handle {
+  background: var(--accent-9);
+}
+
+.assistant-split-handle:hover::before,
+body.is-panel-resizing .assistant-split-handle::before {
+  background: transparent;
+}
+
 
 .issue-tab-messages {
   flex: 1;
@@ -2370,6 +2441,41 @@ body.is-panel-resizing * {
   overflow: hidden;
 }
 
+/* Must beat the column rule above. Same specificity loses because that rule
+   comes later, and the two chats then stack instead of sitting side by side. */
+.assistant-frame.assistant-frame--split .desktop-chat-main {
+  grid-row: 1 / span 2;
+  flex-direction: row;
+}
+
+.assistant-split-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--desktop-shell-titlebar-height);
+  min-width: 0;
+  background: var(--gray-2);
+  -webkit-app-region: drag;
+}
+
+.assistant-split-bot > .assistant-split-bar {
+  padding-left: max(
+    var(--desktop-shell-chrome-left),
+    calc(var(--desktop-sidebar-width) + 10px)
+  );
+}
+
+.assistant-split-issue > .assistant-split-bar {
+  padding-left: 10px;
+  padding-right: 8px;
+}
+
+.assistant-split-bar .bot-tabs {
+  flex: 1;
+}
+
 .assistant-frame .desktop-chat-main > .assistant-page,
 .assistant-frame .issue-tab-transcript {
   flex: 1 1 auto;
@@ -2500,6 +2606,11 @@ body.is-panel-resizing * {
   padding-left: calc(var(--desktop-sidebar-width) + 10px);
 }
 
+/* Split bars already inset themselves. This rule would add the rail again. */
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-bar .bot-tabs {
+  padding-left: 0;
+}
+
 .bot-tab,
 .bot-tab-close {
   -webkit-app-region: no-drag;
@@ -2527,9 +2638,14 @@ body.is-panel-resizing * {
   cursor: pointer;
 }
 
-.bot-tab.active {
+.bot-tab.active,
+.bot-tab:hover:not(:disabled) {
   background: var(--gray-4);
   color: var(--gray-12);
+}
+
+.bot-tab:disabled {
+  cursor: default;
 }
 
 .bot-tab-group {
@@ -2544,7 +2660,8 @@ body.is-panel-resizing * {
   border-radius: var(--radius-1);
 }
 
-.bot-tab-group.active {
+.bot-tab-group.active,
+.bot-tab-group:hover {
   background: var(--gray-4);
 }
 
@@ -2556,7 +2673,8 @@ body.is-panel-resizing * {
   height: 24px;
 }
 
-.bot-tab-group.active .bot-tab {
+.bot-tab-group.active .bot-tab,
+.bot-tab-group:hover .bot-tab {
   color: var(--gray-12);
 }
 
@@ -2668,7 +2786,8 @@ body.is-panel-resizing * {
   pointer-events: none;
 }
 
-.bot-tab-group.active .bot-tab-close {
+.bot-tab-group.active .bot-tab-close,
+.bot-tab-group:hover .bot-tab-close {
   background: var(--gray-4);
 }
 
@@ -2678,7 +2797,8 @@ body.is-panel-resizing * {
   pointer-events: auto;
 }
 
-.bot-tab-close:hover {
+.bot-tab-close:hover,
+.bot-tab-group:hover .bot-tab-close:hover {
   background: var(--gray-5);
   color: var(--gray-12);
 }
@@ -2812,6 +2932,19 @@ body.is-panel-resizing * {
 .desktop-pane-row > .desktop-pane:first-child .issue-session-header:not(.issue-session-header--corner) {
   box-sizing: border-box;
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-3));
+}
+
+/* The issue column is not the leftmost pane. Rail inset belongs only on Muse Bot. */
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .issue-tab-messages,
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .input-area-container,
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .messages-container,
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .messages-shell > .sticky-user-wrapper,
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .welcome-view-shell {
+  padding-left: var(--space-4);
+}
+
+.desktop-layout .assistant-frame.assistant-frame--split .assistant-split-issue .welcome-view-shell {
+  padding-top: var(--space-5);
 }
 
 /* Sidebar collapse: slide drawer + ease main-column inset (not while drag-resizing). */

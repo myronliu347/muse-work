@@ -21,6 +21,7 @@ import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
 import { AssistantPage } from "./assistant/AssistantPage";
+import { Tooltip } from "./shared/Tooltip";
 import {
   BotTabs,
   useBotWorkspace,
@@ -84,7 +85,9 @@ import type { WorkspaceDiffFile } from "./panels/DiffPane";
 import { prefetchTerminalLib } from "./panels/TerminalPane";
 import {
   DESKTOP_SIDEBAR_WIDTH,
+  SPLIT_ISSUE_MIN_WIDTH,
   chatMainMinWidth,
+  clampSplitLeftWidth,
   paneHasSidebarInset,
 } from "../muse/layout";
 import { useDesktopSidebarCollapsed } from "../hooks/useDesktopSidebarCollapsed";
@@ -381,25 +384,43 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [workspace],
   );
+  const [threeColumnsOn, setThreeColumnsOn] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.5);
+  useEffect(() => {
+    if (workspace.openIssueIds.length === 0) setThreeColumnsOn(false);
+  }, [workspace.openIssueIds.length]);
   const openIssueGroup =
     workspace.active === "bot"
       ? undefined
       : (host?.issueGroups ?? []).find((group) => group.issueId === workspace.active);
+  const splitIssueId = !threeColumnsOn
+    ? null
+    : workspace.active !== "bot" && workspace.openIssueIds.includes(workspace.active)
+      ? workspace.active
+      : workspace.lastIssueId && workspace.openIssueIds.includes(workspace.lastIssueId)
+        ? workspace.lastIssueId
+        : (workspace.openIssueIds[workspace.openIssueIds.length - 1] ?? null);
+  const splitIssueGroup = splitIssueId
+    ? (host?.issueGroups ?? []).find((group) => group.issueId === splitIssueId)
+    : undefined;
+  const threeColumns = Boolean(splitIssueGroup);
+  // 两栏时主栏只显示当前标签。三栏时中间固定是一条事项会话，即使焦点在 Muse Bot。
+  const shownIssueGroup = threeColumns ? splitIssueGroup : openIssueGroup;
   const [issueTabChoice, setIssueTabChoice] = useState<{
     issueId: string;
     tab: IssueViewTab;
   } | null>(null);
   const openIssueViewTab: IssueViewTab =
-    openIssueGroup && issueTabChoice?.issueId === openIssueGroup.issueId
+    shownIssueGroup && issueTabChoice?.issueId === shownIssueGroup.issueId
       ? issueTabChoice.tab
-      : openIssueGroup?.executionSessionId
+      : shownIssueGroup?.executionSessionId
         ? "execution"
         : "planning";
-  const openIssueSessionId = !openIssueGroup
+  const openIssueSessionId = !shownIssueGroup
     ? undefined
     : openIssueViewTab === "execution"
-      ? (openIssueGroup.executionSessionId ?? issueTabSessionId(openIssueGroup))
-      : resolveIssuePlanningSessionId(openIssueGroup);
+      ? (shownIssueGroup.executionSessionId ?? issueTabSessionId(shownIssueGroup))
+      : resolveIssuePlanningSessionId(shownIssueGroup);
   const [issueTranscript, setIssueTranscript] = useState<
     | {
         sessionId: string;
@@ -481,8 +502,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const issueStreaming = issueShowsLive
     ? state.isStreaming
     : Boolean(
-        openIssueGroup &&
-          issueSessionBusy(openIssueGroup, openIssueSessionId, {
+        shownIssueGroup &&
+          issueSessionBusy(shownIssueGroup, openIssueSessionId, {
             currentSessionId: state.currentSession?.id,
             isStreaming: state.isStreaming,
           }),
@@ -490,15 +511,15 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // 执行会话还是空的时候，停在执行标签上整页是黑的。用户没手动选过标签时，
   // 退回有记录的规划会话。
   useEffect(() => {
-    if (!openIssueGroup) return;
-    if (issueTabChoice?.issueId === openIssueGroup.issueId) return;
-    if (!openIssueGroup.executionSessionId || openIssueViewTab !== "execution") return;
+    if (!shownIssueGroup) return;
+    if (issueTabChoice?.issueId === shownIssueGroup.issueId) return;
+    if (!shownIssueGroup.executionSessionId || openIssueViewTab !== "execution") return;
     if (openIssueTranscript?.status !== "ready" || openIssueTranscript.messages.length > 0) {
       return;
     }
-    if (!resolveIssuePlanningSessionId(openIssueGroup)) return;
-    setIssueTabChoice({ issueId: openIssueGroup.issueId, tab: "planning" });
-  }, [openIssueGroup, issueTabChoice, openIssueViewTab, openIssueTranscript]);
+    if (!resolveIssuePlanningSessionId(shownIssueGroup)) return;
+    setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab: "planning" });
+  }, [shownIssueGroup, issueTabChoice, openIssueViewTab, openIssueTranscript]);
   const loadOlderIssueMessages = () => {
     if (issueShowsLive) {
       const before = state.messages[0]?.id;
@@ -1060,7 +1081,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const sidebarInset =
     !dockFullscreen && !sidebarCollapsed && paneHasSidebarInset(host?.panes, paneId);
   const chatMinWidth = chatMainMinWidth(sidebarInset, contentInset);
-  const dockMaxWidth = chatColumnWidth - chatMinWidth;
+  // Three columns keep the Muse Bot floor and still leave the issue column
+  // its own floor, so the dock cannot eat the left side down to one column.
+  const layoutChatMin = threeColumns
+    ? chatMinWidth + SPLIT_ISSUE_MIN_WIDTH
+    : chatMinWidth;
+  const dockMaxWidth = chatColumnWidth - layoutChatMin;
   const assistantDockToggleRef = useRef<(() => void) | null>(null);
   const restoreAssistantToolsRef = useRef(false);
   const [assistantDockOpen, setAssistantDockOpenState] = useState(
@@ -1107,7 +1133,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const containerW = chatContainerRef.current?.clientWidth ?? 0;
     // chatColumnWidth 更新说明栏已经量过，这时再读 clientWidth。
     if (!(containerW > 0) || chatColumnWidth <= 0) return;
-    const next = firstOpenDockWidths(containerW, chatMinWidth);
+    const next = firstOpenDockWidths(containerW, layoutChatMin);
     if (!next) return;
     if (
       next.preview === assistantWidths.preview &&
@@ -1124,7 +1150,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     checkedPanels.length,
     assistantWidths,
     chatColumnWidth,
-    chatMinWidth,
+    layoutChatMin,
     updateMuseWidthGroup,
   ]);
   const panels = usePanels({
@@ -1154,7 +1180,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     activePanel,
     panelWidths: shownWidths,
     dockMaxWidth,
-    chatMinWidth,
+    chatMinWidth: layoutChatMin,
     hideDiff: assistantVisible && !dockIssueId,
     previewWithoutWorkdir: assistantVisible,
   });
@@ -1531,7 +1557,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       onModelSelect={handleModelSelect}
       onModelPopupClose={handleModelPopupClose}
       closed={issueClosed}
-      showDraftControls={isDraftSession && !(assistantVisible && openIssueGroup)}
+      showDraftControls={isDraftSession && !(assistantVisible && shownIssueGroup)}
     />
   );
 
@@ -1719,7 +1745,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const showWideCards =
     leftPanelWidth > 0 ? botListsWideForPanel(leftPanelWidth) : botListsWide;
   const onBotHome = workspace.active === "bot";
-  const showCards = onBotHome && showWideCards;
+  const showCards = onBotHome && showWideCards && !threeColumns;
   const showBotLists =
     assistantVisible &&
     !dockFullscreen &&
@@ -1749,50 +1775,177 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     />
   ) : null;
 
+  const shownIssueHeader = shownIssueGroup ? (
+    <IssueSessionHeader
+      placement="corner"
+      title={shownIssueGroup.title}
+      activeTab={openIssueViewTab}
+      onTabChange={(tab) => {
+        if (tab === "execution" && !shownIssueGroup.executionSessionId) return;
+        setIssueTabChoice({ issueId: shownIssueGroup.issueId, tab });
+      }}
+      showTabs={isSplitIssueGroup(shownIssueGroup)}
+      executionEnabled={Boolean(shownIssueGroup.executionSessionId)}
+    />
+  ) : null;
+
+  const columnToggle = (
+    <Tooltip text="分栏" position="bottom" wrap={false}>
+      <button
+        type="button"
+        className={`header-button${threeColumns ? " active" : ""}`}
+        data-testid="assistant-column-toggle"
+        aria-label="三栏"
+        aria-pressed={threeColumns}
+        disabled={workspace.openIssueIds.length === 0}
+        onClick={() => setThreeColumnsOn((on) => !on)}
+      >
+        <svg className="header-icon" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M1.5 2.5h3v11h-3v-11Zm5 0h3v11h-3v-11Zm5 0h3v11h-3v-11Z"
+          />
+        </svg>
+      </button>
+    </Tooltip>
+  );
+  const dockToggle = assistantDockOpen ? null : (
+    <div className="bot-frame-dock-toggle">
+      <PanelToggleControl onToggleDock={toggleAssistantDock} />
+    </div>
+  );
+
   const assistantFrame = (
     <div
-      className="chat-container assistant-frame"
+      className={`chat-container assistant-frame${threeColumns ? " assistant-frame--split" : ""}`}
       ref={chatContainerRef}
       data-testid="assistant-frame"
       style={
-        botColumnMax != null
-          ? ({ "--bot-column-max": `${botColumnMax}px` } as React.CSSProperties)
-          : undefined
+        {
+          ...(botColumnMax != null ? { "--bot-column-max": `${botColumnMax}px` } : {}),
+          ...(threeColumns
+            ? { "--chat-main-min-width": `${layoutChatMin}px` }
+            : {}),
+        } as React.CSSProperties
       }
     >
-      <div className="bot-frame-bar">
-        <BotTabs
-          state={workspace}
-          titles={issueTitles}
-          presence={issueTabPresence}
-          onFocus={workspace.focusTab}
-          onClose={workspace.closeIssueTab}
-        />
-        <div className="bot-frame-switch" ref={setBotSwitchHost}>
-          {openIssueGroup ? (
-            <IssueSessionHeader
-              placement="corner"
-              title={openIssueGroup.title}
-              activeTab={openIssueViewTab}
-              onTabChange={(tab) => {
-                if (tab === "execution" && !openIssueGroup.executionSessionId) return;
-                setIssueTabChoice({ issueId: openIssueGroup.issueId, tab });
-              }}
-              showTabs={isSplitIssueGroup(openIssueGroup)}
-              executionEnabled={Boolean(openIssueGroup.executionSessionId)}
-            />
-          ) : null}
-        </div>
-        {showCards ? null : botLists}
-        {assistantDockOpen ? null : (
-          <div className="bot-frame-dock-toggle">
-            <PanelToggleControl onToggleDock={toggleAssistantDock} />
+      {threeColumns ? null : (
+        <div className="bot-frame-bar">
+          <BotTabs
+            state={workspace}
+            titles={issueTitles}
+            presence={issueTabPresence}
+            onFocus={workspace.focusTab}
+            onClose={workspace.closeIssueTab}
+          />
+          <div className="bot-frame-switch" ref={setBotSwitchHost}>
+            {shownIssueHeader}
           </div>
-        )}
-      </div>
+          {showCards ? null : botLists}
+          <div className="bot-frame-end">
+            {columnToggle}
+            {dockToggle}
+          </div>
+        </div>
+      )}
       <div className="desktop-chat-body">
         <div className="desktop-chat-main">
-          {openIssueGroup ? (
+          {threeColumns ? (
+            <div
+              className="assistant-split-bot"
+              style={{
+                flexGrow: splitRatio,
+                minWidth: `min(${chatMinWidth}px, 100%)`,
+              }}
+            >
+              <div className="assistant-split-bar">
+                <BotTabs
+                  state={workspace}
+                  titles={issueTitles}
+                  presence={issueTabPresence}
+                  lockBotTab
+                  scope="bot"
+                  onFocus={workspace.focusTab}
+                  onClose={workspace.closeIssueTab}
+                />
+                <div className="bot-frame-switch" ref={setBotSwitchHost} />
+                {botLists}
+              </div>
+              <AssistantPage
+                api={museApi}
+                vscode={vscode}
+                showPanelToggle={false}
+                onToggleDock={toggleAssistantDock}
+                onViewModeChange={onAssistantViewMode}
+                onOpenFile={handleOpenFile}
+                onOpenUrl={handleOpenPreview}
+                hideQueue={assistantVisible}
+                mentionIssues={(host?.issueGroups ?? []).map((group) => ({
+                  id: group.issueId,
+                  title: group.title,
+                }))}
+                emptyState={<AssistantWelcome />}
+                viewSwitchHost={botSwitchHost}
+              />
+            </div>
+          ) : null}
+          {threeColumns ? (
+            <div
+              className="assistant-split-handle"
+              data-testid="assistant-split-handle"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                const main = event.currentTarget.parentElement;
+                if (!main) return;
+                const rect = main.getBoundingClientRect();
+                const move = (ev: MouseEvent) => {
+                  const left = clampSplitLeftWidth(
+                    rect.width,
+                    ev.clientX - rect.left,
+                    chatMinWidth,
+                  );
+                  if (rect.width > 0) setSplitRatio(left / rect.width);
+                };
+                const up = () => {
+                  window.removeEventListener("mousemove", move);
+                  window.removeEventListener("mouseup", up);
+                  document.body.classList.remove("is-panel-resizing");
+                };
+                document.body.classList.add("is-panel-resizing");
+                window.addEventListener("mousemove", move);
+                window.addEventListener("mouseup", up);
+              }}
+            />
+          ) : null}
+          {shownIssueGroup ? (
+            <div
+              className={threeColumns ? "assistant-split-issue" : "assistant-split-passthrough"}
+              style={
+                threeColumns
+                  ? {
+                      flexGrow: 1 - splitRatio,
+                      minWidth: `${SPLIT_ISSUE_MIN_WIDTH}px`,
+                    }
+                  : undefined
+              }
+            >
+            {threeColumns ? (
+              <div className="assistant-split-bar">
+                <BotTabs
+                  state={workspace}
+                  titles={issueTitles}
+                  presence={issueTabPresence}
+                  scope="issues"
+                  onFocus={workspace.focusTab}
+                  onClose={workspace.closeIssueTab}
+                />
+                <div className="bot-frame-switch">{shownIssueHeader}</div>
+                <div className="bot-frame-end">
+                  {columnToggle}
+                  {dockToggle}
+                </div>
+              </div>
+            ) : null}
             <div className="issue-tab-transcript" data-testid="issue-tab-transcript">
               {issueTranscriptFailed ? (
                 <div className="issue-tab-load-error" data-testid="issue-tab-load-error">
@@ -1858,6 +2011,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   composer={composer}
                 />
               )}
+            </div>
             </div>
           ) : (
             <AssistantPage

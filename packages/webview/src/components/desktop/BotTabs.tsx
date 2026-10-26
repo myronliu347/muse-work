@@ -27,6 +27,10 @@ export interface BotTabsProps {
   state: BotWorkspaceState;
   titles: Record<string, string>;
   presence?: Record<string, IssuePresence | null>;
+  /** Three columns already show Muse Bot on the left, so its tab is not a destination. */
+  lockBotTab?: boolean;
+  /** Which tabs this bar owns. Three columns give Muse Bot and issues their own bars. */
+  scope?: "all" | "bot" | "issues";
   onFocus: (tab: "bot" | string) => void;
   onClose: (issueId: string) => void;
 }
@@ -123,7 +127,15 @@ function tabClass(active: boolean): string {
   return active ? "bot-tab active" : "bot-tab";
 }
 
-export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsProps) {
+export function BotTabs({
+  state,
+  titles,
+  presence,
+  lockBotTab,
+  scope = "all",
+  onFocus,
+  onClose,
+}: BotTabsProps) {
   const botUnread = useAssistantNotice().unread && state.active !== "bot";
   const tabs = ["bot", ...state.openIssueIds];
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -144,6 +156,8 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
   return (
     <div className="bot-tabs" aria-label="Muse Bot" ref={scrollerRef}>
       {tabs.map((tab) => {
+        if (scope === "bot" && tab !== "bot") return null;
+        if (scope === "issues" && tab === "bot") return null;
         const active = state.active === tab;
         if (tab === "bot") {
           return (
@@ -151,7 +165,8 @@ export function BotTabs({ state, titles, presence, onFocus, onClose }: BotTabsPr
               key="bot"
               type="button"
               data-bot-tab="bot"
-              className={tabClass(active)}
+              className={tabClass(active && !lockBotTab)}
+              disabled={lockBotTab}
               onClick={() => reveal("bot")}
             >
               {botUnread ? (
