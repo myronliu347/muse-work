@@ -184,6 +184,7 @@ describe("desktop icon rail", () => {
     expect(sessions).toHaveAttribute("aria-label", "会话");
     expect(automations).toHaveAttribute("aria-label", "自动化");
     expect(settings).toHaveAttribute("aria-label", "设置");
+    expect(settings).toHaveClass("desktop-rail-settings");
 
     await user.click(sessions);
     expect(screen.getByTestId("desktop-assistant-menu").className).not.toContain(

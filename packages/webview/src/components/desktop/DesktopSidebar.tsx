@@ -263,7 +263,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <Tooltip text="设置" position="right" wrap={false}>
           <button
             type="button"
-            className={`desktop-rail-btn${activeMenu === "settings" ? " active" : ""}`}
+            className={`desktop-rail-btn desktop-rail-settings${activeMenu === "settings" ? " active" : ""}`}
             onClick={onOpenSettings}
             aria-label="设置"
             data-testid="desktop-settings-btn"

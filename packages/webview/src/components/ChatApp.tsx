@@ -332,12 +332,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   );
   const botIssues = (host?.issueGroups ?? []).map((group) => {
     const activity = issueActivityById.get(group.issueId);
+    const presence = activity?.presence ?? null;
     return {
       issueId: group.issueId,
       title: group.title,
       priority: group.priority,
       type: group.type,
-      presence: activity?.presence ?? null,
+      presence:
+        presence === "unread" && !workspace.openIssueIds.includes(group.issueId)
+          ? null
+          : presence,
       statusLabel: activity?.label,
       openLabel: issueTabSessionId(group)
         ? sessionActionLabel(workspace, group.issueId)

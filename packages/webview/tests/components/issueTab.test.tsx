@@ -1705,6 +1705,7 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const lists = await within(frame).findByTestId("bot-lists");
+    expect(within(lists).queryByTestId("desktop-session-unread-dot")).toBeNull();
     await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
     expect(vscode.postMessage).toHaveBeenCalledWith({
       command: "desktopClearUnread",

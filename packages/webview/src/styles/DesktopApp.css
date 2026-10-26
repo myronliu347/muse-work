@@ -226,7 +226,14 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  flex: 1;
+  min-height: 0;
   width: 100%;
+  padding-bottom: 8px;
+}
+
+.desktop-rail-settings {
+  margin-top: auto;
 }
 
 .desktop-rail-btn {
