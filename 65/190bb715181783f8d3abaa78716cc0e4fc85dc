@@ -1,0 +1,118 @@
+packages/webview/src/components/desktop/BotTabs.tsx
+  8d544d70b6b94a4c 110-120,127-141,143,151,153,162-165,169
+packages/webview/tests/components/botLists.test.tsx
+  8d544d70b6b94a4c 293,367,369,574-575,619,627-649
+packages/webview/tests/components/dockDetail.test.tsx
+  8d544d70b6b94a4c 234-255,418,486
+packages/webview/src/styles/DesktopApp.css
+  8d544d70b6b94a4c 2332-2345,2382-2383,2391-2395,2445-2453,2487-2489,2491-2497,2671,2675,2684-2698,2708-2709,2743-2744
+packages/webview/src/components/desktop/BotLists.tsx
+  8d544d70b6b94a4c 8,18-19,21,26,70-71,257,263,285-288,341,354,369,382,431
+packages/webview/src/components/chat/MessageList.tsx
+  8d544d70b6b94a4c 773-785
+packages/webview/src/styles/MessageList.css
+  8d544d70b6b94a4c 110-116,118,120
+packages/webview/tests/components/issueTab.test.tsx
+  8d544d70b6b94a4c 32-39,295,320,327,331,333-334,341,355,394,466,558
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  8d544d70b6b94a4c 79,138,245
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 1538-1543,1576,1671
+packages/webview/src/styles/Tooltip.css
+  8d544d70b6b94a4c 53,58-60
+packages/webview/src/styles/DesktopPanelDock.css
+  8d544d70b6b94a4c 63,71,89-90,95,97-100,103-105,109,113
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  8d544d70b6b94a4c 63-64,89,141,185-190,192-203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "65190bb715181783f8d3abaa78716cc0e4fc85dc",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 284,
+      "total_deletions": 84,
+      "accepted_lines": 268,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 9,
+          "deletions": 4,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 69,
+          "deletions": 14,
+          "accepted_lines": 63
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 19,
+          "deletions": 11,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 34,
+          "deletions": 4,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 26,
+          "deletions": 4,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 13,
+          "deletions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 22,
+          "deletions": 10,
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 36,
+          "deletions": 12,
+          "accepted_lines": 29
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 18,
+          "deletions": 5,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/Tooltip.css": {
+          "additions": 9,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 18,
+          "deletions": 3,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 8,
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
