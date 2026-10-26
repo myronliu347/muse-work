@@ -38,8 +38,6 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
   sessionTreeRef.current = sessionTree;
   const issueGroupsRef = useRef(issueGroups);
   issueGroupsRef.current = issueGroups;
-  const closedIssueGroupsRef = useRef(closedIssueGroups);
-  closedIssueGroupsRef.current = closedIssueGroups;
 
   useEffect(() => {
     const prunePanels = () => {
@@ -52,13 +50,9 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
           if (s.workdir) keep.add(s.workdir);
         }
       }
-      // Issue 会话已从 recent 移入 issueGroups，workdir 同样保留（否则面板被误裁剪）
+      // 还开着的 Issue 目录要留着。已经关闭的 Issue 不占右侧面板，
+      // 除非这个目录仍是当前工作区或别的会话在用。
       for (const g of issueGroupsRef.current) {
-        for (const s of g.sessions) {
-          if (s.workdir) keep.add(s.workdir);
-        }
-      }
-      for (const g of closedIssueGroupsRef.current) {
         for (const s of g.sessions) {
           if (s.workdir) keep.add(s.workdir);
         }
@@ -81,8 +75,9 @@ export const DesktopApp: React.FC<DesktopAppProps> = ({ vscode }) => {
         });
       } else if (message.command === "desktopSessionTree") {
         sessionTreeRef.current = message.groups ?? [];
+        issueGroupsRef.current = message.issueGroups ?? [];
         setSessionTree(sessionTreeRef.current);
-        setIssueGroups(message.issueGroups ?? []);
+        setIssueGroups(issueGroupsRef.current);
         setClosedIssueGroups(message.closedIssueGroups ?? []);
         prunePanels();
       } else if (message.command === "desktopPanes") {

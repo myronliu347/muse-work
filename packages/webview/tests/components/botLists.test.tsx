@@ -204,6 +204,7 @@ function ControlledLists({
         { issueId: "a11y", title: A11Y, priority: "p2" },
       ]}
       onToggleMenu={(next) => setMenu((current) => (current === next ? null : next))}
+      onDismissMenu={() => setMenu(null)}
       onSelect={(panel) => {
         onSelect(panel);
         setSelected(panel);
@@ -277,6 +278,20 @@ describe("BotLists", () => {
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith({ kind: "issue", issueId: "radii" });
+    expect(screen.queryByTestId("bot-lists-menu")).toBeNull();
+    expect(screen.queryByRole("button", { name: new RegExp(RADII) })).toBeNull();
+  });
+
+  it("closes the 事项 menu when clicking outside", async () => {
+    const user = userEvent.setup();
+    render(<ControlledLists wide={false} onSelect={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "事项" }));
+    expect(screen.getByTestId("bot-lists-menu")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: new RegExp(RADII) })).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
     expect(screen.queryByTestId("bot-lists-menu")).toBeNull();
     expect(screen.queryByRole("button", { name: new RegExp(RADII) })).toBeNull();
   });
@@ -597,6 +612,55 @@ describe("ChatApp pending and issue lists", () => {
     expect(onSelectSession).not.toHaveBeenCalled();
     expect(within(frame).getByRole("button", { name: /^无障碍检查$/ })).toBeInTheDocument();
     expect(frame.querySelectorAll(".bot-tab")).toHaveLength(2);
+  });
+
+  it("drops the open tab and the right detail when that issue is closed", async () => {
+    resetWebviewStores();
+    stubAssistant(QUEUE);
+    const media = installMatchMedia();
+    media.setWidth(1600);
+    const { host } = listsHost();
+    const user = userEvent.setup();
+    const vscode = createMockVscode();
+    const { rerender } = render(
+      <MuseTheme>
+        <ChatApp vscode={vscode} host={host} />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    await user.click(within(frame).getByTestId("panel-toggle-btn"));
+    const lists = await within(frame).findByTestId("bot-lists");
+    const row = within(lists).getByRole("button", { name: new RegExp(A11Y) });
+    await user.hover(row);
+    await user.click(
+      within(row.parentElement as HTMLElement).getByRole("button", { name: "打开会话" }),
+    );
+    expect(frame.querySelector('[data-bot-tab="a11y"]')).toBeTruthy();
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveTextContent(A11Y);
+
+    const closed = host.issueGroups!.find((group) => group.issueId === "a11y")!;
+    rerender(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={{
+            ...host,
+            issueGroups: host.issueGroups!.filter((group) => group.issueId !== "a11y"),
+            closedIssueGroups: [
+              ...(host.closedIssueGroups ?? []),
+              { ...closed, status: "completed" },
+            ],
+          }}
+        />
+      </MuseTheme>,
+    );
+
+    await waitFor(() => {
+      expect(frame.querySelector('[data-bot-tab="a11y"]')).toBeNull();
+    });
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).not.toHaveTextContent(A11Y);
+    expect(within(frame).getByRole("button", { name: "Muse Bot" })).toBeInTheDocument();
   });
 
   it("starts with the detail dock closed and reopens it without a tool", async () => {

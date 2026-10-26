@@ -349,6 +349,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     issueTabPresence[issueId] = activity.presence;
   }
   const clearIssueUnreadRef = useRef<(issueId: string) => void>(() => {});
+  useEffect(() => {
+    if (host?.type !== "desktop") return;
+    const closed = new Set(
+      (host.closedIssueGroups ?? []).map((group) => group.issueId),
+    );
+    if (closed.size === 0) return;
+    const bound = new Set(workspace.openIssueIds);
+    if (workspace.panel.kind === "issue") bound.add(workspace.panel.issueId);
+    if (workspace.lastIssueId) bound.add(workspace.lastIssueId);
+    for (const issueId of bound) {
+      if (closed.has(issueId)) workspace.closeIssueTab(issueId);
+    }
+  }, [host?.type, host?.closedIssueGroups, workspace]);
   const selectBotPanel = useCallback(
     (panel: Exclude<PanelSelection, { kind: "none" }>) => {
       workspace.selectPanel(panel);
@@ -1685,6 +1698,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       }}
       onOpenDock={() => setAssistantDockOpen(true)}
       onToggleMenu={(next) => setBotMenu((current) => (current === next ? null : next))}
+      onDismissMenu={() => setBotMenu(null)}
     />
   ) : null;
 

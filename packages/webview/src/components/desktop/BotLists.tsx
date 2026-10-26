@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { IssueTypeIcon } from "../issue/IssueTypeIcon";
 import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import type { PanelSelection } from "./botWorkspace";
@@ -70,6 +70,8 @@ export interface BotListsProps {
   /** Double-click an issue row to open the right-hand dock. */
   onOpenDock?: () => void;
   onToggleMenu: (menu: "queue" | "todo") => void;
+  /** Narrow popover: click outside the trigger and menu to close it. */
+  onDismissMenu?: () => void;
 }
 
 /** Labels already shown by AssistantPage. Missing type keeps this list's own category. */
@@ -368,8 +370,19 @@ export function BotLists({
   onOpenIssue,
   onOpenDock,
   onToggleMenu,
+  onDismissMenu,
 }: BotListsProps) {
   const openMenu = !showQueue && menu === "queue" ? null : menu;
+  const toolsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (wide || !openMenu) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (toolsRef.current?.contains(event.target as Node)) return;
+      onDismissMenu?.();
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [wide, openMenu, onDismissMenu]);
   if (wide) {
     return (
       <aside className="bot-lists" style={columnStyle} data-testid="bot-lists">
@@ -386,7 +399,7 @@ export function BotLists({
   }
 
   return (
-    <div className="bot-lists-tools">
+    <div className="bot-lists-tools" ref={toolsRef}>
       {showQueue ? (
         <button
           type="button"

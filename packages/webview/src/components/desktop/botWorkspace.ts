@@ -67,11 +67,23 @@ export function focusTab(state: BotWorkspaceState, tab: "bot" | string): BotWork
 }
 
 export function closeIssueTab(state: BotWorkspaceState, issueId: string): BotWorkspaceState {
-  const openIssueIds = state.openIssueIds.filter((id) => id !== issueId);
+  const hadTab = state.openIssueIds.includes(issueId);
+  const panelWasThis =
+    state.panel.kind === "issue" && state.panel.issueId === issueId;
+  const lastWasThis = state.lastIssueId === issueId;
+  const activeWasThis = state.active === issueId;
+  if (!hadTab && !panelWasThis && !lastWasThis && !activeWasThis) return state;
+  // 右侧正在看这条 Issue 时，关掉后不再选中它，回到详情。
+  const droveDock = panelWasThis;
   return {
     ...state,
-    openIssueIds,
-    active: state.active === issueId ? "bot" : state.active,
+    openIssueIds: hadTab
+      ? state.openIssueIds.filter((id) => id !== issueId)
+      : state.openIssueIds,
+    active: activeWasThis ? "bot" : state.active,
+    panel: panelWasThis ? { kind: "none" } : state.panel,
+    lastIssueId: lastWasThis ? null : state.lastIssueId,
+    dock: droveDock ? "detail" : state.dock,
   };
 }
 

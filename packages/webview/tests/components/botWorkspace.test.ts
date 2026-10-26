@@ -78,6 +78,21 @@ describe("botWorkspace", () => {
     const closed = closeIssueTab(opened, "a11y");
     expect(closed.active).toBe("bot");
     expect(closed.openIssueIds).toEqual(["radii"]);
+    expect(closed.panel).toEqual({ kind: "issue", issueId: "radii" });
+    expect(closed.lastIssueId).toBe("radii");
+  });
+
+  it("closing the issue on the right clears that tab and the detail binding", () => {
+    const opened = selectDock(
+      focusTab(openIssueSession(initialBotWorkspace("radii"), "radii"), "radii"),
+      "file",
+    );
+    const closed = closeIssueTab(opened, "radii");
+    expect(closed.active).toBe("bot");
+    expect(closed.openIssueIds).toEqual([]);
+    expect(closed.panel).toEqual({ kind: "none" });
+    expect(closed.lastIssueId).toBeNull();
+    expect(closed.dock).toBe("detail");
   });
 
   it("selecting an open issue from another issue tab focuses that tab", () => {

@@ -3,10 +3,12 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DesktopApp } from "../../src/components/DesktopApp";
+import { resetWebviewStores } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   usePanelGroupStore,
+  workdirTermId,
 } from "../../src/stores/panelGroupStore";
 import type { DesktopSessionEntry, VsCodeApi } from "../../src/types";
 
@@ -61,6 +63,78 @@ describe("DesktopApp host → sidebar 会话树", () => {
       expect.objectContaining({ command: "desktopTerminalKill" }),
     );
     usePanelGroupStore.getState().reset();
+  });
+
+  it("drops a closed issue workdir dock and keeps an open issue workdir", () => {
+    resetWebviewStores();
+    usePanelGroupStore.getState().reset();
+    usePanelGroupStore.getState().patchGroup("/wt/closed", {
+      checked: ["file"],
+      mounted: ["file"],
+      active: "file",
+    });
+    usePanelGroupStore.getState().patchGroup("/wt/open", {
+      checked: ["terminal"],
+      mounted: ["terminal"],
+      active: "terminal",
+    });
+    const vscode = mockVscode();
+    const { unmount } = render(<DesktopApp vscode={vscode} />);
+    try {
+      postToWindow({
+        command: "desktopWorkdirState",
+        workdir: "/tmp/proj",
+        recentWorkdirs: ["/tmp/proj"],
+        host: "local",
+      });
+      const session = (
+        sessionId: string,
+        workdir: string,
+      ): DesktopSessionEntry => ({
+        sessionId,
+        title: sessionId,
+        lastActiveAt: 1,
+        workdir,
+        hasWorktree: true,
+      });
+      postToWindow({
+        command: "desktopSessionTree",
+        groups: [],
+        issueGroups: [
+          {
+            issueId: "open-1",
+            title: "还在做",
+            priority: "p1",
+            status: "planning",
+            items: [],
+            sessions: [session("plan-open", "/wt/open")],
+          },
+        ],
+        closedIssueGroups: [
+          {
+            issueId: "closed-1",
+            title: "已经关了",
+            priority: "p1",
+            status: "completed",
+            items: [],
+            sessions: [session("plan-closed", "/wt/closed")],
+          },
+        ],
+      });
+
+      expect(usePanelGroupStore.getState().groups["/wt/closed"]).toBeUndefined();
+      expect(usePanelGroupStore.getState().groups["/wt/open"]?.checked).toEqual([
+        "terminal",
+      ]);
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopTerminalKill",
+        termId: workdirTermId("/wt/closed"),
+      });
+    } finally {
+      unmount();
+      resetWebviewStores();
+      usePanelGroupStore.getState().reset();
+    }
   });
 
   it("desktopSessionTree 推送后渲染工作空间会话", () => {

@@ -2442,15 +2442,6 @@ body.is-panel-resizing * {
   padding: 0 28px min(36vh, var(--space-9)) var(--space-4);
 }
 
-/* The 800px column is centered in a normal chat. On an issue transcript that
-   leaves a wide empty gutter beside the rail; keep it against the left inset. */
-.assistant-frame .issue-tab-transcript .messages-column,
-.assistant-frame .issue-tab-transcript .sticky-user-dock,
-.assistant-frame .issue-tab-transcript .input-wrapper {
-  margin-left: 0;
-  margin-right: auto;
-}
-
 .assistant-frame .desktop-panel-dock > .preview-pane-drag-handle {
   z-index: 20;
   left: 0;
@@ -2572,11 +2563,19 @@ body.is-panel-resizing * {
 }
 
 .bot-tab-label {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: clip;
   font-weight: 600;
+  /* 短标题停在左边，只有顶到右缘的字才淡出。 */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
 .bot-tab-close {
