@@ -645,6 +645,10 @@ export function createActions(ctx: RunnerContext): SessionRunner {
       return skills.map(toSerializableSkill);
     },
 
+    invalidateSkillsListCache() {
+      agent.invalidateSkillsListCache();
+    },
+
     invalidateAgentIdentities() {
       agentIdentities.clear();
     },

@@ -92,6 +92,8 @@ export interface DesktopSidebarProps {
   onOpenSessions?: () => void;
   /** 图标栏「自动化」。 */
   onOpenAutomations?: () => void;
+  /** 图标栏「技能」。 */
+  onOpenSkills?: () => void;
   /** 图标栏「Muse Bot」。 */
   onOpenAssistant?: () => void;
   /** 抽屉滑出视口时，避免焦点与读屏进入侧栏。 */
@@ -164,6 +166,20 @@ function AutomationsRailIcon() {
   );
 }
 
+/** 技能：带凸起的拼图块。 */
+function SkillsIcon() {
+  return (
+    <RailIcon>
+      <path
+        d="M6.2 9.4V18.2H14.8V16.1A2.4 2.4 0 0 1 14.8 11.8V9.4H12.6A2.4 2.4 0 0 0 8.4 9.4H6.2Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </RailIcon>
+  );
+}
+
 /** 设置：六齿齿轮，中心圆孔。 */
 function SettingsIcon() {
   return (
@@ -186,13 +202,14 @@ function SettingsIcon() {
 }
 
 /**
- * Left icon rail: Muse Bot, sessions, automations, settings.
+ * Left icon rail: Muse Bot, sessions, automations, skills, settings.
  */
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onOpenSettings,
   activeMenu,
   onOpenSessions,
   onOpenAutomations,
+  onOpenSkills,
   onOpenAssistant,
   sidebarAccessHidden = false,
 }) => {
@@ -258,6 +275,17 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             data-testid="desktop-automations-menu"
           >
             <AutomationsRailIcon />
+          </button>
+        </Tooltip>
+        <Tooltip text="技能" position="right" wrap={false}>
+          <button
+            type="button"
+            className={`desktop-rail-btn${activeMenu === "skills" ? " active" : ""}`}
+            onClick={() => onOpenSkills?.()}
+            aria-label="技能"
+            data-testid="desktop-skills-menu"
+          >
+            <SkillsIcon />
           </button>
         </Tooltip>
         <Tooltip text="设置" position="right" wrap={false}>

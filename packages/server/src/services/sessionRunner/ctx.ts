@@ -269,6 +269,7 @@ export interface SessionRunner {
   stopWorkflowRun(sessionId: string, runId: string): Promise<{ ok: true }>;
   getSlashCommands(sessionId: string): Promise<unknown[]>;
   getSkillsForWorkdir(workdir: string): Promise<unknown[]>;
+  invalidateSkillsListCache(): void;
 }
 
 export interface PendingPermission {
@@ -366,6 +367,7 @@ export interface AgentLayer {
   ): Promise<{ messages: unknown[] } | null>;
   reconcileBackgroundTasks(sessionId: string): Promise<unknown[]>;
   getSkillsForWorkdir(workdir: string): Promise<unknown[]>;
+  invalidateSkillsListCache(): void;
 }
 
 /**

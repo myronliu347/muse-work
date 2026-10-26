@@ -228,6 +228,10 @@ export async function acquireSkillCatalog(
   };
 }
 
+export async function refreshAllSkillCatalogs(): Promise<void> {
+  await Promise.all([...catalogs.values()].map((entry) => runRefresh(entry)));
+}
+
 export function requestSkillCatalogRefresh(workdir: string): Promise<void> {
   const key = resolveWorkdirKey(workdir);
   const entry = catalogs.get(key);

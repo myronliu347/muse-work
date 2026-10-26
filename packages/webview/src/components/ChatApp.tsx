@@ -16,6 +16,7 @@ import { DesktopSessionList } from "./desktop/DesktopSessionList";
 import { DesktopShell } from "./desktop/DesktopShell";
 import { ChatContainer } from "./chat/ChatContainer";
 import { AutomationsPage } from "./automation/AutomationsPage";
+import { SkillsPage } from "./skills/SkillsPage";
 import { AssistantPage } from "./assistant/AssistantPage";
 import {
   BotTabs,
@@ -169,7 +170,7 @@ function AssistantWelcome() {
 }
 
 /** 主内容区视图：chat 需要结合当前会话（state.currentSession）渲染。 */
-export type MainView = "newChat" | "chat" | "automations" | "assistant";
+export type MainView = "newChat" | "chat" | "automations" | "skills" | "assistant";
 
 type ChatAppInnerProps = ChatAppProps & {
   workspace: BotWorkspaceContextValue;
@@ -802,7 +803,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     if (sessionIdRef.current === nextId) return;
     sessionIdRef.current = nextId;
     if (noPaneDesktop) {
-      if (noPaneRail === "assistant") return;
+      if (noPaneRail === "assistant" || noPaneRail === "skills") return;
       setView("chat");
       return;
     }
@@ -2031,7 +2032,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
           {...issueSidebarProps}
           currentSessionId={
-            view === "assistant" || view === "automations"
+            view === "assistant" || view === "automations" || view === "skills"
               ? undefined
               : state.currentSession?.id
           }
@@ -2078,6 +2079,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             setNoPaneRail("automations");
             setView("automations");
           }}
+          onOpenSkills={() => {
+            if (
+              settingsPageLeaveBlocked(
+                noPaneRail,
+                "skills",
+                settingsPageRef.current,
+              )
+            ) {
+              return;
+            }
+            setNoPaneRail("skills");
+            setView("skills");
+          }}
           onOpenAssistant={() => {
             if (
               settingsPageLeaveBlocked(
@@ -2105,7 +2119,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             disabled={false}
             {...resolveSidebarSessions({ sessionTree: host.sessionTree })}
             currentSessionId={
-              view === "assistant" || view === "automations"
+              view === "assistant" || view === "automations" || view === "skills"
                 ? undefined
                 : state.currentSession?.id
             }
@@ -2143,6 +2157,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             isAuthenticated={state.isAuthenticated}
             onLogin={handleLogin}
           />
+        ) : noPaneRail === "skills" ? (
+          <SkillsPage api={museApi} />
         ) : view === "automations" ? (
           <AutomationsPage
             api={museApi}

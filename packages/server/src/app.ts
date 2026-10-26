@@ -13,6 +13,7 @@ import { healthRoutes } from "./routes/health.js";
 import { providersRoutes } from "./routes/providers.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { skillsRoutes } from "./routes/skills.js";
+import { createSkillMarketRoutes } from "./routes/skillMarket.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { issuesRoutes } from "./routes/issues.js";
 import { automationsRoutes } from "./routes/automations.js";
@@ -33,6 +34,16 @@ export function createHonoApp(ctx: AppContext): Hono<HonoEnv> {
   app.route("/", agentsRoutes);
   app.route("/", sessionsRoutes);
   app.route("/", skillsRoutes);
+  app.route(
+    "/",
+    createSkillMarketRoutes({
+      onInstalled: async () => {
+        ctx.runner.invalidateSkillsListCache();
+        const { refreshAllSkillCatalogs } = await import("@muse-work/agent");
+        await refreshAllSkillCatalogs();
+      },
+    }),
+  );
   app.route("/", issuesRoutes);
   app.route("/", automationsRoutes);
   app.route("/", assistantRoutes);

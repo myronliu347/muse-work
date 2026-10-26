@@ -181,8 +181,10 @@ describe("desktop icon rail", () => {
     const sessions = screen.getByTestId("desktop-sessions-menu");
     const automations = screen.getByTestId("desktop-automations-menu");
     const settings = screen.getByTestId("desktop-settings-btn");
+    const skills = screen.getByTestId("desktop-skills-menu");
     expect(sessions).toHaveAttribute("aria-label", "会话");
     expect(automations).toHaveAttribute("aria-label", "自动化");
+    expect(skills).toHaveAttribute("aria-label", "技能");
     expect(settings).toHaveAttribute("aria-label", "设置");
 
     await user.click(sessions);
@@ -204,6 +206,13 @@ describe("desktop icon rail", () => {
     );
     expect(screen.queryByTestId("desktop-session-list")).toBeNull();
     expect(screen.queryByTestId("desktop-new-session")).toBeNull();
+
+    await user.click(screen.getByTestId("desktop-skills-menu"));
+    expect(screen.getByTestId("skills-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("desktop-session-list")).toBeNull();
+    expect(screen.getByTestId("desktop-skills-menu").className).toContain(
+      "active",
+    );
   });
 
   it("lists ordinary sessions without issues and stays on sessions", async () => {
@@ -315,10 +324,12 @@ describe("desktop icon rail", () => {
 
     const page = screen.getByTestId("desktop-settings-page");
     const login = screen.getByTestId("desktop-login-btn");
-    expect(page.contains(login)).toBe(true);
+    const header = page.querySelector(".config-dialog-header");
+    expect(header?.contains(login)).toBe(true);
     const appearance = screen.getByRole("tab", { name: "外观" });
+    expect(header?.contains(appearance)).toBe(true);
     expect(
-      login.compareDocumentPosition(appearance) &
+      appearance.compareDocumentPosition(login) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
     await user.click(login);
