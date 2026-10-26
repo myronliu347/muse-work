@@ -1,0 +1,83 @@
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  8d544d70b6b94a4c 187
+packages/webview/src/components/desktop/DockDetail.tsx
+  8d544d70b6b94a4c 24-28,157-166,168-179
+packages/webview/src/components/automation/AutomationsPage.tsx
+  8d544d70b6b94a4c 114-117,223
+packages/webview/src/components/dialogs/ConfigDialog.tsx
+  8d544d70b6b94a4c 97-129,205,224
+packages/webview/src/styles/DesktopApp.css
+  8d544d70b6b94a4c 25-48,1840-1841,1843,1852-1887,1927-1948,1966,2239-2251,2283,2286-2289,2308,2329,2558
+packages/webview/src/styles/DesktopPanelDock.css
+  8d544d70b6b94a4c 30,454,476-484
+packages/webview/src/styles/AutomationsPage.css
+  8d544d70b6b94a4c 145-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7a5804d6a6b07887b4be1446ce6c85fd3b0818f4",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 215,
+      "total_deletions": 105,
+      "accepted_lines": 215,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/DesktopApp.css": {
+          "additions": 120,
+          "deletions": 11,
+          "accepted_lines": 111
+        },
+        "packages/webview/src/components/automation/AutomationsPage.tsx": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/dialogs/ConfigDialog.tsx": {
+          "additions": 35,
+          "deletions": 78,
+          "accepted_lines": 35
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 27,
+          "deletions": 10,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
