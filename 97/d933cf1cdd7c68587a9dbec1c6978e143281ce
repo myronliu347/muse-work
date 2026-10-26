@@ -1,0 +1,50 @@
+packages/webview/src/components/ChatApp.tsx
+  8d544d70b6b94a4c 779-780
+packages/webview/tests/components/botLists.test.tsx
+  8d544d70b6b94a4c 292-293,572-574
+packages/webview/src/components/desktop/BotLists.tsx
+  8d544d70b6b94a4c 8,29-30,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "97d933cf1cdd7c68587a9dbec1c6978e143281ce",
+  "prompts": {
+    "8d544d70b6b94a4c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dd188e8-4a8a-42fd-9986-f1c5aa851a90",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 14,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/ChatContainer.tsx": {
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/BotLists.tsx": {
+          "additions": 4,
+          "deletions": 7,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
