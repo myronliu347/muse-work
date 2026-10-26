@@ -545,8 +545,6 @@ describe("ChatApp pending and issue lists", () => {
     expect(within(frame).getByRole("region", { name: "事项" })).toBeInTheDocument();
 
     await user.click(screen.getByTestId("panel-toggle-btn"));
-    await user.click(screen.getByTestId("desktop-panel-add-btn"));
-    await user.click(await screen.findByTestId("panel-add-item-diff"));
     await user.click(await screen.findByTestId("desktop-panel-fullscreen-btn"));
 
     await waitFor(() => {
@@ -681,7 +679,10 @@ describe("ChatApp pending and issue lists", () => {
     await user.click(within(frame).getByTestId("panel-toggle-btn"));
     const dock = await within(frame).findByTestId("desktop-panel-dock");
     expect(within(dock).getByRole("button", { name: RADII })).toBeInTheDocument();
-    expect(within(dock).queryByRole("button", { name: "变更" })).toBeNull();
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByRole("button", { name: "变更" })).toBeInTheDocument();
 
     await user.click(within(dock).getByTestId("panel-toggle-btn"));
     await waitFor(() => {

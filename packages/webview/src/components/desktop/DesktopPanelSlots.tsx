@@ -1,4 +1,4 @@
-import { DesktopPanelDock } from "./DesktopPanelDock";
+import { DesktopPanelDock, type DockToolTab } from "./DesktopPanelDock";
 import { PreviewPane } from "../panels/PreviewPane";
 import {
   DiffPane,
@@ -7,6 +7,7 @@ import {
 import { FilePane } from "../panels/FilePane";
 import { TerminalPane } from "../panels/TerminalPane";
 import { PANEL_TAB_ORDER } from "../../muse/panelTabs";
+import { botToolTermId, dockToolLabel, dockToolTitle } from "../../muse/dockTools";
 import { clampDockWidth } from "../../muse/layout";
 import type {
   ContentSearchState,
@@ -17,7 +18,7 @@ import type {
   FileViewState,
   VsCodeApi,
 } from "../../types";
-import type { RemoteForwardRef } from "../../stores";
+import type { DockToolInstance, RemoteForwardRef } from "../../stores";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
@@ -78,6 +79,13 @@ export interface DesktopPanelSlotsProps {
   onSelectDetail?: () => void;
   detailTitle?: string;
   detail?: React.ReactNode;
+  /** Bot-page terminals and browsers. Each tab keeps its own cwd or URL. */
+  tools?: DockToolInstance[];
+  activeToolId?: string | null;
+  onSelectTool?: (id: string) => void;
+  onCloseTool?: (id: string) => void;
+  onToolPreviewNavigate?: (id: string, url: string) => void;
+  onToolPreviewRetry?: (id: string) => void;
 }
 
 /**
@@ -137,6 +145,12 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onSelectDetail,
   detailTitle,
   detail,
+  tools = [],
+  activeToolId = null,
+  onSelectTool,
+  onCloseTool,
+  onToolPreviewNavigate,
+  onToolPreviewRetry,
 }) => {
   const renderPanelSlot = (kind: DesktopPanelKind) => {
     const dockWidth = widths[active ?? kind] ?? 0;
@@ -244,8 +258,21 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       onSelectDetail={onSelectDetail}
       detailTitle={detailTitle}
       detail={detail}
+      toolTabs={tools.map(
+        (tool): DockToolTab => ({
+          id: tool.id,
+          kind: tool.kind,
+          label: dockToolLabel(tool, tools),
+          title: dockToolTitle(tool),
+        }),
+      )}
+      activeToolId={activeToolId}
+      onSelectTool={onSelectTool}
+      onCloseTool={onCloseTool}
     >
-      {PANEL_ORDER.filter((kind) => mounted.includes(kind)).map((kind) => (
+      {PANEL_ORDER.filter(
+        (kind) => mounted.includes(kind) && !tools.some((tool) => tool.kind === kind),
+      ).map((kind) => (
         <div
           key={kind}
           className="desktop-panel-slot"
@@ -259,6 +286,51 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           {renderPanelSlot(kind)}
         </div>
       ))}
+      {tools.map((tool) => {
+        const showing = tool.id === activeToolId && tool.kind === active;
+        const dockWidth = widths[active ?? tool.kind] ?? 0;
+        const common = {
+          width: dockWidth,
+          onWidthChange,
+          maxWidth: dockMaxWidth,
+          onClose: () => onCloseTool?.(tool.id),
+        };
+        return (
+          <div
+            key={tool.id}
+            className="desktop-panel-slot"
+            style={{ display: showing ? undefined : "none" }}
+          >
+            {tool.kind === "terminal" ? (
+              <TerminalPane
+                vscode={vscode}
+                paneId={paneId}
+                visible
+                workdir={tool.workdir}
+                termId={botToolTermId(tool.id)}
+                testIdScope={showing ? undefined : tool.id}
+                onOpenPreview={openPreviewHandler}
+                {...common}
+              />
+            ) : (
+              <PreviewPane
+                key={tool.epoch ?? 0}
+                url={tool.previewUrl}
+                originalUrl={tool.forward?.originalUrl}
+                onRetry={
+                  tool.forward ? () => onToolPreviewRetry?.(tool.id) : undefined
+                }
+                forwardError={tool.forwardError}
+                onNavigate={(url) => onToolPreviewNavigate?.(tool.id, url)}
+                vscode={vscode}
+                onAddComment={onAddComment}
+                testIdScope={showing ? undefined : tool.id}
+                {...common}
+              />
+            )}
+          </div>
+        );
+      })}
     </DesktopPanelDock>
   );
 };

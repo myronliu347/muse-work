@@ -26,6 +26,7 @@ import {
   nextActivePanelAfterClose,
   releasePanelContent,
   PANEL_DEFAULT_WIDTH,
+  type RemoteForwardRef,
 } from "../stores";
 import type { MainView } from "../components/ChatApp";
 import type { ChatAppCore } from "./useChatAppCore";
@@ -76,6 +77,10 @@ interface UsePanelsParams {
   hideDiff?: boolean;
   /** Browser can open before a workdir exists (assistant page). */
   previewWithoutWorkdir?: boolean;
+  /** When this returns true, the kind toggle is already handled (bot terminals/browsers). */
+  beforeToggleRef?: MutableRefObject<((kind: DesktopPanelKind) => boolean) | null>;
+  /** When set, a remote preview forward is stored here instead of the group record. */
+  placeForwardRef?: MutableRefObject<((fwd: RemoteForwardRef) => void) | null>;
 }
 
 export function usePanels({
@@ -102,6 +107,8 @@ export function usePanels({
   chatMinWidth,
   hideDiff = false,
   previewWithoutWorkdir = false,
+  beforeToggleRef,
+  placeForwardRef,
 }: UsePanelsParams): PanelHandlers {
   // Mirrors so the stable message listener / shortcut handler can reach the
   // panel toggle logic without re-subscribing.
@@ -160,7 +167,8 @@ export function usePanels({
       const requestId = `fwd-${++forwardSeqRef.current}`;
       const fwd = { host, remotePort, originalUrl: url, requestId };
       const storeKey = forwardGroupKeyRef?.current || groupKey;
-      usePanelGroupStore.getState().patchGroup(storeKey, { forward: fwd });
+      if (placeForwardRef?.current) placeForwardRef.current(fwd);
+      else usePanelGroupStore.getState().patchGroup(storeKey, { forward: fwd });
       // The session id scopes the tunnel's lifetime on the host — it stays alive
       // across UI actions and is only released when the session is deleted
       // (scenario 18). The forward record itself follows the issue directory
@@ -243,6 +251,7 @@ export function usePanels({
 
   const handleTogglePanel = useCallback(
     (kind: DesktopPanelKind) => {
+      if (beforeToggleRef?.current?.(kind)) return;
       if (panelDisabledRef.current.includes(kind)) return;
       if (checkedPanelsRef.current.includes(kind)) {
         updatePanelGroup((group) => {
@@ -277,7 +286,7 @@ export function usePanels({
         tryOpenPanel(kind);
       }
     },
-    [tryOpenPanel, updatePanelGroup],
+    [beforeToggleRef, tryOpenPanel, updatePanelGroup],
   );
 
   const handleToggleDock = useCallback(() => {

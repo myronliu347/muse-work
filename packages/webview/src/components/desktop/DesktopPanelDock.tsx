@@ -14,6 +14,13 @@ import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 import { clampDockWidth } from "../../muse/layout";
 
+export interface DockToolTab {
+  id: string;
+  kind: "terminal" | "preview";
+  label: string;
+  title: string;
+}
+
 /** Bring the active file tab into view whenever it changes (opening a tab,
  * clicking one, or activating the left/right neighbor after a close). The
  * tab bar scrolls horizontally (overflow-x: auto), so a tab outside the
@@ -63,6 +70,11 @@ export interface DesktopPanelDockProps {
   /** Selected issue or queue title. The tab shows this, truncated; the tooltip keeps the full text. */
   detailTitle?: string;
   detail?: React.ReactNode;
+  /** Extra terminal and browser tabs. These stay available even when that kind is already open. */
+  toolTabs?: DockToolTab[];
+  activeToolId?: string | null;
+  onSelectTool?: (id: string) => void;
+  onCloseTool?: (id: string) => void;
   children: React.ReactNode;
 }
 
@@ -88,6 +100,10 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   onSelectDetail,
   detailTitle,
   detail,
+  toolTabs = [],
+  activeToolId = null,
+  onSelectTool,
+  onCloseTool,
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
@@ -130,9 +146,20 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // active (switching to the diff/preview panel keeps the file tabs visible).
   // While files are open the "文件" kind tab yields its place to them.
   const showFileTabs = fileTabs.length > 0;
-  const visibleKinds = PANEL_ADD_ORDER.filter(
-    (kind) => checked.includes(kind) || (showFileTabs && kind === "file"),
-  );
+  type HeaderItem =
+    | { type: "kind"; kind: DesktopPanelKind }
+    | { type: "tool"; tool: DockToolTab };
+  const headerItems: HeaderItem[] = [];
+  for (const kind of PANEL_ADD_ORDER) {
+    const mine = toolTabs.filter((tool) => tool.kind === kind);
+    if (mine.length > 0) {
+      for (const tool of mine) headerItems.push({ type: "tool", tool });
+      continue;
+    }
+    if (checked.includes(kind) || (showFileTabs && kind === "file")) {
+      headerItems.push({ type: "kind", kind });
+    }
+  }
   // 详情 is not a kind, so a detail-only dock still needs + to open
   // 文件、终端、浏览器、变更.
   const canAdd = PANEL_ADD_ORDER.some(
@@ -203,7 +230,52 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
               </Tooltip>
             </div>
           ) : null}
-          {visibleKinds.map((kind) => {
+          {headerItems.map((item) => {
+            if (item.type === "tool") {
+              const tool = item.tool;
+              const selected =
+                !detailActive && tool.id === activeToolId && tool.kind === active;
+              return (
+                <div
+                  key={tool.id}
+                  className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}`}
+                  data-testid={`desktop-panel-tool-${tool.id}`}
+                  title={tool.title}
+                >
+                  <Tooltip
+                    text={tool.title}
+                    position="bottom"
+                    wrap={false}
+                    className="desktop-panel-tab-tip"
+                  >
+                    <button
+                      type="button"
+                      className="desktop-panel-tab-label"
+                      onClick={() => onSelectTool?.(tool.id)}
+                    >
+                      <i
+                        className={`codicon ${PANEL_TAB_ICONS[tool.kind]} desktop-panel-tab-icon`}
+                        aria-hidden
+                      />
+                      <span className="desktop-panel-tab-text">{tool.label}</span>
+                    </button>
+                  </Tooltip>
+                  <button
+                    type="button"
+                    className="desktop-panel-tab-close"
+                    data-testid={`desktop-panel-tool-close-${tool.id}`}
+                    aria-label={`关闭${PANEL_TAB_LABELS[tool.kind]}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseTool?.(tool.id);
+                    }}
+                  >
+                    <i className="codicon codicon-close" />
+                  </button>
+                </div>
+              );
+            }
+            const kind = item.kind;
             if (kind === "file" && showFileTabs) {
               return fileTabs.map((tab) => {
                 const isActive =

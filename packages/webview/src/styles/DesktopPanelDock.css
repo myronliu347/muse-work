@@ -93,6 +93,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
+  /* Buttons default to centered text. The label sits next to the icon. */
+  text-align: left;
   gap: var(--space-1);
   flex: 1 1 auto;
   align-self: stretch;
@@ -105,6 +107,7 @@
 .desktop-panel-tab-text {
   flex: 1 1 auto;
   min-width: 0;
+  text-align: left;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: clip;

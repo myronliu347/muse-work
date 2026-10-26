@@ -113,6 +113,20 @@ export interface RemoteForwardRef {
   requestId: string;
 }
 
+/** Bot-page terminal or browser tab. Not tied to an issue directory. */
+export interface DockToolInstance {
+  id: string;
+  kind: "terminal" | "preview";
+  /** cwd captured when this terminal was opened */
+  workdir?: string;
+  previewUrl?: string | null;
+  forward?: RemoteForwardRef | null;
+  forwardError?: string | null;
+  epoch?: number;
+}
+
+export const EMPTY_DOCK_TOOLS: DockToolInstance[] = [];
+
 export interface PanelGroupState {
   checked: DesktopPanelKind[];
   mounted: DesktopPanelKind[];
@@ -135,6 +149,9 @@ export interface PanelGroupState {
   contentSearch: ContentSearchState;
   forward: RemoteForwardRef | null;
   forwardError: string | null;
+  /** Bot dock: extra terminal and browser tabs. Issue switches do not replace these. */
+  tools: DockToolInstance[];
+  activeToolId: string | null;
 }
 
 export function emptyPanelGroup(): PanelGroupState {
@@ -159,6 +176,8 @@ export function emptyPanelGroup(): PanelGroupState {
     contentSearch: emptyContentSearchState(),
     forward: null,
     forwardError: null,
+    tools: [],
+    activeToolId: null,
   };
 }
 
@@ -204,6 +223,12 @@ export function resolvePanelGroup(
   }
   if (next.dockFullscreen === undefined) {
     next = { ...next, dockFullscreen: false };
+  }
+  if (!next.tools) {
+    next = { ...next, tools: EMPTY_DOCK_TOOLS };
+  }
+  if (next.activeToolId === undefined) {
+    next = { ...next, activeToolId: null };
   }
   return next;
 }
@@ -274,6 +299,9 @@ export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
   findGroupKeyByForwardRequestId: (requestId) => {
     for (const [key, group] of Object.entries(get().groups)) {
       if (group.forward?.requestId === requestId) return key;
+      if (group.tools?.some((tool) => tool.forward?.requestId === requestId)) {
+        return key;
+      }
     }
     return undefined;
   },

@@ -15,6 +15,7 @@ import { openDesktopSettingsPage } from "./desktopSettingsNav";
 import { acceptDesktopContentSearchResult } from "./contentSearchRequests";
 import { acceptDesktopListDirResult } from "./listDirRequests";
 import { emptyFileTreeState, patchPaneUi, usePanelGroupStore } from "../stores";
+import { patchDockTool } from "./dockTools";
 import { upsertFileContentTab, closeFileTab } from "./fileTabs";
 import { stripImageSourceMarkers, normalizeUserTextForDedupe } from "../utils/messageUtils";
 
@@ -153,6 +154,23 @@ export function createMessageHandler({
             .getState()
             .findGroupKeyByForwardRequestId(message.requestId);
           if (targetKey === undefined) break;
+          const owner = usePanelGroupStore.getState().groups[targetKey];
+          const tool = owner?.tools?.find(
+            (item) => item.forward?.requestId === message.requestId,
+          );
+          if (tool) {
+            const url = typeof message.url === "string" ? message.url : "";
+            usePanelGroupStore.getState().patchGroup(targetKey, {
+              tools: patchDockTool(owner?.tools ?? [], tool.id, message.error
+                ? { forwardError: String(message.error) }
+                : {
+                    forwardError: null,
+                    previewUrl: url,
+                    epoch: url === tool.previewUrl ? (tool.epoch ?? 0) + 1 : tool.epoch ?? 0,
+                  }),
+            });
+            break;
+          }
           if (message.error) {
             usePanelGroupStore.getState().patchGroup(targetKey, {
               forwardError: String(message.error),

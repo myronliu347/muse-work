@@ -149,6 +149,8 @@ export interface PreviewPaneProps {
   onNavigate?: (url: string) => void;
   /** Empty-body hint when no page is loaded. */
   forwardError?: string | null;
+  /** Set on inactive copies so the visible pane keeps the canonical test ids. */
+  testIdScope?: string;
 }
 
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
@@ -162,7 +164,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   onRetry,
   onNavigate,
   forwardError,
+  testIdScope,
 }) => {
+  const tid = (name: string) => (testIdScope ? `${name}-${testIdScope}` : name);
   const initialUrl = url ?? "";
   const [displayUrl, setDisplayUrl] = useState(initialUrl);
   const [addressDraft, setAddressDraft] = useState(initialUrl);
@@ -436,7 +440,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       ref={asideRef}
       className="preview-pane"
       style={{ width }}
-      data-testid="preview-pane"
+      data-testid={tid("preview-pane")}
     >
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
@@ -445,7 +449,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             className="preview-pane-button"
             title="后退"
-            data-testid="preview-back"
+            data-testid={tid("preview-back")}
             disabled={!canGoBack}
             onClick={() => webviewRef.current?.goBack()}
           >
@@ -455,7 +459,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             className="preview-pane-button"
             title="前进"
-            data-testid="preview-forward"
+            data-testid={tid("preview-forward")}
             disabled={!canGoForward}
             onClick={() => webviewRef.current?.goForward()}
           >
@@ -465,7 +469,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             className="preview-pane-button"
             title="刷新"
-            data-testid="preview-refresh"
+            data-testid={tid("preview-refresh")}
             disabled={!hasPage}
             onClick={handleRefresh}
           >
@@ -474,7 +478,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           <input
             type="text"
             className="preview-pane-address"
-            data-testid="preview-address"
+            data-testid={tid("preview-address")}
             value={addressDraft}
             placeholder="输入地址后回车访问"
             spellCheck={false}
@@ -493,7 +497,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             className="preview-pane-button"
             title="在浏览器中打开"
-            data-testid="preview-open-external"
+            data-testid={tid("preview-open-external")}
             disabled={!hasPage}
             onClick={handleOpenExternal}
           >
@@ -504,7 +508,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             className={`preview-pane-button${pickerActive ? " active" : ""}`}
             title="选择元素并评论"
             aria-pressed={pickerActive}
-            data-testid="preview-picker-toggle"
+            data-testid={tid("preview-picker-toggle")}
             disabled={!hasPage}
             onClick={togglePicker}
           >
@@ -514,7 +518,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         {pickerUnsupported && (
           <div
             className="preview-pane-hint"
-            data-testid="preview-picker-unsupported"
+            data-testid={tid("preview-picker-unsupported")}
           >
             该页面暂不支持元素拾取
           </div>
@@ -531,7 +535,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           {!hasPage && !loadError && (
             <div
               className="desktop-panel-placeholder"
-              data-testid="preview-empty"
+              data-testid={tid("preview-empty")}
             >
               {forwardError ? (
                 <>
@@ -540,7 +544,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
                     <button
                       type="button"
                       className="preview-pane-button"
-                      data-testid="preview-forward-retry"
+                      data-testid={tid("preview-forward-retry")}
                       onClick={onRetry}
                     >
                       重试
@@ -553,12 +557,12 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             </div>
           )}
           {loadError && (
-            <div className="preview-pane-error" data-testid="preview-error">
+            <div className="preview-pane-error" data-testid={tid("preview-error")}>
               <span>页面加载失败：{loadError}</span>
               <button
                 type="button"
                 className="preview-pane-button"
-                data-testid="preview-retry"
+                data-testid={tid("preview-retry")}
                 onClick={() => {
                   setLoadError(null);
                   (onRetry ?? handleRefresh)();

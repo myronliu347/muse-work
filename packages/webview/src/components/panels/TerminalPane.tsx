@@ -97,6 +97,10 @@ export interface TerminalPaneProps {
   /** Desktop only: route localhost links printed in the terminal into the
    * preview pane, mirroring Message.tsx. Non-localhost links open externally. */
   onOpenPreview?: (url: string) => void;
+  /** Overrides the workdir-derived PTY id so each bot tab has its own process. */
+  termId?: string;
+  /** Set on inactive copies so the visible pane keeps the canonical test ids. */
+  testIdScope?: string;
 }
 
 /** Embedded PTY terminal panel: xterm.js frontend + node-pty in the desktop host. */
@@ -109,7 +113,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   visible,
   workdir,
   onOpenPreview,
+  termId: termIdProp,
+  testIdScope,
 }) => {
+  const tid = (name: string) => (testIdScope ? `${name}-${testIdScope}` : name);
   const [status, setStatus] = useState<PaneStatus>({ kind: "loading" });
   const { effective } = useMuseTheme();
   const asideRef = useRef<HTMLElement | null>(null);
@@ -119,7 +126,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   // Whether a PTY for this pane is believed alive in the host.
   const liveRef = useRef(false);
   // Per-workdir PTY so switching sessions in the same directory reattaches.
-  const termId = workdir ? workdirTermId(workdir) : `term-${paneId ?? "main"}`;
+  // An explicit id is one bot-page tab and does not follow later issue switches.
+  const termId = termIdProp ?? (workdir ? workdirTermId(workdir) : `term-${paneId ?? "main"}`);
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
   const workdirRef = useRef(workdir);
@@ -370,7 +378,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       ref={asideRef}
       className="preview-pane terminal-pane"
       style={{ width }}
-      data-testid="terminal-pane"
+      data-testid={tid("terminal-pane")}
     >
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner">
@@ -379,7 +387,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           <button
             className="preview-pane-button"
             title="重启终端"
-            data-testid="terminal-restart"
+            data-testid={tid("terminal-restart")}
             onClick={restart}
           >
             <i className="codicon codicon-debug-restart" />
@@ -388,7 +396,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         <div
           className="terminal-pane-body"
           ref={containerRef}
-          data-testid="terminal-body"
+          data-testid={tid("terminal-body")}
         >
           {status.kind === "loading" && (
             <div className="desktop-panel-placeholder">终端加载中…</div>
@@ -398,7 +406,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <span>{status.detail}</span>
               <button
                 className="preview-pane-button"
-                data-testid="terminal-retry"
+                data-testid={tid("terminal-retry")}
                 onClick={restart}
               >
                 重启终端

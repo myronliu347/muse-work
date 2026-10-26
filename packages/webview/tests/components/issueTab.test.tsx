@@ -757,8 +757,10 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     await user.click(within(frame).getByTestId("panel-toggle-btn"));
-    await user.click(within(frame).getByTestId("desktop-panel-add-btn"));
-    await user.click(await screen.findByTestId("panel-add-item-diff"));
+    expect(within(frame).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(frame).getByTestId("desktop-panel-tab-diff")).toBeInTheDocument();
 
     await waitFor(() => {
       const diffCalls = vscode.postMessage.mock.calls
@@ -775,7 +777,7 @@ describe("issue tab", () => {
     });
   });
 
-  it("keeps a separate browser preview for each issue", async () => {
+  it("keeps browser tabs across issues and can open another", async () => {
     resetWebviewStores();
     stubAssistant([]);
     stubWideViewport();
@@ -803,28 +805,26 @@ describe("issue tab", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
-    await user.click(within(dock).getByRole("button", { name: "浏览器" }));
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-preview"));
     const address = within(dock).getByTestId("preview-address");
-    expect(address).not.toHaveValue("http://shared.example/");
     await user.click(address);
     await user.type(address, "http://radii.test");
     await user.keyboard("{Enter}");
     await waitFor(() => {
       expect(address).toHaveValue("http://radii.test/");
     });
-    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
-      "http://radii.test/",
-    );
-    expect(within(dock).getByTestId("desktop-panel-tab-preview")).toHaveClass(
-      "desktop-panel-tab--active",
-    );
+    const previewUrls = () =>
+      (usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [])
+        .filter((tool) => tool.kind === "preview")
+        .map((tool) => tool.previewUrl);
+    expect(previewUrls()).toEqual(["http://radii.test/"]);
+    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl ?? null).toBeNull();
 
     const lists = within(frame).getByTestId("bot-lists");
     await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
-    expect(within(dock).queryByTestId("desktop-panel-tab-preview")).toBeNull();
-    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
-      "http://radii.test/",
-    );
+    expect(dock.querySelector('[title="http://radii.test/"]')).toBeTruthy();
+    expect(previewUrls()).toEqual(["http://radii.test/"]);
     expect(usePanelGroupStore.getState().groups["/work/a11y-exec"]?.previewUrl ?? null).toBeNull();
 
     await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
@@ -836,15 +836,51 @@ describe("issue tab", () => {
     await waitFor(() => {
       expect(nextAddress).toHaveValue("http://a11y.test/");
     });
-    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl).toBe(
-      "http://radii.test/",
+    expect(previewUrls()).toEqual(["http://radii.test/", "http://a11y.test/"]);
+    expect(dock.querySelector('[title="http://radii.test/"]')).toBeTruthy();
+    expect(dock.querySelector('[title="http://a11y.test/"]')).toBeTruthy();
+    expect(usePanelGroupStore.getState().groups["/work/radii"]?.previewUrl ?? null).toBeNull();
+    expect(usePanelGroupStore.getState().groups["/work/a11y-exec"]?.previewUrl ?? null).toBeNull();
+  });
+
+  it("opens each terminal in the current issue workdir and keeps them when the issue changes", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE, A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
     );
-    expect(usePanelGroupStore.getState().groups["/work/a11y-exec"]?.previewUrl).toBe(
-      "http://a11y.test/",
-    );
-    expect(usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.previewUrl).not.toBe(
-      "http://a11y.test/",
-    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    const terminalWorkdirs = () =>
+      (usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [])
+        .filter((tool) => tool.kind === "terminal")
+        .map((tool) => tool.workdir);
+
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-terminal"));
+    expect(terminalWorkdirs()).toEqual(["/work/radii"]);
+    expect(dock.querySelector('[title="/work/radii"]')).toBeTruthy();
+
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    expect(terminalWorkdirs()).toEqual(["/work/radii"]);
+    expect(dock.querySelector('[title="/work/radii"]')).toBeTruthy();
+
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-terminal"));
+    expect(terminalWorkdirs()).toEqual(["/work/radii", "/work/a11y-exec"]);
+    expect(dock.querySelector('[title="/work/radii"]')).toBeTruthy();
+    expect(dock.querySelector('[title="/work/a11y-exec"]')).toBeTruthy();
   });
 
   it("uses the normal session directory on 会话 when no issue is selected", async () => {
@@ -1574,19 +1610,20 @@ describe("issue tab", () => {
 
       const openedFiles = usePanelGroupStore.getState().groups["/work/radii"];
       expect(openedFiles?.fileTabs?.map((tab) => tab.path)).toEqual(["/work/radii/App.tsx"]);
-      expect(openedFiles?.checked).toEqual(["file", "terminal"]);
+      expect(openedFiles?.checked).toEqual(["file", "terminal", "diff"]);
       expect(openedFiles?.active).toBe("file");
 
       await user.click(within(dock).getByTestId("file-tab-close"));
 
       const sessionAfter = usePanelGroupStore.getState().groups["/work/radii"];
-      expect(sessionAfter?.checked).toEqual(["terminal"]);
+      expect(sessionAfter?.checked).toEqual(["terminal", "diff"]);
       expect(sessionAfter?.active).toBe("terminal");
       expect(sessionAfter?.fileTabs ?? []).toEqual([]);
       expect(sessionAfter?.collapsedTabs).toBeNull();
       expect(sessionAfter?.dockFullscreen).toBe(false);
       expect(within(dock).queryByTestId("file-tab")).toBeNull();
-      expect(within(dock).getByTestId("desktop-panel-tab-terminal")).toHaveClass(
+      expect(within(dock).queryByTestId("desktop-panel-tab-terminal")).toBeNull();
+      expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
         "desktop-panel-tab--active",
       );
     });

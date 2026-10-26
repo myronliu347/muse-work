@@ -456,7 +456,7 @@ describe("assistant dock detail", () => {
 
     const frame = await screen.findByTestId("assistant-frame");
     const dock = await ensureAssistantDock(frame, user);
-    expect(tabLabels()).toEqual([RADII, "文件", "终端", "浏览器", "变更"]);
+    expect(tabLabels()).toEqual([RADII, "文件", "变更"]);
 
     const detail = await within(dock).findByTestId("dock-detail");
     expect(within(detail).getByRole("heading", { name: RADII })).toBeInTheDocument();
@@ -489,7 +489,7 @@ describe("assistant dock detail", () => {
     );
     expect(onSelectSession).not.toHaveBeenCalled();
 
-    for (const label of ["终端", "浏览器", "变更"] as const) {
+    for (const label of ["变更"] as const) {
       await user.click(within(dock).getByRole("button", { name: label }));
       expect(within(dock).getByTestId("dock-detail")).not.toBeVisible();
       const tree = within(dock).queryByTestId("file-tree");
@@ -605,6 +605,7 @@ describe("assistant dock detail", () => {
     expect(await within(dock).findByTestId("file-tree")).toBeVisible();
 
     await user.click(within(dock).getByTestId("desktop-panel-tab-close-file"));
+    await user.click(within(dock).getByTestId("desktop-panel-tab-close-diff"));
     expect(await within(dock).findByTestId("dock-detail")).toBeVisible();
     expect(within(dock).getByTestId("file-tree")).not.toBeVisible();
     expect(within(dock).getByRole("heading", { name: RADII })).toBeInTheDocument();

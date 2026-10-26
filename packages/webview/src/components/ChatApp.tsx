@@ -105,15 +105,27 @@ import type {
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
+import {
+  activePreviewTool,
+  appendDockTool,
+  botIssueChromeChecked,
+  botToolTermId,
+  createDockToolId,
+  nextDockToolId,
+  patchDockTool,
+  removeDockTool,
+} from "../muse/dockTools";
 import { firstOpenDockWidths } from "../muse/panelFit";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
+  EMPTY_DOCK_TOOLS,
   PANEL_DEFAULT_WIDTH,
   emptyContentSearchState,
   resolvePanelGroup,
   usePanelGroup,
   usePanelGroupStore,
   usePaneUi,
+  type DockToolInstance,
   type PanelGroupState,
 } from "../stores";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
@@ -573,14 +585,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   };
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory. On Muse Bot and 会话 the
-  // dock is that directory's group: which tabs are open, files, terminal,
-  // browser, and diff. A queue row keeps the previous issue. Switching
-  // issues switches directories, so the tab set switches with them, the same
-  // way switching sessions does. With no issue, Muse Bot stays on the
-  // assistant group and 会话 stays on the open session. The column width
-  // and open flag stay on the assistant key, so Muse Bot and 会话 share
-  // one dock width.
+  // the same dock as sessions in that directory. On Muse Bot, 文件 and 变更
+  // follow the selected issue's directory. 终端 and 浏览器 are bot-level tabs:
+  // switching issues does not swap or close them, and each one can be opened
+  // more than once. A new terminal starts in the current issue workdir.
+  // 会话 stays on the open session's directory, including its own terminal
+  // and browser. The column width and open flag stay on the assistant key,
+  // so Muse Bot and 会话 share one dock width.
   const dockIssueId =
     workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
   const dockIssueGroup = dockIssueId
@@ -613,6 +624,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
           : undefined;
   const groupKeyRef = useRef(groupKey);
   groupKeyRef.current = groupKey;
+  const assistantVisibleRef = useRef(assistantVisible);
+  assistantVisibleRef.current = assistantVisible;
+  const dockWorkdirRef = useRef(dockWorkdir);
+  dockWorkdirRef.current = dockWorkdir;
+  const dockIssueIdRef = useRef(dockIssueId);
+  dockIssueIdRef.current = dockIssueId;
+  const vscodeRef = useRef(vscode);
+  vscodeRef.current = vscode;
   const previewGroupKeyRef = useRef<string | undefined>(undefined);
   previewGroupKeyRef.current =
     followIssueTools && dockWorkdir ? dockWorkdir : groupKey;
@@ -633,6 +652,31 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forwardError: previewForwardError,
     previewEpoch,
   } = usePanelGroup(groupKey);
+  const assistantTools = usePanelGroupStore(
+    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? EMPTY_DOCK_TOOLS,
+  );
+  const assistantActiveToolId = usePanelGroupStore(
+    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeToolId ?? null,
+  );
+  // With an issue selected, terminal and browser are not that directory's tabs.
+  const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
+  const chromeChecked = useMemo(
+    () =>
+      issueBoundDock
+        ? botIssueChromeChecked(checkedPanels, assistantTools)
+        : checkedPanels,
+    [issueBoundDock, checkedPanels, assistantTools],
+  );
+  const chromeActive =
+    issueBoundDock && (activePanel === "terminal" || activePanel === "preview")
+      ? null
+      : activePanel;
+  const slotChecked = issueBoundDock
+    ? checkedPanels.filter((kind) => kind === "file" || kind === "diff")
+    : checkedPanels;
+  const slotMounted = issueBoundDock
+    ? mountedPanels.filter((kind) => kind === "file" || kind === "diff")
+    : mountedPanels;
   // Column width belongs to Muse Bot, not the directory whose tabs are showing.
   const assistantWidths = usePanelGroupStore(
     (state) => resolvePanelGroup(state.groups, ASSISTANT_PANEL_GROUP_KEY).widths,
@@ -730,9 +774,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // this pane's snapshot can be unchanged while it becomes the only writer.
   // If the chrome kind is not checked here, return to 详情. Do not adopt this
   // group's active kind. If the chrome kind is checked here, leave it.
-  const seenPanelKind = useRef(activePanel);
+  const seenPanelKind = useRef(chromeActive);
   const seenPanelGroupKey = useRef(groupKey);
-  const seenCheckedPanels = useRef(checkedPanels);
+  const seenCheckedPanels = useRef(chromeChecked);
   const dockChromeRef = useRef(workspace.dock);
   dockChromeRef.current = workspace.dock;
   const selectDockRef = useRef(workspace.selectDock);
@@ -766,20 +810,20 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const wasOnScreen = dockWasOnScreen.current;
     const onScreen = dockOnScreenRef.current;
     const wasWriter = dockWriteWasAllowed.current;
-    seenPanelKind.current = activePanel;
+    seenPanelKind.current = chromeActive;
     seenPanelGroupKey.current = groupKey;
-    seenCheckedPanels.current = checkedPanels;
+    seenCheckedPanels.current = chromeChecked;
     dockWasOnScreen.current = onScreen;
     dockWriteWasAllowed.current = dockWriteAllowed;
     if (!dockWriteAllowed) return;
     const checkedUnchanged =
-      previousChecked.length === checkedPanels.length &&
-      previousChecked.every((kind, index) => kind === checkedPanels[index]);
+      previousChecked.length === chromeChecked.length &&
+      previousChecked.every((kind, index) => kind === chromeChecked[index]);
     const gainedWrite = !wasWriter;
     if (
       !gainedWrite &&
       previousGroupKey === groupKey &&
-      previousKind === activePanel &&
+      previousKind === chromeActive &&
       checkedUnchanged
     ) {
       return;
@@ -787,7 +831,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const dock = dockChromeRef.current;
     const selectDock = selectDockRef.current;
     const chromeKindMissing =
-      dock !== DOCK_DETAIL_TAB && !checkedPanels.includes(dock);
+      dock !== DOCK_DETAIL_TAB && !chromeChecked.includes(dock);
     if (gainedWrite) {
       if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
       return;
@@ -796,10 +840,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       if (chromeKindMissing) selectDock(DOCK_DETAIL_TAB);
       return;
     }
-    if (previousGroupKey === groupKey && previousKind === activePanel) {
+    if (previousGroupKey === groupKey && previousKind === chromeActive) {
       if (chromeKindMissing) {
         const nextKind = PANEL_ADD_ORDER.find((kind) =>
-          checkedPanels.includes(kind),
+          chromeChecked.includes(kind),
         );
         selectDock(nextKind ?? DOCK_DETAIL_TAB);
       }
@@ -808,16 +852,24 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     const closedPreviousKind =
       previousGroupKey === groupKey &&
       previousKind != null &&
-      !checkedPanels.includes(previousKind);
-    if (dock === DOCK_DETAIL_TAB && closedPreviousKind && activePanel) {
+      !chromeChecked.includes(previousKind);
+    if (dock === DOCK_DETAIL_TAB && closedPreviousKind && chromeActive) {
       return;
     }
-    if (activePanel && dock !== activePanel) {
-      selectDock(activePanel);
-    } else if (!activePanel && dock !== DOCK_DETAIL_TAB) {
+    if (chromeActive && dock !== chromeActive) {
+      selectDock(chromeActive);
+    } else if (!chromeActive && dock !== DOCK_DETAIL_TAB) {
+      // A bot terminal or browser stays put when the issue directory's active
+      // kind disappears. Only leave it when that tab itself is gone.
+      if (
+        (dock === "terminal" || dock === "preview") &&
+        chromeChecked.includes(dock)
+      ) {
+        return;
+      }
       selectDock(DOCK_DETAIL_TAB);
     }
-  }, [activePanel, assistantVisible, checkedPanels, dockWriteAllowed, groupKey, host?.type]);
+  }, [assistantVisible, chromeActive, chromeChecked, dockWriteAllowed, groupKey, host?.type]);
   // Single-file view for the panel body = the active tab (multi-tab: the tab
   // bar lives in FilePane; everything downstream keeps working on one view).
   const fileView = useMemo(
@@ -896,9 +948,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     stateRef.current = state;
   }, [state]);
 
+  const shownToolPreview = activePreviewTool(assistantTools, assistantActiveToolId);
   useEffect(() => {
-    previewUrlRef.current = shownPreviewUrl;
-  }, [shownPreviewUrl]);
+    previewUrlRef.current = assistantVisible
+      ? (shownToolPreview?.previewUrl ?? null)
+      : shownPreviewUrl;
+  }, [assistantVisible, shownPreviewUrl, shownToolPreview]);
 
   // Track the chat column width so dock maxWidth stays correct across
   // window resizes and split-pane changes (ref reads alone do not re-render).
@@ -1002,6 +1057,28 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         | Partial<PanelGroupState>
         | ((group: PanelGroupState) => Partial<PanelGroupState>),
     ) => {
+      if (assistantVisibleRef.current) {
+        const store = usePanelGroupStore.getState();
+        const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
+        const resolved = typeof patch === "function" ? patch(group) : patch;
+        const touchesPreview =
+          "previewUrl" in resolved ||
+          "forward" in resolved ||
+          "forwardError" in resolved;
+        const target = activePreviewTool(group.tools ?? [], group.activeToolId);
+        if (touchesPreview && target) {
+          store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+            tools: patchDockTool(group.tools ?? [], target.id, {
+              ...("previewUrl" in resolved ? { previewUrl: resolved.previewUrl } : {}),
+              ...("forward" in resolved ? { forward: resolved.forward } : {}),
+              ...("forwardError" in resolved
+                ? { forwardError: resolved.forwardError }
+                : {}),
+            }),
+          });
+          return;
+        }
+      }
       const key = previewGroupKeyRef.current;
       if (!key) return;
       usePanelGroupStore.getState().patchGroup(key, patch);
@@ -1094,6 +1171,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const dockMaxWidth = chatColumnWidth - layoutChatMin;
   const assistantDockToggleRef = useRef<(() => void) | null>(null);
   const restoreAssistantToolsRef = useRef(false);
+  const assistantDockSeenOpen = useRef(false);
   const [assistantDockOpen, setAssistantDockOpenState] = useState(
     () =>
       usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===
@@ -1105,6 +1183,28 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       dockColumnOpen: open,
     });
   }, []);
+  // Opening the bot dock starts on 详情 and also opens 变更 for the current issue.
+  // Closing 变更 while the dock stays open keeps it closed until the next open.
+  useEffect(() => {
+    if (!assistantVisible || !assistantDockOpen) {
+      assistantDockSeenOpen.current = false;
+      return;
+    }
+    const justOpened = !assistantDockSeenOpen.current;
+    assistantDockSeenOpen.current = true;
+    if (!dockIssueId || !dockWorkdir) return;
+    const group = usePanelGroupStore.getState().groups[dockWorkdir];
+    const checked = group?.checked ?? [];
+    if (checked.includes("diff")) return;
+    const untouched = checked.length === 0 && !group?.collapsedTabs;
+    if (!justOpened && !untouched) return;
+    usePanelGroupStore.getState().patchGroup(dockWorkdir, {
+      checked: [...checked, "diff"],
+      mounted: group?.mounted.includes("diff")
+        ? group.mounted
+        : [...(group?.mounted ?? []), "diff"],
+    });
+  }, [assistantVisible, assistantDockOpen, dockIssueId, dockWorkdir]);
   const [assistantView, setAssistantView] = useState<"chat" | "transcript">("chat");
   const onAssistantViewMode = useCallback((mode: "chat" | "transcript") => {
     setAssistantView(mode);
@@ -1158,6 +1258,124 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     layoutChatMin,
     updateMuseWidthGroup,
   ]);
+  const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
+  const placeForwardRef = useRef<
+    ((fwd: NonNullable<PanelGroupState["forward"]>) => void) | null
+  >(null);
+  const focusOrOpenBotPreviewRef = useRef<() => boolean>(() => false);
+  const readAssistantTools = () => {
+    const store = usePanelGroupStore.getState();
+    const group = resolvePanelGroup(store.groups, ASSISTANT_PANEL_GROUP_KEY);
+    return { store, group, tools: group.tools ?? EMPTY_DOCK_TOOLS };
+  };
+  const focusBotTool = (id: string) => {
+    const { store, tools } = readAssistantTools();
+    const tool = tools.find((item) => item.id === id);
+    if (!tool) return;
+    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeToolId: id });
+    selectDockRef.current(tool.kind);
+  };
+  const openBotTerminal = (): boolean => {
+    const cwd = dockWorkdirRef.current?.trim();
+    if (!cwd) return false;
+    const tool: DockToolInstance = {
+      id: createDockToolId("terminal"),
+      kind: "terminal",
+      workdir: cwd,
+    };
+    const { store, tools } = readAssistantTools();
+    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      tools: appendDockTool(tools, tool),
+      activeToolId: tool.id,
+    });
+    selectDockRef.current("terminal");
+    return true;
+  };
+  const openBotPreview = (): boolean => {
+    const tool: DockToolInstance = {
+      id: createDockToolId("preview"),
+      kind: "preview",
+      previewUrl: null,
+      forward: null,
+      forwardError: null,
+      epoch: 0,
+    };
+    const { store, tools } = readAssistantTools();
+    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      tools: appendDockTool(tools, tool),
+      activeToolId: tool.id,
+    });
+    selectDockRef.current("preview");
+    return true;
+  };
+  const focusOrOpenBotPreview = (): boolean => {
+    const { tools, group } = readAssistantTools();
+    const existing = activePreviewTool(tools, group.activeToolId);
+    if (existing) {
+      focusBotTool(existing.id);
+      return true;
+    }
+    return openBotPreview();
+  };
+  focusOrOpenBotPreviewRef.current = focusOrOpenBotPreview;
+  const closeBotTool = (id: string) => {
+    const { store, tools, group } = readAssistantTools();
+    const closed = tools.find((tool) => tool.id === id);
+    if (!closed) return;
+    if (closed.kind === "terminal") {
+      vscodeRef.current.postMessage({
+        command: "desktopTerminalKill",
+        termId: botToolTermId(id),
+      });
+    }
+    const nextId = nextDockToolId(tools, id, group.activeToolId);
+    const nextTools = removeDockTool(tools, id);
+    store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      tools: nextTools,
+      activeToolId: nextId,
+    });
+    if (dockChromeRef.current !== closed.kind) return;
+    if (group.activeToolId && group.activeToolId !== id) return;
+    const next = nextTools.find((tool) => tool.id === nextId);
+    selectDockRef.current(next ? next.kind : DOCK_DETAIL_TAB);
+  };
+  beforeToggleRef.current = (kind) => {
+    if (!assistantVisibleRef.current) return false;
+    if (kind !== "terminal" && kind !== "preview") return false;
+    const { tools, group } = readAssistantTools();
+    const ofKind = tools.filter((tool) => tool.kind === kind);
+    if (ofKind.length === 0) {
+      if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
+      if (kind === "terminal") {
+        openBotTerminal();
+        return true;
+      }
+      openBotPreview();
+      return true;
+    }
+    const active =
+      ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
+    if (dockChromeRef.current === kind && group.activeToolId === active.id) {
+      closeBotTool(active.id);
+      return true;
+    }
+    focusBotTool(active.id);
+    return true;
+  };
+  placeForwardRef.current = assistantVisibleRef.current
+    ? (fwd) => {
+        const { store, tools, group } = readAssistantTools();
+        const target = activePreviewTool(tools, group.activeToolId);
+        if (!target) return;
+        store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+          tools: patchDockTool(tools, target.id, {
+            forward: fwd,
+            forwardError: null,
+            previewUrl: null,
+          }),
+        });
+      }
+    : null;
   const panels = usePanels({
     postToHost,
     updatePanelGroup,
@@ -1188,6 +1406,8 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     chatMinWidth: layoutChatMin,
     hideDiff: assistantVisible && !dockIssueId,
     previewWithoutWorkdir: assistantVisible,
+    beforeToggleRef,
+    placeForwardRef,
   });
   const {
     tryOpenPanel,
@@ -1225,9 +1445,18 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   ]);
   assistantDockToggleRef.current = assistantVisible ? toggleAssistantDock : null;
 
+  const tryOpenForPreview = useCallback(
+    (kind: DesktopPanelKind) => {
+      if (assistantVisibleRef.current && kind === "preview") {
+        return focusOrOpenBotPreviewRef.current();
+      }
+      return tryOpenPanel(kind);
+    },
+    [tryOpenPanel],
+  );
   const preview = usePreview({
     updatePanelGroup: updatePreviewGroup,
-    tryOpenPanel,
+    tryOpenPanel: tryOpenForPreview,
     acquireForward,
     effectiveHost,
     currentForward: shownForward,
@@ -1646,7 +1875,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // detail layer. Leave the shared chrome alone until this pane can write.
   const chromeKindMissing =
     workspace.dock !== DOCK_DETAIL_TAB &&
-    !checkedPanels.includes(workspace.dock);
+    !chromeChecked.includes(workspace.dock);
   const issueDiffView = useMemo<DiffViewState | null>(
     () => (dockIssueId ? { mode: "unstaged" } : null),
     [dockIssueId],
@@ -1655,17 +1884,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // 不因为这边停在详情就把那边也打开。
   const showIssueDetail = assistantVisible;
   const sessionChromeKind =
-    workspace.dock !== DOCK_DETAIL_TAB && checkedPanels.includes(workspace.dock)
+    workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
       ? workspace.dock
       : activePanel;
   const dock: DesktopPanelSlotsProps = {
-    checked: checkedPanels,
+    checked: slotChecked,
     active: showIssueDetail
       ? workspace.dock === DOCK_DETAIL_TAB
-        ? activePanel
+        ? chromeActive
         : workspace.dock
       : sessionChromeKind,
-    mounted: mountedPanels,
+    mounted: slotMounted,
     disabledPanels: panelDisabled,
     fullscreen: dockFullscreen,
     widths: shownWidths,
@@ -1697,7 +1926,31 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       />
     ) : undefined,
     onCloseTab: handleTogglePanel,
-    onAddPanel: handleAddPanel,
+    onAddPanel: (kind) => {
+      if (assistantVisible && kind === "terminal") {
+        openBotTerminal();
+        return;
+      }
+      if (assistantVisible && kind === "preview") {
+        openBotPreview();
+        return;
+      }
+      handleAddPanel(kind);
+    },
+    tools: assistantVisible ? assistantTools : EMPTY_DOCK_TOOLS,
+    activeToolId: assistantActiveToolId,
+    onSelectTool: focusBotTool,
+    onCloseTool: closeBotTool,
+    onToolPreviewNavigate: (id, url) => {
+      focusBotTool(id);
+      handlePreviewNavigate(url);
+    },
+    onToolPreviewRetry: (id) => {
+      const tool = assistantTools.find((item) => item.id === id);
+      if (!tool?.forward) return;
+      focusBotTool(id);
+      acquireForward(tool.forward.host, tool.forward.originalUrl);
+    },
     onToggleDock: assistantVisible ? toggleAssistantDock : handleToggleDock,
     onToggleFullscreen: handleToggleFullscreen,
     onWidthChange: handleDockWidthChange,
