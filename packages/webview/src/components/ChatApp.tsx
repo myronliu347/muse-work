@@ -287,7 +287,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       : (host.panes?.length ?? 0) === 0 &&
         view === "assistant" &&
         noPaneRail === "assistant");
-  useAssistantHomeVisible(assistantVisible && workspace.active === "bot");
+  const [botComposerFocused, setBotComposerFocused] = useState(false);
+  // 分栏时 Muse Bot 标签被锁住，进不了主页。左侧输入框聚焦才算回到这条会话。
+  useAssistantHomeVisible(
+    assistantVisible && (workspace.active === "bot" || botComposerFocused),
+  );
   useEffect(() => {
     if (!assistantVisible) return;
     let cancelled = false;
@@ -1886,6 +1890,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 }))}
                 emptyState={<AssistantWelcome />}
                 viewSwitchHost={botSwitchHost}
+                onComposerFocusChange={setBotComposerFocused}
               />
             </div>
           ) : null}

@@ -493,6 +493,8 @@ export const AssistantPage: React.FC<{
   viewSwitchHost?: HTMLElement | null;
   /** Muse Bot 轨迹页要收起右上角的待处理和事项。 */
   onViewModeChange?: (mode: "chat" | "transcript") => void;
+  /** 分栏时左侧输入框聚焦，用来清掉离开主页期间攒下的未读和通知。 */
+  onComposerFocusChange?: (focused: boolean) => void;
 }> = ({
   api,
   vscode = noopHost,
@@ -506,6 +508,7 @@ export const AssistantPage: React.FC<{
   hideQueue = false,
   viewSwitchHost,
   onViewModeChange,
+  onComposerFocusChange,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -515,6 +518,7 @@ export const AssistantPage: React.FC<{
   useEffect(() => {
     onViewModeChange?.(mode);
   }, [mode, onViewModeChange]);
+  useEffect(() => () => onComposerFocusChange?.(false), [onComposerFocusChange]);
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentHasMore, setAgentHasMore] = useState(false);
   const agentMessagesRef = useRef(agentMessages);
@@ -1053,7 +1057,15 @@ export const AssistantPage: React.FC<{
         </div>
       </div>
       {error ? <p className="assistant-error">{error}</p> : null}
-      <div className="assistant-composer">
+      <div
+        className="assistant-composer"
+        onFocus={() => onComposerFocusChange?.(true)}
+        onBlur={(event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Node && event.currentTarget.contains(next)) return;
+          onComposerFocusChange?.(false);
+        }}
+      >
         <AssistantComposer
           vscode={vscode}
           sending={sending}

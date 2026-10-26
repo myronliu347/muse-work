@@ -1916,4 +1916,64 @@ describe("issue tab", () => {
     expect(frame.querySelector(".assistant-page")).toBeTruthy();
     expect(within(frame).queryByTestId("issue-tab-transcript")).toBeNull();
   });
+
+  it("clears the Muse Bot unread and notice when the split sender is focused", async () => {
+    resetWebviewStores();
+    resetAssistantNoticeForTests();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [A11Y_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    await user.click(within(frame).getByTestId("assistant-column-toggle"));
+
+    const botColumn = frame.querySelector(".assistant-split-bot") as HTMLElement;
+    const issueColumn = frame.querySelector(".assistant-split-issue") as HTMLElement;
+    const away = (id: string, message: string) => {
+      fireEvent(
+        window,
+        new MessageEvent("message", {
+          data: {
+            command: "assistant:chat",
+            line: { id, role: "assistant", message },
+          },
+        }),
+      );
+    };
+
+    // The left sender focuses itself on mount. Leave it before a message arrives.
+    await user.click(within(issueColumn).getByRole("button", { name: A11Y }));
+    away("split-away", "左侧还没看");
+    expect(screen.getByTestId("assistant-notice")).toHaveTextContent("左侧还没看");
+    expect(within(botColumn).getByTestId("bot-tab-unread-dot")).toBeTruthy();
+
+    await user.click(within(botColumn).getByTestId("message-input"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("assistant-notice")).toBeNull();
+    });
+    expect(within(botColumn).queryByTestId("bot-tab-unread-dot")).toBeNull();
+
+    away("split-while-typing", "正在输入不该再提示");
+    expect(screen.queryByTestId("assistant-notice")).toBeNull();
+    expect(within(botColumn).queryByTestId("bot-tab-unread-dot")).toBeNull();
+
+    await user.click(within(issueColumn).getByRole("button", { name: A11Y }));
+    away("split-away-again", "回到事项后又来了");
+    expect(screen.getByTestId("assistant-notice")).toHaveTextContent("回到事项后又来了");
+    expect(within(botColumn).getByTestId("bot-tab-unread-dot")).toBeTruthy();
+  });
 });
