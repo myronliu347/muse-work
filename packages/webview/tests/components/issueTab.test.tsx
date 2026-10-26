@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import * as botWorkspace from "../../src/components/desktop/botWorkspace";
 import { MuseApiClient } from "../../src/muse/apiClient";
+import { defaultDockWidth } from "../../src/muse/panelFit";
 import { ASSISTANT_PANEL_GROUP_KEY, emptyFileTreeState, resetWebviewStores, usePanelGroupStore } from "../../src/stores";
 import { MuseTheme } from "../../src/ui/theme";
 import type { DesktopIssueGroup, DesktopSessionEntry, FileTreeDirEntry } from "../../src/types";
@@ -1378,6 +1379,79 @@ describe("issue tab", () => {
       const sharedTab = within(dock).getByTestId("file-tab");
       expect(sharedTab).toHaveAttribute("data-path", "/work/radii/App.tsx");
       expect(sharedTab).toHaveAttribute("data-active", "false");
+    });
+  });
+
+  it("opens 详情 at the same width the first tool tab would use", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    Object.defineProperty(frame, "clientWidth", {
+      configurable: true,
+      value: 1400,
+    });
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
+    const dock = await ensureAssistantDock(frame, user);
+    const width = `${defaultDockWidth(1400)}px`;
+    expect(dock).toHaveStyle({ "--dock-width": width });
+
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+    expect(within(frame).getByTestId("desktop-panel-dock")).toHaveStyle({
+      "--dock-width": width,
+    });
+  });
+
+  it("keeps a resized 详情 column when another tab opens", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    Object.defineProperty(frame, "clientWidth", {
+      configurable: true,
+      value: 1800,
+    });
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(RADII) }));
+    const dock = await ensureAssistantDock(frame, user);
+    const resized = { preview: 640, diff: 640, terminal: 640, file: 640 };
+    act(() => {
+      usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+        widths: resized,
+      });
+    });
+    expect(dock).toHaveStyle({ "--dock-width": "640px" });
+
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-file"));
+    expect(within(frame).getByTestId("desktop-panel-dock")).toHaveStyle({
+      "--dock-width": "640px",
     });
   });
 

@@ -1,4 +1,5 @@
 import type { DesktopPanelKind } from "../types";
+import { PANEL_MIN_WIDTH } from "./layout";
 
 export type PanelWidthMap = Record<DesktopPanelKind, number>;
 
@@ -14,6 +15,32 @@ export function defaultDockWidth(
   panelMin = 320,
 ): number {
   return Math.max(panelMin, Math.round(columnWidth * PANEL_DEFAULT_RATIO));
+}
+
+/**
+ * Widths for the dock's first open. Every kind shares one column, so they
+ * all start at the same width. Returns null when even one panel cannot fit.
+ */
+export function firstOpenDockWidths(
+  containerW: number,
+  chatMin: number,
+): PanelWidthMap | null {
+  if (!(containerW > 0)) return null;
+  const leftover = containerW - chatMin;
+  const panelMin =
+    leftover > 0 ? Math.min(PANEL_MIN_WIDTH, leftover) : PANEL_MIN_WIDTH;
+  const desired = defaultDockWidth(containerW, panelMin);
+  const base: PanelWidthMap = {
+    preview: desired,
+    diff: desired,
+    terminal: desired,
+    file: desired,
+  };
+  const planned = planPanelWidthsForOpen(containerW, [], base, "preview", {
+    panelMin,
+    chatMin,
+  });
+  return planned.ok ? planned.widths : null;
 }
 
 /**

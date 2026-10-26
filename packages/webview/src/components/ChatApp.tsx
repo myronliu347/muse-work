@@ -97,8 +97,10 @@ import type {
 } from "../types";
 import { chatReducer, initialState } from "../reducers/chatReducer";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
+import { firstOpenDockWidths } from "../muse/panelFit";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
+  PANEL_DEFAULT_WIDTH,
   emptyContentSearchState,
   resolvePanelGroup,
   usePanelGroup,
@@ -1084,6 +1086,42 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     },
     [],
   );
+  // 详情不是面板 kind，原来停在 420。文件、终端第一次打开会按栏宽重算，
+  // 右侧宽度就会跳。这里用同一套首次宽度，已经拖过或开过的宽度不动。
+  useLayoutEffect(() => {
+    if (!assistantVisible || !assistantDockOpen) return;
+    if (checkedPanels.length > 0) return;
+    if (
+      assistantWidths.preview !== PANEL_DEFAULT_WIDTH ||
+      assistantWidths.diff !== PANEL_DEFAULT_WIDTH ||
+      assistantWidths.terminal !== PANEL_DEFAULT_WIDTH ||
+      assistantWidths.file !== PANEL_DEFAULT_WIDTH
+    ) {
+      return;
+    }
+    const containerW = chatContainerRef.current?.clientWidth ?? 0;
+    // chatColumnWidth 更新说明栏已经量过，这时再读 clientWidth。
+    if (!(containerW > 0) || chatColumnWidth <= 0) return;
+    const next = firstOpenDockWidths(containerW, chatMinWidth);
+    if (!next) return;
+    if (
+      next.preview === assistantWidths.preview &&
+      next.diff === assistantWidths.diff &&
+      next.terminal === assistantWidths.terminal &&
+      next.file === assistantWidths.file
+    ) {
+      return;
+    }
+    updateMuseWidthGroup({ widths: next });
+  }, [
+    assistantVisible,
+    assistantDockOpen,
+    checkedPanels.length,
+    assistantWidths,
+    chatColumnWidth,
+    chatMinWidth,
+    updateMuseWidthGroup,
+  ]);
   const panels = usePanels({
     postToHost,
     updatePanelGroup,

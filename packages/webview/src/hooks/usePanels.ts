@@ -16,7 +16,7 @@ import {
   matchDockFullscreenShortcut,
   matchDockToggleShortcut,
 } from "../muse/panelShortcuts";
-import { planPanelWidthsForOpen, defaultDockWidth } from "../muse/panelFit";
+import { planPanelWidthsForOpen, firstOpenDockWidths } from "../muse/panelFit";
 import { PANEL_MIN_WIDTH, clampDockWidth } from "../muse/layout";
 import { defaultDockKind, PANEL_TAB_ORDER } from "../muse/panelTabs";
 import { collapseDockState, expandDockState } from "../muse/dockActions";
@@ -25,6 +25,7 @@ import {
   emptyPanelGroup,
   nextActivePanelAfterClose,
   releasePanelContent,
+  PANEL_DEFAULT_WIDTH,
 } from "../stores";
 import type { MainView } from "../components/ChatApp";
 import type { ChatAppCore } from "./useChatAppCore";
@@ -194,16 +195,18 @@ export function usePanels({
           const leftover = containerW - chatMinWidth;
           const panelMin =
             leftover > 0 ? Math.min(PANEL_MIN_WIDTH, leftover) : PANEL_MIN_WIDTH;
-          const desired = defaultDockWidth(containerW, panelMin);
-          const baseWidths =
-            mountedPanelsRef.current.length === 0
-              ? {
-                  preview: desired,
-                  diff: desired,
-                  terminal: desired,
-                  file: desired,
-                }
-              : panelWidthsRef.current;
+          // 详情 isn't a kind. If it already sized the column (or the user
+          // dragged it), keep that width. Only a still-untouched dock takes
+          // the first-open default here.
+          const untouched =
+            mountedPanelsRef.current.length === 0 &&
+            PANEL_ORDER.every(
+              (k) => panelWidthsRef.current[k] === PANEL_DEFAULT_WIDTH,
+            );
+          const seeded = untouched
+            ? firstOpenDockWidths(containerW, chatMinWidth)
+            : null;
+          const baseWidths = seeded ?? panelWidthsRef.current;
           const planned = planPanelWidthsForOpen(
             containerW,
             [],
