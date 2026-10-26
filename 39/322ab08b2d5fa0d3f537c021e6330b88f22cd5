@@ -1,0 +1,122 @@
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  b4c1fd64c73e39cb 1,10,21,82-88,148-153,261-271,273-275,289-333
+packages/webview/src/stores/index.ts
+  b4c1fd64c73e39cb 18,23
+packages/webview/src/stores/panelGroupStore.ts
+  b4c1fd64c73e39cb 116-129,152-154,179-180,227-232,302-304
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  b4c1fd64c73e39cb 17-22,73-77,103-106,149-162,233-278
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 108-117,121,128,588-594,627-634,655-679,777,779,813,815,820-821,826,834,843,846,855-856,859-869,872,951,953-956,1060-1081,1174,1186-1207,1261-1378,1409-1410,1448-1456,1459,1878,1887,1891,1894,1897,1929-1953
+packages/webview/tests/components/dockDetail.test.tsx
+  b4c1fd64c73e39cb 459,492,608
+packages/webview/src/muse/messageRouter.ts
+  b4c1fd64c73e39cb 18,157-173
+packages/webview/tests/components/botLists.test.tsx
+  b4c1fd64c73e39cb 682-685
+packages/webview/src/muse/dockTools.ts
+  b4c1fd64c73e39cb 1-120
+packages/webview/tests/muse/dockTools.test.ts
+  b4c1fd64c73e39cb 1-33
+packages/webview/src/styles/DesktopPanelDock.css
+  b4c1fd64c73e39cb 96-97,110
+packages/webview/src/components/panels/TerminalPane.tsx
+  b4c1fd64c73e39cb 100-103,116-117,119,129-130,381,390,399,409
+packages/webview/src/hooks/usePanels.ts
+  b4c1fd64c73e39cb 29,80-83,110-111,170-171,254,289
+packages/webview/tests/components/issueTab.test.tsx
+  b4c1fd64c73e39cb 760-763,780,808-809,817-822,826-827,839-859,861-883,1613,1619,1625-1626
+packages/webview/src/components/panels/PreviewPane.tsx
+  b4c1fd64c73e39cb 152-153,167,169,443,452,462,472,481,500,511,521,538,547,560,565
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "39322ab08b2d5fa0d3f537c021e6330b88f22cd5",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 765,
+      "total_deletions": 104,
+      "accepted_lines": 751,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/muse/dockTools.ts": {
+          "additions": 120,
+          "accepted_lines": 120
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 78,
+          "deletions": 6,
+          "accepted_lines": 76
+        },
+        "packages/webview/tests/components/botLists.test.tsx": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 87,
+          "deletions": 15,
+          "accepted_lines": 75
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 63,
+          "deletions": 26,
+          "accepted_lines": 63
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 16,
+          "deletions": 12,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 28,
+          "accepted_lines": 28
+        },
+        "packages/webview/tests/muse/dockTools.test.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 286,
+          "deletions": 33,
+          "accepted_lines": 286
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 13,
+          "deletions": 5,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 11,
+          "deletions": 2,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
