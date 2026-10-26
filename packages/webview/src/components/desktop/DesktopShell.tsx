@@ -708,7 +708,6 @@ const DesktopShellView: React.FC<
     >
       {shellView === "sessions" ? <DesktopSidebarToggle /> : null}
       <DesktopSidebar
-        sidebarAccessHidden={sidebarCollapsed}
         onNewSession={() => {
           setShellView("sessions");
           vscode.postMessage({ command: "newSession" });

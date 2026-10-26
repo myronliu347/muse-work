@@ -22,6 +22,30 @@
   background-color: var(--color-background, #111111);
 }
 
+/* White sheet meets the gray rail and titlebar. Fill only the square outside
+   the curve so that corner reads as rounded. */
+.desktop-layout::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  top: var(--desktop-shell-titlebar-height);
+  left: var(--desktop-sidebar-width);
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  background: var(--gray-2);
+  -webkit-mask: radial-gradient(circle at 100% 100%, transparent 11px, #000 12px);
+  mask: radial-gradient(circle at 100% 100%, transparent 11px, #000 12px);
+}
+
+.desktop-layout:not(:has(.desktop-sidebar-resize--active))::after {
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-layout:has(.desktop-panel-dock--fullscreen)::after {
+  display: none;
+}
+
 .desktop-loading {
   flex: 1;
   height: 100vh;
@@ -1813,13 +1837,54 @@ body.is-panel-resizing * {
   height: var(--desktop-shell-titlebar-height);
   margin: 0;
   padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
+  justify-content: flex-start;
+  gap: 12px;
   border-bottom: none;
+  background: var(--gray-2);
   -webkit-app-region: drag;
 }
 
 .desktop-layout > .desktop-settings-page .config-dialog-header h3,
 .desktop-layout > .desktop-settings-page .config-dialog-header button {
   -webkit-app-region: no-drag;
+}
+
+.desktop-layout > .desktop-settings-page .config-dialog-header h3 {
+  flex: none;
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
+
+.desktop-layout > .desktop-settings-page .config-tabs {
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.desktop-layout > .desktop-settings-page .config-tab {
+  width: auto;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-1);
+  display: inline-flex;
+  align-items: center;
+}
+
+.desktop-layout > .desktop-settings-page .config-tab.active {
+  background: var(--gray-4);
+}
+
+.desktop-layout > .desktop-settings-page .settings-tab-underline {
+  display: none;
+}
+
+.desktop-layout > .desktop-settings-page .desktop-sidebar-icon-btn {
+  margin-left: auto;
 }
 
 .desktop-layout > .desktop-settings-page .config-dialog-body {
@@ -1859,10 +1924,31 @@ body.is-panel-resizing * {
   padding: 0;
 }
 
+.desktop-layout > .automations-page:not(.automations-page--editor) .automations-page-bar {
+  box-sizing: border-box;
+  flex: none;
+  height: var(--desktop-shell-titlebar-height);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 var(--space-4) 0 var(--desktop-shell-chrome-left);
+  background: var(--gray-2);
+  -webkit-app-region: drag;
+}
+
+.desktop-layout > .automations-page:not(.automations-page--editor) .automations-page-bar h1 {
+  margin: 0;
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--gray-12);
+  -webkit-app-region: no-drag;
+}
+
 .desktop-layout
   > .automations-page:not(.automations-page--editor)
   .automations-page-scroll {
-  padding-top: var(--desktop-shell-titlebar-height);
   padding-left: calc(var(--desktop-sidebar-width) + var(--space-4));
   padding-right: var(--space-4);
 }
@@ -1877,6 +1963,7 @@ body.is-panel-resizing * {
   height: var(--desktop-shell-titlebar-height);
   padding-left: var(--desktop-shell-chrome-left);
   padding-right: var(--space-4);
+  background: var(--gray-2);
 }
 
 .desktop-layout > .automations-page.automations-page--editor .automations-page-scroll {
@@ -2149,6 +2236,19 @@ body.is-panel-resizing * {
   width: auto;
 }
 
+.desktop-layout .new-session-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: var(--desktop-shell-titlebar-height);
+  background: var(--gray-2);
+  pointer-events: auto;
+  -webkit-app-region: drag;
+}
+
 /* Dock fullscreen covers the conversation column and the session sidebar. */
 .desktop-chat-body:has(.desktop-panel-dock--fullscreen) .desktop-chat-main {
   display: none;
@@ -2180,6 +2280,13 @@ body.is-panel-resizing * {
      sidebar toggle (siblings cannot punch -webkit-app-region: no-drag). */
   -webkit-app-region: no-drag;
   border-bottom: none;
+  background: var(--gray-2);
+}
+
+.desktop-layout .chat-header,
+.desktop-layout .issue-session-header:not(.issue-session-header--corner),
+.desktop-layout .popo-detail-header {
+  background: var(--gray-2);
 }
 
 .desktop-layout .chat-header .header-title-group {
@@ -2198,6 +2305,7 @@ body.is-panel-resizing * {
 .desktop-layout .assistant-page .assistant-header {
   height: var(--desktop-shell-titlebar-height);
   padding-right: 28px;
+  background: var(--gray-2);
   -webkit-app-region: no-drag;
 }
 
@@ -2218,6 +2326,7 @@ body.is-panel-resizing * {
   z-index: 5;
   height: var(--desktop-shell-titlebar-height);
   border-bottom: none;
+  background: var(--gray-2);
 }
 
 .desktop-layout > .assistant-frame.chat-container > .bot-frame-bar > .bot-tabs {
@@ -2446,7 +2555,7 @@ body.is-panel-resizing * {
   place-items: center;
   flex: none;
   padding: 0;
-  background: var(--color-background);
+  background: var(--gray-2);
   color: var(--gray-11);
   cursor: pointer;
   opacity: 0;

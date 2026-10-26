@@ -1983,7 +1983,6 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       >
         {noPaneRail === "sessions" ? <DesktopSidebarToggle /> : null}
         <DesktopSidebar
-          sidebarAccessHidden={sidebarCollapsed}
           onNewSession={() => {
             setView("chat");
             handleDesktopNewSession();

@@ -184,7 +184,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                 onClick={() => onSelectDetail()}
               >
                 <i
-                  className="codicon codicon-info desktop-panel-tab-icon"
+                  className="codicon codicon-note desktop-panel-tab-icon"
                   aria-hidden
                 />
                 详情

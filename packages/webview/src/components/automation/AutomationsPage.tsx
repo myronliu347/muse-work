@@ -111,11 +111,14 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
           }}
         />
       ) : (
+        <>
+        <header className="automations-page-bar">
+          <h1>自动化</h1>
+        </header>
         <div className="automations-page-scroll">
           <div className="automations-page-inner">
             <div className="automations-page-head">
               <div>
-                <h1>自动化</h1>
                 <p>创建规则，按时间或条件自动运行 Agent。</p>
               </div>
               <span className="automations-grow" />
@@ -217,6 +220,7 @@ export const AutomationsPage: React.FC<AutomationsPageProps> = ({
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

@@ -94,6 +94,39 @@ const ConfigDialog = forwardRef<
   };
   savingRef.current = saving;
   const persistTab = activeTab === "agent" || activeTab === "provider";
+  const settingsTabs = (
+    <div className="config-tabs" role="tablist" aria-label="设置">
+      {(
+        [
+          ["appearance", "外观", "config-appearance-panel"],
+          ["agent", "Agent", "config-agent-panel"],
+          ["provider", "供应商", "config-provider-panel"],
+          ["popo", "POPO", "config-popo-panel"],
+        ] as const
+      ).map(([id, label, controls]) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === id}
+          aria-controls={controls}
+          className={`config-tab${activeTab === id ? " active" : ""}`}
+          onClick={() => setActiveTab(id)}
+          style={{ position: "relative" }}
+        >
+          {label}
+          {activeTab === id && (
+            <motion.span
+              className="settings-tab-underline"
+              layoutId="settings-tab-underline"
+              transition={tabUnderlineTransition}
+              style={tabRailStyle}
+            />
+          )}
+        </button>
+      ))}
+    </div>
+  );
   useDialogFocusTrap(dialogRef, !page);
 
   const confirmDiscardUnsaved = useCallback(() => {
@@ -169,6 +202,7 @@ const ConfigDialog = forwardRef<
     <>
         <div className="configuration-dialog-header config-dialog-header">
           <h3 id="config-dialog-title">设置</h3>
+          {page ? settingsTabs : null}
           {page ? (
             isAuthenticated === false && onLogin ? (
               <button
@@ -187,84 +221,7 @@ const ConfigDialog = forwardRef<
         </div>
 
         <div className="config-dialog-body">
-        <div className="config-tabs" role="tablist" aria-label="设置">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "appearance"}
-            aria-controls="config-appearance-panel"
-            className={`config-tab${activeTab === "appearance" ? " active" : ""}`}
-            onClick={() => setActiveTab("appearance")}
-            style={{ position: "relative" }}
-          >
-            外观
-            {activeTab === "appearance" && (
-              <motion.span
-                className="settings-tab-underline"
-                layoutId="settings-tab-underline"
-                transition={tabUnderlineTransition}
-                style={tabRailStyle}
-              />
-            )}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "agent"}
-            aria-controls="config-agent-panel"
-            className={`config-tab${activeTab === "agent" ? " active" : ""}`}
-            onClick={() => setActiveTab("agent")}
-            style={{ position: "relative" }}
-          >
-            Agent
-            {activeTab === "agent" && (
-              <motion.span
-                className="settings-tab-underline"
-                layoutId="settings-tab-underline"
-                transition={tabUnderlineTransition}
-                style={tabRailStyle}
-              />
-            )}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "provider"}
-            aria-controls="config-provider-panel"
-            className={`config-tab${activeTab === "provider" ? " active" : ""}`}
-            onClick={() => setActiveTab("provider")}
-            style={{ position: "relative" }}
-          >
-            供应商
-            {activeTab === "provider" && (
-              <motion.span
-                className="settings-tab-underline"
-                layoutId="settings-tab-underline"
-                transition={tabUnderlineTransition}
-                style={tabRailStyle}
-              />
-            )}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "popo"}
-            aria-controls="config-popo-panel"
-            className={`config-tab${activeTab === "popo" ? " active" : ""}`}
-            onClick={() => setActiveTab("popo")}
-            style={{ position: "relative" }}
-          >
-            POPO
-            {activeTab === "popo" && (
-              <motion.span
-                className="settings-tab-underline"
-                layoutId="settings-tab-underline"
-                transition={tabUnderlineTransition}
-                style={tabRailStyle}
-              />
-            )}
-          </button>
-        </div>
+        {page ? null : settingsTabs}
 
         <div className="configuration-form">
           <div className="configuration-fields-scroll-area">

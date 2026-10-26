@@ -11,3 +11,4 @@ packages/desktop/webview/
 .pnpm-store/
 .tmp-desktop-tests/
 test-results/
+.superpowers/

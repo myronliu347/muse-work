@@ -142,6 +142,22 @@
   margin-bottom: 16px;
 }
 
+.automations-page-bar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-height: 38px;
+  padding: 0 24px;
+}
+
+.automations-page-bar h1 {
+  margin: 0;
+  font-size: var(--font-size-1, 13px);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--gray-12);
+}
+
 .automations-page-head h1 {
   margin: 0;
   font-size: 22px;

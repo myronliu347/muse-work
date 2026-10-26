@@ -21,6 +21,11 @@ function priorityText(priority: string): string {
   return /^p\d$/i.test(priority) ? priority.toUpperCase() : priority;
 }
 
+function workdirLabel(workdir: string): string {
+  const normalized = workdir.replace(/\\/g, "/").replace(/\/+$/, "");
+  return normalized.split("/").pop() || workdir;
+}
+
 function issueEnvironment(issue: DesktopIssueGroup): {
   workdir: string;
   worktree: string;
@@ -149,17 +154,29 @@ export function DockDetail({
         {description ? <p className="dock-detail-body">{description}</p> : null}
         <dl className="dock-detail-fields">
           <div>
-            <dt>目录</dt>
-            <dd>{environment.workdir || "—"}</dd>
+            <dt>工作目录</dt>
+            <dd>
+              {workdir ? (
+                <Tooltip text={workdir} position="bottom">
+                  <span className="dock-detail-workdir">{workdirLabel(workdir)}</span>
+                </Tooltip>
+              ) : (
+                "—"
+              )}
+            </dd>
           </div>
-          <div>
-            <dt>Worktree</dt>
-            <dd>{environment.worktree || "—"}</dd>
-          </div>
-          <div>
-            <dt>基准分支</dt>
-            <dd>{environment.baseBranch || "—"}</dd>
-          </div>
+          {environment.worktree ? (
+            <div>
+              <dt>Worktree</dt>
+              <dd>{environment.worktree}</dd>
+            </div>
+          ) : null}
+          {environment.baseBranch ? (
+            <div>
+              <dt>分支名称</dt>
+              <dd>{environment.baseBranch}</dd>
+            </div>
+          ) : null}
         </dl>
         {issue.items.length > 0 ? (
           <>
