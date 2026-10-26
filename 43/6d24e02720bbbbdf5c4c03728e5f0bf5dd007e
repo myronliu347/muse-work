@@ -1,0 +1,71 @@
+packages/webview/tests/components/issueTab.test.tsx
+  2f6a6e38361a3c46 323-325
+packages/webview/src/components/desktop/DockDetail.tsx
+  2f6a6e38361a3c46 2-3,9-58,207-211,239,246-289
+packages/webview/tests/components/dockDetail.test.tsx
+  2f6a6e38361a3c46 331-371,1141,1211-1213,1216-1220,1223,1285,1289-1290,1293-1295
+packages/webview/src/styles/DesktopPanelDock.css
+  2f6a6e38361a3c46 443-444,446-451,455-556,559-567,570-575,577-606
+packages/webview/src/styles/MessageList.css
+  2f6a6e38361a3c46 111-113,120
+packages/webview/src/components/ChatApp.tsx
+  2f6a6e38361a3c46 710-712,770,1474,1563-1569,1572-1576,1583,1586-1587,1589-1591,1593,1595,1607,1641
+packages/webview/src/components/chat/ChatComposer.tsx
+  2f6a6e38361a3c46 64-65,110,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "436d24e02720bbbbdf5c4c03728e5f0bf5dd007e",
+  "prompts": {
+    "2f6a6e38361a3c46": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "396cc0c5-f38c-46b4-ad7d-8d24648e5380",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 356,
+      "total_deletions": 51,
+      "accepted_lines": 355,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 103,
+          "deletions": 11,
+          "accepted_lines": 103
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 58,
+          "deletions": 19,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 157,
+          "deletions": 6,
+          "accepted_lines": 157
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 27,
+          "deletions": 12,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/chat/ChatComposer.tsx": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
