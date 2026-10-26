@@ -2158,7 +2158,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             onLogin={handleLogin}
           />
         ) : noPaneRail === "skills" ? (
-          <SkillsPage api={museApi} />
+          <SkillsPage
+            api={museApi}
+            onRunInTerminal={(command) =>
+              postToHost({ command: "desktopRunInTerminal", text: command })
+            }
+          />
         ) : view === "automations" ? (
           <AutomationsPage
             api={museApi}

@@ -61,6 +61,7 @@ export type MarketSkillDetail = {
   description: string;
   body: string;
   installs: number;
+  command: string;
 };
 
 function decodeEntities(text: string): string {
@@ -147,25 +148,108 @@ export function parseMarketSkillPage(html: string): MarketSkillDetail {
   if (!name && !description && !body) {
     throw new SkillMarketError("暂时读不到这个技能", 502);
   }
-  return { name, description, body, installs };
+  return { name, description, body, installs, command: "" };
+}
+
+export function installCommandFromPage(html: string, skillId: string): string {
+  if (!/^[A-Za-z0-9._-]+$/.test(skillId)) return "";
+  const url = /npx skills add (https:\/\/[A-Za-z0-9._/-]+)/.exec(html)?.[1];
+  if (!url) return "";
+  return `npx skills add ${url} --skill ${skillId}`;
+}
+
+export function skillPageUrl(source: string, skillId: string): string {
+  if (!isSafeSkillId(skillId)) {
+    throw new SkillMarketError("技能来源不正确", 400);
+  }
+  const github = isGitHubSource(source);
+  if (github) {
+    return `https://www.skills.sh/${encodeURIComponent(github.owner)}/${encodeURIComponent(github.repo)}/${encodeURIComponent(skillId)}`;
+  }
+  if (!/^[A-Za-z0-9._-]+$/.test(source) || source === "." || source === "..") {
+    throw new SkillMarketError("技能来源不正确", 400);
+  }
+  return `https://www.skills.sh/site/${encodeURIComponent(source)}/${encodeURIComponent(skillId)}`;
+}
+
+export function skillBrief(detail: MarketSkillDetail, skillName = ""): string {
+  const description = detail.description.trim();
+  if (description && !description.startsWith("Install the ")) return description;
+  const line = detail.body
+    .split("\n")
+    .map((part) => part.replace(/^•\s*/, "").trim())
+    .find((part) => part.length > 12 && part.toLowerCase() !== skillName.toLowerCase());
+  return (line ?? description).slice(0, 220);
+}
+
+const summaryCache = new Map<string, { description: string; command: string }>();
+
+async function mapLimit<T>(
+  items: T[],
+  limit: number,
+  run: (item: T) => Promise<void>,
+): Promise<void> {
+  let index = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const current = items[index];
+      index += 1;
+      await run(current);
+    }
+  });
+  await Promise.all(workers);
+}
+
+export async function fetchMarketSkillSummaries(
+  skills: Array<{ source?: unknown; skillId?: unknown }>,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Array<{ source: string; skillId: string; description: string; command: string }>> {
+  const unique: Array<{ source: string; skillId: string }> = [];
+  const seen = new Set<string>();
+  for (const skill of skills.slice(0, 24)) {
+    if (typeof skill.source !== "string" || typeof skill.skillId !== "string") continue;
+    const key = `${skill.source}/${skill.skillId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ source: skill.source, skillId: skill.skillId });
+  }
+  await mapLimit(unique, 6, async (skill) => {
+    const key = `${skill.source}/${skill.skillId}`;
+    if (summaryCache.has(key)) return;
+    try {
+      const detail = await fetchMarketSkillDetail(skill, fetchImpl);
+      summaryCache.set(key, {
+        description: skillBrief(detail, skill.skillId),
+        command: detail.command,
+      });
+    } catch {
+      summaryCache.set(key, { description: "", command: "" });
+    }
+  });
+  return unique.map((skill) => {
+    const cached = summaryCache.get(`${skill.source}/${skill.skillId}`);
+    return {
+      ...skill,
+      description: cached?.description ?? "",
+      command: cached?.command ?? "",
+    };
+  });
 }
 
 export async function fetchMarketSkillDetail(
   input: { source: string; skillId: string },
   fetchImpl: typeof fetch = fetch,
 ): Promise<MarketSkillDetail> {
-  const source = isGitHubSource(input.source);
-  if (!source || !isSafeSkillId(input.skillId)) {
-    throw new SkillMarketError("技能来源不正确", 400);
-  }
-  const url = `https://www.skills.sh/${encodeURIComponent(source.owner)}/${encodeURIComponent(source.repo)}/${encodeURIComponent(input.skillId)}`;
+  const url = skillPageUrl(input.source, input.skillId);
   try {
     const res = await fetchImpl(url, { signal: AbortSignal.timeout(15_000) });
     if (res.status === 404) {
       throw new SkillMarketError("技能市场上没有这个技能", 404);
     }
     if (!res.ok) throw new Error("upstream");
-    return parseMarketSkillPage((await res.text()).slice(0, 500_000));
+    const html = (await res.text()).slice(0, 500_000);
+    const detail = parseMarketSkillPage(html);
+    return { ...detail, command: installCommandFromPage(html, input.skillId) };
   } catch (error) {
     if (error instanceof SkillMarketError) throw error;
     throw new SkillMarketError("暂时读不到这个技能", 502);

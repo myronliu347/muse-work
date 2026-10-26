@@ -52,6 +52,8 @@ export type WorkdirHostDeps = {
   openInEditor?: (workdir: string) => void;
   /** Open a folder in the system terminal. Injected in tests. */
   openInTerminal?: (workdir: string) => void;
+  /** Run one vetted install command in the system terminal. Injected in tests. */
+  runInTerminal?: (command: string) => void;
   /** Home directory for `~/` expansion. Injected in tests. */
   homedir?: () => string;
   /** Webview reports whether any agent turn is in flight. */
@@ -141,6 +143,52 @@ function defaultOpenInTerminal(workdir: string): void {
   child.on("error", () => {
     // Terminal app / emulator missing — ignore.
   });
+  child.unref();
+}
+
+const CLI_INSTALL =
+  /^npx skills add https:\/\/[A-Za-z0-9._/-]+ --skill [A-Za-z0-9._-]+$/;
+
+export function isCliInstallCommand(command: string): boolean {
+  return CLI_INSTALL.test(command);
+}
+
+function darwinCommandScript(command: string): string {
+  const escaped = escapeForAppleScriptString(command);
+  if (resolveDarwinTerminalApp() === "iTerm") {
+    return [
+      'tell application "iTerm"',
+      "activate",
+      "set newWindow to (create window with default profile)",
+      "tell current session of newWindow",
+      `write text "${escaped}"`,
+      "end tell",
+      "end tell",
+    ].join("\n");
+  }
+  return `tell application "Terminal" to do script "${escaped}"`;
+}
+
+function defaultRunInTerminal(command: string): void {
+  if (!isCliInstallCommand(command)) return;
+  const platform = process.platform;
+  const spawnOpts = {
+    detached: true,
+    stdio: "ignore" as const,
+    windowsHide: true,
+  };
+  let child: ReturnType<typeof spawn> | null = null;
+  if (platform === "darwin") {
+    child = spawn("/usr/bin/osascript", ["-e", darwinCommandScript(command)], spawnOpts);
+  } else if (platform === "win32") {
+    child = spawn(`start cmd.exe /K "${command}"`, {
+      ...spawnOpts,
+      shell: true,
+    });
+  } else {
+    child = spawn("x-terminal-emulator", ["-e", "bash", "-lc", command], spawnOpts);
+  }
+  child.on("error", () => {});
   child.unref();
 }
 
@@ -305,6 +353,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       : () => {});
   const openInEditor = options.openInEditor ?? defaultOpenInEditor;
   const openInTerminal = options.openInTerminal ?? defaultOpenInTerminal;
+  const runInTerminal = options.runInTerminal ?? defaultRunInTerminal;
   const homedir = options.homedir ?? os.homedir;
 
 
@@ -390,6 +439,12 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
     if (command === "desktopOpenInTerminal") {
       const workdir = typeof msg.workdir === "string" ? msg.workdir.trim() : "";
       if (workdir) openInTerminal(workdir);
+      return;
+    }
+
+    if (command === "desktopRunInTerminal") {
+      const text = typeof msg.text === "string" ? msg.text.trim() : "";
+      if (isCliInstallCommand(text)) runInTerminal(text);
       return;
     }
 

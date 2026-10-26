@@ -11,6 +11,7 @@ import {
 } from "../services/skillMarket/installedSkills.js";
 import {
   fetchMarketSkillDetail,
+  fetchMarketSkillSummaries,
   fetchSkillMarket,
 } from "../services/skillMarket/marketClient.js";
 
@@ -70,6 +71,18 @@ export function createSkillMarketRoutes(deps: Deps = {}) {
           fetchImpl,
         ),
       );
+    } catch (error) {
+      return fail(c, error);
+    }
+  });
+
+  app.post("/skill-market/summaries", async (c) => {
+    const body = await c.req.json().catch(() => ({} as { skills?: unknown }));
+    const skills = Array.isArray(body.skills) ? body.skills : [];
+    try {
+      return c.json({
+        summaries: await fetchMarketSkillSummaries(skills, fetchImpl),
+      });
     } catch (error) {
       return fail(c, error);
     }

@@ -721,6 +721,19 @@ export class MuseApiClient {
     return parseJson(res);
   }
 
+  async getMarketSkillSummaries(
+    skills: Array<{ source: string; skillId: string }>,
+  ): Promise<{
+    summaries: Array<{ source: string; skillId: string; description: string; command: string }>;
+  }> {
+    const res = await this.request("/skill-market/summaries", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ skills }),
+    });
+    return parseJson(res);
+  }
+
   async getMarketSkillDetail(query: {
     source: string;
     skillId: string;
@@ -729,6 +742,7 @@ export class MuseApiClient {
     description: string;
     body: string;
     installs: number;
+    command: string;
   }> {
     const params = new URLSearchParams({
       source: query.source,

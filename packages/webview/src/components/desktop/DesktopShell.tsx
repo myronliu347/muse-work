@@ -819,7 +819,12 @@ const DesktopShellView: React.FC<
           recentWorkdirs={host.recentWorkdirs ?? []}
         />
       ) : shellView === "skills" ? (
-        <SkillsPage api={api} />
+        <SkillsPage
+          api={api}
+          onRunInTerminal={(command) =>
+            vscode.postMessage({ command: "desktopRunInTerminal", text: command })
+          }
+        />
       ) : shellView === "settings" ? (
         <ConfigDialog
           ref={settingsPageRef}

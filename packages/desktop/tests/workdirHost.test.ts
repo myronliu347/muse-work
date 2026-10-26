@@ -1608,6 +1608,53 @@ describe("installWorkdirHost", () => {
     fs.rmSync(userData, { recursive: true, force: true });
   });
 
+  it("desktopRunInTerminal only runs a skills install command", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-run-"));
+    const ran: string[] = [];
+    let handler:
+      | ((event: { sender: unknown }, raw: unknown) => void | Promise<void>)
+      | undefined;
+
+    const fakeWin = {
+      isDestroyed: () => false,
+      webContents: { send: () => {} },
+    };
+
+    const host = installWorkdirHost({
+      userDataPath: userData,
+      getWindow: () => fakeWin as never,
+      ipc: {
+        on: (_channel, listener) => {
+          handler = listener as typeof handler;
+        },
+        removeListener: () => {},
+      },
+      fromWebContents: () => fakeWin as never,
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+      runInTerminal: (command) => {
+        ran.push(command);
+      },
+    });
+
+    const command =
+      "npx skills add https://open.feishu.cn/lark-cli/skills/regular --skill lark-attendance";
+    await handler!(
+      { sender: {} },
+      { command: "desktopRunInTerminal", text: command },
+    );
+    expect(ran).toEqual([command]);
+
+    ran.length = 0;
+    await handler!(
+      { sender: {} },
+      { command: "desktopRunInTerminal", text: `${command}; rm -rf /` },
+    );
+    expect(ran).toEqual([]);
+
+    host.dispose();
+    fs.rmSync(userData, { recursive: true, force: true });
+  });
+
   it("desktopSelectFiles opens multi file dialog and pushes paths", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "muse-wd-files-"));
     const sent: unknown[] = [];

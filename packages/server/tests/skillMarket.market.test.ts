@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { installMarketSkill } from "../src/services/skillMarket/installSkill.js";
-import { fetchSkillMarket, parseMarketSkillPage } from "../src/services/skillMarket/marketClient.js";
+import { fetchSkillMarket, installCommandFromPage, parseMarketSkillPage, skillBrief, skillPageUrl } from "../src/services/skillMarket/marketClient.js";
 
 const homes: string[] = [];
 afterEach(async () => {
@@ -123,6 +123,22 @@ describe("skill market", () => {
       description: "发现技能",
       body: "帮你找技能\n• 先看排行榜",
       installs: 12000,
+      command: "",
     });
+    expect(skillBrief(detail)).toBe("发现技能");
+    expect(skillPageUrl("vercel-labs/skills", "find-skills")).toBe(
+      "https://www.skills.sh/vercel-labs/skills/find-skills",
+    );
+    expect(skillPageUrl("open.feishu.cn", "lark-attendance")).toBe(
+      "https://www.skills.sh/site/open.feishu.cn/lark-attendance",
+    );
+    expect(
+      installCommandFromPage(
+        'npx skills add https://open.feishu.cn/lark-cli/skills/regular',
+        "lark-attendance",
+      ),
+    ).toBe(
+      "npx skills add https://open.feishu.cn/lark-cli/skills/regular --skill lark-attendance",
+    );
   });
 });

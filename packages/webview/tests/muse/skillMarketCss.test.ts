@@ -10,8 +10,8 @@ describe("SkillsPage.css", () => {
   it("uses the existing page metrics and no hex colors", () => {
     expect(css).toContain("max-width: 860px");
     expect(css).toContain("min-height: 38px");
-    expect(css).toContain("font-size: 22px");
-    expect(css).toContain("font-weight: 650");
+    expect(css).toContain("height: 24px");
+    expect(css).toContain("translateX(100%)");
     expect(css).toContain("border-radius: 12px");
     expect(css).toContain("var(--accent-9)");
     expect(css).toContain("var(--accent-contrast)");

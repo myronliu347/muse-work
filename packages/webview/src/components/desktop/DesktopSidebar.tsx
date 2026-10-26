@@ -171,7 +171,7 @@ function SkillsIcon() {
   return (
     <RailIcon>
       <path
-        d="M6.2 9.4V18.2H14.8V16.1A2.4 2.4 0 0 1 14.8 11.8V9.4H12.6A2.4 2.4 0 0 0 8.4 9.4H6.2Z"
+        d="M5.2 7.2V19.2H16.6V16.4A3 3 0 0 1 16.6 10.8V7.2H14.2A3 3 0 0 0 8.6 7.2H5.2Z"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinejoin="round"
