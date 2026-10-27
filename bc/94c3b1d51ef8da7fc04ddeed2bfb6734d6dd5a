@@ -1,0 +1,155 @@
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 1299,1516,1531-1558,1623,1638-1665,1795,1830,2322,2424,2467,2527
+packages/webview/src/styles/MessageList.css
+  b4c1fd64c73e39cb 88-104
+packages/webview/tests/components/dockDetail.test.tsx
+  b4c1fd64c73e39cb 414-427
+packages/webview/src/components/assistant/AssistantPage.tsx
+  b4c1fd64c73e39cb 141-149,577-579,651-656,659,664,690-696
+packages/webview/src/hooks/usePanels.ts
+  b4c1fd64c73e39cb 82-87,119,353-368,422-423
+packages/webview/src/components/desktop/DockDetail.tsx
+  b4c1fd64c73e39cb 135-142
+packages/desktop/tests/gitHelpers.test.ts
+  b4c1fd64c73e39cb 11,60-89
+packages/webview/tests/utils/diffSeparatorLabel.test.ts
+  b4c1fd64c73e39cb 1-27
+packages/webview/tests/webview/panelFocusShortcut.test.tsx
+  b4c1fd64c73e39cb 1-37
+packages/webview/tests/components/issueTab.test.tsx
+  b4c1fd64c73e39cb 1782,1786-1797
+packages/webview/src/components/panels/DiffPane.tsx
+  b4c1fd64c73e39cb 4,23,45-46,113-118,193-194,354-365,472-480,505-597,911-912,942
+packages/webview/tests/webview/stickyUserMessage.test.tsx
+  b4c1fd64c73e39cb 147-170
+packages/desktop/src/main/gitDiff.ts
+  b4c1fd64c73e39cb 7,514-648
+packages/webview/src/muse/panelShortcuts.ts
+  b4c1fd64c73e39cb 8-9
+packages/desktop/src/main/workdirHost.ts
+  b4c1fd64c73e39cb 23,405-408,709-736
+packages/webview/src/components/chat/MessageList.tsx
+  b4c1fd64c73e39cb 190-200,337-338,340-344,437-439,444-447,458-463,466-475,811,815-826
+packages/webview/tests/components/assistantPage.test.tsx
+  b4c1fd64c73e39cb 475-531
+packages/webview/src/utils/diffSeparatorLabel.ts
+  b4c1fd64c73e39cb 1-24
+packages/webview/src/styles/DesktopPanelDock.css
+  b4c1fd64c73e39cb 403-404,409-433
+packages/webview/src/hooks/useFilePanel.ts
+  b4c1fd64c73e39cb 27-32,190,192,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "bc94c3b1d51ef8da7fc04ddeed2bfb6734d6dd5a",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 783,
+      "total_deletions": 49,
+      "accepted_lines": 762,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/utils/diffSeparatorLabel.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 25,
+          "deletions": 1,
+          "accepted_lines": 25
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 34,
+          "deletions": 1,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 9,
+          "deletions": 3,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 137,
+          "deletions": 10,
+          "accepted_lines": 129
+        },
+        "packages/desktop/tests/gitHelpers.test.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/tests/webview/panelFocusShortcut.test.tsx": {
+          "additions": 41,
+          "deletions": 4,
+          "accepted_lines": 37
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 27,
+          "deletions": 5,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/desktop/src/main/gitDiff.ts": {
+          "additions": 140,
+          "deletions": 4,
+          "accepted_lines": 136
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "packages/webview/tests/utils/diffSeparatorLabel.test.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 8,
+          "deletions": 1,
+          "accepted_lines": 8
+        },
+        "packages/webview/tests/webview/stickyUserMessage.test.tsx": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 68,
+          "deletions": 8,
+          "accepted_lines": 65
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 55,
+          "deletions": 10,
+          "accepted_lines": 55
+        }
+      }
+    }
+  }
+}
