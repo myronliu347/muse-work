@@ -1,0 +1,93 @@
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  b4c1fd64c73e39cb 51-86
+packages/webview/src/hooks/usePanels.ts
+  b4c1fd64c73e39cb 84-85,114,241
+packages/webview/src/stores/index.ts
+  b4c1fd64c73e39cb 19
+packages/webview/tests/components/dockDetail.test.tsx
+  b4c1fd64c73e39cb 421-452
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  b4c1fd64c73e39cb 87-88,154-155,276-277
+packages/webview/src/muse/dockTabOrder.ts
+  b4c1fd64c73e39cb 1-145
+packages/webview/src/stores/panelGroupStore.ts
+  b4c1fd64c73e39cb 129,156-157,184,237-239
+packages/webview/src/styles/DesktopPanelDock.css
+  b4c1fd64c73e39cb 82-89,99,193
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 109-115,130,670-676,1278-1331,1356-1357,1361-1366,1380-1381,1385-1390,1495,2029-2034
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  b4c1fd64c73e39cb 9-16,86-88,92,120-121,126-129,165-185,187-190,192-232,277-285,287-313,318-319,322,334,358-388,390-393,395-396,400-401,403,409
+packages/webview/tests/muse/dockTabOrder.test.ts
+  b4c1fd64c73e39cb 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ba898f9d962fbf6728e38b83fc92819f6b110c1d",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 586,
+      "total_deletions": 119,
+      "accepted_lines": 556,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/dockTabOrder.test.ts": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 11,
+          "deletions": 3,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 173,
+          "deletions": 91,
+          "accepted_lines": 167
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 59,
+          "deletions": 23,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/hooks/usePanels.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "packages/webview/src/muse/dockTabOrder.ts": {
+          "additions": 145,
+          "accepted_lines": 145
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 93,
+          "deletions": 2,
+          "accepted_lines": 93
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}
