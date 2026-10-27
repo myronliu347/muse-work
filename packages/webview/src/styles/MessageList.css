@@ -18,6 +18,10 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  /* The virtualizer already pins the end while streaming. Browser scroll
+     anchoring latches onto the user message at the top and yanks it back
+     on every growth, which reads as the bubble shaking. */
+  overflow-anchor: none;
   /* Top inset lives on .messages-column so sticky-user can sit flush at top: 0. */
   padding: 0 28px min(36vh, var(--space-9)) var(--space-4);
   background-color: var(--color-background);

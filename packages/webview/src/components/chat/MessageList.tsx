@@ -39,6 +39,7 @@ import "../../styles/MessageList.css";
 /** Matches --space-4 / --space-3 so virtual offsets line up with the column. */
 const COLUMN_PAD = 16;
 const ROW_GAP = 12;
+const STICKY_SLACK = 24;
 
 type FoldState = "plain" | "open" | "collapsed";
 
@@ -490,6 +491,22 @@ export const MessageList = forwardRef<
         }
       }
       index--;
+    }
+    // Streaming follow nudges scrollTop across the row boundary. Keep the
+    // current pin until the scroll moves clearly past it.
+    const prev = stickyRef.current;
+    if (prev && (candidate === null || candidate.id !== prev.id)) {
+      const prevIndex = list.findIndex(
+        (row) => row.kind === "user" && row.message.id === prev.id,
+      );
+      const measure =
+        prevIndex >= 0 ? virtualizer.measurementsCache[prevIndex] : undefined;
+      if (
+        measure &&
+        Math.abs(measure.start - container.scrollTop) <= STICKY_SLACK
+      ) {
+        return;
+      }
     }
     setSticky(candidate);
   }, [virtualizer]);
