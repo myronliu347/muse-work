@@ -1,0 +1,35 @@
+packages/webview/src/styles/MessageList.css
+  2b443eb251a769d5 21-24
+packages/webview/src/components/chat/MessageList.tsx
+  2b443eb251a769d5 42,495-510
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "e41eae14b3cfa127926f5bfce72bb0e2641286fd",
+  "prompts": {
+    "2b443eb251a769d5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "270c5fa6-b4bc-47d4-b951-673237a24e03",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 21,
+      "total_deletions": 0,
+      "accepted_lines": 21,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
