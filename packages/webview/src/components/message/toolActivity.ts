@@ -277,7 +277,7 @@ function isWorkBlock(block: MessageBlock | undefined): boolean {
   return block?.type === "tool" || block?.type === "bang";
 }
 
-/** Category of a group comes from its first tool, not from a tally of every call. */
+/** Live-step label. Searches, including WebSearch, stay with 检索. */
 export function activityCategory(
   block: MessageBlock,
 ): ActivityCategory | null {
@@ -286,7 +286,8 @@ export function activityCategory(
   if (
     block.name === READ_TOOL_NAME ||
     block.name === GREP_TOOL_NAME ||
-    block.name === GLOB_TOOL_NAME
+    block.name === GLOB_TOOL_NAME ||
+    block.name === "WebSearch"
   ) {
     return "检索";
   }
@@ -382,16 +383,29 @@ export function segmentAssistantBlocks(
 }
 
 type ActivityBucket =
+  | "edit"
   | "file"
   | "search"
-  | "edit"
-  | "command"
   | "browser"
+  | "agent"
+  | "command"
   | "other";
+
+const BUCKET_ORDER: ActivityBucket[] = [
+  "edit",
+  "file",
+  "search",
+  "browser",
+  "agent",
+  "command",
+  "other",
+];
 
 function bucketOf(block: MessageBlock): ActivityBucket | null {
   if (block.type === "bang") return "command";
   if (block.type !== "tool") return null;
+  if (block.name === AGENT_TOOL_NAME) return "agent";
+  if (block.name === "WebSearch") return "search";
   const kind = kindOf(block.name);
   if (kind === "file") return "file";
   if (kind === "search") return "search";
@@ -401,73 +415,53 @@ function bucketOf(block: MessageBlock): ActivityBucket | null {
   return "other";
 }
 
-function isLeadBucket(
-  category: ActivityCategory,
-  bucket: ActivityBucket,
-): boolean {
-  if (category === "检索") return bucket === "file" || bucket === "search";
-  if (category === "编辑") return bucket === "edit";
-  return bucket === "command" || bucket === "browser" || bucket === "other";
-}
-
-function bucketOrder(category: ActivityCategory): ActivityBucket[] {
-  if (category === "检索") {
-    return ["file", "search", "edit", "browser", "command", "other"];
-  }
-  if (category === "编辑") {
-    return ["edit", "file", "search", "browser", "command", "other"];
-  }
-  return ["command", "browser", "other", "file", "search", "edit"];
-}
-
 function bucketPhrase(
   bucket: ActivityBucket,
   count: number,
   lead: boolean,
 ): string {
+  if (bucket === "edit") {
+    return lead ? `编辑 ${count} 个文件` : `编辑了 ${count} 个文件`;
+  }
   if (bucket === "file") {
-    return lead ? `${count} 个文件` : `查看了 ${count} 个文件`;
+    return lead ? `检索 ${count} 个文件` : `查看了 ${count} 个文件`;
   }
   if (bucket === "search") {
-    return lead ? `${count} 次搜索` : `搜索了 ${count} 次`;
+    return lead ? `检索 ${count} 次搜索` : `${count} 次搜索`;
   }
-  if (bucket === "edit") {
-    return lead ? `${count} 个文件` : `编辑了 ${count} 个文件`;
+  if (bucket === "browser") {
+    return lead ? `浏览 ${count} 次` : `浏览了 ${count} 次`;
+  }
+  if (bucket === "agent") {
+    return lead ? `子任务 ${count} 个` : `${count} 个子任务`;
   }
   if (bucket === "command") {
-    return lead ? `${count} 条命令` : `运行了 ${count} 条命令`;
+    return lead ? `执行 ${count} 条命令` : `运行了 ${count} 条命令`;
   }
-  if (bucket === "browser") return `${count} 次浏览器操作`;
-  return `${count} 次操作`;
+  return lead ? `执行 ${count} 次操作` : `${count} 次操作`;
 }
 
 export function summarizeRefs(
   messages: TurnMessage[],
   refs: ActivityRef[],
 ): ActivitySummary {
-  let category: ActivityCategory = "执行";
-  let labeled = false;
   let additions = 0;
   let deletions = 0;
   const files = new Set<string>();
   const edits = new Set<string>();
   const counts: Record<ActivityBucket, number> = {
+    edit: 0,
     file: 0,
     search: 0,
-    edit: 0,
-    command: 0,
     browser: 0,
+    agent: 0,
+    command: 0,
     other: 0,
   };
 
   refs.forEach((ref, index) => {
     const block = messages[ref.messageIndex]?.blocks?.[ref.blockIndex];
     if (!block) return;
-    const nextCategory = activityCategory(block);
-    if (nextCategory && !labeled) {
-      category = nextCategory;
-      labeled = true;
-    }
     const bucket = bucketOf(block);
     if (!bucket) return;
     if (bucket === "file" && block.type === "tool") {
@@ -495,13 +489,13 @@ export function summarizeRefs(
   counts.edit = edits.size;
 
   const parts: string[] = [];
-  for (const bucket of bucketOrder(category)) {
+  for (const bucket of BUCKET_ORDER) {
     const count = counts[bucket];
     if (count <= 0) continue;
-    parts.push(bucketPhrase(bucket, count, isLeadBucket(category, bucket)));
+    parts.push(bucketPhrase(bucket, count, parts.length === 0));
   }
   return {
-    label: parts.length > 0 ? `${category} ${parts.join("，")}` : category,
+    label: parts.join("，"),
     additions,
     deletions,
   };

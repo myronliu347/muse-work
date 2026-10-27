@@ -75,7 +75,7 @@ describe("segmentAssistantBlocks", () => {
 });
 
 describe("summarizeActivity", () => {
-  it("names the group from the first tool", () => {
+  it("leads with edits, then files, searches, and commands", () => {
     const blocks: MessageBlock[] = [
       tool(READ_TOOL_NAME, { file_path: "src/a.ts" }),
       tool(GREP_TOOL_NAME, { pattern: "foo" }),
@@ -84,23 +84,32 @@ describe("summarizeActivity", () => {
     expect(summarizeActivity(blocks, [0, 1, 2]).label).toBe(
       "检索 1 个文件，1 次搜索，运行了 1 条命令",
     );
-    const editFirst: MessageBlock[] = [
+    const readThenEdit: MessageBlock[] = [
+      tool(READ_TOOL_NAME, { file_path: "src/a.ts" }),
       tool(EDIT_TOOL_NAME, {
         file_path: "a.ts",
         old_string: "a",
         new_string: "ab",
       }),
+      tool("WebSearch", { query: "tokens" }),
+      tool("WebFetch", { url: "https://example.com" }),
+      tool("Agent", { description: "看结构" }),
       tool(BASH_TOOL_NAME, { command: "ls" }),
     ];
-    const summary = summarizeActivity(editFirst, [0, 1]);
-    expect(summary.label).toBe("编辑 1 个文件，运行了 1 条命令");
+    const summary = summarizeActivity(readThenEdit, [0, 1, 2, 3, 4, 5]);
+    expect(summary.label).toBe(
+      "编辑 1 个文件，查看了 1 个文件，1 次搜索，浏览了 1 次，1 个子任务，运行了 1 条命令",
+    );
     expect(summary.additions).toBeGreaterThan(0);
     expect(
       summarizeActivity(
-        [tool(BASH_TOOL_NAME, { command: "ls" }), tool(READ_TOOL_NAME, { file_path: "a.ts" })],
+        [
+          tool("WebSearch", { query: "tokens" }),
+          tool(BASH_TOOL_NAME, { command: "ls" }),
+        ],
         [0, 1],
       ).label,
-    ).toBe("执行 1 条命令，查看了 1 个文件");
+    ).toBe("检索 1 次搜索，运行了 1 条命令");
   });
 });
 
