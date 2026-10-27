@@ -1641,6 +1641,42 @@ describe("issue tab", () => {
     });
   });
 
+  it("turns the issue sender into stop while that session is running", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [
+              {
+                ...RADII_ISSUE,
+                sessions: [{ ...session("plan-radii", "/work/radii", RADII), running: true }],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    const transcript = within(frame).getByTestId("issue-tab-transcript");
+    const abort = await within(transcript).findByTestId("abort-btn");
+    expect(within(transcript).queryByTestId("send-btn")).toBeNull();
+    expect(within(transcript).getByTestId("thinking-hint")).toHaveTextContent("正在处理");
+    await user.click(abort);
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "abortMessage",
+      sessionId: "plan-radii",
+    });
+  });
+
   it("loads the older issue page when the transcript is scrolled near the top", async () => {
     resetWebviewStores();
     stubAssistant([]);

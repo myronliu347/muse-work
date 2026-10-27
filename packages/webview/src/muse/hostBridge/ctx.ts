@@ -139,7 +139,7 @@ export interface BridgeCtx {
   emitChatWs: (event: MuseWsEvent) => void;
   activateSession: (id: string) => Promise<MuseSession>;
   handleSendMessage: (msg: { text?: string; images?: unknown }) => Promise<void>;
-  handleAbortMessage: () => Promise<void>;
+  handleAbortMessage: (msg?: { sessionId?: string }) => Promise<void>;
   resetChatStreaming: () => void;
   patchTreeSession: (id: string, patch: Partial<TreeSession>) => void;
   refreshTree: () => Promise<MuseSessionsGrouped>;

@@ -441,26 +441,34 @@ export function createChatModule(ctx: BridgeCtx): ChatModule {
     }
   }
 
-  async function handleAbortMessage(): Promise<void> {
-    // Suppress straggler deltas of this turn from re-igniting streaming.
-    ctx.aborted = true;
-    // Optimistic UI: hide stop button immediately while the server aborts.
-    if (ctx.streamingMessageId) {
-      postToWebview({
-        command: "updateStreamingContent",
-        messageId: ctx.streamingMessageId,
-        chunk: "",
-        stage: "end",
-      });
+  async function handleAbortMessage(msg?: { sessionId?: string }): Promise<void> {
+    const requested =
+      typeof msg?.sessionId === "string" && msg.sessionId.trim()
+        ? msg.sessionId.trim()
+        : "";
+    const sessionId = requested || ctx.sessionId;
+    const abortingCurrent = !requested || requested === ctx.sessionId;
+    if (abortingCurrent) {
+      // Suppress straggler deltas of this turn from re-igniting streaming.
+      ctx.aborted = true;
+      // Optimistic UI: hide stop button immediately while the server aborts.
+      if (ctx.streamingMessageId) {
+        postToWebview({
+          command: "updateStreamingContent",
+          messageId: ctx.streamingMessageId,
+          chunk: "",
+          stage: "end",
+        });
+      }
+      ctx.setLoading(false);
+      ctx.streamingMessageId = null;
+      ctx.knownAssistantIds.clear();
+      postToWebview({ command: "endStreaming" });
+      if (!sessionId || ctx.pendingNewSession) return;
     }
-    ctx.setLoading(false);
-    ctx.streamingMessageId = null;
-    ctx.knownAssistantIds.clear();
-    postToWebview({ command: "endStreaming" });
-
-    if (!ctx.sessionId || ctx.pendingNewSession) return;
+    if (!sessionId) return;
     try {
-      await ctx.api.abortMessage(ctx.sessionId);
+      await ctx.api.abortMessage(sessionId);
     } catch {
       // Server may already be idle; UI is already stopped.
     }

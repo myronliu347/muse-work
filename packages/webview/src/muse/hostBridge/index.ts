@@ -321,7 +321,8 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     login: () => void auth.handleLogin(),
     logout: () => void auth.handleLogout(),
     sendMessage: (msg) => void chat.handleSendMessage(msg as { text?: string }),
-    abortMessage: () => void chat.handleAbortMessage(),
+    abortMessage: (msg) =>
+      void chat.handleAbortMessage(msg as { sessionId?: string }),
     deleteQueuedMessageById: (msg) =>
       void chat.handleDeleteQueuedMessageById(msg as { id?: string }),
     updateQueuedMessage: (msg) =>

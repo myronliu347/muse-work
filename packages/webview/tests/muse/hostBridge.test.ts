@@ -885,6 +885,24 @@ describe("createHostBridge desktop workdir bootstrap", () => {
     expect(messages).toContainEqual({ command: "endStreaming" });
   });
 
+  it("aborts the requested issue session without ending another pane stream", async () => {
+    const api = stubApi();
+    const bridge = createHostBridge({
+      api,
+      ws: stubWs(),
+      workdir: "/tmp",
+    });
+    bridge.postMessage({ command: "desktopReady" });
+    await flush();
+    messages.length = 0;
+
+    bridge.postMessage({ command: "abortMessage", sessionId: "plan-radii" });
+    await flush();
+
+    expect(api.abortMessage).toHaveBeenCalledWith("plan-radii");
+    expect(messages).not.toContainEqual({ command: "endStreaming" });
+  });
+
   it("deltas already in flight after an abort do not re-ignite streaming", async () => {
     let handler: ((e: unknown) => void) | undefined;
     const ws = {

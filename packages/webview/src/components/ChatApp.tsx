@@ -2126,7 +2126,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     <ChatComposer
       ref={messageInputRef}
       onSendMessage={handleSendMessage}
-      isStreaming={state.isStreaming}
+      isStreaming={
+        assistantVisible && shownIssueGroup ? issueStreaming : state.isStreaming
+      }
       onAbortMessage={handleAbortMessage}
       onSubmitQueuedEdit={handleSubmitQueuedEdit}
       editingQueuedId={state.editingQueuedId}

@@ -245,12 +245,13 @@ export function useChatSend({
   );
 
   const handleAbortMessage = useCallback(() => {
-    if (!state.isStreaming) return;
-
+    const pinned = pinnedSessionIdRef?.current;
+    if (!state.isStreaming && !pinned) return;
     postToHost({
       command: "abortMessage",
+      ...(pinned ? { sessionId: pinned } : {}),
     });
-  }, [state.isStreaming, postToHost]);
+  }, [pinnedSessionIdRef, postToHost, state.isStreaming]);
 
   const handleDeleteQueuedMessage = useCallback(
     (id: string) => {
