@@ -118,3 +118,24 @@ export function botIssueChromeChecked(
   if (tools.some((tool) => tool.kind === "preview")) extra.push("preview");
   return [...scoped, ...extra];
 }
+
+/**
+ * Chrome kinds the bot dock can show. An issue only contributes 文件 and 变更.
+ * 终端 and 浏览器 are bot tools, so they stay selectable when no issue is current.
+ */
+export function botDockChromeChecked(
+  issueBound: boolean,
+  checked: readonly DesktopPanelKind[],
+  tools: readonly DockToolInstance[],
+): DesktopPanelKind[] {
+  const kinds = issueBound
+    ? botIssueChromeChecked(checked, tools)
+    : [...checked];
+  if (tools.some((tool) => tool.kind === "terminal") && !kinds.includes("terminal")) {
+    kinds.push("terminal");
+  }
+  if (tools.some((tool) => tool.kind === "preview") && !kinds.includes("preview")) {
+    kinds.push("preview");
+  }
+  return kinds;
+}

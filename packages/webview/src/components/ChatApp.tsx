@@ -116,7 +116,7 @@ import {
 import {
   activePreviewTool,
   appendDockTool,
-  botIssueChromeChecked,
+  botDockChromeChecked,
   botToolTermId,
   createDockToolId,
   nextDockToolId,
@@ -707,15 +707,23 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   );
   const dockTabOrder = assistantVisible ? assistantTabOrder : groupTabOrder;
   // With an issue selected, terminal and browser are not that directory's tabs.
+  // Without one, those bot tools still have to count as open chrome, or a click
+  // leaves the dock on 详情.
   const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
   const residentFileOpen = assistantVisible && assistantFileTabs.length > 0;
   const chromeChecked = useMemo(() => {
-    const kinds = issueBoundDock
-      ? botIssueChromeChecked(checkedPanels, assistantTools)
+    const kinds = assistantVisible
+      ? botDockChromeChecked(issueBoundDock, checkedPanels, assistantTools)
       : checkedPanels;
     if (!residentFileOpen || kinds.includes("file")) return kinds;
     return [...kinds, "file"];
-  }, [issueBoundDock, checkedPanels, assistantTools, residentFileOpen]);
+  }, [
+    assistantVisible,
+    issueBoundDock,
+    checkedPanels,
+    assistantTools,
+    residentFileOpen,
+  ]);
   const chromeActive =
     issueBoundDock && (activePanel === "terminal" || activePanel === "preview")
       ? null

@@ -883,6 +883,34 @@ describe("issue tab", () => {
     expect(dock.querySelector('[title="/work/a11y-exec"]')).toBeTruthy();
   });
 
+  it("opens a bot terminal tab when no issue is current", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    usePanelGroupStore.getState().patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+      dockColumnOpen: true,
+      tools: [{ id: "term-1", kind: "terminal", workdir: "/tmp/proj" }],
+      activeToolId: "term-1",
+    });
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({ issueGroups: [] })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    const tab = within(dock).getByTestId("desktop-panel-tool-term-1");
+    expect(tab).not.toHaveClass("desktop-panel-tab--active");
+    await user.click(within(tab).getByRole("button", { name: "proj" }));
+    expect(tab).toHaveClass("desktop-panel-tab--active");
+    expect(within(dock).getByTestId("terminal-pane")).toBeVisible();
+  });
+
   it("uses the normal session directory on 会话 when no issue is selected", async () => {
     resetWebviewStores();
     stubAssistant([]);

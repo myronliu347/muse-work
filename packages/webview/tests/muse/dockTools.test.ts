@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  botDockChromeChecked,
   botIssueChromeChecked,
   dockToolLabel,
   nextDockToolId,
@@ -18,6 +19,12 @@ describe("bot dock tools", () => {
         [terminal("t1", "/work/radii")],
       ),
     ).toEqual(["file", "diff", "terminal"]);
+  });
+
+  it("keeps a bot terminal selectable when no issue is current", () => {
+    expect(
+      botDockChromeChecked(false, [], [terminal("t1", "/tmp/proj")]),
+    ).toEqual(["terminal"]);
   });
 
   it("labels a second terminal in the same directory", () => {
