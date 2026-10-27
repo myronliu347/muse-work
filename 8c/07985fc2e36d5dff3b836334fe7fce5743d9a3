@@ -1,0 +1,159 @@
+packages/webview/src/components/message/ReasoningBlockView.tsx
+  2b443eb251a769d5 3,50
+packages/webview/tests/components/thinkingHint.test.tsx
+  2b443eb251a769d5 7,52-112
+packages/webview/tests/webview/diffViewer.test.tsx
+  2b443eb251a769d5 3,43-46,48,95,101-102,134-136,168-170,199-200,237-239,241-242,277
+packages/webview/src/styles/Message.css
+  2b443eb251a769d5 815-905
+packages/webview/tests/webview/askUserQuestion.test.tsx
+  2b443eb251a769d5 3,36,82
+packages/webview/src/components/message/toolActivity.ts
+  2b443eb251a769d5 1-549
+packages/webview/src/components/message/WriteToolPreview.tsx
+  2b443eb251a769d5 11-12,19,47-73
+packages/webview/tests/webview/toolResultWhileRunning.test.tsx
+  2b443eb251a769d5 3,35,76,102
+packages/webview/tests/components/toolActivity.test.ts
+  2b443eb251a769d5 1-256
+packages/webview/tests/webview/reasoningBlockView.test.tsx
+  2b443eb251a769d5 6,240,320-343
+packages/webview/tests/components/agentToolPopup.test.tsx
+  2b443eb251a769d5 50,68-72,84,145-147
+packages/webview/src/components/message/ToolActivityGroup.tsx
+  2b443eb251a769d5 1-147
+packages/webview/tests/webview/tool-error-rendering.test.tsx
+  2b443eb251a769d5 4,33,35,37,59,61-62,84,86-87,109,111
+packages/webview/tests/webview/readToolOpenFile.test.tsx
+  2b443eb251a769d5 9,32,34,39,76,78,82
+packages/webview/src/types/index.ts
+  2b443eb251a769d5 453-456
+packages/webview/tests/webview/userReportedDiff.test.tsx
+  2b443eb251a769d5 3,42
+packages/webview/tests/webview/activityTestHelpers.ts
+  2b443eb251a769d5 1-17
+packages/webview/src/components/message/Message.tsx
+  2b443eb251a769d5 35-47,199-200,407,872-873,906-964,1002-1014,1041-1043
+packages/webview/src/components/chat/MessageList.tsx
+  2b443eb251a769d5 23-29,57,157-159,162-164,166,168-173,249,743-748,768-769,784-785,789-829,842-845,860,931,934
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "8c07985fc2e36d5dff3b836334fe7fce5743d9a3",
+  "prompts": {
+    "2b443eb251a769d5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "270c5fa6-b4bc-47d4-b951-673237a24e03",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 2072,
+      "total_deletions": 988,
+      "accepted_lines": 1720,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/activityTestHelpers.ts": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "packages/webview/tests/webview/tool-error-rendering.test.tsx": {
+          "additions": 13,
+          "deletions": 8,
+          "accepted_lines": 12
+        },
+        "preview/message-blocks.html": {
+          "additions": 255,
+          "deletions": 676,
+          "accepted_lines": 299
+        },
+        "packages/webview/tests/webview/diffViewer.test.tsx": {
+          "additions": 27,
+          "deletions": 30,
+          "accepted_lines": 24
+        },
+        "packages/webview/src/components/message/ReasoningBlockView.tsx": {
+          "additions": 3,
+          "deletions": 19,
+          "accepted_lines": 2
+        },
+        "packages/webview/tests/webview/reasoningBlockView.test.tsx": {
+          "additions": 26,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/components/toolActivity.test.ts": {
+          "additions": 281,
+          "deletions": 25,
+          "accepted_lines": 256
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 123,
+          "deletions": 55,
+          "accepted_lines": 93
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 92,
+          "deletions": 1,
+          "accepted_lines": 91
+        },
+        "packages/webview/src/components/message/toolActivity.ts": {
+          "additions": 674,
+          "deletions": 125,
+          "accepted_lines": 549
+        },
+        "packages/webview/src/types/index.ts": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/webview/askUserQuestion.test.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        "packages/webview/tests/webview/toolResultWhileRunning.test.tsx": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/message/_snippet.txt": {
+          "additions": 193
+        },
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "additions": 63,
+          "deletions": 1,
+          "accepted_lines": 62
+        },
+        "packages/webview/tests/webview/userReportedDiff.test.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "additions": 153,
+          "deletions": 6,
+          "accepted_lines": 147
+        },
+        "packages/webview/tests/components/agentToolPopup.test.tsx": {
+          "additions": 13,
+          "deletions": 7,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/webview/readToolOpenFile.test.tsx": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 87,
+          "deletions": 27,
+          "accepted_lines": 81
+        },
+        "packages/webview/src/components/message/WriteToolPreview.tsx": {
+          "additions": 30,
+          "accepted_lines": 30
+        }
+      }
+    }
+  }
+}
