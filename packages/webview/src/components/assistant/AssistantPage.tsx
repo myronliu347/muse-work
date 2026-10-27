@@ -17,13 +17,17 @@ import type { Message as AgentMessage } from "@muse-work/agent";
 import { MessageInput, type MessageInputHandle } from "../chat/MessageInput";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { MessageList } from "../chat/MessageList";
+import { FileIcon } from "../panels/FileIcon";
 import { ContextTag } from "../shared/ContextTag";
 import { linkifyFilePaths, parseMentions } from "../../utils/messageUtils";
 import { resolveWorkspaceFilePath } from "../../utils/filePathDisplay";
+import { pathToFileUrl } from "../../utils/pathToFileUrl";
 import type { AttachedImage, VsCodeApi } from "../../types";
 import {
   classifyAssistantHref,
   collectAssistantFilePaths,
+  isHtmlPreviewPath,
+  splitAssistantFileLines,
   stripClosedFileLinks,
 } from "./assistantLinks";
 import { openImagePreview, type PreviewImage } from "../message/imagePreview";
@@ -435,16 +439,57 @@ function UserLine({
   );
 }
 
+function fileBaseName(filePath: string): string {
+  return filePath.replace(/\\/g, "/").split("/").pop() || filePath;
+}
+
+function AssistantFileChip({
+  path,
+  closed,
+  onOpen,
+}: {
+  path: string;
+  closed: boolean;
+  onOpen: (path: string) => void;
+}) {
+  const name = fileBaseName(path);
+  const html = isHtmlPreviewPath(path);
+  if (closed) {
+    return (
+      <span className="assistant-file-chip assistant-file-chip-closed" title={path}>
+        <FileIcon name={name} className="assistant-file-chip-icon" />
+        <span className="assistant-file-chip-name">{name}</span>
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="assistant-file-chip"
+      data-testid="assistant-file-chip"
+      data-path={path}
+      title={path}
+      aria-label={html ? `在内置浏览器中打开 ${name}` : `打开 ${name}`}
+      onClick={() => onOpen(path)}
+    >
+      <FileIcon name={name} className="assistant-file-chip-icon" />
+      <span className="assistant-file-chip-name">{name}</span>
+    </button>
+  );
+}
+
 function AssistantBubbleBody({
   line,
   closedFilePaths,
   onLinkClick,
+  onOpenAttachment,
   onSelectIssue,
   onPreviewImage,
 }: {
   line: AssistantLine;
   closedFilePaths: ReadonlySet<string>;
   onLinkClick: (event: MouseEvent) => void;
+  onOpenAttachment: (path: string) => void;
   onSelectIssue?: (issueId: string) => void;
   onPreviewImage: (
     src: string,
@@ -461,38 +506,57 @@ function AssistantBubbleBody({
   );
   return (
     <>
-      {parts.map((part, index) =>
-        part.issueId ? (
-          <ContextTag
-            key={`${line.id}:issue:${index}`}
-            name={part.fileName || part.issueId}
-            path={part.issueId}
-            tooltip={part.fileName || part.issueId}
-          />
-        ) : (
-          <div
-            key={`${line.id}:text:${index}`}
-            className="message-content markdown-content"
-            onClick={(event) => {
-              const quote = (event.target as HTMLElement).closest(
-                "blockquote.assistant-issue-quote",
-              );
-              if (quote && line.issueId && onSelectIssue) {
-                event.preventDefault();
-                onSelectIssue(line.issueId);
-                return;
-              }
-              onLinkClick(event);
-            }}
-            dangerouslySetInnerHTML={{
-              __html: withIssueQuote(
-                markdownHtml(part.content, closedFilePaths),
-                line.issueId,
-              ),
-            }}
-          />
-        ),
-      )}
+      {parts.map((part, index) => {
+        if (part.issueId) {
+          return (
+            <ContextTag
+              key={`${line.id}:issue:${index}`}
+              name={part.fileName || part.issueId}
+              path={part.issueId}
+              tooltip={part.fileName || part.issueId}
+            />
+          );
+        }
+        const { text: body, files } = splitAssistantFileLines(part.content);
+        return (
+          <div key={`${line.id}:text:${index}`}>
+            {body.trim() ? (
+              <div
+                className="message-content markdown-content"
+                onClick={(event) => {
+                  const quote = (event.target as HTMLElement).closest(
+                    "blockquote.assistant-issue-quote",
+                  );
+                  if (quote && line.issueId && onSelectIssue) {
+                    event.preventDefault();
+                    onSelectIssue(line.issueId);
+                    return;
+                  }
+                  onLinkClick(event);
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: withIssueQuote(
+                    markdownHtml(body, closedFilePaths),
+                    line.issueId,
+                  ),
+                }}
+              />
+            ) : null}
+            {files.length > 0 ? (
+              <div className="assistant-file-list">
+                {files.map((path) => (
+                  <AssistantFileChip
+                    key={path}
+                    path={path}
+                    closed={closedFilePaths.has(path)}
+                    onOpen={onOpenAttachment}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
       {shots.length > 0 ? (
         <div className="assistant-user-images">
           {shots.map((src, index) => (
@@ -903,11 +967,12 @@ export const AssistantPage: React.FC<{
     if (!target) return;
     if (target.kind === "file") {
       if (closedFilePaths.has(target.path)) return;
-      onOpenFile?.(
-        resolveWorkspaceFilePath(target.path, agentWorkdir),
-        target.startLine,
-        target.endLine,
-      );
+      const resolved = resolveWorkspaceFilePath(target.path, agentWorkdir);
+      if (isHtmlPreviewPath(target.path)) {
+        onOpenUrl?.(pathToFileUrl(resolved));
+        return;
+      }
+      onOpenFile?.(resolved, target.startLine, target.endLine);
       return;
     }
     if (target.kind === "browser") {
@@ -1095,6 +1160,7 @@ export const AssistantPage: React.FC<{
                         line={line}
                         closedFilePaths={closedFilePaths}
                         onLinkClick={handleLinkClick}
+                        onOpenAttachment={openHref}
                         onSelectIssue={onSelectIssue}
                         onPreviewImage={previewImage}
                       />

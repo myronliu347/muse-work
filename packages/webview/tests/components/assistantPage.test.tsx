@@ -8,7 +8,9 @@ import {
 } from "../../src/components/assistant/AssistantPage";
 import {
   classifyAssistantHref,
+  isHtmlPreviewPath,
   collectAssistantFilePaths,
+  splitAssistantFileLines,
   stripClosedFileLinks,
 } from "../../src/components/assistant/assistantLinks";
 
@@ -472,8 +474,42 @@ describe("AssistantPage", () => {
     );
   });
 
-  it("opens an absolute file path before the workdir probe answers", async () => {
+  it("shows SendMessage file lines as chips and opens html in the browser", async () => {
     const onOpenFile = vi.fn();
+    const onOpenUrl = vi.fn();
+    const structure = "/tmp/proj/wave-agent-structure.html";
+    const runtime = "/tmp/proj/wave-agent-runtime.ts";
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message: `这就把两份发上来。\n${structure}\n${runtime}`,
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(
+      <AssistantPage api={api} onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} />,
+    );
+    expect(await screen.findByText("这就把两份发上来。")).toBeTruthy();
+    expect(screen.queryByText(structure)).toBeNull();
+    expect(screen.queryByText(runtime)).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "在内置浏览器中打开 wave-agent-structure.html" }),
+    );
+    expect(onOpenUrl).toHaveBeenCalledWith(`file://${structure}`);
+    fireEvent.click(screen.getByRole("button", { name: "打开 wave-agent-runtime.ts" }));
+    expect(onOpenFile).toHaveBeenCalledWith(runtime, undefined, undefined);
+  });
+
+  it("opens an absolute html path in the browser before the workdir probe answers", async () => {
+    const onOpenFile = vi.fn();
+    const onOpenUrl = vi.fn();
     const vscode = {
       postMessage: vi.fn(),
       getState: () => null,
@@ -498,16 +534,13 @@ describe("AssistantPage", () => {
       }),
     };
     render(
-      <AssistantPage api={api} vscode={vscode} onOpenFile={onOpenFile} />,
+      <AssistantPage api={api} vscode={vscode} onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} />,
     );
     fireEvent.click(
       await screen.findByRole("link", { name: "/tmp/proj/wave-agent-structure.html" }),
     );
-    expect(onOpenFile).toHaveBeenCalledWith(
-      "/tmp/proj/wave-agent-structure.html",
-      undefined,
-      undefined,
-    );
+    expect(onOpenUrl).toHaveBeenCalledWith("file:///tmp/proj/wave-agent-structure.html");
+    expect(onOpenFile).not.toHaveBeenCalled();
 
     const requestId = vscode.postMessage.mock.calls.find(
       (call) => call[0].command === "probeFileLinks",
@@ -689,6 +722,16 @@ describe("classifyAssistantHref", () => {
     expect(classifyAssistantHref("https://example.com/docs")).toEqual({
       kind: "browser",
       url: "https://example.com/docs",
+    });
+    expect(isHtmlPreviewPath("/tmp/proj/page.html")).toBe(true);
+    expect(isHtmlPreviewPath("/tmp/proj/page.htm")).toBe(true);
+    expect(isHtmlPreviewPath("/tmp/proj/page.xhtml")).toBe(true);
+    expect(isHtmlPreviewPath("/tmp/proj/App.tsx")).toBe(false);
+    expect(
+      splitAssistantFileLines("正文\n/tmp/proj/a.html\n/tmp/proj/b.ts"),
+    ).toEqual({
+      text: "正文",
+      files: ["/tmp/proj/a.html", "/tmp/proj/b.ts"],
     });
   });
 

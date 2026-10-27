@@ -1,6 +1,14 @@
 import { decodeFileHref } from "../../utils/filePathDisplay";
 import { linkifyFilePaths } from "../../utils/messageUtils";
 
+const HTML_PREVIEW_PATH = /\.(html?|xhtml)$/i;
+
+/** Local HTML opens in the built-in browser instead of the file source. */
+export function isHtmlPreviewPath(filePath: string): boolean {
+  const base = filePath.split(/[?#]/)[0] ?? filePath;
+  return HTML_PREVIEW_PATH.test(base);
+}
+
 export type AssistantLinkTarget =
   | { kind: "file"; path: string; startLine?: number; endLine?: number }
   | { kind: "browser"; url: string }
@@ -35,6 +43,34 @@ export function classifyAssistantHref(href: string): AssistantLinkTarget | null 
     };
   }
   return { kind: "file", path: decoded };
+}
+
+function standaloneFilePath(line: string): string | null {
+  const trimmed = line.trim();
+  if (!trimmed || /\s/.test(trimmed)) return null;
+  const target = classifyAssistantHref(trimmed);
+  if (!target || target.kind !== "file") return null;
+  if (!/\.[A-Za-z0-9]{1,8}$/.test(target.path)) return null;
+  return target.path;
+}
+
+/**
+ * SendMessage appends each file as its own line. Those lines become attachment
+ * chips; prose stays in the bubble.
+ */
+export function splitAssistantFileLines(message: string): {
+  text: string;
+  files: string[];
+} {
+  const files: string[] = [];
+  const kept: string[] = [];
+  for (const line of message.split("\n")) {
+    const path = standaloneFilePath(line);
+    if (path) files.push(path);
+    else kept.push(line);
+  }
+  while (kept.length > 0 && kept[kept.length - 1].trim() === "") kept.pop();
+  return { text: kept.join("\n"), files };
 }
 
 /** File paths linkify would turn into file-panel links, without the :line suffix. */
