@@ -36,10 +36,14 @@
   z-index: 2;
   flex-shrink: 0;
   overflow: visible;
+  /* Blank space beside the tabs moves the window. Controls opt out below. */
+  -webkit-app-region: drag;
 }
 
 .desktop-panel-dock-tabs {
-  flex: 1;
+  /* Shrink to the tabs so the header's empty stretch stays a drag region.
+     overflow on this box would swallow that stretch. */
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -298,6 +302,18 @@
   font-size: var(--font-size-2);
 }
 
+.desktop-panel-dock-header .desktop-panel-tab,
+.desktop-panel-dock-header .desktop-panel-tab-label,
+.desktop-panel-dock-header .desktop-panel-tab-close,
+.desktop-panel-dock-header .desktop-panel-add,
+.desktop-panel-dock-header .desktop-panel-add-btn,
+.desktop-panel-dock-header .file-tab,
+.desktop-panel-dock-header .file-tab-close,
+.desktop-panel-dock-header .header-button,
+.desktop-panel-dock-header .panel-toggle-control {
+  -webkit-app-region: no-drag;
+}
+
 .desktop-panel-dock-actions {
   display: flex;
   align-items: center;
@@ -305,6 +321,7 @@
   flex-shrink: 0;
   margin-left: auto;
   height: 100%;
+  -webkit-app-region: no-drag;
 }
 
 .desktop-panel-dock-actions .panel-toggle-control,
