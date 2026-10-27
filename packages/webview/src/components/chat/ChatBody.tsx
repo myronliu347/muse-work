@@ -66,6 +66,8 @@ export interface ChatBodyProps {
   currentSession?: SessionMetadata;
   /** The message composer (rendered both in the new-session page and the input area). */
   composer: ReactNode;
+  /** Fires when focus enters the composer, including its input. */
+  onComposerFocus?: () => void;
   /** Issue 标签嵌入会话详情时不展示欢迎页。 */
   hideWelcome?: boolean;
 }
@@ -114,6 +116,7 @@ export const ChatBody = forwardRef<
     onReject,
     currentSession,
     composer,
+    onComposerFocus,
     hideWelcome,
   },
   ref,
@@ -150,6 +153,7 @@ export const ChatBody = forwardRef<
           />
         }
         composer={composer}
+        onComposerFocus={onComposerFocus}
       />
     );
   }
@@ -234,6 +238,7 @@ export const ChatBody = forwardRef<
         </div>
 
         <div
+          onFocus={onComposerFocus}
           style={{
             display: pendingConfirmations.length === 0 ? "block" : "none",
           }}

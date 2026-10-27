@@ -72,37 +72,10 @@
   flex-shrink: 0;
 }
 
-.diff-file-status {
+.diff-file-icon {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-}
-
-/* Bump over `.diff-file-header .codicon` / codicons baseline so status tint wins. */
-.diff-pane .diff-file-status .codicon {
-  font-size: var(--font-size-2);
-  color: inherit;
-}
-
-.diff-pane .diff-file-status-added {
-  color: var(--green-11);
-}
-
-.diff-pane .diff-file-status-modified {
-  color: var(--amber-11);
-}
-
-.diff-pane .diff-file-status-deleted {
-  color: var(--red-11);
-}
-
-.diff-pane .diff-file-status-renamed {
-  color: var(--accent-11);
-}
-
-.diff-pane .diff-file-status-untracked {
-  color: var(--gray-11);
+  width: 16px;
+  height: 16px;
 }
 
 .diff-file-path {
@@ -111,7 +84,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  color: var(--accent-11);
+  color: var(--gray-12);
   cursor: pointer;
 }
 

@@ -19,6 +19,7 @@ import {
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
 import { PathTree } from "./PathTree";
+import { FileIcon } from "./FileIcon";
 import { getOverlayHost } from "../../utils/bodyPortal";
 import { localizeDiffHost } from "../../utils/diffSeparatorLabel";
 import "../../styles/DiffViewer.css";
@@ -184,14 +185,19 @@ export function formatDiffComment(msg: DiffComment): string {
 
 const MIN_WIDTH = 320;
 
+function fileBaseName(path: string): string {
+  const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return cut >= 0 ? path.slice(cut + 1) : path;
+}
+
 const PATCH_DIFF_OPTIONS = {
   diffStyle: "unified" as const,
   disableFileHeader: true,
   lineDiffType: "word" as const,
   overflow: "scroll" as const,
   enableGutterUtility: true,
-  // One click on a collapsed gap reveals that gap, including large ones.
-  expansionLineCount: 100000,
+  // One click on a collapsed gap reveals 20 lines.
+  expansionLineCount: 20,
   theme: { dark: "pierre-dark" as const, light: "pierre-light" as const },
   // Pierre defaults the utility slot to the right edge of the gutter (between
   // line numbers and code). GitHub-style comments put "+" on the far left.
@@ -1008,7 +1014,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     </span>
   );
 
-  /** Shared per-file header row: status icon + clickable path + revert +
+  /** Shared per-file header row: file icon + clickable path + revert +
    *  +/- stats. The accordion chevron only renders in list view (onToggle
    *  given); the tree view's selected-file detail renders the same row. */
   const renderFileHeader = (
@@ -1023,13 +1029,10 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             className={`codicon codicon-chevron-${expanded ? "down" : "right"}`}
           />
         )}
-        <span
-          className={`diff-file-status diff-file-status-${file.status}`}
-          title={STATUS_LABEL[file.status]}
-          aria-label={STATUS_LABEL[file.status]}
-        >
-          <i className={`codicon ${STATUS_ICON[file.status]}`} />
-        </span>
+        <FileIcon
+          name={fileBaseName(file.path)}
+          className="diff-file-icon"
+        />
         {renderFilePath(file)}
       </>
     );
@@ -1122,7 +1125,9 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
           data-testid="diff-tree-resize"
           onMouseDown={onTreeNavDragStart}
         />
-        <div className="diff-pane-tree-header">变更文件</div>
+        <div className="diff-pane-tree-header" data-testid="diff-tree-header">
+          {treeFiles.length} 个文件变更
+        </div>
         <div className="diff-pane-tree-scroll">
           <PathTree
             nodes={diffTree}

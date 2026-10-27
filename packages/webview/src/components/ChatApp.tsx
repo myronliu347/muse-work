@@ -438,6 +438,21 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const threeColumns = Boolean(splitIssueGroup);
   // 两栏时主栏只显示当前标签。三栏时中间固定是一条事项会话，即使焦点在 Muse Bot。
   const shownIssueGroup = threeColumns ? splitIssueGroup : openIssueGroup;
+  // 分栏时中间会话和右侧当前事项可能不是同一条。输入框聚焦后，把当前事项切回这条会话。
+  const focusShownIssueFromSender = useCallback(() => {
+    if (!threeColumns || !shownIssueGroup) return;
+    const issueId = shownIssueGroup.issueId;
+    const panel = workspace.panel;
+    if (
+      workspace.active === issueId &&
+      panel.kind === "issue" &&
+      panel.issueId === issueId
+    ) {
+      return;
+    }
+    workspace.focusTab(issueId);
+    clearIssueUnreadRef.current(issueId);
+  }, [threeColumns, shownIssueGroup, workspace]);
   const [issueTabChoice, setIssueTabChoice] = useState<{
     issueId: string;
     tab: IssueViewTab;
@@ -2453,6 +2468,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   onReject={handleRejection}
                   currentSession={issueShowsLive ? state.currentSession : undefined}
                   composer={composer}
+                  onComposerFocus={threeColumns ? focusShownIssueFromSender : undefined}
                 />
               )}
             </div>

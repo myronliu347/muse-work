@@ -324,11 +324,16 @@ describe("DiffPane", () => {
     expect(
       screen
         .getByTestId("diff-file-modified")
-        .querySelector(".codicon-diff-modified"),
+        .querySelector("img.diff-file-icon"),
     ).not.toBeNull();
     expect(
-      screen.getByTestId("diff-file-added").querySelector(".codicon-diff-added"),
+      screen.getByTestId("diff-file-added").querySelector("img.diff-file-icon"),
     ).not.toBeNull();
+    expect(
+      screen
+        .getByTestId("diff-file-modified")
+        .querySelector(".codicon-diff-modified"),
+    ).toBeNull();
     expect(screen.queryByText("修改")).not.toBeInTheDocument();
     expect(screen.queryByText("新增")).not.toBeInTheDocument();
     expect(screen.getByText("+2")).toBeInTheDocument();
@@ -1186,6 +1191,9 @@ describe("DiffPane", () => {
       );
       // Right side: change tree with directory nodes.
       expect(screen.getByTestId("diff-tree-nav")).toBeInTheDocument();
+      expect(screen.getByTestId("diff-tree-header")).toHaveTextContent(
+        "2 个文件变更",
+      );
       expect(screen.getByTestId("diff-tree-dir-src")).toBeInTheDocument();
       expect(screen.getByTestId("diff-tree-dir-lib")).toBeInTheDocument();
       // Left side: the first file's diff block is shown by default.

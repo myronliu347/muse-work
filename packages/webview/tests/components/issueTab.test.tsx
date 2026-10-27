@@ -1967,6 +1967,42 @@ describe("issue tab", () => {
     expect(within(frame).queryByTestId("issue-tab-transcript")).toBeNull();
   });
 
+  it("switches the current issue when the split session sender is focused", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [A11Y_ISSUE, RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    const lists = within(frame).getByTestId("bot-lists");
+    await user.click(within(lists).getByRole("button", { name: new RegExp(A11Y) }));
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    await user.click(within(frame).getByTestId("assistant-column-toggle"));
+
+    const botColumn = frame.querySelector(".assistant-split-bot") as HTMLElement;
+    const issueColumn = frame.querySelector(".assistant-split-issue") as HTMLElement;
+    await user.click(within(botColumn).getByRole("button", { name: "事项" }));
+    const menu = await screen.findByTestId("bot-lists-menu");
+    await user.click(within(menu).getByRole("button", { name: new RegExp(RADII) }));
+    expect(within(dock).getByRole("heading", { name: RADII })).toBeTruthy();
+    expect(within(issueColumn).getByRole("button", { name: A11Y })).toBeTruthy();
+
+    await user.click(within(issueColumn).getByTestId("message-input"));
+    expect(within(dock).getByRole("heading", { name: A11Y })).toBeTruthy();
+    expect(within(dock).queryByRole("heading", { name: RADII })).toBeNull();
+  });
+
   it("clears the Muse Bot unread and notice when the split sender is focused", async () => {
     resetWebviewStores();
     resetAssistantNoticeForTests();
