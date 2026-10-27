@@ -1,0 +1,69 @@
+packages/webview/src/styles/DiffPane.css
+  b4c1fd64c73e39cb 75,77-78,87
+packages/webview/tests/webview/diffPane.test.tsx
+  b4c1fd64c73e39cb 327,330,332-336,1194-1196
+packages/webview/src/components/chat/ChatBody.tsx
+  b4c1fd64c73e39cb 69-70,119,156,241
+packages/webview/src/components/panels/DiffPane.tsx
+  b4c1fd64c73e39cb 22,188-192,199-200,1017,1032-1035,1128-1130
+packages/webview/src/components/chat/NewSessionPage.tsx
+  b4c1fd64c73e39cb 9,16,25
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 441-455,2471
+packages/webview/tests/components/issueTab.test.tsx
+  b4c1fd64c73e39cb 1970-2005
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c75d333a60a43f03290608453fff776df507826c",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 94,
+      "total_deletions": 48,
+      "accepted_lines": 93,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/DiffPane.tsx": {
+          "additions": 16,
+          "deletions": 11,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/chat/ChatBody.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/styles/DiffPane.css": {
+          "additions": 7,
+          "deletions": 34,
+          "accepted_lines": 7
+        },
+        "packages/webview/tests/webview/diffPane.test.tsx": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 37,
+          "deletions": 1,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/chat/NewSessionPage.tsx": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
