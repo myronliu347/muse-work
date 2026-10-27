@@ -1,0 +1,50 @@
+packages/webview/src/components/assistant/AssistantPage.tsx
+  b4c1fd64c73e39cb 20,24,29-30,442-480,485,492,509-559,970-975,1163
+packages/webview/src/styles/AssistantPage.css
+  b4c1fd64c73e39cb 294-295,299-336
+packages/webview/src/components/assistant/assistantLinks.ts
+  b4c1fd64c73e39cb 4-11,48-75
+packages/webview/tests/components/assistantPage.test.tsx
+  b4c1fd64c73e39cb 11,13,477,479-510,512,537,542-543,726-735
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c11276072445ca7ba5654cc607db0b59a996c089",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 231,
+      "total_deletions": 45,
+      "accepted_lines": 231,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/assistant/assistantLinks.ts": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 103,
+          "deletions": 37,
+          "accepted_lines": 103
+        },
+        "packages/webview/src/styles/AssistantPage.css": {
+          "additions": 42,
+          "deletions": 1,
+          "accepted_lines": 42
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 50,
+          "deletions": 7,
+          "accepted_lines": 50
+        }
+      }
+    }
+  }
+}
