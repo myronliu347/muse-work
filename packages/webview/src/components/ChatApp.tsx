@@ -124,6 +124,7 @@ import {
   removeDockTool,
 } from "../muse/dockTools";
 import { firstOpenDockWidths } from "../muse/panelFit";
+import { restoredDockAlreadyOpen, takeRestoredFileLoads } from "../muse/botPageState";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   EMPTY_DOCK_TOOLS,
@@ -216,8 +217,13 @@ export const ChatApp: React.FC<ChatAppProps> = (props) => {
 
 /** 没有 provider 时只在这个子组件里挂 controller，避免和已有 context 同时调用。 */
 const ChatAppWorkspaceOwner: React.FC<ChatAppProps> = (props) => {
+  const issueIds = useMemo(
+    () => props.host?.issueGroups?.map((group) => group.issueId),
+    [props.host?.issueGroups],
+  );
   const ownedWorkspace = useBotWorkspaceController(
     props.host?.issueGroups?.[0]?.issueId ?? null,
+    issueIds,
   );
   return <ChatAppInner {...props} workspace={ownedWorkspace} />;
 };
@@ -1054,6 +1060,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
   useEffect(() => {
+    const loads = takeRestoredFileLoads();
+    for (const item of loads) {
+      postToHost({
+        command: "openFile",
+        path: item.path,
+        host: item.host,
+        workdir: item.workdir,
+      });
+    }
+  }, [postToHost]);
+  useEffect(() => {
     clearIssueUnreadRef.current = (issueId: string) => {
       const group = (host?.issueGroups ?? []).find((item) => item.issueId === issueId);
       const sessionIds = (group?.sessions ?? [])
@@ -1187,7 +1204,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const dockMaxWidth = chatColumnWidth - layoutChatMin;
   const assistantDockToggleRef = useRef<(() => void) | null>(null);
   const restoreAssistantToolsRef = useRef(false);
-  const assistantDockSeenOpen = useRef(false);
+  const assistantDockSeenOpen = useRef(restoredDockAlreadyOpen());
   const [assistantDockOpen, setAssistantDockOpenState] = useState(
     () =>
       usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.dockColumnOpen ===

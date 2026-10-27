@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { rememberBotPanelGroups, restoredBotPanelGroups } from "../muse/botPageState";
 import { useShallow } from "zustand/react/shallow";
 import { PANEL_ADD_ORDER, type CollapsedTabs } from "../muse/panelTabs";
 import { closeFileTab, emptyFileTabsState } from "../muse/fileTabs";
@@ -255,8 +256,18 @@ interface PanelGroupStore {
   reset: () => void;
 }
 
+function seedRestoredGroups(): Record<string, PanelGroupState> {
+  const restored = restoredBotPanelGroups();
+  if (!restored) return {};
+  const groups: Record<string, PanelGroupState> = {};
+  for (const [key, patch] of Object.entries(restored)) {
+    groups[key] = { ...emptyPanelGroup(), ...patch };
+  }
+  return groups;
+}
+
 export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
-  groups: {},
+  groups: seedRestoredGroups(),
   previewEpochs: {},
 
   ensureGroup: (key) => {
@@ -324,6 +335,10 @@ export const usePanelGroupStore = create<PanelGroupStore>((set, get) => ({
 
   reset: () => set({ groups: {}, previewEpochs: {} }),
 }));
+
+usePanelGroupStore.subscribe((state) => {
+  rememberBotPanelGroups(state.groups);
+});
 
 export function prunePanelGroupCache(keepKeys: Set<string>): string[] {
   return usePanelGroupStore.getState().pruneGroups(keepKeys);

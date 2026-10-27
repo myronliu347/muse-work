@@ -44,9 +44,11 @@ import { resetDesktopContentSearchRequests } from "../muse/contentSearchRequests
 import { resetDesktopListDirRequests } from "../muse/listDirRequests";
 import { useDesktopStore } from "./desktopStore";
 import { usePanelGroupStore } from "./panelGroupStore";
+import { resetBotPagePersistence } from "../muse/botPageState";
 import { usePaneUiStore } from "./paneUiStore";
 
 export function resetWebviewStores(): void {
+  resetBotPagePersistence();
   useDesktopStore.getState().reset();
   usePanelGroupStore.getState().reset();
   usePaneUiStore.getState().reset();

@@ -22,6 +22,12 @@ import {
   type DockChrome,
   type PanelSelection,
 } from "./botWorkspace";
+import {
+  botPagePersistenceEnabled,
+  pruneBotWorkspace,
+  readInitialBotWorkspace,
+  saveBotWorkspace,
+} from "../../muse/botPageState";
 
 export interface BotTabsProps {
   state: BotWorkspaceState;
@@ -64,9 +70,22 @@ export function useBotWorkspace(): BotWorkspaceContextValue | null {
 /** Owns tab state for one running app. Mount this only in the child that exists when nothing else owns the workspace. */
 export function useBotWorkspaceController(
   firstIssueId: string | null,
+  issueIds?: readonly string[],
 ): BotWorkspaceContextValue {
-  const [state, setState] = useState(() => initialBotWorkspace(firstIssueId));
+  const [state, setState] = useState(() =>
+    botPagePersistenceEnabled()
+      ? readInitialBotWorkspace(firstIssueId, issueIds)
+      : initialBotWorkspace(firstIssueId),
+  );
   const seededIssue = useRef(firstIssueId != null);
+  useEffect(() => {
+    if (!botPagePersistenceEnabled()) return;
+    saveBotWorkspace(state);
+  }, [state]);
+  useEffect(() => {
+    if (!botPagePersistenceEnabled() || !issueIds || issueIds.length === 0) return;
+    setState((current) => pruneBotWorkspace(current, issueIds));
+  }, [issueIds]);
   useEffect(() => {
     if (!firstIssueId || seededIssue.current) return;
     seededIssue.current = true;

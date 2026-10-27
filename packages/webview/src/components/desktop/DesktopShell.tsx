@@ -100,8 +100,13 @@ export const DesktopShell: React.FC<DesktopShellProps> = (props) => {
 const DesktopShellWorkspaceOwner: React.FC<
   Omit<DesktopShellProps, "workspace">
 > = (props) => {
+  const issueIds = useMemo(
+    () => props.host.issueGroups?.map((group) => group.issueId) ?? [],
+    [props.host.issueGroups],
+  );
   const workspace = useBotWorkspaceController(
     props.host.issueGroups?.[0]?.issueId ?? null,
+    issueIds,
   );
   return <DesktopShellView {...props} workspace={workspace} />;
 };
