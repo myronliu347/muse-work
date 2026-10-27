@@ -1,0 +1,92 @@
+packages/webview/tests/webview/previewPane.test.tsx
+  b4c1fd64c73e39cb 7,31,42,52-53,60,63,65-71,85-86,90,103,105-118,147,151-189
+packages/desktop/src/main/window.ts
+  b4c1fd64c73e39cb 1,14-56,95-99
+packages/webview/src/hooks/useFilePanel.ts
+  b4c1fd64c73e39cb 68-72,88,212,220,229,250,256,265,275,281,284,336-338
+packages/webview/src/muse/botPageState.ts
+  b4c1fd64c73e39cb 23,27-32,39-41,153-167,176-180,192,201,293-300,316-324,397-418
+packages/webview/tests/muse/botPageState.test.ts
+  b4c1fd64c73e39cb 116-161
+packages/desktop/tests/windowWebviewTag.test.ts
+  b4c1fd64c73e39cb 23,32-37,42,54-85
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 126,142,620-629,693-698,711-718,729-736,790-826,1138-1145,1204-1214,1218-1232,1428,1717,1763-1870,2270,2276,2337-2347,2386,2388-2389,2640
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  b4c1fd64c73e39cb 55-56,94,100-103,131,166,179,188-189,345-348
+packages/webview/src/components/panels/PreviewPane.tsx
+  b4c1fd64c73e39cb 28,108-110,154-157,174-175,187,194-196,213-214,251-262,264-268,281,292,297-298,306,341-342,345-347,350,354-355,359,502,505-509,511-513,522-525,567-577
+packages/webview/tests/components/issueTab.test.tsx
+  b4c1fd64c73e39cb 1274,1323-1325,1329-1331,1333-1335,1346,1355-1358,1619-1624,1795-1800
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "3e0817956f378b7faebb6386d0451e015777f981",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 650,
+      "total_deletions": 97,
+      "accepted_lines": 644,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/webview/previewPane.test.tsx": {
+          "additions": 74,
+          "deletions": 4,
+          "accepted_lines": 74
+        },
+        "packages/webview/src/muse/botPageState.ts": {
+          "additions": 71,
+          "deletions": 13,
+          "accepted_lines": 71
+        },
+        "packages/webview/src/components/panels/PreviewPane.tsx": {
+          "additions": 71,
+          "deletions": 28,
+          "accepted_lines": 71
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 28,
+          "deletions": 10,
+          "accepted_lines": 27
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 236,
+          "deletions": 35,
+          "accepted_lines": 232
+        },
+        "packages/desktop/src/main/window.ts": {
+          "additions": 50,
+          "deletions": 2,
+          "accepted_lines": 49
+        },
+        "packages/webview/tests/muse/botPageState.test.ts": {
+          "additions": 46,
+          "accepted_lines": 46
+        },
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 16,
+          "deletions": 2,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/hooks/useFilePanel.ts": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 40,
+          "deletions": 2,
+          "accepted_lines": 40
+        }
+      }
+    }
+  }
+}
