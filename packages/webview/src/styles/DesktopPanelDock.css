@@ -79,6 +79,14 @@
   background: var(--gray-4);
 }
 
+.dock-tab-drop-before {
+  box-shadow: inset 2px 0 0 var(--accent-9);
+}
+
+.dock-tab-drop-after {
+  box-shadow: inset -2px 0 0 var(--accent-9);
+}
+
 .desktop-panel-tab-label {
   border: none;
   background: transparent;
@@ -88,7 +96,7 @@
   font-weight: 600;
   padding: 0 var(--space-2);
   box-sizing: border-box;
-  cursor: pointer;
+  cursor: grab;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -182,7 +190,7 @@
   border-radius: var(--radius-1);
   color: var(--gray-11);
   font-size: var(--font-size-1);
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
   white-space: nowrap;
 }

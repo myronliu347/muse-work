@@ -418,6 +418,38 @@ describe("assistant dock detail", () => {
     resetWebviewStores();
   });
 
+  it("inserts a new terminal after the current tab", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={createMockVscode()}
+          host={createMockDesktopHost({
+            issueGroups: [
+              issue({
+                issueId: "radii",
+                title: RADII,
+                priority: "p1",
+                items: RADII_ITEMS,
+              }),
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    expect(tabLabels()).toEqual([RADII, "变更"]);
+    await user.click(within(dock).getByRole("button", { name: "变更" }));
+    await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
+    await user.click(await screen.findByTestId("panel-add-item-terminal"));
+    expect(tabLabels()).toEqual([RADII, "变更", "radii"]);
+  });
+
   it("follows the list selection and does not open a session transcript", async () => {
     resetWebviewStores();
     const fetched: string[] = [];

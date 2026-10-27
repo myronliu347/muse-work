@@ -48,6 +48,42 @@ describe("DesktopPanelDock", () => {
     expect(screen.getByTestId("panel-toggle-btn")).toBeInTheDocument();
   });
 
+  it("renders a saved order and reports a drag", () => {
+    const onTabOrderChange = vi.fn();
+    const { rerender } = render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["file", "diff"]}
+          active="diff"
+          tabOrder={["kind:diff", "kind:file"]}
+          onTabOrderChange={onTabOrderChange}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    const tabs = [...document.querySelectorAll(".desktop-panel-dock-tabs > .desktop-panel-tab")];
+    expect(tabs.map((tab) => tab.textContent?.replace(/\s+/g, ""))).toEqual(["变更", "文件"]);
+
+    rerender(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["file", "diff"]}
+          active="diff"
+          onTabOrderChange={onTabOrderChange}
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    fireEvent.dragStart(screen.getByTestId("desktop-panel-tab-diff"));
+    fireEvent.drop(screen.getByTestId("desktop-panel-tab-file"));
+    expect(onTabOrderChange).toHaveBeenCalledWith(["kind:diff", "kind:file"]);
+  });
+
   it("selects a tab on label click and closes on X without selecting", () => {
     const onSelect = vi.fn();
     const onCloseTab = vi.fn();

@@ -126,6 +126,7 @@ export interface DockToolInstance {
 }
 
 export const EMPTY_DOCK_TOOLS: DockToolInstance[] = [];
+export const EMPTY_TAB_ORDER: string[] = [];
 
 export interface PanelGroupState {
   checked: DesktopPanelKind[];
@@ -152,6 +153,8 @@ export interface PanelGroupState {
   /** Bot dock: extra terminal and browser tabs. Issue switches do not replace these. */
   tools: DockToolInstance[];
   activeToolId: string | null;
+  /** Visual dock tab order. Empty keeps 详情、文件、终端、浏览器、变更. */
+  tabOrder: string[];
 }
 
 export function emptyPanelGroup(): PanelGroupState {
@@ -178,6 +181,7 @@ export function emptyPanelGroup(): PanelGroupState {
     forwardError: null,
     tools: [],
     activeToolId: null,
+    tabOrder: [],
   };
 }
 
@@ -229,6 +233,9 @@ export function resolvePanelGroup(
   }
   if (next.activeToolId === undefined) {
     next = { ...next, activeToolId: null };
+  }
+  if (!next.tabOrder) {
+    next = { ...next, tabOrder: EMPTY_TAB_ORDER };
   }
   return next;
 }

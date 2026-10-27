@@ -84,6 +84,8 @@ export interface DesktopPanelSlotsProps {
   activeToolId?: string | null;
   onSelectTool?: (id: string) => void;
   onCloseTool?: (id: string) => void;
+  tabOrder?: readonly string[];
+  onTabOrderChange?: (order: string[]) => void;
   onToolPreviewNavigate?: (id: string, url: string) => void;
   onToolPreviewRetry?: (id: string) => void;
 }
@@ -149,6 +151,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   activeToolId = null,
   onSelectTool,
   onCloseTool,
+  tabOrder,
+  onTabOrderChange,
   onToolPreviewNavigate,
   onToolPreviewRetry,
 }) => {
@@ -269,6 +273,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       activeToolId={activeToolId}
       onSelectTool={onSelectTool}
       onCloseTool={onCloseTool}
+      tabOrder={tabOrder}
+      onTabOrderChange={onTabOrderChange}
     >
       {PANEL_ORDER.filter(
         (kind) => mounted.includes(kind) && !tools.some((tool) => tool.kind === kind),

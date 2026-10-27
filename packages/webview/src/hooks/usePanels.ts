@@ -81,6 +81,8 @@ interface UsePanelsParams {
   beforeToggleRef?: MutableRefObject<((kind: DesktopPanelKind) => boolean) | null>;
   /** When set, a remote preview forward is stored here instead of the group record. */
   placeForwardRef?: MutableRefObject<((fwd: RemoteForwardRef) => void) | null>;
+  /** Called when a kind tab is actually added, so it can sit after the current tab. */
+  placeKindRef?: MutableRefObject<((kind: DesktopPanelKind) => void) | null>;
 }
 
 export function usePanels({
@@ -109,6 +111,7 @@ export function usePanels({
   previewWithoutWorkdir = false,
   beforeToggleRef,
   placeForwardRef,
+  placeKindRef,
 }: UsePanelsParams): PanelHandlers {
   // Mirrors so the stable message listener / shortcut handler can reach the
   // panel toggle logic without re-subscribing.
@@ -235,6 +238,7 @@ export function usePanels({
           }
         }
       }
+      placeKindRef?.current?.(kind);
       updatePanelGroup((group) => ({
         checked: group.checked.includes(kind)
           ? group.checked

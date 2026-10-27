@@ -6,6 +6,14 @@ import {
   PANEL_TAB_ICONS,
   PANEL_TAB_LABELS,
 } from "../../muse/panelTabs";
+import {
+  DOCK_TAB_DETAIL_KEY,
+  defaultDockTabKeys,
+  filePathFromTabKey,
+  moveDockTab,
+  reconcileTabOrder,
+  toolIdFromTabKey,
+} from "../../muse/dockTabOrder";
 import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
@@ -75,8 +83,13 @@ export interface DesktopPanelDockProps {
   activeToolId?: string | null;
   onSelectTool?: (id: string) => void;
   onCloseTool?: (id: string) => void;
+  /** Saved visual order. Empty keeps the default kind order. */
+  tabOrder?: readonly string[];
+  onTabOrderChange?: (order: string[]) => void;
   children: React.ReactNode;
 }
+
+let draggingDockTabKey: string | null = null;
 
 export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   checked,
@@ -104,10 +117,16 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   activeToolId = null,
   onSelectTool,
   onCloseTool,
+  tabOrder,
+  onTabOrderChange,
   children,
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
+  const suppressDrag = React.useRef(false);
+  const [dropHint, setDropHint] = React.useState<{ key: string; after: boolean } | null>(
+    null,
+  );
   // The tab bar starts scrolled to the left, so the initially active tab is
   // always visible; scrolling only makes sense on later activation changes.
   const mountedRef = React.useRef(false);
@@ -143,23 +162,74 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   };
 
   // Open files live in the dock's top tab bar regardless of which panel is
-  // active (switching to the diff/preview panel keeps the file tabs visible).
-  // While files are open the "文件" kind tab yields its place to them.
-  const showFileTabs = fileTabs.length > 0;
-  type HeaderItem =
-    | { type: "kind"; kind: DesktopPanelKind }
-    | { type: "tool"; tool: DockToolTab };
-  const headerItems: HeaderItem[] = [];
-  for (const kind of PANEL_ADD_ORDER) {
-    const mine = toolTabs.filter((tool) => tool.kind === kind);
-    if (mine.length > 0) {
-      for (const tool of mine) headerItems.push({ type: "tool", tool });
-      continue;
+  // active. Their place in the bar follows the saved order, not the kind list.
+  const presentKeys = defaultDockTabKeys({
+    detail: Boolean(onSelectDetail),
+    checked,
+    filePaths: fileTabs.map((tab) => tab.path),
+    tools: toolTabs,
+  });
+  const orderedKeys = reconcileTabOrder(tabOrder, presentKeys);
+  const dropAfter = (event: React.DragEvent) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return event.clientX > rect.left + rect.width / 2;
+  };
+  const finishDrag = () => {
+    draggingDockTabKey = null;
+    suppressDrag.current = false;
+    setDropHint(null);
+  };
+  const beginDrag = (event: React.DragEvent, key: string) => {
+    if (suppressDrag.current) {
+      event.preventDefault();
+      return;
     }
-    if (checked.includes(kind) || (showFileTabs && kind === "file")) {
-      headerItems.push({ type: "kind", kind });
+    draggingDockTabKey = key;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", key);
     }
-  }
+  };
+  const bindTab = (key: string) => ({
+    draggable: true,
+    onMouseDown: (event: React.MouseEvent) => {
+      const el = event.target as HTMLElement;
+      suppressDrag.current = Boolean(
+        el.closest(".desktop-panel-tab-close, .file-tab-close"),
+      );
+    },
+    onDragStart: (event: React.DragEvent) => beginDrag(event, key),
+    onDragOver: (event: React.DragEvent) => {
+      if (!draggingDockTabKey) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      const after = dropAfter(event);
+      setDropHint((prev) =>
+        prev?.key === key && prev.after === after ? prev : { key, after },
+      );
+    },
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault();
+      const from = draggingDockTabKey;
+      const after = dropAfter(event);
+      finishDrag();
+      if (!from || from === key || !onTabOrderChange) return;
+      onTabOrderChange(moveDockTab(orderedKeys, from, key, after));
+    },
+    onDragEnd: finishDrag,
+  });
+  const dragSource = (key: string) => ({
+    draggable: true,
+    onDragStart: (event: React.DragEvent) => {
+      event.stopPropagation();
+      beginDrag(event, key);
+    },
+    onDragEnd: finishDrag,
+  });
+  const dropClass = (key: string) => {
+    if (dropHint?.key !== key) return "";
+    return dropHint.after ? " dock-tab-drop-after" : " dock-tab-drop-before";
+  };
   // 详情 is not a kind, so a detail-only dock still needs + to open
   // 文件、终端、浏览器、变更.
   const canAdd = PANEL_ADD_ORDER.some(
@@ -204,43 +274,52 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
       )}
       <div className="desktop-panel-dock-header">
         <div className="desktop-panel-dock-tabs" ref={tabsRef}>
-          {onSelectDetail ? (
-            <div
-              className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}`}
-              data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
-            >
-              <Tooltip
-                text={detailLabel}
-                position="bottom"
-                wrap={false}
-                className="desktop-panel-tab-tip"
-                disabled={!detailTitle?.trim()}
-              >
-                <button
-                  type="button"
-                  className="desktop-panel-tab-label"
-                  onClick={() => onSelectDetail()}
+          {orderedKeys.map((key) => {
+            if (key === DOCK_TAB_DETAIL_KEY) {
+              if (!onSelectDetail) return null;
+              return (
+                <div
+                  key={key}
+                  className={`desktop-panel-tab${detailActive ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
+                  data-testid={`desktop-panel-tab-${DOCK_DETAIL_TAB}`}
+                  {...bindTab(key)}
                 >
-                  <i
-                    className="codicon codicon-note desktop-panel-tab-icon"
-                    aria-hidden
-                  />
-                  <span className="desktop-panel-tab-text">{detailLabel}</span>
-                </button>
-              </Tooltip>
-            </div>
-          ) : null}
-          {headerItems.map((item) => {
-            if (item.type === "tool") {
-              const tool = item.tool;
+                  <Tooltip
+                    text={detailLabel}
+                    position="bottom"
+                    wrap={false}
+                    className="desktop-panel-tab-tip"
+                    disabled={!detailTitle?.trim()}
+                  >
+                    <button
+                      type="button"
+                      className="desktop-panel-tab-label"
+                      onClick={() => onSelectDetail()}
+                      {...dragSource(key)}
+                    >
+                      <i
+                        className="codicon codicon-note desktop-panel-tab-icon"
+                        aria-hidden
+                      />
+                      <span className="desktop-panel-tab-text">{detailLabel}</span>
+                    </button>
+                  </Tooltip>
+                </div>
+              );
+            }
+            const toolId = toolIdFromTabKey(key);
+            if (toolId) {
+              const tool = toolTabs.find((item) => item.id === toolId);
+              if (!tool) return null;
               const selected =
                 !detailActive && tool.id === activeToolId && tool.kind === active;
               return (
                 <div
-                  key={tool.id}
-                  className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}`}
+                  key={key}
+                  className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
                   data-testid={`desktop-panel-tool-${tool.id}`}
                   title={tool.title}
+                  {...bindTab(key)}
                 >
                   <Tooltip
                     text={tool.title}
@@ -252,6 +331,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                       type="button"
                       className="desktop-panel-tab-label"
                       onClick={() => onSelectTool?.(tool.id)}
+                      {...dragSource(key)}
                     >
                       <i
                         className={`codicon ${PANEL_TAB_ICONS[tool.kind]} desktop-panel-tab-icon`}
@@ -275,56 +355,58 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                 </div>
               );
             }
-            const kind = item.kind;
-            if (kind === "file" && showFileTabs) {
-              return fileTabs.map((tab) => {
-                const isActive =
-                  !detailActive &&
-                  active === "file" &&
-                  tab.path === activeFilePath;
-                const name =
-                  tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
-                return (
-                  <div
-                    key={tab.path}
-                    className={`file-tab${isActive ? " file-tab--active" : ""}${tab.pinned ? "" : " file-tab--preview"}`}
-                    data-testid="file-tab"
-                    data-path={tab.path}
-                    data-active={isActive ? "true" : "false"}
-                    title={tab.path}
-                    onClick={() => onSelectFileTab?.(tab.path)}
-                    onDoubleClick={() => onPinFileTab?.(tab.path)}
+            const path = filePathFromTabKey(key);
+            if (path) {
+              const tab = fileTabs.find((item) => item.path === path);
+              if (!tab) return null;
+              const isActive =
+                !detailActive && active === "file" && tab.path === activeFilePath;
+              const name = tab.path.replace(/\\/g, "/").split("/").pop() || tab.path;
+              return (
+                <div
+                  key={key}
+                  className={`file-tab${isActive ? " file-tab--active" : ""}${tab.pinned ? "" : " file-tab--preview"}${dropClass(key)}`}
+                  data-testid="file-tab"
+                  data-path={tab.path}
+                  data-active={isActive ? "true" : "false"}
+                  title={tab.path}
+                  onClick={() => onSelectFileTab?.(tab.path)}
+                  onDoubleClick={() => onPinFileTab?.(tab.path)}
+                  {...bindTab(key)}
+                >
+                  <FileIcon name={name} className="file-tab-icon" />
+                  <span className="file-tab-label">{name}</span>
+                  <button
+                    type="button"
+                    className="file-tab-close"
+                    data-testid="file-tab-close"
+                    title="关闭"
+                    aria-label="关闭"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseFileTab?.(tab.path);
+                    }}
                   >
-                    <FileIcon name={name} className="file-tab-icon" />
-                    <span className="file-tab-label">{name}</span>
-                    <button
-                      type="button"
-                      className="file-tab-close"
-                      data-testid="file-tab-close"
-                      title="关闭"
-                      aria-label="关闭"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCloseFileTab?.(tab.path);
-                      }}
-                    >
-                      <i className="codicon codicon-close" aria-hidden />
-                    </button>
-                  </div>
-                );
-              });
+                    <i className="codicon codicon-close" aria-hidden />
+                  </button>
+                </div>
+              );
             }
+            if (!key.startsWith("kind:")) return null;
+            const kind = key.slice("kind:".length) as DesktopPanelKind;
             const selected = !detailActive && kind === active;
             return (
               <div
-                key={kind}
-                className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}`}
+                key={key}
+                className={`desktop-panel-tab${selected ? " desktop-panel-tab--active" : ""}${dropClass(key)}`}
                 data-testid={`desktop-panel-tab-${kind}`}
+                {...bindTab(key)}
               >
                 <button
                   type="button"
                   className="desktop-panel-tab-label"
                   onClick={() => onSelect(kind)}
+                  {...dragSource(key)}
                 >
                   <i
                     className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}

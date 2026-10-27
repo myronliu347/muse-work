@@ -106,6 +106,14 @@ import type {
 import { chatReducer, initialState } from "../reducers/chatReducer";
 import { DOCK_DETAIL_TAB, PANEL_ADD_ORDER } from "../muse/panelTabs";
 import {
+  DOCK_TAB_DETAIL_KEY,
+  defaultDockTabKeys,
+  fileTabKey,
+  insertTabAfterCurrent,
+  kindTabKey,
+  toolTabKey,
+} from "../muse/dockTabOrder";
+import {
   activePreviewTool,
   appendDockTool,
   botIssueChromeChecked,
@@ -119,6 +127,7 @@ import { firstOpenDockWidths } from "../muse/panelFit";
 import {
   ASSISTANT_PANEL_GROUP_KEY,
   EMPTY_DOCK_TOOLS,
+  EMPTY_TAB_ORDER,
   PANEL_DEFAULT_WIDTH,
   emptyContentSearchState,
   resolvePanelGroup,
@@ -658,6 +667,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const assistantActiveToolId = usePanelGroupStore(
     (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeToolId ?? null,
   );
+  const assistantTabOrder = usePanelGroupStore(
+    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tabOrder ?? EMPTY_TAB_ORDER,
+  );
+  const groupTabOrder = usePanelGroupStore(
+    (state) => (groupKey ? state.groups[groupKey]?.tabOrder : undefined) ?? EMPTY_TAB_ORDER,
+  );
+  const dockTabOrder = assistantVisible ? assistantTabOrder : groupTabOrder;
   // With an issue selected, terminal and browser are not that directory's tabs.
   const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
   const chromeChecked = useMemo(
@@ -1259,6 +1275,60 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     updateMuseWidthGroup,
   ]);
   const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
+  const placeKindRef = useRef<((kind: DesktopPanelKind) => void) | null>(null);
+  const dockTabPlaceRef = useRef<{
+    orderKey: string | undefined;
+    present: string[];
+    current: string | null;
+  }>({ orderKey: undefined, present: [], current: null });
+  const showingDetail =
+    assistantVisible &&
+    (workspace.dock === DOCK_DETAIL_TAB || !chromeChecked.includes(workspace.dock));
+  const visibleKind = showingDetail
+    ? null
+    : assistantVisible
+      ? workspace.dock
+      : workspace.dock !== DOCK_DETAIL_TAB && chromeChecked.includes(workspace.dock)
+        ? workspace.dock
+        : activePanel;
+  const currentFileKey =
+    visibleKind === "file" &&
+    shownActiveFilePath &&
+    shownFileTabs.some((tab) => tab.path === shownActiveFilePath)
+      ? fileTabKey(shownActiveFilePath)
+      : null;
+  const currentToolKey =
+    assistantVisible &&
+    (visibleKind === "terminal" || visibleKind === "preview") &&
+    assistantActiveToolId
+      ? toolTabKey(assistantActiveToolId)
+      : null;
+  dockTabPlaceRef.current = {
+    orderKey: assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey,
+    present: defaultDockTabKeys({
+      detail: assistantVisible,
+      checked: slotChecked,
+      filePaths: shownFileTabs.map((tab) => tab.path),
+      tools: assistantVisible ? assistantTools : [],
+    }),
+    current: showingDetail
+      ? DOCK_TAB_DETAIL_KEY
+      : (currentToolKey ?? currentFileKey ?? (visibleKind ? kindTabKey(visibleKind) : null)),
+  };
+  const placeDockTab = (newKey: string) => {
+    const placed = dockTabPlaceRef.current;
+    if (!placed.orderKey) return;
+    const store = usePanelGroupStore.getState();
+    store.patchGroup(placed.orderKey, {
+      tabOrder: insertTabAfterCurrent(
+        store.groups[placed.orderKey]?.tabOrder,
+        placed.present,
+        placed.current,
+        newKey,
+      ),
+    });
+  };
+  placeKindRef.current = (kind) => placeDockTab(kindTabKey(kind));
   const placeForwardRef = useRef<
     ((fwd: NonNullable<PanelGroupState["forward"]>) => void) | null
   >(null);
@@ -1283,10 +1353,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       kind: "terminal",
       workdir: cwd,
     };
-    const { store, tools } = readAssistantTools();
+    const { store, group, tools } = readAssistantTools();
+    const placed = dockTabPlaceRef.current;
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
       tools: appendDockTool(tools, tool),
       activeToolId: tool.id,
+      tabOrder: insertTabAfterCurrent(
+        group.tabOrder,
+        placed.present,
+        placed.current,
+        toolTabKey(tool.id),
+      ),
     });
     selectDockRef.current("terminal");
     return true;
@@ -1300,10 +1377,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       forwardError: null,
       epoch: 0,
     };
-    const { store, tools } = readAssistantTools();
+    const { store, group, tools } = readAssistantTools();
+    const placed = dockTabPlaceRef.current;
     store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
       tools: appendDockTool(tools, tool),
       activeToolId: tool.id,
+      tabOrder: insertTabAfterCurrent(
+        group.tabOrder,
+        placed.present,
+        placed.current,
+        toolTabKey(tool.id),
+      ),
     });
     selectDockRef.current("preview");
     return true;
@@ -1408,6 +1492,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     previewWithoutWorkdir: assistantVisible,
     beforeToggleRef,
     placeForwardRef,
+    placeKindRef,
   });
   const {
     tryOpenPanel,
@@ -1941,6 +2026,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     activeToolId: assistantActiveToolId,
     onSelectTool: focusBotTool,
     onCloseTool: closeBotTool,
+    tabOrder: dockTabOrder,
+    onTabOrderChange: (order) => {
+      const key = assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey;
+      if (!key) return;
+      usePanelGroupStore.getState().patchGroup(key, { tabOrder: order });
+    },
     onToolPreviewNavigate: (id, url) => {
       focusBotTool(id);
       handlePreviewNavigate(url);
