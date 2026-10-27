@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MessageList } from "../../src/components/chat/MessageList";
 import { MuseTheme } from "../../src/ui/theme";
+import { BASH_TOOL_NAME } from "@muse-work/agent/constants";
 import type { VsCodeApi } from "../../src/types";
 
 const vscode = {
@@ -38,6 +39,67 @@ describe("thinking hint", () => {
               role: "assistant",
               timestamp: "2024-01-01T00:00:00.000Z",
               blocks: [{ type: "reasoning", content: "hmm", stage: "start" }],
+            },
+          ]}
+          isStreaming
+          vscode={vscode}
+        />
+      </MuseTheme>,
+    );
+    expect(screen.queryByTestId("thinking-hint")).toBeNull();
+  });
+
+  it("keeps 正在处理… and shimmers the group while tools are still the live work", () => {
+    render(
+      <MuseTheme>
+        <MessageList
+          messages={[
+            {
+              id: "a1",
+              role: "assistant",
+              timestamp: "2024-01-01T00:00:00.000Z",
+              blocks: [
+                {
+                  type: "tool",
+                  name: BASH_TOOL_NAME,
+                  stage: "end",
+                  parameters: JSON.stringify({
+                    command: "ls",
+                    description: "列目录",
+                  }),
+                  id: "t1",
+                },
+                {
+                  type: "reasoning",
+                  content: "接着看",
+                  stage: "streaming",
+                  startTime: 1_000,
+                },
+              ],
+            },
+          ]}
+          isStreaming
+          vscode={vscode}
+        />
+      </MuseTheme>,
+    );
+
+    expect(screen.getByTestId("thinking-hint")).toHaveTextContent("思考中…");
+    expect(screen.getByTestId("activity-summary").querySelector(".txt")?.className).toContain(
+      "text-shimmer",
+    );
+  });
+
+  it("hides the hint while the reply itself is streaming", () => {
+    render(
+      <MuseTheme>
+        <MessageList
+          messages={[
+            {
+              id: "a1",
+              role: "assistant",
+              timestamp: "2024-01-01T00:00:00.000Z",
+              blocks: [{ type: "text", content: "正在写", stage: "streaming" }],
             },
           ]}
           isStreaming

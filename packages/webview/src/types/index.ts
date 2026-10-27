@@ -450,6 +450,10 @@ export interface MessageProps {
   blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
   /** Block index of the group's final text within this message (when collapsing). */
   finalTextBlockIndex?: number;
+  /** Render one block. Used when a turn is segmented across messages. */
+  onlyBlockIndex?: number;
+  /** That block is a row inside an activity group, not its own group. */
+  activityItem?: boolean;
 }
 
 // Image attachment types (uses base64 data directly)

@@ -20,6 +20,13 @@ import {
   AssistantWorkSummary,
   shouldCollapseAssistantGroup,
 } from "../message/AssistantWorkSummary";
+import { ToolActivityGroup } from "../message/ToolActivityGroup";
+import {
+  currentStatusLabel,
+  isActivityLive,
+  segmentAssistantTurn,
+  summarizeRefs,
+} from "../message/toolActivity";
 import type { EnrichedFileSnapshot, MessageListProps } from "../../types";
 import type { Message as MessageType } from "@muse-work/agent";
 import {
@@ -47,6 +54,7 @@ type AssistantRow = {
   messages: MessageType[];
   collapsed: boolean;
   single: boolean;
+  live: boolean;
   finalText: { messageId: string; blockIndex: number } | null;
 };
 type ListRow = UserRow | AssistantRow;
@@ -146,19 +154,23 @@ function findFinalTextBlock(
   return null;
 }
 
-/** True when the latest assistant turn already shows an in-progress reasoning block. */
-function hasInProgressReasoning(messages: MessageType[]): boolean {
+/** Hide the bottom hint only when a standalone thought is already the live status. */
+function hasVisibleInProgressReasoning(messages: MessageType[]): boolean {
+  const turn: MessageType[] = [];
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
-    if (message.role !== "assistant") continue;
-    for (const block of message.blocks ?? []) {
-      if (block.type === "reasoning" && block.stage !== "end") {
-        return true;
-      }
+    if (message.role === "user") {
+      if (message.isMeta) continue;
+      break;
     }
-    return false;
+    if (message.role === "assistant") turn.unshift(message);
   }
-  return false;
+  if (turn.length === 0) return false;
+  const segments = segmentAssistantTurn(turn);
+  const last = segments[segments.length - 1];
+  if (!last || last.type !== "single") return false;
+  const block = turn[last.ref.messageIndex]?.blocks?.[last.ref.blockIndex];
+  return block?.type === "reasoning" && block.stage !== "end";
 }
 
 function countTimelineBlocks(message: MessageType): number {
@@ -234,6 +246,7 @@ function buildRows(messages: MessageType[], isStreaming: boolean | undefined): L
       messages: groupMessages,
       collapsed,
       single: dotCount <= 1,
+      live: isLiveGroup,
       finalText,
     });
     group = [];
@@ -727,7 +740,12 @@ export const MessageList = forwardRef<
     [],
   );
 
-  const showThinkingHint = isStreaming && !isCompacting && !hasInProgressReasoning(messages);
+  const statusLabel = currentStatusLabel(messages);
+  const showThinkingHint =
+    isStreaming &&
+    !isCompacting &&
+    !hasVisibleInProgressReasoning(messages) &&
+    statusLabel !== null;
 
   // Hints and the file-change card sit after the virtual spacer, so scrollToEnd
   // stops short of them. Re-pin to the real bottom while the user is following.
@@ -747,6 +765,8 @@ export const MessageList = forwardRef<
       blockRenderMode?: "all" | "omitFinalText" | "finalTextOnly";
       finalTextBlockIndex?: number;
       keySuffix?: string;
+      onlyBlockIndex?: number;
+      activityItem?: boolean;
     },
   ) => (
     <Message
@@ -761,8 +781,52 @@ export const MessageList = forwardRef<
       onOpenAgentTranscript={onOpenAgentTranscript}
       blockRenderMode={extras?.blockRenderMode}
       finalTextBlockIndex={extras?.finalTextBlockIndex}
+      onlyBlockIndex={extras?.onlyBlockIndex}
+      activityItem={extras?.activityItem}
     />
   );
+
+  const renderAssistantTurn = (
+    turnMessages: MessageType[],
+    omit?: { messageId: string; blockIndex: number },
+    turnLive = false,
+  ) => {
+    const segments = segmentAssistantTurn(turnMessages, omit);
+    return segments.map((segment, index) => {
+      if (segment.type === "single") {
+        const message = turnMessages[segment.ref.messageIndex];
+        return renderMessage(message, {
+          onlyBlockIndex: segment.ref.blockIndex,
+          keySuffix: `-b${segment.ref.blockIndex}`,
+        });
+      }
+      const summary = summarizeRefs(turnMessages, segment.refs);
+      const childLive = segment.refs.some((ref) => {
+        const block = turnMessages[ref.messageIndex]?.blocks?.[ref.blockIndex];
+        return block ? isActivityLive(block) : false;
+      });
+      const live = childLive || (turnLive && index === segments.length - 1);
+      const head = segment.refs[0];
+      return (
+        <ToolActivityGroup
+          key={`activity-${head?.messageIndex}-${head?.blockIndex}`}
+          label={summary.label}
+          additions={summary.additions}
+          deletions={summary.deletions}
+          live={live}
+          defaultOpen={live}
+        >
+          {segment.refs.map((ref) =>
+            renderMessage(turnMessages[ref.messageIndex], {
+              onlyBlockIndex: ref.blockIndex,
+              activityItem: true,
+              keySuffix: `-a${ref.blockIndex}`,
+            }),
+          )}
+        </ToolActivityGroup>
+      );
+    });
+  };
 
   const renderRow = (row: ListRow) => {
     if (row.kind === "user") return renderMessage(row.message);
@@ -775,14 +839,10 @@ export const MessageList = forwardRef<
           data-testid="assistant-group-collapsed"
         >
           <AssistantWorkSummary messages={row.messages}>
-            {row.messages.map((message) =>
-              renderMessage(message, {
-                blockRenderMode: message.id === finalText.messageId ? "omitFinalText" : "all",
-                finalTextBlockIndex:
-                  message.id === finalText.messageId ? finalText.blockIndex : undefined,
-                keySuffix: "-work",
-              }),
-            )}
+            {renderAssistantTurn(row.messages, {
+              messageId: finalText.messageId,
+              blockIndex: finalText.blockIndex,
+            })}
           </AssistantWorkSummary>
           {renderMessage(
             row.messages.find((message) => message.id === finalText.messageId)!,
@@ -797,7 +857,7 @@ export const MessageList = forwardRef<
     }
     return (
       <div className={`assistant-group${singleClass}`}>
-        {row.messages.map((message) => renderMessage(message))}
+        {renderAssistantTurn(row.messages, undefined, row.live)}
       </div>
     );
   };
@@ -868,10 +928,10 @@ export const MessageList = forwardRef<
               reverting={revertingFileHistory}
             />
           )}
-          {showThinkingHint && (
+          {showThinkingHint && statusLabel && (
             <div className="message-list-status-hint" data-testid="thinking-hint">
               <span className="message-list-status-dot" aria-hidden="true" />
-              <span className="message-list-status-label text-shimmer">正在处理…</span>
+              <span className="message-list-status-label text-shimmer">{statusLabel}</span>
             </div>
           )}
           {isCompacting && (

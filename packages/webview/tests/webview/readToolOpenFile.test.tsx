@@ -6,6 +6,7 @@ import {
   act,
   waitFor,
 } from "./test-utils";
+import { expandActivity } from "./activityTestHelpers";
 import { MockDataGenerator } from "../fixtures/mockData";
 import { READ_TOOL_NAME } from "@muse-work/agent";
 
@@ -28,15 +29,14 @@ describe("Read tool header click → openFile with line range", () => {
 
     sendCommand("updateMessages", { messages });
 
-    // The Read tool renders a clickable file-tool header path (stage === 'end').
+    expandActivity();
     const pathEl = await waitFor(() => {
-      const el = document.querySelector(".write-tool-path") as HTMLElement;
+      const el = document.querySelector('[data-testid="tool-line"]') as HTMLElement;
       expect(el).toBeInTheDocument();
       return el;
     });
 
-    // Display text carries the offset:limit suffix.
-    expect(pathEl).toHaveTextContent(/QueuedMessageList\.css:56:10/);
+    expect(pathEl).toHaveTextContent("读取 QueuedMessageList.css L56-65");
 
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {
@@ -73,11 +73,13 @@ describe("Read tool header click → openFile with line range", () => {
 
     sendCommand("updateMessages", { messages });
 
+    expandActivity();
     const pathEl = await waitFor(() => {
-      const el = document.querySelector(".write-tool-path") as HTMLElement;
+      const el = document.querySelector('[data-testid="tool-line"]') as HTMLElement;
       expect(el).toBeInTheDocument();
       return el;
     });
+    expect(pathEl).toHaveTextContent("读取 foo.ts L42");
 
     (vscode.postMessage as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {

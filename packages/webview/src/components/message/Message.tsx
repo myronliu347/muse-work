@@ -31,9 +31,20 @@ import { MermaidRenderer } from "./MermaidRenderer";
 import { ReasoningBlockView } from "./ReasoningBlockView";
 import { CompactBlockView } from "./CompactBlockView";
 import { WriteToolPreview } from "./WriteToolPreview";
-import { FileToolHeader } from "./FileToolHeader";
 import { openImagePreview, type PreviewImage } from "./imagePreview";
-import { ToolError } from "./ToolError";
+import {
+  ToolActivityGroup,
+  ThoughtLine,
+  ToolLine,
+} from "./ToolActivityGroup";
+import {
+  bangLineLabel,
+  isActivityLive,
+  segmentAssistantBlocks,
+  summarizeActivity,
+  toolHasDetail,
+  toolPresentation,
+} from "./toolActivity";
 import "../../styles/Message.css";
 
 // Configure marked for VS Code webview context
@@ -185,6 +196,8 @@ export const Message: React.FC<MessageProps> = React.memo(
       blockRenderMode = "all",
       finalTextBlockIndex,
       onOpenAgentTranscript,
+      onlyBlockIndex,
+      activityItem = false,
     } = props;
 
     // Desktop routes file opens to its file panel (the host resolves the path,
@@ -384,15 +397,6 @@ export const Message: React.FC<MessageProps> = React.memo(
       return null;
     };
 
-    const getToolStatusColor = (toolBlock: ToolBlock) =>
-      toolBlock.stage === "running" || toolBlock.stage === "streaming"
-        ? "var(--amber-11)"
-        : toolBlock.success === true
-          ? "var(--green-11)"
-          : toolBlock.error || toolBlock.success === false
-            ? "var(--red-11)"
-            : "var(--gray-11)";
-
     // Dot color for text/reasoning blocks: yellow while streaming, green once done.
     const getStageColor = (stage?: "streaming" | "end") =>
       stage === "streaming"
@@ -400,317 +404,141 @@ export const Message: React.FC<MessageProps> = React.memo(
         : "var(--green-11)";
 
     const isToolActive = (stage?: string) =>
-      stage === "running" || stage === "streaming";
+      stage === "start" || stage === "running" || stage === "streaming";
 
-    const renderToolBlock = (toolBlock: ToolBlock, index: number) => {
-      // Default tool rendering for all tools (including Bash)
-      const compactInfo =
-        toolBlock.stage === "streaming"
-          ? toolBlock.parameters
-            ? String(toolBlock.parameters).slice(-30)
-            : ""
-          : toolBlock.compactParams || "";
-      const toolStatusColor = getToolStatusColor(toolBlock);
-      const toolName = (
-        <span
-          data-testid="tool-name"
-          className={
-            isToolActive(toolBlock.stage)
-              ? "tool-name text-shimmer"
-              : "tool-name"
-          }
-        >
-          {toolBlock.name || "Tool"}
-        </span>
-      );
-      const errorText = toolBlock.error ? String(toolBlock.error) : "";
-      const hasError = Boolean(errorText);
-      const headerInner = (
-        <div key={index} className="tool-block">
-          <span className="tool-status-dot" style={{ color: toolStatusColor }}>
-            ●
-          </span>{" "}
-          {toolName}
-          {compactInfo ? (
-            <span className="compact-params"> {compactInfo}</span>
-          ) : (
-            ""
-          )}
-        </div>
-      );
-      const toolHeader = errorText ? (
-        <ToolError message={errorText}>{headerInner}</ToolError>
-      ) : (
-        headerInner
-      );
-
-      if (toolBlock.name === AGENT_TOOL_NAME) {
-        const resultText = (
-          toolBlock.shortResult ||
-          toolBlock.result ||
-          ""
-        ).trim();
-        return (
-          <div key={index} className="tool-container">
-            {errorText ? (
-              <ToolError message={errorText}>
-                <button
-                  type="button"
-                  className="agent-tool-row"
-                  data-testid="agent-tool-row"
-                  onClick={() => onOpenAgentTranscript?.(toolBlock)}
-                >
-                  {toolName}
-                  {compactInfo ? (
-                    <span className="compact-params"> {compactInfo}</span>
-                  ) : null}
-                </button>
-              </ToolError>
-            ) : (
-              <button
-                type="button"
-                className="agent-tool-row"
-                data-testid="agent-tool-row"
-                onClick={() => onOpenAgentTranscript?.(toolBlock)}
-              >
-                {toolName}
-                {compactInfo ? (
-                  <span className="compact-params"> {compactInfo}</span>
-                ) : null}
-              </button>
-            )}
-            {resultText ? (
-              <div className="write-tool-stats">{resultText}</div>
-            ) : null}
-          </div>
-        );
+    const openReadFile = (toolBlock: ToolBlock) => {
+      let filePath = "";
+      let offset: number | undefined;
+      let limit: number | undefined;
+      try {
+        if (toolBlock.parameters) {
+          const params = JSON.parse(toolBlock.parameters);
+          filePath = params.file_path || "";
+          offset = typeof params.offset === "number" ? params.offset : undefined;
+          limit = typeof params.limit === "number" ? params.limit : undefined;
+        }
+      } catch {
+        filePath = "";
       }
+      if (!filePath) return;
+      openFile(
+        filePath,
+        offset,
+        offset && limit ? offset + limit - 1 : undefined,
+      );
+    };
 
-      // For Bash tools, add the bash-specific content below the header
+    const renderAskUserResult = (toolBlock: ToolBlock) => {
+      let answers: Record<string, unknown> = {};
+      let isParsed = false;
+      try {
+        const result = toolBlock.shortResult || toolBlock.result;
+        if (typeof result === "string") {
+          const trimmed = result.trim();
+          if (trimmed.startsWith("{")) {
+            const start = trimmed.indexOf("{");
+            const end = trimmed.lastIndexOf("}");
+            if (start !== -1 && end > start) {
+              let parsed = JSON.parse(trimmed.substring(start, end + 1));
+              if (
+                parsed &&
+                typeof parsed === "object" &&
+                Object.keys(parsed).length === 1 &&
+                parsed.answers &&
+                typeof parsed.answers === "object"
+              ) {
+                parsed = parsed.answers;
+              }
+              answers = parsed;
+              isParsed = true;
+            }
+          }
+        } else if (typeof result === "object" && result !== null) {
+          let parsed = result as Record<string, unknown>;
+          if (
+            Object.keys(parsed).length === 1 &&
+            parsed.answers &&
+            typeof parsed.answers === "object"
+          ) {
+            parsed = parsed.answers as Record<string, unknown>;
+          }
+          answers = parsed;
+          isParsed = true;
+        }
+      } catch {
+        isParsed = false;
+      }
+      const result = toolBlock.shortResult || toolBlock.result;
+      if (!result) return null;
+      if (!isParsed) {
+        return <div className="result-raw">{String(result)}</div>;
+      }
+      return (
+        <>
+          {Object.entries(answers).map(([question, answer], aIndex) => (
+            <div key={aIndex} className="ask-user-result-item">
+              <span className="ask-user-result-q" style={{ whiteSpace: "pre-wrap" }}>
+                {question}
+              </span>
+              <span className="ask-user-result-a" style={{ whiteSpace: "pre-wrap" }}>
+                {Array.isArray(answer)
+                  ? answer.join(", ")
+                  : typeof answer === "object" && answer !== null
+                    ? JSON.stringify(answer)
+                    : String(answer)}
+              </span>
+            </div>
+          ))}
+        </>
+      );
+    };
+
+    const renderToolDetail = (toolBlock: ToolBlock, index: number) => {
+      if (!toolHasDetail(toolBlock)) return null;
       if (toolBlock.name === BASH_TOOL_NAME) {
         const bashContent = renderBashIO(toolBlock);
-        if (bashContent || hasError) {
-          return (
-            <div key={index} className="tool-container">
-              {toolHeader}
-              {bashContent}
-            </div>
-          );
-        }
-      }
-
-      // For LSP tools, show output with max height and no scrolling
-      if (toolBlock.name === LSP_TOOL_NAME) {
+        if (!bashContent) return null;
         return (
-          <div key={index} className="tool-container">
-            {toolHeader}
-            {!hasError && (
-              <div className="lsp-output">
-                {(toolBlock.shortResult || toolBlock.result || "").trim()}
-              </div>
-            )}
+          <div key={index} className="tool-detail">
+            {bashContent}
           </div>
         );
       }
-
-      // For file editing tools, show diff below the header only when stage is 'end'
-      if (toolBlock.name === WRITE_TOOL_NAME) {
-        // During streaming the parameters JSON is incomplete; fall back to the
-        // default header which shows the last 30 chars of the raw parameters.
-        if (toolBlock.stage === "streaming") {
-          return toolHeader;
-        }
+      if (toolBlock.name === LSP_TOOL_NAME) {
+        const text = (toolBlock.shortResult || toolBlock.result || "").trim();
+        if (!text) return null;
         return (
-          <div key={index} className="tool-container">
-            {!hasError && (
-              <WriteToolPreview
-                toolBlock={toolBlock}
-                vscode={props.vscode}
-                workdir={workdir}
-              />
-            )}
-            {hasError && toolHeader}
+          <div key={index} className="tool-detail">
+            <div className="lsp-output">{text}</div>
+          </div>
+        );
+      }
+      if (toolBlock.name === WRITE_TOOL_NAME) {
+        return (
+          <div key={index} className="tool-detail">
+            <WriteToolPreview
+              toolBlock={toolBlock}
+              vscode={props.vscode}
+              workdir={workdir}
+              hideHeader
+            />
           </div>
         );
       }
       if (toolBlock.name === EDIT_TOOL_NAME) {
-        if (toolBlock.stage === "streaming") {
-          return toolHeader;
-        }
-        let editFilePath = "";
-        try {
-          if (toolBlock.parameters) {
-            editFilePath = JSON.parse(toolBlock.parameters).file_path || "";
-          }
-        } catch {
-          editFilePath = "";
-        }
-        const openEditFile = () => {
-          if (editFilePath) {
-            openFile(editFilePath);
-          }
-        };
         return (
-          <div key={index} className="tool-container">
-            <FileToolHeader
-              toolBlock={toolBlock}
-              filePath={toRelativePath(editFilePath, workdir)}
-              onOpenFile={openEditFile}
-            />
-            {!hasError && <DiffViewer toolBlock={toolBlock} />}
+          <div key={index} className="tool-detail">
+            <DiffViewer toolBlock={toolBlock} />
           </div>
         );
       }
-
-      // For Read tools, show clickable path with offset/limit suffix (aligned with Write header style)
-      if (toolBlock.name === READ_TOOL_NAME) {
-        if (toolBlock.stage === "streaming") {
-          return toolHeader;
-        }
-        let filePath = "";
-        let displayPath = "";
-        let offset: number | undefined;
-        let limit: number | undefined;
-        try {
-          if (toolBlock.parameters) {
-            const params = JSON.parse(toolBlock.parameters);
-            filePath = params.file_path || "";
-            offset =
-              typeof params.offset === "number" ? params.offset : undefined;
-            limit = typeof params.limit === "number" ? params.limit : undefined;
-            const relPath = toRelativePath(filePath, workdir);
-            displayPath =
-              relPath && (offset !== undefined || limit !== undefined)
-                ? `${relPath}:${offset !== undefined ? offset : 1}:${limit !== undefined ? limit : 2000}`
-                : relPath;
-          }
-        } catch {
-          filePath = "";
-        }
-        const openReadFile = () => {
-          if (filePath) {
-            // offset/limit describe the read slice (1-based); jump to it so the
-            // panel lands on the same lines the tool actually read.
-            openFile(
-              filePath,
-              offset,
-              offset && limit ? offset + limit - 1 : undefined,
-            );
-          }
-        };
-        return (
-          <div key={index} className="tool-container">
-            <FileToolHeader
-              toolBlock={toolBlock}
-              filePath={displayPath}
-              onOpenFile={openReadFile}
-            />
-            {!hasError && toolBlock.shortResult && (
-              <div className="write-tool-stats">{toolBlock.shortResult}</div>
-            )}
-          </div>
-        );
-      }
-
-      // For AskUserQuestion tools, show the user's answers
       if (toolBlock.name === ASK_USER_QUESTION_TOOL_NAME) {
-        let answers: Record<string, unknown> = {};
-        let isParsed = false;
-        try {
-          const result = toolBlock.shortResult || toolBlock.result;
-          if (typeof result === "string") {
-            const trimmed = result.trim();
-            if (trimmed.startsWith("{")) {
-              try {
-                let parsed = JSON.parse(trimmed);
-                // Handle nested "answers" key if it's the only key
-                if (
-                  parsed &&
-                  typeof parsed === "object" &&
-                  Object.keys(parsed).length === 1 &&
-                  parsed.answers &&
-                  typeof parsed.answers === "object"
-                ) {
-                  parsed = parsed.answers;
-                }
-                answers = parsed;
-                isParsed = true;
-              } catch {
-                // Try to find the first { and last }
-                const start = trimmed.indexOf("{");
-                const end = trimmed.lastIndexOf("}");
-                if (start !== -1 && end !== -1 && end > start) {
-                  let parsed = JSON.parse(trimmed.substring(start, end + 1));
-                  if (
-                    parsed &&
-                    typeof parsed === "object" &&
-                    Object.keys(parsed).length === 1 &&
-                    parsed.answers &&
-                    typeof parsed.answers === "object"
-                  ) {
-                    parsed = parsed.answers;
-                  }
-                  answers = parsed;
-                  isParsed = true;
-                }
-              }
-            }
-          } else if (typeof result === "object" && result !== null) {
-            let parsed: Record<string, unknown> = result as Record<
-              string,
-              unknown
-            >;
-            if (
-              Object.keys(parsed).length === 1 &&
-              parsed.answers &&
-              typeof parsed.answers === "object"
-            ) {
-              parsed = parsed.answers as Record<string, unknown>;
-            }
-            answers = parsed;
-            isParsed = true;
-          }
-        } catch {
-          // Fallback to raw result
-        }
-
-        const result = toolBlock.shortResult || toolBlock.result;
         return (
-          <div key={index} className="tool-container">
-            {toolHeader}
-            {!hasError && result && (
-              <div className="tool-result-block">
-                {isParsed ? (
-                  Object.entries(answers).map(([question, answer], aIndex) => (
-                    <div key={aIndex} className="ask-user-result-item">
-                      <span
-                        className="ask-user-result-q"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {question}
-                      </span>
-                      <span
-                        className="ask-user-result-a"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {Array.isArray(answer)
-                          ? answer.join(", ")
-                          : typeof answer === "object" && answer !== null
-                            ? JSON.stringify(answer)
-                            : String(answer)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="result-raw">{String(result)}</div>
-                )}
-              </div>
-            )}
+          <div key={index} className="tool-detail">
+            {renderAskUserResult(toolBlock)}
           </div>
         );
       }
-
-      // For ExitPlanMode tools, show the decision
       if (toolBlock.name === "ExitPlanMode") {
         const result = toolBlock.shortResult || toolBlock.result;
         const resultText =
@@ -719,52 +547,57 @@ export const Message: React.FC<MessageProps> = React.memo(
             : result
               ? JSON.stringify(result)
               : "";
-
+        if (!resultText) return null;
         return (
-          <div key={index} className="tool-container">
-            {toolHeader}
-            {!hasError && resultText && (
-              <div className="tool-result-block">
-                <div className="result-item">
-                  <div className="result-answer">{resultText}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      // For other tools, show result or shortResult if present
-      if ((toolBlock.result || toolBlock.shortResult) && !hasError) {
-        const rawText = (
-          toolBlock.shortResult ||
-          toolBlock.result ||
-          ""
-        ).trim();
-        const lines = rawText.split("\n");
-        return (
-          <div key={index} className="tool-container">
-            {toolHeader}
+          <div key={index} className="tool-detail">
             <div className="tool-result-block">
-              <div className="result-raw">
-                {lines.map((line, i) => (
-                  <div key={i} className="result-raw-line">
-                    {line}
-                  </div>
-                ))}
-              </div>
+              <div className="result-answer">{resultText}</div>
             </div>
           </div>
         );
       }
+      const rawText = (toolBlock.shortResult || toolBlock.result || "").trim();
+      if (!rawText) return null;
+      return (
+        <div key={index} className="tool-detail">
+          <div className="tool-result-block">
+            <div className="result-raw">
+              {rawText.split("\n").map((line, lineIndex) => (
+                <div key={lineIndex} className="result-raw-line">
+                  {line}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
 
-      // For other tools, show error if present
-      if (hasError) {
-        return toolHeader;
-      }
-
-      // For other tools without special content, just return the header
-      return toolHeader;
+    const renderActivityTool = (toolBlock: ToolBlock, index: number) => {
+      const detail = renderToolDetail(toolBlock, index);
+      const presentation = toolPresentation(toolBlock);
+      const errorText = toolBlock.error ? String(toolBlock.error) : "";
+      return (
+        <ToolLine
+          key={index}
+          label={presentation.label}
+          additions={presentation.additions}
+          deletions={presentation.deletions}
+          shimmer={isToolActive(toolBlock.stage)}
+          detail={detail}
+          error={errorText}
+          testId={
+            toolBlock.name === AGENT_TOOL_NAME ? "agent-tool-row" : "tool-line"
+          }
+          onActivate={
+            toolBlock.name === AGENT_TOOL_NAME
+              ? () => onOpenAgentTranscript?.(toolBlock)
+              : toolBlock.name === READ_TOOL_NAME
+                ? () => openReadFile(toolBlock)
+                : undefined
+          }
+        />
+      );
     };
 
     const renderImageBlock = (imageBlock: ImageBlock, index: number) => {
@@ -1036,13 +869,8 @@ export const Message: React.FC<MessageProps> = React.memo(
               <pre>{block.content || ""}</pre>
             </div>
           );
-        case "tool": {
-          const toolBlock = block as ToolBlock;
-          rendered = renderToolBlock(toolBlock, index);
-          wrap = true;
-          dotColor = getToolStatusColor(block as ToolBlock);
-          break;
-        }
+        case "tool":
+          return renderActivityTool(block as ToolBlock, index);
         case "bang":
           return <BangBlock key={index} block={block} />;
         case "image":
@@ -1073,6 +901,65 @@ export const Message: React.FC<MessageProps> = React.memo(
           {rendered}
         </div>
       );
+    };
+
+    const renderActivityItem = (
+      block: MessageBlock | undefined,
+      index: number,
+    ) => {
+      if (!block) return null;
+      if (block.type === "reasoning") {
+        return (
+          <ThoughtLine key={index} block={block}>
+            {renderMarkdownContent(block.content || "", index)}
+          </ThoughtLine>
+        );
+      }
+      if (block.type === "bang") {
+        const detail =
+          block.output || block.stage === "running" ? (
+            <div className="tool-detail">
+              <BangBlock block={block} />
+            </div>
+          ) : null;
+        return (
+          <ToolLine
+            key={index}
+            label={bangLineLabel(block)}
+            shimmer={block.stage === "running"}
+            detail={detail}
+          />
+        );
+      }
+      if (block.type === "tool") return renderActivityTool(block, index);
+      return null;
+    };
+
+    const renderAssistantSegments = () => {
+      const blocks = message.blocks ?? [];
+      return segmentAssistantBlocks(blocks).map((segment) => {
+        if (segment.type === "single") {
+          return renderBlock(blocks[segment.index], segment.index);
+        }
+        const summary = summarizeActivity(blocks, segment.indexes);
+        const live = segment.indexes.some((index) =>
+          isActivityLive(blocks[index]),
+        );
+        return (
+          <ToolActivityGroup
+            key={`activity-${segment.indexes[0]}`}
+            label={summary.label}
+            additions={summary.additions}
+            deletions={summary.deletions}
+            live={live}
+            defaultOpen={live}
+          >
+            {segment.indexes.map((index) =>
+              renderActivityItem(blocks[index], index),
+            )}
+          </ToolActivityGroup>
+        );
+      });
     };
 
     const renderUserBubble = () => {
@@ -1112,11 +999,19 @@ export const Message: React.FC<MessageProps> = React.memo(
         data-message-id={message.id}
         data-role={message.role}
       >
-        {message.role === "user" && !message.blocks?.some((b) => b.type === "bang")
-          ? systemInjectContent !== null
-            ? renderSystemInject(systemInjectContent)
-            : renderUserBubble()
-          : message.blocks?.map((block, index) => renderBlock(block, index))}
+        {typeof onlyBlockIndex === "number"
+          ? activityItem
+            ? renderActivityItem(message.blocks?.[onlyBlockIndex], onlyBlockIndex)
+            : message.blocks?.[onlyBlockIndex]
+              ? renderBlock(message.blocks[onlyBlockIndex], onlyBlockIndex)
+              : null
+          : message.role === "user" && !message.blocks?.some((b) => b.type === "bang")
+            ? systemInjectContent !== null
+              ? renderSystemInject(systemInjectContent)
+              : renderUserBubble()
+            : message.role === "assistant" && blockRenderMode !== "finalTextOnly"
+              ? renderAssistantSegments()
+              : message.blocks?.map((block, index) => renderBlock(block, index))}
         {isRewindTargetMessage(message) && !isQueued && onRewindToMessage && (
           <div className="message-actions">
             <Tooltip text="回滚到此消息" position="bottom">
@@ -1143,7 +1038,9 @@ export const Message: React.FC<MessageProps> = React.memo(
       prev.onOpenPreview === next.onOpenPreview &&
       prev.workdir === next.workdir &&
       prev.blockRenderMode === next.blockRenderMode &&
-      prev.finalTextBlockIndex === next.finalTextBlockIndex
+      prev.finalTextBlockIndex === next.finalTextBlockIndex &&
+      prev.onlyBlockIndex === next.onlyBlockIndex &&
+      prev.activityItem === next.activityItem
     );
   },
 );

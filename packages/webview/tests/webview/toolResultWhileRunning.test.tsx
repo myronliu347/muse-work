@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderChatApp, sendCommand } from "./test-utils";
+import { expandToolDetail } from "./activityTestHelpers";
 import { BASH_TOOL_NAME, LSP_TOOL_NAME } from "@muse-work/agent";
 
 describe("Tool Result While Running", () => {
@@ -31,6 +32,7 @@ describe("Tool Result While Running", () => {
       messages: [bashRunningMessage as unknown],
     });
 
+    expandToolDetail();
     // Verify bash-command-unified is present (it contains both input and output)
     const unifiedBlock = document.querySelector(".bash-command-unified");
     expect(unifiedBlock).toBeInTheDocument();
@@ -71,6 +73,7 @@ describe("Tool Result While Running", () => {
 
     sendCommand("updateMessages", { messages: [lspRunningMessage as unknown] });
 
+    expandToolDetail();
     // Verify lsp-output is present
     const lspOutput = document.querySelector(".lsp-output");
     expect(lspOutput).toBeInTheDocument();
@@ -96,6 +99,7 @@ describe("Tool Result While Running", () => {
 
     sendCommand("updateMessages", { messages: [toolMessage as unknown] });
 
+    expandToolDetail();
     // Verify result-raw is present and contains shortResult
     const resultRaw = document.querySelector(".result-raw");
     expect(resultRaw).toBeInTheDocument();

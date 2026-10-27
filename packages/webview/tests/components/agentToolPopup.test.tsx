@@ -47,6 +47,7 @@ describe("Agent tool transcript", () => {
       </MuseTheme>,
     );
 
+    fireEvent.click(screen.getByTestId("activity-summary"));
     fireEvent.click(screen.getByTestId("agent-tool-row"));
     expect(onOpenAgentTranscript).toHaveBeenCalledWith(
       expect.objectContaining({ id: "sa1", name: AGENT_TOOL_NAME }),
@@ -64,7 +65,11 @@ describe("Agent tool transcript", () => {
           id: "t1",
           name: "Bash",
           stage: "running",
-          compactParams: "ls -la",
+          parameters: JSON.stringify({
+            command: "ls -la",
+            description: "列出目录",
+          }),
+          compactParams: "列出目录",
         },
       ],
     };
@@ -76,9 +81,8 @@ describe("Agent tool transcript", () => {
     );
 
     const name = screen.getByTestId("tool-name");
-    expect(name).toHaveTextContent("Bash");
+    expect(name).toHaveTextContent("运行 列出目录");
     expect(name.className).toContain("text-shimmer");
-    expect(screen.getByText("ls -la").className).not.toContain("text-shimmer");
   });
 });
 
@@ -138,7 +142,9 @@ describe("AgentTranscriptPopup", () => {
     );
 
     expect(screen.getByText("explore the repo")).toBeTruthy();
-    expect(screen.getByTestId("tool-name")).toHaveTextContent("Read");
+    expect(screen.getByTestId("activity-summary")).toHaveTextContent(
+      "检索 1 个文件",
+    );
     expect(screen.getByText("final answer")).toBeTruthy();
     expect(
       screen.getByTestId("agent-transcript-popup").querySelector(".message-action-btn"),

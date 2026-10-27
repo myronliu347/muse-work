@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { QueueChevronIcon } from "../shared/HeaderIcons";
+import { reasoningLineLabel } from "./toolActivity";
 import type { ReasoningBlock } from "../../types";
 
 interface ReasoningBlockViewProps {
@@ -46,24 +47,7 @@ export const ReasoningBlockView: React.FC<ReasoningBlockViewProps> = ({
     return () => clearInterval(timer);
   }, [inProgress]);
 
-  let title = "思考";
-  if (inProgress) {
-    const seconds = Math.max(
-      0,
-      Math.floor((now - (block.startTime as number)) / 1000),
-    );
-    title = `思考中 ${seconds}s`;
-  } else if (
-    block.stage === "end" &&
-    typeof block.startTime === "number" &&
-    typeof block.endTime === "number" &&
-    block.endTime >= block.startTime
-  ) {
-    const seconds = Math.round((block.endTime - block.startTime) / 1000);
-    if (seconds > 0) {
-      title = `思考 (用时 ${seconds}s)`;
-    }
-  }
+  const title = reasoningLineLabel(block, now);
 
   return (
     <div className="reasoning-block">

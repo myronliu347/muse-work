@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderChatApp, waitFor, act, sendCommand } from "./test-utils";
+import { expandToolDetail } from "./activityTestHelpers";
 import { ASK_USER_QUESTION_TOOL_NAME } from "@muse-work/agent";
 import type { Message } from "@muse-work/agent";
 
@@ -32,6 +33,7 @@ describe("AskUserQuestion Newline Support", () => {
     act(() => {
       sendCommand("updateMessages", { messages: [mockMessage] });
     });
+    expandToolDetail();
 
     await waitFor(() => {
       expect(document.querySelector(".ask-user-result-q")).toBeInTheDocument();
@@ -77,6 +79,7 @@ describe("AskUserQuestion Newline Support", () => {
     act(() => {
       sendCommand("updateMessages", { messages: [mockMessage] });
     });
+    expandToolDetail();
 
     await waitFor(() => {
       expect(document.querySelector(".ask-user-result-a")).toBeInTheDocument();

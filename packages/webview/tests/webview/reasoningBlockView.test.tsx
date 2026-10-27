@@ -3,6 +3,7 @@ import { render, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { ReasoningBlockView } from "../../src/components/message/ReasoningBlockView";
+import { ThoughtLine } from "../../src/components/message/ToolActivityGroup";
 import type { ReasoningBlock } from "../../src/types";
 
 const renderContent = (content: string) => <div className="rc">{content}</div>;
@@ -236,7 +237,7 @@ describe("ReasoningBlockView", () => {
       );
 
       expect(container.querySelector(".reasoning-title")).toHaveTextContent(
-        "思考 (用时 15s)",
+        "思考 15s",
       );
     });
 
@@ -314,5 +315,29 @@ describe("ReasoningBlockView", () => {
         "思考中 3s",
       );
     });
+  });
+});
+
+describe("ThoughtLine", () => {
+  it("starts collapsed and expands the thought on click", async () => {
+    const user = userEvent.setup();
+    const block = {
+      type: "reasoning",
+      content: "先看入口再顺着路由找",
+      stage: "end",
+      startTime: 1000,
+      endTime: 2000,
+    } as ReasoningBlock;
+    const { container } = render(
+      <ThoughtLine block={block}>
+        <p>先看入口再顺着路由找</p>
+      </ThoughtLine>,
+    );
+
+    expect(container.querySelector('[data-testid="thought-detail"]')).toBeNull();
+    await user.click(container.querySelector('[data-testid="thought-line"]') as HTMLElement);
+    expect(container.querySelector('[data-testid="thought-detail"]')).toHaveTextContent(
+      "先看入口再顺着路由找",
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderChatApp, sendCommand } from "./test-utils";
+import { expandActivity, expandToolDetail } from "./activityTestHelpers";
 import {
   Message,
   EDIT_TOOL_NAME,
@@ -39,11 +40,12 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockEditMessage] });
 
-    // Check that tool block is present
-    const toolBlock = document.querySelector(".write-tool-header");
-    expect(toolBlock).toBeInTheDocument();
+    expandToolDetail();
+    expect(document.querySelector(".tool-line")).toHaveTextContent(
+      "编辑 example.ts",
+    );
 
-    // Check that diff viewer container is present within the tool block
+    // Diff stays behind the tool row until it is opened.
     const diffContainer = document.querySelector(".diff-viewer-container");
     expect(diffContainer).toBeInTheDocument();
 
@@ -90,13 +92,14 @@ describe("Diff Viewer", () => {
     const diffContainer = document.querySelector(".diff-viewer-container");
     expect(diffContainer).not.toBeInTheDocument();
 
+    expandToolDetail();
     const previewBox = document.querySelector(".write-preview-box");
     expect(previewBox).toBeInTheDocument();
     expect(previewBox).toHaveTextContent(/export const config/);
 
     // Path and enlarge button are present
-    expect(document.querySelector(".write-tool-path")).toHaveTextContent(
-      "src/newFile.ts",
+    expect(document.querySelector(".tool-line")).toHaveTextContent(
+      "编辑 newFile.ts",
     );
     expect(
       document.querySelector('[data-testid="write-preview-open"]'),
@@ -128,9 +131,9 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockReadMessage] });
 
-    // Check that the Read tool container is present
-    const toolContainer = document.querySelector(".tool-container");
-    expect(toolContainer).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="activity-summary"]')).toHaveTextContent(
+      "检索 1 个文件",
+    );
 
     // Check that NO diff viewer is rendered for Read tool
     const diffContainer = document.querySelector(".diff-viewer-container");
@@ -162,9 +165,9 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockRunningEditMessage] });
 
-    // Tool block should be visible
-    const toolBlock = document.querySelector(".write-tool-header");
-    expect(toolBlock).toBeInTheDocument();
+    expect(document.querySelector(".tool-line")).toHaveTextContent(
+      "编辑 example.ts",
+    );
 
     // Diff viewer should NOT be present for running stage
     const diffContainer = document.querySelector(".diff-viewer-container");
@@ -193,9 +196,8 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockMalformedMessage] });
 
-    // Tool block should still be visible
-    const toolBlock = document.querySelector(".write-tool-header");
-    expect(toolBlock).toBeInTheDocument();
+    expandActivity();
+    expect(document.querySelector(".tool-line")).toBeInTheDocument();
 
     // Diff viewer should not be present due to malformed parameters
     const diffContainer = document.querySelector(".diff-viewer-container");
@@ -232,18 +234,12 @@ describe("Diff Viewer", () => {
 
     sendCommand("updateMessages", { messages: [mockMessage] });
 
-    // Check that all block types are rendered in the correct order
-    const assistantMessages = document.querySelectorAll(".message.assistant");
-    const lastAssistant = assistantMessages[assistantMessages.length - 1];
-    expect(lastAssistant).toBeInTheDocument();
+    expect(document.querySelector(".message-content")).toHaveTextContent(
+      /I will make these changes/,
+    );
 
-    const messageContent = lastAssistant.querySelector(".message-content");
-    expect(messageContent).toHaveTextContent(/I will make these changes/);
-
-    const toolBlock = lastAssistant.querySelector(".write-tool-header");
-    expect(toolBlock).toBeInTheDocument();
-
-    const diffContainer = lastAssistant.querySelector(".diff-viewer-container");
+    expandToolDetail();
+    const diffContainer = document.querySelector(".diff-viewer-container");
     expect(diffContainer).toBeInTheDocument();
 
     // Verify diff content
@@ -278,6 +274,7 @@ describe("Diff Viewer", () => {
     };
 
     sendCommand("updateMessages", { messages: [mockSingleLineEdit] });
+    expandToolDetail();
 
     // Check that diff viewer is present
     const diffContainer = document.querySelector(".diff-viewer-container");

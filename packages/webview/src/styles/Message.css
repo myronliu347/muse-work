@@ -812,6 +812,97 @@
   display: block;
 }
 
+/* Aggregated tool runs: one summary line, children are single-line tools. */
+.activity-group {
+  width: 100%;
+  margin: var(--space-1) 0;
+}
+
+.activity-hit,
+.tool-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: 13px;
+  line-height: 22px;
+  height: 22px;
+  text-align: left;
+}
+
+.activity-hit,
+.tool-line.can {
+  cursor: pointer;
+}
+
+.activity-hit .txt,
+.tool-line .txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.activity-chev {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--gray-9);
+  transition: transform 0.15s ease, opacity 0.12s ease;
+}
+
+.activity-hit:hover .activity-chev,
+.activity-hit.open .activity-chev,
+.tool-line.can:hover .activity-chev,
+.tool-line.can.open .activity-chev,
+.tool-line.thought .activity-chev {
+  opacity: 1;
+}
+
+.activity-hit.open .activity-chev,
+.tool-line.can.open .activity-chev {
+  transform: rotate(90deg);
+}
+
+.activity-add {
+  color: var(--green-11);
+  flex-shrink: 0;
+}
+
+.activity-del {
+  color: var(--red-11);
+  flex-shrink: 0;
+}
+
+.activity-kids {
+  display: flex;
+  flex-direction: column;
+}
+
+.tool-line-wrap {
+  max-width: 100%;
+}
+
+.tool-detail {
+  margin: 2px 0 8px;
+}
+
+.thought-detail {
+  margin-left: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: var(--hairline) solid var(--gray-7);
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--gray-11);
+}
+
 .tool-result-inline {
   color: var(--gray-11);
   font-weight: normal;

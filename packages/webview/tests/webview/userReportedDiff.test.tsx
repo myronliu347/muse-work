@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderChatApp, act, sendCommand } from "./test-utils";
+import { expandToolDetail } from "./activityTestHelpers";
 import { EDIT_TOOL_NAME } from "@muse-work/agent";
 import type { Message } from "@muse-work/agent";
 
@@ -38,6 +39,7 @@ describe("Diff Viewer User Reported Case", () => {
     await act(async () => {
       sendCommand("updateMessages", { messages: [mockEditMessage] });
     });
+    expandToolDetail();
 
     // Check that diff viewer is present
     const diffViewer = document.querySelector(".diff-viewer-container");

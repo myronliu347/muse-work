@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { renderChatApp, sendCommand } from "./test-utils";
+import { expandActivity } from "./activityTestHelpers";
 import { MockDataGenerator } from "../fixtures/mockData";
 import {
   READ_TOOL_NAME,
@@ -29,10 +30,11 @@ describe("Tool Block Error Rendering", () => {
       );
 
     sendCommand("updateMessages", { messages: [messageWithToolError] });
+    expandActivity();
 
-    const toolHeader = document.querySelector(".write-tool-header");
+    const toolHeader = document.querySelector(".tool-line");
     expect(toolHeader).toBeInTheDocument();
-    expect(toolHeader).toHaveTextContent(READ_TOOL_NAME);
+    expect(toolHeader).toHaveTextContent("读取 file.txt");
     expect(document.querySelector(".tool-error")).toBeInTheDocument();
     expect(document.querySelector(".tooltip-box.visible")).toBeNull();
 
@@ -54,9 +56,10 @@ describe("Tool Block Error Rendering", () => {
     );
 
     sendCommand("updateMessages", { messages: [bashToolError] });
+    expandActivity();
 
-    const toolBlock = document.querySelector(".tool-block");
-    expect(toolBlock).toHaveTextContent(`● ${BASH_TOOL_NAME}`);
+    const toolBlock = document.querySelector(".tool-line");
+    expect(toolBlock).toHaveTextContent("运行 npm install");
     expect(document.querySelector(".tool-error")).toBeInTheDocument();
     expect(document.querySelector(".tooltip-box.visible")).toBeNull();
 
@@ -78,9 +81,10 @@ describe("Tool Block Error Rendering", () => {
       );
 
     sendCommand("updateMessages", { messages: [writeToolError] });
+    expandActivity();
 
-    const toolBlock = document.querySelector(".tool-block");
-    expect(toolBlock).toHaveTextContent(`● ${WRITE_TOOL_NAME}`);
+    const toolBlock = document.querySelector(".tool-line");
+    expect(toolBlock).toHaveTextContent("编辑 file.txt");
     expect(document.querySelector(".tool-error")).toBeInTheDocument();
     hoverToolError();
     expect(
@@ -102,8 +106,9 @@ describe("Tool Block Error Rendering", () => {
     );
 
     sendCommand("updateMessages", { messages: [normalTool] });
+    expandActivity();
 
-    const toolHeader = document.querySelector(".write-tool-header");
+    const toolHeader = document.querySelector(".tool-line");
     expect(toolHeader).toBeInTheDocument();
     expect(document.querySelector(".tool-error")).not.toBeInTheDocument();
   });

@@ -8,12 +8,15 @@ interface WriteToolPreviewProps {
   toolBlock: ToolBlock;
   vscode: { postMessage: (message: unknown) => void };
   workdir?: string;
+  /** Expanded tool row already shows the file name. */
+  hideHeader?: boolean;
 }
 
 export const WriteToolPreview: React.FC<WriteToolPreviewProps> = ({
   toolBlock,
   vscode,
   workdir,
+  hideHeader,
 }) => {
   let filePath = "";
   let content: string | null = null;
@@ -40,6 +43,33 @@ export const WriteToolPreview: React.FC<WriteToolPreviewProps> = ({
       onOpenFile={openFile}
     />
   );
+
+  if (hideHeader) {
+    if (content === null && !toolBlock.shortResult) return null;
+    return (
+      <div className="write-tool-preview">
+        {toolBlock.shortResult && (
+          <div className="write-tool-stats">{toolBlock.shortResult}</div>
+        )}
+        {content !== null && (
+          <div className="write-preview-box">
+            <div className="write-preview-scroll">
+              <pre className="write-preview-content">{content}</pre>
+            </div>
+            <div className="write-preview-scrim" />
+            <button
+              className="write-preview-open"
+              aria-label="打开预览"
+              data-testid="write-preview-open"
+              onClick={openFile}
+            >
+              <ExternalLinkIcon className="write-preview-open-icon" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (content === null) {
     return <div className="write-tool-preview">{header}</div>;
