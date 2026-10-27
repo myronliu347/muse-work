@@ -1067,6 +1067,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         path: item.path,
         host: item.host,
         workdir: item.workdir,
+        // The reply must land on this directory's tabs. At startup the
+        // visible preview group is often still the assistant key, because
+        // the issue list has not arrived yet.
+        fileGroupKey: item.workdir,
       });
     }
   }, [postToHost]);
@@ -1928,6 +1932,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       setQuickOpenQuery("");
     },
     effectiveWorkdir,
+    quickOpenIssues: (host?.issueGroups ?? []).map((group) => ({
+      id: group.issueId,
+      title: group.title,
+      type: group.type,
+    })),
+    onQuickOpenIssue: (issueId: string) => {
+      selectBotPanel({ kind: "issue", issueId });
+    },
   };
 
   const detailSelection = (() => {
@@ -2011,6 +2023,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         }
       : undefined,
     detailTitle: showIssueDetail ? detailTitle : undefined,
+    detailPresence:
+      showIssueDetail && detailIssueGroup
+        ? issueTabPresence[detailIssueGroup.issueId] ?? null
+        : null,
     detailActive:
       showIssueDetail &&
       (workspace.dock === DOCK_DETAIL_TAB || chromeKindMissing),
@@ -2250,6 +2266,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   id: group.issueId,
                   title: group.title,
                 }))}
+                onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
                 emptyState={<AssistantWelcome />}
                 viewSwitchHost={botSwitchHost}
                 onComposerFocusChange={setBotComposerFocused}
@@ -2395,6 +2412,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 id: group.issueId,
                 title: group.title,
               }))}
+              onSelectIssue={(issueId) => selectBotPanel({ kind: "issue", issueId })}
               emptyState={<AssistantWelcome />}
               viewSwitchHost={botSwitchHost}
             />

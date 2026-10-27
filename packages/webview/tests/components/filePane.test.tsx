@@ -43,6 +43,8 @@ function renderPane(
     onRefreshOpenFile?: (path: string) => void;
     onOpenInPreview?: (path: string) => void;
     onFileTreeChange?: (next: FileTreeState) => void;
+    onFileSidebarModeChange?: (mode: "tree" | "search") => void;
+    fileSidebarMode?: "tree" | "search";
     onClose?: () => void;
     onWidthChange?: (width: number) => void;
     isStreaming?: boolean;
@@ -55,6 +57,7 @@ function renderPane(
   const onRefreshOpenFile = options.onRefreshOpenFile ?? vi.fn();
   const onOpenInPreview = options.onOpenInPreview ?? vi.fn();
   const onFileTreeChange = options.onFileTreeChange ?? vi.fn();
+  const onFileSidebarModeChange = options.onFileSidebarModeChange ?? vi.fn();
   const vscode = { postMessage: vi.fn() };
   const fileView =
     options.fileView === undefined ? makeFileView() : options.fileView;
@@ -68,6 +71,8 @@ function renderPane(
     vscode,
     fileTree: options.fileTree ?? emptyFileTreeState(),
     onFileTreeChange,
+    onFileSidebarModeChange,
+    fileSidebarMode: options.fileSidebarMode ?? "tree",
     onOpenFile,
     onRefreshOpenFile,
     onOpenInPreview,
@@ -89,6 +94,7 @@ function renderPane(
     onFileTreeChange,
     vscode,
     rerenderWith,
+    onFileSidebarModeChange,
   };
 }
 
@@ -154,13 +160,21 @@ describe("FilePane", () => {
     );
   });
 
-  it("hides expand control when tree is open", () => {
-    renderPane({
+  it("keeps search, refresh, and collapse in the toolbar when the tree is open", () => {
+    const { onFileTreeChange, onFileSidebarModeChange } = renderPane({
       fileView: null,
       fileTree: { ...emptyFileTreeState(), collapsed: false },
     });
     expect(screen.queryByTestId("file-tree-expand-btn")).toBeNull();
     expect(screen.getByTestId("file-tree")).toBeInTheDocument();
+    expect(screen.getByTestId("file-refresh-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("file-sidebar-mode-search")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("file-tree-collapse-btn"));
+    expect(onFileTreeChange).toHaveBeenCalledWith(
+      expect.objectContaining({ collapsed: true }),
+    );
+    fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
+    expect(onFileSidebarModeChange).toHaveBeenCalledWith("search");
   });
 
   describe("refresh from preview toolbar when tree is collapsed", () => {
@@ -169,12 +183,12 @@ describe("FilePane", () => {
       expect(screen.getByTestId("file-refresh-btn")).toBeInTheDocument();
     });
 
-    it("hides the refresh button when tree is open", () => {
+    it("keeps the refresh button in the toolbar when the tree is open", () => {
       renderPane({
         fileView: null,
         fileTree: { ...emptyFileTreeState(), collapsed: false },
       });
-      expect(screen.queryByTestId("file-refresh-btn")).toBeNull();
+      expect(screen.getByTestId("file-refresh-btn")).toBeInTheDocument();
     });
 
     it("re-opens the current file and refreshes listings", () => {
@@ -478,28 +492,32 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
       return screen.getByTestId("file-search-input") as HTMLInputElement;
     }
 
-    it("opens the search bar from the toolbar button", async () => {
+    it("keeps in-file search on Cmd+F without a toolbar button", async () => {
       renderPane();
       await waitFor(() => {
         expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
       });
+      expect(screen.queryByTestId("file-search-btn")).toBeNull();
       expect(screen.queryByTestId("file-search-bar")).toBeNull();
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
     });
 
-    it("opens the search bar with Cmd+F", async () => {
-      renderPane();
-      await waitFor(() => {
-        expect(document.querySelectorAll(".file-pane-line").length).toBe(2);
+    it("does not open in-file search from Cmd+F in markdown preview", () => {
+      renderPane({
+        fileView: {
+          path: "/work/a/README.md",
+          host: "local",
+          content: "# 标题",
+        },
       });
       fireEvent.keyDown(window, { key: "f", metaKey: true });
-      expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
+      expect(screen.queryByTestId("file-search-bar")).toBeNull();
     });
 
     it("highlights matches and shows the match counter", async () => {
@@ -507,7 +525,7 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       fireEvent.change(screen.getByTestId("file-search-input"), {
         target: { value: "const" },
       });
@@ -543,7 +561,7 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       fireEvent.change(screen.getByTestId("file-search-input"), {
         target: { value: "const" },
       });
@@ -575,7 +593,7 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       fireEvent.change(screen.getByTestId("file-search-input"), {
         target: { value: "const" },
       });
@@ -592,7 +610,7 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(container.querySelectorAll(".file-pane-line").length).toBe(2);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       const input = screen.getByTestId("file-search-input");
       fireEvent.change(input, { target: { value: "const" } });
       await waitFor(() => {
@@ -601,17 +619,6 @@ describe("FilePane", () => {
       fireEvent.change(input, { target: { value: "" } });
       expect(container.querySelectorAll(".file-pane-search-mark").length).toBe(0);
       expect(screen.getByTestId("file-search-count")).toHaveTextContent("0/0");
-    });
-
-    it("hides the search button in markdown preview mode", () => {
-      renderPane({
-        fileView: {
-          path: "/work/a/README.md",
-          host: "local",
-          content: "# 标题",
-        },
-      });
-      expect(screen.queryByTestId("file-search-btn")).toBeNull();
     });
   });
 
@@ -655,7 +662,7 @@ describe("FilePane", () => {
       await waitFor(() => {
         expect(document.querySelectorAll(".file-pane-line").length).toBe(1);
       });
-      fireEvent.click(screen.getByTestId("file-search-btn"));
+      fireEvent.keyDown(window, { key: "f", metaKey: true });
       expect(screen.getByTestId("file-search-bar")).toBeInTheDocument();
       rerenderWith({
         fileView: makeTab("/work/a/b.ts"),

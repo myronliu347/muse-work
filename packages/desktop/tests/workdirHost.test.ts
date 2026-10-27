@@ -375,10 +375,14 @@ describe("installWorkdirHost", () => {
       showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
     });
 
-    await handler!({ sender: {} }, { command: "openFile", path: sample });
+    await handler!(
+      { sender: {} },
+      { command: "openFile", path: sample, fileGroupKey: dir },
+    );
     expect(sent).toContainEqual(
       expect.objectContaining({
         command: "desktopFileContent",
+        fileGroupKey: dir,
         fileView: expect.objectContaining({
           path: sample,
           content: expect.stringContaining('"name":"demo"'),

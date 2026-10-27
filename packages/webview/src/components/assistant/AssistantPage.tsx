@@ -38,6 +38,8 @@ export type AssistantLine = {
   message: string;
   images?: Array<{ data: string; mediaType: string }>;
   app?: "popo";
+  /** 这条回复引用的 Issue。标题引用可点击并切到它。 */
+  issueId?: string;
 };
 
 export type AssistantQueueItem = {
@@ -126,6 +128,16 @@ function popoImageUrls(message: string): { text: string; urls: string[] } {
   return { text, urls };
 }
 
+function withIssueQuote(html: string, issueId: string | undefined): string {
+  const id = issueId?.trim();
+  if (!id || !html.includes("<blockquote>")) return html;
+  const safe = id.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  return html.replace(
+    "<blockquote>",
+    `<blockquote class="assistant-issue-quote" data-issue-id="${safe}">`,
+  );
+}
+
 function markdownHtml(text: string, closed: ReadonlySet<string> = new Set()): string {
   const html = marked.parse(linkifyFilePaths(text), { gfm: true, breaks: true });
   const safe = DOMPurify.sanitize(typeof html === "string" ? html : "", {
@@ -168,6 +180,10 @@ function asLine(value: unknown): AssistantLine | undefined {
       role: line.role,
       message: line.message,
       ...((line as { app?: unknown }).app === "popo" ? { app: "popo" as const } : {}),
+      ...(typeof (line as { issueId?: unknown }).issueId === "string" &&
+      (line as { issueId: string }).issueId.trim()
+        ? { issueId: (line as { issueId: string }).issueId.trim() }
+        : {}),
       ...(Array.isArray((line as { images?: unknown }).images)
         ? {
             images: (
@@ -414,11 +430,13 @@ function AssistantBubbleBody({
   line,
   closedFilePaths,
   onLinkClick,
+  onSelectIssue,
   onPreviewImage,
 }: {
   line: AssistantLine;
   closedFilePaths: ReadonlySet<string>;
   onLinkClick: (event: MouseEvent) => void;
+  onSelectIssue?: (issueId: string) => void;
   onPreviewImage: (
     src: string,
     alt: string,
@@ -446,9 +464,22 @@ function AssistantBubbleBody({
           <div
             key={`${line.id}:text:${index}`}
             className="message-content markdown-content"
-            onClick={onLinkClick}
+            onClick={(event) => {
+              const quote = (event.target as HTMLElement).closest(
+                "blockquote.assistant-issue-quote",
+              );
+              if (quote && line.issueId && onSelectIssue) {
+                event.preventDefault();
+                onSelectIssue(line.issueId);
+                return;
+              }
+              onLinkClick(event);
+            }}
             dangerouslySetInnerHTML={{
-              __html: markdownHtml(part.content, closedFilePaths),
+              __html: withIssueQuote(
+                markdownHtml(part.content, closedFilePaths),
+                line.issueId,
+              ),
             }}
           />
         ),
@@ -495,6 +526,8 @@ export const AssistantPage: React.FC<{
   onViewModeChange?: (mode: "chat" | "transcript") => void;
   /** 分栏时左侧输入框聚焦，用来清掉离开主页期间攒下的未读和通知。 */
   onComposerFocusChange?: (focused: boolean) => void;
+  /** 点击回复里的事项标题，切到这条 Issue。 */
+  onSelectIssue?: (issueId: string) => void;
 }> = ({
   api,
   vscode = noopHost,
@@ -509,6 +542,7 @@ export const AssistantPage: React.FC<{
   viewSwitchHost,
   onViewModeChange,
   onComposerFocusChange,
+  onSelectIssue,
 }) => {
   const [lines, setLines] = useState<AssistantLine[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -1039,6 +1073,7 @@ export const AssistantPage: React.FC<{
                         line={line}
                         closedFilePaths={closedFilePaths}
                         onLinkClick={handleLinkClick}
+                        onSelectIssue={onSelectIssue}
                         onPreviewImage={previewImage}
                       />
                     </div>

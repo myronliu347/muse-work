@@ -400,6 +400,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       filterText?: string;
       dir?: string;
       workdir?: string;
+      fileGroupKey?: string;
       source?: string;
       query?: string;
       caseSensitive?: boolean;
@@ -612,6 +613,10 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       if (!filePath) return;
       const workdir =
         (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const fileGroupKey =
+        typeof msg.fileGroupKey === "string" && msg.fileGroupKey
+          ? msg.fileGroupKey
+          : undefined;
       // linkify keeps `~/x` links intact but path.isAbsolute("~/x") is false;
       // expand the leading `~` to the home directory here (Node context has
       // os; the webview linkify is pure front-end).
@@ -635,6 +640,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
           command: "desktopFileContent",
           paneId: msg.paneId,
           requestedPath: filePath,
+          ...(fileGroupKey ? { fileGroupKey } : {}),
           fileView,
         });
       };
@@ -656,6 +662,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
           paneId: msg.paneId,
           query: searchQuery,
           path: filePath,
+          ...(fileGroupKey ? { fileGroupKey } : {}),
         });
         return;
       }
@@ -668,6 +675,7 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         command: "desktopFileContent",
         paneId: msg.paneId,
         requestedPath: filePath,
+        ...(fileGroupKey ? { fileGroupKey } : {}),
         fileView: { path: filePath, host: "local", error },
       });
       return;

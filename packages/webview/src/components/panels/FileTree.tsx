@@ -90,9 +90,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onTreeChange,
   onOpenFile,
   onOpenFilePinned,
-  onRefreshFile,
   sidebarMode = "tree",
-  onSidebarModeChange,
   contentSearch = emptyContentSearchState(),
   onContentSearchChange,
   onOpenMatch,
@@ -203,26 +201,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
     onTreeChange({ ...tree, expanded: Array.from(set) });
   };
 
-  const toggleSearchMode = () => {
-    if (!onSidebarModeChange) return;
-    onSidebarModeChange(sidebarMode === "search" ? "tree" : "search");
-  };
-
-  // Drop the children cache and re-request the root plus every expanded dir.
-  // Expanded state is preserved; only listings are re-fetched from disk. The
-  // open file is re-read too so its panel content is not stale.
-  const refreshTree = () => {
-    if (!workdir) return;
-    const dirs = [""];
-    for (const dir of tree.expanded) {
-      if (!dirs.includes(dir)) dirs.push(dir);
-    }
-    onTreeChange({ ...tree, childrenCache: {} });
-    commitPending(new Set(dirs));
-    requestDirListings(vscode, workdir, dirs);
-    onRefreshFile?.();
-  };
-
   // Fully collapsed: parent FilePane shows the expand control in its toolbar.
   if (tree.collapsed) {
     return null;
@@ -236,20 +214,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
           <span className="file-tree-workdir" title="">
             无工作目录
           </span>
-          {onSidebarModeChange && (
-            <div className="file-tree-mode-toggles">
-              <button
-                type="button"
-                className="file-tree-mode-btn"
-                data-testid="file-sidebar-mode-search"
-                aria-pressed={sidebarMode === "search"}
-                title={sidebarMode === "search" ? "返回文件树" : "搜索"}
-                onClick={toggleSearchMode}
-              >
-                <i className="codicon codicon-search" aria-hidden />
-              </button>
-            </div>
-          )}
         </div>
         {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
           <FileContentSearch
@@ -269,33 +233,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
     workdir.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ||
     workdir;
 
-  const modeToggles = (
-    <div className="file-tree-mode-toggles">
-      {onSidebarModeChange && (
-        <button
-          type="button"
-          className="file-tree-mode-btn"
-          data-testid="file-sidebar-mode-search"
-          aria-pressed={sidebarMode === "search"}
-          title={sidebarMode === "search" ? "返回文件树" : "搜索"}
-          onClick={toggleSearchMode}
-        >
-          <i className="codicon codicon-search" aria-hidden />
-        </button>
-      )}
-      <button
-        type="button"
-        className="file-tree-mode-btn"
-        data-testid="file-tree-refresh-btn"
-        title="刷新目录与文件"
-        aria-label="刷新目录与文件"
-        onClick={refreshTree}
-      >
-        <i className="codicon codicon-refresh" aria-hidden />
-      </button>
-    </div>
-  );
-
   return (
     <div className="file-tree" style={{ width }} data-testid="file-tree">
       <div
@@ -305,7 +242,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
       />
       <div className="file-tree-header" title={workdir} data-testid="file-tree-workdir">
         <span className="file-tree-workdir">{workdirName}</span>
-        {modeToggles}
       </div>
       {sidebarMode === "search" && onContentSearchChange && onOpenMatch ? (
         <FileContentSearch

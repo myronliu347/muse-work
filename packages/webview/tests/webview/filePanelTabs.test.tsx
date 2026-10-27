@@ -125,6 +125,32 @@ describe("desktopFileContent multi-tab routing (messageRouter)", () => {
     expect(groupState().activeFilePath).toBe("/mock/workdir/src/hello.ts");
   });
 
+  it("writes file content onto the group that requested the restore", async () => {
+    renderChatApp(createMockVscode());
+    usePanelGroupStore.getState().patchGroup("/work/other", {
+      fileTabs: [{ path: "/work/other/a.ts", host: "local", loading: true }],
+      activeFilePath: "/work/other/a.ts",
+    });
+
+    await act(async () => {
+      sendExtensionMessage({
+        command: "desktopFileContent",
+        fileGroupKey: "/work/other",
+        requestedPath: "/work/other/a.ts",
+        fileView: {
+          path: "/work/other/a.ts",
+          host: "local",
+          content: "restored\n",
+        },
+      });
+    });
+
+    const restored = usePanelGroupStore.getState().groups["/work/other"];
+    expect(restored.fileTabs[0].content).toBe("restored\n");
+    expect(restored.fileTabs[0].loading).toBeUndefined();
+    expect(usePanelGroupStore.getState().groups["/mock/workdir"]?.fileTabs ?? []).toEqual([]);
+  });
+
   it("openQuickOpen closes the loading stub and shows the palette", async () => {
     renderChatApp(createMockVscode());
     usePanelGroupStore.getState().patchGroup("/mock/workdir", {

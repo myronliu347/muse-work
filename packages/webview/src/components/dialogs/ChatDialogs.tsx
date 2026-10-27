@@ -47,6 +47,8 @@ export interface ChatDialogsProps {
   quickOpenQuery?: string;
   onQuickOpenClose: () => void;
   effectiveWorkdir?: string;
+  quickOpenIssues?: Array<{ id: string; title: string; type?: string }>;
+  onQuickOpenIssue?: (issueId: string) => void;
 }
 
 /**
@@ -82,6 +84,8 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
   quickOpenQuery,
   onQuickOpenClose,
   effectiveWorkdir,
+  quickOpenIssues,
+  onQuickOpenIssue,
 }) => {
   return bodyPortal(
     <>
@@ -160,9 +164,11 @@ export const ChatDialogs: React.FC<ChatDialogsProps> = ({
         open={quickOpenOpen}
         initialQuery={quickOpenQuery}
         workdir={effectiveWorkdir}
+        issues={quickOpenIssues}
         vscode={vscode}
         onClose={onQuickOpenClose}
         onOpenFile={(path) => onOpenFile(path)}
+        onSelectIssue={onQuickOpenIssue}
       />
     </>,
   );

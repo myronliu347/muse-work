@@ -206,132 +206,135 @@ export const FilePane: React.FC<FilePaneProps> = ({
     >
       <div className="preview-pane-drag-handle" onMouseDown={onDragStart} />
       <div className="preview-pane-inner file-pane-inner">
-        <div className="file-pane-left">
-          <div className="preview-pane-toolbar">
-            {fileView ? (
-              <FilePathBar path={fileView.path} workdir={workdir} />
-            ) : (
-              <span className="preview-pane-url">文件</span>
-            )}
-            <div className="file-pane-toolbar-actions">
-              {canSearch && (
+        <div className="preview-pane-toolbar">
+          {fileView ? (
+            <FilePathBar path={fileView.path} workdir={workdir} />
+          ) : (
+            <span className="preview-pane-url">文件</span>
+          )}
+          <div className="file-pane-toolbar-actions">
+            {isMd && (
+              <div className="file-pane-md-toggle" data-testid="file-md-toggle">
                 <button
                   type="button"
                   className="preview-pane-button"
-                  data-testid="file-search-btn"
-                  title="在文件中查找 (Cmd+F)"
-                  aria-label="在文件中查找"
-                  aria-pressed={searchOpen}
-                  onClick={() => setSearchOpen((v) => !v)}
+                  aria-pressed={mdMode === "preview"}
+                  onClick={() => setMdModeForActive("preview")}
                 >
-                  <i className="codicon codicon-search" aria-hidden />
+                  预览
                 </button>
-              )}
-              {isMd && (
-                <div className="file-pane-md-toggle" data-testid="file-md-toggle">
-                  <button
-                    type="button"
-                    className="preview-pane-button"
-                    aria-pressed={mdMode === "preview"}
-                    onClick={() => setMdModeForActive("preview")}
-                  >
-                    预览
-                  </button>
-                  <button
-                    type="button"
-                    className="preview-pane-button"
-                    aria-pressed={mdMode === "source"}
-                    onClick={() => setMdModeForActive("source")}
-                  >
-                    源码
-                  </button>
-                </div>
-              )}
-              {isHtml && (
                 <button
                   type="button"
                   className="preview-pane-button"
-                  data-testid="file-open-in-browser"
-                  title="在内置浏览器中打开"
-                  aria-label="在内置浏览器中打开"
-                  onClick={() => onOpenInPreview?.(fileView.path)}
+                  aria-pressed={mdMode === "source"}
+                  onClick={() => setMdModeForActive("source")}
                 >
-                  <i className="codicon codicon-globe" aria-hidden />
+                  源码
                 </button>
-              )}
-              {showTreeToggle && treeCollapsed && (
-                <button
-                  type="button"
-                  className="preview-pane-button"
-                  data-testid="file-refresh-btn"
-                  title="刷新目录与文件"
-                  aria-label="刷新目录与文件"
-                  onClick={handleRefresh}
-                >
-                  <i className="codicon codicon-refresh" aria-hidden />
-                </button>
-              )}
-              {showTreeToggle && treeCollapsed && (
-                <button
-                  type="button"
-                  className="preview-pane-button"
-                  data-testid="file-tree-expand-btn"
-                  title="展开文件树"
-                  aria-label="展开文件树"
-                  aria-pressed={false}
-                  onClick={toggleTreeCollapsed}
-                >
-                  <i className="codicon codicon-list-tree" aria-hidden />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="preview-pane-body file-pane-body">
-            {!fileView && (
-              <div className="desktop-panel-placeholder">
-                <i className="codicon codicon-file file-pane-placeholder-icon" />
-                <span>从消息或文件树打开文件</span>
               </div>
             )}
-            {fileView && (
-              <FilePreview
-                fileView={fileView}
-                workdir={workdir}
-                onRevealInFinder={onRevealInFinder}
-                markdownMode={mdMode}
-                onOpenFile={onOpenFile}
-                onOpenExternal={(url) =>
-                  vscode.postMessage({ command: "openExternal", url })
+            {isHtml && (
+              <button
+                type="button"
+                className="preview-pane-button"
+                data-testid="file-open-in-browser"
+                title="在内置浏览器中打开"
+                aria-label="在内置浏览器中打开"
+                onClick={() => onOpenInPreview?.(fileView.path)}
+              >
+                <i className="codicon codicon-globe" aria-hidden />
+              </button>
+            )}
+            {showTreeToggle && onFileSidebarModeChange && !treeCollapsed && (
+              <button
+                type="button"
+                className="preview-pane-button"
+                data-testid="file-sidebar-mode-search"
+                aria-pressed={fileSidebarMode === "search"}
+                title={fileSidebarMode === "search" ? "返回文件树" : "搜索"}
+                onClick={() =>
+                  onFileSidebarModeChange(fileSidebarMode === "search" ? "tree" : "search")
                 }
-                searchOpen={searchOpen}
-                onCloseSearch={() => setSearchOpen(false)}
-                savedScrollTop={
-                  fileView ? scrollTopsRef.current[fileView.path] : undefined
-                }
-                onScrollChange={(scrollTop) => {
-                  scrollTopsRef.current[fileView.path] = scrollTop;
-                }}
-              />
+              >
+                <i className="codicon codicon-search" aria-hidden />
+              </button>
+            )}
+            {showTreeToggle && (
+              <button
+                type="button"
+                className="preview-pane-button"
+                data-testid="file-refresh-btn"
+                title="刷新目录与文件"
+                aria-label="刷新目录与文件"
+                onClick={handleRefresh}
+              >
+                <i className="codicon codicon-refresh" aria-hidden />
+              </button>
+            )}
+            {showTreeToggle && (
+              <button
+                type="button"
+                className="preview-pane-button"
+                data-testid={treeCollapsed ? "file-tree-expand-btn" : "file-tree-collapse-btn"}
+                title={treeCollapsed ? "展开文件树" : "收起文件树"}
+                aria-label={treeCollapsed ? "展开文件树" : "收起文件树"}
+                aria-pressed={!treeCollapsed}
+                onClick={toggleTreeCollapsed}
+              >
+                <i className="codicon codicon-list-tree" aria-hidden />
+              </button>
             )}
           </div>
         </div>
-        {onFileTreeChange && !treeCollapsed && (
-          <FileTree
-            key={workdir ?? ""}
-            workdir={workdir}
-            vscode={vscode}
-            tree={fileTree}
-            onTreeChange={onFileTreeChange}
-            onOpenFile={(path) => onOpenFile(path)}
-            onOpenFilePinned={onOpenFilePinned}
-            onRefreshFile={refreshOpenFile}
-            sidebarMode={fileSidebarMode}
-            onSidebarModeChange={onFileSidebarModeChange}
-            contentSearch={contentSearch}
-            onContentSearchChange={onContentSearchChange}
-            onOpenMatch={(path, line) => onOpenFile(path, line)}
-          />
-        )}
+        <div className="file-pane-main">
+          <div className="file-pane-left">
+            <div className="preview-pane-body file-pane-body">
+              {!fileView && (
+                <div className="desktop-panel-placeholder">
+                  <i className="codicon codicon-file file-pane-placeholder-icon" />
+                  <span>从消息或文件树打开文件</span>
+                </div>
+              )}
+              {fileView && (
+                <FilePreview
+                  fileView={fileView}
+                  workdir={workdir}
+                  onRevealInFinder={onRevealInFinder}
+                  markdownMode={mdMode}
+                  onOpenFile={onOpenFile}
+                  onOpenExternal={(url) =>
+                    vscode.postMessage({ command: "openExternal", url })
+                  }
+                  searchOpen={searchOpen}
+                  onCloseSearch={() => setSearchOpen(false)}
+                  savedScrollTop={
+                    fileView ? scrollTopsRef.current[fileView.path] : undefined
+                  }
+                  onScrollChange={(scrollTop) => {
+                    scrollTopsRef.current[fileView.path] = scrollTop;
+                  }}
+                />
+              )}
+            </div>
+          </div>
+          {onFileTreeChange && !treeCollapsed && (
+            <FileTree
+              key={workdir ?? ""}
+              workdir={workdir}
+              vscode={vscode}
+              tree={fileTree}
+              onTreeChange={onFileTreeChange}
+              onOpenFile={(path) => onOpenFile(path)}
+              onOpenFilePinned={onOpenFilePinned}
+              onRefreshFile={refreshOpenFile}
+              sidebarMode={fileSidebarMode}
+              onSidebarModeChange={onFileSidebarModeChange}
+              contentSearch={contentSearch}
+              onContentSearchChange={onContentSearchChange}
+              onOpenMatch={(path, line) => onOpenFile(path, line)}
+            />
+          )}
+        </div>
       </div>
     </aside>
   );

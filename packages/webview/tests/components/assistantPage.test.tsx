@@ -63,6 +63,31 @@ describe("AssistantPage", () => {
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
+  it("switches the current issue when the quoted title is clicked", async () => {
+    const onSelectIssue = vi.fn();
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "2",
+            at: 2,
+            role: "assistant",
+            issueId: "issue-1",
+            message: "> 【BugFix】将原型快照补参迁入 dev\n\n已补到最新 dev",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+    };
+    render(<AssistantPage api={api} onSelectIssue={onSelectIssue} />);
+    const title = await screen.findByText("【BugFix】将原型快照补参迁入 dev");
+    fireEvent.click(title);
+    expect(onSelectIssue).toHaveBeenCalledWith("issue-1");
+    fireEvent.click(screen.getByText("已补到最新 dev"));
+    expect(onSelectIssue).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the waiting queue", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),

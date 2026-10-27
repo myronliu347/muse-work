@@ -995,6 +995,14 @@
   border-radius: 0 var(--radius-2) var(--radius-2) 0;
 }
 
+.markdown-content blockquote.assistant-issue-quote {
+  cursor: pointer;
+}
+
+.markdown-content blockquote.assistant-issue-quote:hover {
+  background-color: color-mix(in srgb, var(--accent-9) 16%, var(--gray-2));
+}
+
 .markdown-content blockquote p {
   margin: var(--space-1) 0;
 }

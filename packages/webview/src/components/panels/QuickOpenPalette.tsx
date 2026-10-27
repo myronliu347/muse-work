@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FileIcon } from "./FileIcon";
+import { IssueTypeIcon } from "../issue/IssueTypeIcon";
 import { MiddleEllipsisText } from "../shared/MiddleEllipsisText";
 
 export type QuickOpenHit = {
@@ -9,17 +10,42 @@ export type QuickOpenHit = {
   isDirectory?: boolean;
 };
 
+export type QuickOpenIssue = {
+  id: string;
+  title: string;
+  type?: string;
+};
+
 export type QuickOpenPaletteProps = {
   open: boolean;
   workdir: string | undefined;
   vscode: { postMessage: (msg: unknown) => void };
   onClose: () => void;
   onOpenFile: (absPath: string) => void;
+  /** 和文件一起搜。选中后切到这条事项。 */
+  issues?: QuickOpenIssue[];
+  onSelectIssue?: (issueId: string) => void;
   /** Prefill when opened from a multi-hit markdown link. */
   initialQuery?: string;
 };
 
+type QuickOpenRow =
+  | { kind: "issue"; issue: QuickOpenIssue }
+  | { kind: "file"; hit: QuickOpenHit };
+
 let quickOpenSeq = 0;
+
+function matchIssues(issues: QuickOpenIssue[], query: string): QuickOpenIssue[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return issues
+    .filter(
+      (issue) =>
+        issue.title.toLowerCase().includes(q) ||
+        issue.id.toLowerCase().includes(q),
+    )
+    .slice(0, 20);
+}
 
 export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   open,
@@ -27,6 +53,8 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   vscode,
   onClose,
   onOpenFile,
+  issues = [],
+  onSelectIssue,
   initialQuery = "",
 }) => {
   const [query, setQuery] = useState("");
@@ -35,6 +63,11 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   const requestIdRef = useRef<string | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const issueHits = useMemo(() => matchIssues(issues, query), [issues, query]);
+  const rows: QuickOpenRow[] = [
+    ...issueHits.map((issue) => ({ kind: "issue" as const, issue })),
+    ...hits.map((hit) => ({ kind: "file" as const, hit })),
+  ];
 
   useEffect(() => {
     if (!open) {
@@ -69,6 +102,7 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
     if (!open) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     const q = query.trim();
+    setSelectedIndex(0);
     if (!q || !workdir) {
       setHits([]);
       requestIdRef.current = undefined;
@@ -95,11 +129,21 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
   if (!open) return null;
 
   const openSelected = () => {
-    const hit = hits[selectedIndex];
-    if (!hit) return;
-    onOpenFile(hit.path);
+    const row = rows[selectedIndex];
+    if (!row) return;
+    if (row.kind === "issue") onSelectIssue?.(row.issue.id);
+    else onOpenFile(row.hit.path);
     onClose();
   };
+
+  const trimmed = query.trim();
+  const empty = !trimmed
+    ? "输入文件名或事项开始搜索"
+    : !workdir && issueHits.length === 0
+      ? "选择工作目录后打开文件"
+      : rows.length === 0
+        ? "无匹配"
+        : null;
 
   return (
     <div
@@ -123,7 +167,7 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
           if (e.key === "ArrowDown") {
             e.preventDefault();
             setSelectedIndex((i) =>
-              hits.length ? Math.min(i + 1, hits.length - 1) : 0,
+              rows.length ? Math.min(i + 1, rows.length - 1) : 0,
             );
             return;
           }
@@ -142,39 +186,54 @@ export const QuickOpenPalette: React.FC<QuickOpenPaletteProps> = ({
           ref={inputRef}
           className="quick-open-input"
           data-testid="quick-open-input"
-          placeholder="按文件名搜索…"
+          placeholder="搜索文件或事项…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="quick-open-list">
-          {!workdir ? (
-            <div className="quick-open-empty">选择工作目录后打开文件</div>
-          ) : !query.trim() ? (
-            <div className="quick-open-empty">输入文件名开始搜索</div>
-          ) : hits.length === 0 ? (
-            <div className="quick-open-empty">无匹配文件</div>
+          {empty ? (
+            <div className="quick-open-empty">{empty}</div>
           ) : (
-            hits.map((hit, i) => (
-              <button
-                key={hit.path}
-                type="button"
-                className={`quick-open-item${
-                  i === selectedIndex ? " quick-open-item--active" : ""
-                }`}
-                data-testid={`quick-open-item-${hit.relativePath}`}
-                onMouseEnter={() => setSelectedIndex(i)}
-                onClick={() => {
-                  onOpenFile(hit.path);
-                  onClose();
-                }}
-              >
-                <FileIcon name={hit.name} className="file-tree-icon" />
-                <MiddleEllipsisText
-                  text={hit.relativePath}
-                  className="quick-open-item-path"
-                />
-              </button>
-            ))
+            rows.map((row, i) =>
+              row.kind === "issue" ? (
+                <button
+                  key={`issue:${row.issue.id}`}
+                  type="button"
+                  className={`quick-open-item${
+                    i === selectedIndex ? " quick-open-item--active" : ""
+                  }`}
+                  data-testid={`quick-open-issue-${row.issue.id}`}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  onClick={() => {
+                    onSelectIssue?.(row.issue.id);
+                    onClose();
+                  }}
+                >
+                  <IssueTypeIcon type={row.issue.type} />
+                  <span className="quick-open-item-path">{row.issue.title}</span>
+                </button>
+              ) : (
+                <button
+                  key={row.hit.path}
+                  type="button"
+                  className={`quick-open-item${
+                    i === selectedIndex ? " quick-open-item--active" : ""
+                  }`}
+                  data-testid={`quick-open-item-${row.hit.relativePath}`}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  onClick={() => {
+                    onOpenFile(row.hit.path);
+                    onClose();
+                  }}
+                >
+                  <FileIcon name={row.hit.name} className="file-tree-icon" />
+                  <MiddleEllipsisText
+                    text={row.hit.relativePath}
+                    className="quick-open-item-path"
+                  />
+                </button>
+              ),
+            )
           )}
         </div>
       </div>

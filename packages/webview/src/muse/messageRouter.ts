@@ -200,7 +200,11 @@ export function createMessageHandler({
         // position), or build one and activate it when no tab exists.
         if (!forThisPane(message)) break;
         {
-          const key = previewGroupKeyRef.current || groupKeyRef.current;
+          const routed =
+            typeof message.fileGroupKey === "string" && message.fileGroupKey
+              ? message.fileGroupKey
+              : undefined;
+          const key = routed || previewGroupKeyRef.current || groupKeyRef.current;
           if (key) {
             const incoming = message.fileView as FileViewState;
             const requestedPath =
@@ -223,7 +227,11 @@ export function createMessageHandler({
       case "openQuickOpen":
         if (!forThisPane(message)) break;
         {
-          const key = previewGroupKeyRef.current || groupKeyRef.current;
+          const routed =
+            typeof message.fileGroupKey === "string" && message.fileGroupKey
+              ? message.fileGroupKey
+              : undefined;
+          const key = routed || previewGroupKeyRef.current || groupKeyRef.current;
           const closePath = typeof message.path === "string" ? message.path : "";
           if (key && closePath) {
             usePanelGroupStore.getState().patchGroup(key, (group) =>

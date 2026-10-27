@@ -5,7 +5,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { FileTree } from "../../src/components/panels/FileTree";
 import {
   emptyFileTreeState,
-  emptyContentSearchState,
   type FileTreeState,
 } from "../../src/stores/panelGroupStore";
 
@@ -60,7 +59,7 @@ describe("FileTree", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("header shows the workdir name without folder, tree-mode, or collapse controls", () => {
+  it("header shows the workdir name without folder, tree-mode, or toolbar controls", () => {
     render(
       <FileTree
         workdir="/work"
@@ -76,8 +75,8 @@ describe("FileTree", () => {
     expect(header.querySelector(".file-tree-icon")).toBeNull();
     expect(screen.queryByTestId("file-sidebar-mode-tree")).toBeNull();
     expect(screen.queryByTestId("file-tree-collapse-btn")).toBeNull();
-    expect(screen.getByTestId("file-sidebar-mode-search")).toBeInTheDocument();
-    expect(screen.getByTestId("file-tree-refresh-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("file-sidebar-mode-search")).toBeNull();
+    expect(screen.queryByTestId("file-tree-refresh-btn")).toBeNull();
   });
 
   it("requests root listing when cache is empty", () => {
@@ -221,127 +220,5 @@ describe("FileTree", () => {
         expanded: expect.arrayContaining(["src"]),
       }),
     );
-  });
-
-  it("clears children cache when refresh is clicked", () => {
-    const tree = openTree({
-      childrenCache: {
-        "": [
-          {
-            name: "a.ts",
-            path: "/work/a.ts",
-            relativePath: "a.ts",
-            isDirectory: false,
-          },
-        ],
-      },
-    });
-
-    render(
-      <FileTree
-        workdir="/work"
-        vscode={{ postMessage }}
-        tree={tree}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
-    expect(onTreeChange).toHaveBeenCalledWith(
-      expect.objectContaining({ childrenCache: {} }),
-    );
-  });
-
-  it("re-requests root and expanded dirs after refresh", () => {
-    const tree = openTree({
-      expanded: ["src"],
-      childrenCache: {
-        "": [
-          {
-            name: "src",
-            path: "/work/src",
-            relativePath: "src",
-            isDirectory: true,
-          },
-        ],
-        src: [],
-      },
-    });
-
-    render(
-      <FileTree
-        workdir="/work"
-        vscode={{ postMessage }}
-        tree={tree}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
-    expect(postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ command: "desktopListDir", dir: "" }),
-    );
-    expect(postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ command: "desktopListDir", dir: "src" }),
-    );
-  });
-
-  it("refreshes the open file when refresh is clicked", () => {
-    const onRefreshFile = vi.fn();
-    render(
-      <FileTree
-        workdir="/work"
-        vscode={{ postMessage }}
-        tree={openTree()}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-        onRefreshFile={onRefreshFile}
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId("file-tree-refresh-btn"));
-    expect(onRefreshFile).toHaveBeenCalledTimes(1);
-  });
-
-  it("switches between tree and search modes", () => {
-    const onMode = vi.fn();
-    render(
-      <FileTree
-        workdir="/w"
-        vscode={{ postMessage }}
-        tree={openTree()}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-        sidebarMode="tree"
-        onSidebarModeChange={onMode}
-        contentSearch={emptyContentSearchState()}
-        onContentSearchChange={vi.fn()}
-        onOpenMatch={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
-    expect(onMode).toHaveBeenCalledWith("search");
-  });
-
-  it("search button returns to the tree when already searching", () => {
-    const onMode = vi.fn();
-    render(
-      <FileTree
-        workdir="/w"
-        vscode={{ postMessage }}
-        tree={openTree()}
-        onTreeChange={onTreeChange}
-        onOpenFile={onOpenFile}
-        sidebarMode="search"
-        onSidebarModeChange={onMode}
-        contentSearch={emptyContentSearchState()}
-        onContentSearchChange={vi.fn()}
-        onOpenMatch={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByTestId("file-sidebar-mode-search"));
-    expect(onMode).toHaveBeenCalledWith("tree");
   });
 });

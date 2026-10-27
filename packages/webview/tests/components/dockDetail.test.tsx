@@ -253,6 +253,26 @@ describe("dock detail tab", () => {
     expect(document.querySelector(".tooltip-box.visible")).toHaveTextContent(title);
   });
 
+  it("shows the running mark on the detail tab while the issue is working", () => {
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...dockProps}
+          checked={[]}
+          active="file"
+          detailTitle="【BugFix】高码"
+          detailPresence="running"
+          onSelectDetail={() => {}}
+        >
+          <div />
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    const tab = screen.getByTestId("desktop-panel-tab-detail");
+    expect(tab.querySelector("[data-testid='desktop-session-status-running']")).toBeTruthy();
+    expect(tab.querySelector(".codicon-note")).toBeNull();
+  });
+
   it("replaces the dock body with detail and hides the file tree", () => {
     render(
       <MuseTheme>

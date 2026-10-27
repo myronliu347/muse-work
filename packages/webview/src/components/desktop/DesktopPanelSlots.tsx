@@ -19,6 +19,7 @@ import type {
   VsCodeApi,
 } from "../../types";
 import type { DockToolInstance, RemoteForwardRef } from "../../stores";
+import type { IssuePresence } from "../session/SessionStatusGlyph";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
@@ -78,6 +79,7 @@ export interface DesktopPanelSlotsProps {
   detailActive?: boolean;
   onSelectDetail?: () => void;
   detailTitle?: string;
+  detailPresence?: IssuePresence | null;
   detail?: React.ReactNode;
   /** Bot-page terminals and browsers. Each tab keeps its own cwd or URL. */
   tools?: DockToolInstance[];
@@ -146,6 +148,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   detailActive = false,
   onSelectDetail,
   detailTitle,
+  detailPresence,
   detail,
   tools = [],
   activeToolId = null,
@@ -261,6 +264,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       detailActive={detailActive}
       onSelectDetail={onSelectDetail}
       detailTitle={detailTitle}
+      detailPresence={detailPresence}
       detail={detail}
       toolTabs={tools.map(
         (tool): DockToolTab => ({

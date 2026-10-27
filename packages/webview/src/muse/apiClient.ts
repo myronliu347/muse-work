@@ -1126,6 +1126,7 @@ export class MuseApiClient {
       at: number;
       role: "user" | "assistant";
       message: string;
+      issueId?: string;
     }>;
     hasMore: boolean;
   }> {

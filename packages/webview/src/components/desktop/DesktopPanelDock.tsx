@@ -18,6 +18,7 @@ import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { FileIcon } from "../panels/FileIcon";
+import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusGlyph";
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 import { clampDockWidth } from "../../muse/layout";
@@ -77,6 +78,8 @@ export interface DesktopPanelDockProps {
   onSelectDetail?: () => void;
   /** Selected issue or queue title. The tab shows this, truncated; the tooltip keeps the full text. */
   detailTitle?: string;
+  /** 当前事项正在跑或等确认时，详情图标换成对应状态。 */
+  detailPresence?: IssuePresence | null;
   detail?: React.ReactNode;
   /** Extra terminal and browser tabs. These stay available even when that kind is already open. */
   toolTabs?: DockToolTab[];
@@ -112,6 +115,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   detailActive = false,
   onSelectDetail,
   detailTitle,
+  detailPresence,
   detail,
   toolTabs = [],
   activeToolId = null,
@@ -297,10 +301,16 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                       onClick={() => onSelectDetail()}
                       {...dragSource(key)}
                     >
-                      <i
-                        className="codicon codicon-note desktop-panel-tab-icon"
-                        aria-hidden
-                      />
+                      {detailPresence === "running" || detailPresence === "waiting" ? (
+                        <span className="desktop-panel-tab-icon" data-testid="desktop-panel-tab-detail-status">
+                          <IssuePresenceMark presence={detailPresence} />
+                        </span>
+                      ) : (
+                        <i
+                          className="codicon codicon-note desktop-panel-tab-icon"
+                          aria-hidden
+                        />
+                      )}
                       <span className="desktop-panel-tab-text">{detailLabel}</span>
                     </button>
                   </Tooltip>
