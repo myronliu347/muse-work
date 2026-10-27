@@ -472,6 +472,63 @@ describe("AssistantPage", () => {
     );
   });
 
+  it("opens an absolute file path before the workdir probe answers", async () => {
+    const onOpenFile = vi.fn();
+    const vscode = {
+      postMessage: vi.fn(),
+      getState: () => null,
+      setState: () => {},
+    };
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "1",
+            at: 1,
+            role: "assistant",
+            message: "见 /tmp/proj/wave-agent-structure.html",
+          },
+        ],
+        hasMore: false,
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        workdir: "/Users/liuyuyang/assistant-chat",
+      }),
+    };
+    render(
+      <AssistantPage api={api} vscode={vscode} onOpenFile={onOpenFile} />,
+    );
+    fireEvent.click(
+      await screen.findByRole("link", { name: "/tmp/proj/wave-agent-structure.html" }),
+    );
+    expect(onOpenFile).toHaveBeenCalledWith(
+      "/tmp/proj/wave-agent-structure.html",
+      undefined,
+      undefined,
+    );
+
+    const requestId = vscode.postMessage.mock.calls.find(
+      (call) => call[0].command === "probeFileLinks",
+    )?.[0].requestId;
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: {
+          command: "probeFileLinksResult",
+          requestId,
+          openable: [],
+        },
+      }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("link", { name: "/tmp/proj/wave-agent-structure.html" }),
+      ).toBeNull();
+    });
+  });
+
   it("appends a browser comment into the assistant input", async () => {
     const api = {
       listAssistantMessages: vi.fn().mockResolvedValue({

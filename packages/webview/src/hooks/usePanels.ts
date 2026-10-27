@@ -79,6 +79,12 @@ interface UsePanelsParams {
   previewWithoutWorkdir?: boolean;
   /** When this returns true, the kind toggle is already handled (bot terminals/browsers). */
   beforeToggleRef?: MutableRefObject<((kind: DesktopPanelKind) => boolean) | null>;
+  /**
+   * Panel shortcut (⇧⌘F and the rest). When this returns true, the shortcut
+   * is already handled. Otherwise the kind is opened or brought forward,
+   * and a second press does not close it.
+   */
+  panelShortcutRef?: MutableRefObject<((kind: DesktopPanelKind) => boolean) | null>;
   /** When set, a remote preview forward is stored here instead of the group record. */
   placeForwardRef?: MutableRefObject<((fwd: RemoteForwardRef) => void) | null>;
   /** Called when a kind tab is actually added, so it can sit after the current tab. */
@@ -110,6 +116,7 @@ export function usePanels({
   hideDiff = false,
   previewWithoutWorkdir = false,
   beforeToggleRef,
+  panelShortcutRef,
   placeForwardRef,
   placeKindRef,
 }: UsePanelsParams): PanelHandlers {
@@ -343,6 +350,22 @@ export function usePanels({
     [updatePanelGroup],
   );
 
+  // Shortcut: missing kind opens and becomes current; an open kind is only
+  // brought forward. Closing stays on the tab's close button.
+  const handleFocusPanel = useCallback(
+    (kind: DesktopPanelKind) => {
+      if (panelDisabledRef.current.includes(kind)) return;
+      if (checkedPanelsRef.current.includes(kind)) {
+        updatePanelGroup({ active: kind });
+        return;
+      }
+      tryOpenPanel(kind);
+    },
+    [tryOpenPanel, updatePanelGroup],
+  );
+  const handleFocusPanelRef = useRef(handleFocusPanel);
+  handleFocusPanelRef.current = handleFocusPanel;
+
   useEffect(() => {
     togglePanelRef.current = handleTogglePanel;
   }, [handleTogglePanel]);
@@ -396,7 +419,8 @@ export function usePanels({
       if (!kind) return;
       event.preventDefault();
       event.stopPropagation();
-      togglePanelRef.current(kind);
+      if (panelShortcutRef?.current?.(kind)) return;
+      handleFocusPanelRef.current(kind);
     };
 
     // Capture so contenteditable / xterm do not swallow the chord first.

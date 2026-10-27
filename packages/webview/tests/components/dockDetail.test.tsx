@@ -411,6 +411,20 @@ describe("dock detail tab", () => {
     expect(screen.queryByRole("button", { name: "切到会话" })).toBeNull();
   });
 
+  it("shows an empty state when nothing is selected", () => {
+    render(
+      <DockDetail
+        selection={{ kind: "none" }}
+        actionLabel={null}
+        onOpenSession={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("dock-detail-empty")).toHaveTextContent(
+      "选择一个事项查看详情",
+    );
+  });
+
   it("selectDock changes the dock tab and leaves the selected panel alone", () => {
     const { result } = renderHook(() => useBotWorkspaceController("radii"));
     expect(result.current.dock).toBe("detail");

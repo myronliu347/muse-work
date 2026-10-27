@@ -144,6 +144,30 @@ describe("sticky user message", () => {
     );
   });
 
+  it("pins a system-inject message with the same system card as the list", async () => {
+    renderChatApp();
+    act(() => {
+      sendCommand("updateMessages", {
+        messages: [
+          userMsg("<system-inject>请执行清单项</system-inject>", "u1"),
+          userMsg("后面的问题", "u2"),
+        ],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("messages-container")).toBeInTheDocument(),
+    );
+
+    fakeGeometryAndScroll(100);
+
+    const sticky = await screen.findByTestId("sticky-user-message");
+    expect(sticky.querySelector(".system-inject-bubble")).toBeTruthy();
+    expect(sticky.querySelector(".system-inject-head")?.textContent).toContain("系统");
+    expect(sticky.textContent).toContain("请执行清单项");
+    expect(sticky.textContent).not.toContain("<system-inject>");
+    expect(sticky.className).toContain("sticky-user-message--system");
+  });
+
   it("switches the pinned message as scroll position changes", async () => {
     renderChatApp();
     act(() => {

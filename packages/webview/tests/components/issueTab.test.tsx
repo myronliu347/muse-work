@@ -1779,9 +1779,22 @@ describe("issue tab", () => {
     const fileTab = await within(dock).findByTestId("file-tab");
     expect(fileTab).toHaveAttribute("data-path", "src/App.tsx");
     expect(fileTab).toHaveAttribute("data-active", "true");
+    expect(fileTab.className).not.toContain("file-tab--preview");
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
       "desktop-panel-tab--active",
     );
+
+    await user.click(
+      within(within(dock).getByTestId("desktop-panel-tab-detail")).getByRole("button"),
+    );
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    await user.click(link);
+    expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
+      "desktop-panel-tab--active",
+    );
+    expect(within(dock).getByTestId("file-tab")).toHaveAttribute("data-active", "true");
   });
 
   it("clears unread when the issue list or tab is chosen", async () => {

@@ -187,6 +187,17 @@ function userRowText(message: MessageType): string {
     .trim();
 }
 
+function systemInjectBody(message: MessageType): string | null {
+  for (const block of message.blocks ?? []) {
+    if (block.type !== "text") continue;
+    const match = (block.content ?? "").match(
+      /^<system-inject>([\s\S]*)<\/system-inject>$/,
+    );
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+
 function defaultFoldState(row: ListRow): FoldState {
   if (row.kind === "user") return "plain";
   return row.collapsed ? "collapsed" : "open";
@@ -323,8 +334,15 @@ export const MessageList = forwardRef<
   const [stickyMessage, setStickyMessage] = useState<{
     id: string;
     text: string;
+    system: boolean;
+    message: MessageType;
   } | null>(null);
-  const stickyRef = useRef<{ id: string; text: string } | null>(null);
+  const stickyRef = useRef<{
+    id: string;
+    text: string;
+    system: boolean;
+    message: MessageType;
+  } | null>(null);
   const [activeNavId, setActiveNavId] = useState<string | undefined>();
   const listHead = messages[0]?.id;
   if (listHead !== stickyHeadRef.current) {
@@ -416,12 +434,17 @@ export const MessageList = forwardRef<
 
   const computeSticky = useCallback(() => {
     const container = containerRef.current;
-    const setSticky = (next: { id: string; text: string } | null) => {
+    const setSticky = (
+      next: { id: string; text: string; system: boolean; message: MessageType } | null,
+    ) => {
       const prev = stickyRef.current;
       const same =
         prev === null
           ? next === null
-          : next !== null && prev.id === next.id && prev.text === next.text;
+          : next !== null &&
+            prev.id === next.id &&
+            prev.text === next.text &&
+            prev.system === next.system;
       if (!same) setStickyMessage(next);
     };
     if (!container) {
@@ -432,13 +455,24 @@ export const MessageList = forwardRef<
     let index = at ? at.index : -1;
     if (at && at.start >= container.scrollTop) index = at.index - 1;
     const list = rowsRef.current;
-    let candidate: { id: string; text: string } | null = null;
+    let candidate: {
+      id: string;
+      text: string;
+      system: boolean;
+      message: MessageType;
+    } | null = null;
     while (index >= 0) {
       const row = list[index];
-      if (row?.kind === "user") {
-        const text = userRowText(row.message);
-        if (text && row.message.id) {
-          candidate = { id: row.message.id, text };
+      if (row?.kind === "user" && row.message.id) {
+        const injected = systemInjectBody(row.message);
+        const text = injected ?? userRowText(row.message);
+        if (text) {
+          candidate = {
+            id: row.message.id,
+            text,
+            system: injected !== null,
+            message: row.message,
+          };
           break;
         }
       }
@@ -774,11 +808,22 @@ export const MessageList = forwardRef<
         <div className="sticky-user-wrapper">
           <div className="sticky-user-dock">
             <div
-              className="sticky-user-message"
+              className={`sticky-user-message${stickyMessage.system ? " sticky-user-message--system" : ""}`}
               data-testid="sticky-user-message"
               onClick={() => scrollToMessage(stickyMessage.id)}
             >
-              <div className="sticky-user-content">{stickyMessage.text}</div>
+              {stickyMessage.system ? (
+                <Message
+                  message={stickyMessage.message}
+                  vscode={vscode}
+                  workdir={workdir}
+                  onOpenFile={onOpenFile}
+                  onOpenPreview={onOpenPreview}
+                  openHttpInBrowser={openHttpInBrowser}
+                />
+              ) : (
+                <div className="sticky-user-content">{stickyMessage.text}</div>
+              )}
             </div>
           </div>
         </div>

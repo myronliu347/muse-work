@@ -138,6 +138,15 @@ function withIssueQuote(html: string, issueId: string | undefined): string {
   );
 }
 
+/** Absolute paths stay links until the host says they cannot be opened. */
+function keepsFileLinkUntilProbe(filePath: string): boolean {
+  return (
+    filePath.startsWith("/") ||
+    filePath.startsWith("~/") ||
+    /^[A-Za-z]:[\\/]/.test(filePath)
+  );
+}
+
 function markdownHtml(text: string, closed: ReadonlySet<string> = new Set()): string {
   const html = marked.parse(linkifyFilePaths(text), { gfm: true, breaks: true });
   const safe = DOMPurify.sanitize(typeof html === "string" ? html : "", {
@@ -565,6 +574,9 @@ export const AssistantPage: React.FC<{
   const [openableFilePaths, setOpenableFilePaths] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const [answeredFilePaths, setAnsweredFilePaths] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const probedFilePaths = useRef<Set<string>>(new Set());
   const [agentError, setAgentError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
@@ -636,14 +648,20 @@ export const AssistantPage: React.FC<{
     const closed = new Set<string>();
     if (!agentWorkdir || !filePathKey) return closed;
     for (const filePath of new Set(filePathKey.split("\n"))) {
-      if (!openableFilePaths.has(`${agentWorkdir}\0${filePath}`)) closed.add(filePath);
+      const key = `${agentWorkdir}\0${filePath}`;
+      if (openableFilePaths.has(key)) continue;
+      // A full path is a file the user can open now. Hide it only after the
+      // host says that click would not open anything.
+      if (keepsFileLinkUntilProbe(filePath) && !answeredFilePaths.has(key)) continue;
+      closed.add(filePath);
     }
     return closed;
-  }, [agentWorkdir, filePathKey, openableFilePaths]);
+  }, [agentWorkdir, filePathKey, openableFilePaths, answeredFilePaths]);
 
   useEffect(() => {
     probedFilePaths.current = new Set();
     setOpenableFilePaths(new Set());
+    setAnsweredFilePaths(new Set());
   }, [agentWorkdir]);
 
   useEffect(() => {
@@ -669,9 +687,13 @@ export const AssistantPage: React.FC<{
           ? data.openable.filter((item): item is string => typeof item === "string")
           : [],
       );
-      for (const filePath of pending) {
-        probedFilePaths.current.add(`${agentWorkdir}\0${filePath}`);
-      }
+      const answered = pending.map((filePath) => `${agentWorkdir}\0${filePath}`);
+      for (const key of answered) probedFilePaths.current.add(key);
+      setAnsweredFilePaths((prev) => {
+        const next = new Set(prev);
+        for (const key of answered) next.add(key);
+        return next;
+      });
       const found = pending.filter((filePath) => openable.has(filePath));
       if (found.length === 0) return;
       setOpenableFilePaths((prev) => {

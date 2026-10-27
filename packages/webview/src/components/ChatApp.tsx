@@ -1296,6 +1296,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     updateMuseWidthGroup,
   ]);
   const beforeToggleRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
+  const panelShortcutRef = useRef<((kind: DesktopPanelKind) => boolean) | null>(null);
   const placeKindRef = useRef<((kind: DesktopPanelKind) => void) | null>(null);
   const dockTabPlaceRef = useRef<{
     orderKey: string | undefined;
@@ -1512,6 +1513,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     hideDiff: assistantVisible && !dockIssueId,
     previewWithoutWorkdir: assistantVisible,
     beforeToggleRef,
+    panelShortcutRef,
     placeForwardRef,
     placeKindRef,
   });
@@ -1526,6 +1528,34 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleSelectPanel,
     handleDockWidthChange,
   } = panels;
+  // Panel chords open or switch. On Muse Bot they also leave 详情. A second
+  // press keeps the panel; the tab close button is what removes it.
+  panelShortcutRef.current = (kind) => {
+    if (!assistantVisibleRef.current) return false;
+    if (kind === "terminal" || kind === "preview") {
+      const { tools, group } = readAssistantTools();
+      const ofKind = tools.filter((tool) => tool.kind === kind);
+      if (ofKind.length === 0) {
+        if (!dockIssueIdRef.current && group.checked.includes(kind)) return false;
+        setAssistantDockOpen(true);
+        if (kind === "terminal") openBotTerminal();
+        else openBotPreview();
+        return true;
+      }
+      const active =
+        ofKind.find((tool) => tool.id === group.activeToolId) ?? ofKind[ofKind.length - 1];
+      setAssistantDockOpen(true);
+      focusBotTool(active.id);
+      return true;
+    }
+    handleAddPanel(kind);
+    const key = groupKeyRef.current;
+    const group = key ? usePanelGroupStore.getState().groups[key] : undefined;
+    if (!group?.checked.includes(kind) && group?.active !== kind) return true;
+    setAssistantDockOpen(true);
+    selectDockRef.current(kind);
+    return true;
+  };
   const toggleAssistantDock = useCallback(() => {
     if (!assistantVisible) {
       handleToggleDock();
@@ -1590,7 +1620,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     updateFileGroup,
   });
   const {
-    handleOpenFile,
+    handleOpenFile: openFileTabInGroup,
     handleOpenFilePin,
     handleRefreshOpenFile,
     handleSelectFileTab,
@@ -1605,6 +1635,34 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleFileSidebarModeChange,
     handleContentSearchChange,
   } = filePanel;
+  // 详情 doesn't change the directory group's active kind. Opening a file
+  // while that kind is already "file" would update the tab and leave the
+  // dock on 详情. Always bring the file chrome forward on the bot surface.
+  const handleOpenFile = useCallback(
+    (path: string, startLine?: number, endLine?: number, pinned?: boolean) => {
+      openFileTabInGroup(path, startLine, endLine, pinned);
+      if (!path || !assistantVisibleRef.current) return;
+      const store = usePanelGroupStore.getState();
+      const keys = [previewGroupKeyRef.current, ASSISTANT_PANEL_GROUP_KEY];
+      const opened = keys.some((key) => {
+        if (!key) return false;
+        const group = store.groups[key];
+        return group?.active === "file" || Boolean(group?.checked?.includes("file"));
+      });
+      if (!opened) return;
+      setAssistantDockOpen(true);
+      selectDockRef.current("file");
+    },
+    [openFileTabInGroup, setAssistantDockOpen],
+  );
+  // A file link in the conversation opens a permanent tab. A later preview
+  // open must not replace it.
+  const openMessageFile = useCallback(
+    (path: string, startLine?: number, endLine?: number) => {
+      handleOpenFile(path, startLine, endLine, true);
+    },
+    [handleOpenFile],
+  );
 
   const rewind = useRewind({
     postToHost,
@@ -1734,6 +1792,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
             type: "file_history";
             snapshots: Array<{
               filePath: string;
+              snapshotPath?: string;
               additions?: number;
               deletions?: number;
               hunks?: string;
@@ -1768,6 +1827,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         hunks: s.hunks ?? "",
         truncated: false,
         binary: false,
+        ...(s.snapshotPath ? { snapshotPath: s.snapshotPath } : {}),
       }));
   }, [state.messages, effectiveWorkdir]);
 
@@ -2259,7 +2319,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                 showPanelToggle={false}
                 onToggleDock={toggleAssistantDock}
                 onViewModeChange={onAssistantViewMode}
-                onOpenFile={handleOpenFile}
+                onOpenFile={openMessageFile}
                 onOpenUrl={handleOpenPreview}
                 hideQueue={assistantVisible}
                 mentionIssues={(host?.issueGroups ?? []).map((group) => ({
@@ -2361,7 +2421,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   onRewindToMessage={issueShowsLive ? handleRewindToMessage : () => undefined}
                   workdir={dockWorkdir}
                   onOpenPreview={handleOpenPreview}
-                  onOpenFile={handleOpenFile}
+                  onOpenFile={openMessageFile}
                   onOpenAgentTranscript={handleOpenAgentTranscript}
                   hasOlderMessages={
                     issueShowsLive
@@ -2404,7 +2464,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
               showPanelToggle={false}
               onToggleDock={toggleAssistantDock}
               onViewModeChange={onAssistantViewMode}
-              onOpenFile={handleOpenFile}
+              onOpenFile={openMessageFile}
               onOpenUrl={handleOpenPreview}
               hideQueue={assistantVisible}
               inputRef={messageInputRef}
@@ -2464,7 +2524,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       onRewindToMessage={handleRewindToMessage}
       workdir={state.workdir}
       onOpenPreview={openPreviewHandler}
-      onOpenFile={handleOpenFile}
+      onOpenFile={openMessageFile}
       onOpenAgentTranscript={handleOpenAgentTranscript}
       onRevertFileHistory={handleRevertFileHistory}
       revertingFileHistory={revertingFileHistory}

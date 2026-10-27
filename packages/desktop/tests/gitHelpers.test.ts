@@ -8,6 +8,7 @@ import {
   getBranchDiff,
   getCommitDiff,
   getWorkspaceDiff,
+  readDiffFileSides,
   revertWorkspaceDiff,
 } from "../src/main/gitDiff.js";
 
@@ -53,6 +54,36 @@ describe("getWorkspaceDiff", () => {
       expect(result.files.some((f) => f.path === "a.txt")).toBe(true);
     }
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("readDiffFileSides", () => {
+  it("returns the committed text and the worktree text", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sides-"));
+    initRepo(dir);
+    fs.writeFileSync(path.join(dir, "a.txt"), "hello\nworld\n");
+    const sides = await readDiffFileSides(dir, { path: "a.txt", oldRev: "HEAD" });
+    expect(sides).toEqual({ oldContent: "hello\n", newContent: "hello\nworld\n" });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not read a snapshot path outside file-history", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "muse-sides-snap-"));
+    initRepo(dir);
+    const previous = process.env.MUSE_HOME_DIR;
+    process.env.MUSE_HOME_DIR = "muse-test-history";
+    try {
+      const sides = await readDiffFileSides(dir, {
+        path: "a.txt",
+        oldRev: "HEAD",
+        snapshotPath: path.join(dir, "a.txt"),
+      });
+      expect(sides).toEqual({ error: "无法读取修改前的内容" });
+    } finally {
+      if (previous === undefined) delete process.env.MUSE_HOME_DIR;
+      else process.env.MUSE_HOME_DIR = previous;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

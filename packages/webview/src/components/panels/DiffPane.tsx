@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Select } from "@radix-ui/themes";
 import { PatchDiff } from "@pierre/diffs/react";
-import type { DiffLineAnnotation } from "@pierre/diffs";
+import type { DiffLineAnnotation, FileDiffLoadedFiles, FileDiffMetadata } from "@pierre/diffs";
 import type { VsCodeApi, DiffViewState } from "../../types";
 import {
   resolveDiffLineText,
@@ -20,6 +20,7 @@ import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Tooltip } from "../shared/Tooltip";
 import { PathTree } from "./PathTree";
 import { getOverlayHost } from "../../utils/bodyPortal";
+import { localizeDiffHost } from "../../utils/diffSeparatorLabel";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
 
@@ -41,6 +42,8 @@ export interface WorkspaceDiffFile {
   hunks: string;
   truncated: boolean;
   binary: boolean;
+  /** Pre-edit snapshot, present for 最近一次修改. */
+  snapshotPath?: string;
 }
 
 type DiffMode = "recent" | "unstaged" | "patch" | "branch";
@@ -105,6 +108,12 @@ function DiffSelect({
       </Select.Content>
     </Select.Root>
   );
+}
+
+function stripPatchPrefix(name: string | undefined): string {
+  if (!name || name === "/dev/null") return "";
+  if (name.startsWith("a/") || name.startsWith("b/")) return name.slice(2);
+  return name;
 }
 
 const DIFF_MODE_OPTIONS: { value: DiffMode; label: string; testId: string }[] = [
@@ -181,6 +190,8 @@ const PATCH_DIFF_OPTIONS = {
   lineDiffType: "word" as const,
   overflow: "scroll" as const,
   enableGutterUtility: true,
+  // One click on a collapsed gap reveals that gap, including large ones.
+  expansionLineCount: 100000,
   theme: { dark: "pierre-dark" as const, light: "pierre-light" as const },
   // Pierre defaults the utility slot to the right edge of the gutter (between
   // line numbers and code). GitHub-style comments put "+" on the far left.
@@ -340,6 +351,18 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   const sessionViewRef = useRef(
     new Map<string, { mode: DiffMode; hash: string | null }>(),
   );
+  const filesRef = useRef<WorkspaceDiffFile[]>([]);
+  const baseBranchRef = useRef(baseBranch);
+  baseBranchRef.current = baseBranch;
+  const workdirRef = useRef(workdir);
+  workdirRef.current = workdir;
+  const sideLoadsRef = useRef(
+    new Map<
+      string,
+      (result: { oldContent?: string; newContent?: string; error?: string }) => void
+    >(),
+  );
+  const sideSeqRef = useRef(0);
 
   const nextRequestId = useCallback(() => {
     const requestId = String(++requestSeq.current);
@@ -446,6 +469,15 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
         else setState({ kind: "ok", files: [] });
         return;
       }
+      if (msg?.command === "desktopDiffFileSides") {
+        const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
+        const pending = sideLoadsRef.current.get(requestId);
+        if (pending) {
+          sideLoadsRef.current.delete(requestId);
+          pending(msg);
+        }
+        return;
+      }
       if (msg?.command !== "desktopWorkspaceDiff") return;
       if (
         typeof msg.requestId === "string" &&
@@ -469,6 +501,99 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [paneId, refresh, requestCommitDiff]);
+
+  const requestDiffSides = useCallback(
+    (input: {
+      path: string;
+      oldPath?: string;
+      oldRev: string;
+      newRev?: string;
+      snapshotPath?: string;
+    }) =>
+      new Promise<{ oldContent: string; newContent: string }>((resolve, reject) => {
+        const requestId = `sides-${++sideSeqRef.current}`;
+        const timer = window.setTimeout(() => {
+          sideLoadsRef.current.delete(requestId);
+          reject(new Error("读取文件超时"));
+        }, 20000);
+        sideLoadsRef.current.set(requestId, (result) => {
+          window.clearTimeout(timer);
+          if (result.error || result.oldContent === undefined || result.newContent === undefined) {
+            reject(new Error(result.error || "无法读取文件"));
+            return;
+          }
+          resolve({ oldContent: result.oldContent, newContent: result.newContent });
+        });
+        vscode.postMessage({
+          command: "desktopReadDiffSides",
+          requestId,
+          ...(paneId ? { paneId } : {}),
+          ...(workdirRef.current ? { workdir: workdirRef.current } : {}),
+          path: input.path,
+          ...(input.oldPath ? { oldPath: input.oldPath } : {}),
+          ...(input.snapshotPath ? { snapshotPath: input.snapshotPath } : {}),
+          oldRev: input.oldRev,
+          ...(input.newRev ? { newRev: input.newRev } : {}),
+        });
+      }),
+    [paneId, vscode],
+  );
+
+  const loadDiffFiles = useCallback(
+    async (meta: FileDiffMetadata): Promise<FileDiffLoadedFiles> => {
+      const named = stripPatchPrefix(meta.name);
+      const file = filesRef.current.find(
+        (item) => item.path === named || item.path === meta.name,
+      );
+      const rel = file?.path ?? named;
+      const oldPath = file?.oldPath ?? stripPatchPrefix(meta.prevName);
+      const current = modeRef.current;
+      if (current === "recent") {
+        if (!file?.snapshotPath) throw new Error("无法展开");
+        const sides = await requestDiffSides({
+          path: rel,
+          oldRev: "HEAD",
+          snapshotPath: file.snapshotPath,
+        });
+        return {
+          oldFile: { name: rel, contents: sides.oldContent },
+          newFile: { name: rel, contents: sides.newContent },
+        };
+      }
+      let oldRev = "HEAD";
+      let newRev: string | undefined;
+      if (current === "branch") {
+        const base = baseBranchRef.current?.trim();
+        if (!base) throw new Error("没有对比分支");
+        oldRev = base;
+      } else if (current === "patch") {
+        const hash = selectedHashRef.current;
+        if (!hash) throw new Error("没有选中提交");
+        oldRev = `${hash}^`;
+        newRev = hash;
+      }
+      const sides = await requestDiffSides({
+        path: rel,
+        oldPath: oldPath && oldPath !== rel ? oldPath : undefined,
+        oldRev,
+        newRev,
+      });
+      return {
+        oldFile: { name: oldPath ?? rel, contents: sides.oldContent },
+        newFile: { name: rel, contents: sides.newContent },
+      };
+    },
+    [requestDiffSides],
+  );
+
+  const patchDiffOptions = useMemo(
+    () => ({
+      ...PATCH_DIFF_OPTIONS,
+      onPostRender: (node: HTMLElement) => localizeDiffHost(node),
+      loadDiffFiles,
+    }),
+    [loadDiffFiles],
+  );
 
   // Refresh triggers: first mount (prev.visible starts false), re-show,
   // session/workdir change while visible, generation end while visible.
@@ -783,6 +908,8 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     </div>
   );
 
+  filesRef.current = state.kind === "ok" ? state.files : [];
+
   const renderFileBody = (file: WorkspaceDiffFile) => {
     if (file.binary) {
       return <div className="diff-line-ellipsis">二进制文件，不显示差异</div>;
@@ -812,7 +939,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
       <PatchDiff
         patch={patch}
         disableWorkerPool
-        options={PATCH_DIFF_OPTIONS}
+        options={patchDiffOptions}
         lineAnnotations={lineAnnotations}
         renderGutterUtility={(getHoveredLine) => (
           <button

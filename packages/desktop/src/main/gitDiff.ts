@@ -4,6 +4,7 @@
 
 import { execFile } from "child_process";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { promisify } from "util";
 import { getDefaultRemoteBranch } from "./worktree.js";
@@ -508,6 +509,141 @@ function resolveInsideRepo(repoRoot: string, rel: string): string | null {
   const prefix = root.endsWith(path.sep) ? root : root + path.sep;
   if (abs !== root && !abs.startsWith(prefix)) return null;
   return abs;
+}
+
+const MAX_SIDE_BYTES = 2 * 1024 * 1024;
+
+export type DiffFileSides =
+  | { oldContent: string; newContent: string }
+  | { error: string };
+
+function safeRepoRelative(rel: string): string | null {
+  if (!rel || rel.includes("\0")) return null;
+  const normalized = path.posix
+    .normalize(rel.replace(/\\/g, "/"))
+    .replace(/^\/+/, "");
+  if (
+    !normalized ||
+    normalized === "." ||
+    normalized === ".." ||
+    normalized.startsWith("../")
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
+function isDiffRev(rev: string): boolean {
+  return isSafeRev(rev) && !rev.includes(":") && !rev.includes("..");
+}
+
+async function readGitBlob(
+  repoRoot: string,
+  rev: string,
+  rel: string,
+): Promise<string | null> {
+  if (!isDiffRev(rev)) return null;
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", repoRoot, "show", "--end-of-options", `${rev}:${rel}`],
+      { encoding: "utf-8", maxBuffer: GIT_BUFFER },
+    );
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+
+async function readWorktreeText(
+  repoRoot: string,
+  rel: string,
+): Promise<string | null> {
+  const abs = resolveInsideRepo(repoRoot, rel);
+  if (!abs) return null;
+  try {
+    const st = await fs.promises.stat(abs);
+    if (!st.isFile() || st.size > MAX_SIDE_BYTES) return null;
+    const buf = await fs.promises.readFile(abs);
+    if (buf.subarray(0, 8192).includes(0)) return null;
+    return buf.toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+/** Full old/new text so a collapsed diff gap can be expanded. */
+export async function readDiffFileSides(
+  cwd: string,
+  input: {
+    path: string;
+    oldPath?: string;
+    oldRev: string;
+    newRev?: string;
+    snapshotPath?: string;
+  },
+): Promise<DiffFileSides> {
+  try {
+    await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    return { error: "非 git 仓库" };
+  }
+  const root =
+    (await git(cwd, ["rev-parse", "--show-toplevel"]).catch(() => "")).trim() ||
+    cwd;
+  const newRel = safeRepoRelative(path.isAbsolute(input.path) ? path.relative(root, input.path) : input.path);
+  const oldRel = safeRepoRelative(input.oldPath || (path.isAbsolute(input.path) ? path.relative(root, input.path) : input.path));
+  if (!newRel) return { error: "路径无效" };
+
+  if (input.snapshotPath) {
+    const snap = await readSnapshotText(input.snapshotPath);
+    if (snap == null) return { error: "无法读取修改前的内容" };
+    const next = (await readWorktreeText(root, newRel)) ?? "";
+    if (snap.length > MAX_SIDE_BYTES || next.length > MAX_SIDE_BYTES) {
+      return { error: "文件过大，无法展开" };
+    }
+    return { oldContent: snap, newContent: next };
+  }
+
+  if (!oldRel) return { error: "路径无效" };
+  if (!isDiffRev(input.oldRev)) return { error: "版本无效" };
+  if (input.newRev !== undefined && !isDiffRev(input.newRev)) {
+    return { error: "版本无效" };
+  }
+
+  const oldContent = (await readGitBlob(root, input.oldRev, oldRel)) ?? "";
+  const newContent =
+    input.newRev !== undefined
+      ? ((await readGitBlob(root, input.newRev, newRel)) ?? "")
+      : ((await readWorktreeText(root, newRel)) ?? "");
+  if (
+    oldContent.length > MAX_SIDE_BYTES ||
+    newContent.length > MAX_SIDE_BYTES
+  ) {
+    return { error: "文件过大，无法展开" };
+  }
+  return { oldContent, newContent };
+}
+
+function snapshotRoot(): string {
+  const name = process.env.MUSE_HOME_DIR ?? ".muse-work";
+  return path.join(os.homedir(), name, "file-history");
+}
+
+async function readSnapshotText(filePath: string): Promise<string | null> {
+  const root = path.resolve(snapshotRoot());
+  const abs = path.resolve(filePath);
+  const prefix = root.endsWith(path.sep) ? root : root + path.sep;
+  if (abs !== root && !abs.startsWith(prefix)) return null;
+  try {
+    const st = await fs.promises.stat(abs);
+    if (!st.isFile() || st.size > MAX_SIDE_BYTES) return null;
+    const buf = await fs.promises.readFile(abs);
+    if (buf.subarray(0, 8192).includes(0)) return null;
+    return buf.toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 export async function revertWorkspaceDiff(

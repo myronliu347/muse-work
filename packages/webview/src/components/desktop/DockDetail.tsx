@@ -132,7 +132,14 @@ export function DockDetail({
   onRevealInFinder,
 }: DockDetailProps) {
   if (selection.kind === "none") {
-    return <div className="dock-detail" data-testid="dock-detail" />;
+    return (
+      <div className="dock-detail dock-detail--empty" data-testid="dock-detail">
+        <div className="dock-detail-empty" data-testid="dock-detail-empty">
+          <i className="codicon codicon-note" aria-hidden />
+          <p>选择一个事项查看详情</p>
+        </div>
+      </div>
+    );
   }
 
   if (selection.kind === "queue") {

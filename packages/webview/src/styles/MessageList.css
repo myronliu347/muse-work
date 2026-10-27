@@ -85,6 +85,23 @@
   background-color: var(--gray-4);
 }
 
+/* Pinned system-inject uses the same card as the row in the list. */
+.sticky-user-message--system {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.sticky-user-message--system:hover {
+  background: transparent;
+}
+
+.sticky-user-message--system .message.user.system-inject {
+  padding: 0;
+}
+
 .sticky-user-content {
   font-size: var(--font-size-1);
   line-height: 1.45;

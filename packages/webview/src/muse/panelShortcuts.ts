@@ -5,7 +5,8 @@ const isMac =
   /mac|iphone|ipad|ipod/i.test(navigator.platform);
 
 /**
- * Map a keydown to a desktop panel toggle, matching PanelAddMenu labels:
+ * Map a keydown to a desktop panel, matching PanelAddMenu labels.
+ * The chord opens that panel or switches to it. It does not close it:
  * - Preview: ⇧⌘P / Ctrl+Shift+P
  * - Diff: ⇧⌘D / Ctrl+Shift+D
  * - Terminal: ⌃` / Ctrl+`

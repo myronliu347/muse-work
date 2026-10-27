@@ -20,6 +20,7 @@ import {
   getCommitDiff,
   getWorkspaceDiff,
   listRecentCommits,
+  readDiffFileSides,
 } from "./gitDiff.js";
 import { generateRandomName } from "./nameGenerator.js";
 import { TerminalManager } from "./terminal.js";
@@ -401,6 +402,10 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
       dir?: string;
       workdir?: string;
       fileGroupKey?: string;
+      oldRev?: string;
+      newRev?: string;
+      oldPath?: string;
+      snapshotPath?: string;
       source?: string;
       query?: string;
       caseSensitive?: boolean;
@@ -697,6 +702,34 @@ export function installWorkdirHost(options: WorkdirHostDeps): WorkdirHost {
         paneId: msg.paneId,
         ...(typeof msg.requestId === "string" ? { requestId: msg.requestId } : {}),
         result,
+      });
+      return;
+    }
+
+    if (command === "desktopReadDiffSides") {
+      const cwd =
+        (typeof msg.workdir === "string" && msg.workdir) || state.workdir;
+      const filePath = typeof msg.path === "string" ? msg.path : "";
+      const oldRev = typeof msg.oldRev === "string" ? msg.oldRev : "";
+      const newRev = typeof msg.newRev === "string" ? msg.newRev : undefined;
+      const oldPath = typeof msg.oldPath === "string" ? msg.oldPath : undefined;
+      const snapshotPath =
+        typeof msg.snapshotPath === "string" ? msg.snapshotPath : undefined;
+      const result =
+        cwd && filePath && (oldRev || snapshotPath)
+          ? await readDiffFileSides(cwd, {
+              path: filePath,
+              oldPath,
+              oldRev,
+              newRev,
+              snapshotPath,
+            })
+          : { error: "无法读取文件" };
+      pushToWebview(win, {
+        command: "desktopDiffFileSides",
+        paneId: msg.paneId,
+        ...(typeof msg.requestId === "string" ? { requestId: msg.requestId } : {}),
+        ...result,
       });
       return;
     }

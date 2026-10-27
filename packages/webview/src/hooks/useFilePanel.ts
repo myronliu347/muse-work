@@ -24,7 +24,12 @@ import type { PanelHandlers } from "./usePanels";
 import type { PreviewHandlers } from "./usePreview";
 
 export interface FilePanelHandlers {
-  handleOpenFile: (path: string, startLine?: number, endLine?: number) => void;
+  handleOpenFile: (
+    path: string,
+    startLine?: number,
+    endLine?: number,
+    pinned?: boolean,
+  ) => void;
   /** Open straight into a permanent (pinned) tab — file-tree double-click. */
   handleOpenFilePin: (path: string) => void;
   /**
@@ -182,8 +187,9 @@ export function useFilePanel({
   // Multi-tab (VS Code preview semantics): already-open files are activated
   // (same path re-click keeps the old content until the reply lands — soft
   // refresh), new files enter a preview tab, replacing the existing preview.
+  // `pinned` opens a permanent tab (message file links).
   const handleOpenFile = useCallback(
-    (path: string, startLine?: number, endLine?: number) => {
+    (path: string, startLine?: number, endLine?: number, pinned?: boolean) => {
       if (!path) return;
       if (!tryOpenPanel("file")) return;
       writeFileGroup((group) =>
@@ -194,7 +200,7 @@ export function useFilePanel({
           },
           path,
           effectiveHost,
-          { startLine, endLine },
+          { startLine, endLine, ...(pinned ? { pinned: true } : {}) },
         ),
       );
       postToHost({
