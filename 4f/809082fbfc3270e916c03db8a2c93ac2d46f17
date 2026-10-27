@@ -1,0 +1,45 @@
+packages/webview/src/components/message/toolActivity.ts
+  2b443eb251a769d5 280,289-290,386,390-391,394-403,407-408,423-425,427,430,432-436,439,441,453,457-458,492,495,498
+packages/webview/tests/components/toolActivity.test.ts
+  2b443eb251a769d5 78,87-88,94-96,99-102,106-109,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "4f809082fbfc3270e916c03db8a2c93ac2d46f17",
+  "prompts": {
+    "2b443eb251a769d5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "270c5fa6-b4bc-47d4-b951-673237a24e03",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 69,
+      "total_deletions": 49,
+      "accepted_lines": 368,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/toolActivity.test.ts": {
+          "additions": 15,
+          "deletions": 6,
+          "accepted_lines": 15
+        },
+        "packages/webview/src/components/message/toolActivity.ts": {
+          "additions": 36,
+          "deletions": 42,
+          "accepted_lines": 36
+        },
+        "preview/message-blocks.html": {
+          "accepted_lines": 299
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        }
+      }
+    }
+  }
+}
