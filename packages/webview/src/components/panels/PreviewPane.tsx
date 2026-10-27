@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { VsCodeApi } from "../../types";
 import { pathToFileUrl } from "../../utils/pathToFileUrl";
+import { normalizePageTitle } from "../../muse/dockTools";
 
 /**
  * Desktop-only preview pane: renders a localhost dev server in a
@@ -26,6 +27,7 @@ export interface WebviewTagElement extends HTMLElement {
   canGoBack(): boolean;
   canGoForward(): boolean;
   stop(): void;
+  getTitle?(): string;
 }
 
 export interface PreviewComment {
@@ -153,6 +155,8 @@ export interface PreviewPaneProps {
   onNavigate?: (url: string) => void;
   /** In-guest navigation: persist the address without reloading or re-forwarding. */
   onLocationChange?: (url: string) => void;
+  /** Guest document.title. Empty when a new document starts loading. */
+  onTitleChange?: (title: string) => void;
   /** When false the guest is unmounted so a hidden tab stops running. Default true. */
   visible?: boolean;
   /** Empty-body hint when no page is loaded. */
@@ -172,6 +176,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   onRetry,
   onNavigate,
   onLocationChange,
+  onTitleChange,
   visible = true,
   forwardError,
   testIdScope,
@@ -212,6 +217,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   originalUrlRef.current = originalUrl;
   const onLocationChangeRef = useRef(onLocationChange);
   onLocationChangeRef.current = onLocationChange;
+  const onTitleChangeRef = useRef(onTitleChange);
+  onTitleChangeRef.current = onTitleChange;
 
   const hasPage = Boolean(displayUrl);
 
@@ -276,9 +283,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       // inactive, so re-send. (Real navigations already reset the toggle.)
       if (pickerActiveRef.current) sendPicker("activate");
     };
+    const publishTitle = (raw: string) => {
+      onTitleChangeRef.current?.(normalizePageTitle(raw));
+    };
     const onDidNavigate = (e: Event) => {
       const navUrl = (e as { url?: string }).url;
       if (navUrl) rememberGuestUrl(navUrl);
+      publishTitle("");
       setLoadError(null);
       syncHistoryButtons();
       // Fresh document → guest preload restarts inactive.
@@ -295,7 +306,15 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       deactivatePicker();
     };
     const onStartLoading = () => setLoading(true);
-    const onStopLoading = () => setLoading(false);
+    const onStopLoading = () => {
+      setLoading(false);
+      try {
+        const title = wv.getTitle?.();
+        if (title) publishTitle(title);
+      } catch {
+        // The guest can reject getTitle before the first document commits.
+      }
+    };
     const onDidFailLoad = (e: Event) => {
       const detail = e as {
         errorCode?: number;
@@ -306,6 +325,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       setLoading(false);
       if (detail.errorCode === -3) return; // ERR_ABORTED: superseded by a newer load
       setLoadError(detail.errorDescription || "ERR_FAILED");
+    };
+    const onPageTitle = (e: Event) => {
+      publishTitle((e as { title?: string }).title ?? "");
     };
     const onIpcMessage = (e: Event) => {
       const { channel, args } = e as unknown as {
@@ -342,6 +364,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     wv.addEventListener("did-stop-loading", onStopLoading);
     wv.addEventListener("did-fail-load", onDidFailLoad);
     wv.addEventListener("ipc-message", onIpcMessage);
+    wv.addEventListener("page-title-updated", onPageTitle);
+    try {
+      const title = wv.getTitle?.();
+      if (title) publishTitle(title);
+    } catch {
+      // No document yet. page-title-updated reports the title after it loads.
+    }
     const start = currentUrlRef.current || urlPropRef.current;
     if (start && !wv.getAttribute("src")) {
       wv.setAttribute("src", start);
@@ -355,6 +384,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       wv.removeEventListener("did-stop-loading", onStopLoading);
       wv.removeEventListener("did-fail-load", onDidFailLoad);
       wv.removeEventListener("ipc-message", onIpcMessage);
+      wv.removeEventListener("page-title-updated", onPageTitle);
     };
   }, [visible, deactivatePicker, rememberGuestUrl, sendPicker, syncHistoryButtons]);
 

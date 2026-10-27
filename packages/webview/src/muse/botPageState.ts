@@ -15,6 +15,7 @@ export interface BotPageToolSnap {
   kind: "terminal" | "preview";
   workdir?: string;
   previewUrl?: string | null;
+  pageTitle?: string;
 }
 
 export interface BotPageDirectorySnap {
@@ -144,6 +145,9 @@ function parseTools(value: unknown): BotPageToolSnap[] {
     if (typeof item.workdir === "string" && item.workdir.trim()) tool.workdir = item.workdir;
     if (typeof item.previewUrl === "string") tool.previewUrl = item.previewUrl;
     else if (item.previewUrl === null) tool.previewUrl = null;
+    if (typeof item.pageTitle === "string" && item.pageTitle.trim()) {
+      tool.pageTitle = item.pageTitle.trim().slice(0, 120);
+    }
     tools.push(tool);
     if (tools.length >= 30) break;
   }
@@ -289,6 +293,7 @@ function serializeAssistant(group: PanelGroupState | undefined): BotPageAssistan
       kind: tool.kind,
       ...(tool.workdir ? { workdir: tool.workdir } : {}),
       ...(tool.previewUrl !== undefined ? { previewUrl: tool.previewUrl } : {}),
+      ...(tool.pageTitle?.trim() ? { pageTitle: tool.pageTitle.trim().slice(0, 120) } : {}),
     }));
   const fileTabs = (group.fileTabs ?? [])
     .filter((tab) => typeof tab.path === "string" && tab.path)
@@ -389,6 +394,7 @@ export function panelPatchesFromSnapshot(
         kind: tool.kind,
         workdir: tool.workdir,
         previewUrl: tool.previewUrl ?? null,
+        pageTitle: tool.pageTitle ?? null,
         forward: null,
         forwardError: null,
         epoch: 0,

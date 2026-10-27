@@ -50,6 +50,7 @@ function renderPane(options?: {
   onRetry?: () => void;
   onNavigate?: (url: string) => void;
   onLocationChange?: (url: string) => void;
+  onTitleChange?: (title: string) => void;
   visible?: boolean;
 }) {
   const vscode = createMockVscode();
@@ -58,6 +59,7 @@ function renderPane(options?: {
   const onAddComment = options?.onAddComment ?? vi.fn();
   const onNavigate = options?.onNavigate;
   const onLocationChange = options?.onLocationChange;
+  const onTitleChange = options?.onTitleChange;
   const originalUrl = options?.originalUrl;
   const onRetry = options?.onRetry;
   const visible = options?.visible ?? true;
@@ -83,6 +85,7 @@ function renderPane(options?: {
         onRetry={onRetry}
         onNavigate={onNavigate}
         onLocationChange={onLocationChange}
+        onTitleChange={onTitleChange}
         visible={shown}
       />
     );
@@ -146,6 +149,18 @@ describe("PreviewPane", () => {
     expect(wv.getAttribute("src")).toBe(url);
     expect(wv.getAttribute("partition")).toBe(PREVIEW_PARTITION);
     expect(screen.getByTestId("preview-address")).toHaveValue(url as string);
+  });
+
+  it("reports the guest page title and clears it when a new document loads", () => {
+    const onTitleChange = vi.fn();
+    const { wv } = renderPane({ onTitleChange });
+    fireEvent(
+      wv,
+      Object.assign(new Event("page-title-updated"), { title: "  原型多端预览  " }),
+    );
+    expect(onTitleChange).toHaveBeenCalledWith("原型多端预览");
+    fireDidNavigate(wv, "file:///tmp/proj/next.html");
+    expect(onTitleChange).toHaveBeenLastCalledWith("");
   });
 
   it("persists in-guest navigation without reloading the page", () => {

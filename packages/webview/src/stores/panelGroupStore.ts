@@ -121,6 +121,8 @@ export interface DockToolInstance {
   /** cwd captured when this terminal was opened */
   workdir?: string;
   previewUrl?: string | null;
+  /** document.title of the loaded page. Empty until the guest reports one. */
+  pageTitle?: string | null;
   forward?: RemoteForwardRef | null;
   forwardError?: string | null;
   epoch?: number;
@@ -141,6 +143,8 @@ export interface PanelGroupState {
   /** Assistant page shows the dock column. Absent means closed. */
   dockColumnOpen?: boolean;
   previewUrl: string | null;
+  /** document.title for the kind-tab browser. Tools keep their own pageTitle. */
+  previewTitle?: string | null;
   /** Open file tabs (opening order) — see muse/fileTabs.ts for semantics. */
   fileTabs: FileViewState[];
   /** Path of the tab rendered in the file pane (null → placeholder). */

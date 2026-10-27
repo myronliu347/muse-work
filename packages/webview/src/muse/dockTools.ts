@@ -84,14 +84,24 @@ function previewName(url: string | null | undefined): string {
   }
 }
 
+/** Guest document.title, collapsed and capped for a tab label. */
+export function normalizePageTitle(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+function previewLabel(tool: Pick<DockToolInstance, "previewUrl" | "pageTitle">): string {
+  const title = tool.pageTitle?.trim();
+  if (title) return title;
+  return previewName(tool.previewUrl);
+}
+
 export function dockToolLabel(
   tool: DockToolInstance,
   tools: readonly DockToolInstance[],
 ): string {
-  const name = tool.kind === "terminal" ? directoryName(tool.workdir) : previewName(tool.previewUrl);
+  const name = tool.kind === "terminal" ? directoryName(tool.workdir) : previewLabel(tool);
   const same = tools.filter((item) => {
-    const itemName =
-      item.kind === "terminal" ? directoryName(item.workdir) : previewName(item.previewUrl);
+    const itemName = item.kind === "terminal" ? directoryName(item.workdir) : previewLabel(item);
     return item.kind === tool.kind && itemName === name;
   });
   if (same.length <= 1) return name;
@@ -101,7 +111,7 @@ export function dockToolLabel(
 
 export function dockToolTitle(tool: DockToolInstance): string {
   if (tool.kind === "terminal") return tool.workdir || "终端";
-  return tool.previewUrl || "浏览器";
+  return tool.pageTitle?.trim() || tool.previewUrl || "浏览器";
 }
 
 /**

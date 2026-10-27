@@ -3,6 +3,7 @@ import {
   botDockChromeChecked,
   botIssueChromeChecked,
   dockToolLabel,
+  dockToolTitle,
   nextDockToolId,
 } from "../../src/muse/dockTools";
 import type { DockToolInstance } from "../../src/stores/panelGroupStore";
@@ -19,6 +20,19 @@ describe("bot dock tools", () => {
         [terminal("t1", "/work/radii")],
       ),
     ).toEqual(["file", "diff", "terminal"]);
+  });
+
+  it("uses the page title on a browser tab", () => {
+    const file = {
+      id: "b1",
+      kind: "preview" as const,
+      previewUrl: "file:///tmp/proj/wave-agent-structure.html",
+      pageTitle: "原型多端预览",
+    };
+    expect(dockToolLabel(file, [file])).toBe("原型多端预览");
+    expect(dockToolTitle(file)).toBe("原型多端预览");
+    const untitled = { ...file, pageTitle: null };
+    expect(dockToolLabel(untitled, [untitled])).toBe("浏览器");
   });
 
   it("keeps a bot terminal selectable when no issue is current", () => {

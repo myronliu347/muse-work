@@ -48,6 +48,23 @@ describe("DesktopPanelDock", () => {
     expect(screen.getByTestId("panel-toggle-btn")).toBeInTheDocument();
   });
 
+  it("shows the loaded page title on the browser tab", () => {
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["preview"]}
+          active="preview"
+          previewLabel="原型多端预览"
+        >
+          <div>body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    expect(screen.getByTestId("desktop-panel-tab-preview")).toHaveTextContent("原型多端预览");
+  });
+
   it("renders a saved order and reports a drag", () => {
     const onTabOrderChange = vi.fn();
     const { rerender } = render(

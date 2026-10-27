@@ -81,6 +81,8 @@ export interface DesktopPanelDockProps {
   /** 当前事项正在跑或等确认时，详情图标换成对应状态。 */
   detailPresence?: IssuePresence | null;
   detail?: React.ReactNode;
+  /** Page title for the 浏览器 kind tab. Tools carry their own label. */
+  previewLabel?: string;
   /** Extra terminal and browser tabs. These stay available even when that kind is already open. */
   toolTabs?: DockToolTab[];
   activeToolId?: string | null;
@@ -117,6 +119,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   detailTitle,
   detailPresence,
   detail,
+  previewLabel,
   toolTabs = [],
   activeToolId = null,
   onSelectTool,
@@ -405,6 +408,8 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
             if (!key.startsWith("kind:")) return null;
             const kind = key.slice("kind:".length) as DesktopPanelKind;
             const selected = !detailActive && kind === active;
+            const label =
+              kind === "preview" && previewLabel ? previewLabel : PANEL_TAB_LABELS[kind];
             return (
               <div
                 key={key}
@@ -422,7 +427,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
                     className={`codicon ${PANEL_TAB_ICONS[kind]} desktop-panel-tab-icon`}
                     aria-hidden
                   />
-                  {PANEL_TAB_LABELS[kind]}
+                  <span className="desktop-panel-tab-text">{label}</span>
                 </button>
                 <button
                   type="button"

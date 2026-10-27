@@ -38,6 +38,7 @@ describe("bot page persistence", () => {
             id: "browser-1",
             kind: "preview",
             previewUrl: "https://example.test",
+            pageTitle: "Example",
             forward: { host: "remote", remotePort: 1, originalUrl: "http://x", requestId: "r" },
           },
         ],
@@ -58,7 +59,19 @@ describe("bot page persistence", () => {
 
     expect(captured.assistant?.dockColumnOpen).toBe(true);
     expect(captured.assistant?.tools.map((tool) => tool.id)).toEqual(["term-1", "browser-1"]);
+    expect(captured.assistant?.tools[1]).toMatchObject({
+      id: "browser-1",
+      previewUrl: "https://example.test",
+      pageTitle: "Example",
+    });
     expect(captured.assistant?.tools[1]).not.toHaveProperty("forward");
+    const restored = panelPatchesFromSnapshot({
+      version: 1,
+      workspace: null,
+      assistant: captured.assistant,
+      directories: {},
+    });
+    expect(restored.assistant?.tools?.[1]).toMatchObject({ pageTitle: "Example" });
     expect(captured.directories["/work/radii"]?.checked).toEqual(["file", "diff"]);
     expect(captured.directories["/work/radii"]?.fileTabs).toEqual([
       { path: "/work/radii/App.tsx", host: "local", pinned: true },

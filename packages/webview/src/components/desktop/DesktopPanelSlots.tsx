@@ -54,6 +54,8 @@ export interface DesktopPanelSlotsProps {
   onPreviewNavigate: (url: string) => void;
   /** Guest navigated on its own; store the address without reloading. */
   onPreviewLocationChange?: (url: string) => void;
+  /** document.title of the kind-tab browser. */
+  onPreviewTitleChange?: (title: string) => void;
   onAddComment: (text: string) => void;
   diffView: DiffViewState | null;
   recentFiles: WorkspaceDiffFile[];
@@ -83,6 +85,8 @@ export interface DesktopPanelSlotsProps {
   detailTitle?: string;
   detailPresence?: IssuePresence | null;
   detail?: React.ReactNode;
+  /** Page title shown on the 浏览器 kind tab. */
+  previewLabel?: string;
   /** Bot-page terminals and browsers. Each tab keeps its own cwd or URL. */
   tools?: DockToolInstance[];
   activeToolId?: string | null;
@@ -92,6 +96,7 @@ export interface DesktopPanelSlotsProps {
   onTabOrderChange?: (order: string[]) => void;
   onToolPreviewNavigate?: (id: string, url: string) => void;
   onToolPreviewLocationChange?: (id: string, url: string) => void;
+  onToolPreviewTitle?: (id: string, title: string) => void;
   onToolPreviewRetry?: (id: string) => void;
 }
 
@@ -129,6 +134,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onRemotePreviewRetry,
   onPreviewNavigate,
   onPreviewLocationChange,
+  onPreviewTitleChange,
   onAddComment,
   diffView,
   recentFiles,
@@ -156,6 +162,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   detailTitle,
   detailPresence,
   detail,
+  previewLabel,
   tools = [],
   activeToolId = null,
   onSelectTool,
@@ -164,6 +171,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   onTabOrderChange,
   onToolPreviewNavigate,
   onToolPreviewLocationChange,
+  onToolPreviewTitle,
   onToolPreviewRetry,
 }) => {
   const renderPanelSlot = (kind: DesktopPanelKind) => {
@@ -186,6 +194,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           forwardError={previewForwardError}
           onNavigate={onPreviewNavigate}
           onLocationChange={onPreviewLocationChange}
+          onTitleChange={onPreviewTitleChange}
           visible={showing}
           vscode={vscode}
           onAddComment={onAddComment}
@@ -276,6 +285,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
       detailTitle={detailTitle}
       detailPresence={detailPresence}
       detail={detail}
+      previewLabel={previewLabel}
       toolTabs={tools.map(
         (tool): DockToolTab => ({
           id: tool.id,
@@ -345,6 +355,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
                 onLocationChange={(url) =>
                   onToolPreviewLocationChange?.(tool.id, url)
                 }
+                onTitleChange={(title) => onToolPreviewTitle?.(tool.id, title)}
                 visible={showing}
                 vscode={vscode}
                 onAddComment={onAddComment}

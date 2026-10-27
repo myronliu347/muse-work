@@ -686,6 +686,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     forward: currentForward,
     forwardError: previewForwardError,
     previewEpoch,
+    previewTitle,
   } = usePanelGroup(groupKey);
   const assistantTools = usePanelGroupStore(
     (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? EMPTY_DOCK_TOOLS,
@@ -2347,12 +2348,30 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     onPreviewLocationChange: (url) => {
       updatePreviewGroup({ previewUrl: url });
     },
+    onPreviewTitleChange: (title) => {
+      const next = title || null;
+      const key = previewGroupKeyRef.current;
+      if (!key) return;
+      const current = usePanelGroupStore.getState().groups[key]?.previewTitle ?? null;
+      if (current === next) return;
+      updatePreviewGroup({ previewTitle: next });
+    },
+    previewLabel: previewTitle?.trim() || undefined,
     onToolPreviewLocationChange: (id, url) => {
       const store = usePanelGroupStore.getState();
       const tools = store.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [];
       if (!tools.some((tool) => tool.id === id)) return;
       store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
         tools: patchDockTool(tools, id, { previewUrl: url }),
+      });
+    },
+    onToolPreviewTitle: (id, title) => {
+      const store = usePanelGroupStore.getState();
+      const tools = store.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [];
+      const tool = tools.find((item) => item.id === id);
+      if (!tool || (tool.pageTitle ?? null) === (title || null)) return;
+      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+        tools: patchDockTool(tools, id, { pageTitle: title || null }),
       });
     },
     onToolPreviewRetry: (id) => {
