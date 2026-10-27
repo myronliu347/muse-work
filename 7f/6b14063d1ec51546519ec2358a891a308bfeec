@@ -1,0 +1,69 @@
+packages/webview/src/components/desktop/BotTabs.tsx
+  b4c1fd64c73e39cb 25-30,73,75-79,81-88
+packages/webview/src/stores/panelGroupStore.ts
+  b4c1fd64c73e39cb 2,259-268,270,339-342
+packages/webview/src/stores/index.ts
+  b4c1fd64c73e39cb 47,51
+packages/webview/tests/muse/botPageState.test.ts
+  b4c1fd64c73e39cb 1-144
+packages/webview/src/muse/botPageState.ts
+  b4c1fd64c73e39cb 1-445
+packages/webview/src/components/desktop/DesktopShell.tsx
+  b4c1fd64c73e39cb 103-106,109
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 127,220-223,226,1063-1072,1207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "7f6b14063d1ec51546519ec2358a891a308bfeec",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 670,
+      "total_deletions": 23,
+      "accepted_lines": 650,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 21,
+          "deletions": 2,
+          "accepted_lines": 20
+        },
+        "packages/webview/src/muse/botPageState.ts": {
+          "additions": 464,
+          "deletions": 19,
+          "accepted_lines": 445
+        },
+        "packages/webview/src/stores/panelGroupStore.ts": {
+          "additions": 16,
+          "deletions": 1,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/desktop/DesktopShell.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/src/stores/index.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 18,
+          "deletions": 1,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/muse/botPageState.test.ts": {
+          "additions": 144,
+          "accepted_lines": 144
+        }
+      }
+    }
+  }
+}
