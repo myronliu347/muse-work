@@ -1,0 +1,71 @@
+packages/webview/src/hooks/useChatSend.ts
+  b4c1fd64c73e39cb 248-249,252,254
+packages/webview/src/muse/hostBridge/index.ts
+  b4c1fd64c73e39cb 324-325
+packages/webview/src/muse/hostBridge/chat.ts
+  b4c1fd64c73e39cb 444-467,469,471
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 2129-2131
+packages/webview/tests/muse/hostBridge.test.ts
+  b4c1fd64c73e39cb 888-903
+packages/webview/tests/components/issueTab.test.tsx
+  b4c1fd64c73e39cb 1644-1679
+packages/webview/src/muse/hostBridge/ctx.ts
+  b4c1fd64c73e39cb 142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "c5b59a0d3201cad460b7385d37c24cba0bfa5ce4",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 100,
+      "total_deletions": 34,
+      "accepted_lines": 90,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/muse/hostBridge/chat.ts": {
+          "additions": 26,
+          "deletions": 18,
+          "accepted_lines": 26
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 46,
+          "deletions": 10,
+          "accepted_lines": 36
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
