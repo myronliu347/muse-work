@@ -1,5 +1,6 @@
 import type { ToolPlugin, ToolResult } from "@muse-work/agent";
 import { tavilySearch, type TavilyOptions } from "./tavily.js";
+import { compactText } from "./tools/toolKit.js";
 
 const SEARCH_TOPICS = ["general", "news", "finance"] as const;
 const TIME_RANGES = ["day", "week", "month", "year"] as const;
@@ -78,5 +79,6 @@ export function createWebSearchTool(deps: {
       );
       return result.ok ? ok(result.value) : fail(result.error);
     },
+    formatCompactParams: (params) => compactText(params.query),
   };
 }

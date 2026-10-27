@@ -68,6 +68,21 @@ describe("assistant tools", () => {
       },
     });
     const context = { workdir, taskManager: {} as never };
+    for (const entry of tools) {
+      expect(typeof entry.formatCompactParams).toBe("function");
+    }
+    expect(
+      tool(tools, "CreateIssue").formatCompactParams?.({ title: "圆角还没对齐" }, context),
+    ).toBe("圆角还没对齐");
+    expect(
+      tool(tools, "WebSearch").formatCompactParams?.({ query: "muse dock" }, context),
+    ).toBe("muse dock");
+    expect(
+      tool(tools, "SendMessage").formatCompactParams?.(
+        { message: `你好${"呀".repeat(100)}` },
+        context,
+      ),
+    ).toBe(`你好${"呀".repeat(78)}…`);
 
     const created = await tool(tools, "CreateIssue").execute(
       { title: "登录", description: "修登录" },
