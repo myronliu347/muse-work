@@ -1,0 +1,69 @@
+packages/server/src/services/assistant/tools/toolKit.ts
+  b4c1fd64c73e39cb 1-89
+packages/server/tests/assistantTools.test.ts
+  b4c1fd64c73e39cb 71-85
+packages/server/src/services/assistant/tools/issueTools.ts
+  b4c1fd64c73e39cb 1-372
+packages/server/src/services/assistant/webSearchTool.ts
+  b4c1fd64c73e39cb 3,82
+packages/server/src/services/assistant/tools.ts
+  b4c1fd64c73e39cb 1
+packages/server/src/services/assistant/tools/messageTools.ts
+  b4c1fd64c73e39cb 1-332
+packages/server/src/services/assistant/tools/index.ts
+  b4c1fd64c73e39cb 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d7f4f166534fa3f5af4f08bb5833c4a30c72ed8a",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 1056,
+      "total_deletions": 225,
+      "accepted_lines": 825,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/assistant/tools/messageTools.ts": {
+          "additions": 358,
+          "deletions": 26,
+          "accepted_lines": 332
+        },
+        "packages/server/src/services/assistant/webSearchTool.ts": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/src/services/assistant/tools/toolKit.ts": {
+          "additions": 124,
+          "deletions": 35,
+          "accepted_lines": 89
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 15,
+          "accepted_lines": 15
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 534,
+          "deletions": 162,
+          "accepted_lines": 372
+        },
+        "packages/server/src/services/assistant/tools.ts": {
+          "additions": 9,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/tools/index.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
