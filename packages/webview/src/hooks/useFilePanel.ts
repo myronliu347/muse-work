@@ -65,6 +65,11 @@ interface UseFilePanelParams {
   updateListingGroup?: ChatAppCore["updatePanelGroup"];
   /** File tabs and tree expand/selection. Defaults to the chrome group. */
   updateFileGroup?: ChatAppCore["updatePanelGroup"];
+  /**
+   * Group the host should echo `desktopFileContent` onto. Called after the
+   * tab is written, so a new open already belongs to that group.
+   */
+  resolveFileGroupKey?: (path: string) => string | undefined;
 }
 
 export function useFilePanel({
@@ -80,6 +85,7 @@ export function useFilePanel({
   contentSearch,
   updateListingGroup,
   updateFileGroup,
+  resolveFileGroupKey,
 }: UseFilePanelParams): FilePanelHandlers {
   const writeListingGroup = updateListingGroup ?? updatePanelGroup;
   const writeFileGroup = updateFileGroup ?? writeListingGroup;
@@ -203,6 +209,7 @@ export function useFilePanel({
           { startLine, endLine, ...(pinned ? { pinned: true } : {}) },
         ),
       );
+      const fileGroupKey = resolveFileGroupKey?.(path);
       postToHost({
         command: "openFile",
         path,
@@ -210,6 +217,7 @@ export function useFilePanel({
         workdir: effectiveWorkdir ?? undefined,
         startLine,
         endLine,
+        ...(fileGroupKey ? { fileGroupKey } : {}),
       });
     },
     [
@@ -218,6 +226,7 @@ export function useFilePanel({
       effectiveWorkdir,
       postToHost,
       writeFileGroup,
+      resolveFileGroupKey,
     ],
   );
 
@@ -238,11 +247,13 @@ export function useFilePanel({
           { pinned: true },
         ),
       );
+      const fileGroupKey = resolveFileGroupKey?.(path);
       postToHost({
         command: "openFile",
         path,
         host: effectiveHost,
         workdir: effectiveWorkdir ?? undefined,
+        ...(fileGroupKey ? { fileGroupKey } : {}),
       });
     },
     [
@@ -251,6 +262,7 @@ export function useFilePanel({
       effectiveWorkdir,
       postToHost,
       writeFileGroup,
+      resolveFileGroupKey,
     ],
   );
 
@@ -260,14 +272,16 @@ export function useFilePanel({
   const handleRefreshOpenFile = useCallback(
     (path: string) => {
       if (!path) return;
+      const fileGroupKey = resolveFileGroupKey?.(path);
       postToHost({
         command: "openFile",
         path,
         host: effectiveHost,
         workdir: effectiveWorkdir ?? undefined,
+        ...(fileGroupKey ? { fileGroupKey } : {}),
       });
     },
-    [effectiveHost, effectiveWorkdir, postToHost],
+    [effectiveHost, effectiveWorkdir, postToHost, resolveFileGroupKey],
   );
 
   // Clicking a file-name tab in the dock's top bar also brings the file panel
@@ -319,6 +333,9 @@ export function useFilePanel({
         if ((group.fileTabs ?? []).some((tab) => tab.path === path)) {
           return applyCloseFileTab(group, path);
         }
+        // The closed tab lived on another group (bot-page previews). This
+        // directory keeps its own tabs; drop 文件 only when it has none.
+        if ((group.fileTabs ?? []).length > 0) return {};
         return applyCloseFileTab(
           {
             ...group,

@@ -20,8 +20,14 @@ export interface BotPageToolSnap {
 export interface BotPageDirectorySnap {
   checked: Array<"file" | "diff">;
   active: "file" | "diff" | null;
-  fileTabs: Array<{ path: string; host: string; pinned?: boolean }>;
+  fileTabs: BotPageFileTabSnap[];
   activeFilePath: string | null;
+}
+
+export interface BotPageFileTabSnap {
+  path: string;
+  host: string;
+  pinned?: boolean;
 }
 
 export interface BotPageAssistantSnap {
@@ -30,6 +36,9 @@ export interface BotPageAssistantSnap {
   tabOrder: string[];
   activeToolId: string | null;
   tools: BotPageToolSnap[];
+  /** File previews opened on the bot page. Absent in older snapshots. */
+  fileTabs?: BotPageFileTabSnap[];
+  activeFilePath?: string | null;
 }
 
 export interface BotPageSnapshot {
@@ -141,6 +150,21 @@ function parseTools(value: unknown): BotPageToolSnap[] {
   return tools;
 }
 
+function parseFileTabSnaps(value: unknown): BotPageFileTabSnap[] {
+  if (!Array.isArray(value)) return [];
+  const fileTabs: BotPageFileTabSnap[] = [];
+  for (const tab of value) {
+    if (!isRecord(tab) || typeof tab.path !== "string" || !tab.path) continue;
+    fileTabs.push({
+      path: tab.path,
+      host: typeof tab.host === "string" && tab.host ? tab.host : "local",
+      ...(tab.pinned === true ? { pinned: true } : {}),
+    });
+    if (fileTabs.length >= 40) break;
+  }
+  return fileTabs;
+}
+
 function parseAssistant(value: unknown): BotPageAssistantSnap | null {
   if (!isRecord(value)) return null;
   const widths = isRecord(value.widths) ? value.widths : {};
@@ -149,6 +173,11 @@ function parseAssistant(value: unknown): BotPageAssistantSnap | null {
     typeof value.activeToolId === "string" && tools.some((tool) => tool.id === value.activeToolId)
       ? value.activeToolId
       : (tools.at(-1)?.id ?? null);
+  const fileTabs = parseFileTabSnaps(value.fileTabs);
+  const activeFilePath =
+    typeof value.activeFilePath === "string" && fileTabs.some((tab) => tab.path === value.activeFilePath)
+      ? value.activeFilePath
+      : (fileTabs[0]?.path ?? null);
   return {
     dockColumnOpen: value.dockColumnOpen === true,
     widths: {
@@ -160,6 +189,7 @@ function parseAssistant(value: unknown): BotPageAssistantSnap | null {
     tabOrder: stringList(value.tabOrder, 80),
     activeToolId,
     tools,
+    ...(fileTabs.length > 0 ? { fileTabs, activeFilePath } : {}),
   };
 }
 
@@ -168,18 +198,7 @@ function parseDirectory(value: unknown): BotPageDirectorySnap | null {
   const checked = (Array.isArray(value.checked) ? value.checked : []).filter(
     (kind): kind is "file" | "diff" => kind === "file" || kind === "diff",
   );
-  const fileTabs: BotPageDirectorySnap["fileTabs"] = [];
-  if (Array.isArray(value.fileTabs)) {
-    for (const tab of value.fileTabs) {
-      if (!isRecord(tab) || typeof tab.path !== "string" || !tab.path) continue;
-      fileTabs.push({
-        path: tab.path,
-        host: typeof tab.host === "string" && tab.host ? tab.host : "local",
-        ...(tab.pinned === true ? { pinned: true } : {}),
-      });
-      if (fileTabs.length >= 40) break;
-    }
-  }
+  const fileTabs = parseFileTabSnaps(value.fileTabs);
   if (checked.length === 0 && fileTabs.length === 0) return null;
   const nextChecked = Array.from(
     new Set([...(fileTabs.length > 0 ? ["file" as const] : []), ...checked]),
@@ -271,6 +290,14 @@ function serializeAssistant(group: PanelGroupState | undefined): BotPageAssistan
       ...(tool.workdir ? { workdir: tool.workdir } : {}),
       ...(tool.previewUrl !== undefined ? { previewUrl: tool.previewUrl } : {}),
     }));
+  const fileTabs = (group.fileTabs ?? [])
+    .filter((tab) => typeof tab.path === "string" && tab.path)
+    .slice(0, 40)
+    .map((tab) => ({
+      path: tab.path,
+      host: tab.host || "local",
+      ...(tab.pinned ? { pinned: true } : {}),
+    }));
   const widths = group.widths;
   return {
     dockColumnOpen: group.dockColumnOpen === true,
@@ -286,6 +313,15 @@ function serializeAssistant(group: PanelGroupState | undefined): BotPageAssistan
         ? group.activeToolId
         : (tools.at(-1)?.id ?? null),
     tools,
+    ...(fileTabs.length > 0
+      ? {
+          fileTabs,
+          activeFilePath:
+            group.activeFilePath && fileTabs.some((tab) => tab.path === group.activeFilePath)
+              ? group.activeFilePath
+              : (fileTabs[0]?.path ?? null),
+        }
+      : {}),
   };
 }
 
@@ -358,6 +394,28 @@ export function panelPatchesFromSnapshot(
         epoch: 0,
       })),
     };
+    const assistantTabs = assistant.fileTabs ?? [];
+    if (assistantTabs.length > 0) {
+      const fileTabs: FileViewState[] = assistantTabs.map((tab) => ({
+        path: tab.path,
+        host: tab.host,
+        loading: true,
+        ...(tab.pinned ? { pinned: true } : {}),
+      }));
+      groups[ASSISTANT_KEY] = {
+        ...groups[ASSISTANT_KEY],
+        fileTabs,
+        activeFilePath:
+          assistant.activeFilePath && fileTabs.some((tab) => tab.path === assistant.activeFilePath)
+            ? assistant.activeFilePath
+            : (fileTabs[0]?.path ?? null),
+        checked: ["file"],
+        mounted: ["file"],
+      };
+      for (const tab of assistantTabs) {
+        pendingFileLoads.push({ workdir: ASSISTANT_KEY, path: tab.path, host: tab.host });
+      }
+    }
   }
   for (const [workdir, directory] of Object.entries(snapshot.directories)) {
     const fileTabs: FileViewState[] = directory.fileTabs.map((tab) => ({

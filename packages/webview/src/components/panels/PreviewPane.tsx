@@ -25,6 +25,7 @@ export interface WebviewTagElement extends HTMLElement {
   goForward(): void;
   canGoBack(): boolean;
   canGoForward(): boolean;
+  stop(): void;
 }
 
 export interface PreviewComment {
@@ -104,6 +105,9 @@ export function normalizePreviewAddress(raw: string): string | null {
 
 const MIN_WIDTH = 320;
 
+/** Guest session, separate from the Muse window. Matches the main-process lock. */
+export const PREVIEW_PARTITION = "persist:muse-preview";
+
 /** Colors the guest picker can't read cross-origin — sampled from the host theme. */
 const readPalette = (el?: Element | null): Record<string, string> => {
   const sample =
@@ -147,6 +151,10 @@ export interface PreviewPaneProps {
   onRetry?: () => void;
   /** Address-bar Enter: parent opens / forwards the URL (sets previewUrl). */
   onNavigate?: (url: string) => void;
+  /** In-guest navigation: persist the address without reloading or re-forwarding. */
+  onLocationChange?: (url: string) => void;
+  /** When false the guest is unmounted so a hidden tab stops running. Default true. */
+  visible?: boolean;
   /** Empty-body hint when no page is loaded. */
   forwardError?: string | null;
   /** Set on inactive copies so the visible pane keeps the canonical test ids. */
@@ -163,6 +171,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   originalUrl,
   onRetry,
   onNavigate,
+  onLocationChange,
+  visible = true,
   forwardError,
   testIdScope,
 }) => {
@@ -174,12 +184,16 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [pickerActive, setPickerActive] = useState(false);
   const [pickerUnsupported, setPickerUnsupported] = useState(false);
   const webviewRef = useRef<WebviewTagElement | null>(null);
   const asideRef = useRef<HTMLElement | null>(null);
   // URL the guest is currently showing — follows in-guest navigation.
   const currentUrlRef = useRef(initialUrl);
+  // Last address applied from props or from the guest. A parent echo of an
+  // in-guest navigation must not loadURL again.
+  const lastUrlRef = useRef(initialUrl);
   // webview.send() before dom-ready is silently dropped, so gate on it.
   const domReadyRef = useRef(false);
   // Guest preload announces { type: 'ready' }; if it never arrives the page
@@ -196,6 +210,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   urlPropRef.current = url ?? "";
   const originalUrlRef = useRef(originalUrl);
   originalUrlRef.current = originalUrl;
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
 
   const hasPage = Boolean(displayUrl);
 
@@ -232,9 +248,24 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     sendPicker("deactivate");
   }, [sendPicker]);
 
-  // Wire the <webview> once. `src` is set imperatively (never from JSX) so
-  // React re-renders can't reload the guest; later navigations use loadURL.
+  const rememberGuestUrl = useCallback((navUrl: string) => {
+    if (!navUrl || navUrl === "about:blank") return;
+    currentUrlRef.current = navUrl;
+    lastUrlRef.current = navUrl;
+    setDisplayUrl(navUrl);
+    if (navUrl !== urlPropRef.current) onLocationChangeRef.current?.(navUrl);
+  }, []);
+
+  // Wire the guest while this tab is showing. `src` is set imperatively
+  // (never from JSX) so React re-renders can't reload it. Hiding the tab
+  // unmounts the <webview>, which stops the page; showing it loads the
+  // address we kept.
   useEffect(() => {
+    if (!visible) {
+      domReadyRef.current = false;
+      setLoading(false);
+      return;
+    }
     const wv = webviewRef.current;
     if (!wv) return;
 
@@ -247,10 +278,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     };
     const onDidNavigate = (e: Event) => {
       const navUrl = (e as { url?: string }).url;
-      if (navUrl) {
-        currentUrlRef.current = navUrl;
-        setDisplayUrl(navUrl);
-      }
+      if (navUrl) rememberGuestUrl(navUrl);
       setLoadError(null);
       syncHistoryButtons();
       // Fresh document → guest preload restarts inactive.
@@ -261,14 +289,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     };
     const onDidNavigateInPage = (e: Event) => {
       const navUrl = (e as { url?: string }).url;
-      if (navUrl) {
-        currentUrlRef.current = navUrl;
-        setDisplayUrl(navUrl);
-      }
+      if (navUrl) rememberGuestUrl(navUrl);
       syncHistoryButtons();
       // SPA navigation keeps the SAME preload alive — tell it to stand down.
       deactivatePicker();
     };
+    const onStartLoading = () => setLoading(true);
+    const onStopLoading = () => setLoading(false);
     const onDidFailLoad = (e: Event) => {
       const detail = e as {
         errorCode?: number;
@@ -276,6 +303,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         isMainFrame?: boolean;
       };
       if (detail.isMainFrame === false) return;
+      setLoading(false);
       if (detail.errorCode === -3) return; // ERR_ABORTED: superseded by a newer load
       setLoadError(detail.errorDescription || "ERR_FAILED");
     };
@@ -310,21 +338,25 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     wv.addEventListener("dom-ready", onDomReady);
     wv.addEventListener("did-navigate", onDidNavigate);
     wv.addEventListener("did-navigate-in-page", onDidNavigateInPage);
+    wv.addEventListener("did-start-loading", onStartLoading);
+    wv.addEventListener("did-stop-loading", onStopLoading);
     wv.addEventListener("did-fail-load", onDidFailLoad);
     wv.addEventListener("ipc-message", onIpcMessage);
-    if (urlPropRef.current) {
-      wv.setAttribute("src", urlPropRef.current);
+    const start = currentUrlRef.current || urlPropRef.current;
+    if (start && !wv.getAttribute("src")) {
+      wv.setAttribute("src", start);
     }
     return () => {
+      domReadyRef.current = false;
       wv.removeEventListener("dom-ready", onDomReady);
       wv.removeEventListener("did-navigate", onDidNavigate);
       wv.removeEventListener("did-navigate-in-page", onDidNavigateInPage);
+      wv.removeEventListener("did-start-loading", onStartLoading);
+      wv.removeEventListener("did-stop-loading", onStopLoading);
       wv.removeEventListener("did-fail-load", onDidFailLoad);
       wv.removeEventListener("ipc-message", onIpcMessage);
     };
-    // deactivatePicker/sendPicker are stable useCallbacks, so this still only
-    // runs once per mount.
-  }, [deactivatePicker, sendPicker, syncHistoryButtons]);
+  }, [visible, deactivatePicker, rememberGuestUrl, sendPicker, syncHistoryButtons]);
 
   // Keep address draft in sync with navigations unless the user is editing.
   useEffect(() => {
@@ -332,7 +364,6 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   }, [displayUrl, addressFocused]);
 
   // Navigate when a different localhost link is clicked while the panel is open.
-  const lastUrlRef = useRef(url ?? "");
   useEffect(() => {
     const next = url ?? "";
     if (next === lastUrlRef.current) return;
@@ -468,12 +499,18 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           <button
             type="button"
             className="preview-pane-button"
-            title="刷新"
+            title={loading ? "停止" : "刷新"}
             data-testid={tid("preview-refresh")}
             disabled={!hasPage}
-            onClick={handleRefresh}
+            onClick={
+              loading
+                ? () => webviewRef.current?.stop()
+                : handleRefresh
+            }
           >
-            <i className="codicon codicon-refresh" />
+            <i
+              className={`codicon ${loading ? "codicon-debug-stop" : "codicon-refresh"}`}
+            />
           </button>
           <input
             type="text"
@@ -482,7 +519,10 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             value={addressDraft}
             placeholder="输入地址后回车访问"
             spellCheck={false}
-            onFocus={() => setAddressFocused(true)}
+            onFocus={(event) => {
+              setAddressFocused(true);
+              event.currentTarget.select();
+            }}
             onBlur={() => setAddressFocused(false)}
             onChange={(e) => setAddressDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -524,14 +564,17 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           </div>
         )}
         <div className="preview-pane-body">
-          <webview
-            ref={webviewRef}
-            className="preview-pane-webview"
-            {...(window.musePickerPreloadPath
-              ? { preload: window.musePickerPreloadPath }
-              : {})}
-            webpreferences="sandbox=yes, contextIsolation=yes"
-          />
+          {visible ? (
+            <webview
+              ref={webviewRef}
+              className="preview-pane-webview"
+              partition={PREVIEW_PARTITION}
+              {...(window.musePickerPreloadPath
+                ? { preload: window.musePickerPreloadPath }
+                : {})}
+              webpreferences="sandbox=yes, contextIsolation=yes"
+            />
+          ) : null}
           {!hasPage && !loadError && (
             <div
               className="desktop-panel-placeholder"

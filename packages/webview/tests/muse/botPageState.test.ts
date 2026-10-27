@@ -113,6 +113,52 @@ describe("bot page persistence", () => {
     expect(patches.assistant?.tabOrder).toEqual(["detail", "kind:diff"]);
   });
 
+  it("keeps bot file previews on the assistant bar and reloads them", () => {
+    const captured = captureBotPanels({
+      assistant: group({
+        fileTabs: [
+          { path: "/work/radii/App.tsx", host: "local", content: "secret", pinned: true },
+        ],
+        activeFilePath: "/work/radii/App.tsx",
+      }),
+      "/work/radii": group({
+        checked: ["diff"],
+        active: "diff",
+      }),
+    });
+    expect(captured.assistant?.fileTabs).toEqual([
+      { path: "/work/radii/App.tsx", host: "local", pinned: true },
+    ]);
+    expect(captured.assistant?.activeFilePath).toBe("/work/radii/App.tsx");
+    expect(captured.assistant?.fileTabs?.[0]).not.toHaveProperty("content");
+    expect(captured.directories["/work/radii"]?.fileTabs).toEqual([]);
+
+    const snapshot: BotPageSnapshot = {
+      version: 1,
+      workspace: null,
+      assistant: {
+        dockColumnOpen: true,
+        widths: { preview: 420, diff: 420, terminal: 420, file: 420 },
+        tabOrder: ["detail"],
+        activeToolId: null,
+        tools: [],
+        fileTabs: [{ path: "/work/radii/App.tsx", host: "local" }],
+        activeFilePath: "/work/radii/App.tsx",
+      },
+      directories: {},
+    };
+    const patches = panelPatchesFromSnapshot(snapshot);
+    expect(patches.assistant?.fileTabs?.[0]).toMatchObject({
+      path: "/work/radii/App.tsx",
+      loading: true,
+    });
+    expect(patches.assistant?.fileTabs?.[0]).not.toHaveProperty("content");
+    expect(patches.assistant?.checked).toEqual(["file"]);
+    expect(takeRestoredFileLoads()).toEqual([
+      { workdir: "assistant", path: "/work/radii/App.tsx", host: "local" },
+    ]);
+  });
+
   it("drops a saved issue that is no longer in the list", () => {
     expect(
       pruneBotWorkspace(

@@ -52,6 +52,8 @@ export interface DesktopPanelSlotsProps {
   previewForwardError: string | null;
   onRemotePreviewRetry: () => void;
   onPreviewNavigate: (url: string) => void;
+  /** Guest navigated on its own; store the address without reloading. */
+  onPreviewLocationChange?: (url: string) => void;
   onAddComment: (text: string) => void;
   diffView: DiffViewState | null;
   recentFiles: WorkspaceDiffFile[];
@@ -89,13 +91,16 @@ export interface DesktopPanelSlotsProps {
   tabOrder?: readonly string[];
   onTabOrderChange?: (order: string[]) => void;
   onToolPreviewNavigate?: (id: string, url: string) => void;
+  onToolPreviewLocationChange?: (id: string, url: string) => void;
   onToolPreviewRetry?: (id: string) => void;
 }
 
 /**
  * The shared dock with its panel slots (files/diff/terminal/preview). Each
- * mounted kind stays mounted when hidden; the preview slot remounts on
- * `previewEpoch` so a same-URL re-acquire actually reloads the webview.
+ * mounted kind stays mounted when hidden. A hidden browser unmounts its
+ * guest so the page stops running, and reloads the saved address when shown.
+ * The preview slot remounts on `previewEpoch` so a same-URL re-acquire
+ * actually reloads the webview.
  */
 export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   checked,
@@ -123,6 +128,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   previewForwardError,
   onRemotePreviewRetry,
   onPreviewNavigate,
+  onPreviewLocationChange,
   onAddComment,
   diffView,
   recentFiles,
@@ -157,6 +163,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
   tabOrder,
   onTabOrderChange,
   onToolPreviewNavigate,
+  onToolPreviewLocationChange,
   onToolPreviewRetry,
 }) => {
   const renderPanelSlot = (kind: DesktopPanelKind) => {
@@ -169,6 +176,7 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
     };
 
     if (kind === "preview") {
+      const showing = checked.includes(kind) && kind === active;
       return (
         <PreviewPane
           key={previewEpoch}
@@ -177,6 +185,8 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
           onRetry={currentForward ? onRemotePreviewRetry : undefined}
           forwardError={previewForwardError}
           onNavigate={onPreviewNavigate}
+          onLocationChange={onPreviewLocationChange}
+          visible={showing}
           vscode={vscode}
           onAddComment={onAddComment}
           {...common}
@@ -332,6 +342,10 @@ export const DesktopPanelSlots: React.FC<DesktopPanelSlotsProps> = ({
                 }
                 forwardError={tool.forwardError}
                 onNavigate={(url) => onToolPreviewNavigate?.(tool.id, url)}
+                onLocationChange={(url) =>
+                  onToolPreviewLocationChange?.(tool.id, url)
+                }
+                visible={showing}
                 vscode={vscode}
                 onAddComment={onAddComment}
                 testIdScope={showing ? undefined : tool.id}

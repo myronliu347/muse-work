@@ -4,6 +4,7 @@ import { render, fireEvent, screen } from "@testing-library/react";
 import React from "react";
 import {
   PreviewPane,
+  PREVIEW_PARTITION,
   formatPreviewComment,
   normalizePreviewAddress,
   rewriteCommentUrl,
@@ -27,6 +28,7 @@ type MockWebview = Omit<
   | "goForward"
   | "canGoBack"
   | "canGoForward"
+  | "stop"
 > & {
   send: ReturnType<typeof vi.fn>;
   loadURL: ReturnType<typeof vi.fn>;
@@ -37,6 +39,7 @@ type MockWebview = Omit<
   goForward: ReturnType<typeof vi.fn>;
   canGoBack: ReturnType<typeof vi.fn>;
   canGoForward: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
 };
 
 function renderPane(options?: {
@@ -46,16 +49,26 @@ function renderPane(options?: {
   originalUrl?: string;
   onRetry?: () => void;
   onNavigate?: (url: string) => void;
+  onLocationChange?: (url: string) => void;
+  visible?: boolean;
 }) {
   const vscode = createMockVscode();
   const url = options?.url === undefined ? "http://localhost:5173/app" : options.url;
   const onClose = options?.onClose ?? vi.fn();
   const onAddComment = options?.onAddComment ?? vi.fn();
   const onNavigate = options?.onNavigate;
+  const onLocationChange = options?.onLocationChange;
   const originalUrl = options?.originalUrl;
   const onRetry = options?.onRetry;
+  const visible = options?.visible ?? true;
   // Controlled-width harness: PreviewPane no longer owns its width state.
-  const Harness = ({ url: u }: { url: string | null | undefined }) => {
+  const Harness = ({
+    url: u,
+    visible: shown,
+  }: {
+    url: string | null | undefined;
+    visible: boolean;
+  }) => {
     const [width, setWidth] = React.useState(420);
     return (
       <PreviewPane
@@ -69,10 +82,12 @@ function renderPane(options?: {
         originalUrl={originalUrl}
         onRetry={onRetry}
         onNavigate={onNavigate}
+        onLocationChange={onLocationChange}
+        visible={shown}
       />
     );
   };
-  const result = render(<Harness url={url} />);
+  const result = render(<Harness url={url} visible={visible} />);
   const wv = result.container.querySelector(
     "webview",
   ) as unknown as MockWebview;
@@ -85,9 +100,22 @@ function renderPane(options?: {
   wv.goForward = vi.fn();
   wv.canGoBack = vi.fn(() => false);
   wv.canGoForward = vi.fn(() => false);
+  wv.stop = vi.fn();
   const rerenderWithUrl = (u: string | null | undefined) =>
-    result.rerender(<Harness url={u} />);
-  return { ...result, rerenderWithUrl, vscode, wv, url, onClose, onAddComment, onNavigate };
+    result.rerender(<Harness url={u} visible={visible} />);
+  const rerenderVisible = (shown: boolean) =>
+    result.rerender(<Harness url={url} visible={shown} />);
+  return {
+    ...result,
+    rerenderWithUrl,
+    rerenderVisible,
+    vscode,
+    wv,
+    url,
+    onClose,
+    onAddComment,
+    onNavigate,
+  };
 }
 
 const fireDomReady = (wv: MockWebview) => fireEvent(wv, new Event("dom-ready"));
@@ -116,7 +144,49 @@ describe("PreviewPane", () => {
   it("loads the URL into the guest and shows it in the address bar", () => {
     const { wv, url } = renderPane();
     expect(wv.getAttribute("src")).toBe(url);
+    expect(wv.getAttribute("partition")).toBe(PREVIEW_PARTITION);
     expect(screen.getByTestId("preview-address")).toHaveValue(url as string);
+  });
+
+  it("persists in-guest navigation without reloading the page", () => {
+    const onLocationChange = vi.fn();
+    const { wv, rerenderWithUrl } = renderPane({ onLocationChange });
+    fireDomReady(wv);
+    fireDidNavigate(wv, "http://localhost:5173/deep");
+    expect(onLocationChange).toHaveBeenCalledWith("http://localhost:5173/deep");
+    expect(wv.loadURL).not.toHaveBeenCalled();
+    rerenderWithUrl("http://localhost:5173/deep");
+    expect(wv.loadURL).not.toHaveBeenCalled();
+  });
+
+  it("turns refresh into stop while the page is loading", () => {
+    const { wv } = renderPane();
+    fireEvent(wv, new Event("did-start-loading"));
+    const button = screen.getByTestId("preview-refresh");
+    expect(button).toHaveAttribute("title", "停止");
+    fireEvent.click(button);
+    expect(wv.stop).toHaveBeenCalled();
+    fireEvent(wv, new Event("did-stop-loading"));
+    expect(button).toHaveAttribute("title", "刷新");
+  });
+
+  it("selects the whole address when the bar is focused", () => {
+    renderPane();
+    const input = screen.getByTestId("preview-address") as HTMLInputElement;
+    const select = vi.spyOn(input, "select");
+    fireEvent.focus(input);
+    expect(select).toHaveBeenCalled();
+  });
+
+  it("unmounts the guest while hidden and restores the current address", () => {
+    const { wv, rerenderVisible, container } = renderPane();
+    fireDidNavigate(wv, "http://localhost:5173/deep");
+    rerenderVisible(false);
+    expect(container.querySelector("webview")).toBeNull();
+    rerenderVisible(true);
+    expect(container.querySelector("webview")?.getAttribute("src")).toBe(
+      "http://localhost:5173/deep",
+    );
   });
 
   it("shows toolbar and empty hint when url is missing", () => {

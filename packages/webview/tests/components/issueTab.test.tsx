@@ -1271,7 +1271,7 @@ describe("issue tab", () => {
     expect(emptyTranscript.querySelector(".messages-container")).toBeNull();
   });
 
-  it("keeps each issue's open file and expansion, and a list click stays on 详情", async () => {
+  it("keeps a bot file preview across issues, and a list click stays on 详情", async () => {
     await withElementBox(async () => {
       resetWebviewStores();
       stubAssistant([]);
@@ -1320,14 +1320,19 @@ describe("issue tab", () => {
       expect(within(dock).getByTestId("desktop-panel-tab-detail")).toHaveClass(
         "desktop-panel-tab--active",
       );
-      expect(within(dock).queryByTestId("file-tab")).toBeNull();
-      expect(within(dock).queryByRole("button", { name: "文件" })).toBeNull();
-      expect(within(dock).queryByText("App.tsx")).toBeNull();
+      const stayed = within(dock).getByTestId("file-tab");
+      expect(stayed).toHaveAttribute("data-path", "/work/radii/App.tsx");
+      expect(stayed).toHaveAttribute("data-active", "false");
       expect(within(dock).queryByTestId("file-tree-row-src/old-child.ts")).toBeNull();
       expect(usePanelGroupStore.getState().groups["/work/radii"]?.active).toBe("file");
       expect(
-        usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
+          (tab) => tab.path,
+        ),
       ).toEqual(["/work/radii/App.tsx"]);
+      expect(
+        usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs ?? [],
+      ).toEqual([]);
       expect(
         usePanelGroupStore.getState().groups["/work/a11y-exec"]?.checked ?? [],
       ).not.toContain("file");
@@ -1338,8 +1343,7 @@ describe("issue tab", () => {
         usePanelGroupStore.getState().groups["/work/a11y-exec"]?.fileTree?.expanded ?? [],
       ).not.toContain("src");
 
-      await user.click(within(dock).getByTestId("desktop-panel-add-btn"));
-      await user.click(await screen.findByTestId("panel-add-item-file"));
+      await user.click(within(dock).getByTestId("file-tab"));
       const expandA11y = within(dock).getByTestId("file-tree-expand-btn");
       if (expandA11y.getAttribute("aria-pressed") !== "true") {
         await user.click(expandA11y);
@@ -1348,7 +1352,10 @@ describe("issue tab", () => {
         "title",
         "/work/a11y-exec",
       );
-      expect(within(dock).queryByTestId("file-tab")).toBeNull();
+      expect(within(dock).getByTestId("file-tab")).toHaveAttribute(
+        "data-path",
+        "/work/radii/App.tsx",
+      );
       expect(within(dock).queryByText("old-child.ts")).toBeNull();
 
       selectDock.mockClear();
@@ -1609,7 +1616,12 @@ describe("issue tab", () => {
       );
 
       const openedFiles = usePanelGroupStore.getState().groups["/work/radii"];
-      expect(openedFiles?.fileTabs?.map((tab) => tab.path)).toEqual(["/work/radii/App.tsx"]);
+      expect(
+        usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs?.map(
+          (tab) => tab.path,
+        ),
+      ).toEqual(["/work/radii/App.tsx"]);
+      expect(openedFiles?.fileTabs ?? []).toEqual([]);
       expect(openedFiles?.checked).toEqual(["file", "terminal", "diff"]);
       expect(openedFiles?.active).toBe("file");
 
@@ -1780,6 +1792,12 @@ describe("issue tab", () => {
     expect(fileTab).toHaveAttribute("data-path", "src/App.tsx");
     expect(fileTab).toHaveAttribute("data-active", "true");
     expect(fileTab.className).not.toContain("file-tab--preview");
+    expect(
+      usePanelGroupStore.getState().groups["/work/radii"]?.fileTabs?.map((tab) => tab.path),
+    ).toEqual(["src/App.tsx"]);
+    expect(
+      usePanelGroupStore.getState().groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? [],
+    ).toEqual([]);
     expect(within(dock).getByTestId("desktop-panel-tab-detail")).not.toHaveClass(
       "desktop-panel-tab--active",
     );

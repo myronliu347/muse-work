@@ -123,6 +123,7 @@ import {
   patchDockTool,
   removeDockTool,
 } from "../muse/dockTools";
+import { openFileTab, pinFileTab, selectFileTab } from "../muse/fileTabs";
 import { firstOpenDockWidths } from "../muse/panelFit";
 import { restoredDockAlreadyOpen, takeRestoredFileLoads } from "../muse/botPageState";
 import {
@@ -138,6 +139,7 @@ import {
   type DockToolInstance,
   type PanelGroupState,
 } from "../stores";
+import { applyCloseFileTab } from "../stores/panelGroupStore";
 import { dedupeSnapshotsByFile } from "../utils/fileHistorySnapshots";
 import { createMessageHandler } from "../muse/messageRouter";
 
@@ -615,13 +617,16 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   };
   // Desktop only: panel group is keyed by absolute workdir (not session).
   // Fall back to host.workdir so a draft with a selected folder still shares
-  // the same dock as sessions in that directory. On Muse Bot, 文件 and 变更
-  // follow the selected issue's directory. 终端 and 浏览器 are bot-level tabs:
-  // switching issues does not swap or close them, and each one can be opened
-  // more than once. A new terminal starts in the current issue workdir.
-  // 会话 stays on the open session's directory, including its own terminal
-  // and browser. The column width and open flag stay on the assistant key,
-  // so Muse Bot and 会话 share one dock width.
+  // the same dock as sessions in that directory. On Muse Bot, 变更 follows
+  // the selected issue. 文件预览 opened on this page stays on the bot's own
+  // bar and survives an issue switch. A file opened from the issue transcript
+  // stays with that issue. The file tree still shows the current issue's
+  // directory. 终端 and 浏览器 are bot-level tabs: switching issues does not
+  // swap or close them, and each one can be opened more than once. A new
+  // terminal starts in the current issue workdir. 会话 stays on the open
+  // session's directory, including its own terminal and browser. The column
+  // width and open flag stay on the assistant key, so Muse Bot and 会话 share
+  // one dock width.
   const dockIssueId =
     workspace.panel.kind === "issue" ? workspace.panel.issueId : workspace.lastIssueId;
   const dockIssueGroup = dockIssueId
@@ -685,6 +690,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const assistantTools = usePanelGroupStore(
     (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? EMPTY_DOCK_TOOLS,
   );
+  const assistantFileTabs = usePanelGroupStore(
+    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? EMPTY_FILE_TABS,
+  );
+  const assistantActiveFilePath = usePanelGroupStore(
+    (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeFilePath ?? null,
+  );
   const assistantActiveToolId = usePanelGroupStore(
     (state) => state.groups[ASSISTANT_PANEL_GROUP_KEY]?.activeToolId ?? null,
   );
@@ -697,13 +708,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const dockTabOrder = assistantVisible ? assistantTabOrder : groupTabOrder;
   // With an issue selected, terminal and browser are not that directory's tabs.
   const issueBoundDock = assistantVisible && Boolean(dockIssueGroup);
-  const chromeChecked = useMemo(
-    () =>
-      issueBoundDock
-        ? botIssueChromeChecked(checkedPanels, assistantTools)
-        : checkedPanels,
-    [issueBoundDock, checkedPanels, assistantTools],
-  );
+  const residentFileOpen = assistantVisible && assistantFileTabs.length > 0;
+  const chromeChecked = useMemo(() => {
+    const kinds = issueBoundDock
+      ? botIssueChromeChecked(checkedPanels, assistantTools)
+      : checkedPanels;
+    if (!residentFileOpen || kinds.includes("file")) return kinds;
+    return [...kinds, "file"];
+  }, [issueBoundDock, checkedPanels, assistantTools, residentFileOpen]);
   const chromeActive =
     issueBoundDock && (activePanel === "terminal" || activePanel === "preview")
       ? null
@@ -714,6 +726,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   const slotMounted = issueBoundDock
     ? mountedPanels.filter((kind) => kind === "file" || kind === "diff")
     : mountedPanels;
+  const slotCheckedWithFile =
+    residentFileOpen && !slotChecked.includes("file")
+      ? [...slotChecked, "file" as const]
+      : slotChecked;
+  const slotMountedWithFile =
+    residentFileOpen && !slotMounted.includes("file")
+      ? [...slotMounted, "file" as const]
+      : slotMounted;
   // Column width belongs to Muse Bot, not the directory whose tabs are showing.
   const assistantWidths = usePanelGroupStore(
     (state) => resolvePanelGroup(state.groups, ASSISTANT_PANEL_GROUP_KEY).widths,
@@ -767,9 +787,43 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     if (!usingIssuePreview || !dockWorkdir) return undefined;
     return state.groups[dockWorkdir]?.fileTree?.selected;
   });
-  const shownFileTabs = issueFileTabs ?? fileTabs;
-  const shownActiveFilePath =
-    issueActiveFilePath !== undefined ? issueActiveFilePath : activeFilePath;
+  const shownFileTabs = useMemo(() => {
+    if (!assistantVisible) return issueFileTabs ?? fileTabs;
+    const directoryTabs = dockIssueGroup ? (issueFileTabs ?? []) : [];
+    const issueOnly = directoryTabs.filter(
+      (tab) => !assistantFileTabs.some((item) => item.path === tab.path),
+    );
+    return [...assistantFileTabs, ...issueOnly];
+  }, [assistantVisible, dockIssueGroup, assistantFileTabs, issueFileTabs, fileTabs]);
+  const shownActiveFilePath = useMemo(() => {
+    if (!assistantVisible) {
+      return issueActiveFilePath !== undefined ? issueActiveFilePath : activeFilePath;
+    }
+    const issueOnly = (dockIssueGroup ? (issueFileTabs ?? []) : []).filter(
+      (tab) => !assistantFileTabs.some((item) => item.path === tab.path),
+    );
+    if (
+      issueActiveFilePath &&
+      issueOnly.some((tab) => tab.path === issueActiveFilePath)
+    ) {
+      return issueActiveFilePath;
+    }
+    if (
+      assistantActiveFilePath &&
+      assistantFileTabs.some((tab) => tab.path === assistantActiveFilePath)
+    ) {
+      return assistantActiveFilePath;
+    }
+    return null;
+  }, [
+    assistantVisible,
+    dockIssueGroup,
+    assistantFileTabs,
+    assistantActiveFilePath,
+    issueFileTabs,
+    issueActiveFilePath,
+    activeFilePath,
+  ]);
   const shownFileTree =
     issueChildrenCache !== undefined
       ? {
@@ -1081,10 +1135,14 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         command: "openFile",
         path: item.path,
         host: item.host,
-        workdir: item.workdir,
-        // The reply must land on this directory's tabs. At startup the
-        // visible preview group is often still the assistant key, because
-        // the issue list has not arrived yet.
+        // The reply must land on this group's tabs. At startup the visible
+        // preview group is often still the assistant key, because the issue
+        // list has not arrived yet. "assistant" is the bot file bar, not a
+        // directory: an absolute path still reads, and a relative one falls
+        // back to the app workdir.
+        ...(item.workdir === ASSISTANT_PANEL_GROUP_KEY
+          ? {}
+          : { workdir: item.workdir }),
         fileGroupKey: item.workdir,
       });
     }
@@ -1143,12 +1201,35 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         | Partial<PanelGroupState>
         | ((group: PanelGroupState) => Partial<PanelGroupState>),
     ) => {
-      const key = previewGroupKeyRef.current;
-      if (!key) return;
-      usePanelGroupStore.getState().patchGroup(key, patch);
+      const store = usePanelGroupStore.getState();
+      if (!assistantVisibleRef.current) {
+        const key = previewGroupKeyRef.current;
+        if (!key) return;
+        store.patchGroup(key, patch);
+        return;
+      }
+      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, patch);
+      const issueKey = previewGroupKeyRef.current;
+      if (!issueKey || issueKey === ASSISTANT_PANEL_GROUP_KEY) return;
+      store.patchGroup(issueKey, { activeFilePath: null });
     },
     [],
   );
+  const resolveFileGroupKey = useCallback((path: string) => {
+    if (!assistantVisibleRef.current) return undefined;
+    const store = usePanelGroupStore.getState();
+    const issueKey = previewGroupKeyRef.current;
+    const onAssistant = (store.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? []).some(
+      (tab) => tab.path === path,
+    );
+    const onIssue = Boolean(
+      issueKey &&
+        issueKey !== ASSISTANT_PANEL_GROUP_KEY &&
+        (store.groups[issueKey]?.fileTabs ?? []).some((tab) => tab.path === path),
+    );
+    if (onIssue && !onAssistant) return issueKey;
+    return ASSISTANT_PANEL_GROUP_KEY;
+  }, []);
 
   // Auto-dismiss the queue-edit warning banner
   useEffect(() => {
@@ -1344,7 +1425,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     orderKey: assistantVisible ? ASSISTANT_PANEL_GROUP_KEY : groupKey,
     present: defaultDockTabKeys({
       detail: assistantVisible,
-      checked: slotChecked,
+      checked: slotCheckedWithFile,
       filePaths: shownFileTabs.map((tab) => tab.path),
       tools: assistantVisible ? assistantTools : [],
     }),
@@ -1633,6 +1714,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     contentSearch: shownContentSearch,
     updateListingGroup: updatePreviewGroup,
     updateFileGroup,
+    resolveFileGroupKey,
   });
   const {
     handleOpenFile: openFileTabInGroup,
@@ -1677,6 +1759,114 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       handleOpenFile(path, startLine, endLine, true);
     },
     [handleOpenFile],
+  );
+  // Issue transcript links stay on that issue. Bot-page opens stay resident.
+  const openIssueMessageFile = useCallback(
+    (path: string, startLine?: number, endLine?: number) => {
+      if (!path) return;
+      if (!assistantVisibleRef.current) {
+        openMessageFile(path, startLine, endLine);
+        return;
+      }
+      if (!tryOpenPanel("file")) return;
+      const key = previewGroupKeyRef.current;
+      if (!key) return;
+      const store = usePanelGroupStore.getState();
+      store.patchGroup(key, (group) =>
+        openFileTab(
+          {
+            fileTabs: group.fileTabs ?? [],
+            activeFilePath: group.activeFilePath ?? null,
+          },
+          path,
+          effectiveHost,
+          { startLine, endLine, pinned: true },
+        ),
+      );
+      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeFilePath: null });
+      postToHost({
+        command: "openFile",
+        path,
+        host: effectiveHost,
+        workdir: dockWorkdirRef.current,
+        startLine,
+        endLine,
+        fileGroupKey: key,
+      });
+      setAssistantDockOpen(true);
+      selectDockRef.current("file");
+    },
+    [effectiveHost, openMessageFile, postToHost, setAssistantDockOpen, tryOpenPanel],
+  );
+  const issueOwnsFileTab = useCallback((path: string) => {
+    if (!assistantVisibleRef.current) return false;
+    const store = usePanelGroupStore.getState();
+    const onAssistant = (store.groups[ASSISTANT_PANEL_GROUP_KEY]?.fileTabs ?? []).some(
+      (tab) => tab.path === path,
+    );
+    if (onAssistant) return false;
+    const issueKey = previewGroupKeyRef.current;
+    if (!issueKey || issueKey === ASSISTANT_PANEL_GROUP_KEY) return false;
+    return (store.groups[issueKey]?.fileTabs ?? []).some((tab) => tab.path === path);
+  }, []);
+  const selectShownFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      const issueKey = previewGroupKeyRef.current;
+      if (issueOwnsFileTab(path) && issueKey) {
+        if (!tryOpenPanel("file")) return;
+        const store = usePanelGroupStore.getState();
+        store.patchGroup(issueKey, (group) =>
+          selectFileTab(
+            {
+              fileTabs: group.fileTabs ?? [],
+              activeFilePath: group.activeFilePath ?? null,
+            },
+            path,
+          ),
+        );
+        store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, { activeFilePath: null });
+        return;
+      }
+      handleSelectFileTab(path);
+    },
+    [handleSelectFileTab, issueOwnsFileTab, tryOpenPanel],
+  );
+  const closeShownFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      const issueKey = previewGroupKeyRef.current;
+      if (issueOwnsFileTab(path) && issueKey) {
+        usePanelGroupStore.getState().patchGroup(issueKey, (group) => {
+          const tabs = group.fileTabs ?? [];
+          if (!tabs.some((tab) => tab.path === path)) return {};
+          return applyCloseFileTab(group, path);
+        });
+        return;
+      }
+      handleCloseFileTab(path);
+    },
+    [handleCloseFileTab, issueOwnsFileTab],
+  );
+  const pinShownFileTab = useCallback(
+    (path: string) => {
+      if (!path) return;
+      const issueKey = previewGroupKeyRef.current;
+      if (issueOwnsFileTab(path) && issueKey) {
+        usePanelGroupStore.getState().patchGroup(issueKey, (group) =>
+          pinFileTab(
+            {
+              fileTabs: group.fileTabs ?? [],
+              activeFilePath: group.activeFilePath ?? null,
+            },
+            path,
+          ),
+        );
+        return;
+      }
+      handlePinFileTab(path);
+    },
+    [handlePinFileTab, issueOwnsFileTab],
   );
 
   const rewind = useRewind({
@@ -2077,13 +2267,13 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       ? workspace.dock
       : activePanel;
   const dock: DesktopPanelSlotsProps = {
-    checked: slotChecked,
+    checked: slotCheckedWithFile,
     active: showIssueDetail
       ? workspace.dock === DOCK_DETAIL_TAB
         ? chromeActive
         : workspace.dock
       : sessionChromeKind,
-    mounted: slotMounted,
+    mounted: slotMountedWithFile,
     disabledPanels: panelDisabled,
     fullscreen: dockFullscreen,
     widths: shownWidths,
@@ -2144,6 +2334,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       focusBotTool(id);
       handlePreviewNavigate(url);
     },
+    onPreviewLocationChange: (url) => {
+      updatePreviewGroup({ previewUrl: url });
+    },
+    onToolPreviewLocationChange: (id, url) => {
+      const store = usePanelGroupStore.getState();
+      const tools = store.groups[ASSISTANT_PANEL_GROUP_KEY]?.tools ?? [];
+      if (!tools.some((tool) => tool.id === id)) return;
+      store.patchGroup(ASSISTANT_PANEL_GROUP_KEY, {
+        tools: patchDockTool(tools, id, { previewUrl: url }),
+      });
+    },
     onToolPreviewRetry: (id) => {
       const tool = assistantTools.find((item) => item.id === id);
       if (!tool?.forward) return;
@@ -2182,10 +2383,10 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     activeFilePath: shownActiveFilePath,
     onSelectFileTab: (path) => {
       if (showIssueDetail) workspace.selectDock("file");
-      handleSelectFileTab(path);
+      selectShownFileTab(path);
     },
-    onCloseFileTab: handleCloseFileTab,
-    onPinFileTab: handlePinFileTab,
+    onCloseFileTab: closeShownFileTab,
+    onPinFileTab: pinShownFileTab,
     fileTree: shownFileTree,
     onFileTreeChange: handleFileTreeChange,
     fileSidebarMode,
@@ -2436,7 +2637,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
                   onRewindToMessage={issueShowsLive ? handleRewindToMessage : () => undefined}
                   workdir={dockWorkdir}
                   onOpenPreview={handleOpenPreview}
-                  onOpenFile={openMessageFile}
+                  onOpenFile={openIssueMessageFile}
                   onOpenAgentTranscript={handleOpenAgentTranscript}
                   hasOlderMessages={
                     issueShowsLive

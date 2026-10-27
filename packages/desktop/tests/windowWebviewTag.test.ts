@@ -20,6 +20,7 @@ vi.mock("electron", () => {
     }
   }
   return {
+    app: { on: vi.fn() },
     BrowserWindow,
     nativeImage: {
       createFromPath: () => ({ isEmpty: () => true }),
@@ -28,12 +29,17 @@ vi.mock("electron", () => {
   };
 });
 
-import { createMainWindow } from "../src/main/window.js";
+import {
+  attachPreviewGuestOpener,
+  createMainWindow,
+  lockPreviewWebviewAttach,
+  PREVIEW_PARTITION,
+} from "../src/main/window.js";
 
 describe("createMainWindow", () => {
   it("enables webviewTag for the preview guest", () => {
     ctorOpts.length = 0;
-    createMainWindow({
+    const win = createMainWindow({
       serverBaseUrl: "http://127.0.0.1:8787",
       backgroundColor: "#000",
       preloadPath: "/tmp/preload.cjs",
@@ -45,6 +51,38 @@ describe("createMainWindow", () => {
       unknown
     >;
     expect(prefs.webviewTag).toBe(true);
+    expect(win.webContents.on).toHaveBeenCalledWith(
+      "will-attach-webview",
+      expect.any(Function),
+    );
+  });
+
+  it("isolates preview guests and opens popups in the same page", () => {
+    const prefs = { nodeIntegration: true, contextIsolation: false, sandbox: false };
+    const params: { partition?: string } = {};
+    lockPreviewWebviewAttach(prefs, params);
+    expect(params.partition).toBe(PREVIEW_PARTITION);
+    expect(prefs).toEqual({
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    });
+
+    const loadURL = vi.fn();
+    let handler: (details: { url: string }) => { action: string } = () => ({
+      action: "allow",
+    });
+    attachPreviewGuestOpener({
+      setWindowOpenHandler: (next) => {
+        handler = next;
+      },
+      loadURL,
+    });
+    expect(handler({ url: "https://example.com/docs" })).toEqual({ action: "deny" });
+    expect(loadURL).toHaveBeenCalledWith("https://example.com/docs");
+    loadURL.mockClear();
+    expect(handler({ url: "javascript:alert(1)" })).toEqual({ action: "deny" });
+    expect(loadURL).not.toHaveBeenCalled();
   });
 
   it("uses a hiddenInset titlebar on macOS so traffic lights sit in the shell strip", () => {

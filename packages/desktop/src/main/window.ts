@@ -1,4 +1,4 @@
-import { BrowserWindow, nativeImage, shell } from "electron";
+import { app, BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
 
 export type CreateMainWindowOpts = {
@@ -10,6 +10,49 @@ export type CreateMainWindowOpts = {
   webviewHtmlPath: string;
   title?: string;
 };
+
+/** Guest pages stay out of the Muse window session. */
+export const PREVIEW_PARTITION = "persist:muse-preview";
+
+export function lockPreviewWebviewAttach(
+  webPreferences: {
+    nodeIntegration?: boolean;
+    contextIsolation?: boolean;
+    sandbox?: boolean;
+  },
+  params: { partition?: string },
+): void {
+  params.partition = PREVIEW_PARTITION;
+  webPreferences.nodeIntegration = false;
+  webPreferences.contextIsolation = true;
+  webPreferences.sandbox = true;
+}
+
+/** A popup or target=_blank loads in the same preview instead of a new window. */
+export function attachPreviewGuestOpener(contents: {
+  loadURL: (url: string) => Promise<void> | void;
+  setWindowOpenHandler: (
+    handler: (details: { url: string }) => { action: "deny" },
+  ) => void;
+}): void {
+  contents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:/i.test(url) || url.startsWith("file:")) {
+      void contents.loadURL(url);
+    }
+    return { action: "deny" };
+  });
+}
+
+let previewGuestPolicyInstalled = false;
+
+export function installPreviewGuestPolicy(): void {
+  if (previewGuestPolicyInstalled) return;
+  previewGuestPolicyInstalled = true;
+  app.on("web-contents-created", (_event, contents) => {
+    if (contents.getType() !== "webview") return;
+    attachPreviewGuestOpener(contents);
+  });
+}
 
 /**
  * Create the single Muse BrowserWindow and load the synced webview.
@@ -48,6 +91,11 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
       ],
     },
   });
+
+  win.webContents.on("will-attach-webview", (_event, webPreferences, params) => {
+    lockPreviewWebviewAttach(webPreferences, params);
+  });
+  installPreviewGuestPolicy();
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) {
