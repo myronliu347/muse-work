@@ -1,0 +1,150 @@
+packages/webview/src/components/panels/QuickOpenPalette.tsx
+  b4c1fd64c73e39cb 1,3,13-18,25-27,32-35,38-49,56-57,66-70,105,132-135,139-147,170,189,194-195,197-236
+packages/webview/src/components/assistant/AssistantPage.tsx
+  b4c1fd64c73e39cb 41-42,131-140,183-186,433,439,467-477,479-482,529-530,545,1076
+packages/webview/src/components/desktop/DesktopPanelSlots.tsx
+  b4c1fd64c73e39cb 22,82,151,267
+packages/webview/src/styles/FilePane.css
+  b4c1fd64c73e39cb 246-247,253,291,303-309
+packages/desktop/src/main/workdirHost.ts
+  b4c1fd64c73e39cb 403,616-619,643,665,678
+packages/webview/tests/components/dockDetail.test.tsx
+  b4c1fd64c73e39cb 256-275
+packages/webview/tests/webview/filePanelTabs.test.tsx
+  b4c1fd64c73e39cb 128-153
+packages/webview/src/components/dialogs/ChatDialogs.tsx
+  b4c1fd64c73e39cb 50-51,87-88,167,171
+packages/webview/tests/components/assistantPage.test.tsx
+  b4c1fd64c73e39cb 66-90
+packages/webview/tests/components/filePane.test.tsx
+  b4c1fd64c73e39cb 46-47,60,74-75,97,163-164,170-177,186,191,495,500,505,507,511-517,520,528,564,596,613,665
+packages/webview/src/muse/messageRouter.ts
+  b4c1fd64c73e39cb 203-207,230-234
+packages/desktop/tests/workdirHost.test.ts
+  b4c1fd64c73e39cb 378-381,385
+packages/webview/src/styles/Message.css
+  b4c1fd64c73e39cb 998-1005
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  b4c1fd64c73e39cb 21,81-82,118,304-313
+packages/webview/src/muse/apiClient.ts
+  b4c1fd64c73e39cb 1129
+packages/webview/src/components/panels/FilePane.tsx
+  b4c1fd64c73e39cb 209-217,221-222,224,229-230,232,236-246,248-256,258-272,274-318,320-336
+packages/webview/tests/components/fileTree.test.tsx
+  b4c1fd64c73e39cb 62,78-79
+packages/webview/tests/components/quickOpenPalette.test.tsx
+  b4c1fd64c73e39cb 25,81-106
+packages/webview/src/components/ChatApp.tsx
+  b4c1fd64c73e39cb 1070-1073,1935-1942,2026-2029,2269,2415
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "ae9844248c254c4af0d4cc46cf597ec098e473e3",
+  "prompts": {
+    "b4c1fd64c73e39cb": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "862d35a6-ec28-42ff-9725-2d70a560827d",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 633,
+      "total_deletions": 363,
+      "accepted_lines": 614,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/desktop/DesktopPanelSlots.tsx": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/panels/FilePane.tsx": {
+          "additions": 132,
+          "deletions": 129,
+          "accepted_lines": 114
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 12,
+          "deletions": 5,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 14,
+          "deletions": 4,
+          "accepted_lines": 14
+        },
+        "packages/webview/tests/components/fileTree.test.tsx": {
+          "additions": 3,
+          "deletions": 126,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/panels/FileTree.tsx": {
+          "deletions": 64
+        },
+        "packages/desktop/src/main/workdirHost.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "packages/webview/src/components/panels/QuickOpenPalette.tsx": {
+          "additions": 242,
+          "deletions": 1,
+          "accepted_lines": 242
+        },
+        "packages/webview/tests/components/quickOpenPalette.test.tsx": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 27
+        },
+        "packages/desktop/tests/workdirHost.test.ts": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/dockDetail.test.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 35,
+          "deletions": 28,
+          "accepted_lines": 35
+        },
+        "packages/webview/tests/webview/filePanelTabs.test.tsx": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 37,
+          "deletions": 2,
+          "accepted_lines": 37
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/src/muse/messageRouter.ts": {
+          "additions": 10,
+          "deletions": 2,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/dialogs/ChatDialogs.tsx": {
+          "additions": 6,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}
