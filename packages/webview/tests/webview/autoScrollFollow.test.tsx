@@ -27,7 +27,7 @@ const assistantMsg = (content: string, id: string) => ({
  * Fake the geometry by redefining those properties on the container, then dispatch a
  * scroll event so MessageList's scroll handler records the position.
  */
-function setGeometryAndScroll(
+function setGeometry(
   scrollTop: number,
   scrollHeight: number,
   clientHeight = 400,
@@ -45,6 +45,15 @@ function setGeometryAndScroll(
     value: scrollHeight,
     configurable: true,
   });
+}
+
+function setGeometryAndScroll(
+  scrollTop: number,
+  scrollHeight: number,
+  clientHeight = 400,
+) {
+  const container = screen.getByTestId("messages-container");
+  setGeometry(scrollTop, scrollHeight, clientHeight);
   act(() => {
     fireEvent.scroll(container);
   });
@@ -92,6 +101,9 @@ describe("auto-scroll follow during streaming", () => {
     // browser clamps scrollTop downward to keep it within bounds. This is NOT a user
     // scroll-up gesture, yet the raw scrollTop decreases.
     setGeometryAndScroll(800, 1200);
+    // The next chunk grows the tail. jsdom will not, so extend scrollHeight
+    // without a scroll event — the viewport is no longer at the bottom.
+    setGeometry(800, 1600);
     scrollIntoView.mockClear();
 
     // A subsequent streaming chunk arrives (messages change → effect runs). The user
@@ -142,6 +154,8 @@ describe("auto-scroll follow during streaming", () => {
     // browser clamps scrollTop down to the new maximum (2000 - 700 = 1300) with
     // scrollHeight UNCHANGED. This is NOT a user scroll-up gesture.
     setGeometryAndScroll(1300, 2000, 700);
+    // Streaming then grows the tail without a scroll event.
+    setGeometry(1300, 2400, 700);
     scrollIntoView.mockClear();
 
     // A subsequent streaming chunk must still auto-scroll to bottom.
@@ -207,6 +221,54 @@ describe("auto-scroll follow during streaming", () => {
     });
 
     expect(scrollIntoView).not.toHaveBeenCalled();
+    scrollIntoView.mockRestore();
+  });
+
+  it("keeps following when the pinned bar shrinks the viewport and clamps scrollTop", async () => {
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, "scrollTo")
+      .mockImplementation(() => {});
+
+    renderChatApp();
+    act(() => {
+      sendCommand("updateMessages", {
+        messages: [userMsg("问题", "u1"), assistantMsg("正在回答", "a1")],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("messages-container")).toBeInTheDocument(),
+    );
+
+    act(() => {
+      sendCommand("startStreaming");
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    setGeometryAndScroll(1600, 2000);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    scrollIntoView.mockClear();
+
+    // Pin mounts in-flow: clientHeight drops and the browser clamps scrollTop.
+    setGeometryAndScroll(1500, 2000, 200);
+    setGeometry(1500, 2400, 200);
+    scrollIntoView.mockClear();
+
+    act(() => {
+      sendCommand("updateMessages", {
+        messages: [
+          userMsg("问题", "u1"),
+          assistantMsg("正在回答……更多内容追加", "a1"),
+        ],
+      });
+    });
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
     scrollIntoView.mockRestore();
   });
 });

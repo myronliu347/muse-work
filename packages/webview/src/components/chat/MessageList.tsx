@@ -419,7 +419,10 @@ export const MessageList = forwardRef<
     directDomUpdates: true,
     directDomUpdatesMode: "position",
     useFlushSync: false,
-    useAnimationFrameWithResizeObserver: true,
+    // Measure and correct scroll inside the resize observer, before paint.
+    // Deferring to the next frame lets the user bubble jump, then snap back,
+    // on every streaming growth.
+    useAnimationFrameWithResizeObserver: false,
     // jsdom reports a 0×0 scrollport, which would mount zero rows. A real
     // layout replaces this on the first non-zero measurement.
     observeElementRect: (instance, cb) =>
@@ -493,7 +496,8 @@ export const MessageList = forwardRef<
       index--;
     }
     // Streaming follow nudges scrollTop across the row boundary. Keep the
-    // current pin until the scroll moves clearly past it.
+    // current pin only after that row has actually left the viewport. Holding
+    // it while the row is back on screen mounts the bar over the visible copy.
     const prev = stickyRef.current;
     if (prev && (candidate === null || candidate.id !== prev.id)) {
       const prevIndex = list.findIndex(
@@ -501,10 +505,9 @@ export const MessageList = forwardRef<
       );
       const measure =
         prevIndex >= 0 ? virtualizer.measurementsCache[prevIndex] : undefined;
-      if (
-        measure &&
-        Math.abs(measure.start - container.scrollTop) <= STICKY_SLACK
-      ) {
+      const past =
+        measure !== undefined ? container.scrollTop - measure.start : 0;
+      if (measure && past > 0 && past <= STICKY_SLACK) {
         return;
       }
     }
@@ -545,9 +548,20 @@ export const MessageList = forwardRef<
 
   const doScrollToBottom = useCallback(
     (behavior: ScrollBehavior) => {
+      const container = containerRef.current;
+      // scrollToEnd keeps a per-frame reconcile alive. During streaming that
+      // reconcile and the virtualizer's end anchor take turns, so the pinned
+      // user message shakes. One write to the visual bottom does not.
+      if (behavior === "auto" && container) {
+        const max = Math.max(0, container.scrollHeight - container.clientHeight);
+        if (max - container.scrollTop <= 1) return;
+        markProgrammaticScroll();
+        container.scrollTo({ top: max, behavior: "auto" });
+        return;
+      }
       virtualizer.scrollToEnd({ behavior });
     },
-    [virtualizer],
+    [virtualizer, markProgrammaticScroll],
   );
 
   const scrollToBottom = useCallback(
@@ -648,7 +662,10 @@ export const MessageList = forwardRef<
         const scrolledUp = container.scrollTop < prevScrollTopRef.current;
         const contentShrank = container.scrollHeight < prevScrollHeightRef.current;
         const viewportGrew = container.clientHeight > prevClientHeightRef.current;
-        if (scrolledUp && !contentShrank && !viewportGrew) {
+        // The pinned bar is in-flow, so mounting it shrinks the scrollport and
+        // the browser may clamp scrollTop. That is not the user leaving the tail.
+        const viewportShrunk = container.clientHeight < prevClientHeightRef.current;
+        if (scrolledUp && !contentShrank && !viewportGrew && !viewportShrunk) {
           userScrolledUpRef.current = true;
         } else if (isNearBottom) {
           userScrolledUpRef.current = false;
