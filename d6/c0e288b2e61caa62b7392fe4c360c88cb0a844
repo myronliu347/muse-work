@@ -1,0 +1,33 @@
+packages/webview/tests/components/thinkingHint.test.tsx
+  86c5d17c1588aabf 52,88-90
+packages/webview/src/components/message/ToolActivityGroup.tsx
+  86c5d17c1588aabf 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d6c0e288b2e61caa62b7392fe4c360c88cb0a844",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
