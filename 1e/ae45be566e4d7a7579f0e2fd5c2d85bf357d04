@@ -1,0 +1,68 @@
+packages/webview/tests/muse/panelShortcuts.test.ts
+  86c5d17c1588aabf 85-142
+packages/webview/src/components/desktop/BotTabs.tsx
+  86c5d17c1588aabf 31,176-203
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  86c5d17c1588aabf 11,18-22,146-213
+packages/webview/tests/components/botTabs.test.tsx
+  86c5d17c1588aabf 4,70-107
+packages/webview/src/components/panels/TerminalPane.tsx
+  86c5d17c1588aabf 6,250
+packages/webview/src/muse/dockTabOrder.ts
+  86c5d17c1588aabf 26-47
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  86c5d17c1588aabf 104-136
+packages/webview/tests/muse/dockTabOrder.test.ts
+  86c5d17c1588aabf 3,33-62
+packages/webview/src/muse/panelShortcuts.ts
+  86c5d17c1588aabf 101-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "1eae45be566e4d7a7579f0e2fd5c2d85bf357d04",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 317,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "accepted_lines": 58
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "accepted_lines": 2
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "accepted_lines": 74
+        },
+        "packages/webview/src/muse/dockTabOrder.ts": {
+          "accepted_lines": 22
+        },
+        "packages/webview/tests/muse/dockTabOrder.test.ts": {
+          "accepted_lines": 31
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "accepted_lines": 39
+        }
+      }
+    }
+  }
+}
