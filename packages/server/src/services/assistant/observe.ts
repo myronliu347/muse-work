@@ -4,7 +4,6 @@ import { userMessageText } from "../sessionRunner/serialization.js";
 import { ASSISTANT_TEXT_MAX } from "./messages.js";
 import {
   ASSISTANT_DESCRIPTION_NOTE,
-  ASSISTANT_REQUEST_NOTE,
   type AssistantEvent,
 } from "./events.js";
 
@@ -29,14 +28,13 @@ export async function enqueueIssueSessionTurn(args: {
   } catch {
     messages = [];
   }
-  const request = truncateCodePoints(turnUserRequest(messages), ASSISTANT_TEXT_MAX);
+  const request = turnUserRequest(messages);
   args.enqueue({
     type: "issue",
     issueId: issue.id,
     title: issue.title,
     workdir: issue.workdir,
-    ...(request.text ? { request: request.text } : {}),
-    ...(request.truncated ? { requestNote: ASSISTANT_REQUEST_NOTE } : {}),
+    ...(request ? { request } : {}),
     summary: lastAssistantText(messages),
   });
 }

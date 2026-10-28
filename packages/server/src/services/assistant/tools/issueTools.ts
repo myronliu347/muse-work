@@ -2,7 +2,14 @@ import fs from "node:fs";
 import { normalizeIssueType } from "../../issueStore.js";
 import { openIssueSession, type OpenIssueBody } from "../../issueOpen.js";
 import { createServerWorktree } from "../../gitWorktree.js";
+import { ASSISTANT_TEXT_MAX } from "../messages.js";
 import { compactText, fail, ok, text, tool, type AssistantToolDeps } from "./toolKit.js";
+
+function clipAnswer(answer: string): { answer: string; truncated?: true } {
+  const chars = [...answer];
+  if (chars.length <= ASSISTANT_TEXT_MAX) return { answer };
+  return { answer: chars.slice(0, ASSISTANT_TEXT_MAX).join(""), truncated: true };
+}
 
 function queuedPreview(item: unknown): string | undefined {
   if (!item || typeof item !== "object") return undefined;
@@ -284,6 +291,46 @@ export function createIssueTools(deps: AssistantToolDeps) {
         });
       },
       (params) => compactText(params.message),
+    ),
+    tool(
+      "AskIssue",
+      "旁边问一句这个 Issue 的会话做到哪了。不写进会话，不打断正在跑的步骤。正在跑的会话优先；都没在跑时问执行会话，没有则问规划会话。只用来了解进度，不要在这里交代下一步。下一步用 MessageIssue。",
+      {
+        type: "object",
+        properties: {
+          issueId: { type: "string" },
+          question: { type: "string" },
+        },
+        required: ["issueId", "question"],
+      },
+      async (args) => {
+        const issue = deps.issues.get(text(args.issueId));
+        const question = text(args.question);
+        if (!issue) return fail("not found");
+        if (!question) return fail("question required");
+        const execution = issue.executionSessionId;
+        const planning = issue.planningSessionId;
+        const sessionId =
+          (execution && deps.sessions.get(execution)?.status === "running"
+            ? execution
+            : undefined) ||
+          (planning && deps.sessions.get(planning)?.status === "running"
+            ? planning
+            : undefined) ||
+          execution ||
+          planning;
+        if (!sessionId) return fail("session not open");
+        if (!deps.runner.askBtw) return fail("askBtw unavailable");
+        let answer: string;
+        try {
+          answer = (await deps.runner.askBtw(sessionId, question)).trim();
+        } catch (err) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
+        if (!answer) return fail("no answer");
+        return ok({ sessionId, ...clipAnswer(answer) });
+      },
+      (params) => compactText(params.question),
     ),
     tool(
       "CloseIssue",

@@ -28,23 +28,18 @@ describe("assistant events and queue", () => {
     ])).toBe(
       "type: chat\nfrom: muse\nmessage: 一\n\ntype: issue\nissueId: i1\ntitle: 登录\nworkdir: /repo\nsummary: s",
     );
-    expect(formatAssistantEvent({
-      type: "issue",
-      issueId: "i1",
-      title: "登录",
-      workdir: "/repo",
-      summary: "你".repeat(8001),
-    })).toContain("type: issue");
+    const longSummary = "你".repeat(8001);
     const issue = formatAssistantEvent({
       type: "issue",
       issueId: "i1",
       title: "登录",
       workdir: "/repo",
-      summary: "你".repeat(8001),
+      summary: longSummary,
     });
+    expect(issue).toContain("type: issue");
     const summaryLine = issue.split("\n").find((line) => line.startsWith("summary: "));
-    expect([...(summaryLine?.slice("summary: ".length) ?? "")].length).toBe(8000);
-    expect(issue).toContain("summaryNote: summary 在这里被截断了");
+    expect(summaryLine?.slice("summary: ".length)).toBe(longSummary);
+    expect(issue).not.toContain("summaryNote");
     expect(formatAssistantEvent({
       type: "issue",
       issueId: "i1",

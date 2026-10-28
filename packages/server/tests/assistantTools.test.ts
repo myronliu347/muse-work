@@ -246,6 +246,7 @@ describe("assistant tools", () => {
       "UpdateIssue",
       "OpenIssue",
       "MessageIssue",
+      "AskIssue",
       "CloseIssue",
       "ResolvePermission",
       "SendMessage",
@@ -727,5 +728,58 @@ describe("assistant tools", () => {
 
     const messageIssue = tools.find((entry) => entry.name === "MessageIssue");
     expect(messageIssue?.config.function.description).toContain("已关闭");
+  });
+
+  it("asks the running session without sending it a message", async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-ask-"));
+    const issues = createIssueStore({ home });
+    const sessions = createSessionStore({ home });
+    const automations = createAutomationStore({ home });
+    const log = createAssistantMessageLog({ home });
+    const sent: string[] = [];
+    const asked: Array<{ sessionId: string; question: string }> = [];
+    const planning = sessions.create({ workdir: "/tmp/a", model: "m", title: "规划" });
+    const execution = sessions.create({ workdir: "/tmp/a", model: "m", title: "执行" });
+    sessions.updateStatus(execution.id, "running");
+    const issue = issues.create({ title: "改登录", description: "白屏" });
+    issues.setPlanning(issue.id, {
+      planningSessionId: planning.id,
+      workdir: "/tmp/a",
+      worktreeEnabled: true,
+      agentMode: "split",
+    });
+    issues.setExecutionSessionId(issue.id, execution.id);
+    const tools = createAssistantTools({
+      home,
+      issues,
+      sessions,
+      automations,
+      log,
+      hub: { broadcastAll: () => {} } as WsHub,
+      runner: {
+        sendMessage: async (_sessionId: string, content: string) => {
+          sent.push(content);
+          return { accepted: true as const };
+        },
+        askBtw: async (sessionId: string, question: string) => {
+          asked.push({ sessionId, question });
+          return "正在改登录页，测试还没跑。";
+        },
+      } as never,
+    });
+    const context = { workdir: "/tmp/a", taskManager: {} as never };
+
+    const result = await tool(tools, "AskIssue").execute(
+      { issueId: issue.id, question: "做到哪了" },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(JSON.parse(result.content)).toEqual({
+      sessionId: execution.id,
+      answer: "正在改登录页，测试还没跑。",
+    });
+    expect(asked).toEqual([{ sessionId: execution.id, question: "做到哪了" }]);
+    expect(sent).toEqual([]);
   });
 });

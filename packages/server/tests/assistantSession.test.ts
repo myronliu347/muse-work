@@ -58,12 +58,12 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("[@issue:id 标题]");
     expect(first.systemPrompt).toContain("SendMessage` 带 `ats`");
     expect(first.systemPrompt).toContain("不要为下一步再 `CreateIssue`");
+    expect(first.systemPrompt).toContain("用 `AskIssue`");
+    expect(first.systemPrompt).toContain("不打断正在跑的步骤");
     expect(first.systemPrompt).not.toContain("讲清缺陷");
     expect(first.systemPrompt).toContain("只写查数据和出报告");
     expect(first.systemPrompt).toContain("instruction");
     expect(first.systemPrompt).toContain("--remind");
-    expect(first.systemPrompt).toContain("WebSearch");
-    expect(first.systemPrompt).toContain("WebFetch");
     expect(first.systemPrompt).not.toContain("线上");
     store.update(first.id, {
       systemPrompt: "旧提示",

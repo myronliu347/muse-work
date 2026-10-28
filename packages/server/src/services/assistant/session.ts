@@ -12,6 +12,7 @@ export const ASSISTANT_TOOLS = [
   "UpdateIssue",
   "OpenIssue",
   "MessageIssue",
+  "AskIssue",
   "CloseIssue",
   "ResolvePermission",
   "SendMessage",

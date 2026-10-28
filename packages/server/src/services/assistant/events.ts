@@ -20,7 +20,6 @@ export type AssistantIssueEvent = {
   workdir: string;
   /** 这一轮用户发出的消息。一轮里有多条时按时间接在一起。 */
   request?: string;
-  requestNote?: string;
   summary: string;
   /** 事件触发时的毫秒时间戳。 */
   timestamp?: number;
@@ -126,12 +125,6 @@ export function viewAssistantEvent(event: AssistantEvent): AssistantQueueView {
   );
 }
 
-export const ASSISTANT_SUMMARY_NOTE =
-  "summary 在这里被截断了，不是对方自己写短了。用 ReadSessionMessages 查看该会话消息，拿到完整内容后再判断。";
-
-export const ASSISTANT_REQUEST_NOTE =
-  "request 在这里被截断了。用 ReadSessionMessages 查看该会话消息，拿到完整的用户消息后再判断。";
-
 export const ASSISTANT_DESCRIPTION_NOTE =
   "description 在这里被截断了。拿不准就问用户，不要凭被截断的参数做决定。";
 
@@ -187,24 +180,14 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["images", event.images && event.images.length > 0 ? String(event.images.length) : undefined],
     ]);
   } else if (event.type === "issue") {
-    const request =
-      event.request === undefined
-        ? undefined
-        : truncateCodePoints(event.request, ASSISTANT_TEXT_MAX);
-    const summary = truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "issue"],
       ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
       ["issueId", event.issueId],
       ["title", event.title],
       ["workdir", event.workdir],
-      ["request", request?.text],
-      [
-        "requestNote",
-        request?.truncated ? ASSISTANT_REQUEST_NOTE : event.requestNote,
-      ],
-      ["summary", summary.text],
-      ["summaryNote", summary.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
+      ["request", event.request],
+      ["summary", event.summary],
     ]);
   } else if (event.type === "permission") {
     const description = truncateCodePoints(event.description, ASSISTANT_TEXT_MAX);
@@ -224,10 +207,6 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ],
     ]);
   } else {
-    const summary =
-      event.summary === undefined
-        ? undefined
-        : truncateCodePoints(event.summary, ASSISTANT_TEXT_MAX);
     body = linesOf([
       ["type", "automation"],
       ["timestamp", event.timestamp === undefined ? undefined : formatEventTimestamp(event.timestamp)],
@@ -240,8 +219,7 @@ export function formatAssistantEvent(event: AssistantEvent): string {
       ["mode", event.mode],
       ["instruction", event.instruction],
       ["error", event.error],
-      ["summary", summary?.text],
-      ["summaryNote", summary?.truncated ? ASSISTANT_SUMMARY_NOTE : undefined],
+      ["summary", event.summary],
     ]);
   }
   if (event.retry !== 1) return body;
