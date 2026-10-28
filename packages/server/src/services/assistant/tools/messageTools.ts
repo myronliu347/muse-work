@@ -15,6 +15,67 @@ import {
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "gif", "png", "bmp"]);
 
+type SessionWindowLine = {
+  id?: string;
+  role: string;
+  text: string;
+  truncated?: true;
+};
+
+function windowSessionLines(
+  messages: unknown[],
+  before?: string,
+): { messages: SessionWindowLine[]; omitted: number } {
+  const lines: SessionWindowLine[] = [];
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+    const role = (message as { role?: string }).role;
+    if (role !== "user" && role !== "assistant") continue;
+    const content = userMessageText(message);
+    if (!content) continue;
+    const id = (message as { id?: string }).id;
+    lines.push({
+      ...(typeof id === "string" && id ? { id } : {}),
+      role,
+      text: content,
+    });
+  }
+
+  let end = lines.length;
+  if (before) {
+    const index = lines.findIndex((line) => line.id === before);
+    if (index >= 0) end = index;
+  }
+
+  const selected: SessionWindowLine[] = [];
+  let used = 0;
+  let oldest = end;
+  for (let i = end - 1; i >= 0; i--) {
+    const line = lines[i]!;
+    const room = ASSISTANT_TEXT_MAX - used;
+    if (room <= 0) break;
+    const chars = [...line.text];
+    if (chars.length <= room) {
+      selected.push(line);
+      used += chars.length;
+      oldest = i;
+      continue;
+    }
+    if (selected.length === 0) {
+      selected.push({
+        ...(line.id ? { id: line.id } : {}),
+        role: line.role,
+        text: chars.slice(chars.length - room).join(""),
+        truncated: true,
+      });
+      oldest = i;
+    }
+    break;
+  }
+  selected.reverse();
+  return { messages: selected, omitted: oldest };
+}
+
 function isImagePath(filePath: string): boolean {
   return IMAGE_EXTS.has(path.extname(filePath).slice(1).toLowerCase());
 }
@@ -241,30 +302,23 @@ export function createMessageTools(deps: AssistantToolDeps) {
     ),
     tool(
       "ReadSessionMessages",
-      "查看 Issue 或自动化运行对应会话的消息全文。summary 被截断时用它拿完整内容。issueId 与 runId 至少给一个。",
+      "查看 Issue 或自动化运行对应会话的最近消息。一次最多 8000 字，超长的最新一条只保留结尾。omitted 大于 0 表示前面还有消息，把本页最早一条的 id 作为 before 再查。issueId 与 runId 至少给一个。",
       {
         type: "object",
         properties: {
           issueId: { type: "string" },
           runId: { type: "string" },
+          before: { type: "string" },
         },
       },
       async (args) => {
         const issueId = text(args.issueId);
         const runId = text(args.runId);
+        const before = text(args.before);
         if (!issueId && !runId) return fail("issueId or runId required");
         const readTexts = async (sessionId: string) => {
           const messages = await deps.runner.getMessages(sessionId);
-          const lines: Array<{ role: string; text: string }> = [];
-          for (const message of messages) {
-            if (!message || typeof message !== "object") continue;
-            const role = (message as { role?: string }).role;
-            if (role !== "user" && role !== "assistant") continue;
-            const content = userMessageText(message);
-            if (!content) continue;
-            lines.push({ role, text: content });
-          }
-          return lines;
+          return windowSessionLines(messages, before);
         };
         const result: Record<string, unknown> = {};
         if (issueId) {

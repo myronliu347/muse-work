@@ -48,6 +48,17 @@ describe("assistant tools", () => {
         },
         getMessages: async () => [
           {
+            id: "m1",
+            role: "assistant",
+            blocks: [{ type: "text", content: "更早的结论" }],
+          },
+          {
+            id: "m2",
+            role: "user",
+            blocks: [{ type: "text", content: "中间一句" }],
+          },
+          {
+            id: "m3",
             role: "assistant",
             blocks: [{ type: "text", content: `完整结论${"你".repeat(9000)}` }],
           },
@@ -184,11 +195,28 @@ describe("assistant tools", () => {
       context,
     );
     const read = JSON.parse(full.content) as {
-      planning: Array<{ role: string; text: string }>;
+      planning: {
+        messages: Array<{ id?: string; role: string; text: string; truncated?: boolean }>;
+        omitted: number;
+      };
     };
-    expect(read.planning[0]?.role).toBe("assistant");
-    expect(read.planning[0]?.text.startsWith("完整结论")).toBe(true);
-    expect([...read.planning[0]!.text].length).toBeGreaterThan(8000);
+    expect(read.planning.omitted).toBe(2);
+    expect(read.planning.messages).toHaveLength(1);
+    expect(read.planning.messages[0]?.id).toBe("m3");
+    expect(read.planning.messages[0]?.truncated).toBe(true);
+    expect([...(read.planning.messages[0]?.text ?? "")].length).toBe(8000);
+    expect(read.planning.messages[0]?.text.startsWith("完整结论")).toBe(false);
+
+    const older = await tool(tools, "ReadSessionMessages").execute(
+      { issueId: issue.id, before: "m3" },
+      context,
+    );
+    const olderBody = JSON.parse(older.content) as {
+      planning: { messages: Array<{ id?: string; text: string }>; omitted: number };
+    };
+    expect(olderBody.planning.omitted).toBe(0);
+    expect(olderBody.planning.messages.map((line) => line.id)).toEqual(["m1", "m2"]);
+    expect(olderBody.planning.messages[0]?.text).toBe("更早的结论");
 
     const closed = await tool(tools, "CloseIssue").execute(
       { issueId: issue.id, action: "complete", note: "登录修好了" },

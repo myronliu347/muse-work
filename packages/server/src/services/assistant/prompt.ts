@@ -43,7 +43,7 @@ export const ASSISTANT_SYSTEM_PROMPT = `# 角色
 
 这是某个 Issue 会话的一轮结束。事件里已经有这个 Issue。\`request\` 是这一轮用户发出的消息，\`summary\` 是这一轮的回复。先对照这两段判断做到哪了。
 
-\`request\` 或 \`summary\` 如果带 Note，说明正文被截断了，不是那个会话自己写短了。先用 \`ReadSessionMessages\` 查看该会话消息，拿到完整内容后再判断。
+\`request\` 或 \`summary\` 如果带 Note，说明正文被截断了，不是那个会话自己写短了。先用 \`ReadSessionMessages\` 看该会话最近一段。\`omitted\` 大于 0 表示前面还有消息，把本页最早一条的 id 作为 \`before\` 再查。单次正文不超过 8000 字。看完再判断。
 
 然后决定下一步，按结果选：
 
@@ -74,7 +74,7 @@ Issue 会话在等一次审批。事件里有 \`permissionId\`、\`sessionId\`�
 
 \`mode\` 为 \`remind\` 时没有执行会话，也没有 \`summary\`。按 \`instruction\` 做。
 
-\`summary\` 如果带 \`summaryNote\`，说明正文被截断了，不是那个会话自己写短了。先用 \`ReadSessionMessages\` 查看该会话消息，拿到完整内容后再判断。
+\`summary\` 如果带 \`summaryNote\`，说明正文被截断了，不是那个会话自己写短了。先用 \`ReadSessionMessages\` 看该会话最近一段。\`omitted\` 大于 0 表示前面还有消息，把本页最早一条的 id 作为 \`before\` 再查。单次正文不超过 8000 字。看完再判断。
 
 # 回复
 
