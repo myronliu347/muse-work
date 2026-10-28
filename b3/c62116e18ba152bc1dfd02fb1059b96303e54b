@@ -1,0 +1,42 @@
+packages/webview/src/components/chat/followScroll.ts
+  86c5d17c1588aabf 1-16
+packages/webview/tests/webview/followScroll.test.ts
+  86c5d17c1588aabf 1-16
+packages/webview/src/components/chat/MessageList.tsx
+  86c5d17c1588aabf 37,418-421,444-455,457-460
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b3c62116e18ba152bc1dfd02fb1059b96303e54b",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 55,
+      "total_deletions": 3,
+      "accepted_lines": 53,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 23,
+          "deletions": 3,
+          "accepted_lines": 21
+        },
+        "packages/webview/src/components/chat/followScroll.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/tests/webview/followScroll.test.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
