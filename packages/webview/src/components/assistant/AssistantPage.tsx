@@ -68,6 +68,7 @@ export type AssistantPageApi = {
     title?: string;
     workdir?: string;
     working?: boolean;
+    compacting?: boolean;
   }>;
   getMessages?: (
     sessionId: string,
@@ -644,6 +645,7 @@ export const AssistantPage: React.FC<{
   const probedFilePaths = useRef<Set<string>>(new Set());
   const [agentError, setAgentError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [compacting, setCompacting] = useState(false);
   const [queue, setQueue] = useState<AssistantQueueItem[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const atTail = useRef(true);
@@ -819,6 +821,7 @@ export const AssistantPage: React.FC<{
       if (cancelled) return;
       if (info.workdir) setAgentWorkdir(info.workdir);
       if (info.working) setWorking(true);
+      if (typeof info.compacting === "boolean") setCompacting(info.compacting);
     }).catch(() => undefined);
     return () => {
       cancelled = true;
@@ -840,6 +843,7 @@ export const AssistantPage: React.FC<{
           }
           const page = await api.getMessages!(info.sessionId);
           if (cancelled) return;
+          if (typeof info.compacting === "boolean") setCompacting(info.compacting);
           setAgentWorkdir(info.workdir);
           setAgentMessages((prev) =>
             mergeTranscriptTail(
@@ -912,7 +916,7 @@ export const AssistantPage: React.FC<{
   useLayoutEffect(() => {
     const el = scroller.current;
     if (el && atTail.current) el.scrollTop = el.scrollHeight;
-  }, [lines, working]);
+  }, [lines, working, compacting]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -920,6 +924,7 @@ export const AssistantPage: React.FC<{
         command?: string;
         line?: unknown;
         working?: boolean;
+        compacting?: boolean;
         items?: unknown;
       };
       if (data?.command === "assistant:queue" && Array.isArray(data.items)) {
@@ -928,7 +933,9 @@ export const AssistantPage: React.FC<{
       }
       if (data?.command === "assistant:status") {
         setWorking(Boolean(data.working));
-        if (data.working) atTail.current = true;
+        if (typeof data.compacting === "boolean") setCompacting(data.compacting);
+        else if (!data.working) setCompacting(false);
+        if (data.working || data.compacting) atTail.current = true;
         return;
       }
       if (data?.command !== "assistant:chat") return;
@@ -1065,7 +1072,7 @@ export const AssistantPage: React.FC<{
             {queue.map((item, index) => (
               <li key={`${item.type}-${index}`}>
                 <span className="assistant-queue-state">
-                  {item.active ? "处理中" : "等待"}
+                  {item.active ? (compacting ? "压缩中" : "处理中") : "等待"}
                 </span>
                 <span className="assistant-queue-kind">
                   {item.type === "chat"
@@ -1104,6 +1111,7 @@ export const AssistantPage: React.FC<{
               }
               onOpenPreview={onOpenUrl}
               openHttpInBrowser
+              isCompacting={compacting}
               hasOlderMessages={agentHasMore}
               onLoadOlder={() => {
                 void loadOlderAgent();
@@ -1171,7 +1179,12 @@ export const AssistantPage: React.FC<{
               </div>
             );
           })}
-          {working ? (
+          {compacting ? (
+            <div className="message-list-status-hint" data-testid="compaction-hint">
+              <span className="message-list-status-dot" aria-hidden="true" />
+              <span className="message-list-status-label">正在压缩对话…</span>
+            </div>
+          ) : working ? (
             <div className="message-list-status-hint" data-testid="thinking-hint">
               <span className="message-list-status-dot" aria-hidden="true" />
               <span className="message-list-status-label text-shimmer">工作中....</span>

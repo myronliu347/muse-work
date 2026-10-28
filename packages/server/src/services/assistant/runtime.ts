@@ -50,6 +50,8 @@ export function createAssistantRuntime(options: {
   let turnStartedAt = 0;
   let cancelLimit: (() => void) | undefined;
   let preempting = false;
+  /** 打断后的交接还没把下一轮发出去。这期间的再次收尾是同一次 abort 的回声。 */
+  let handoff = false;
 
   function stamp(event: AssistantEvent): AssistantEvent {
     if (event.timestamp !== undefined) return event;
@@ -155,7 +157,7 @@ export function createAssistantRuntime(options: {
   }
 
   function pump(): void {
-    if (stopped || inflight || !assistantId) return;
+    if (stopped || inflight || handoff || !assistantId) return;
     const batch = queue.claimBatch();
     if (batch.length === 0) return;
     beginTurn(batch);
@@ -173,14 +175,22 @@ export function createAssistantRuntime(options: {
     result: { ok: boolean; error?: string },
   ): void {
     if (!assistantId || sessionId !== assistantId) return;
+    if (handoff) return;
     const overrun = preempting;
     preempting = false;
     inflight = false;
     inflightSources = new Set();
     clearLimit();
     if (overrun) {
+      // 等 abort 整段返回再发下一轮。同步发会被同一次 abort 打断，
+      // 注入变成 Request was aborted，大段压缩接着再来一轮。
+      handoff = true;
       queue.dropBatch();
-      pumpPreempted();
+      schedule(() => {
+        handoff = false;
+        pumpPreempted();
+        notify();
+      }, 0);
       notify();
       return;
     }
@@ -242,7 +252,11 @@ export function createAssistantRuntime(options: {
     onAssistantTurnSettled,
     onCompactionSettled(sessionId) {
       if (!assistantId || sessionId !== assistantId) return;
-      maybePreempt();
+      if (stopped || !inflight || preempting || handoff) return;
+      // 大段压缩会吃掉整个 90 秒。压缩一结束就抢占，下一轮还是大上下文，
+      // 又压又被打断。先把时钟拨回压缩结束，让这一轮先答完。
+      if (clock() - turnStartedAt < TURN_LIMIT_MS) return;
+      armLimit();
     },
     working: () => !stopped && (inflight || queue.peek() !== undefined),
     queueItems: () => queue.list(),

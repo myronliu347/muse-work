@@ -15,6 +15,7 @@ assistantRoutes.get("/assistant/session", (c) => {
     title: session.title,
     workdir: session.workdir,
     working: c.get("ctx").assistantRuntime.working(),
+    compacting: c.get("ctx").runner.isCompacting(session.id),
   });
 });
 

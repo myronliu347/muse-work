@@ -196,6 +196,7 @@ describe("assistant runtime", () => {
       abortMessage: async (sessionId: string) => {
         aborts.push(sessionId);
         runtime!.onAssistantTurnSettled(sessionId, { ok: false, error: "interrupted" });
+        runtime!.onAssistantTurnSettled(sessionId, { ok: false, error: "interrupted" });
         return { ok: true as const };
       },
     };
@@ -216,11 +217,16 @@ describe("assistant runtime", () => {
     });
     const advance = (ms: number) => {
       now += ms;
-      const due = timers.filter((timer) => timer.at <= now);
-      for (const timer of due) {
-        const index = timers.indexOf(timer);
-        if (index >= 0) timers.splice(index, 1);
-        timer.fn();
+      let pending = true;
+      while (pending) {
+        pending = false;
+        const due = timers.filter((timer) => timer.at <= now);
+        for (const timer of due) {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+          timer.fn();
+          pending = true;
+        }
       }
     };
     runtime.start();
@@ -280,11 +286,16 @@ describe("assistant runtime", () => {
     });
     const advance = (ms: number) => {
       now += ms;
-      const due = timers.filter((timer) => timer.at <= now);
-      for (const timer of due) {
-        const index = timers.indexOf(timer);
-        if (index >= 0) timers.splice(index, 1);
-        timer.fn();
+      let pending = true;
+      while (pending) {
+        pending = false;
+        const due = timers.filter((timer) => timer.at <= now);
+        for (const timer of due) {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+          timer.fn();
+          pending = true;
+        }
       }
     };
     runtime.start();
@@ -292,6 +303,7 @@ describe("assistant runtime", () => {
     advance(90_000);
     expect(sends).toHaveLength(1);
     runtime.enqueue({ type: "chat", from: "popo", user: "a", message: "后来" });
+    advance(0);
     expect(sends).toHaveLength(2);
     expect(sends[1]).toContain("不要停在这里");
     expect(sends[1]).not.toContain("不要自己继续做");
@@ -299,7 +311,7 @@ describe("assistant runtime", () => {
     expect(sends[1]).not.toContain("message: 正在做");
   });
 
-  it("waits out compaction, then preempts if the queue is still waiting", async () => {
+  it("waits out compaction, then gives the turn another 90s before preempting", async () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "muse-asst-rt6-"));
     const sessions = createSessionStore({ home });
     const sends: string[] = [];
@@ -338,11 +350,16 @@ describe("assistant runtime", () => {
     });
     const advance = (ms: number) => {
       now += ms;
-      const due = timers.filter((timer) => timer.at <= now);
-      for (const timer of due) {
-        const index = timers.indexOf(timer);
-        if (index >= 0) timers.splice(index, 1);
-        timer.fn();
+      let pending = true;
+      while (pending) {
+        pending = false;
+        const due = timers.filter((timer) => timer.at <= now);
+        for (const timer of due) {
+          const index = timers.indexOf(timer);
+          if (index >= 0) timers.splice(index, 1);
+          timer.fn();
+          pending = true;
+        }
       }
     };
     runtime.start();
@@ -354,6 +371,11 @@ describe("assistant runtime", () => {
     expect(sends).toHaveLength(1);
     compacting = false;
     runtime.onCompactionSettled(assistantId);
+    expect(aborts).toEqual([]);
+    expect(sends).toHaveLength(1);
+    advance(89_000);
+    expect(aborts).toEqual([]);
+    advance(1_000);
     expect(aborts).toEqual([assistantId]);
     expect(sends).toHaveLength(2);
     expect(sends[1]).toContain("不要停在这里");

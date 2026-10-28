@@ -152,7 +152,13 @@ export function createHostBridge(opts: HostBridgeOptions): VsCodeApi {
     }
 
     if (event.type === "assistant:status") {
-      postToWebview({ command: "assistant:status", working: event.working });
+      postToWebview({
+        command: "assistant:status",
+        working: event.working,
+        ...(typeof event.compacting === "boolean"
+          ? { compacting: event.compacting }
+          : {}),
+      });
       return;
     }
 

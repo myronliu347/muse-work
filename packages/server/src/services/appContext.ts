@@ -145,13 +145,25 @@ export function createAppContext(
   const assistantLog = createAssistantMessageLog({ home });
   const assistantQueue = createAssistantQueue({ home });
   const popoSend: AppContext["popoSend"] = {};
+  const assistantSessionId = () =>
+    sessions.store.list().find((session) => session.origin === "assistant")?.id;
+  const publishAssistantStatus = (working: boolean) => {
+    const sessionId = assistantSessionId();
+    sessions.hub.broadcastAll({
+      type: "assistant:status",
+      working,
+      compacting: sessionId
+        ? sessions.runner.isCompacting(sessionId)
+        : false,
+    });
+  };
   const assistantRuntime = createAssistantRuntime({
     home,
     sessions: sessions.store,
     runner: sessions.runner,
     queue: assistantQueue,
     onActivity: (working) => {
-      sessions.hub.broadcastAll({ type: "assistant:status", working });
+      publishAssistantStatus(working);
     },
     onQueue: (items) => {
       sessions.hub.broadcastAll({ type: "assistant:queue", items });
@@ -253,6 +265,12 @@ export function createAppContext(
   });
   sessions.runner.setOnCompactionChange((sessionId, isCompacting) => {
     if (!isCompacting) assistantRuntime.onCompactionSettled(sessionId);
+    if (sessionId !== assistantSessionId()) return;
+    sessions.hub.broadcastAll({
+      type: "assistant:status",
+      working: assistantRuntime.working(),
+      compacting: isCompacting,
+    });
   });
   sessions.runner.setOnTurnSettled((sessionId, result) => {
     dispatcher.handleTurnSettled(sessionId, result);

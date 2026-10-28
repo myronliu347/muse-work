@@ -1100,6 +1100,7 @@ export class MuseApiClient {
     title: string;
     workdir: string;
     working: boolean;
+    compacting?: boolean;
   }> {
     const res = await this.request("/assistant/session");
     return parseJson(res);

@@ -47,6 +47,12 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("每条发给人的话都要温和可爱");
     expect(first.systemPrompt).toContain("把标准念出来算失败");
     expect(first.systemPrompt).toContain("派活前先弄清这件事要做什么");
+    expect(first.systemPrompt).toContain("不要以「用户说」开头");
+    expect(first.systemPrompt).toContain("先一句判断");
+    expect(first.systemPrompt).toContain("问原因不附方案");
+    expect(first.systemPrompt).toContain("没核到的说未验证");
+    expect(first.systemPrompt).toContain("命名、落点、最小修法、兼容范围自己定");
+    expect(first.systemPrompt).not.toContain("或有几种做法，先");
     expect(first.systemPrompt).toContain("同一件事只开一条 Issue");
     expect(first.systemPrompt).toContain("不含待关闭的");
     expect(first.systemPrompt).toContain("[@issue:id 标题]");

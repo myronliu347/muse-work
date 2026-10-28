@@ -163,6 +163,59 @@ describe("AssistantPage", () => {
     expect(api.getMessages).toHaveBeenCalledWith("asst");
   });
 
+  it("shows compaction status in the chat and the transcript", async () => {
+    const api = {
+      listAssistantMessages: vi.fn().mockResolvedValue({
+        messages: [{ id: "1", at: 1, role: "user", message: "你好" }],
+        hasMore: false,
+      }),
+      listAssistantQueue: vi.fn().mockResolvedValue({
+        items: [{ type: "issue", title: "看会话", active: true }],
+      }),
+      sendAssistantMessage: vi.fn(),
+      getAssistantSession: vi.fn().mockResolvedValue({
+        sessionId: "asst",
+        title: "助理",
+        workdir: "/tmp/assistant-chat",
+        compacting: true,
+      }),
+      getMessages: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            timestamp: "2026-10-08T00:00:00.000Z",
+            blocks: [{ type: "text", content: "看一下" }],
+          },
+        ],
+      }),
+    };
+    render(<AssistantPage api={api} />);
+    expect(await screen.findByTestId("compaction-hint")).toBeTruthy();
+    expect(screen.getByText("正在压缩对话…")).toBeTruthy();
+    expect(screen.getByText("压缩中")).toBeTruthy();
+    expect(screen.queryByTestId("thinking-hint")).toBeNull();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: { command: "assistant:status", working: true, compacting: false },
+      }),
+    );
+    expect(screen.queryByTestId("compaction-hint")).toBeNull();
+    expect(screen.getByTestId("thinking-hint")).toBeTruthy();
+    expect(screen.getByText("处理中")).toBeTruthy();
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        data: { command: "assistant:status", working: true, compacting: true },
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "轨迹" }));
+    expect(await screen.findByTestId("compaction-hint")).toBeTruthy();
+    expect(screen.getByText("正在压缩对话…")).toBeTruthy();
+    expect(screen.getAllByText("看一下").length).toBeGreaterThan(0);
+  });
+
   it("loads the previous transcript page when older history remains", async () => {
     const getMessages = vi
       .fn()

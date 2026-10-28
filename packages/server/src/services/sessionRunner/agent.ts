@@ -71,6 +71,8 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     options,
   } = ctx;
   const core = ctx.core;
+  /** 一轮真正开始时递增。被打断的旧 send 收尾不得把后一轮标成结束。 */
+  const turnSerial = new Map<string, number>();
 
   const skillsListCache = new Map<
     string,
@@ -1016,6 +1018,11 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
     // 或本 runTurn 的 setImmediate 回退会把这轮"入队中"的消息误判成空 turn，
     // 广播假的"模型没有产生输出"，进而导致 webview 重复渲染用户气泡。
     const queued = agentLoading.get(sessionId) === true;
+    let serial = turnSerial.get(sessionId) ?? 0;
+    if (!queued) {
+      serial += 1;
+      turnSerial.set(sessionId, serial);
+    }
     if (!queued) {
       turnEnded.set(sessionId, false);
       turnHadOutput.set(sessionId, false);
@@ -1125,7 +1132,10 @@ export function createAgentLayer(ctx: RunnerContext): AgentLayer {
           hub.broadcast(sessionId, { type: "message:completed" });
         }
         getLogger().info("turn aborted", { sessionId });
-        core.markIdle(sessionId);
+        // 90 秒抢占会在 abort 收尾前开下一轮。旧请求的 abort 晚到时不能再结掉它。
+        if ((turnSerial.get(sessionId) ?? 0) === serial) {
+          core.markIdle(sessionId);
+        }
         return;
       }
       if (isUnauthorized(err)) {
