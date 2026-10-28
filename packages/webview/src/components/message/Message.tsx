@@ -951,7 +951,6 @@ export const Message: React.FC<MessageProps> = React.memo(
             label={summary.label}
             additions={summary.additions}
             deletions={summary.deletions}
-            live={live}
             defaultOpen={live}
           >
             {segment.indexes.map((index) =>

@@ -9,14 +9,12 @@ export function ToolActivityGroup({
   additions,
   deletions,
   defaultOpen,
-  live = false,
   children,
 }: {
   label: string;
   additions: number;
   deletions: number;
   defaultOpen: boolean;
-  live?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -30,7 +28,7 @@ export function ToolActivityGroup({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className={`txt${live ? " text-shimmer" : ""}`}>{label}</span>
+        <span className="txt">{label}</span>
         {additions > 0 && <span className="activity-add">+{additions}</span>}
         {deletions > 0 && <span className="activity-del">−{deletions}</span>}
         <QueueChevronIcon className="activity-chev" />

@@ -49,7 +49,7 @@ describe("thinking hint", () => {
     expect(screen.queryByTestId("thinking-hint")).toBeNull();
   });
 
-  it("keeps 正在处理… and shimmers the group while tools are still the live work", () => {
+  it("keeps 正在处理… while tools inside the group are still running", () => {
     render(
       <MuseTheme>
         <MessageList
@@ -85,9 +85,9 @@ describe("thinking hint", () => {
     );
 
     expect(screen.getByTestId("thinking-hint")).toHaveTextContent("思考中…");
-    expect(screen.getByTestId("activity-summary").querySelector(".txt")?.className).toContain(
-      "text-shimmer",
-    );
+    expect(
+      screen.getByTestId("activity-summary").querySelector(".txt")?.className ?? "",
+    ).not.toContain("text-shimmer");
   });
 
   it("hides the hint while the reply itself is streaming", () => {
