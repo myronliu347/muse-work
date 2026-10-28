@@ -18,6 +18,9 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Keep the gutter when a tab's transcript is short, so the column and the
+     top pin do not shift sideways as the bar appears. */
+  scrollbar-gutter: stable;
   /* The virtualizer already pins the end while streaming. Browser scroll
      anchoring latches onto the user message at the top and yanks it back
      on every growth, which reads as the bubble shaking. */
@@ -128,19 +131,20 @@
   position: relative;
 }
 
-/* The pinned user message sits above the scrollport. It used to be a
-   height:0 overlay inside the list, which painted on top of the rows.
-   Keep the same horizontal inset as .messages-container so the bubble
-   does not sit on the pane edge. */
+/* The pin floats over the scrollport. Taking a flex slot made it appear and
+   disappear with the tab, which shifted the list and the bar together. */
 .messages-shell > .sticky-user-wrapper {
-  position: relative;
-  top: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   flex: none;
   height: auto;
   margin: 0;
   padding: var(--space-4) 28px var(--space-2) var(--space-4);
   overflow: visible;
   z-index: 2;
+  pointer-events: none;
 }
 
 .virtual-spacer {

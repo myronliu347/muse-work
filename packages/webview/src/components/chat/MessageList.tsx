@@ -362,7 +362,6 @@ export const MessageList = forwardRef<
   const listHead = messages[0]?.id;
   if (listHead !== stickyHeadRef.current) {
     stickyHeadRef.current = listHead;
-    if (stickyMessage !== null) setStickyMessage(null);
     if (activeNavId !== undefined) setActiveNavId(undefined);
   }
   const navEntries = useMemo(() => navEntriesFromMessages(messages), [messages]);
@@ -572,9 +571,13 @@ export const MessageList = forwardRef<
       // scrollToEnd keeps a per-frame reconcile alive. During streaming that
       // reconcile and the virtualizer's end anchor take turns, so the pinned
       // user message shakes. One write to the visual bottom does not.
-      if (behavior === "auto" && container) {
-        const max = Math.max(0, container.scrollHeight - container.clientHeight);
-        if (max - container.scrollTop <= 1) return;
+      if (!container) {
+        virtualizer.scrollToEnd({ behavior });
+        return;
+      }
+      const max = Math.max(0, container.scrollHeight - container.clientHeight);
+      if (max - container.scrollTop <= 1) return;
+      if (behavior === "auto") {
         markProgrammaticScroll();
         container.scrollTo({ top: max, behavior: "auto" });
         return;
@@ -642,7 +645,21 @@ export const MessageList = forwardRef<
       virtualizer.scrollToEnd({ behavior: "auto" });
     });
     container.scrollTop = container.scrollHeight;
-  }, [messages, virtualizer]);
+    // Decide the pinned user row before paint. Setting it from the passive
+    // effect mounts the bar a frame late and the tail jumps.
+    computeSticky();
+  }, [messages, virtualizer, computeSticky]);
+
+  // Same-head reload (the open tab's snapshot replaced by the live transcript)
+  // must reach the tail before paint. A later smooth scroll replays the move.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || skipFollowRef.current || userScrolledUpRef.current) return;
+    const max = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (max - container.scrollTop <= 1) return;
+    markProgrammaticScroll();
+    container.scrollTo({ top: max, behavior: "auto" });
+  }, [messages, isStreaming, markProgrammaticScroll]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -732,11 +749,10 @@ export const MessageList = forwardRef<
 
     const skipFollow = skipFollowRef.current;
     if (skipFollow) skipFollowRef.current = false;
-    if (!skipFollow && !isPrepend) {
-      scrollToBottom(
-        isStreaming || isInitialLoad || isSessionSwap ? "auto" : "smooth",
-        isNewMessage || isInitialLoad || isSessionSwap,
-      );
+    // A same-head reload (tab switch replaces the snapshot) is pinned before
+    // paint. Smooth scroll here replays that move and the tail shakes.
+    if (!skipFollow && !isPrepend && isNewMessage && !isSessionSwap && !isInitialLoad) {
+      scrollToBottom(isStreaming ? "auto" : "smooth", true);
     }
     const oldestId = messages[0]?.id;
     if (
@@ -801,14 +817,16 @@ export const MessageList = forwardRef<
     !hasVisibleInProgressReasoning(messages) &&
     statusLabel !== null;
 
-  // Hints and the file-change card sit after the virtual spacer, so scrollToEnd
-  // stops short of them. Re-pin to the real bottom while the user is following.
-  useEffect(() => {
+  // Hints and the file card sit in the scroller, so they change the tail.
+  // The pinned bar floats and must not move the list when it appears.
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || userScrolledUpRef.current) return;
     if (!showThinkingHint && !isCompacting && !fileHistory) return;
+    const max = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (max - container.scrollTop <= 1) return;
     markProgrammaticScroll();
-    container.scrollTop = container.scrollHeight;
+    container.scrollTo({ top: max, behavior: "auto" });
   }, [showThinkingHint, isCompacting, fileHistory, markProgrammaticScroll]);
 
   stickyRef.current = stickyMessage;
@@ -867,7 +885,6 @@ export const MessageList = forwardRef<
           label={summary.label}
           additions={summary.additions}
           deletions={summary.deletions}
-          live={live}
           defaultOpen={live}
         >
           {segment.refs.map((ref) =>
