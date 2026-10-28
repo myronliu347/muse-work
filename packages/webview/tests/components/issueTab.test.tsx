@@ -1760,6 +1760,37 @@ describe("issue tab", () => {
     );
   });
 
+  it("activates the issue session when its transcript is open", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [RADII_ISSUE],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "plan-radii",
+    });
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    expect(await within(frame).findByTestId("issue-tab-transcript")).toBeTruthy();
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "plan-radii",
+    });
+  });
+
   it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {
     resetWebviewStores();
     stubAssistant([]);

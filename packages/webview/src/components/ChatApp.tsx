@@ -1138,6 +1138,17 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
   useEffect(() => {
+    // 切到这条 Issue 会话后，跟会话页一样把它设成当前会话。只有当前会话会收流式。
+    if (!assistantVisible || !openIssueSessionId) return;
+    if (state.currentSession?.id === openIssueSessionId) return;
+    postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
+  }, [
+    assistantVisible,
+    openIssueSessionId,
+    state.currentSession?.id,
+    postToHost,
+  ]);
+  useEffect(() => {
     const loads = takeRestoredFileLoads();
     for (const item of loads) {
       postToHost({
