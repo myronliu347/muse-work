@@ -28,7 +28,8 @@ import {
   readInitialBotWorkspace,
   saveBotWorkspace,
 } from "../../muse/botPageState";
-import { matchTabStepShortcut, stepTab } from "../../muse/panelShortcuts";
+import { stepTab } from "../../muse/panelShortcuts";
+import { registerSidePanel } from "../../muse/sidePanelTabs";
 
 export interface BotTabsProps {
   state: BotWorkspaceState;
@@ -175,31 +176,25 @@ export function BotTabs({
   }, [state.active, state.openIssueIds]);
   useEffect(() => {
     const root = scrollerRef.current;
-    const column = root?.closest(".assistant-split-bot, .assistant-split-issue");
-    if (!root || !column) return;
+    if (!root) return;
+    const column = root.closest(".assistant-split-bot, .assistant-split-issue");
+    const panel =
+      column instanceof HTMLElement ? column : root.closest(".assistant-frame");
+    if (!(panel instanceof HTMLElement)) return;
     const visible = ["bot", ...state.openIssueIds].filter((tab) => {
       if (scope === "bot" && tab !== "bot") return false;
       if (scope === "issues" && tab === "bot") return false;
       return true;
     });
-    const onKeyDown = (event: KeyboardEvent) => {
-      const direction = matchTabStepShortcut(event);
-      if (direction === null) return;
-      const target = event.target;
-      if (!(target instanceof Node) || !column.contains(target)) return;
-      if (target instanceof Element && target.closest(".desktop-panel-dock")) return;
+    return registerSidePanel(panel, (direction) => {
       const next = stepTab(
         visible,
         visible.includes(state.active) ? state.active : null,
         direction,
       );
       if (!next || (next === "bot" && lockBotTab)) return;
-      event.preventDefault();
-      event.stopPropagation();
       onFocus(next);
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
+    });
   }, [lockBotTab, onFocus, scope, state.active, state.openIssueIds]);
   return (
     <div className="bot-tabs" aria-label="Muse Bot" ref={scrollerRef}>

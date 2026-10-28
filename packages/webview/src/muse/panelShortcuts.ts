@@ -114,17 +114,17 @@ export function matchTabStepShortcut(event: KeyboardEvent): -1 | 1 | null {
   return prev ? -1 : 1;
 }
 
-/** Move to the neighbor in `items`, wrapping. One item, or a missing current with nowhere new to go, stays put. */
+/** Move to the neighbor in `items`. The first tab has no previous, and the last has no next. */
 export function stepTab<T>(
   items: readonly T[],
   current: T | null,
   direction: -1 | 1,
 ): T | null {
-  if (items.length < 2) return null;
+  if (items.length === 0) return null;
   const index = current == null ? -1 : items.indexOf(current);
-  const start = index >= 0 ? index : direction === 1 ? -1 : 0;
-  const next = items[(start + direction + items.length) % items.length];
-  return next === current ? null : next;
+  const nextIndex = index + direction;
+  if (nextIndex < 0 || nextIndex >= items.length) return null;
+  return items[nextIndex];
 }
 
 export function matchNewSessionShortcut(event: KeyboardEvent): boolean {

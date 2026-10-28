@@ -15,11 +15,8 @@ import {
   reconcileTabOrder,
   toolIdFromTabKey,
 } from "../../muse/dockTabOrder";
-import {
-  dockFullscreenShortcutLabel,
-  matchTabStepShortcut,
-  stepTab,
-} from "../../muse/panelShortcuts";
+import { dockFullscreenShortcutLabel, stepTab } from "../../muse/panelShortcuts";
+import { registerSidePanel } from "../../muse/sidePanelTabs";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { FileIcon } from "../panels/FileIcon";
@@ -169,11 +166,7 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   React.useEffect(() => {
     const dock = dockRef.current;
     if (!dock) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      const direction = matchTabStepShortcut(event);
-      if (direction === null) return;
-      const target = event.target;
-      if (!(target instanceof Node) || !dock.contains(target)) return;
+    return registerSidePanel(dock, (direction) => {
       const keys = reconcileTabOrder(
         tabOrder,
         defaultDockTabKeys({
@@ -191,13 +184,8 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
         activeToolId,
       });
       const next = stepTab(keys, current, direction);
-      if (!next) return;
-      event.preventDefault();
-      event.stopPropagation();
-      selectTab(next);
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
+      if (next) selectTab(next);
+    });
   }, [
     active,
     activeFilePath,

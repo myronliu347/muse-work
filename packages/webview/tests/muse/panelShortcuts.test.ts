@@ -118,7 +118,8 @@ describe("matchTabStepShortcut", () => {
     ).toBeNull();
     expect(stepTab(["a", "b", "c"], "b", 1)).toBe("c");
     expect(stepTab(["a", "b", "c"], "b", -1)).toBe("a");
-    expect(stepTab(["a", "b", "c"], "c", 1)).toBe("a");
+    expect(stepTab(["a", "b", "c"], "a", -1)).toBeNull();
+    expect(stepTab(["a", "b", "c"], "c", 1)).toBeNull();
     expect(stepTab(["only"], "only", 1)).toBeNull();
   });
 

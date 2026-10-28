@@ -1,5 +1,6 @@
 import { app, BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "path";
+import { attachTabStepShortcut, TAB_STEP_CHANNEL } from "./tabStepShortcut";
 
 export type CreateMainWindowOpts = {
   serverBaseUrl: string;
@@ -51,6 +52,11 @@ export function installPreviewGuestPolicy(): void {
   app.on("web-contents-created", (_event, contents) => {
     if (contents.getType() !== "webview") return;
     attachPreviewGuestOpener(contents);
+    attachTabStepShortcut(contents, (direction) => {
+      const host = contents.hostWebContents;
+      if (!host || host.isDestroyed()) return;
+      host.send(TAB_STEP_CHANNEL, { command: "desktopStepTab", direction });
+    });
   });
 }
 
@@ -94,6 +100,13 @@ export function createMainWindow(opts: CreateMainWindowOpts): BrowserWindow {
 
   win.webContents.on("will-attach-webview", (_event, webPreferences, params) => {
     lockPreviewWebviewAttach(webPreferences, params);
+  });
+  attachTabStepShortcut(win.webContents, (direction) => {
+    if (win.isDestroyed()) return;
+    win.webContents.send(TAB_STEP_CHANNEL, {
+      command: "desktopStepTab",
+      direction,
+    });
   });
   installPreviewGuestPolicy();
 

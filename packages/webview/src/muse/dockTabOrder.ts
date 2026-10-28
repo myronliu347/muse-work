@@ -33,7 +33,10 @@ export function activeDockTabKey(input: {
 }): string | null {
   const { orderedKeys, detailActive, activeKind, activeFilePath, activeToolId } = input;
   if (detailActive && orderedKeys.includes(DOCK_TAB_DETAIL_KEY)) return DOCK_TAB_DETAIL_KEY;
-  if (activeToolId) {
+  // A remembered browser/terminal stays in activeToolId after the user switches
+  // to 变更 or 详情. Only treat it as the current tab while that kind is showing,
+  // matching the tab highlight (tool.kind === active).
+  if (activeToolId && (activeKind === "terminal" || activeKind === "preview")) {
     const key = toolTabKey(activeToolId);
     if (orderedKeys.includes(key)) return key;
   }

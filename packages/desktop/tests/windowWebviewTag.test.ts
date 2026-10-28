@@ -8,6 +8,7 @@ vi.mock("electron", () => {
     webContents = {
       setWindowOpenHandler: vi.fn(),
       on: vi.fn(),
+      send: vi.fn(),
     };
     loadFile = vi.fn();
     isDestroyed = () => false;
@@ -55,6 +56,35 @@ describe("createMainWindow", () => {
       "will-attach-webview",
       expect.any(Function),
     );
+    const listener = win.webContents.on.mock.calls.find(
+      (call) => call[0] === "before-input-event",
+    )?.[1] as (
+      event: { preventDefault: () => void },
+      input: {
+        type: string;
+        key: string;
+        code: string;
+        meta: boolean;
+        control: boolean;
+        alt: boolean;
+        shift: boolean;
+      },
+    ) => void;
+    const event = { preventDefault: vi.fn() };
+    const primary = process.platform === "darwin" ? { meta: true, control: false } : { meta: false, control: true };
+    listener(event, {
+      type: "keyDown",
+      key: "]",
+      code: "BracketRight",
+      alt: false,
+      shift: false,
+      ...primary,
+    });
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(win.webContents.send).toHaveBeenCalledWith("muse:to-webview", {
+      command: "desktopStepTab",
+      direction: 1,
+    });
   });
 
   it("isolates preview guests and opens popups in the same page", () => {

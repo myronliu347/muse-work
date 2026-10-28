@@ -7,6 +7,7 @@ import { ChatApp } from "../../src/components/ChatApp";
 import { BotTabs, useBotWorkspaceController } from "../../src/components/desktop/BotTabs";
 import { DesktopShell } from "../../src/components/desktop/DesktopShell";
 import {
+  focusTab,
   initialBotWorkspace,
   openIssueSession,
 } from "../../src/components/desktop/botWorkspace";
@@ -92,15 +93,48 @@ describe("BotTabs", () => {
     );
 
     const body = screen.getByTestId("issue-body");
-    body.focus();
-    fireEvent.keyDown(body, { key: "[", code: "BracketLeft", ...chord });
+    fireEvent.pointerDown(body);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    fireEvent.keyDown(document.body, { key: "[", code: "BracketLeft", ...chord });
     expect(onFocus).toHaveBeenCalledWith("b");
 
     onFocus.mockClear();
-    fireEvent.keyDown(body, { key: "]", code: "BracketRight", ...chord });
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
+    expect(onFocus).not.toHaveBeenCalled();
+
+    onFocus.mockClear();
+    fireEvent.pointerDown(document.body);
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
+    expect(onFocus).not.toHaveBeenCalled();
+  });
+
+  it("switches the chat column tabs when that column is clicked, and stops at the ends", () => {
+    const onFocus = vi.fn();
+    const onClose = vi.fn();
+    let state = initialBotWorkspace(null);
+    state = openIssueSession(state, "a");
+    state = openIssueSession(state, "b");
+    state = focusTab(state, "bot");
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    render(
+      <div className="assistant-frame">
+        <BotTabs state={state} titles={{ a: "A", b: "B" }} onFocus={onFocus} onClose={onClose} />
+        <div data-testid="chat-body">chat</div>
+        <div className="desktop-panel-dock" data-testid="dock" />
+      </div>,
+    );
+
+    fireEvent.pointerDown(screen.getByTestId("chat-body"));
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    fireEvent.keyDown(document.body, { key: "[", code: "BracketLeft", ...chord });
+    expect(onFocus).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
     expect(onFocus).toHaveBeenCalledWith("a");
 
     onFocus.mockClear();
+    fireEvent.pointerDown(screen.getByTestId("dock"));
     fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
     expect(onFocus).not.toHaveBeenCalled();
   });

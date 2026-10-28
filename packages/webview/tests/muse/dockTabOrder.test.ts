@@ -58,6 +58,25 @@ describe("dock tab order", () => {
         activeToolId: null,
       }),
     ).toBe(fileTabKey("/a.ts"));
+    const shown = ["detail", toolTabKey("wave"), kindTabKey("diff")];
+    expect(
+      activeDockTabKey({
+        orderedKeys: shown,
+        detailActive: false,
+        activeKind: "diff",
+        activeFilePath: null,
+        activeToolId: "wave",
+      }),
+    ).toBe(kindTabKey("diff"));
+    expect(
+      activeDockTabKey({
+        orderedKeys: shown,
+        detailActive: true,
+        activeKind: "diff",
+        activeFilePath: null,
+        activeToolId: "wave",
+      }),
+    ).toBe("detail");
   });
 
   it("inserts a new tab after the one that is current", () => {

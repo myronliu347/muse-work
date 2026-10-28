@@ -101,7 +101,7 @@ describe("DesktopPanelDock", () => {
     expect(onTabOrderChange).toHaveBeenCalledWith(["kind:diff", "kind:file"]);
   });
 
-  it("switches tabs with Cmd+[ ] only while the dock is focused", () => {
+  it("switches tabs with Cmd+[ ] when the dock was clicked, even if focus stayed outside", () => {
     const onSelect = vi.fn();
     const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
     const chord = mac ? { metaKey: true } : { ctrlKey: true };
@@ -113,25 +113,90 @@ describe("DesktopPanelDock", () => {
           active="terminal"
           onSelect={onSelect}
         >
-          <button type="button" data-testid="dock-body">
-            body
-          </button>
+          <div data-testid="dock-body">body</div>
         </DesktopPanelDock>
       </MuseTheme>,
     );
 
     const body = screen.getByTestId("dock-body");
-    body.focus();
-    fireEvent.keyDown(body, { key: "]", code: "BracketRight", ...chord });
+    fireEvent.pointerDown(body);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
     expect(onSelect).toHaveBeenCalledWith("preview");
 
     onSelect.mockClear();
-    fireEvent.keyDown(body, { key: "[", code: "BracketLeft", ...chord });
+    fireEvent.keyDown(window, { key: "[", code: "BracketLeft", ...chord });
     expect(onSelect).toHaveBeenCalledWith("file");
 
     onSelect.mockClear();
+    window.dispatchEvent(
+      new MessageEvent("message", { data: { command: "desktopStepTab", direction: 1 } }),
+    );
+    expect(onSelect).toHaveBeenCalledWith("preview");
+
+    onSelect.mockClear();
+    fireEvent.pointerDown(document.body);
     fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("steps the highlighted tab when a browser tab is only remembered", () => {
+    const onSelect = vi.fn();
+    const onSelectDetail = vi.fn();
+    const onSelectTool = vi.fn();
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    const { rerender } = render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["preview", "diff"]}
+          active="diff"
+          onSelect={onSelect}
+          onSelectDetail={onSelectDetail}
+          detailTitle="分析 sandbox 项"
+          toolTabs={[{ id: "wave", kind: "preview", label: "wave-agent 项目", title: "wave-agent 项目" }]}
+          activeToolId="wave"
+          onSelectTool={onSelectTool}
+        >
+          <div data-testid="dock-body">body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    fireEvent.pointerDown(screen.getByTestId("dock-body"));
+    fireEvent.keyDown(document.body, { key: "[", code: "BracketLeft", ...chord });
+    expect(onSelectTool).toHaveBeenCalledWith("wave");
+    expect(onSelectDetail).not.toHaveBeenCalled();
+
+    onSelectTool.mockClear();
+    window.dispatchEvent(
+      new MessageEvent("message", { data: { command: "desktopStepTab", direction: -1 } }),
+    );
+    expect(onSelectTool).not.toHaveBeenCalled();
+    expect(onSelectDetail).not.toHaveBeenCalled();
+
+    rerender(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["preview", "diff"]}
+          active="diff"
+          onSelect={onSelect}
+          onSelectDetail={onSelectDetail}
+          detailActive
+          detailTitle="分析 sandbox 项"
+          toolTabs={[{ id: "wave", kind: "preview", label: "wave-agent 项目", title: "wave-agent 项目" }]}
+          activeToolId="wave"
+          onSelectTool={onSelectTool}
+        >
+          <div data-testid="dock-body">body</div>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+    fireEvent.pointerDown(screen.getByTestId("dock-body"));
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
+    expect(onSelectTool).toHaveBeenCalledWith("wave");
   });
 
   it("selects a tab on label click and closes on X without selecting", () => {
