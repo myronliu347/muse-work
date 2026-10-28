@@ -29,6 +29,8 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("必须把 `worktree` 设为 true");
     expect(first.systemPrompt).toContain("`agentMode` 不填就是 `single`");
     expect(first.systemPrompt).toContain("新的需求开发用 `split`");
+    expect(first.systemPrompt).toContain("用 `MessageIssue` 照转");
+    expect(first.systemPrompt).not.toContain("禁止创建清单");
     expect(first.systemPrompt).toContain("当前这一步结束后进入同一轮");
     expect(first.systemPrompt).not.toContain("interrupt");
     expect(first.systemPrompt).toContain("主人跟机器人的私聊");
