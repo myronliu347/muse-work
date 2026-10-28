@@ -1,0 +1,129 @@
+packages/server/tests/assistantQueue.test.ts
+  d6b258ad0cddfa54 31,37,39,41-42
+packages/server/tests/assistantSession.test.ts
+  d6b258ad0cddfa54 61-62
+packages/server/src/services/assistant/tools/issueTools.ts
+  d6b258ad0cddfa54 5,8-13,296-334
+packages/server/src/services/assistant/session.ts
+  d6b258ad0cddfa54 15
+packages/server/tests/assistantTools.test.ts
+  d6b258ad0cddfa54 249,732-784
+packages/server/src/services/assistant/prompt.ts
+  d6b258ad0cddfa54 5,14,25-28,39,41-42
+packages/server/src/services/assistant/observe.ts
+  d6b258ad0cddfa54 31,37
+packages/server/src/services/assistant/events.ts
+  d6b258ad0cddfa54 189-190,222
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "b1b17177099e7de6796e7b2b2a0ae489cf3f0b40",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 317,
+      "total_deletions": 2,
+      "accepted_lines": 317,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 39,
+          "deletions": 1,
+          "accepted_lines": 39
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 74,
+          "deletions": 1,
+          "accepted_lines": 74
+        },
+        "packages/webview/src/components/panels/TerminalPane.tsx": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 58,
+          "accepted_lines": 58
+        },
+        "packages/webview/tests/muse/dockTabOrder.test.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/muse/dockTabOrder.ts": {
+          "additions": 22,
+          "accepted_lines": 22
+        }
+      }
+    },
+    "d6b258ad0cddfa54": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b314e172-1ca0-4387-bde5-9ad321d51541",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 129,
+      "total_deletions": 56,
+      "accepted_lines": 124,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantQueue.test.ts": {
+          "additions": 5,
+          "deletions": 10,
+          "accepted_lines": 5
+        },
+        "packages/server/src/services/assistant/events.ts": {
+          "additions": 3,
+          "deletions": 25,
+          "accepted_lines": 3
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 15,
+          "deletions": 15,
+          "accepted_lines": 10
+        },
+        "packages/server/src/services/assistant/tools/issueTools.ts": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "packages/server/src/services/assistant/session.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/assistant/observe.ts": {
+          "additions": 2,
+          "deletions": 4,
+          "accepted_lines": 2
+        },
+        "packages/server/tests/assistantTools.test.ts": {
+          "additions": 54,
+          "accepted_lines": 54
+        }
+      }
+    }
+  }
+}
