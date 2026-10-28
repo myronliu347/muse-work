@@ -5,6 +5,7 @@ import {
   appendMemoryCapNotice,
   buildEntrypointCapNotice,
   buildMemoryFileCapNotice,
+  entrypointRejection,
 } from "@/utils/memoryCapNotices.js";
 import {
   MAX_MEMORY_DESCRIPTION_CHARS,
@@ -70,24 +71,24 @@ describe("buildEntrypointCapNotice", () => {
     );
   });
 
-  it("says the write succeeded and names the consequence once the cap is passed", () => {
-    const raw = Array.from({ length: 200 }, () => "x".repeat(130)).join("\n");
+  it("rejects an index that is over the read limit and names the dropped tail", () => {
+    const kept = Array.from({ length: 200 }, (_, i) => `kept ${i}`);
+    const dropped = Array.from({ length: 5 }, (_, i) => `dropped ${i} ${"x".repeat(40)}`);
+    const raw = [...kept, ...dropped].join("\n");
 
-    const notice = buildEntrypointCapNotice(raw);
+    const rejection = entrypointRejection(raw);
 
-    expect(notice).toContain(
-      "Error: this write left MEMORY.md at 26199 characters",
-    );
-    expect(notice).toContain(
-      `over its ${MAX_MEMORY_ENTRYPOINT_CHARS}-character read limit`,
-    );
-    expect(notice).toContain("The write succeeded");
-    expect(notice).toContain(
-      "entries at the end are already invisible to readers",
-    );
-    expect(notice).toContain(
-      `under ${target(MAX_MEMORY_ENTRYPOINT_CHARS)} characters now`,
-    );
+    expect(rejection).toContain("The file was not modified");
+    expect(rejection).toContain("205 lines");
+    expect(rejection).toContain(`over its ${MAX_MEMORY_ENTRYPOINT_LINES}-line read limit`);
+    expect(rejection).toContain(`under ${target(MAX_MEMORY_ENTRYPOINT_LINES)} lines`);
+    expect(rejection).toContain("dropped 0");
+    expect(rejection).not.toContain("The write succeeded");
+  });
+
+  it("returns null when the index fits both caps", () => {
+    const raw = Array.from({ length: 10 }, () => "short line").join("\n");
+    expect(entrypointRejection(raw)).toBeNull();
   });
 
   it("names the over-long index lines", () => {
@@ -301,9 +302,9 @@ describe("appendMemoryCapNotice", () => {
 
   it("appends the index notice to the write result", async () => {
     vi.mocked(fsPromises.readFile).mockResolvedValue(
-      Array.from({ length: 200 }, () => "x".repeat(130)).join(
-        "\n",
-      ) as unknown as Awaited<ReturnType<typeof fsPromises.readFile>>,
+      Array.from({ length: 170 }, () => "short").join("\n") as unknown as Awaited<
+        ReturnType<typeof fsPromises.readFile>
+      >,
     );
     const toolResult = result();
 
@@ -315,9 +316,8 @@ describe("appendMemoryCapNotice", () => {
       MEMORY_DIR,
     );
 
-    expect(toolResult.content).toContain(
-      "Wrote file\n\nError: this write left MEMORY.md",
-    );
+    expect(toolResult.content).toContain("Wrote file\n\n");
+    expect(toolResult.content).toContain("approaching the");
   });
 
   it("appends the topic-file notice using its frontmatter description", async () => {

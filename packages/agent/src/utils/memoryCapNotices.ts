@@ -74,12 +74,89 @@ function overlongIndexLineNotice(raw: string): string | null {
 }
 
 /**
+ * Lines of `raw` that `truncateEntrypointContent` would keep, measured the
+ * same way: line cap first, then the last newline at or before the char cap.
+ */
+function findCut(raw: string): number {
+  const trimmed = raw.trim();
+  const lines = trimmed.split("\n");
+  let body =
+    lines.length > MAX_MEMORY_ENTRYPOINT_LINES
+      ? lines.slice(0, MAX_MEMORY_ENTRYPOINT_LINES).join("\n")
+      : trimmed;
+  if (body.length > MAX_MEMORY_ENTRYPOINT_CHARS) {
+    const cutAt = body.lastIndexOf("\n", MAX_MEMORY_ENTRYPOINT_CHARS);
+    body = body.slice(0, cutAt > 0 ? cutAt : MAX_MEMORY_ENTRYPOINT_CHARS);
+  }
+  return body.length;
+}
+
+/**
+ * Error for a MEMORY.md write that would still be over the read limit.
+ * Null when the index fits. The caller must not touch disk when this returns.
+ */
+export function entrypointRejection(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const lineCount = trimmed.split("\n").length;
+  const charCount = trimmed.length;
+  const lineOver = lineCount > MAX_MEMORY_ENTRYPOINT_LINES;
+  const charOver = charCount > MAX_MEMORY_ENTRYPOINT_CHARS;
+  if (!lineOver && !charOver) return null;
+
+  const limits: string[] = [];
+  if (lineOver) {
+    limits.push(
+      `${lineCount} lines, over its ${MAX_MEMORY_ENTRYPOINT_LINES}-line read limit. Rewrite it to under ${targetOf(MAX_MEMORY_ENTRYPOINT_LINES)} lines`,
+    );
+  }
+  if (charOver) {
+    limits.push(
+      `${charCount} characters, over its ${MAX_MEMORY_ENTRYPOINT_CHARS}-character read limit. Rewrite it to under ${targetOf(MAX_MEMORY_ENTRYPOINT_CHARS)} characters`,
+    );
+  }
+
+  const dropped = trimmed
+    .slice(findCut(trimmed))
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 15)
+    .map((line) => `- ${line.slice(0, 80)}`);
+
+  return [
+    `Error: The file was not modified. This write would have left ${MEMORY_ENTRYPOINT_NAME} at ${limits.join("; ")}.`,
+    "Lines and characters past the read limit are dropped on load, so those entries would be invisible.",
+    "Rewrite the whole index in one Write: one line per entry, detail lives in the topic file, merge or drop stale lines.",
+    dropped.length > 0
+      ? `Entries that would not be loaded:\n${dropped.join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
+ * Returns the rejection when `next` is a MEMORY.md inside the auto-memory
+ * directory and would exceed the index cap. Null means the write may proceed.
+ */
+export function rejectEntrypointWrite(
+  absolutePath: string,
+  next: string,
+  autoMemoryDir: string | undefined,
+): string | null {
+  if (!autoMemoryDir) return null;
+  if (!isPathInside(absolutePath, autoMemoryDir)) return null;
+  if (path.basename(absolutePath) !== MEMORY_ENTRYPOINT_NAME) return null;
+  return entrypointRejection(next);
+}
+
+/**
  * Notice to append to the result of a write that targeted `MEMORY.md`, or null
  * when the index is comfortably within both caps and every line is short.
  *
- * The wording of the over-cap case is deliberate: the write *did* succeed, and
- * saying so while naming the consequence is what makes the model rewrite the
- * file now instead of trusting that the next session will see it.
+ * Over-cap writes are refused before they touch disk (`entrypointRejection`).
+ * This notice only covers an index that is still under the cap.
  */
 export function buildEntrypointCapNotice(raw: string): string | null {
   const trimmed = raw.trim();
@@ -106,11 +183,9 @@ export function buildEntrypointCapNotice(raw: string): string | null {
     },
   ]);
 
-  if (worst) {
+  if (worst && !worst.over) {
     parts.push(
-      worst.over
-        ? `Error: this write left ${MEMORY_ENTRYPOINT_NAME} at ${worst.sizeDesc}, over its ${worst.capDesc} read limit. The write succeeded, but everything past the limit is silently dropped each time the index is loaded — entries at the end are already invisible to readers. Rewrite it to under ${worst.targetDesc} now: keep one line per entry, move detail into topic files, and merge or drop stale entries.`
-        : `${MEMORY_ENTRYPOINT_NAME} is ${worst.sizeDesc}, approaching the ${worst.capDesc} read limit. Compact it to under ${worst.targetDesc} now: keep one line per entry, move detail into topic files, and merge or drop stale entries.`,
+      `${MEMORY_ENTRYPOINT_NAME} is ${worst.sizeDesc}, approaching the ${worst.capDesc} read limit. Compact it to under ${worst.targetDesc} now: keep one line per entry, move detail into topic files, and merge or drop stale entries.`,
     );
   }
 

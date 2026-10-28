@@ -56,7 +56,7 @@ describe("auto-memory prompt", () => {
       expect(prompt).toContain("frontmatter description");
       expect(prompt).toContain("create it with the Write tool");
       expect(prompt).toContain(
-        `lines after ${MAX_MEMORY_ENTRYPOINT_LINES} or characters past ${MAX_MEMORY_ENTRYPOINT_CHARS}`,
+        `a write that leaves it over ${MAX_MEMORY_ENTRYPOINT_LINES} lines or ${MAX_MEMORY_ENTRYPOINT_CHARS} characters is rejected and the file is left unchanged`,
       );
     });
 

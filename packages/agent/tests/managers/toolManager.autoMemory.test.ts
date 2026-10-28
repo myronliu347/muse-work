@@ -102,9 +102,9 @@ describe("ToolManager auto-memory context", () => {
 
   it("appends the capacity notice to a memory write's result", async () => {
     vi.mocked(fsPromises.readFile).mockResolvedValue(
-      Array.from({ length: 250 }, () => "x".repeat(130)).join(
-        "\n",
-      ) as unknown as Awaited<ReturnType<typeof fsPromises.readFile>>,
+      Array.from({ length: 170 }, () => "short").join("\n") as unknown as Awaited<
+        ReturnType<typeof fsPromises.readFile>
+      >,
     );
     const { manager } = buildManager({ autoMemoryEnabled: true });
     const write: ToolPlugin = {
@@ -127,8 +127,8 @@ describe("ToolManager auto-memory context", () => {
       baseContext,
     );
 
-    expect(result.content).toContain(
-      "Wrote file\n\nError: this write left MEMORY.md",
-    );
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("Wrote file\n\n");
+    expect(result.content).toContain("approaching the");
   });
 });

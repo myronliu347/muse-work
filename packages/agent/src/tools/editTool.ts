@@ -6,6 +6,7 @@ import type { ToolPlugin, ToolResult, ToolContext } from "./types.js";
 import { resolvePath, getDisplayPath } from "../utils/path.js";
 import { escapeRegExp, analyzeEditMismatch } from "../utils/editUtils.js";
 import { EDIT_TOOL_NAME, READ_TOOL_NAME } from "../constants/tools.js";
+import { rejectEntrypointWrite } from "../utils/memoryCapNotices.js";
 
 /**
  * Prepended to the result of an edit that applied to a file which changed on
@@ -266,6 +267,19 @@ Usage:
             error: "Permission check failed",
           };
         }
+      }
+
+      const entrypointRejectionMessage = rejectEntrypointWrite(
+        resolvedPath,
+        newContent,
+        context.autoMemoryDir,
+      );
+      if (entrypointRejectionMessage) {
+        return {
+          success: false,
+          content: "",
+          error: entrypointRejectionMessage,
+        };
       }
 
       // Record snapshot for reversion
