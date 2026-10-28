@@ -1,0 +1,116 @@
+packages/webview/tests/muse/panelShortcuts.test.ts
+  86c5d17c1588aabf 121-122
+packages/webview/tests/components/desktopPanelDock.test.tsx
+  86c5d17c1588aabf 104,116,122-124,128,132-138,143-201
+packages/webview/src/components/desktop/DesktopPanelDock.tsx
+  86c5d17c1588aabf 18-19,169,187-188
+packages/webview/src/components/desktop/BotTabs.tsx
+  86c5d17c1588aabf 31-32,179-183,189,197
+packages/desktop/src/main/window.ts
+  86c5d17c1588aabf 3,55-59,104-110
+packages/webview/src/muse/panelShortcuts.ts
+  86c5d17c1588aabf 117,123,125-127
+packages/webview/tests/muse/dockTabOrder.test.ts
+  86c5d17c1588aabf 61-79
+packages/webview/src/styles/DesktopPanelDock.css
+  86c5d17c1588aabf 27-33
+packages/desktop/src/main/tabStepShortcut.ts
+  86c5d17c1588aabf 1-51
+packages/desktop/tests/windowWebviewTag.test.ts
+  86c5d17c1588aabf 11,59-87
+packages/webview/src/muse/dockTabOrder.ts
+  86c5d17c1588aabf 36-39
+packages/desktop/tests/tabStepShortcut.test.ts
+  86c5d17c1588aabf 1-31
+packages/webview/tests/components/botTabs.test.tsx
+  86c5d17c1588aabf 10,96-98,102-103,106-133,137
+packages/webview/src/muse/sidePanelTabs.ts
+  86c5d17c1588aabf 1-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2e28fca4403049cc234ed086585bae203b4cab75",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 417,
+      "total_deletions": 78,
+      "accepted_lines": 388,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/desktop/src/main/window.ts": {
+          "additions": 13,
+          "accepted_lines": 13
+        },
+        "packages/webview/src/muse/dockTabOrder.ts": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/tests/components/botTabs.test.tsx": {
+          "additions": 39,
+          "deletions": 5,
+          "accepted_lines": 38
+        },
+        "packages/webview/tests/muse/panelShortcuts.test.ts": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "packages/webview/src/muse/panelShortcuts.ts": {
+          "additions": 5,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/components/desktopPanelDock.test.tsx": {
+          "additions": 72,
+          "deletions": 7,
+          "accepted_lines": 72
+        },
+        "packages/desktop/tests/windowWebviewTag.test.ts": {
+          "additions": 31,
+          "deletions": 1,
+          "accepted_lines": 30
+        },
+        "packages/webview/src/components/desktop/BotTabs.tsx": {
+          "additions": 11,
+          "deletions": 16,
+          "accepted_lines": 9
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "packages/desktop/tests/tabStepShortcut.test.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "packages/webview/src/muse/sidePanelTabs.ts": {
+          "additions": 127,
+          "deletions": 25,
+          "accepted_lines": 102
+        },
+        "packages/webview/src/components/desktop/DesktopPanelDock.tsx": {
+          "additions": 5,
+          "deletions": 17,
+          "accepted_lines": 5
+        },
+        "packages/webview/tests/muse/dockTabOrder.test.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/desktop/src/main/tabStepShortcut.ts": {
+          "additions": 51,
+          "accepted_lines": 51
+        }
+      }
+    }
+  }
+}
