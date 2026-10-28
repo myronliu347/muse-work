@@ -1,0 +1,55 @@
+packages/webview/src/components/ChatApp.tsx
+  86c5d17c1588aabf 1141-1150
+packages/webview/tests/components/issueTab.test.tsx
+  86c5d17c1588aabf 1763-1793
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "2a2f0aeba21f4aa7e11e5c06caa8ea8d06ee3a4a",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 603,
+      "total_deletions": 137,
+      "accepted_lines": 54,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 80,
+          "deletions": 69,
+          "accepted_lines": 23
+        },
+        "packages/webview/src/muse/hostBridge/ctx.ts": {
+          "additions": 7,
+          "deletions": 6
+        },
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 57,
+          "deletions": 26,
+          "accepted_lines": 31
+        },
+        "packages/webview/tests/muse/issueSessionStream.test.ts": {
+          "additions": 83
+        },
+        "packages/webview/src/muse/issueSessionStream.ts": {
+          "additions": 278,
+          "deletions": 8
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 32,
+          "deletions": 28
+        },
+        "packages/webview/tests/muse/hostBridge.test.ts": {
+          "additions": 66
+        }
+      }
+    }
+  }
+}
