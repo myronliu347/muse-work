@@ -1,0 +1,75 @@
+packages/agent/src/prompts/memoryTypes.ts
+  d6b258ad0cddfa54 204
+packages/agent/tests/utils/memoryCapNotices.test.ts
+  d6b258ad0cddfa54 8,74-77,79,81-91,305-307,319-320
+packages/agent/tests/prompts/memoryPrompt.test.ts
+  d6b258ad0cddfa54 59
+packages/agent/tests/managers/toolManager.autoMemory.test.ts
+  d6b258ad0cddfa54 105-107,130-132
+packages/agent/src/utils/memoryCapNotices.ts
+  d6b258ad0cddfa54 77-153,158-159,186,188
+packages/agent/src/tools/writeTool.ts
+  d6b258ad0cddfa54 9,181-193
+packages/agent/src/tools/editTool.ts
+  d6b258ad0cddfa54 9,272-284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "af405b89312b209a0ae7705d6191759e61286955",
+  "prompts": {
+    "d6b258ad0cddfa54": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b314e172-1ca0-4387-bde5-9ad321d51541",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 533,
+      "total_deletions": 45,
+      "accepted_lines": 525,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/agent/tests/prompts/memoryPrompt.test.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/utils/memoryCapNotices.test.ts": {
+          "additions": 22,
+          "deletions": 22,
+          "accepted_lines": 22
+        },
+        "packages/agent/src/prompts/memoryTypes.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/agent/tests/managers/toolManager.autoMemory.test.ts": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "packages/agent/src/tools/writeTool.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "docs/superpowers/plans/2026-10-28-memory-cap-and-session-window.md": {
+          "additions": 393,
+          "deletions": 8,
+          "accepted_lines": 385
+        },
+        "packages/agent/src/tools/editTool.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "packages/agent/src/utils/memoryCapNotices.ts": {
+          "additions": 82,
+          "deletions": 7,
+          "accepted_lines": 82
+        }
+      }
+    }
+  }
+}
