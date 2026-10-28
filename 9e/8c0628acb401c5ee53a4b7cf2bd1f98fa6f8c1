@@ -1,0 +1,43 @@
+packages/webview/src/components/ChatApp.tsx
+  8ff6051706ddedbc 2090-2092,2094-2095
+packages/webview/src/hooks/useChatSend.ts
+  8ff6051706ddedbc 117-119,122
+packages/webview/tests/components/issueTab.test.tsx
+  8ff6051706ddedbc 22,1803-1858
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9e8c0628acb401c5ee53a4b7cf2bd1f98fa6f8c1",
+  "prompts": {
+    "8ff6051706ddedbc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1d2b0fd3-ca28-4eec-9c92-9761aeb99da6",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 66,
+      "total_deletions": 4,
+      "accepted_lines": 66,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/tests/components/issueTab.test.tsx": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "packages/webview/src/hooks/useChatSend.ts": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/ChatApp.tsx": {
+          "additions": 5,
+          "deletions": 2,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
