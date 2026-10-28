@@ -23,6 +23,28 @@ export function toolIdFromTabKey(key: string): string | null {
   return key.startsWith("tool:") ? key.slice("tool:".length) : null;
 }
 
+/** The tab the dock is showing, in the same key space as `orderedKeys`. */
+export function activeDockTabKey(input: {
+  orderedKeys: readonly string[];
+  detailActive: boolean;
+  activeKind: string;
+  activeFilePath: string | null;
+  activeToolId: string | null;
+}): string | null {
+  const { orderedKeys, detailActive, activeKind, activeFilePath, activeToolId } = input;
+  if (detailActive && orderedKeys.includes(DOCK_TAB_DETAIL_KEY)) return DOCK_TAB_DETAIL_KEY;
+  if (activeToolId) {
+    const key = toolTabKey(activeToolId);
+    if (orderedKeys.includes(key)) return key;
+  }
+  if (activeKind === "file" && activeFilePath) {
+    const key = fileTabKey(activeFilePath);
+    if (orderedKeys.includes(key)) return key;
+  }
+  const kindKey = kindTabKey(activeKind);
+  return orderedKeys.includes(kindKey) ? kindKey : null;
+}
+
 export interface DockTabSource {
   detail: boolean;
   checked: readonly string[];

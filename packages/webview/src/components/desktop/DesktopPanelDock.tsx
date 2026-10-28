@@ -8,13 +8,18 @@ import {
 } from "../../muse/panelTabs";
 import {
   DOCK_TAB_DETAIL_KEY,
+  activeDockTabKey,
   defaultDockTabKeys,
   filePathFromTabKey,
   moveDockTab,
   reconcileTabOrder,
   toolIdFromTabKey,
 } from "../../muse/dockTabOrder";
-import { dockFullscreenShortcutLabel } from "../../muse/panelShortcuts";
+import {
+  dockFullscreenShortcutLabel,
+  matchTabStepShortcut,
+  stepTab,
+} from "../../muse/panelShortcuts";
 import { PanelToggleControl } from "../panels/PanelToggleControl";
 import { PanelAddMenu } from "../panels/PanelAddMenu";
 import { FileIcon } from "../panels/FileIcon";
@@ -137,6 +142,74 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   // The tab bar starts scrolled to the left, so the initially active tab is
   // always visible; scrolling only makes sense on later activation changes.
   const mountedRef = React.useRef(false);
+
+  const selectTab = React.useCallback(
+    (key: string) => {
+      if (key === DOCK_TAB_DETAIL_KEY) {
+        onSelectDetail?.();
+        return;
+      }
+      const toolId = toolIdFromTabKey(key);
+      if (toolId) {
+        onSelectTool?.(toolId);
+        return;
+      }
+      const path = filePathFromTabKey(key);
+      if (path) {
+        onSelectFileTab?.(path);
+        return;
+      }
+      if (key.startsWith("kind:")) {
+        onSelect(key.slice("kind:".length) as DesktopPanelKind);
+      }
+    },
+    [onSelect, onSelectDetail, onSelectFileTab, onSelectTool],
+  );
+
+  React.useEffect(() => {
+    const dock = dockRef.current;
+    if (!dock) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const direction = matchTabStepShortcut(event);
+      if (direction === null) return;
+      const target = event.target;
+      if (!(target instanceof Node) || !dock.contains(target)) return;
+      const keys = reconcileTabOrder(
+        tabOrder,
+        defaultDockTabKeys({
+          detail: Boolean(onSelectDetail),
+          checked,
+          filePaths: fileTabs.map((tab) => tab.path),
+          tools: toolTabs,
+        }),
+      );
+      const current = activeDockTabKey({
+        orderedKeys: keys,
+        detailActive,
+        activeKind: active,
+        activeFilePath,
+        activeToolId,
+      });
+      const next = stepTab(keys, current, direction);
+      if (!next) return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectTab(next);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [
+    active,
+    activeFilePath,
+    activeToolId,
+    checked,
+    detailActive,
+    fileTabs,
+    onSelectDetail,
+    selectTab,
+    tabOrder,
+    toolTabs,
+  ]);
 
   React.useEffect(() => {
     if (!mountedRef.current) {

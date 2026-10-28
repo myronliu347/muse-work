@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatApp } from "../../src/components/ChatApp";
 import { BotTabs, useBotWorkspaceController } from "../../src/components/desktop/BotTabs";
@@ -67,6 +67,44 @@ function stubEmptyAssistant() {
 }
 
 describe("BotTabs", () => {
+  it("switches the focused side column's tab with Cmd+[ ]", () => {
+    const onFocus = vi.fn();
+    const onClose = vi.fn();
+    let state = initialBotWorkspace(null);
+    state = openIssueSession(state, "a");
+    state = openIssueSession(state, "b");
+    state = openIssueSession(state, "c");
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    render(
+      <div className="assistant-split-issue">
+        <BotTabs
+          state={state}
+          titles={{ a: "A", b: "B", c: "C" }}
+          scope="issues"
+          onFocus={onFocus}
+          onClose={onClose}
+        />
+        <button type="button" data-testid="issue-body">
+          body
+        </button>
+      </div>,
+    );
+
+    const body = screen.getByTestId("issue-body");
+    body.focus();
+    fireEvent.keyDown(body, { key: "[", code: "BracketLeft", ...chord });
+    expect(onFocus).toHaveBeenCalledWith("b");
+
+    onFocus.mockClear();
+    fireEvent.keyDown(body, { key: "]", code: "BracketRight", ...chord });
+    expect(onFocus).toHaveBeenCalledWith("a");
+
+    onFocus.mockClear();
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
+    expect(onFocus).not.toHaveBeenCalled();
+  });
+
   it("focuses issue tabs and closes them without focusing", async () => {
     const user = userEvent.setup();
     const onFocus = vi.fn();

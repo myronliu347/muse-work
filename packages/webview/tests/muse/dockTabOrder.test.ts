@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeDockTabKey,
   defaultDockTabKeys,
   fileTabKey,
   insertTabAfterCurrent,
@@ -27,6 +28,36 @@ describe("dock tab order", () => {
       }),
     ).toEqual(present);
     expect(reconcileTabOrder(undefined, present)).toEqual(present);
+  });
+
+  it("names the tab the dock is showing", () => {
+    expect(
+      activeDockTabKey({
+        orderedKeys: present,
+        detailActive: true,
+        activeKind: "diff",
+        activeFilePath: null,
+        activeToolId: "t1",
+      }),
+    ).toBe("detail");
+    expect(
+      activeDockTabKey({
+        orderedKeys: present,
+        detailActive: false,
+        activeKind: "terminal",
+        activeFilePath: null,
+        activeToolId: "t1",
+      }),
+    ).toBe(toolTabKey("t1"));
+    expect(
+      activeDockTabKey({
+        orderedKeys: [fileTabKey("/a.ts"), kindTabKey("diff")],
+        detailActive: false,
+        activeKind: "file",
+        activeFilePath: "/a.ts",
+        activeToolId: null,
+      }),
+    ).toBe(fileTabKey("/a.ts"));
   });
 
   it("inserts a new tab after the one that is current", () => {

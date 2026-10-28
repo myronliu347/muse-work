@@ -101,6 +101,39 @@ describe("DesktopPanelDock", () => {
     expect(onTabOrderChange).toHaveBeenCalledWith(["kind:diff", "kind:file"]);
   });
 
+  it("switches tabs with Cmd+[ ] only while the dock is focused", () => {
+    const onSelect = vi.fn();
+    const mac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+    const chord = mac ? { metaKey: true } : { ctrlKey: true };
+    render(
+      <MuseTheme>
+        <DesktopPanelDock
+          {...baseProps}
+          checked={["file", "terminal", "preview"]}
+          active="terminal"
+          onSelect={onSelect}
+        >
+          <button type="button" data-testid="dock-body">
+            body
+          </button>
+        </DesktopPanelDock>
+      </MuseTheme>,
+    );
+
+    const body = screen.getByTestId("dock-body");
+    body.focus();
+    fireEvent.keyDown(body, { key: "]", code: "BracketRight", ...chord });
+    expect(onSelect).toHaveBeenCalledWith("preview");
+
+    onSelect.mockClear();
+    fireEvent.keyDown(body, { key: "[", code: "BracketLeft", ...chord });
+    expect(onSelect).toHaveBeenCalledWith("file");
+
+    onSelect.mockClear();
+    fireEvent.keyDown(document.body, { key: "]", code: "BracketRight", ...chord });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it("selects a tab on label click and closes on X without selecting", () => {
     const onSelect = vi.fn();
     const onCloseTab = vi.fn();

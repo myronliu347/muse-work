@@ -82,6 +82,64 @@ describe("matchPanelShortcut", () => {
   });
 });
 
+describe("matchTabStepShortcut", () => {
+  const platform = navigator.platform;
+
+  afterEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  it("matches Cmd+[ and Cmd+] on mac", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchTabStepShortcut, stepTab } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchTabStepShortcut(keyEvent({ key: "[", code: "BracketLeft", metaKey: true })),
+    ).toBe(-1);
+    expect(
+      matchTabStepShortcut(keyEvent({ key: "]", code: "BracketRight", metaKey: true })),
+    ).toBe(1);
+    expect(
+      matchTabStepShortcut(
+        keyEvent({ key: "]", code: "BracketRight", metaKey: true, shiftKey: true }),
+      ),
+    ).toBeNull();
+    expect(
+      matchTabStepShortcut(keyEvent({ key: "]", code: "BracketRight", ctrlKey: true })),
+    ).toBeNull();
+    expect(stepTab(["a", "b", "c"], "b", 1)).toBe("c");
+    expect(stepTab(["a", "b", "c"], "b", -1)).toBe("a");
+    expect(stepTab(["a", "b", "c"], "c", 1)).toBe("a");
+    expect(stepTab(["only"], "only", 1)).toBeNull();
+  });
+
+  it("matches Ctrl+[ and Ctrl+] on Windows", async () => {
+    Object.defineProperty(navigator, "platform", {
+      value: "Win32",
+      configurable: true,
+    });
+    vi.resetModules();
+    const { matchTabStepShortcut } = await import(
+      "../../src/muse/panelShortcuts.js"
+    );
+    expect(
+      matchTabStepShortcut(keyEvent({ key: "[", code: "BracketLeft", ctrlKey: true })),
+    ).toBe(-1);
+    expect(
+      matchTabStepShortcut(keyEvent({ key: "]", metaKey: true })),
+    ).toBeNull();
+  });
+});
+
 describe("matchNewSessionShortcut", () => {
   const platform = navigator.platform;
 

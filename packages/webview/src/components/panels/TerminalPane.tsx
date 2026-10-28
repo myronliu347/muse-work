@@ -3,6 +3,7 @@ import type { VsCodeApi } from "../../types";
 import type { Terminal as XtermTerminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebLinksAddon } from "@xterm/addon-web-links";
+import { matchTabStepShortcut } from "../../muse/panelShortcuts";
 import { isLocalhostUrl } from "../../utils/isLocalhostUrl";
 import { workdirTermId } from "../../stores/panelGroupStore";
 import { useMuseTheme } from "../../ui/theme";
@@ -246,6 +247,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // ordinary input; the handler reads termIdRef so the latest termId is
         // used (matches the termIdRef pattern used by onData / resize).
         term.attachCustomKeyEventHandler((event) => {
+          if (matchTabStepShortcut(event)) return false;
           if (
             (event.metaKey || event.ctrlKey) &&
             event.key.toLowerCase() === "k"

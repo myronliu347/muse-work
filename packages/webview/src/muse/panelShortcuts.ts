@@ -98,6 +98,35 @@ export function dockToggleShortcutLabel(): string {
   return isMac ? "⌘J" : "Ctrl+J";
 }
 
+/**
+ * Previous / next tab while a side panel is focused.
+ * macOS: ⌘[ / ⌘] · elsewhere: Ctrl+[ / Ctrl+]
+ * Returns -1 for previous, 1 for next.
+ */
+export function matchTabStepShortcut(event: KeyboardEvent): -1 | 1 | null {
+  if (event.altKey || event.shiftKey || event.isComposing) return null;
+  const prev = event.key === "[" || event.code === "BracketLeft";
+  const next = event.key === "]" || event.code === "BracketRight";
+  if (!prev && !next) return null;
+  if (isMac) {
+    if (!event.metaKey || event.ctrlKey) return null;
+  } else if (!event.ctrlKey || event.metaKey) return null;
+  return prev ? -1 : 1;
+}
+
+/** Move to the neighbor in `items`, wrapping. One item, or a missing current with nowhere new to go, stays put. */
+export function stepTab<T>(
+  items: readonly T[],
+  current: T | null,
+  direction: -1 | 1,
+): T | null {
+  if (items.length < 2) return null;
+  const index = current == null ? -1 : items.indexOf(current);
+  const start = index >= 0 ? index : direction === 1 ? -1 : 0;
+  const next = items[(start + direction + items.length) % items.length];
+  return next === current ? null : next;
+}
+
 export function matchNewSessionShortcut(event: KeyboardEvent): boolean {
   if (event.altKey || event.shiftKey || event.isComposing) return false;
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
