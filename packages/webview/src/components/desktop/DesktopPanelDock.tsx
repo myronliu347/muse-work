@@ -24,6 +24,7 @@ import { IssuePresenceMark, type IssuePresence } from "../session/SessionStatusG
 import { Tooltip } from "../shared/Tooltip";
 import "../../styles/DesktopPanelDock.css";
 import { clampDockWidth } from "../../muse/layout";
+import { PANEL_MOTION_MS } from "../../hooks/useExitHold";
 
 export interface DockToolTab {
   id: string;
@@ -132,6 +133,11 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
 }) => {
   const dockRef = React.useRef<HTMLElement | null>(null);
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
+  const [entering, setEntering] = React.useState(true);
+  React.useEffect(() => {
+    const id = window.setTimeout(() => setEntering(false), PANEL_MOTION_MS + 50);
+    return () => window.clearTimeout(id);
+  }, []);
   const suppressDrag = React.useRef(false);
   const [dropHint, setDropHint] = React.useState<{ key: string; after: boolean } | null>(
     null,
@@ -325,7 +331,17 @@ export const DesktopPanelDock: React.FC<DesktopPanelDockProps> = ({
   return (
     <aside
       ref={dockRef}
-      className={`desktop-panel-dock${fullscreen ? " desktop-panel-dock--fullscreen" : ""}`}
+      className={`desktop-panel-dock${fullscreen ? " desktop-panel-dock--fullscreen" : ""}${entering ? " desktop-panel-dock--enter" : ""}`}
+      onAnimationEnd={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (
+          event.animationName !== "desktop-panel-dock-in" &&
+          event.animationName !== "desktop-panel-dock-full-in"
+        ) {
+          return;
+        }
+        setEntering(false);
+      }}
       style={
         {
           "--dock-width": `${clampedWidth}px`,

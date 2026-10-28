@@ -446,6 +446,39 @@
   min-height: 0;
   border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
+  /* 280ms matches PANEL_MOTION_MS. Width animates against the inline width. */
+  animation: side-column-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.diff-pane-tree-nav.is-closing {
+  animation: side-column-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+@keyframes side-column-in {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes side-column-out {
+  to {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+body.is-panel-resizing .diff-pane-tree-nav {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diff-pane-tree-nav,
+  .diff-pane-tree-nav.is-closing {
+    animation: none;
+  }
 }
 
 .diff-pane-tree-drag-handle {

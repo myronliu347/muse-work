@@ -177,6 +177,17 @@ describe("FilePane", () => {
     expect(onFileSidebarModeChange).toHaveBeenCalledWith("search");
   });
 
+  it("keeps the file tree mounted while it closes", async () => {
+    const tree = { ...emptyFileTreeState(), collapsed: false };
+    const { rerenderWith } = renderPane({ fileView: null, fileTree: tree });
+    expect(screen.getByTestId("file-tree")).not.toHaveClass("is-closing");
+    rerenderWith({ fileTree: { ...tree, collapsed: true } });
+    expect(screen.getByTestId("file-tree")).toHaveClass("is-closing");
+    await waitFor(() => {
+      expect(screen.queryByTestId("file-tree")).toBeNull();
+    });
+  });
+
   describe("refresh from preview toolbar when tree is collapsed", () => {
     it("shows a refresh button in the toolbar when tree is collapsed", () => {
       renderPane({ fileTree: emptyFileTreeState() });

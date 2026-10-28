@@ -35,6 +35,8 @@ export type FileTreeProps = {
   contentSearch?: ContentSearchState;
   onContentSearchChange?: (next: ContentSearchState) => void;
   onOpenMatch?: (absPath: string, line: number) => void;
+  /** Parent keeps the tree mounted while the close animation runs. */
+  closing?: boolean;
 };
 
 type FlatRow = FileTreeDirEntry & { depth: number };
@@ -94,6 +96,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   contentSearch = emptyContentSearchState(),
   onContentSearchChange,
   onOpenMatch,
+  closing = false,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef<Set<string>>(new Set());
@@ -202,13 +205,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
   };
 
   // Fully collapsed: parent FilePane shows the expand control in its toolbar.
-  if (tree.collapsed) {
+  // While closing, stay mounted so the width animation can finish.
+  if (tree.collapsed && !closing) {
     return null;
   }
 
+  const shellClass = `file-tree${closing ? " is-closing" : ""}`;
+
   if (!workdir) {
     return (
-      <div className="file-tree file-tree--empty" style={{ width }}>
+      <div className={`${shellClass} file-tree--empty`} style={{ width }}>
         <div className="file-tree-drag-handle" onMouseDown={onWidthDragStart} />
         <div className="file-tree-header">
           <span className="file-tree-workdir" title="">
@@ -234,7 +240,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     workdir;
 
   return (
-    <div className="file-tree" style={{ width }} data-testid="file-tree">
+    <div className={shellClass} style={{ width }} data-testid="file-tree">
       <div
         className="file-tree-drag-handle"
         onMouseDown={onWidthDragStart}

@@ -24,6 +24,51 @@
   overflow: hidden;
 }
 
+/* Open: grow from the right edge. 280ms matches PANEL_MOTION_MS.
+   Keyframe !important beats the dock's min-width so the column can start at 0.
+   The class is removed when the animation ends, so leaving fullscreen does not replay it. */
+.desktop-panel-dock--enter:not(.desktop-panel-dock--fullscreen) {
+  animation: desktop-panel-dock-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-panel-dock--enter.desktop-panel-dock--fullscreen {
+  animation: desktop-panel-dock-full-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes desktop-panel-dock-in {
+  from {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    border-left-width: 0 !important;
+  }
+  to {
+    width: var(--dock-width, 420px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+@keyframes desktop-panel-dock-full-in {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+body.is-panel-resizing .desktop-panel-dock {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-panel-dock--enter:not(.desktop-panel-dock--fullscreen),
+  .desktop-panel-dock--enter.desktop-panel-dock--fullscreen {
+    animation: none;
+  }
+}
+
 .desktop-panel-dock:focus,
 .assistant-frame:focus,
 .assistant-split-bot:focus,

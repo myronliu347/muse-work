@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent, screen } from "@testing-library/react";
+import { render, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Theme } from "@radix-ui/themes";
 import React from "react";
@@ -1176,6 +1176,18 @@ describe("DiffPane", () => {
       // List view still renders the accordion file blocks, no tree nav.
       expect(screen.getByTestId("diff-file-modified")).toBeInTheDocument();
       expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+    });
+
+    it("keeps the change tree mounted while it closes", async () => {
+      renderPane({ initialMode: "unstaged" });
+      sendDiffResult([makeFile()]);
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
+      expect(screen.getByTestId("diff-tree-nav")).not.toHaveClass("is-closing");
+      fireEvent.click(screen.getByTestId("diff-view-toggle"));
+      expect(screen.getByTestId("diff-tree-nav")).toHaveClass("is-closing");
+      await waitFor(() => {
+        expect(screen.queryByTestId("diff-tree-nav")).not.toBeInTheDocument();
+      });
     });
 
     it("switching to tree view shows the right-side tree and the first file diff on the left", () => {

@@ -278,6 +278,39 @@
   border-left: var(--hairline) solid var(--gray-6);
   background: var(--color-background);
   min-height: 0;
+  /* 280ms matches PANEL_MOTION_MS. Width animates against the inline width. */
+  animation: side-column-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-tree.is-closing {
+  animation: side-column-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+@keyframes side-column-in {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes side-column-out {
+  to {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+body.is-panel-resizing .file-tree {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-tree,
+  .file-tree.is-closing {
+    animation: none;
+  }
 }
 
 .file-pane-toolbar-actions {

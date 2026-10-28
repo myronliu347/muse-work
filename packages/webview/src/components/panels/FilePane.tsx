@@ -13,6 +13,7 @@ import {
 import { FilePathBar } from "./FilePathBar";
 import { FilePreview } from "./FilePreview";
 import { FileTree, requestDirListings } from "./FileTree";
+import { useExitHold } from "../../hooks/useExitHold";
 import "../../styles/FilePane.css";
 
 const MIN_WIDTH = 320;
@@ -130,6 +131,7 @@ export const FilePane: React.FC<FilePaneProps> = ({
     fileView?.host === "local" && /\.(html?|xhtml)$/i.test(fileView.path);
   const treeCollapsed = fileTree.collapsed !== false;
   const showTreeToggle = Boolean(onFileTreeChange);
+  const treePresence = useExitHold(showTreeToggle && !treeCollapsed);
 
   // Find-in-file is available whenever the code/source view renders.
   const canSearch =
@@ -317,12 +319,13 @@ export const FilePane: React.FC<FilePaneProps> = ({
               )}
             </div>
           </div>
-          {onFileTreeChange && !treeCollapsed && (
+          {onFileTreeChange && treePresence.show && (
             <FileTree
               key={workdir ?? ""}
               workdir={workdir}
               vscode={vscode}
               tree={fileTree}
+              closing={treePresence.closing}
               onTreeChange={onFileTreeChange}
               onOpenFile={(path) => onOpenFile(path)}
               onOpenFilePinned={onOpenFilePinned}

@@ -24,6 +24,7 @@ import { getOverlayHost } from "../../utils/bodyPortal";
 import { localizeDiffHost } from "../../utils/diffSeparatorLabel";
 import "../../styles/DiffViewer.css";
 import "../../styles/DiffPane.css";
+import { useExitHold } from "../../hooks/useExitHold";
 
 type PendingRevert = { scope: "all" } | { scope: "file"; path: string };
 
@@ -290,6 +291,7 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
   // directory-organized change tree (right). Selection and dir collapse are
   // local UI state, never persisted.
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
+  const treePresence = useExitHold(viewMode === "tree");
   const [treeSelected, setTreeSelected] = useState<string | null>(null);
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
   /** Right-side change-tree column width (tree view only); session-local. */
@@ -1110,13 +1112,13 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
     </div>
   );
 
-  const renderTreeView = () => (
+  const renderTreeView = (closing: boolean) => (
     <div className="diff-pane-tree-view" data-testid="diff-tree-view">
       <div className="diff-pane-tree-content">
         {activeFile ? renderFileDetail(activeFile) : null}
       </div>
       <nav
-        className="diff-pane-tree-nav"
+        className={`diff-pane-tree-nav${closing ? " is-closing" : ""}`}
         data-testid="diff-tree-nav"
         style={{ width: treeNavWidth }}
       >
@@ -1337,7 +1339,9 @@ export const DiffPane: React.FC<DiffPaneProps> = ({
             )}
           {state.kind === "ok" &&
             !(mode === "recent" && isStreaming) &&
-            (viewMode === "tree" ? renderTreeView() : state.files.map(renderFile))}
+            (treePresence.show
+              ? renderTreeView(treePresence.closing)
+              : state.files.map(renderFile))}
         </div>
       </div>
       {pendingRevert && (
