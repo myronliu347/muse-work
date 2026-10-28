@@ -2087,9 +2087,12 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       findIssueGroupForSession(host.closedIssueGroups, sessionId)
     );
   }, [host, state.currentSession?.id]);
+  // 事项标签上的输入框跟屏幕上这条 Issue。宿主当前会话可能还停在另一条已关闭的事项上。
+  const issueForComposer =
+    assistantVisible && shownIssueGroup ? shownIssueGroup : activeIssueGroup;
   const issueClosed =
-    activeIssueGroup?.status === "completed" ||
-    activeIssueGroup?.status === "cancelled";
+    issueForComposer?.status === "completed" ||
+    issueForComposer?.status === "cancelled";
   const issueViewTab: IssueViewTab = paneUi.issueViewTab ?? "planning";
 
   useEffect(() => {

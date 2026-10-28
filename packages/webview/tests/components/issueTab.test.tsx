@@ -19,6 +19,7 @@ import {
   fixtures,
   sendExtensionMessage,
   sendHostMessage,
+  setInputText,
 } from "../webview/test-utils";
 
 async function ensureAssistantDock(
@@ -1797,6 +1798,62 @@ describe("issue tab", () => {
         sessionId: "assistant",
       });
     });
+  });
+
+  it("keeps the open issue sender usable when the host session belongs to a closed issue", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            issueGroups: [{ ...RADII_ISSUE, status: "review" }],
+            closedIssueGroups: [
+              {
+                ...issue({
+                  issueId: "closed-plan",
+                  title: "已经关了",
+                  priority: "p1",
+                  planningSessionId: "plan-closed",
+                  sessions: [session("plan-closed", "/work/closed", "已经关了")],
+                }),
+                status: "completed",
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    const frame = await screen.findByTestId("assistant-frame");
+    const dock = await ensureAssistantDock(frame, user);
+    await user.click(within(dock).getByRole("button", { name: "打开会话" }));
+    const transcript = await within(frame).findByTestId("issue-tab-transcript");
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [],
+      session: { id: "plan-closed", title: "已经关了" },
+      workdir: "/work/closed",
+    });
+
+    const input = within(transcript).getByTestId("message-input");
+    expect(input.getAttribute("contentEditable")).toBe("true");
+    expect(input.getAttribute("data-placeholder")).not.toBe(
+      "这条 Issue 已关闭，不能再发消息",
+    );
+    await setInputText(input, "继续改");
+    await user.click(within(transcript).getByTestId("send-btn"));
+    expect(vscode.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "sendMessage",
+        text: "继续改",
+        sessionId: "plan-radii",
+      }),
+    );
   });
 
   it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {

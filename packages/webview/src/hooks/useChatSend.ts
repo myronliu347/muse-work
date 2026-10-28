@@ -114,9 +114,12 @@ export function useChatSend({
       if (!trimmedText && (!images || images.length === 0)) return;
 
       const currentId = stateRef.current.currentSession?.id;
+      // 事项标签把消息发给正在看的会话。宿主当前会话若是另一条已关闭事项，不能把这条发送拦住。
+      const pinned = pinnedSessionIdRef?.current;
+      const targetId = pinned || currentId;
       if (
         host?.type === "desktop" &&
-        findIssueGroupForSession(host.closedIssueGroups, currentId)
+        findIssueGroupForSession(host.closedIssueGroups, targetId)
       ) {
         return;
       }
@@ -222,7 +225,6 @@ export function useChatSend({
 
       // Issue tab pins the visible planning/execution session. Otherwise a
       // split issue still sends into its planning session.
-      const pinned = pinnedSessionIdRef?.current;
       postToHost({
         command: "sendMessage",
         text: trimmedText,
