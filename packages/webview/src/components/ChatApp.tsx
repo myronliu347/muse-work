@@ -309,6 +309,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     issueTitles[group.issueId] = group.title;
   }
   const [assistantWorkdir, setAssistantWorkdir] = useState<string | undefined>();
+  const [assistantSessionId, setAssistantSessionId] = useState<string | undefined>();
   const assistantVisible =
     host?.type === "desktop" &&
     (paneId !== undefined
@@ -328,7 +329,9 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     void museApi
       .getAssistantSession()
       .then((info) => {
-        if (!cancelled && info.workdir) setAssistantWorkdir(info.workdir);
+        if (cancelled) return;
+        if (info.workdir) setAssistantWorkdir(info.workdir);
+        if (info.sessionId) setAssistantSessionId(info.sessionId);
       })
       .catch(() => undefined);
     return () => {
@@ -1137,14 +1140,34 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     paneIdRef,
   });
   const { postToHost, patchPane, updatePanelGroup } = core;
+  // 当前会话跟着激活的标签走。切到 Issue 才选中那条会话；切回 Muse Bot 再交还给助手自己的会话。
+  const followedIssueSessionRef = useRef<string | null>(null);
   useEffect(() => {
-    // 切到这条 Issue 会话后，跟会话页一样把它设成当前会话。只有当前会话会收流式。
-    if (!assistantVisible || !openIssueSessionId) return;
-    if (state.currentSession?.id === openIssueSessionId) return;
-    postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
+    if (!assistantVisible) return;
+    if (workspace.active !== "bot") {
+      if (!openIssueSessionId) return;
+      followedIssueSessionRef.current = openIssueSessionId;
+      if (state.currentSession?.id === openIssueSessionId) return;
+      postToHost({ command: "desktopSelectSession", sessionId: openIssueSessionId });
+      return;
+    }
+    const taken = followedIssueSessionRef.current;
+    if (!taken || !assistantSessionId || assistantSessionId === taken) return;
+    if (state.currentSession?.id && state.currentSession.id !== taken) {
+      followedIssueSessionRef.current = null;
+      return;
+    }
+    if (state.currentSession?.id === assistantSessionId) {
+      followedIssueSessionRef.current = null;
+      return;
+    }
+    followedIssueSessionRef.current = null;
+    postToHost({ command: "desktopSelectSession", sessionId: assistantSessionId });
   }, [
     assistantVisible,
+    workspace.active,
     openIssueSessionId,
+    assistantSessionId,
     state.currentSession?.id,
     postToHost,
   ]);

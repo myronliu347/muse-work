@@ -1789,6 +1789,14 @@ describe("issue tab", () => {
       command: "desktopSelectSession",
       sessionId: "plan-radii",
     });
+
+    await user.click(within(frame).getByRole("button", { name: "Muse Bot" }));
+    await waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        command: "desktopSelectSession",
+        sessionId: "assistant",
+      });
+    });
   });
 
   it("refreshes the visible issue transcript and stops while that tab is hidden", async () => {
