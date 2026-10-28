@@ -1,0 +1,50 @@
+packages/webview/src/components/chat/MessageList.tsx
+  86c5d17c1588aabf 574-580,648-651,653-662,752-755,820-822,826-827,829
+packages/webview/src/styles/MessageList.css
+  86c5d17c1588aabf 21-23,134-135,137-140,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "d95a0145ca5a7674a18e559a8d82aeb1f76f7d82",
+  "prompts": {
+    "86c5d17c1588aabf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "11969ee0-b03c-400a-b2e5-fd72122f8611",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 61,
+      "total_deletions": 43,
+      "accepted_lines": 49,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/styles/MessageList.css": {
+          "additions": 10,
+          "deletions": 6,
+          "accepted_lines": 10
+        },
+        "packages/webview/tests/components/thinkingHint.test.tsx": {
+          "additions": 4,
+          "deletions": 4,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "deletions": 1
+        },
+        "packages/webview/src/components/chat/MessageList.tsx": {
+          "additions": 46,
+          "deletions": 29,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/components/message/ToolActivityGroup.tsx": {
+          "additions": 1,
+          "deletions": 3,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
