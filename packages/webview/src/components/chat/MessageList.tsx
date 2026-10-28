@@ -34,6 +34,7 @@ import {
   navEntriesFromMessages,
   pickActiveUserMessageId,
 } from "../message/UserMessageNav";
+import { resolveFollowScrollTop } from "./followScroll";
 import "../../styles/MessageList.css";
 
 /** Matches --space-4 / --space-3 so virtual offsets line up with the column. */
@@ -414,7 +415,10 @@ export const MessageList = forwardRef<
     paddingStart: COLUMN_PAD,
     paddingEnd: COLUMN_PAD,
     anchorTo: "end",
-    followOnAppend: true,
+    // Appending starts scrollToEnd's per-frame reconcile, which fights the
+    // end-anchor adjustment and shakes the scrollbar. New rows are pinned by
+    // the message effect instead.
+    followOnAppend: false,
     getItemKey: (index) => rows[index]?.key ?? index,
     directDomUpdates: true,
     directDomUpdatesMode: "position",
@@ -437,7 +441,23 @@ export const MessageList = forwardRef<
       if (spacerRef.current) {
         spacerRef.current.style.height = `${instance.getTotalSize()}px`;
       }
+      const adjustment = opts.adjustments ?? 0;
+      const container = containerRef.current;
+      const requestedTop = offset + adjustment;
+      const visualMax = container
+        ? Math.max(0, container.scrollHeight - container.clientHeight)
+        : requestedTop;
+      const top = resolveFollowScrollTop(
+        requestedTop,
+        visualMax,
+        !userScrolledUpRef.current,
+        adjustment,
+      );
       markProgrammaticScroll();
+      if (top !== requestedTop) {
+        container?.scrollTo?.({ top, behavior: opts.behavior });
+        return;
+      }
       elementScroll(offset, opts, instance);
     },
   });
