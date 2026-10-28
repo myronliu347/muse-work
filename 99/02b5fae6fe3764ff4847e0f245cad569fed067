@@ -1,0 +1,111 @@
+packages/server/tests/assistantRuntime.test.ts
+  d6b258ad0cddfa54 199,220-229,289-298,306,314,353-362,374-378
+packages/server/src/routes/assistant.ts
+  d6b258ad0cddfa54 18
+packages/server/src/services/appContext.ts
+  d6b258ad0cddfa54 148-159,166,268-273
+packages/webview/tests/components/assistantPage.test.tsx
+  d6b258ad0cddfa54 166-216
+packages/server/src/services/wsEvents.ts
+  d6b258ad0cddfa54 123
+packages/webview/src/muse/apiClient.ts
+  d6b258ad0cddfa54 1103
+packages/webview/src/muse/hostBridge/index.ts
+  d6b258ad0cddfa54 155-161
+packages/webview/src/components/assistant/AssistantPage.tsx
+  d6b258ad0cddfa54 71,648,824,846,919,927,936-938,1075,1114,1182-1187
+packages/server/tests/assistantSession.test.ts
+  d6b258ad0cddfa54 50-55
+packages/server/src/services/assistant/runtime.ts
+  d6b258ad0cddfa54 53-54,160,178,185-187,189-193,255-259
+packages/server/src/services/assistant/prompt.ts
+  d6b258ad0cddfa54 7,19-20,34,51-52,57,99
+packages/webview/src/muse/wsClient.ts
+  d6b258ad0cddfa54 100
+packages/server/src/services/sessionRunner/agent.ts
+  d6b258ad0cddfa54 74-75,1021-1025,1135-1138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "9902b5fae6fe3764ff4847e0f245cad569fed067",
+  "prompts": {
+    "d6b258ad0cddfa54": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b314e172-1ca0-4387-bde5-9ad321d51541",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 182,
+      "total_deletions": 36,
+      "accepted_lines": 180,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/server/src/services/appContext.ts": {
+          "additions": 19,
+          "deletions": 1,
+          "accepted_lines": 19
+        },
+        "packages/server/src/services/assistant/prompt.ts": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 8
+        },
+        "packages/server/src/services/assistant/runtime.ts": {
+          "additions": 17,
+          "deletions": 3,
+          "accepted_lines": 17
+        },
+        "packages/webview/src/muse/hostBridge/index.ts": {
+          "additions": 7,
+          "deletions": 1,
+          "accepted_lines": 7
+        },
+        "packages/webview/src/muse/wsClient.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "packages/webview/tests/components/assistantPage.test.tsx": {
+          "additions": 55,
+          "deletions": 2,
+          "accepted_lines": 53
+        },
+        "packages/server/src/routes/assistant.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/tests/assistantRuntime.test.ts": {
+          "additions": 38,
+          "deletions": 16,
+          "accepted_lines": 38
+        },
+        "packages/server/src/services/sessionRunner/agent.ts": {
+          "additions": 11,
+          "deletions": 1,
+          "accepted_lines": 11
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 17,
+          "deletions": 4,
+          "accepted_lines": 17
+        },
+        "packages/server/tests/assistantSession.test.ts": {
+          "additions": 6,
+          "accepted_lines": 6
+        },
+        "packages/webview/src/muse/apiClient.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "packages/server/src/services/wsEvents.ts": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
