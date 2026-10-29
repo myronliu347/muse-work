@@ -1,0 +1,110 @@
+packages/webview/src/components/panels/FilePreview.tsx
+  0f9be30eaa9d8066 13,444,447
+packages/webview/src/components/assistant/AssistantPage.tsx
+  0f9be30eaa9d8066 22,178,400,402,404,527,540-543
+packages/webview/src/styles/FilePane.css
+  0f9be30eaa9d8066 16,190-192
+packages/webview/src/components/desktop/DockDetail.tsx
+  0f9be30eaa9d8066 6,48,54
+packages/webview/src/components/automation/AutomationTranscript.tsx
+  0f9be30eaa9d8066 5,97,203
+packages/webview/src/styles/Message.css
+  0f9be30eaa9d8066 11-13,920-924,1001-1002,1135-1136,1150-1153
+packages/webview/tests/muse/shikiHighlighter.test.ts
+  0f9be30eaa9d8066 5-6,26-33
+packages/webview/src/components/message/Message.tsx
+  0f9be30eaa9d8066 35,342,345
+packages/webview/src/styles/DesktopPanelDock.css
+  0f9be30eaa9d8066 631-632,643-650
+packages/webview/src/utils/shikiHighlighter.ts
+  0f9be30eaa9d8066 114-131,147,152-166
+packages/webview/src/components/message/MarkdownView.tsx
+  0f9be30eaa9d8066 1-48
+packages/webview/src/styles/AutomationsPage.css
+  0f9be30eaa9d8066 814-832
+packages/webview/tests/components/filePane.test.tsx
+  0f9be30eaa9d8066 21-25,440-461
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.7",
+  "base_commit_sha": "12302f0cc582af5ea6626303a2770a79721657e7",
+  "prompts": {
+    "0f9be30eaa9d8066": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "40d5f15b-1841-473d-ab8d-97962a4feafd",
+        "model": "grok-4.7"
+      },
+      "human_author": "刘宇阳",
+      "messages": [],
+      "total_additions": 210,
+      "total_deletions": 56,
+      "accepted_lines": 199,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "packages/webview/src/components/panels/FilePreview.tsx": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/FilePane.css": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "packages/webview/src/components/message/Message.tsx": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/styles/AutomationsPage.css": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "packages/webview/src/styles/Message.css": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "packages/webview/src/components/automation/AutomationTranscript.tsx": {
+          "additions": 3,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/message/MarkdownView.tsx": {
+          "additions": 59,
+          "deletions": 11,
+          "accepted_lines": 48
+        },
+        "packages/webview/tests/components/filePane.test.tsx": {
+          "additions": 34,
+          "deletions": 5,
+          "accepted_lines": 34
+        },
+        "packages/webview/src/utils/shikiHighlighter.ts": {
+          "additions": 36,
+          "deletions": 11,
+          "accepted_lines": 36
+        },
+        "packages/webview/tests/muse/shikiHighlighter.test.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/styles/DesktopPanelDock.css": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "packages/webview/src/components/desktop/DockDetail.tsx": {
+          "additions": 3,
+          "deletions": 5,
+          "accepted_lines": 3
+        },
+        "packages/webview/src/components/assistant/AssistantPage.tsx": {
+          "additions": 10,
+          "deletions": 10,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
