@@ -44,6 +44,8 @@ describe("ensureAssistantSession", () => {
     expect(first.systemPrompt).toContain("`Bash` 不做长时间任务");
     expect(first.tools).not.toContain("Agent");
     expect(first.systemPrompt).toContain("留下结论和数字");
+    expect(first.systemPrompt).toContain("多图少字");
+    expect(first.systemPrompt).toContain("`SendMessage` 的 `files`");
     expect(first.systemPrompt).toContain("每条发给人的话都要温和可爱");
     expect(first.systemPrompt).toContain("把标准念出来算失败");
     expect(first.systemPrompt).toContain("派活前先弄清这件事要做什么");
