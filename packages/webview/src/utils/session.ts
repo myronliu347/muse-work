@@ -86,3 +86,18 @@ export const getSessionTitle = (
   if (derived) return truncate(derived);
   return DEFAULT_SESSION_TITLE;
 };
+
+/** Sidebar「新对话」: no server session until the first send. */
+export const DRAFT_SESSION_ID = "__draft__";
+
+export const draftSessionMetadata = (workdir = ""): SessionMetadata => {
+  const now = new Date();
+  return {
+    id: DRAFT_SESSION_ID,
+    sessionType: "main",
+    workdir,
+    createdAt: now,
+    lastActiveAt: now,
+    latestTotalTokens: 0,
+  };
+};

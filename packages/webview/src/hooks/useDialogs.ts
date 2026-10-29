@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import type { MainView } from "../components/ChatApp";
 import type { ChatAppCore } from "./useChatAppCore";
+import { draftSessionMetadata } from "../utils/session";
 
 export interface DialogHandlers {
   handleConfigurationSave: (configData: ConfigurationData) => void;
@@ -76,23 +77,31 @@ export function useDialogs({
 
   // Desktop 的"新对话"入口（侧边栏按钮）：由宿主 spawn 新 agent 承载全新会话，
   // 当前会话在后台继续，因此流式期间保持可用。
+  // 先在这一帧放上草稿，不等宿主往返，会话页才不会被上一条会话拉回去。
   const handleDesktopNewSession = useCallback(() => {
-    // 同步退出机器人页，不依赖宿主推送新会话的时序。
     setView("chat");
+    dispatch({
+      type: "SET_CURRENT_SESSION",
+      payload: draftSessionMetadata(),
+    });
     postToHost({
       command: "newSession",
     });
-  }, [postToHost]);
+  }, [dispatch, postToHost]);
 
   const handleDesktopNewSessionInWorkdir = useCallback(
     (workdir: string) => {
       setView("chat");
+      dispatch({
+        type: "SET_CURRENT_SESSION",
+        payload: draftSessionMetadata(workdir),
+      });
       postToHost({
         command: "newSession",
         workdir,
       });
     },
-    [postToHost],
+    [dispatch, postToHost],
   );
 
   const handleLogin = useCallback(() => {

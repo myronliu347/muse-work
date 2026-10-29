@@ -15,6 +15,10 @@ import ConfigDialog, {
   settingsPageLeaveBlocked,
   type ConfigDialogHandle,
 } from "../dialogs/ConfigDialog";
+import {
+  notifyFocusedPaneNewSession,
+  registerDesktopNewSessionOpener,
+} from "../../muse/desktopNewSessionNav";
 import { registerDesktopSettingsOpener } from "../../muse/desktopSettingsNav";
 import { ShellSurfaceProvider, type ShellSurface } from "./shellSurface";
 import {
@@ -139,6 +143,13 @@ const DesktopShellView: React.FC<
       setShellView("settings");
     });
   }, []);
+  useLayoutEffect(() => {
+    return registerDesktopNewSessionOpener(() => {
+      setShellView("sessions");
+      notifyFocusedPaneNewSession();
+      vscode.postMessage({ command: "newSession" });
+    });
+  }, [vscode]);
   const sessionListInset =
     shellView === "sessions" && !sidebarCollapsed ? sessionListWidth : 0;
   const contentInset = layoutSidebarWidth + sessionListInset;

@@ -302,6 +302,137 @@ describe("issue tab", () => {
     expect((await screen.findAllByText(NOTES_MESSAGE)).length).toBeGreaterThan(0);
   });
 
+  it("opens 新对话 from the sessions page without bouncing back", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    const user = userEvent.setup();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "recent",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [textMessage("notes-1", NOTES_MESSAGE)],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+      isAuthenticated: true,
+    });
+    await user.click(screen.getByTestId("desktop-sessions-menu"));
+    expect((await screen.findAllByText(NOTES_MESSAGE)).length).toBeGreaterThan(0);
+
+    vscode.postMessage.mockClear();
+    await user.click(screen.getByTestId("desktop-new-session"));
+
+    expect(await screen.findByTestId("new-session-page")).toBeInTheDocument();
+    expect(screen.queryByText(NOTES_MESSAGE)).toBeNull();
+    expect(screen.getByTestId("desktop-session-item-sess-notes").className).not.toContain(
+      "desktop-session-item--current",
+    );
+    expect(vscode.postMessage).toHaveBeenCalledWith({ command: "newSession" });
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "sess-notes",
+    });
+
+    sendExtensionMessage({ command: "updateMessages", messages: [] });
+    sendExtensionMessage({
+      command: "updateCurrentSession",
+      session: {
+        id: "__draft__",
+        sessionType: "main",
+        workdir: "",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+      },
+    });
+
+    expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "sess-notes",
+    });
+
+    sendExtensionMessage({
+      command: "updateCurrentSession",
+      session: {
+        id: "sess-notes",
+        sessionType: "main",
+        workdir: "/work/notes",
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        latestTotalTokens: 0,
+        firstMessage: "会议记录",
+      },
+    });
+    expect((await screen.findAllByText(NOTES_MESSAGE)).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("new-session-page")).toBeNull();
+  });
+
+  it("switches the sidebar to 会话 when Cmd+N starts a draft from Muse Bot", async () => {
+    resetWebviewStores();
+    stubAssistant([]);
+    stubWideViewport();
+    const vscode = createMockVscode();
+    render(
+      <MuseTheme>
+        <ChatApp
+          vscode={vscode}
+          host={createMockDesktopHost({
+            sessionTree: [
+              {
+                host: "local",
+                workdir: "recent",
+                sessions: [session("sess-notes", "/work/notes", "会议记录")],
+              },
+            ],
+          })}
+        />
+      </MuseTheme>,
+    );
+
+    sendExtensionMessage({
+      command: "setInitialState",
+      messages: [textMessage("notes-1", NOTES_MESSAGE)],
+      session: { id: "sess-notes", title: "会议记录" },
+      workdir: "/work/notes",
+      isAuthenticated: true,
+    });
+    expect(await screen.findByTestId("assistant-frame")).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-assistant-menu").className).toContain("active");
+
+    vscode.postMessage.mockClear();
+    sendExtensionMessage({ command: "desktopNewSessionShortcut" });
+
+    expect(screen.getByTestId("desktop-sessions-menu").className).toContain("active");
+    expect(screen.getByTestId("desktop-assistant-menu").className).not.toContain(
+      "active",
+    );
+    expect(screen.getByTestId("desktop-session-list")).toBeInTheDocument();
+    expect(screen.queryByTestId("assistant-frame")).toBeNull();
+    expect(await screen.findByTestId("new-session-page")).toBeInTheDocument();
+    expect(vscode.postMessage).toHaveBeenCalledWith({ command: "newSession" });
+    expect(vscode.postMessage).not.toHaveBeenCalledWith({
+      command: "desktopSelectSession",
+      sessionId: "sess-notes",
+    });
+  });
+
   it("opens the issue transcript from detail without leaving Muse Bot", async () => {
     resetWebviewStores();
     const fetched: string[] = [];

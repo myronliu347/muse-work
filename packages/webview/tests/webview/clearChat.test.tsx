@@ -50,7 +50,7 @@ describe("Clear Chat Functionality", () => {
 
     // Desktop-only: the header 新建对话 button is hidden; the sidebar
     // 新对话 button spawns a fresh host session (newSession) — not an in-place
-    // clear (that is /clear's job, covered below).
+    // clear (that is /clear's job, covered below). The draft page shows at once.
     const newSessionBtn = screen.getByTestId("desktop-new-session");
     act(() => {
       fireEvent.click(newSessionBtn);
@@ -66,9 +66,8 @@ describe("Clear Chat Functionality", () => {
       expect.objectContaining({ command: "newChatTab" }),
     );
 
-    // Webview does not clear messages locally; the host clears via updateMessages
-    const messages = document.querySelectorAll(".messages-container .message");
-    expect(messages.length).toBe(3);
+    expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("messages-container")).toBeNull();
   });
 
   it("should still send clearChat via the /clear slash command", async () => {

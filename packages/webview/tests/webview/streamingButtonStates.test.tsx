@@ -102,8 +102,8 @@ describe("Streaming Button States", () => {
     fireEvent.click(newSessionBtn);
 
     const sentMessages = vscode.postMessage.mock.calls.map((c) => c[0]);
-    // Desktop semantics: the sidebar 新对话 spawns a fresh host session without
-    // touching the current transcript (no in-place clear / tab switch).
+    // Desktop semantics: the sidebar 新对话 spawns a fresh host session and
+    // shows the draft page. It does not clear the previous transcript in place.
     expect(
       sentMessages.filter(
         (msg: Record<string, unknown>) => msg.command === "newSession",
@@ -120,7 +120,8 @@ describe("Streaming Button States", () => {
       ),
     ).toHaveLength(0);
 
-    expect(getMessages()).toHaveLength(2);
+    expect(screen.getByTestId("new-session-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("messages-container")).toBeNull();
   });
 
   it("should handle abort and restore button states", () => {

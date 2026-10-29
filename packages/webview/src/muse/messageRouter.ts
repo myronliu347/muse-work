@@ -11,6 +11,7 @@ import type {
   FileTreeDirEntry,
   Message,
 } from "../types";
+import { openDesktopNewSessionPage } from "./desktopNewSessionNav";
 import { openDesktopSettingsPage } from "./desktopSettingsNav";
 import { acceptDesktopContentSearchResult } from "./contentSearchRequests";
 import { acceptDesktopListDirResult } from "./listDirRequests";
@@ -453,9 +454,12 @@ export function createMessageHandler({
         break;
       case "desktopNewSessionShortcut":
         // Menu accelerator is window-global; the shell / single-pane instance
-        // owns newSession so split panes do not spawn duplicates.
+        // owns newSession so split panes do not spawn duplicates. The shell
+        // also leaves Muse Bot for 会话 — the accelerator never reaches the page.
         if (myPane !== undefined) break;
-        vscode.postMessage({ command: "newSession" });
+        if (!openDesktopNewSessionPage()) {
+          vscode.postMessage({ command: "newSession" });
+        }
         break;
       case "desktopTogglePanel":
         if (!forThisPane(message)) break;

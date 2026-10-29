@@ -52,6 +52,10 @@ import ConfigDialog, {
   settingsPageLeaveBlocked,
   type ConfigDialogHandle,
 } from "./dialogs/ConfigDialog";
+import {
+  registerDesktopNewSessionOpener,
+  subscribeFocusedPaneNewSession,
+} from "../muse/desktopNewSessionNav";
 import { registerDesktopSettingsOpener } from "../muse/desktopSettingsNav";
 import { NewIssueDialog } from "./issue/NewIssueDialog";
 import { OpenPlanningDialog } from "./issue/OpenPlanningDialog";
@@ -69,6 +73,7 @@ import {
   issueGroupSessionWorkdir,
   resolveIssuePlanningSessionId,
 } from "../utils/issueGroups";
+import { DRAFT_SESSION_ID, draftSessionMetadata } from "../utils/session";
 import {
   DesktopPanelSlots,
   type DesktopPanelSlotsProps,
@@ -1149,10 +1154,11 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
   // 会话页记住自己的会话。Muse Bot 看事项时会临时切到那条会话以接收流式，
   // 但不改会话页记下的选择，回到会话页再切回去。Bot 主页不占用当前会话。
   // 切回来时先在这一帧放上记下的会话，不等宿主往返，中间栏才不会空一拍。
+  // 新对话也是会话页自己的选择：草稿不在列表里，不能被上一条会话盖回去。
   const sessionsPageSessionRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     const listedSessionId = (id: string | undefined): string | null => {
-      if (!id || id === "__draft__") return null;
+      if (!id || id === DRAFT_SESSION_ID) return null;
       const listed = (hostRef.current?.sessionTree ?? []).some((group) =>
         group.sessions.some((session) => session.sessionId === id),
       );
@@ -1166,7 +1172,19 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
       onSessionsSurface &&
       (paneId === undefined || (hostRef.current?.focusedPaneId ?? paneId) === paneId);
     if (ownsSessionsPage) {
+      if (currentId === DRAFT_SESSION_ID) {
+        sessionsPageSessionRef.current = DRAFT_SESSION_ID;
+        return;
+      }
       let owned = sessionsPageSessionRef.current;
+      if (owned === DRAFT_SESSION_ID) {
+        dispatch({
+          type: "SET_CURRENT_SESSION",
+          payload: draftSessionMetadata(),
+        });
+        postToHost({ command: "newSession" });
+        return;
+      }
       if (!owned) {
         const panes = hostRef.current?.panes ?? [];
         const paneSessionId = (
@@ -1174,7 +1192,7 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
         )?.sessionId;
         owned = listedSessionId(paneSessionId);
       }
-      if (!owned && currentId && currentId !== "__draft__" && !listed) {
+      if (!owned && currentId && currentId !== DRAFT_SESSION_ID && !listed) {
         let latest = 0;
         for (const group of hostRef.current?.sessionTree ?? []) {
           for (const session of group.sessions) {
@@ -2005,6 +2023,30 @@ const ChatAppInner: React.FC<ChatAppInnerProps> = ({
     handleDesktopNewSessionInWorkdir,
     handleInputCleared,
   } = dialogActions;
+
+  // Cmd+N 是窗口菜单，到不了页面。无窗格时由这里切到会话并打开草稿。
+  useLayoutEffect(() => {
+    if (!noPaneDesktop) return;
+    return registerDesktopNewSessionOpener(() => {
+      setNoPaneRail("sessions");
+      setView("chat");
+      handleDesktopNewSession();
+    });
+  }, [noPaneDesktop, handleDesktopNewSession]);
+  // 有窗格时壳切到会话，聚焦的那一格在同一帧放上草稿，避免被记下的旧会话拉回去。
+  useEffect(() => {
+    if (paneId === undefined) return;
+    return subscribeFocusedPaneNewSession(() => {
+      const hostNow = hostRef.current;
+      const focused = hostNow?.focusedPaneId ?? hostNow?.panes?.[0]?.paneId;
+      if (focused && focused !== paneId) return;
+      setView("chat");
+      dispatch({
+        type: "SET_CURRENT_SESSION",
+        payload: draftSessionMetadata(),
+      });
+    });
+  }, [paneId, dispatch]);
 
   const sessionDefaultModel = useScenarioModelsStore(
     (s) => s.models?.session,

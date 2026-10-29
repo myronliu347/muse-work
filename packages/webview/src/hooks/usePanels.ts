@@ -30,6 +30,7 @@ import {
 } from "../stores";
 import type { MainView } from "../components/ChatApp";
 import type { ChatAppCore } from "./useChatAppCore";
+import { openDesktopNewSessionPage } from "../muse/desktopNewSessionNav";
 
 /** Desktop conversation-level panels: tab order in the shared dock. */
 const PANEL_ORDER = PANEL_TAB_ORDER;
@@ -392,9 +393,12 @@ export function usePanels({
       if (matchNewSessionShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
-        // 与侧栏新对话按钮一致：同步退出机器人页等其它视图。
-        setView("chat");
-        postToHost({ command: "newSession" });
+        // 菜单加速键走 desktopNewSessionShortcut。这里是没被菜单吃掉时的同一条路：
+        // 切到会话页再开草稿。
+        if (!openDesktopNewSessionPage()) {
+          setView("chat");
+          postToHost({ command: "newSession" });
+        }
         return;
       }
       if (!isDraftSession && matchQuickOpenShortcut(event)) {
